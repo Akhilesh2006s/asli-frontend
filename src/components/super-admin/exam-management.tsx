@@ -275,6 +275,8 @@ export default function ExamManagement() {
         ? `${API_BASE_URL}/api/super-admin/exams`
         : `${API_BASE_URL}/api/super-admin/boards/${selectedBoard}/exams`;
       
+      console.log('🌐 Fetching exams from:', url);
+      
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -287,12 +289,33 @@ export default function ExamManagement() {
         if (data.success) {
           setExams(data.data || []);
         }
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        toast({
+          title: 'Error',
+          description: errorData.message || `Failed to fetch exams (${response.status})`,
+          variant: 'destructive'
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch exams:', error);
+      
+      // Handle network errors specifically
+      let errorMessage = 'Failed to fetch exams';
+      
+      if (error instanceof TypeError) {
+        if (error.message === 'Failed to fetch' || error.message.includes('ERR_NAME_NOT_RESOLVED') || error.message.includes('ERR_NETWORK')) {
+          errorMessage = 'Network error: Cannot connect to server. Please check your internet connection and try again.';
+        } else {
+          errorMessage = `Network error: ${error.message}`;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message || 'Failed to fetch exams';
+      }
+      
       toast({
         title: 'Error',
-        description: 'Failed to fetch exams',
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {

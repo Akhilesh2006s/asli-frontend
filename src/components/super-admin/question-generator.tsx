@@ -219,7 +219,7 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
                   </SelectTrigger>
                   <SelectContent>
                     {subjects.length === 0 ? (
-                      <SelectItem value="" disabled>No subjects available</SelectItem>
+                      <SelectItem value="__no_subjects__" disabled>No subjects available</SelectItem>
                     ) : (
                       subjects.map((subject) => (
                         <SelectItem key={subject._id} value={subject._id}>

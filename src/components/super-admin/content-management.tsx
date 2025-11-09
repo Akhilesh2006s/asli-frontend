@@ -73,7 +73,10 @@ export default function ContentManagement() {
   const fetchSubjects = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/boards/${selectedBoard}/subjects`, {
+      const url = `${API_BASE_URL}/api/super-admin/boards/${selectedBoard}/subjects`;
+      console.log('🌐 Fetching subjects from:', url);
+      
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -85,12 +88,33 @@ export default function ContentManagement() {
         if (data.success) {
           setSubjects(data.data || []);
         }
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        toast({
+          title: 'Error',
+          description: errorData.message || `Failed to fetch subjects (${response.status})`,
+          variant: 'destructive'
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch subjects:', error);
+      
+      // Handle network errors specifically
+      let errorMessage = 'Failed to fetch subjects';
+      
+      if (error instanceof TypeError) {
+        if (error.message === 'Failed to fetch' || error.message.includes('ERR_NAME_NOT_RESOLVED') || error.message.includes('ERR_NETWORK')) {
+          errorMessage = 'Network error: Cannot connect to server. Please check your internet connection and try again.';
+        } else {
+          errorMessage = `Network error: ${error.message}`;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message || 'Failed to fetch subjects';
+      }
+      
       toast({
         title: 'Error',
-        description: 'Failed to fetch subjects',
+        description: errorMessage,
         variant: 'destructive'
       });
     }
@@ -100,7 +124,10 @@ export default function ContentManagement() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/boards/${selectedBoard}/content`, {
+      const url = `${API_BASE_URL}/api/super-admin/boards/${selectedBoard}/content`;
+      console.log('🌐 Fetching content from:', url);
+      
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -112,12 +139,33 @@ export default function ContentManagement() {
         if (data.success) {
           setContents(data.data || []);
         }
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        toast({
+          title: 'Error',
+          description: errorData.message || `Failed to fetch content (${response.status})`,
+          variant: 'destructive'
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch contents:', error);
+      
+      // Handle network errors specifically
+      let errorMessage = 'Failed to fetch content';
+      
+      if (error instanceof TypeError) {
+        if (error.message === 'Failed to fetch' || error.message.includes('ERR_NAME_NOT_RESOLVED') || error.message.includes('ERR_NETWORK')) {
+          errorMessage = 'Network error: Cannot connect to server. Please check your internet connection and try again.';
+        } else {
+          errorMessage = `Network error: ${error.message}`;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message || 'Failed to fetch content';
+      }
+      
       toast({
         title: 'Error',
-        description: 'Failed to fetch content',
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {

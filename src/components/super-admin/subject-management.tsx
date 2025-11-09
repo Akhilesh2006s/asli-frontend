@@ -108,6 +108,8 @@ export default function SubjectManagement() {
       }
       
       console.log('📤 Creating subject with data:', requestBody);
+      console.log('🌐 API Base URL:', API_BASE_URL);
+      console.log('🔗 Full URL:', `${API_BASE_URL}/api/super-admin/subjects`);
       
       const response = await fetch(`${API_BASE_URL}/api/super-admin/subjects`, {
         method: 'POST',
@@ -155,11 +157,25 @@ export default function SubjectManagement() {
           variant: 'destructive'
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Create error:', error);
+      
+      // Handle network errors specifically
+      let errorMessage = 'Failed to create subject';
+      
+      if (error instanceof TypeError) {
+        if (error.message === 'Failed to fetch' || error.message.includes('ERR_NAME_NOT_RESOLVED') || error.message.includes('ERR_NETWORK')) {
+          errorMessage = 'Network error: Cannot connect to server. Please check your internet connection and try again.';
+        } else {
+          errorMessage = `Network error: ${error.message}`;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message || 'Failed to create subject';
+      }
+      
       toast({
         title: 'Error',
-        description: 'Failed to create subject',
+        description: errorMessage,
         variant: 'destructive'
       });
     }

@@ -135,7 +135,10 @@ export default function IQRankBoostActivities() {
   const fetchBoards = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/boards`, {
+      const url = `${API_BASE_URL}/api/super-admin/boards`;
+      console.log('🌐 Fetching boards from:', url);
+      
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -145,9 +148,19 @@ export default function IQRankBoostActivities() {
       if (response.ok) {
         const data = await response.json();
         setBoards(data.data || []);
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('Failed to fetch boards:', errorData);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching boards:', error);
+      
+      // Handle network errors specifically
+      if (error instanceof TypeError) {
+        if (error.message === 'Failed to fetch' || error.message.includes('ERR_NAME_NOT_RESOLVED') || error.message.includes('ERR_NETWORK')) {
+          console.error('Network error: Cannot connect to server');
+        }
+      }
     }
   };
 
@@ -511,14 +524,14 @@ export default function IQRankBoostActivities() {
               <div>
                 <Label>Subject (Optional)</Label>
                 <Select
-                  value={formData.subject}
-                  onValueChange={(value) => setFormData({ ...formData, subject: value })}
+                  value={formData.subject || '__none__'}
+                  onValueChange={(value) => setFormData({ ...formData, subject: value === '__none__' ? '' : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select subject" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="__none__">None</SelectItem>
                     {subjects.map((subject) => (
                       <SelectItem key={subject._id} value={subject._id}>
                         {subject.name}
@@ -530,14 +543,14 @@ export default function IQRankBoostActivities() {
               <div>
                 <Label>Board (Optional)</Label>
                 <Select
-                  value={formData.board}
-                  onValueChange={(value) => setFormData({ ...formData, board: value })}
+                  value={formData.board || '__none__'}
+                  onValueChange={(value) => setFormData({ ...formData, board: value === '__none__' ? '' : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select board" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="__none__">None</SelectItem>
                     {boards.map((board) => (
                       <SelectItem key={board._id || board.code} value={board.code || board._id}>
                         {board.name || board.code}
@@ -657,14 +670,14 @@ export default function IQRankBoostActivities() {
               <div>
                 <Label>Subject (Optional)</Label>
                 <Select
-                  value={formData.subject}
-                  onValueChange={(value) => setFormData({ ...formData, subject: value })}
+                  value={formData.subject || '__none__'}
+                  onValueChange={(value) => setFormData({ ...formData, subject: value === '__none__' ? '' : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select subject" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="__none__">None</SelectItem>
                     {subjects.map((subject) => (
                       <SelectItem key={subject._id} value={subject._id}>
                         {subject.name}
@@ -676,14 +689,14 @@ export default function IQRankBoostActivities() {
               <div>
                 <Label>Board (Optional)</Label>
                 <Select
-                  value={formData.board}
-                  onValueChange={(value) => setFormData({ ...formData, board: value })}
+                  value={formData.board || '__none__'}
+                  onValueChange={(value) => setFormData({ ...formData, board: value === '__none__' ? '' : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select board" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="__none__">None</SelectItem>
                     {boards.map((board) => (
                       <SelectItem key={board._id || board.code} value={board.code || board._id}>
                         {board.name || board.code}
