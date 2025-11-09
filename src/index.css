@@ -1,0 +1,279 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Light theme color tokens for clean, modern design */
+  --background: #ffffff; /* Pure white background */
+  --foreground: #1f2937; /* Dark gray for text and highlights */
+  --card: #ffffff; /* White card backgrounds */
+  --card-foreground: #1f2937; /* Dark text on cards */
+  --popover: #ffffff; /* White popover backgrounds */
+  --popover-foreground: #1f2937; /* Dark text in popovers */
+  --primary: #3b82f6; /* Blue accent for highlights */
+  --primary-foreground: #ffffff; /* White text on blue */
+  --secondary: #f3f4f6; /* Light gray for secondary elements */
+  --secondary-foreground: #374151; /* Dark gray text on secondary */
+  --muted: #f9fafb; /* Very light gray for muted elements */
+  --muted-foreground: #6b7280; /* Gray text for muted */
+  --accent: #3b82f6; /* Blue for interactive elements */
+  --accent-foreground: #ffffff; /* White text on accent */
+  --destructive: #ef4444; /* Red for destructive actions */
+  --destructive-foreground: #ffffff; /* White text for destructive */
+  --border: #e5e7eb; /* Light gray borders for contrast */
+  --input: #ffffff; /* White inputs */
+  --ring: #3b82f6; /* Blue for focus rings */
+  --chart-1: #3b82f6;
+  --chart-2: #10b981;
+  --chart-3: #f59e0b;
+  --chart-4: #ef4444;
+  --chart-5: #8b5cf6;
+  --radius: 0.5rem; /* Softer rounded corners */
+  --sidebar: #f8fafc; /* Light sidebar */
+  --sidebar-foreground: #1f2937; /* Dark sidebar text */
+  --sidebar-primary: #3b82f6; /* Blue for primary sidebar */
+  --sidebar-primary-foreground: #ffffff; /* White text on sidebar primary */
+  --sidebar-accent: #f1f5f9; /* Light gray for sidebar accent */
+  --sidebar-accent-foreground: #1f2937; /* Dark text on sidebar accent */
+  --sidebar-border: #e2e8f0; /* Light gray sidebar borders */
+  --sidebar-ring: #3b82f6; /* Blue for sidebar focus */
+  --font-instrument-serif: "Instrument Serif", serif; /* Instrument Serif font family configuration */
+  /* Added Figtree as the primary font variable */
+  --font-figtree: "Figtree", sans-serif; /* Figtree font family configuration */
+}
+
+.dark {
+  /* Dark mode maintains the same dramatic black background theme */
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: rgba(255, 255, 255, 0.05);
+  --card-foreground: #ffffff;
+  --popover: rgba(0, 0, 0, 0.9);
+  --popover-foreground: #ffffff;
+  --primary: #a855f7;
+  --primary-foreground: #000000;
+  --secondary: rgba(255, 255, 255, 0.1);
+  --secondary-foreground: #ffffff;
+  --muted: rgba(255, 255, 255, 0.2);
+  --muted-foreground: rgba(255, 255, 255, 0.6);
+  --accent: #a855f7;
+  --accent-foreground: #000000;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.05);
+  --ring: #a855f7;
+  --chart-1: #3b82f6;
+  --chart-2: #10b981;
+  --chart-3: #f59e0b;
+  --chart-4: #ef4444;
+  --chart-5: #8b5cf6;
+  --sidebar: #000000;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #a855f7;
+  --sidebar-primary-foreground: #000000;
+  --sidebar-accent: rgba(255, 255, 255, 0.1);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #a855f7;
+  --font-instrument-serif: "Instrument Serif", serif; /* Instrument Serif font family configuration */
+  /* Added Figtree font variable for dark mode consistency */
+  --font-figtree: "Figtree", sans-serif; /* Figtree font family configuration */
+}
+
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-white text-foreground;
+    /* Set Figtree as the default font family for the entire website */
+    font-family: var(--font-figtree);
+  }
+  
+  html {
+    @apply bg-white;
+  }
+}
+
+.instrument {
+  font-family: var(--font-instrument-serif);
+}
+
+/* Dashboard custom styles */
+.gradient-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.stats-card {
+  @apply bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200;
+}
+
+.subject-progress-card {
+  @apply bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow duration-200;
+}
+
+.video-thumbnail {
+  @apply relative rounded-lg overflow-hidden cursor-pointer;
+  position: relative;
+}
+
+.video-overlay {
+  @apply absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center;
+}
+
+.play-button {
+  @apply w-12 h-12 bg-white/90 rounded-full flex items-center justify-center text-primary hover:bg-white transition-colors duration-200;
+}
+
+/* Responsive utilities */
+@layer utilities {
+  .container-responsive {
+    @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  .text-responsive-xs {
+    @apply text-xs sm:text-sm;
+  }
+  
+  .text-responsive-sm {
+    @apply text-sm sm:text-base;
+  }
+  
+  .text-responsive-base {
+    @apply text-base sm:text-lg;
+  }
+  
+  .text-responsive-lg {
+    @apply text-lg sm:text-xl md:text-2xl;
+  }
+  
+  .text-responsive-xl {
+    @apply text-xl sm:text-2xl md:text-3xl lg:text-4xl;
+  }
+  
+  .text-responsive-2xl {
+    @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl;
+  }
+  
+  .text-responsive-3xl {
+    @apply text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl;
+  }
+  
+  .grid-responsive-1 {
+    @apply grid grid-cols-1;
+  }
+  
+  .grid-responsive-2 {
+    @apply grid grid-cols-1 sm:grid-cols-2;
+  }
+  
+  .grid-responsive-3 {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
+  }
+  
+  .grid-responsive-4 {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+  
+  .flex-responsive-col {
+    @apply flex flex-col sm:flex-row;
+  }
+  
+  .flex-responsive-row {
+    @apply flex flex-row flex-wrap sm:flex-nowrap;
+  }
+  
+  .gap-responsive {
+    @apply gap-4 sm:gap-6 lg:gap-8;
+  }
+  
+  .p-responsive {
+    @apply p-4 sm:p-6 lg:p-8;
+  }
+  
+  .px-responsive {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+  
+  .py-responsive {
+    @apply py-4 sm:py-6 lg:py-8;
+  }
+  
+  .pt-responsive {
+    @apply pt-16 sm:pt-20 lg:pt-24;
+  }
+  
+  .pb-responsive {
+    @apply pb-16 sm:pb-20 lg:pb-24;
+  }
+  
+  .mb-responsive {
+    @apply mb-4 sm:mb-6 lg:mb-8;
+  }
+  
+  .mt-responsive {
+    @apply mt-4 sm:mt-6 lg:mt-8;
+  }
+  
+  .space-responsive {
+    @apply space-y-4 sm:space-y-6 lg:space-y-8;
+  }
+  
+  .space-x-responsive {
+    @apply space-x-4 sm:space-x-6 lg:space-x-8;
+  }
+  
+  .w-responsive-full {
+    @apply w-full sm:w-auto;
+  }
+  
+  .h-responsive-screen {
+    @apply h-screen sm:h-auto;
+  }
+  
+  .min-h-responsive-screen {
+    @apply min-h-screen sm:min-h-0;
+  }
+  
+  .rounded-responsive {
+    @apply rounded-lg sm:rounded-xl lg:rounded-2xl;
+  }
+  
+  .shadow-responsive {
+    @apply shadow-sm sm:shadow-md lg:shadow-lg;
+  }
+  
+  .border-responsive {
+    @apply border sm:border-2;
+  }
+  
+  .text-center-responsive {
+    @apply text-center sm:text-left;
+  }
+  
+  .items-center-responsive {
+    @apply items-center sm:items-start;
+  }
+  
+  .justify-center-responsive {
+    @apply justify-center sm:justify-start;
+  }
+  
+  .hidden-mobile {
+    @apply hidden sm:block;
+  }
+  
+  .hidden-desktop {
+    @apply block sm:hidden;
+  }
+  
+  .visible-mobile {
+    @apply block sm:hidden;
+  }
+  
+  .visible-desktop {
+    @apply hidden sm:block;
+  }
+}
