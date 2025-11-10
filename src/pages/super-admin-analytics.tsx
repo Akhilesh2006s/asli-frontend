@@ -22,6 +22,17 @@ export default function SuperAdminAnalyticsDashboard() {
 
   useEffect(() => {
     fetchAnalytics();
+    
+    // Listen for admin deletion events to refresh analytics
+    const handleAdminDeleted = () => {
+      fetchAnalytics();
+    };
+    
+    window.addEventListener('adminDeleted', handleAdminDeleted);
+    
+    return () => {
+      window.removeEventListener('adminDeleted', handleAdminDeleted);
+    };
   }, []);
 
   const fetchAnalytics = async () => {
@@ -67,9 +78,6 @@ export default function SuperAdminAnalyticsDashboard() {
           </h1>
           <p className="text-gray-600 mt-2">Comprehensive platform analytics and insights</p>
         </div>
-        <Button onClick={fetchAnalytics} className="bg-blue-600 hover:bg-blue-700">
-          Refresh Data
-        </Button>
       </div>
 
       {/* Analytics Overview */}

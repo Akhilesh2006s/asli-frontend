@@ -237,18 +237,26 @@ const UserManagement = () => {
         // Show detailed results
         let message = `CSV uploaded successfully!\nCreated ${result.createdUsers?.length || 0} students.\nDefault password: Password123`;
         
+        if (result.classesCreated && result.classesCreated > 0) {
+          message += `\n\nCreated ${result.classesCreated} new class${result.classesCreated > 1 ? 'es' : ''} automatically.`;
+        }
+        
         if (result.errors && result.errors.length > 0) {
           message += `\n\nErrors:\n${result.errors.join('\n')}`;
         }
         
         alert(message);
       } else {
-        const errorData = await response.json();
-        alert(`Failed to upload CSV: ${errorData.message || 'Unknown error'}`);
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        const errorMessage = errorData.message || 'Unknown error';
+        const errorHint = errorData.hint ? `\n\nHint: ${errorData.hint}` : '';
+        const fullError = errorData.error ? `${errorMessage}\n\nError details: ${errorData.error}${errorHint}` : `${errorMessage}${errorHint}`;
+        alert(`Failed to upload CSV: ${fullError}`);
       }
     } catch (error) {
       console.error('Failed to upload CSV:', error);
-      alert('Failed to upload CSV. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Network error';
+      alert(`Failed to upload CSV: ${errorMessage}\n\nPlease check:\n1. Your admin account has a board assigned\n2. The CSV file format is correct\n3. Your internet connection is stable`);
     }
   };
 

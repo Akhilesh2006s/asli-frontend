@@ -116,7 +116,10 @@ export default function IQRankBoostActivities() {
   const fetchSubjects = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/subjects`, {
+      const url = `${API_BASE_URL}/api/super-admin/subjects`;
+      console.log('🌐 Fetching subjects from:', url);
+      
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -126,9 +129,19 @@ export default function IQRankBoostActivities() {
       if (response.ok) {
         const data = await response.json();
         setSubjects(data.data || []);
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('Failed to fetch subjects:', errorData);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching subjects:', error);
+      
+      // Handle network errors specifically
+      if (error instanceof TypeError) {
+        if (error.message === 'Failed to fetch' || error.message.includes('ERR_NAME_NOT_RESOLVED') || error.message.includes('ERR_NETWORK')) {
+          console.error('Network error: Cannot connect to server');
+        }
+      }
     }
   };
 

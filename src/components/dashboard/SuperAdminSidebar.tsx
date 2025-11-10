@@ -27,7 +27,7 @@ interface SuperAdminSidebarProps {
 export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdminSidebarProps) {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3Icon },
-    { id: 'admins', label: 'Admin Management', icon: CrownIcon },
+    { id: 'admins', label: 'School Management', icon: CrownIcon },
     { id: 'subjects', label: 'Subject Management', icon: BookIcon },
     { id: 'content', label: 'Content Management', icon: UploadIcon },
     { id: 'exams', label: 'Exam Management', icon: FileTextIcon },

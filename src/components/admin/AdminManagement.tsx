@@ -137,7 +137,7 @@ export default function AdminManagement() {
     if (existingAdmin) {
       toast({
         title: "Admin Already Exists",
-        description: "An admin with this email already exists. Please use a different email.",
+        description: "A school with this email already exists. Please use a different email.",
         variant: "destructive",
       });
       return;
@@ -176,12 +176,12 @@ export default function AdminManagement() {
         setIsAddDialogOpen(false);
         toast({
           title: "Success",
-          description: "Admin added successfully",
+          description: "School added successfully",
         });
       } else {
         const errorData = await response.json();
         console.log('API Error Response:', errorData);
-        throw new Error(errorData.message || 'Failed to add admin');
+        throw new Error(errorData.message || 'Failed to add school');
       }
     } catch (error) {
       console.error('Error adding admin:', error);
@@ -197,13 +197,13 @@ export default function AdminManagement() {
       } else if (errorMessage.includes('already exists')) {
         toast({
           title: "Admin Already Exists",
-          description: "An admin with this email already exists. Please use a different email.",
+          description: "A school with this email already exists. Please use a different email.",
           variant: "destructive",
         });
       } else {
         toast({
           title: "Error",
-          description: errorMessage || "Failed to add admin. Please try again.",
+          description: errorMessage || "Failed to add school. Please try again.",
           variant: "destructive",
         });
       }
@@ -228,7 +228,7 @@ export default function AdminManagement() {
     if (!editingAdmin?.id) {
       toast({
         title: "Error",
-        description: "Invalid admin ID",
+        description: "Invalid school ID",
         variant: "destructive",
       });
       return;
@@ -295,7 +295,7 @@ export default function AdminManagement() {
         });
         toast({
           title: "Success",
-          description: "Admin updated successfully",
+          description: "School updated successfully",
         });
       } else {
         const errorText = await response.text();
@@ -306,13 +306,13 @@ export default function AdminManagement() {
           errorData = { message: errorText || `Server error: ${response.status}` };
         }
         console.error('Update admin error response:', errorData);
-        throw new Error(errorData.message || 'Failed to update admin');
+        throw new Error(errorData.message || 'Failed to update school');
       }
     } catch (error) {
       console.error('Error updating admin:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update admin",
+        description: error instanceof Error ? error.message : "Failed to update school",
         variant: "destructive",
       });
     } finally {
@@ -324,32 +324,67 @@ export default function AdminManagement() {
     if (!adminId) {
       toast({
         title: "Error",
-        description: "Invalid admin ID",
+        description: "Invalid school ID",
         variant: "destructive",
       });
       return;
     }
 
     try {
+      const token = localStorage.getItem('authToken');
       const response = await fetch(`${API_BASE_URL}/api/super-admin/admins/${adminId}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
 
       if (response.ok) {
-        setAdmins((admins || []).filter(admin => admin?.id !== adminId));
+        const deleteResult = await response.json();
+        
+        // Wait a moment to ensure database cleanup is complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Refresh the admins list from the server to ensure deleted admin is removed
+        const fetchResponse = await fetch(`${API_BASE_URL}/api/super-admin/admins`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (fetchResponse.ok) {
+          const fetchData = await fetchResponse.json();
+          if (Array.isArray(fetchData)) {
+            setAdmins(fetchData);
+          } else if (fetchData.data && Array.isArray(fetchData.data)) {
+            setAdmins(fetchData.data);
+          } else {
+            // Fallback: filter from local state
+            setAdmins((admins || []).filter(admin => admin?.id !== adminId));
+          }
+        } else {
+          // Fallback: filter from local state
+          setAdmins((admins || []).filter(admin => admin?.id !== adminId));
+        }
+        
         toast({
           title: "Success",
-          description: "Admin deleted successfully",
+          description: "School and all associated data deleted successfully. You can now add a new school with the same email.",
         });
+        
+        // Dispatch custom event to notify dashboard to refresh admin summary
+        window.dispatchEvent(new CustomEvent('adminDeleted'));
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete admin');
+        throw new Error(errorData.message || 'Failed to delete school');
       }
     } catch (error) {
       console.error('Error deleting admin:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete admin",
+        description: error instanceof Error ? error.message : "Failed to delete school",
         variant: "destructive",
       });
     }
@@ -360,7 +395,7 @@ export default function AdminManagement() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading admins...</p>
+          <p className="text-gray-600">Loading schools...</p>
         </div>
       </div>
     );
@@ -370,20 +405,20 @@ export default function AdminManagement() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Admin Management</h2>
-          <p className="text-gray-600">Manage system administrators and their data</p>
+          <h2 className="text-2xl font-bold text-gray-900">School Management</h2>
+          <p className="text-gray-600">Manage schools and their associated data</p>
         </div>
         
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-700">
               <UserPlusIcon className="h-4 w-4 mr-2" />
-              Add New Admin
+              Add New School
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Admin</DialogTitle>
+              <DialogTitle>Add New School</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -392,7 +427,7 @@ export default function AdminManagement() {
                   id="name"
                   value={newAdmin.name}
                   onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })}
-                  placeholder="Enter admin's full name"
+                  placeholder="Enter school administrator's full name"
                 />
               </div>
               <div>
@@ -402,7 +437,7 @@ export default function AdminManagement() {
                   type="email"
                   value={newAdmin.email}
                   onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
-                  placeholder="Enter admin's email"
+                  placeholder="Enter school administrator's email"
                 />
               </div>
               <div>
@@ -447,7 +482,7 @@ export default function AdminManagement() {
                   Cancel
                 </Button>
                 <Button onClick={handleAddAdmin} disabled={isAddingAdmin}>
-                  {isAddingAdmin ? 'Adding...' : 'Add Admin'}
+                  {isAddingAdmin ? 'Adding...' : 'Add School'}
                 </Button>
               </div>
             </div>
@@ -458,7 +493,7 @@ export default function AdminManagement() {
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Edit Admin</DialogTitle>
+              <DialogTitle>Edit School</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -467,7 +502,7 @@ export default function AdminManagement() {
                   id="edit-name"
                   value={editAdmin.name}
                   onChange={(e) => setEditAdmin({ ...editAdmin, name: e.target.value })}
-                  placeholder="Enter admin's full name"
+                  placeholder="Enter school administrator's full name"
                 />
               </div>
               <div>
@@ -477,7 +512,7 @@ export default function AdminManagement() {
                   type="email"
                   value={editAdmin.email}
                   onChange={(e) => setEditAdmin({ ...editAdmin, email: e.target.value })}
-                  placeholder="Enter admin's email"
+                  placeholder="Enter school administrator's email"
                 />
               </div>
               <div>
@@ -526,7 +561,7 @@ export default function AdminManagement() {
                   Cancel
                 </Button>
                 <Button onClick={handleUpdateAdmin} disabled={isUpdatingAdmin}>
-                  {isUpdatingAdmin ? 'Updating...' : 'Update Admin'}
+                  {isUpdatingAdmin ? 'Updating...' : 'Update School'}
                 </Button>
               </div>
             </div>
@@ -540,7 +575,7 @@ export default function AdminManagement() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-600">Total Admins</p>
+                <p className="text-sm font-medium text-blue-600">Total Schools</p>
                 <p className="text-3xl font-bold text-blue-900">{admins?.length || 0}</p>
               </div>
               <CrownIcon className="h-12 w-12 text-blue-500" />
@@ -656,11 +691,11 @@ export default function AdminManagement() {
         <Card>
           <CardContent className="p-12 text-center">
             <CrownIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Admins Found</h3>
-            <p className="text-gray-600 mb-4">Get started by adding your first admin</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Schools Found</h3>
+            <p className="text-gray-600 mb-4">Get started by adding your first school</p>
             <Button onClick={() => setIsAddDialogOpen(true)}>
               <UserPlusIcon className="h-4 w-4 mr-2" />
-              Add First Admin
+              Add First School
             </Button>
           </CardContent>
         </Card>

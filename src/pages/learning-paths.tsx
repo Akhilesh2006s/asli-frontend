@@ -19,7 +19,8 @@ import {
   BarChart3,
   Video,
   BookOpen as BookIcon,
-  User
+  User,
+  Gamepad2
 } from "lucide-react";
 import { Link } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -466,15 +467,16 @@ export default function LearningPaths() {
     },
     {
       id: "5",
-      title: "Previous Year Question Papers and Solutions",
-      description: "Practice with previous year question papers and detailed solutions",
-      duration: "6 months",
-      students: 1500,
-      rating: 4.9,
-      subjects: ["Mathematics", "Physics"],
-      difficulty: "Expert",
-      color: "bg-red-100 text-red-600",
-      icon: Star
+      title: "Play Games",
+      description: "Engage in fun educational games to enhance your learning experience",
+      duration: "Coming Soon",
+      students: 0,
+      rating: 0,
+      subjects: [],
+      difficulty: "Coming Soon",
+      color: "bg-purple-100 text-purple-600",
+      icon: Gamepad2,
+      isComingSoon: true
     }
   ];
 
@@ -675,48 +677,71 @@ export default function LearningPaths() {
                       <div className={`w-10 h-10 ${path.color} rounded-lg flex items-center justify-center`}>
                         <Icon className="w-5 h-5" />
                       </div>
-                      <Badge variant="secondary" className="text-xs">
-                        {path.difficulty}
-                      </Badge>
+                      {path.isComingSoon ? (
+                        <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700 border-purple-300">
+                          Coming Soon
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs">
+                          {path.difficulty}
+                        </Badge>
+                      )}
                     </div>
                     <CardTitle className="text-lg">{path.title}</CardTitle>
                     <p className="text-gray-600 text-sm">{path.description}</p>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {/* Subjects */}
-                    <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">Subjects</p>
-                      <div className="flex flex-wrap gap-1">
-                        {path.subjects.map((subject, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {subject}
-                          </Badge>
-                        ))}
+                    {/* Subjects - Hide for Coming Soon */}
+                    {!path.isComingSoon && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-2">Subjects</p>
+                        <div className="flex flex-wrap gap-1">
+                          {path.subjects.map((subject, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {subject}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
-                    {/* Stats */}
-                    <div className="flex items-center justify-between text-sm text-gray-600">
-                      <div className="flex items-center space-x-1">
-                        <Clock className="w-4 h-4" />
-                        <span>{path.duration}</span>
+                    {/* Stats - Show Coming Soon message or stats */}
+                    {path.isComingSoon ? (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-gray-500 italic">
+                          Exciting educational games are on the way! Stay tuned for updates.
+                        </p>
                       </div>
-                      <div className="flex items-center space-x-1">
-                        <Users className="w-4 h-4" />
-                        <span>{path.students.toLocaleString()}</span>
+                    ) : (
+                      <div className="flex items-center justify-between text-sm text-gray-600">
+                        <div className="flex items-center space-x-1">
+                          <Clock className="w-4 h-4" />
+                          <span>{path.duration}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Users className="w-4 h-4" />
+                          <span>{path.students.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Star className="w-4 h-4 text-yellow-500" />
+                          <span>{path.rating}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-1">
-                        <Star className="w-4 h-4 text-yellow-500" />
-                        <span>{path.rating}</span>
-                      </div>
-                    </div>
+                    )}
 
-                    <Link href={`/subject/${path.id}`}>
-                      <Button variant="outline" className="w-full">
-                        Start Learning
-                        <ArrowRight className="w-4 h-4 ml-2" />
+                    {path.isComingSoon ? (
+                      <Button variant="outline" className="w-full" disabled>
+                        Coming Soon
+                        <ArrowRight className="w-4 h-4 ml-2 opacity-50" />
                       </Button>
-                    </Link>
+                    ) : (
+                      <Link href={`/subject/${path.id}`}>
+                        <Button variant="outline" className="w-full">
+                          Start Learning
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </Link>
+                    )}
                   </CardContent>
                 </Card>
               );

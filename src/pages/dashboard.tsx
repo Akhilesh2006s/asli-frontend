@@ -24,7 +24,11 @@ import {
   BookOpen,
   ArrowRight,
   Video,
-  BookOpen as BookIcon
+  BookOpen as BookIcon,
+  MessageSquare,
+  ThumbsUp,
+  AlertCircle,
+  Gamepad2
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -46,6 +50,8 @@ export default function Dashboard() {
   const [isLoadingContent, setIsLoadingContent] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState<any>(null);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [remarks, setRemarks] = useState<any[]>([]);
+  const [isLoadingRemarks, setIsLoadingRemarks] = useState(false);
 
   // Fetch user data
   useEffect(() => {
@@ -620,6 +626,37 @@ export default function Dashboard() {
     fetchSubjects();
   }, []);
 
+  // Fetch student remarks
+  useEffect(() => {
+    const fetchRemarks = async () => {
+      try {
+        setIsLoadingRemarks(true);
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        const response = await fetch(`${API_BASE_URL}/api/student/remarks`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setRemarks(data.data || []);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch remarks:', error);
+      } finally {
+        setIsLoadingRemarks(false);
+      }
+    };
+
+    fetchRemarks();
+  }, []);
+
   const handleWatchVideo = (video: any) => {
     setSelectedVideo(video);
     setIsVideoModalOpen(true);
@@ -706,6 +743,65 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {/* Teacher Remarks Section */}
+        {remarks.length > 0 && (
+          <div className="mb-responsive">
+            <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                    <MessageSquare className="w-5 h-5 text-white" />
+                  </div>
+                  <CardTitle className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    Teacher Remarks
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {remarks.slice(0, 5).map((remark: any) => (
+                    <div
+                      key={remark._id}
+                      className={`p-4 rounded-lg border-l-4 ${
+                        remark.isPositive
+                          ? 'bg-green-50 border-green-500'
+                          : 'bg-orange-50 border-orange-500'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          {remark.isPositive ? (
+                            <ThumbsUp className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <AlertCircle className="w-4 h-4 text-orange-600" />
+                          )}
+                          <span className="font-semibold text-gray-900">
+                            {remark.teacherId?.fullName || 'Teacher'}
+                          </span>
+                          {remark.subject && (
+                            <Badge variant="outline" className="text-xs">
+                              {remark.subject.name}
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {new Date(remark.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-gray-700 text-sm">{remark.remark}</p>
+                    </div>
+                  ))}
+                  {remarks.length > 5 && (
+                    <p className="text-sm text-gray-500 text-center">
+                      Showing 5 of {remarks.length} remarks
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Quick Stats */}
         <div className="grid-responsive-3 gap-responsive mb-responsive">
@@ -966,15 +1062,16 @@ export default function Dashboard() {
                   },
                   {
                     id: "5",
-                    title: "Previous Year Question Papers and Solutions",
-                    description: "Practice with previous year question papers and detailed solutions",
-                    duration: "6 months",
-                    students: 1500,
-                    rating: 4.9,
-                    subjects: ["Mathematics", "Physics"],
-                    difficulty: "Expert",
-                    color: "bg-red-100 text-red-600",
-                    icon: Star
+                    title: "Play Games",
+                    description: "Engage in fun educational games to enhance your learning experience",
+                    duration: "Coming Soon",
+                    students: 0,
+                    rating: 0,
+                    subjects: [],
+                    difficulty: "Coming Soon",
+                    color: "bg-purple-100 text-purple-600",
+                    icon: Gamepad2,
+                    isComingSoon: true
                   }
                 ].map((path) => {
                   const Icon = path.icon;
@@ -985,8 +1082,12 @@ export default function Dashboard() {
                           <div className={`w-10 h-10 ${path.color} rounded-lg flex items-center justify-center`}>
                             <Icon className="w-5 h-5" />
                           </div>
-                          {/* Hide difficulty badge for IQ/Rank Boost Practice */}
-                          {path.id !== "4" && (
+                          {/* Show Coming Soon badge for Play Games, difficulty badge for others */}
+                          {path.isComingSoon ? (
+                            <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700 border-purple-300">
+                              Coming Soon
+                            </Badge>
+                          ) : path.id !== "4" && (
                             <Badge variant="secondary" className="text-xs">
                               {path.difficulty}
                             </Badge>
@@ -996,40 +1097,57 @@ export default function Dashboard() {
                         <p className="text-gray-600 text-sm">{path.description}</p>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        {/* Subjects */}
-                        <div>
-                          <p className="text-sm font-medium text-gray-700 mb-2">Subjects</p>
-                          <div className="flex flex-wrap gap-1">
-                            {path.subjects.map((subject, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {subject}
-                              </Badge>
-                            ))}
+                        {/* Subjects - Hide for Coming Soon */}
+                        {!path.isComingSoon && (
+                          <div>
+                            <p className="text-sm font-medium text-gray-700 mb-2">Subjects</p>
+                            <div className="flex flex-wrap gap-1">
+                              {path.subjects.map((subject, index) => (
+                                <Badge key={index} variant="outline" className="text-xs">
+                                  {subject}
+                                </Badge>
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        )}
 
-                        {/* Stats */}
-                        <div className="flex items-center justify-between text-sm text-gray-600">
-                          <div className="flex items-center space-x-1">
-                            <Clock className="w-4 h-4" />
-                            <span>{path.duration}</span>
+                        {/* Stats - Show Coming Soon message or stats */}
+                        {path.isComingSoon ? (
+                          <div className="text-center py-4">
+                            <p className="text-sm text-gray-500 italic">
+                              Exciting educational games are on the way! Stay tuned for updates.
+                            </p>
                           </div>
-                          <div className="flex items-center space-x-1">
-                            <Users className="w-4 h-4" />
-                            <span>{path.students.toLocaleString()}</span>
+                        ) : (
+                          <div className="flex items-center justify-between text-sm text-gray-600">
+                            <div className="flex items-center space-x-1">
+                              <Clock className="w-4 h-4" />
+                              <span>{path.duration}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Users className="w-4 h-4" />
+                              <span>{path.students.toLocaleString()}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Star className="w-4 h-4 text-yellow-500" />
+                              <span>{path.rating}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center space-x-1">
-                            <Star className="w-4 h-4 text-yellow-500" />
-                            <span>{path.rating}</span>
-                          </div>
-                        </div>
+                        )}
 
-                        <Link href={path.id === "4" ? "/iq-rank-boost-subjects" : `/subject-content/${path.id}`}>
-                          <Button variant="outline" className="w-full">
-                            Start Learning
-                            <ArrowRight className="w-4 h-4 ml-2" />
+                        {path.isComingSoon ? (
+                          <Button variant="outline" className="w-full" disabled>
+                            Coming Soon
+                            <ArrowRight className="w-4 h-4 ml-2 opacity-50" />
                           </Button>
-                        </Link>
+                        ) : (
+                          <Link href={path.id === "4" ? "/iq-rank-boost-subjects" : `/subject-content/${path.id}`}>
+                            <Button variant="outline" className="w-full">
+                              Start Learning
+                              <ArrowRight className="w-4 h-4 ml-2" />
+                            </Button>
+                          </Link>
+                        )}
                       </CardContent>
                     </Card>
                   );

@@ -105,12 +105,50 @@ const AdminDashboard = () => {
     activeUsers: 0,
     totalContent: 0
   });
+  const [studentAnalytics, setStudentAnalytics] = useState({
+    classDistribution: [],
+    performanceMetrics: {
+      averageScore: 0,
+      totalExamsTaken: 0,
+      topPerformers: []
+    },
+    subjectPerformance: [],
+    recentActivity: []
+  });
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
   useEffect(() => {
     // Fetch admin dashboard data
     fetchAdminStats();
+    fetchStudentAnalytics();
   }, []);
+
+  const fetchStudentAnalytics = async () => {
+    try {
+      setIsLoadingAnalytics(true);
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setIsLoadingAnalytics(false);
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/admin/students/analytics`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setStudentAnalytics(data.data);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch student analytics:', error);
+    } finally {
+      setIsLoadingAnalytics(false);
+    }
+  };
 
   const fetchAdminStats = async () => {
     try {
@@ -659,28 +697,116 @@ const AdminDashboard = () => {
                 </div>
               </motion.div>
 
+            </div>
+
+            {/* Detailed School Analysis Section */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-indigo-500 to-blue-500 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+              className="relative overflow-hidden bg-gradient-to-br from-slate-50 to-gray-100 rounded-responsive p-responsive shadow-responsive border border-gray-200"
               >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                      <FileText className="w-8 h-8 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white/90 text-responsive-xs font-medium">Quizzes</p>
-                      <p className="text-responsive-xl font-bold text-white">
-                        {isLoadingStats ? '...' : (stats.totalQuizzes || 0)}
-                      </p>
-                    </div>
+                <div className="flex items-center space-x-3 mb-6">
+                  <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl shadow-lg">
+                    <BarChart3 className="w-8 h-8 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-responsive-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Detailed School Analysis</h3>
+                    <p className="text-gray-600 text-responsive-xs">Comprehensive insights about your students</p>
                   </div>
                 </div>
+
+                {isLoadingAnalytics ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Class Distribution */}
+                    <div className="bg-white rounded-lg p-4 shadow-md border border-gray-200">
+                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                        <GraduationCap className="w-5 h-5 mr-2 text-indigo-600" />
+                        Class Distribution
+                      </h4>
+                      <div className="space-y-2">
+                        {studentAnalytics.classDistribution && studentAnalytics.classDistribution.length > 0 ? (
+                          studentAnalytics.classDistribution.slice(0, 5).map((item: any, idx: number) => (
+                            <div key={idx} className="flex justify-between items-center text-sm">
+                              <span className="text-gray-700">{item.className || item.class || 'Unknown'}</span>
+                              <span className="font-semibold text-indigo-600">{item.count || 0} students</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-sm text-gray-500">No class data available</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Performance Metrics */}
+                    <div className="bg-white rounded-lg p-4 shadow-md border border-gray-200">
+                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                        <TrendingUp className="w-5 h-5 mr-2 text-green-600" />
+                        Performance Metrics
+                      </h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">Average Score</span>
+                          <span className="text-lg font-bold text-green-600">
+                            {studentAnalytics.performanceMetrics?.averageScore || 0}%
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-gray-600">Total Exams Taken</span>
+                          <span className="text-lg font-bold text-indigo-600">
+                            {studentAnalytics.performanceMetrics?.totalExamsTaken || 0}
+                          </span>
+                        </div>
+                        {studentAnalytics.performanceMetrics?.topPerformers && studentAnalytics.performanceMetrics.topPerformers.length > 0 && (
+                          <div className="pt-2 border-t">
+                            <p className="text-xs text-gray-500 mb-1">Top Performer</p>
+                            <p className="text-sm font-semibold text-gray-900">
+                              {studentAnalytics.performanceMetrics.topPerformers[0]?.studentName || 'N/A'}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              {studentAnalytics.performanceMetrics.topPerformers[0]?.averageScore || 0}% avg
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Subject Performance */}
+                    <div className="bg-white rounded-lg p-4 shadow-md border border-gray-200">
+                      <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
+                        <BookOpen className="w-5 h-5 mr-2 text-purple-600" />
+                        Subject Performance
+                      </h4>
+                      <div className="space-y-2">
+                        {studentAnalytics.subjectPerformance && studentAnalytics.subjectPerformance.length > 0 ? (
+                          studentAnalytics.subjectPerformance.slice(0, 4).map((subject: any, idx: number) => (
+                            <div key={idx} className="flex justify-between items-center text-sm">
+                              <span className="text-gray-700 capitalize">{subject.subject || subject.name || 'Unknown'}</span>
+                              <div className="flex items-center space-x-2">
+                                <span className="font-semibold text-purple-600">{subject.averageScore || 0}%</span>
+                                <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+                                    style={{ width: `${Math.min(subject.averageScore || 0, 100)}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-sm text-gray-500">No subject data available</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                </div>
               </motion.div>
-            </div>
 
             {/* Admin-Specific Data Section */}
             <div className="grid-responsive-2 gap-responsive">

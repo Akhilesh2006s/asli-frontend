@@ -46,7 +46,8 @@ import {
   X,
   Video as VideoIcon,
   Filter,
-  Radio
+  Radio,
+  MessageSquare
 } from 'lucide-react';
 import AIChat from '@/components/ai-chat';
 import VideoModal from '@/components/video-modal';
@@ -141,6 +142,14 @@ const TeacherDashboard = () => {
   const isMobile = useIsMobile();
   const [subjectsWithContent, setSubjectsWithContent] = useState<any[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
+  
+  // Remark states
+  const [isRemarkDialogOpen, setIsRemarkDialogOpen] = useState(false);
+  const [selectedStudentForRemark, setSelectedStudentForRemark] = useState<Student | null>(null);
+  const [remarkText, setRemarkText] = useState('');
+  const [isSubmittingRemark, setIsSubmittingRemark] = useState(false);
+  const [selectedSubjectForRemark, setSelectedSubjectForRemark] = useState<string>('general');
+  const [isPositiveRemark, setIsPositiveRemark] = useState(true);
 
   // Modal states
   const [isAddVideoModalOpen, setIsAddVideoModalOpen] = useState(false);
@@ -281,6 +290,12 @@ const TeacherDashboard = () => {
           });
           
           setEduottVideos(videosWithSubjects);
+          
+          // Update stats with video count
+          setStats(prev => ({
+            ...prev,
+            totalVideos: videosWithSubjects.length
+          }));
         } else {
           console.error('Failed to fetch videos:', response.status);
           setEduottVideos([]);
@@ -1591,6 +1606,7 @@ const TeacherDashboard = () => {
                             <th className="text-left py-3 px-4 font-medium text-gray-900">Overall Progress</th>
                             <th className="text-left py-3 px-4 font-medium text-gray-900">Average</th>
                             <th className="text-left py-3 px-4 font-medium text-gray-900">Last Login</th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-900">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1691,6 +1707,20 @@ const TeacherDashboard = () => {
                                       <span className="text-sm text-gray-400">Never</span>
                                     )}
                                   </td>
+                                  <td className="py-3 px-4">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 border-0"
+                                      onClick={() => {
+                                        setSelectedStudentForRemark(student);
+                                        setIsRemarkDialogOpen(true);
+                                      }}
+                                    >
+                                      <MessageSquare className="w-4 h-4 mr-1" />
+                                      Add Remark
+                                    </Button>
+                                  </td>
                                 </tr>
                               );
                             })}
@@ -1698,6 +1728,132 @@ const TeacherDashboard = () => {
                       </table>
                     </div>
                   </div>
+
+                  {/* Add Remark Dialog */}
+                  <Dialog open={isRemarkDialogOpen} onOpenChange={setIsRemarkDialogOpen}>
+                    <DialogContent className="sm:max-w-[500px]">
+                      <DialogHeader>
+                        <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                          Add Remark for {selectedStudentForRemark?.name || selectedStudentForRemark?.fullName}
+                        </DialogTitle>
+                        <DialogDescription>
+                          Add a remark that will be visible to the student on their dashboard.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 mt-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="remark-type">Remark Type</Label>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant={isPositiveRemark ? "default" : "outline"}
+                              className={isPositiveRemark ? "bg-green-500 hover:bg-green-600" : ""}
+                              onClick={() => setIsPositiveRemark(true)}
+                            >
+                              Positive
+                            </Button>
+                            <Button
+                              type="button"
+                              variant={!isPositiveRemark ? "default" : "outline"}
+                              className={!isPositiveRemark ? "bg-orange-500 hover:bg-orange-600" : ""}
+                              onClick={() => setIsPositiveRemark(false)}
+                            >
+                              Needs Improvement
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="subject">Subject (Optional)</Label>
+                          <Select value={selectedSubjectForRemark} onValueChange={setSelectedSubjectForRemark}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select subject (optional)" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="general">General Remark</SelectItem>
+                              {teacherSubjects.map((subject) => (
+                                <SelectItem key={subject._id || subject.id} value={subject._id || subject.id}>
+                                  {subject.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="remark">Remark</Label>
+                          <Textarea
+                            id="remark"
+                            placeholder="Enter your remark here..."
+                            value={remarkText}
+                            onChange={(e) => setRemarkText(e.target.value)}
+                            className="min-h-[120px]"
+                            required
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2 pt-4">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setIsRemarkDialogOpen(false);
+                              setRemarkText('');
+                              setSelectedSubjectForRemark('general');
+                              setSelectedStudentForRemark(null);
+                              setIsPositiveRemark(true);
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                            onClick={async () => {
+                              if (!remarkText.trim() || !selectedStudentForRemark) return;
+                              
+                              setIsSubmittingRemark(true);
+                              try {
+                                const token = localStorage.getItem('authToken');
+                                const response = await fetch(
+                                  `${API_BASE_URL}/api/teacher/students/${selectedStudentForRemark.id || selectedStudentForRemark._id}/remarks`,
+                                  {
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/json',
+                                      'Authorization': `Bearer ${token}`
+                                    },
+                                    body: JSON.stringify({
+                                      remark: remarkText,
+                                      subject: selectedSubjectForRemark && selectedSubjectForRemark !== 'general' ? selectedSubjectForRemark : null,
+                                      isPositive: isPositiveRemark
+                                    })
+                                  }
+                                );
+
+                                const data = await response.json();
+                                if (response.ok && data.success) {
+                                  // Success - close dialog and reset
+                                  setIsRemarkDialogOpen(false);
+                                  setRemarkText('');
+                                  setSelectedSubjectForRemark('general');
+                                  setSelectedStudentForRemark(null);
+                                  setIsPositiveRemark(true);
+                                  // Show success message (you can add toast here)
+                                  alert('Remark added successfully!');
+                                } else {
+                                  alert(data.message || 'Failed to add remark');
+                                }
+                              } catch (error) {
+                                console.error('Error adding remark:', error);
+                                alert('Failed to add remark. Please try again.');
+                              } finally {
+                                setIsSubmittingRemark(false);
+                              }
+                            }}
+                            disabled={!remarkText.trim() || isSubmittingRemark}
+                          >
+                            {isSubmittingRemark ? 'Adding...' : 'Add Remark'}
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               )}
 
@@ -1767,7 +1923,146 @@ const TeacherDashboard = () => {
                           return matchesSearch && matchesSubject;
                         }).length} of {eduottVideos.length} videos
                       </p>
+                    </div>
+
+                    {/* Videos Grid */}
+                    {isLoadingEduott ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                          <Card key={i} className="overflow-hidden">
+                            <div className="w-full h-48 bg-gray-200 animate-pulse" />
+                            <CardHeader>
+                              <div className="h-6 bg-gray-200 rounded w-3/4 mb-2 animate-pulse" />
+                              <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse" />
+                            </CardHeader>
+                            <CardContent>
+                              <div className="h-4 bg-gray-200 rounded w-full mb-2 animate-pulse" />
+                              <div className="h-4 bg-gray-200 rounded w-2/3 animate-pulse" />
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (() => {
+                      const filteredVideos = eduottVideos.filter((video) => {
+                        const matchesSearch = video.title.toLowerCase().includes(eduottSearchTerm.toLowerCase()) ||
+                                             (video.description || '').toLowerCase().includes(eduottSearchTerm.toLowerCase());
+                        const matchesSubject = eduottSelectedSubject === 'all' || 
+                                              video.subjectName === eduottSelectedSubject ||
+                                              video.subject === eduottSelectedSubject;
+                        return matchesSearch && matchesSubject;
+                      });
+
+                      if (filteredVideos.length === 0) {
+                        return (
+                          <div className="text-center py-16 bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 mt-6">
+                            <VideoIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold text-gray-600 mb-2">
+                              {eduottVideos.length === 0 ? 'No Videos Available' : 'No Videos Found'}
+                            </h3>
+                            <p className="text-gray-500">
+                              {eduottVideos.length === 0 
+                                ? 'No videos have been assigned to your subjects yet.' 
+                                : 'Try adjusting your search or filter criteria.'}
+                            </p>
+                          </div>
+                        );
+                      }
+
+                      const formatDuration = (minutes: number) => {
+                        if (!minutes || minutes === 0) return '0:00';
+                        const hrs = Math.floor(minutes / 60);
+                        const mins = Math.floor(minutes % 60);
+                        return hrs > 0 ? `${hrs}:${mins.toString().padStart(2, '0')}` : `${mins}:00`;
+                      };
+
+                      const extractYouTubeId = (url: string) => {
+                        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+                        const match = url.match(regExp);
+                        return (match && match[2].length === 11) ? match[2] : null;
+                      };
+
+                      return (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                          {filteredVideos.map((video) => (
+                            <Card 
+                              key={video._id || video.id} 
+                              className="overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer group"
+                              onClick={() => {
+                                setSelectedEduottVideo(video);
+                                setIsEduottVideoModalOpen(true);
+                              }}
+                            >
+                              {/* Video Thumbnail */}
+                              <div className="relative">
+                                {video.thumbnailUrl ? (
+                                  <img
+                                    src={video.thumbnailUrl}
+                                    alt={video.title}
+                                    className="w-full h-48 object-cover"
+                                  />
+                                ) : video.isYouTubeVideo && video.youtubeUrl ? (
+                                  <img
+                                    src={`https://img.youtube.com/vi/${extractYouTubeId(video.youtubeUrl)}/maxresdefault.jpg`}
+                                    alt={video.title}
+                                    className="w-full h-48 object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-48 bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center">
+                                    <Play className="w-16 h-16 text-white" fill="currentColor" />
+                                  </div>
+                                )}
+                                
+                                {/* Play Overlay */}
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
+                                    <Play className="w-8 h-8 text-purple-600 ml-1" fill="currentColor" />
+                                  </div>
+                                </div>
+
+                                {/* Duration Badge */}
+                                {(video.duration || video.durationSeconds) && (
+                                  <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {formatDuration(video.duration || (video.durationSeconds ? video.durationSeconds / 60 : 0))}
+                                  </div>
+                                )}
+                              </div>
+
+                              <CardHeader>
+                                <div className="flex items-start justify-between gap-2">
+                                  <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-2 flex-1">
+                                    {video.title}
+                                  </CardTitle>
+                                </div>
+                                {(video.subjectName || video.subject) && (
+                                  <Badge variant="outline" className="mt-2 w-fit">
+                                    <BookOpen className="w-3 h-3 mr-1" />
+                                    {video.subjectName || video.subject}
+                                  </Badge>
+                                )}
+                              </CardHeader>
+
+                              <CardContent>
+                                {video.description && (
+                                  <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                                    {video.description}
+                                  </p>
+                                )}
+                                <div className="flex items-center justify-between text-xs text-gray-500">
+                                  <div className="flex items-center gap-1">
+                                    <Eye className="w-4 h-4" />
+                                    <span>{video.views || 0} views</span>
+                                  </div>
+                                  {video.createdAt && (
+                                    <span>{new Date(video.createdAt).toLocaleDateString()}</span>
+                                  )}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
                         </div>
+                      );
+                    })()}
                       </TabsContent>
 
                       {/* Live Sessions Tab */}
