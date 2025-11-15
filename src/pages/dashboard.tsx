@@ -177,6 +177,9 @@ export default function Dashboard() {
   const [learningPathContent, setLearningPathContent] = useState<any[]>([]);
   const [isLoadingLearningPathContent, setIsLoadingLearningPathContent] = useState(false);
   const [subjects, setSubjects] = useState<any[]>([]);
+  const [learningPathTab, setLearningPathTab] = useState<'subjects' | 'quizzes'>('subjects');
+  const [quizzes, setQuizzes] = useState<any[]>([]);
+  const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
   const [contentTypeCounts, setContentTypeCounts] = useState({
     TextBook: 0,
@@ -542,6 +545,36 @@ export default function Dashboard() {
     };
 
     fetchDashboardData();
+  }, []);
+
+  // Fetch assigned quizzes
+  useEffect(() => {
+    const fetchQuizzes = async () => {
+      try {
+        setIsLoadingQuizzes(true);
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`${API_BASE_URL}/api/student/quizzes`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setQuizzes(data.data || []);
+        } else {
+          setQuizzes([]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch quizzes:', error);
+        setQuizzes([]);
+      } finally {
+        setIsLoadingQuizzes(false);
+      }
+    };
+
+    fetchQuizzes();
   }, []);
 
   // Fetch subjects with their content (same as learning paths page)
@@ -1707,8 +1740,38 @@ export default function Dashboard() {
             {/* Learning Paths */}
             <div id="learning-paths-section" className="mb-6 scroll-mt-24">
               <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">Learning Paths</h1>
-              <h2 className="text-xl font-semibold text-gray-700 mb-6">Browse by Subject</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              
+              {/* Tabs */}
+              <div className="mb-6">
+                <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-6">
+                  <button
+                    onClick={() => setLearningPathTab('subjects')}
+                    className={`flex-1 px-6 py-3 text-sm font-medium rounded-md transition-all ${
+                      learningPathTab === 'subjects'
+                        ? 'bg-white text-gray-900 shadow-sm border border-gray-300'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Browse by Subject
+                  </button>
+                  <button
+                    onClick={() => setLearningPathTab('quizzes')}
+                    className={`flex-1 px-6 py-3 text-sm font-medium rounded-md transition-all ${
+                      learningPathTab === 'quizzes'
+                        ? 'bg-white text-gray-900 shadow-sm border border-gray-300'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    My Quizzes
+                  </button>
+                </div>
+              </div>
+
+              {/* Browse by Subject Tab */}
+              {learningPathTab === 'subjects' && (
+                <>
+                  <h2 className="text-xl font-semibold text-gray-700 mb-6">Browse by Subject</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {isLoadingSubjects ? (
                   Array.from({ length: 3 }).map((_, i) => (
                     <Skeleton key={i} className="h-64 w-full" />
@@ -1751,7 +1814,81 @@ export default function Dashboard() {
                     );
                   })
                 )}
-              </div>
+                  </div>
+                </>
+              )}
+
+              {/* My Quizzes Tab */}
+              {learningPathTab === 'quizzes' && (
+                <div className="mb-8">
+                  <h2 className="text-xl font-semibold text-gray-700 mb-6">My Quizzes</h2>
+                  {isLoadingQuizzes ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <Skeleton key={i} className="h-64 w-full" />
+                      ))}
+                    </div>
+                  ) : quizzes.length === 0 ? (
+                    <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
+                      <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-600 mb-2">No Quizzes Assigned</h3>
+                      <p className="text-gray-500">Your teacher hasn't assigned any quizzes yet. Check back later!</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {quizzes.map((quiz: any) => (
+                        <Card key={quiz._id} className="hover:shadow-lg transition-all duration-200 hover:scale-105">
+                          <CardHeader>
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="w-12 h-12 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-lg flex items-center justify-center shadow-lg">
+                                <FileText className="w-6 h-6 text-white" />
+                              </div>
+                              {quiz.hasAttempted && (
+                                <Badge className="bg-green-100 text-green-700 border-green-300">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Completed
+                                </Badge>
+                              )}
+                            </div>
+                            <CardTitle className="text-lg">{quiz.title}</CardTitle>
+                            <p className="text-gray-600 text-sm">{quiz.description || `Quiz on ${quiz.subject?.name || quiz.subject}`}</p>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div className="grid grid-cols-2 gap-2 text-center">
+                              <div className="bg-purple-50 rounded-lg p-2">
+                                <Clock className="w-4 h-4 text-purple-600 mx-auto mb-1" />
+                                <p className="text-xs font-medium text-purple-800">{quiz.duration || 60} min</p>
+                                <p className="text-xs text-purple-600">Duration</p>
+                              </div>
+                              <div className="bg-pink-50 rounded-lg p-2">
+                                <Target className="w-4 h-4 text-pink-600 mx-auto mb-1" />
+                                <p className="text-xs font-medium text-pink-800">{quiz.questions?.length || quiz.questionCount || 0}</p>
+                                <p className="text-xs text-pink-600">Questions</p>
+                              </div>
+                            </div>
+                            
+                            {quiz.hasAttempted && quiz.bestScore !== null && (
+                              <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm text-green-700">Best Score:</span>
+                                  <span className="text-lg font-bold text-green-800">{quiz.bestScore}%</span>
+                                </div>
+                              </div>
+                            )}
+                            
+                            <Button
+                              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                              onClick={() => window.location.href = `/quiz/${quiz._id}`}
+                            >
+                              {quiz.hasAttempted ? 'Review Quiz' : 'Start Quiz'}
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Digital Library - Browse by Type */}

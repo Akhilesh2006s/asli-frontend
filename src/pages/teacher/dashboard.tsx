@@ -136,13 +136,15 @@ const TeacherDashboard = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [assignedClasses, setAssignedClasses] = useState<any[]>([]);
   const [teacherSubjects, setTeacherSubjects] = useState<any[]>([]);
+  const [availableClasses, setAvailableClasses] = useState<{classNumber: string, subjects: any[]}[]>([]);
+  const [selectedClassSubjects, setSelectedClassSubjects] = useState<any[]>([]);
+  const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [teacherEmail, setTeacherEmail] = useState<string>(localStorage.getItem('userEmail') || '');
   const [expandedClasses, setExpandedClasses] = useState<Set<string>>(new Set());
   const [, setLocation] = useLocation();
   const isMobile = useIsMobile();
   const [subjectsWithContent, setSubjectsWithContent] = useState<any[]>([]);
-  const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
   
   // Remark states
   const [isRemarkDialogOpen, setIsRemarkDialogOpen] = useState(false);
@@ -643,7 +645,9 @@ const TeacherDashboard = () => {
 
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/teacher/ai/test-questions`, {
+      
+      // Step 1: Generate quiz using Gemini API
+      const generateResponse = await fetch(`${API_BASE_URL}/api/teacher/ai/test-questions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -658,29 +662,167 @@ const TeacherDashboard = () => {
         })
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        // Parse the generated questions
-        try {
-          const questionsData = typeof result.data.testQuestions === 'string' 
-            ? JSON.parse(result.data.testQuestions) 
-            : result.data.testQuestions;
-          setGeneratedQuiz({
-            ...result.data,
-            parsedQuestions: questionsData
-          });
-        } catch (parseError) {
-          // If parsing fails, store as text
-          setGeneratedQuiz({
-            ...result.data,
-            rawText: typeof result.data.testQuestions === 'string' 
-              ? result.data.testQuestions 
-              : JSON.stringify(result.data.testQuestions)
-          });
-        }
-      } else {
-        const error = await response.json();
+      if (!generateResponse.ok) {
+        const error = await generateResponse.json();
         alert(`Failed to generate quiz: ${error.message || 'Unknown error'}`);
+        setIsGeneratingQuiz(false);
+        return;
+      }
+
+      const result = await generateResponse.json();
+      
+      // Parse the generated questions
+      let questionsData;
+      try {
+        let rawText = typeof result.data.testQuestions === 'string' 
+          ? result.data.testQuestions 
+          : JSON.stringify(result.data.testQuestions);
+        
+        // Clean up markdown code blocks if present
+        rawText = rawText.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+        
+        // Try to extract JSON if it's wrapped in other text
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          rawText = jsonMatch[0];
+        }
+        
+        questionsData = JSON.parse(rawText);
+      } catch (parseError) {
+        console.error('Failed to parse quiz questions:', parseError);
+        console.error('Raw response:', result.data.testQuestions);
+        alert('Failed to parse generated quiz. The AI response may be malformed. Please try again.');
+        setIsGeneratingQuiz(false);
+        return;
+      }
+
+      const generatedQuizData = {
+        ...result.data,
+        parsedQuestions: questionsData
+      };
+      setGeneratedQuiz(generatedQuizData);
+
+      // Step 2: Save quiz to database immediately
+      // Find the subject ID from teacherSubjects
+      const selectedSubject = teacherSubjects.find((s: any) => 
+        s.name?.toLowerCase() === quizForm.subject.toLowerCase()
+      );
+      
+      if (!selectedSubject) {
+        alert('Subject not found. Please select a valid subject.');
+        setIsGeneratingQuiz(false);
+        return;
+      }
+
+      // Format questions for the API (matching Assessment model schema)
+      const formattedQuestions = questionsData.questions?.map((q: any) => {
+        // Extract options as strings (Assessment model expects array of strings)
+        const options = q.options?.map((opt: string | { text: string; isCorrect?: boolean }) => {
+          if (typeof opt === 'string') {
+            return opt;
+          }
+          return opt.text || String(opt);
+        }) || [];
+
+        return {
+          question: q.question || q.questionText || '',
+          type: q.type === 'multiple-choice' ? 'multiple-choice' : (q.type || 'multiple-choice'),
+          options: options,
+          correctAnswer: q.correctAnswer || options[0] || '',
+          explanation: q.explanation || '',
+          points: 1
+        };
+      }) || [];
+
+      // Convert subject ID to string
+      const subjectId = selectedSubject._id 
+        ? (typeof selectedSubject._id === 'string' ? selectedSubject._id : String(selectedSubject._id))
+        : String(selectedSubject.id || selectedSubject._id);
+      
+      // Convert assigned classes to strings (they'll be converted to ObjectIds in backend)
+      const assignedClassesIds = quizForm.assignedClasses.map((classId: any) => 
+        typeof classId === 'string' ? classId : String(classId)
+      );
+
+      const quizData = {
+        title: `Quiz: ${quizForm.topic} - ${quizForm.subject}`,
+        description: `AI-generated quiz for ${quizForm.subject} - ${quizForm.topic} (${quizForm.gradeLevel})`,
+        subject: subjectId,
+        duration: 60,
+        difficulty: quizForm.difficulty,
+        questions: formattedQuestions,
+        assignedClasses: assignedClassesIds
+      };
+      
+      console.log('Saving quiz with data:', {
+        title: quizData.title,
+        subject: quizData.subject,
+        questionsCount: quizData.questions.length,
+        assignedClasses: quizData.assignedClasses
+      });
+
+      const saveResponse = await fetch(`${API_BASE_URL}/api/teacher/quizzes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(quizData)
+      });
+
+      if (saveResponse.ok) {
+        const savedQuiz = await saveResponse.json();
+        
+        // If classes are assigned, assign the quiz to those classes
+        if (quizForm.assignedClasses.length > 0 && savedQuiz.data?._id) {
+          try {
+            const assignResponse = await fetch(`${API_BASE_URL}/api/teacher/quizzes/${savedQuiz.data._id}/assign`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                classIds: quizForm.assignedClasses
+              })
+            });
+
+            if (assignResponse.ok) {
+              alert(`Quiz generated and assigned to ${quizForm.assignedClasses.length} class(es) successfully!`);
+            } else {
+              alert('Quiz generated and saved but failed to assign to classes. You can assign it later.');
+            }
+          } catch (assignError) {
+            console.error('Failed to assign quiz:', assignError);
+            alert('Quiz generated and saved but failed to assign to classes. You can assign it later.');
+          }
+        } else {
+          alert('Quiz generated and saved successfully!');
+        }
+        
+        // Reset form after successful save
+        setGeneratedQuiz(null);
+        setQuizForm({
+          subject: '',
+          topic: '',
+          gradeLevel: '',
+          questionCount: '10',
+          difficulty: 'medium',
+          assignedClasses: []
+        });
+      } else {
+        let errorMessage = 'Unknown error';
+        try {
+          const errorData = await saveResponse.json();
+          errorMessage = errorData.error || errorData.message || errorData.details || 'Unknown error';
+          console.error('Failed to save quiz - Full error:', errorData);
+          console.error('Response status:', saveResponse.status);
+        } catch (parseError) {
+          const errorText = await saveResponse.text();
+          errorMessage = errorText || 'Failed to parse error response';
+          console.error('Failed to parse error response:', errorText);
+        }
+        alert(`Quiz generated but failed to save: ${errorMessage}`);
       }
     } catch (error) {
       console.error('Failed to generate quiz:', error);
@@ -909,6 +1051,82 @@ const TeacherDashboard = () => {
           setTeacherEmail(data.data.teacherEmail || '');
           setAssignedClasses(data.data.assignedClasses || []);
           setTeacherSubjects(data.data.teacherSubjects || []);
+          
+          // Process assigned classes to get unique classNumbers and their subjects
+          const classesMap = new Map<string, Set<string>>();
+          const classesData = data.data.assignedClasses || [];
+          
+          console.log('Processing assigned classes:', classesData);
+          
+          classesData.forEach((classItem: any) => {
+            const classNumber = classItem.classNumber;
+            console.log('Processing class:', classNumber, 'with data:', classItem);
+            
+            if (classNumber) {
+              // Always add the class, even if it has no subjects
+              if (!classesMap.has(classNumber)) {
+                classesMap.set(classNumber, new Set());
+              }
+              
+              // Check if assignedSubjects exists and is populated
+              if (classItem.assignedSubjects && Array.isArray(classItem.assignedSubjects) && classItem.assignedSubjects.length > 0) {
+                // Add all subjects from this class
+                classItem.assignedSubjects.forEach((subject: any) => {
+                  const subjectId = subject._id || subject;
+                  if (subjectId) {
+                    classesMap.get(classNumber)?.add(subjectId);
+                  }
+                });
+              }
+            }
+          });
+          
+          console.log('Classes map after processing:', Array.from(classesMap.entries()));
+          
+          // Convert to array format with unique subjects
+          const availableClassesList = Array.from(classesMap.entries()).map(([classNumber, subjectIds]) => {
+            // Get subject details from assignedClasses
+            const subjectsMap = new Map<string, any>();
+            
+            classesData.forEach((classItem: any) => {
+              if (classItem.classNumber === classNumber && classItem.assignedSubjects && Array.isArray(classItem.assignedSubjects)) {
+                classItem.assignedSubjects.forEach((subject: any) => {
+                  const subjectId = subject._id || subject;
+                  if (subjectIds.has(subjectId) && !subjectsMap.has(subjectId)) {
+                    subjectsMap.set(subjectId, {
+                      _id: subject._id || subject,
+                      name: subject.name || subject
+                    });
+                  }
+                });
+              }
+            });
+            
+            // Validate and clean classNumber
+            let cleanClassNumber = classNumber;
+            if (classNumber && typeof classNumber === 'string') {
+              // Remove "Class " prefix if present
+              cleanClassNumber = classNumber.replace(/^Class\s*/i, '').trim();
+              // Remove any leading dashes or invalid characters
+              cleanClassNumber = cleanClassNumber.replace(/^-+/, '').trim();
+            }
+            
+            // Skip invalid classNumbers
+            if (!cleanClassNumber || cleanClassNumber === '' || cleanClassNumber === '-9' || cleanClassNumber.startsWith('-')) {
+              console.warn('Skipping invalid classNumber:', classNumber, '->', cleanClassNumber);
+              return null;
+            }
+            
+            return {
+              classNumber: cleanClassNumber,
+              subjects: Array.from(subjectsMap.values())
+            };
+          })
+          .filter(item => item !== null); // Remove null entries
+          
+          console.log('Available classes list:', availableClassesList);
+          setAvailableClasses(availableClassesList);
+          
           // Get teacher ID from response or extract from token
           if (data.data.teacherId) {
             setTeacherId(data.data.teacherId);
@@ -943,6 +1161,8 @@ const TeacherDashboard = () => {
         setVideos([]);
         setAssignedClasses([]);
         setTeacherSubjects([]);
+        setAvailableClasses([]);
+        setSelectedClassSubjects([]);
       }
     } catch (error) {
       console.error('Failed to fetch teacher data:', error);
@@ -959,6 +1179,8 @@ const TeacherDashboard = () => {
       setVideos([]);
       setAssignedClasses([]);
       setTeacherSubjects([]);
+      setAvailableClasses([]);
+      setSelectedClassSubjects([]);
     } finally {
       setIsLoading(false);
     }
@@ -1570,13 +1792,41 @@ const TeacherDashboard = () => {
                         <Label className="block text-sm font-medium text-gray-700 mb-2">Class *</Label>
                         <select 
                           value={quizForm.gradeLevel}
-                          onChange={(e) => setQuizForm({...quizForm, gradeLevel: e.target.value, subject: '', topic: ''})}
+                          onChange={(e) => {
+                            const selectedClassNumber = e.target.value;
+                            console.log('Class selected:', selectedClassNumber);
+                            
+                            // Validate classNumber
+                            if (!selectedClassNumber || selectedClassNumber.trim() === '' || selectedClassNumber === '-9') {
+                              console.error('Invalid classNumber:', selectedClassNumber);
+                              setSelectedClassSubjects([]);
+                              return;
+                            }
+                            
+                            setQuizForm({...quizForm, gradeLevel: selectedClassNumber, subject: '', topic: ''});
+                            
+                            // Use teacher's assigned subjects directly (already fetched from dashboard API)
+                            if (teacherSubjects && teacherSubjects.length > 0) {
+                              console.log('Using teacher subjects:', teacherSubjects);
+                              // Format subjects for dropdown
+                              const formattedSubjects = teacherSubjects.map((subject: any) => ({
+                                _id: subject._id || subject,
+                                name: subject.name || subject
+                              }));
+                              setSelectedClassSubjects(formattedSubjects);
+                            } else {
+                              console.warn('No teacher subjects available');
+                              setSelectedClassSubjects([]);
+                            }
+                          }}
                           className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         >
                           <option value="">Select class</option>
-                          <option value="Class 11">Class 11</option>
-                          <option value="Class 12">Class 12</option>
-                          <option value="Dropper Batch">Dropper Batch</option>
+                          {availableClasses.map((classItem) => (
+                            <option key={classItem.classNumber} value={classItem.classNumber}>
+                              Class {classItem.classNumber}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div>
@@ -1584,19 +1834,22 @@ const TeacherDashboard = () => {
                         <select 
                           value={quizForm.subject}
                           onChange={(e) => setQuizForm({...quizForm, subject: e.target.value, topic: ''})}
-                          disabled={!quizForm.gradeLevel}
+                          disabled={!quizForm.gradeLevel || isLoadingSubjects || selectedClassSubjects.length === 0}
                           className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
                         >
                           <option value="">Select subject</option>
-                          {quizForm.gradeLevel && (
-                            <>
-                              <option value="Physics">Physics</option>
-                              <option value="Chemistry">Chemistry</option>
-                              <option value="Mathematics">Mathematics</option>
-                              <option value="Biology">Biology</option>
-                            </>
-                          )}
+                          {selectedClassSubjects.map((subject) => (
+                            <option key={subject._id || subject} value={subject.name}>
+                              {subject.name}
+                            </option>
+                          ))}
                         </select>
+                        {quizForm.gradeLevel && isLoadingSubjects && (
+                          <p className="text-xs text-gray-500 mt-1">Loading subjects...</p>
+                        )}
+                        {quizForm.gradeLevel && !isLoadingSubjects && selectedClassSubjects.length === 0 && (
+                          <p className="text-xs text-gray-500 mt-1">No subjects available for this class</p>
+                        )}
                       </div>
                       <div>
                         <Label className="block text-sm font-medium text-gray-700 mb-2">Topic *</Label>

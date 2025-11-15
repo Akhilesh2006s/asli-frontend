@@ -23,6 +23,7 @@ import SubjectContent from "./pages/subject-content";
 import EduOTT from "./pages/edu-ott";
 import IQRankBoostSubjects from "./pages/iq-rank-boost-subjects";
 import IQRankBoostQuiz from "./pages/iq-rank-boost-quiz";
+import QuizPage from "./pages/quiz";
 import SuperAdminLogin from "./pages/super-admin-login";
 import SuperAdminDashboard from "./pages/super-admin-dashboard";
 import SuperAdminTest from "./pages/super-admin-test";
@@ -40,6 +41,7 @@ function Router() {
       <Route path="/edu-ott" component={EduOTT} />
       <Route path="/iq-rank-boost-subjects" component={IQRankBoostSubjects} />
       <Route path="/iq-rank-boost/quiz/:subjectId" component={IQRankBoostQuiz} />
+      <Route path="/quiz/:id" component={QuizPage} />
       <Route path="/subject/:id" component={SubjectContent} />
       <Route path="/ai-tutor" component={AITutor} />
       <Route path="/profile" component={Profile} />
