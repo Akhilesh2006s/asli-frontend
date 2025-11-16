@@ -293,19 +293,27 @@ export default function Dashboard() {
           };
         });
 
-        // Fetch subject progress from learning paths (localStorage)
+        // Fetch subject progress from learning paths (Railway backend)
         // Get all subjects assigned to the student
         let learningPathProgress: Map<string, number> = new Map();
         try {
           const token = localStorage.getItem('authToken');
           if (token && subjectsList.length > 0) {
-            // Get progress for each subject from localStorage and content count
+            // Get progress for each subject from Railway backend
             for (const subject of subjectsList) {
               const subjectId = subject._id || subject.id;
               try {
-                const stored = localStorage.getItem(`completed_content_${subjectId}`);
-                if (stored) {
-                  const completedIds = JSON.parse(stored);
+                // Fetch completed content from Railway backend
+                const completedResponse = await fetch(`${API_BASE_URL}/api/student/content/completed/${subjectId}`, {
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  }
+                });
+                
+                if (completedResponse.ok) {
+                  const completedData = await completedResponse.json();
+                  const completedIds = completedData.completedIds || completedData.data || [];
                   
                   // Fetch content count for this subject to calculate accurate progress
                   try {

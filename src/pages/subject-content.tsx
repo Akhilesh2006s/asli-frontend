@@ -101,28 +101,56 @@ export default function SubjectContent() {
   useEffect(() => {
     if (params?.id) {
       fetchSubjectContent(params.id);
-      // Load completed content from localStorage
+      // Load completed content from Railway backend
       loadCompletedContent(params.id);
     }
   }, [params?.id]);
 
-  // Load completed content from localStorage
-  const loadCompletedContent = (subjectId: string) => {
+  // Load completed content from Railway backend
+  const loadCompletedContent = async (subjectId: string) => {
     try {
-      const stored = localStorage.getItem(`completed_content_${subjectId}`);
-      if (stored) {
-        const completedIds = JSON.parse(stored);
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      const response = await fetch(`${API_BASE_URL}/api/student/content/completed/${subjectId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const completedIds = data.completedIds || data.data || [];
         setCompletedContentIds(new Set(completedIds));
+      } else {
+        console.warn('Failed to load completed content from backend, using empty set');
+        setCompletedContentIds(new Set());
       }
     } catch (error) {
       console.error('Failed to load completed content:', error);
+      setCompletedContentIds(new Set());
     }
   };
 
-  // Save completed content to localStorage
-  const saveCompletedContent = (subjectId: string, completedIds: Set<string>) => {
+  // Save completed content to Railway backend
+  const saveCompletedContent = async (contentId: string, completed: boolean) => {
     try {
-      localStorage.setItem(`completed_content_${subjectId}`, JSON.stringify(Array.from(completedIds)));
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      const response = await fetch(`${API_BASE_URL}/api/student/content/${contentId}/complete`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ completed })
+      });
+
+      if (!response.ok) {
+        console.error('Failed to save content completion to backend');
+      }
     } catch (error) {
       console.error('Failed to save completed content:', error);
     }
@@ -135,19 +163,21 @@ export default function SubjectContent() {
   };
 
   // Handle mark as done
-  const handleMarkAsDone = (contentId: string) => {
+  const handleMarkAsDone = async (contentId: string) => {
+    const isCurrentlyCompleted = completedContentIds.has(contentId);
     const newCompleted = new Set(completedContentIds);
-    if (newCompleted.has(contentId)) {
+    
+    if (isCurrentlyCompleted) {
       newCompleted.delete(contentId);
     } else {
       newCompleted.add(contentId);
     }
+    
+    // Optimistically update UI
     setCompletedContentIds(newCompleted);
     
-    // Save to localStorage
-    if (params?.id) {
-      saveCompletedContent(params.id, newCompleted);
-    }
+    // Save to Railway backend
+    await saveCompletedContent(contentId, !isCurrentlyCompleted);
 
     // Update subject progress
     const progress = calculateProgress(contents.length, newCompleted.size);
@@ -266,15 +296,8 @@ export default function SubjectContent() {
           } : 'No content');
           setContents(contentsList);
           
-          // Update progress after loading contents
-          // Load completed items and calculate progress
-          if (params?.id) {
-            const stored = localStorage.getItem(`completed_content_${params.id}`);
-            const completedIds = stored ? JSON.parse(stored) : [];
-            const progress = calculateProgress(contentsList.length, completedIds.length);
-            setSubject(prev => prev ? { ...prev, progress } : prev);
-            setCompletedContentIds(new Set(completedIds));
-          }
+          // Progress will be updated when loadCompletedContent completes
+          // This is handled in the useEffect hook
         }
       } else {
         console.warn('⚠️ Contents API failed:', contentsResponse.status);
