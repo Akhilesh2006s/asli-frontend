@@ -110,7 +110,7 @@ export default function AITutor() {
       icon: Target,
       title: "Progress Tracking",
       description: "Monitor your learning progress and identify areas for improvement",
-      color: "bg-purple-100 text-purple-600"
+      color: "bg-blue-100 text-blue-600"
     }
   ];
 
@@ -150,12 +150,12 @@ export default function AITutor() {
     return (
       <>
         <Navigation />
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+        <div className="min-h-screen bg-sky-50 flex items-center justify-center">
           <div className="text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
               <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
             </div>
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">Loading...</h2>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent mb-2">Loading...</h2>
             <p className="text-gray-600">Preparing Vidya AI...</p>
           </div>
         </div>
@@ -166,7 +166,7 @@ export default function AITutor() {
   return (
     <>
       <Navigation />
-      <div className={`w-full px-2 sm:px-4 lg:px-6 pt-responsive pb-responsive bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 min-h-screen ${isMobile ? 'pb-20' : ''} relative`}>
+      <div className={`w-full px-2 sm:px-4 lg:px-6 pt-responsive pb-responsive bg-sky-50 min-h-screen ${isMobile ? 'pb-20' : ''} relative`}>
         
         
         {/* Header */}
@@ -180,7 +180,7 @@ export default function AITutor() {
               />
             </div>
             <div className="text-center sm:text-left">
-              <h1 className="text-responsive-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Vidya AI</h1>
+              <h1 className="text-responsive-xl font-bold bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent">Vidya AI</h1>
               <p className="text-responsive-sm text-gray-600">Your personal AI teaching assistant</p>
             </div>
             <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg">
@@ -190,7 +190,7 @@ export default function AITutor() {
           
           {user && (
             <div className="bg-white/60 backdrop-blur-xl p-responsive rounded-responsive border border-white/20 shadow-xl">
-              <h2 className="font-semibold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-responsive text-responsive-base">
+              <h2 className="font-semibold bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent mb-responsive text-responsive-base">
                 Welcome, {user.fullName?.split(' ')[0] || 'Student'}!
               </h2>
               <p className="text-gray-700 text-responsive-sm">
@@ -217,8 +217,8 @@ export default function AITutor() {
             {/* Quick Questions */}
             <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
               <CardHeader>
-                <CardTitle className="flex items-center bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  <HelpCircle className="w-5 h-5 mr-2 text-purple-600" />
+                <CardTitle className="flex items-center bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent">
+                  <HelpCircle className="w-5 h-5 mr-2 text-blue-600" />
                   Quick Questions
                 </CardTitle>
               </CardHeader>
@@ -245,8 +245,8 @@ export default function AITutor() {
             {/* AI Features */}
             <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
               <CardHeader>
-                <CardTitle className="flex items-center bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  <Zap className="w-5 h-5 mr-2 text-purple-600" />
+                <CardTitle className="flex items-center bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent">
+                  <Zap className="w-5 h-5 mr-2 text-blue-600" />
                   AI Features
                 </CardTitle>
               </CardHeader>
@@ -271,8 +271,8 @@ export default function AITutor() {
             {/* Study Tips */}
             <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
               <CardHeader>
-                <CardTitle className="flex items-center bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  <Lightbulb className="w-5 h-5 mr-2 text-purple-600" />
+                <CardTitle className="flex items-center bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent">
+                  <Lightbulb className="w-5 h-5 mr-2 text-blue-600" />
                   Study Tips
                 </CardTitle>
               </CardHeader>
@@ -298,7 +298,7 @@ export default function AITutor() {
             {sessionsLoading ? (
               <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
                 <CardHeader>
-                  <CardTitle className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Recent Sessions</CardTitle>
+                  <CardTitle className="bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent">Recent Sessions</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Skeleton className="h-16 w-full" />
@@ -307,7 +307,7 @@ export default function AITutor() {
             ) : chatSessions.length > 0 ? (
               <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
                 <CardHeader>
-                  <CardTitle className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Recent Sessions</CardTitle>
+                  <CardTitle className="bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent">Recent Sessions</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {(chatSessions as any[]).slice(0, 3).map((session: any, index: number) => (
@@ -345,7 +345,7 @@ export default function AITutor() {
             {/* Usage Stats */}
             <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
               <CardHeader>
-                <CardTitle className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Vidya AI Stats</CardTitle>
+                <CardTitle className="bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent">Vidya AI Stats</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="text-center">

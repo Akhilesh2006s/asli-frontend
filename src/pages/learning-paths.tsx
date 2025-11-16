@@ -279,7 +279,7 @@ export default function LearningPaths() {
                 difficulty: 'Intermediate',
                 duration: '3 hours',
                 subjects: ['Algebra', 'Calculus'],
-                color: 'bg-purple-100 text-purple-600',
+                color: 'bg-blue-100 text-blue-600',
                 icon: '📐',
                 videos: [],
                 quizzes: [],
@@ -321,7 +321,7 @@ export default function LearningPaths() {
               difficulty: 'Intermediate',
               duration: '3 hours',
               subjects: ['Algebra', 'Calculus'],
-              color: 'bg-purple-100 text-purple-600',
+              color: 'bg-blue-100 text-blue-600',
               icon: '📐',
               videos: [],
               quizzes: [],
@@ -372,7 +372,7 @@ export default function LearningPaths() {
             difficulty: 'Intermediate',
             duration: '3 hours',
             subjects: ['Algebra', 'Calculus'],
-            color: 'bg-purple-100 text-purple-600',
+            color: 'bg-blue-100 text-blue-600',
             icon: '📐',
             videos: [],
             quizzes: [],
@@ -592,7 +592,7 @@ export default function LearningPaths() {
             progress: 25,
             subjects: ["History", "Geography", "Polity", "Economics"],
             difficulty: "Expert",
-            color: "bg-purple-100 text-purple-600",
+            color: "bg-blue-100 text-blue-600",
             icon: "Award"
           }
         ]);
@@ -626,7 +626,7 @@ export default function LearningPaths() {
       rating: 0,
       subjects: [],
       difficulty: "Coming Soon",
-      color: "bg-purple-100 text-purple-600",
+      color: "bg-blue-100 text-blue-600",
       icon: Gamepad2,
       isComingSoon: true
     }
@@ -653,7 +653,7 @@ export default function LearningPaths() {
   return (
     <>
       <Navigation />
-      <div className={`w-full px-2 sm:px-4 lg:px-6 pt-24 pb-8 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 min-h-screen ${isMobile ? 'pb-20' : ''} relative`}>
+      <div className={`w-full px-2 sm:px-4 lg:px-6 pt-24 pb-8 bg-sky-50 min-h-screen ${isMobile ? 'pb-20' : ''} relative`}>
         
         {/* Robot GIF - Fixed at Bottom Left */}
         {!isMobile && (
@@ -759,7 +759,7 @@ export default function LearningPaths() {
                     onClick={() => window.location.href = `/subject/${subject._id || subject.id}`}
                   >
                     <CardContent className="p-6 flex flex-col items-center text-center">
-                      <div className="w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md mb-4">
+                      <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md mb-4">
                         <Icon className="w-10 h-10 text-white" />
                       </div>
                       <CardTitle className="text-lg font-semibold text-gray-900">{subject.name}</CardTitle>
@@ -794,7 +794,7 @@ export default function LearningPaths() {
                 <Card key={quiz._id} className="hover:shadow-lg transition-all duration-200 hover:scale-105">
                     <CardHeader>
                       <div className="flex items-center justify-between mb-2">
-                      <div className="w-12 h-12 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-lg flex items-center justify-center shadow-lg">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg">
                         <FileText className="w-6 h-6 text-white" />
                         </div>
                       {quiz.hasAttempted && (
@@ -809,15 +809,15 @@ export default function LearningPaths() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-2 text-center">
-                      <div className="bg-purple-50 rounded-lg p-2">
-                        <Clock className="w-4 h-4 text-purple-600 mx-auto mb-1" />
-                        <p className="text-xs font-medium text-purple-800">{quiz.duration} min</p>
-                        <p className="text-xs text-purple-600">Duration</p>
+                      <div className="bg-blue-50 rounded-lg p-2">
+                        <Clock className="w-4 h-4 text-blue-600 mx-auto mb-1" />
+                        <p className="text-xs font-medium text-blue-800">{quiz.duration} min</p>
+                        <p className="text-xs text-blue-600">Duration</p>
                       </div>
-                      <div className="bg-pink-50 rounded-lg p-2">
-                        <Target className="w-4 h-4 text-pink-600 mx-auto mb-1" />
-                        <p className="text-xs font-medium text-pink-800">{quiz.questionCount}</p>
-                        <p className="text-xs text-pink-600">Questions</p>
+                      <div className="bg-blue-50 rounded-lg p-2">
+                        <Target className="w-4 h-4 text-blue-600 mx-auto mb-1" />
+                        <p className="text-xs font-medium text-blue-800">{quiz.questionCount}</p>
+                        <p className="text-xs text-blue-600">Questions</p>
                       </div>
                     </div>
                     
@@ -845,7 +845,7 @@ export default function LearningPaths() {
                               </div>
 
                     <Link href={`/student-exams?quiz=${quiz._id}`}>
-                      <Button className="w-full bg-gradient-to-r from-pink-500 via-purple-500 to-pink-600 hover:from-pink-600 hover:via-purple-600 hover:to-pink-700 text-white shadow-lg">
+                      <Button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg">
                         {quiz.hasAttempted ? 'Retake Quiz' : 'Start Quiz'}
                         <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>
@@ -870,7 +870,7 @@ export default function LearningPaths() {
             {/* TextBook Card */}
             <Card 
               className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
-                selectedContentType === 'TextBook' ? 'ring-2 ring-purple-500' : ''
+                selectedContentType === 'TextBook' ? 'ring-2 ring-blue-500' : ''
               }`}
               onClick={() => setSelectedContentType(selectedContentType === 'TextBook' ? null : 'TextBook')}
             >
@@ -888,7 +888,7 @@ export default function LearningPaths() {
             {/* Workbook Card */}
             <Card 
               className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
-                selectedContentType === 'Workbook' ? 'ring-2 ring-purple-500' : ''
+                selectedContentType === 'Workbook' ? 'ring-2 ring-blue-500' : ''
               }`}
               onClick={() => setSelectedContentType(selectedContentType === 'Workbook' ? null : 'Workbook')}
             >
@@ -906,7 +906,7 @@ export default function LearningPaths() {
             {/* Material Card */}
             <Card 
               className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
-                selectedContentType === 'Material' ? 'ring-2 ring-purple-500' : ''
+                selectedContentType === 'Material' ? 'ring-2 ring-blue-500' : ''
               }`}
               onClick={() => setSelectedContentType(selectedContentType === 'Material' ? null : 'Material')}
             >
@@ -924,7 +924,7 @@ export default function LearningPaths() {
             {/* Video Card */}
             <Card 
               className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
-                selectedContentType === 'Video' ? 'ring-2 ring-purple-500' : ''
+                selectedContentType === 'Video' ? 'ring-2 ring-blue-500' : ''
               }`}
               onClick={() => setSelectedContentType(selectedContentType === 'Video' ? null : 'Video')}
             >
@@ -942,7 +942,7 @@ export default function LearningPaths() {
             {/* Audio Card */}
             <Card 
               className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
-                selectedContentType === 'Audio' ? 'ring-2 ring-purple-500' : ''
+                selectedContentType === 'Audio' ? 'ring-2 ring-blue-500' : ''
               }`}
               onClick={() => setSelectedContentType(selectedContentType === 'Audio' ? null : 'Audio')}
             >
@@ -960,7 +960,7 @@ export default function LearningPaths() {
             {/* Homework Card */}
             <Card 
               className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
-                selectedContentType === 'Homework' ? 'ring-2 ring-purple-500' : ''
+                selectedContentType === 'Homework' ? 'ring-2 ring-blue-500' : ''
               }`}
               onClick={() => setSelectedContentType(selectedContentType === 'Homework' ? null : 'Homework')}
             >
@@ -1011,7 +1011,7 @@ export default function LearningPaths() {
                     <Card key={content._id} className="hover:shadow-lg transition-all duration-200 hover:scale-105">
                       <CardHeader>
                         <div className="flex items-center justify-between mb-2">
-                          <div className="w-12 h-12 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-lg flex items-center justify-center shadow-lg">
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg">
                             {selectedContentType === 'TextBook' ? (
                               <BookOpen className="w-6 h-6 text-white" />
                             ) : selectedContentType === 'Workbook' ? (
@@ -1102,7 +1102,7 @@ export default function LearningPaths() {
                         <Icon className="w-5 h-5" />
                       </div>
                       {path.isComingSoon ? (
-                        <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700 border-purple-300">
+                        <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 border-blue-300">
                           Coming Soon
                         </Badge>
                       ) : (
@@ -1203,8 +1203,8 @@ export default function LearningPaths() {
 
           <Card className="hover:shadow-lg transition-shadow duration-200">
             <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Star className="w-6 h-6 text-purple-600" />
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                <Star className="w-6 h-6 text-blue-600" />
               </div>
               <h3 className="font-semibold text-gray-900 mb-2">Exams</h3>
               <p className="text-gray-600 text-sm mb-4">Earn certificates for your achievements</p>

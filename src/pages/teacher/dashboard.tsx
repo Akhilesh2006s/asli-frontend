@@ -1188,12 +1188,12 @@ const TeacherDashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+      <div className="min-h-screen bg-sky-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
+          <div className="w-16 h-16 bg-gradient-to-r from-pink-500 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
             <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">Loading...</h2>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-pink-700 bg-clip-text text-transparent mb-2">Loading...</h2>
           <p className="text-gray-600">Preparing your teacher dashboard</p>
         </div>
       </div>
@@ -1201,7 +1201,7 @@ const TeacherDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 relative overflow-hidden">
+    <div className="min-h-screen bg-sky-50 relative overflow-hidden">
       {/* Interactive Background */}
       <div className="fixed inset-0 z-0">
         <InteractiveBackground />
@@ -1213,11 +1213,11 @@ const TeacherDashboard = () => {
         <div className="w-full px-2 sm:px-4 lg:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl">
+              <div className="w-12 h-12 bg-gradient-to-r from-pink-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-xl">
                 <GraduationCap className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">ASLI STUD</h1>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-pink-600 to-pink-700 bg-clip-text text-transparent">ASLI STUD</h1>
                 <p className="text-xs text-gray-600 font-medium">Teacher Portal</p>
               </div>
             </div>
@@ -1244,7 +1244,7 @@ const TeacherDashboard = () => {
       <div className="w-full px-2 sm:px-4 lg:px-6 py-8 relative z-10">
         {/* Welcome Message */}
         <div className="mb-8">
-          <h1 className="text-responsive-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent capitalize">
+          <h1 className="text-responsive-xl font-bold bg-gradient-to-r from-pink-600 to-pink-700 bg-clip-text text-transparent capitalize">
             Overview
           </h1>
           <p className="text-gray-600 text-responsive-sm font-medium mt-2">Manage your classes and track student progress with style</p>
@@ -1257,7 +1257,7 @@ const TeacherDashboard = () => {
                 <div className="flex items-center space-x-2">
                   <Button
                     variant={dashboardSubTab === 'ai-classes' ? 'default' : 'outline'}
-                    className={dashboardSubTab === 'ai-classes' ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg' : 'border-purple-200 text-purple-800 hover:bg-purple-50'}
+                    className={dashboardSubTab === 'ai-classes' ? 'bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-lg' : 'border-pink-200 text-pink-800 hover:bg-pink-50'}
                     onClick={() => setDashboardSubTab('ai-classes')}
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
@@ -1265,7 +1265,7 @@ const TeacherDashboard = () => {
                   </Button>
                   <Button
                     variant={dashboardSubTab === 'students' ? 'default' : 'outline'}
-                    className={dashboardSubTab === 'students' ? 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg' : 'border-blue-200 text-blue-800 hover:bg-blue-50'}
+                    className={dashboardSubTab === 'students' ? 'bg-gradient-to-r from-emerald-400 to-teal-400 text-white shadow-lg' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50'}
                     onClick={() => setDashboardSubTab('students')}
                   >
                     <Users className="w-4 h-4 mr-2" />
@@ -1273,7 +1273,7 @@ const TeacherDashboard = () => {
                   </Button>
                   <Button
                     variant={dashboardSubTab === 'eduott' ? 'default' : 'outline'}
-                    className={dashboardSubTab === 'eduott' ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg' : 'border-pink-200 text-pink-800 hover:bg-pink-50'}
+                    className={dashboardSubTab === 'eduott' ? 'bg-gradient-to-r from-orange-400 to-pink-400 text-white shadow-lg' : 'border-orange-200 text-orange-800 hover:bg-orange-50'}
                     onClick={() => setDashboardSubTab('eduott')}
                   >
                     <VideoIcon className="w-4 h-4 mr-2" />
@@ -1288,7 +1288,7 @@ const TeacherDashboard = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
-                  className="group relative overflow-hidden bg-gradient-to-br from-blue-500 to-cyan-500 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                  className="group relative overflow-hidden bg-gradient-to-br from-pink-500 to-pink-600 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
                 >
                   <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                   <div className="relative z-10">
@@ -1310,7 +1310,7 @@ const TeacherDashboard = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="group relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-500 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                  className="group relative overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-400 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
                 >
                   <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                   <div className="relative z-10">
@@ -1332,7 +1332,7 @@ const TeacherDashboard = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="group relative overflow-hidden bg-gradient-to-br from-pink-500 to-rose-500 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                  className="group relative overflow-hidden bg-gradient-to-br from-orange-400 to-pink-400 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
                 >
                   <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                   <div className="relative z-10">
@@ -1354,7 +1354,7 @@ const TeacherDashboard = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
-                  className="group relative overflow-hidden bg-gradient-to-br from-amber-500 to-yellow-500 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                  className="group relative overflow-hidden bg-gradient-to-br from-sky-400 to-blue-400 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
                 >
                   <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                   <div className="relative z-10">
@@ -1385,10 +1385,10 @@ const TeacherDashboard = () => {
                 className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
               >
                 <div className="flex items-center space-x-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <div className="w-10 h-10 bg-gradient-to-r from-pink-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
                     <Sparkles className="w-5 h-5 text-white" />
                   </div>
-                  <h3 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Vidya AI</h3>
+                  <h3 className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-pink-700 bg-clip-text text-transparent">Vidya AI</h3>
                 </div>
 
                 {/* Tabs */}
@@ -1461,7 +1461,7 @@ const TeacherDashboard = () => {
                 {vidyaAiTab === 'assistant' && (
                   <div className="bg-white rounded-2xl p-6 border border-gray-200">
                     <div className="flex items-center space-x-3 mb-4">
-                      <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                      <div className="w-8 h-8 bg-gradient-to-r from-pink-500 to-pink-600 rounded-lg flex items-center justify-center">
                         <GraduationCap className="w-5 h-5 text-white" />
                       </div>
                       <h4 className="text-xl font-bold text-gray-900">Teaching Assistant</h4>
@@ -1479,7 +1479,7 @@ const TeacherDashboard = () => {
                 )}
 
                 {vidyaAiTab === 'lesson-plans' && (
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6">
+                  <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-6">
                     <h4 className="text-xl font-bold text-gray-900 mb-4">Lesson Plan Generator</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
@@ -1561,7 +1561,7 @@ const TeacherDashboard = () => {
                   <Button 
                     onClick={handleGenerateLessonPlan}
                     disabled={isGeneratingLessonPlan || !lessonPlanForm.subject || !lessonPlanForm.topic || !lessonPlanForm.gradeLevel}
-                    className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white px-6 py-2 rounded-xl disabled:opacity-50"
+                    className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white px-6 py-2 rounded-xl disabled:opacity-50"
                   >
                     {isGeneratingLessonPlan ? (
                       <>
@@ -1578,7 +1578,7 @@ const TeacherDashboard = () => {
                   {generatedLessonPlan && (
                     <div className="mt-4 p-4 bg-white rounded-xl border border-gray-200 shadow-lg max-h-96 overflow-y-auto">
                       <h5 className="text-lg font-semibold text-gray-900 mb-3">Generated Lesson Plan:</h5>
-                      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+                      <div className="bg-gradient-to-br from-sky-50 to-blue-50 rounded-lg p-4 border border-sky-200">
                         <div className="prose prose-sm max-w-none">
                           <div className="text-gray-800 leading-relaxed">
                             {generatedLessonPlan.split('\n').map((line, index) => {
@@ -1621,7 +1621,7 @@ const TeacherDashboard = () => {
                 {vidyaAiTab === 'grading' && (
                   <div className="bg-white rounded-2xl p-6 border border-gray-200">
                     <div className="flex items-center space-x-3 mb-4">
-                      <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
+                      <div className="w-8 h-8 bg-gradient-to-r from-orange-400 to-pink-400 rounded-lg flex items-center justify-center">
                         <FileTextIcon className="w-5 h-5 text-white" />
                       </div>
                       <h4 className="text-xl font-bold text-gray-900">Automated Grading Assistant</h4>
@@ -1763,7 +1763,7 @@ const TeacherDashboard = () => {
                 {vidyaAiTab === 'parent-comm' && (
                   <div className="bg-white rounded-2xl p-6 border border-gray-200">
                     <div className="flex items-center space-x-3 mb-4">
-                      <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg flex items-center justify-center">
+                      <div className="w-8 h-8 bg-gradient-to-r from-orange-400 to-pink-400 rounded-lg flex items-center justify-center">
                         <MessageCircle className="w-5 h-5 text-white" />
                       </div>
                       <h4 className="text-xl font-bold text-gray-900">Parent Communication</h4>
@@ -1778,9 +1778,9 @@ const TeacherDashboard = () => {
                 )}
 
                 {vidyaAiTab === 'quiz-generator' && (
-                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-6">
+                  <div className="bg-gradient-to-r from-pink-50 to-pink-100 rounded-2xl p-6">
                     <div className="flex items-center space-x-3 mb-6">
-                      <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                      <div className="w-8 h-8 bg-gradient-to-r from-pink-500 to-pink-600 rounded-lg flex items-center justify-center">
                         <FileText className="w-5 h-5 text-white" />
                       </div>
                       <h4 className="text-xl font-bold text-gray-900">AI Quiz Generator</h4>
@@ -1934,7 +1934,7 @@ const TeacherDashboard = () => {
                     <Button 
                       onClick={handleGenerateQuiz}
                       disabled={isGeneratingQuiz || !quizForm.subject || !quizForm.topic || !quizForm.gradeLevel}
-                      className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-6 py-2 rounded-xl disabled:opacity-50 mb-4"
+                      className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white px-6 py-2 rounded-xl disabled:opacity-50 mb-4"
                     >
                       {isGeneratingQuiz ? (
                         <>
@@ -1976,7 +1976,7 @@ const TeacherDashboard = () => {
                           {generatedQuiz.parsedQuestions?.questions ? (
                             <div className="space-y-6">
                               {generatedQuiz.parsedQuestions.questions.map((q: any, index: number) => (
-                                <div key={index} className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-4 border border-purple-200">
+                                <div key={index} className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg p-4 border border-pink-200">
                                   <div className="flex items-start space-x-2 mb-3">
                                     <span className="bg-purple-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-semibold">
                                       {index + 1}
@@ -2023,7 +2023,7 @@ const TeacherDashboard = () => {
                               ))}
                             </div>
                           ) : generatedQuiz.rawText ? (
-                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+                            <div className="bg-gradient-to-br from-sky-50 to-blue-50 rounded-lg p-4 border border-sky-200">
                               <div className="prose prose-sm max-w-none">
                                 <div className="text-gray-800 leading-relaxed whitespace-pre-wrap">
                                   {generatedQuiz.rawText}
@@ -2051,10 +2051,10 @@ const TeacherDashboard = () => {
               >
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <div className="w-10 h-10 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-xl flex items-center justify-center shadow-lg">
                       <Users className="w-5 h-5 text-white" />
                     </div>
-                    <h3 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">My Classes</h3>
+                    <h3 className="text-2xl font-bold bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">My Classes</h3>
                   </div>
                 </div>
 
@@ -2143,7 +2143,7 @@ const TeacherDashboard = () => {
                       </div>
                       <h3 className="text-xl font-semibold text-gray-900 mb-2">No Classes Assigned</h3>
                       <p className="text-gray-600 mb-4">You haven't been assigned to any classes yet. Contact your administrator.</p>
-                      <Button className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white">
+                      <Button className="bg-gradient-to-r from-sky-400 to-blue-400 hover:from-sky-500 hover:to-blue-500 text-white">
                         Request Class Assignment
                       </Button>
                     </div>

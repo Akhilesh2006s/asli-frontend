@@ -340,7 +340,7 @@ export default function Dashboard() {
             'bg-green-100 text-green-600',
             'bg-purple-100 text-purple-600',
             'bg-orange-100 text-orange-600',
-            'bg-pink-100 text-pink-600'
+            'bg-blue-100 text-blue-600'
           ];
           return {
             id: key.toLowerCase(),
@@ -452,7 +452,7 @@ export default function Dashboard() {
               'bg-green-100 text-green-600',
               'bg-purple-100 text-purple-600',
               'bg-orange-100 text-orange-600',
-              'bg-pink-100 text-pink-600'
+              'bg-blue-100 text-blue-600'
             ];
             // Use subject ID as key, but display actual name
             mergedProgress.set(subjectId, {
@@ -1163,12 +1163,12 @@ export default function Dashboard() {
     return (
       <>
         <Navigation />
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+        <div className="min-h-screen bg-sky-50 flex items-center justify-center">
           <div className="text-center">
-            <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
               <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
             </div>
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">Loading...</h2>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent mb-2">Loading...</h2>
             <p className="text-gray-600">Preparing your dashboard</p>
           </div>
         </div>
@@ -1182,9 +1182,9 @@ export default function Dashboard() {
   return (
     <>
       <Navigation />
-      <div className={`w-full px-2 sm:px-4 lg:px-6 pt-responsive pb-responsive bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 min-h-screen ${isMobile ? 'pb-20' : ''} relative overflow-hidden`}>
+      <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-responsive pb-responsive bg-sky-50 min-h-screen ${isMobile ? 'pb-20' : ''} relative overflow-hidden`}>
         {/* Interactive Background */}
-        <div className="fixed inset-0 z-0">
+        <div className="fixed inset-0 z-0 bg-sky-50">
           <InteractiveBackground />
           <FloatingParticles />
         </div>
@@ -1204,163 +1204,143 @@ export default function Dashboard() {
         )}
         
         {/* Welcome Section */}
-        <div className="mb-responsive relative z-10">
-          <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-responsive p-responsive text-white relative overflow-hidden shadow-xl">
-            <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-            <div className="relative z-10">
-              <h1 className="text-responsive-xl font-bold mb-responsive">
-                Welcome back, {user?.email || 'Student'}!
-              </h1>
-              <p className="text-white/90 mb-responsive text-responsive-sm">
-                Ready to continue your {user?.educationStream || 'JEE'} preparation journey? Your Vidya AI has personalized recommendations waiting.
-              </p>
-              
-              <div className="flex-responsive-col gap-responsive">
-                <Button 
-                  className="bg-white text-primary hover:bg-blue-50 w-full sm:w-auto"
-                  onClick={() => setLocation('/learning-paths')}
-                >
-                  Continue Learning
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="border-white/30 bg-white/10 text-white hover:bg-white/20 w-full sm:w-auto"
-                  onClick={() => setLocation('/ai-tutor')}
-                >
-                  Ask Vidya AI
-                </Button>
+        <div className="mt-6 sm:mt-8 mb-6 relative z-10">
+        <div className="bg-gradient-to-r from-[#1CD8D2] via-[#1FA2FF] to-[#5B43F1] rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl">
+        <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+            <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              {/* Left side - Text content */}
+              <div className="flex-1">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1 sm:mb-2">
+                  Welcome back, {user?.email?.split('@')[0] || user?.fullName?.split(' ')[0] || 'Student'}!
+                </h1>
+                <p className="text-white/90 mb-3 sm:mb-4 text-xs sm:text-sm">
+                  Ready to continue your {user?.educationStream || 'JEE'} preparation journey? Your Vidya AI has personalized recommendations waiting.
+                </p>
+                
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                  <Button 
+                    className="bg-white text-blue-600 hover:bg-blue-50 hover:text-blue-700 w-full sm:w-auto font-semibold text-sm py-2 px-4"
+                    onClick={() => setLocation('/learning-paths')}
+                  >
+                    Continue Learning
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="border-white/30 bg-white/10 text-white hover:bg-white/20 w-full sm:w-auto text-sm py-2 px-4"
+                    onClick={() => setLocation('/ai-tutor')}
+                  >
+                    Ask Vidya AI
+                  </Button>
+                </div>
               </div>
-            </div>
-            
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 opacity-10">
-              <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-                <path fill="currentColor" d="M47.1,-78.5C58.9,-69.2,64.3,-50.4,73.2,-32.8C82.1,-15.1,94.5,1.4,94.4,17.9C94.3,34.4,81.7,50.9,66.3,63.2C50.9,75.5,32.7,83.6,13.8,87.1C-5.1,90.6,-24.7,89.5,-41.6,82.1C-58.5,74.7,-72.7,61,-79.8,44.8C-86.9,28.6,-86.9,9.9,-83.2,-6.8C-79.5,-23.5,-72.1,-38.2,-61.3,-49.6C-50.5,-61,-36.3,-69.1,-21.4,-75.8C-6.5,-82.5,9.1,-87.8,25.2,-84.9C41.3,-82,57.9,-70,47.1,-78.5Z" transform="translate(100 100)"/>
-              </svg>
+              
+              {/* Right side - Robot image */}
+              <div className="flex-shrink-0">
+                <div className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 relative">
+                  <div className="absolute inset-0 bg-white/20 rounded-xl backdrop-blur-sm p-1.5">
+                    <img 
+                      src="/ROBOT.gif" 
+                      alt="Vidya AI Robot" 
+                      className="w-full h-full object-contain rounded-lg"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* AI Study Planner Section */}
-        <div className="mb-responsive relative z-10">
-          {/* Header */}
-          <div className="bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-2xl p-6 mb-6 text-white relative overflow-hidden shadow-lg">
-            <div className="relative z-10 flex items-center justify-center space-x-3">
-              <Calendar className="w-8 h-8" />
-              <div>
-                <h2 className="text-2xl font-bold">AI Study Planner</h2>
-                <p className="text-white/90 text-sm">Smart scheduling powered by AI to optimize your learning</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Summary Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Summary Statistics Cards */}
+        <div className="mb-8 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Today's Progress */}
-            <Card className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow">
-              <CardContent className="p-5">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
-                    <Target className="w-5 h-5 text-teal-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Today's Progress</p>
-                    {(() => {
-                      const totalTodos = incompleteContent.length + incompleteQuizzes.length;
-                      const completedTodos = incompleteContent.filter((c: any) => completedScheduleIds.has(c._id)).length + 
-                                           incompleteQuizzes.filter((q: any) => completedScheduleIds.has(q._id)).length;
-                      const percentage = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
-                      return (
-                        <>
-                          <p className="text-2xl font-bold text-teal-600">{completedTodos}/{totalTodos}</p>
-                          <div className="space-y-1 mt-2">
-                            <div className="flex justify-between text-xs text-gray-600">
-                              <span>Tasks completed</span>
-                              <span>{percentage}%</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div className="bg-teal-500 h-2 rounded-full transition-all duration-300" style={{ width: `${percentage}%` }}></div>
-                            </div>
-                          </div>
-                        </>
-                      );
-                    })()}
-                  </div>
+            <Card className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 h-full border-0">
+              <CardContent className="p-6 flex flex-col h-full relative">
+                <div className="absolute top-6 right-6 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Target className="w-5 h-5 text-gray-600" />
                 </div>
+                <p className="text-sm font-medium text-gray-500 mb-4 pr-12">Today's Progress</p>
+                {(() => {
+                  const totalTodos = incompleteContent.length + incompleteQuizzes.length;
+                  const completedTodos = incompleteContent.filter((c: any) => completedScheduleIds.has(c._id)).length + 
+                                       incompleteQuizzes.filter((q: any) => completedScheduleIds.has(q._id)).length;
+                  const percentage = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
+                  return (
+                    <>
+                      <p className="text-3xl font-bold text-gray-900 mb-3 leading-tight">{completedTodos}/{totalTodos}</p>
+                      <div className="w-full bg-gray-100 rounded-full h-2 mb-2 overflow-hidden">
+                        <div className="bg-gradient-to-r from-cyan-400 to-purple-600 h-2 rounded-full transition-all duration-500" style={{ width: `${percentage}%` }}></div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-auto">Tasks completed {percentage}%</p>
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
 
             {/* Study Time */}
-            <Card className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow">
-              <CardContent className="p-5">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-orange-600" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-600">Study Time</p>
-                    <p className="text-2xl font-bold text-orange-600 transition-all duration-300">
-                      {studyTimeToday >= 60 
-                        ? `${(studyTimeToday / 60).toFixed(1)}h` 
-                        : studyTimeToday < 1 && studyTimeToday > 0
-                        ? '<1m'
-                        : `${Math.round(studyTimeToday)}m`}
-                    </p>
-                  </div>
+            <Card className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 h-full border-0">
+              <CardContent className="p-6 flex flex-col h-full relative">
+                <div className="absolute top-6 right-6 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-gray-600" />
                 </div>
-                <p className="text-xs text-gray-500">Logged in today</p>
+                <p className="text-sm font-medium text-gray-500 mb-4 pr-12">Study Time</p>
+                <p className="text-3xl font-bold text-gray-900 mb-2 leading-tight transition-all duration-300">
+                  {studyTimeToday >= 60 
+                    ? `${(studyTimeToday / 60).toFixed(1)} hrs` 
+                    : studyTimeToday < 1 && studyTimeToday > 0
+                    ? '<1m'
+                    : `${Math.round(studyTimeToday)}m`}
+                </p>
+                <p className="text-xs text-gray-500 mt-auto">Logged in today</p>
               </CardContent>
             </Card>
 
             {/* This Week */}
-            <Card className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow">
-              <CardContent className="p-5">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-600">This Week</p>
-                    <p className="text-2xl font-bold text-purple-600 transition-all duration-300">
-                      {studyTimeThisWeek >= 60 
-                        ? `${(studyTimeThisWeek / 60).toFixed(1)}h` 
-                        : studyTimeThisWeek < 1 && studyTimeThisWeek > 0
-                        ? '<1m'
-                        : `${Math.round(studyTimeThisWeek)}m`}
-                    </p>
-                  </div>
+            <Card className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 h-full border-0">
+              <CardContent className="p-6 flex flex-col h-full relative">
+                <div className="absolute top-6 right-6 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-gray-600" />
                 </div>
-                <p className="text-xs text-gray-500">Logged in this week</p>
+                <p className="text-sm font-medium text-gray-500 mb-4 pr-12">This Week</p>
+                <p className="text-3xl font-bold text-gray-900 mb-2 leading-tight transition-all duration-300">
+                  {studyTimeThisWeek >= 60 
+                    ? `${(studyTimeThisWeek / 60).toFixed(1)} hrs` 
+                    : studyTimeThisWeek < 1 && studyTimeThisWeek > 0
+                    ? '<1m'
+                    : `${Math.round(studyTimeThisWeek)}m`}
+                </p>
+                <p className="text-xs text-gray-500 mt-auto">Logged in this week</p>
               </CardContent>
             </Card>
 
             {/* Efficiency */}
-            <Card className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow">
-              <CardContent className="p-5">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Efficiency</p>
-                    {(() => {
-                      const totalTodos = incompleteContent.length + incompleteQuizzes.length;
-                      const completedTodos = incompleteContent.filter((c: any) => completedScheduleIds.has(c._id)).length + 
-                                             incompleteQuizzes.filter((q: any) => completedScheduleIds.has(q._id)).length;
-                      const efficiency = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
-                      return (
-                        <p className="text-2xl font-bold text-green-600">{efficiency}%</p>
-                      );
-                    })()}
-                  </div>
+            <Card className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 h-full border-0">
+              <CardContent className="p-6 flex flex-col h-full relative">
+                <div className="absolute top-6 right-6 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-gray-600" />
                 </div>
-                <p className="text-xs text-gray-500">Completion rate</p>
+                <p className="text-sm font-medium text-gray-500 mb-4 pr-12">Efficiency</p>
+                {(() => {
+                  const totalTodos = incompleteContent.length + incompleteQuizzes.length;
+                  const completedTodos = incompleteContent.filter((c: any) => completedScheduleIds.has(c._id)).length + 
+                                       incompleteQuizzes.filter((q: any) => completedScheduleIds.has(q._id)).length;
+                  const efficiency = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
+                  return (
+                    <>
+                      <p className="text-3xl font-bold text-gray-900 mb-2 leading-tight">{efficiency}%</p>
+                      <p className="text-xs text-gray-500 mt-auto">Completion rate</p>
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
           </div>
+        </div>
 
-          {/* Weekly Overview */}
-          <Card className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow mb-6">
+        {/* Weekly Overview */}
+        <div className="mb-6 relative z-10">
+          <Card className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle className="text-xl font-bold text-gray-900">Weekly Overview</CardTitle>
               <p className="text-sm text-gray-600 mt-1">Your study plan for this week</p>
@@ -1389,7 +1369,7 @@ export default function Dashboard() {
                       <div className="flex-1 relative">
                         <div className="w-full h-6 bg-purple-200 rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-pink-600 rounded-full transition-all duration-500"
+                            className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-500"
                             style={{ width: `${percentage}%` }}
                           />
                         </div>
@@ -1568,10 +1548,10 @@ export default function Dashboard() {
             <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
               <CardHeader>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-gradient-to-br from-sky-400 to-blue-400 rounded-lg flex items-center justify-center">
                     <MessageSquare className="w-5 h-5 text-white" />
                   </div>
-                  <CardTitle className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  <CardTitle className="bg-gradient-to-r from-blue-700 to-cyan-300 bg-clip-text text-transparent">
                     Teacher Remarks
                   </CardTitle>
                 </div>
@@ -1623,7 +1603,7 @@ export default function Dashboard() {
 
         {/* Quick Stats */}
         <div className="grid-responsive-3 gap-responsive mb-responsive relative z-10">
-          <div className="group relative overflow-hidden bg-gradient-to-br from-blue-500 to-cyan-500 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300">
+          <div className="group relative overflow-hidden bg-gradient-to-br from-blue-700 to-cyan-300 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300">
             <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
@@ -1638,7 +1618,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-500 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300">
+          <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-400 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300">
             <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
@@ -1653,7 +1633,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="group relative overflow-hidden bg-gradient-to-br from-violet-500 to-purple-500 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300">
+          <div className="group relative overflow-hidden bg-gradient-to-br from-blue-400 to-blue-500 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300">
             <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
@@ -1680,8 +1660,8 @@ export default function Dashboard() {
             <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Your Learning Progress</CardTitle>
-                  <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg">
+                  <CardTitle className="bg-gradient-to-r from-blue-700 to-cyan-300 bg-clip-text text-transparent">Your Learning Progress</CardTitle>
+                  <Badge className="bg-gradient-to-r from-emerald-400 to-teal-400 text-white shadow-lg">
                     {user?.educationStream || 'JEE'} 2024
                   </Badge>
                 </div>
@@ -1729,7 +1709,7 @@ export default function Dashboard() {
                 </div>
 
                 <Button 
-                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
+                  className="w-full bg-gradient-to-r from-blue-700 to-cyan-300 hover:from-blue-800 hover:to-cyan-400 text-white shadow-lg"
                   onClick={() => setLocation('/learning-paths')}
                 >
                   View Complete Learning Path
@@ -1739,7 +1719,7 @@ export default function Dashboard() {
 
             {/* Learning Paths */}
             <div id="learning-paths-section" className="mb-6 scroll-mt-24">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">Learning Paths</h1>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-cyan-300 bg-clip-text text-transparent mb-2">Learning Paths</h1>
               
               {/* Tabs */}
               <div className="mb-6">
@@ -1805,7 +1785,7 @@ export default function Dashboard() {
                         onClick={() => window.location.href = `/subject/${subject._id || subject.id}`}
                       >
                         <CardContent className="p-6 flex flex-col items-center text-center">
-                          <div className="w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md mb-4">
+                          <div className="w-20 h-20 bg-gradient-to-br from-blue-700 to-cyan-300 rounded-xl flex items-center justify-center shadow-md mb-4">
                             <Icon className="w-10 h-10 text-white" />
                           </div>
                           <CardTitle className="text-lg font-semibold text-gray-900">{subject.name}</CardTitle>
@@ -1840,7 +1820,7 @@ export default function Dashboard() {
                         <Card key={quiz._id} className="hover:shadow-lg transition-all duration-200 hover:scale-105">
                           <CardHeader>
                             <div className="flex items-center justify-between mb-2">
-                              <div className="w-12 h-12 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-lg flex items-center justify-center shadow-lg">
+                              <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-lg flex items-center justify-center shadow-lg">
                                 <FileText className="w-6 h-6 text-white" />
                               </div>
                               {quiz.hasAttempted && (
@@ -1860,10 +1840,10 @@ export default function Dashboard() {
                                 <p className="text-xs font-medium text-purple-800">{quiz.duration || 60} min</p>
                                 <p className="text-xs text-purple-600">Duration</p>
                               </div>
-                              <div className="bg-pink-50 rounded-lg p-2">
-                                <Target className="w-4 h-4 text-pink-600 mx-auto mb-1" />
-                                <p className="text-xs font-medium text-pink-800">{quiz.questions?.length || quiz.questionCount || 0}</p>
-                                <p className="text-xs text-pink-600">Questions</p>
+                              <div className="bg-blue-50 rounded-lg p-2">
+                                <Target className="w-4 h-4 text-blue-600 mx-auto mb-1" />
+                                <p className="text-xs font-medium text-blue-800">{quiz.questions?.length || quiz.questionCount || 0}</p>
+                                <p className="text-xs text-blue-600">Questions</p>
                               </div>
                             </div>
                             
@@ -1877,7 +1857,7 @@ export default function Dashboard() {
                             )}
                             
                             <Button
-                              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                              className="w-full bg-gradient-to-r from-blue-700 to-cyan-300 hover:from-blue-800 hover:to-cyan-400 text-white"
                               onClick={() => window.location.href = `/quiz/${quiz._id}`}
                             >
                               {quiz.hasAttempted ? 'Review Quiz' : 'Start Quiz'}
@@ -1907,7 +1887,7 @@ export default function Dashboard() {
                   }}
                 >
                   <CardContent className="p-6 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md mb-4">
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-300 rounded-xl flex items-center justify-center shadow-md mb-4">
                       <BookOpen className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                     </div>
                     <CardTitle className="text-lg font-semibold text-gray-900 mb-1">TextBook</CardTitle>
@@ -1928,7 +1908,7 @@ export default function Dashboard() {
                   }}
                 >
                   <CardContent className="p-6 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md mb-4">
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-300 rounded-xl flex items-center justify-center shadow-md mb-4">
                       <FileTextIcon className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                     </div>
                     <CardTitle className="text-lg font-semibold text-gray-900 mb-1">Workbook</CardTitle>
@@ -1949,7 +1929,7 @@ export default function Dashboard() {
                   }}
                 >
                   <CardContent className="p-6 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md mb-4">
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-300 rounded-xl flex items-center justify-center shadow-md mb-4">
                       <File className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                     </div>
                     <CardTitle className="text-lg font-semibold text-gray-900 mb-1">Material</CardTitle>
@@ -1970,7 +1950,7 @@ export default function Dashboard() {
                   }}
                 >
                   <CardContent className="p-6 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md mb-4">
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-300 rounded-xl flex items-center justify-center shadow-md mb-4">
                       <VideoIcon className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                     </div>
                     <CardTitle className="text-lg font-semibold text-gray-900 mb-1">Video</CardTitle>
@@ -1991,7 +1971,7 @@ export default function Dashboard() {
                   }}
                 >
                   <CardContent className="p-6 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md mb-4">
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-300 rounded-xl flex items-center justify-center shadow-md mb-4">
                       <Headphones className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                     </div>
                     <CardTitle className="text-lg font-semibold text-gray-900 mb-1">Audio</CardTitle>
@@ -2012,7 +1992,7 @@ export default function Dashboard() {
                   }}
                 >
                   <CardContent className="p-6 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md mb-4">
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-300 rounded-xl flex items-center justify-center shadow-md mb-4">
                       <ClipboardList className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                     </div>
                     <CardTitle className="text-lg font-semibold text-gray-900 mb-1">Homework</CardTitle>
@@ -2071,7 +2051,7 @@ export default function Dashboard() {
                           <Card key={content._id || content.id} className="hover:shadow-md transition-shadow">
                             <CardContent className="p-4">
                               <div className="flex items-start space-x-3">
-                                <div className="w-12 h-12 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
                                   <ContentIcon className="w-6 h-6 text-white" />
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -2127,7 +2107,7 @@ export default function Dashboard() {
 
             {/* Recommended Learning Paths */}
             <div className="mb-6">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-6">Recommended for You</h2>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-6">Recommended for You</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[
                   {
@@ -2254,7 +2234,7 @@ export default function Dashboard() {
 
               <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl hover:shadow-2xl transition-shadow duration-200">
                 <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <div className="w-12 h-12 bg-gradient-to-r from-sky-400 to-blue-400 rounded-lg flex items-center justify-center mx-auto mb-4 shadow-lg">
                     <CheckCircle className="w-6 h-6 text-white" />
                   </div>
                   <h3 className="font-semibold text-gray-900 mb-2">Vidya AI</h3>
@@ -2301,7 +2281,7 @@ export default function Dashboard() {
             {/* Quick Actions */}
             <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
               <CardHeader>
-                <CardTitle className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Quick Actions</CardTitle>
+                <CardTitle className="bg-gradient-to-r from-blue-700 to-cyan-300 bg-clip-text text-transparent">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-3">
@@ -2351,7 +2331,7 @@ export default function Dashboard() {
             {/* Recent Achievements */}
             <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
               <CardHeader>
-                <CardTitle className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Recent Achievements</CardTitle>
+                <CardTitle className="bg-gradient-to-r from-blue-700 to-cyan-300 bg-clip-text text-transparent">Recent Achievements</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="achievement-card">
@@ -2638,7 +2618,7 @@ export default function Dashboard() {
                 </Button>
                 {!completedScheduleIds.has(selectedScheduleItem._id || selectedScheduleItem.id) && (
                   <Button
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                    className="bg-gradient-to-r from-blue-700 to-cyan-300 hover:from-blue-800 hover:to-cyan-400 text-white"
                     onClick={() => handleMarkAsComplete(selectedScheduleItem, selectedScheduleItem.isQuiz)}
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />

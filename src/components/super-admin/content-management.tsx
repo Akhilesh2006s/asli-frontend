@@ -477,7 +477,7 @@ export default function ContentManagement() {
         </div>
         <Button
           onClick={() => setIsUploadModalOpen(true)}
-          className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+          className="bg-gradient-to-r from-blue-700 to-cyan-300 hover:from-blue-800 hover:to-cyan-400 text-white"
         >
           <Upload className="w-4 h-4 mr-2" />
           Upload Content
@@ -490,9 +490,9 @@ export default function ContentManagement() {
           <div className="flex items-center space-x-4">
             <Label className="font-semibold">Select Board:</Label>
             <div className="relative w-48">
-              <div className="absolute -inset-[2px] bg-gradient-to-r from-purple-500 to-pink-500 rounded-md"></div>
+              <div className="absolute -inset-[2px] bg-gradient-to-r from-blue-700 to-cyan-300 rounded-md"></div>
               <Select value={selectedBoard} onValueChange={setSelectedBoard}>
-                <SelectTrigger className="w-full relative z-10 border-0 bg-white focus:ring-2 focus:ring-purple-500 focus:ring-offset-0">
+                <SelectTrigger className="w-full relative z-10 border-0 bg-white focus:ring-2 focus:ring-blue-700 focus:ring-offset-0">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -514,7 +514,7 @@ export default function ContentManagement() {
       {/* Content Grid */}
       {isLoading ? (
         <div className="text-center py-12">
-          <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-8 h-8 border-4 border-blue-700 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading content...</p>
         </div>
       ) : contents.length === 0 ? (
@@ -532,7 +532,7 @@ export default function ContentManagement() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {contents.map((content) => (
-            <Card key={content._id} className="hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-pink-500 to-purple-600 border-0 overflow-hidden">
+            <Card key={content._id} className="hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-blue-700 to-cyan-300 border-0 overflow-hidden">
               <CardHeader className="bg-white/10 backdrop-blur-sm">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -907,7 +907,7 @@ export default function ContentManagement() {
               </Button>
               <Button 
                 type="submit" 
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                className="bg-gradient-to-r from-blue-700 to-cyan-300 hover:from-blue-800 hover:to-cyan-400 text-white"
                 disabled={isUploadingFile || isUploadingThumbnail}
               >
                 <Upload className="w-4 h-4 mr-2" />

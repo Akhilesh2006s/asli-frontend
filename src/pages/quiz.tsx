@@ -211,7 +211,7 @@ export default function QuizPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50">
+      <div className="min-h-screen bg-sky-50">
         <Navigation />
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           <Skeleton className="h-64 w-full" />
@@ -222,7 +222,7 @@ export default function QuizPage() {
 
   if (!quiz) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50">
+      <div className="min-h-screen bg-sky-50">
         <Navigation />
         <div className="container mx-auto px-4 py-8 max-w-4xl">
           <Card>
@@ -243,7 +243,7 @@ export default function QuizPage() {
   const progress = ((currentQuestionIndex + 1) / quiz.questions.length) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50">
+    <div className="min-h-screen bg-sky-50">
       <Navigation />
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Quiz Header */}

@@ -100,8 +100,8 @@ export default function Navigation() {
               onClick={item.onClick}
               className={`w-full justify-start rounded-xl transition-all duration-300 group ${
                 isActive 
-                  ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg scale-105" 
-                  : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:text-purple-700 hover:scale-105"
+                  ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-105" 
+                  : "text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-50 hover:text-blue-700 hover:scale-105"
               }`}
             >
               <Icon className={`w-4 h-4 mr-3 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
@@ -116,8 +116,8 @@ export default function Navigation() {
               variant="ghost"
               className={`w-full justify-start rounded-xl transition-all duration-300 group ${
                 isActive 
-                  ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg scale-105" 
-                  : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:text-purple-700 hover:scale-105"
+                  ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-105" 
+                  : "text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-50 hover:text-blue-700 hover:scale-105"
               }`}
             >
               <Icon className={`w-4 h-4 mr-3 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
@@ -132,14 +132,14 @@ export default function Navigation() {
   return (
     <>
       {/* Desktop Header - Modern Gradient Theme */}
-      <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/80 border-b border-purple-200/30 shadow-xl">
+      <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/80 border-b border-blue-200/30 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             {/* Logo Section - Enhanced */}
             <div className="flex items-center space-x-4">
               <Link href="/dashboard">
                 <div className="flex items-center space-x-3 cursor-pointer group">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl bg-gradient-to-br from-purple-500 to-pink-500 p-1 group-hover:scale-105 transition-transform duration-300">
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 p-1 group-hover:scale-105 transition-transform duration-300">
                     <div className="w-full h-full rounded-xl bg-white flex items-center justify-center overflow-hidden">
                       <img 
                         src="/logo.jpg" 
@@ -149,7 +149,7 @@ export default function Navigation() {
                     </div>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
+                    <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
                       Asli Stud
                     </span>
                     <span className="text-xs text-gray-600 font-medium -mt-1">AI-Powered Learning</span>
@@ -160,7 +160,7 @@ export default function Navigation() {
             
             {/* Navigation Links - Modern Design */}
             {!isMobile && (
-              <div className="hidden md:flex items-center space-x-1 bg-white/50 backdrop-blur-md rounded-full p-1.5 border border-purple-100/50 shadow-lg">
+              <div className="hidden md:flex items-center space-x-1 bg-white/50 backdrop-blur-md rounded-full p-1.5 border border-blue-100/50 shadow-lg">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location === item.path;
@@ -172,8 +172,8 @@ export default function Navigation() {
                         onClick={item.onClick}
                         className={`relative px-5 py-2.5 rounded-full transition-all duration-300 flex items-center space-x-2 group ${
                           isActive 
-                            ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg scale-105" 
-                            : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:text-purple-700"
+                            ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-105" 
+                            : "text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-50 hover:text-blue-700"
                         }`}
                       >
                         <Icon className={`w-4 h-4 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
@@ -188,8 +188,8 @@ export default function Navigation() {
                     <Link key={item.path} href={item.path}>
                       <button className={`relative px-5 py-2.5 rounded-full transition-all duration-300 flex items-center space-x-2 group ${
                         isActive 
-                          ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg scale-105" 
-                          : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:text-purple-700"
+                          ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-105" 
+                          : "text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-50 hover:text-blue-700"
                       }`}>
                         <Icon className={`w-4 h-4 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
                         <span className="font-medium text-sm">{item.label}</span>
@@ -208,9 +208,9 @@ export default function Navigation() {
               <Button 
                 variant="ghost" 
                 size="icon"
-                className="w-11 h-11 rounded-full bg-gradient-to-br from-purple-100 to-pink-100 hover:from-purple-200 hover:to-pink-200 backdrop-blur-sm border border-purple-200/50 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-110 relative group"
+                className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-100 to-blue-100 hover:from-blue-200 hover:to-blue-200 backdrop-blur-sm border border-blue-200/50 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-110 relative group"
               >
-                <Bell className="w-5 h-5 text-purple-700 group-hover:animate-pulse" />
+                <Bell className="w-5 h-5 text-blue-700 group-hover:animate-pulse" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
               </Button>
               
@@ -220,17 +220,17 @@ export default function Navigation() {
                     <Button 
                       variant="ghost" 
                       size="icon"
-                      className="w-11 h-11 rounded-full bg-gradient-to-br from-purple-100 to-pink-100 hover:from-purple-200 hover:to-pink-200 backdrop-blur-sm border border-purple-200/50 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-110"
+                      className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-100 to-blue-100 hover:from-blue-200 hover:to-blue-200 backdrop-blur-sm border border-blue-200/50 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-110"
                     >
-                      <Menu className="w-5 h-5 text-purple-700" />
+                      <Menu className="w-5 h-5 text-blue-700" />
                     </Button>
                   </SheetTrigger>
-                  <SheetContent side="right" className="w-72 bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 backdrop-blur-xl border-l border-purple-200/30">
+                  <SheetContent side="right" className="w-72 bg-gradient-to-br from-white via-blue-50/30 to-blue-50/30 backdrop-blur-xl border-l border-blue-200/30">
                     <div className="flex flex-col space-y-3 mt-8">
                       {/* Mobile Logo */}
                       <Link href="/dashboard">
-                        <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-purple-200/30 cursor-pointer hover:opacity-80 transition-opacity">
-                          <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-xl bg-gradient-to-br from-purple-500 to-pink-500 p-1">
+                        <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-blue-200/30 cursor-pointer hover:opacity-80 transition-opacity">
+                          <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-xl bg-gradient-to-br from-blue-500 to-blue-600 p-1">
                             <div className="w-full h-full rounded-lg bg-white flex items-center justify-center overflow-hidden">
                               <img 
                                 src="/logo.jpg" 
@@ -240,7 +240,7 @@ export default function Navigation() {
                             </div>
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                            <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent">
                               Asli Stud
                             </span>
                             <span className="text-xs text-gray-600 font-medium">AI-Powered Learning</span>
@@ -248,7 +248,7 @@ export default function Navigation() {
                         </div>
                       </Link>
                       <NavContent />
-                      <div className="pt-4 border-t border-purple-200/30">
+                      <div className="pt-4 border-t border-blue-200/30">
                         <Button 
                           onClick={handleLogout}
                           disabled={isLoggingOut}
@@ -265,7 +265,7 @@ export default function Navigation() {
               ) : (
                 <div className="flex items-center space-x-3">
                   <Link href="/profile">
-                    <div className="w-11 h-11 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center cursor-pointer shadow-lg backdrop-blur-sm border-2 border-white hover:scale-110 transition-transform duration-300 hover:shadow-xl group">
+                    <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center cursor-pointer shadow-lg backdrop-blur-sm border-2 border-white hover:scale-110 transition-transform duration-300 hover:shadow-xl group">
                       <span className="text-sm font-semibold text-white group-hover:scale-110 transition-transform">AK</span>
                     </div>
                   </Link>
@@ -287,7 +287,7 @@ export default function Navigation() {
 
       {/* Mobile Bottom Navigation - Modern Design */}
       {isMobile && (
-        <div className="fixed bottom-0 left-0 right-0 backdrop-blur-xl bg-white/90 border-t border-purple-200/30 shadow-2xl z-50">
+        <div className="fixed bottom-0 left-0 right-0 backdrop-blur-xl bg-white/90 border-t border-blue-200/30 shadow-2xl z-50">
           <div className="grid grid-cols-5 py-2 px-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -300,8 +300,8 @@ export default function Navigation() {
                     onClick={item.onClick}
                     className={`flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-300 relative group ${
                       isActive 
-                        ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg scale-105" 
-                        : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:text-purple-700"
+                        ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-105" 
+                        : "text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-50 hover:text-blue-700"
                     }`}
                   >
                     <Icon className={`w-5 h-5 mb-1 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
@@ -317,8 +317,8 @@ export default function Navigation() {
                 <Link key={item.path} href={item.path}>
                   <button className={`flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-300 relative group ${
                     isActive 
-                      ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg scale-105" 
-                      : "text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:text-purple-700"
+                      ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-105" 
+                      : "text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-50 hover:text-blue-700"
                   }`}>
                     <Icon className={`w-5 h-5 mb-1 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
                     <span className="text-[10px] font-medium">{item.label.split(" ")[0]}</span>

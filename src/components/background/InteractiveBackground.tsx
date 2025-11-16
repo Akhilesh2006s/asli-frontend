@@ -74,18 +74,18 @@ export const InteractiveBackground = () => {
   useEffect(() => {
     const schoolIcons = [
       { icon: BookOpen, color: 'text-blue-600/60', size: 36 },
-      { icon: BookIcon, color: 'text-purple-600/60', size: 32 },
-      { icon: PenTool, color: 'text-yellow-600/60', size: 34 },
-      { icon: Calculator, color: 'text-green-600/60', size: 32 },
-      { icon: Ruler, color: 'text-pink-600/60', size: 30 },
+      { icon: BookIcon, color: 'text-blue-500/60', size: 32 },
+      { icon: PenTool, color: 'text-blue-400/60', size: 34 },
+      { icon: Calculator, color: 'text-blue-600/60', size: 32 },
+      { icon: Ruler, color: 'text-blue-500/60', size: 30 },
       { icon: GraduationCap, color: 'text-cyan-600/60', size: 38 },
-      { icon: Notebook, color: 'text-indigo-600/60', size: 34 },
-      { icon: Clipboard, color: 'text-orange-600/60', size: 32 },
-      { icon: FileText, color: 'text-teal-600/60', size: 30 },
-      { icon: Lightbulb, color: 'text-yellow-600/60', size: 36 },
-      { icon: Award, color: 'text-amber-600/60', size: 34 },
+      { icon: Notebook, color: 'text-blue-600/60', size: 34 },
+      { icon: Clipboard, color: 'text-blue-500/60', size: 32 },
+      { icon: FileText, color: 'text-blue-600/60', size: 30 },
+      { icon: Lightbulb, color: 'text-blue-400/60', size: 36 },
+      { icon: Award, color: 'text-blue-500/60', size: 34 },
       { icon: StarIcon, color: 'text-blue-500/60', size: 28 },
-      { icon: BackpackIcon, color: 'text-violet-600/60', size: 36 },
+      { icon: BackpackIcon, color: 'text-blue-600/60', size: 36 },
     ];
 
     const generateItems = () => {
@@ -156,7 +156,7 @@ export const InteractiveBackground = () => {
       <motion.div
         className="absolute inset-0 opacity-15 pointer-events-none"
         style={{
-          background: `radial-gradient(circle at ${x}px ${y}px, rgba(139, 92, 246, 0.4) 0%, transparent 50%)`,
+          background: `radial-gradient(circle at ${x}px ${y}px, rgba(59, 130, 246, 0.4) 0%, transparent 50%)`,
         }}
       />
       
@@ -165,8 +165,8 @@ export const InteractiveBackground = () => {
         className="absolute inset-0 opacity-[0.05] pointer-events-none"
         style={{
           backgroundImage: `
-            linear-gradient(rgba(139, 92, 246, 0.2) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(139, 92, 246, 0.2) 1px, transparent 1px)
+            linear-gradient(rgba(59, 130, 246, 0.2) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(59, 130, 246, 0.2) 1px, transparent 1px)
           `,
           backgroundSize: '50px 50px',
         }}
@@ -182,7 +182,7 @@ export const FloatingParticles = () => {
       {[...Array(20)].map((_, i) => (
         <motion.div
           key={i}
-          className="absolute w-2.5 h-2.5 bg-purple-500/50 rounded-full"
+          className="absolute w-2.5 h-2.5 bg-blue-500/50 rounded-full"
           style={{
             left: `${Math.random() * 100}%`,
             top: `${Math.random() * 100}%`,
@@ -212,7 +212,7 @@ export const FloatingParticles = () => {
             height: `${250 + i * 120}px`,
             left: `${20 + i * 30}%`,
             top: `${30 + i * 20}%`,
-            background: `radial-gradient(circle, rgba(139, 92, 246, ${0.2 - i * 0.04}) 0%, transparent 70%)`,
+            background: `radial-gradient(circle, rgba(59, 130, 246, ${0.2 - i * 0.04}) 0%, transparent 70%)`,
           }}
           animate={{
             x: [0, 60, 0],
@@ -231,4 +231,5 @@ export const FloatingParticles = () => {
     </div>
   );
 };
+
 

@@ -215,12 +215,12 @@ const AdminDashboard = () => {
   // Show loading state while checking authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+      <div className="min-h-screen bg-sky-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
+          <div className="w-16 h-16 bg-gradient-to-r from-sky-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
             <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">Loading...</h2>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent mb-2">Loading...</h2>
           <p className="text-gray-600">Preparing your admin dashboard</p>
         </div>
       </div>
@@ -233,7 +233,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex relative overflow-hidden">
+    <div className="min-h-screen bg-sky-50 flex relative overflow-hidden">
       {/* Interactive Background */}
       <div className="fixed inset-0 z-0">
         <InteractiveBackground />
@@ -244,11 +244,11 @@ const AdminDashboard = () => {
         <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-b border-white/20 relative">
           <div className="flex items-center justify-between p-responsive">
             <div className="flex items-center space-x-responsive">
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-r from-sky-500 to-blue-500 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-responsive-sm">AS</span>
               </div>
               <div>
-                <h1 className="text-responsive-base font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">ASLI STUD</h1>
+                <h1 className="text-responsive-base font-bold bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent">ASLI STUD</h1>
                 <p className="text-responsive-xs text-gray-600 font-medium">Admin Panel</p>
               </div>
             </div>
@@ -261,11 +261,11 @@ const AdminDashboard = () => {
               <SheetContent side="left" className="w-64">
                 <div className="p-responsive">
                   <div className="flex items-center space-x-responsive mb-responsive">
-                    <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+                    <div className="w-10 h-10 bg-gradient-to-r from-sky-500 to-blue-500 rounded-xl flex items-center justify-center">
                       <span className="text-white font-bold text-responsive-lg">AS</span>
                     </div>
                     <div>
-                      <h1 className="text-responsive-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">ASLI STUD</h1>
+                      <h1 className="text-responsive-lg font-bold bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent">ASLI STUD</h1>
                       <p className="text-responsive-xs text-gray-600 font-medium">Admin Panel</p>
                     </div>
                   </div>
@@ -274,8 +274,8 @@ const AdminDashboard = () => {
                       onClick={() => setActiveTab('overview')}
                       className={`w-full flex items-center space-x-responsive px-responsive py-responsive rounded-responsive text-left transition-all duration-200 backdrop-blur-sm text-responsive-sm ${
                         activeTab === 'overview' 
-                          ? 'bg-gradient-to-r from-purple-100 to-pink-100 text-purple-900 border-r-4 border-purple-500 shadow-lg' 
-                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:text-purple-900'
+                          ? 'bg-gradient-to-r from-sky-100 to-blue-100 text-sky-900 border-r-4 border-sky-500 shadow-lg' 
+                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-blue-50 hover:text-sky-900'
                       }`}
                     >
                       <BarChart3 className="w-4 h-4" />
@@ -298,8 +298,8 @@ const AdminDashboard = () => {
                       onClick={() => setActiveTab('classes')}
                       className={`w-full flex items-center space-x-responsive px-responsive py-responsive rounded-responsive text-left transition-all duration-200 backdrop-blur-sm text-responsive-sm ${
                         activeTab === 'classes' 
-                          ? 'bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-900 border-r-4 border-emerald-500 shadow-lg' 
-                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 hover:text-emerald-900'
+                          ? 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-900 border-r-4 border-blue-500 shadow-lg' 
+                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 hover:text-blue-900'
                       }`}
                     >
                       <GraduationCap className="w-4 h-4" />
@@ -310,8 +310,8 @@ const AdminDashboard = () => {
                       onClick={() => setActiveTab('teachers')}
                       className={`w-full flex items-center space-x-responsive px-responsive py-responsive rounded-responsive text-left transition-all duration-200 backdrop-blur-sm text-responsive-sm ${
                         activeTab === 'teachers' 
-                          ? 'bg-gradient-to-r from-orange-100 to-red-100 text-orange-900 border-r-4 border-orange-500 shadow-lg' 
-                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-orange-50 hover:to-red-50 hover:text-orange-900'
+                          ? 'bg-gradient-to-r from-sky-100 to-blue-100 text-sky-900 border-r-4 border-sky-500 shadow-lg' 
+                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-blue-50 hover:text-sky-900'
                       }`}
                     >
                       <Users className="w-4 h-4" />
@@ -322,8 +322,8 @@ const AdminDashboard = () => {
                       onClick={() => setActiveTab('subjects')}
                       className={`w-full flex items-center space-x-responsive px-responsive py-responsive rounded-responsive text-left transition-all duration-200 backdrop-blur-sm text-responsive-sm ${
                         activeTab === 'subjects' 
-                          ? 'bg-gradient-to-r from-violet-100 to-purple-100 text-violet-900 border-r-4 border-violet-500 shadow-lg' 
-                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-violet-50 hover:to-purple-50 hover:text-violet-900'
+                          ? 'bg-gradient-to-r from-sky-100 to-blue-100 text-sky-900 border-r-4 border-sky-500 shadow-lg' 
+                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-blue-50 hover:text-sky-900'
                       }`}
                     >
                       <BookOpen className="w-4 h-4" />
@@ -358,8 +358,8 @@ const AdminDashboard = () => {
                       onClick={() => setActiveTab('eduott')}
                       className={`w-full flex items-center space-x-responsive px-responsive py-responsive rounded-responsive text-left transition-all duration-200 backdrop-blur-sm text-responsive-sm ${
                         activeTab === 'eduott' 
-                          ? 'bg-gradient-to-r from-purple-100 to-pink-100 text-purple-900 border-r-4 border-purple-500 shadow-lg' 
-                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:text-purple-900'
+                          ? 'bg-gradient-to-r from-sky-100 to-blue-100 text-sky-900 border-r-4 border-sky-500 shadow-lg' 
+                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-blue-50 hover:text-sky-900'
                       }`}
                     >
                       <Play className="w-4 h-4" />
@@ -412,11 +412,11 @@ const AdminDashboard = () => {
         {/* Logo Section */}
         <div className="p-6 border-b border-white/20">
           <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl">
+            <div className="w-12 h-12 bg-gradient-to-r from-sky-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-xl">
               <span className="text-white font-bold text-xl">AS</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">ASLI STUD</h1>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent">ASLI STUD</h1>
               <p className="text-xs text-gray-600 font-medium">Admin Panel</p>
             </div>
           </div>
@@ -428,8 +428,8 @@ const AdminDashboard = () => {
             onClick={() => setActiveTab('overview')}
             className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 backdrop-blur-sm ${
               activeTab === 'overview' 
-                ? 'bg-gradient-to-r from-purple-100 to-pink-100 text-purple-900 border-r-4 border-purple-500 shadow-lg' 
-                : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:text-purple-900'
+                ? 'bg-gradient-to-r from-sky-100 to-blue-100 text-sky-900 border-r-4 border-sky-500 shadow-lg' 
+                : 'text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-blue-50 hover:text-sky-900'
             }`}
           >
             <BarChart3 className="w-5 h-5" />
@@ -476,8 +476,8 @@ const AdminDashboard = () => {
             onClick={() => setActiveTab('subjects')}
             className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 backdrop-blur-sm ${
               activeTab === 'subjects' 
-                ? 'bg-gradient-to-r from-violet-100 to-purple-100 text-violet-900 border-r-4 border-violet-500 shadow-lg' 
-                : 'text-gray-700 hover:bg-gradient-to-r hover:from-violet-50 hover:to-purple-50 hover:text-violet-900'
+                ? 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-900 border-r-4 border-blue-500 shadow-lg' 
+                : 'text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 hover:text-blue-900'
             }`}
           >
             <BookOpen className="w-5 h-5" />
@@ -512,8 +512,8 @@ const AdminDashboard = () => {
             onClick={() => setActiveTab('eduott')}
             className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 backdrop-blur-sm ${
               activeTab === 'eduott' 
-                ? 'bg-gradient-to-r from-purple-100 to-pink-100 text-purple-900 border-r-4 border-purple-500 shadow-lg' 
-                : 'text-gray-700 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:text-purple-900'
+                ? 'bg-gradient-to-r from-sky-100 to-blue-100 text-sky-900 border-r-4 border-sky-500 shadow-lg' 
+                : 'text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-blue-50 hover:text-sky-900'
             }`}
           >
             <Play className="w-5 h-5" />
@@ -530,7 +530,7 @@ const AdminDashboard = () => {
           <div className="bg-white/70 backdrop-blur-xl border-b border-white/20 px-responsive py-responsive relative z-10">
             <div className="flex-responsive-col items-center sm:items-start justify-between space-y-responsive sm:space-y-0">
               <div className="text-center sm:text-left">
-                <h2 className="text-responsive-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent capitalize">{activeTab}</h2>
+                <h2 className="text-responsive-xl font-bold bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent capitalize">{activeTab}</h2>
                 <p className="text-gray-600 text-responsive-sm font-medium">Manage your learning platform with style</p>
               </div>
               {!isMobile && (
@@ -555,7 +555,7 @@ const AdminDashboard = () => {
                         window.location.href = '/signin';
                       }
                     }}
-                    className="border-purple-200 text-purple-800 hover:bg-purple-50 backdrop-blur-sm rounded-responsive"
+                    className="border-sky-200 text-sky-800 hover:bg-sky-50 backdrop-blur-sm rounded-responsive"
                   >
                     <LogOut className="w-4 h-4 mr-responsive" />
                     Logout
@@ -575,7 +575,7 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-blue-500 to-cyan-500 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-pink-500 to-pink-600 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -597,7 +597,7 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-500 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-400 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -619,7 +619,7 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-violet-500 to-purple-500 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                    className="group relative overflow-hidden bg-gradient-to-br from-orange-400 to-pink-400 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -641,7 +641,7 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-orange-500 to-red-500 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-sky-400 to-blue-400 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -663,7 +663,7 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-pink-500 to-rose-500 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                    className="group relative overflow-hidden bg-gradient-to-br from-pink-500 to-pink-600 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -685,7 +685,7 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-amber-500 to-yellow-500 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                    className="group relative overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-400 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -714,11 +714,11 @@ const AdminDashboard = () => {
               >
                 <div className="relative z-10">
                 <div className="flex items-center space-x-3 mb-6">
-                  <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl shadow-lg">
+                  <div className="p-3 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-xl shadow-lg">
                     <BarChart3 className="w-8 h-8 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-responsive-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Detailed School Analysis</h3>
+                    <h3 className="text-responsive-lg font-bold bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent">Detailed School Analysis</h3>
                     <p className="text-gray-600 text-responsive-xs">Comprehensive insights about your students</p>
                   </div>
                 </div>
@@ -785,7 +785,7 @@ const AdminDashboard = () => {
                     {/* Subject Performance */}
                     <div className="bg-white rounded-lg p-4 shadow-md border border-gray-200">
                       <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
-                        <BookOpen className="w-5 h-5 mr-2 text-purple-600" />
+                        <BookOpen className="w-5 h-5 mr-2 text-sky-600" />
                         Subject Performance
                       </h4>
                       <div className="space-y-2">
@@ -794,10 +794,10 @@ const AdminDashboard = () => {
                             <div key={idx} className="flex justify-between items-center text-sm">
                               <span className="text-gray-700 capitalize">{subject.subject || subject.name || 'Unknown'}</span>
                               <div className="flex items-center space-x-2">
-                                <span className="font-semibold text-purple-600">{subject.averageScore || 0}%</span>
+                                <span className="font-semibold text-sky-600">{subject.averageScore || 0}%</span>
                                 <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
                                   <div 
-                                    className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+                                    className="h-full bg-gradient-to-r from-sky-500 to-blue-500"
                                     style={{ width: `${Math.min(subject.averageScore || 0, 100)}%` }}
                                   ></div>
                                 </div>
@@ -820,7 +820,7 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
-                className="relative overflow-hidden bg-gradient-to-br from-blue-500 to-cyan-500 rounded-responsive p-responsive shadow-responsive"
+                className="relative overflow-hidden bg-gradient-to-br from-sky-400 to-blue-400 rounded-responsive p-responsive shadow-responsive"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -848,7 +848,7 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 }}
-                className="relative overflow-hidden bg-gradient-to-br from-purple-500 to-pink-500 rounded-3xl p-8 shadow-xl"
+                className="relative overflow-hidden bg-gradient-to-br from-orange-400 to-pink-400 rounded-3xl p-8 shadow-xl"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">

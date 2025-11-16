@@ -281,3 +281,32 @@
     @apply hidden sm:block;
   }
 }
+
+/* Color-changing animation for text */
+@keyframes colorChange {
+  0% {
+    color: #ec4899; /* pink-500 */
+  }
+  16.66% {
+    color: #a855f7; /* purple-500 */
+  }
+  33.33% {
+    color: #3b82f6; /* blue-500 */
+  }
+  50% {
+    color: #06b6d4; /* cyan-500 */
+  }
+  66.66% {
+    color: #10b981; /* emerald-500 */
+  }
+  83.33% {
+    color: #f59e0b; /* amber-500 */
+  }
+  100% {
+    color: #ec4899; /* pink-500 */
+  }
+}
+
+.animate-color-change {
+  animation: colorChange 4s ease-in-out infinite;
+}

@@ -321,7 +321,7 @@ export default function EduOTT() {
   return (
     <>
       <Navigation />
-      <div className="w-full px-2 sm:px-4 lg:px-6 pt-24 pb-8 bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 min-h-screen relative">
+      <div className="w-full px-2 sm:px-4 lg:px-6 pt-24 pb-8 bg-sky-50 min-h-screen relative">
         <div className="max-w-7xl mx-auto">
           
         {/* Robot GIF - Fixed at Bottom Left */}
@@ -341,7 +341,7 @@ export default function EduOTT() {
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg flex items-center justify-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
                 <VideoIcon className="w-6 h-6 text-white" />
               </div>
               <div>
@@ -452,7 +452,7 @@ export default function EduOTT() {
                         className="w-full h-48 object-cover"
                       />
                     ) : (
-                      <div className="w-full h-48 bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center">
+                      <div className="w-full h-48 bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center">
                         <Play className="w-16 h-16 text-white" fill="currentColor" />
                       </div>
                     )}

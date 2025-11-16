@@ -225,14 +225,14 @@ export default function SuperAdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* CBSE AP Box */}
           <Card 
-            className="bg-gradient-to-br from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 cursor-pointer transition-all duration-300 shadow-xl border-0"
+            className="bg-gradient-to-br from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 cursor-pointer transition-all duration-300 shadow-xl border-0"
             onClick={() => fetchBoardDashboard('CBSE_AP')}
           >
             <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-2xl font-bold text-white mb-2">CBSE AP</h3>
-                  <p className="text-blue-100">CBSE Board - Andhra Pradesh</p>
+                  <p className="text-pink-100">CBSE Board - Andhra Pradesh</p>
                   <p className="text-white/80 text-sm mt-4">Click to manage content, exams, and view analytics</p>
                 </div>
                 <BookIcon className="h-16 w-16 text-white/80" />
@@ -245,14 +245,14 @@ export default function SuperAdminDashboard() {
 
           {/* CBSE TS Box */}
           <Card 
-            className="bg-gradient-to-br from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 cursor-pointer transition-all duration-300 shadow-xl border-0"
+            className="bg-gradient-to-br from-emerald-400 to-teal-400 hover:from-emerald-500 hover:to-teal-500 cursor-pointer transition-all duration-300 shadow-xl border-0"
             onClick={() => fetchBoardDashboard('CBSE_TS')}
           >
             <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-2xl font-bold text-white mb-2">CBSE TS</h3>
-                  <p className="text-emerald-100">CBSE Board - Telangana State</p>
+                  <p className="text-emerald-50">CBSE Board - Telangana State</p>
                   <p className="text-white/80 text-sm mt-4">Click to manage content, exams, and view analytics</p>
                 </div>
                 <BookIcon className="h-16 w-16 text-white/80" />
@@ -265,14 +265,14 @@ export default function SuperAdminDashboard() {
 
           {/* State AP Box */}
           <Card 
-            className="bg-gradient-to-br from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 cursor-pointer transition-all duration-300 shadow-xl border-0"
+            className="bg-gradient-to-br from-orange-400 to-pink-400 hover:from-orange-500 hover:to-pink-500 cursor-pointer transition-all duration-300 shadow-xl border-0"
             onClick={() => fetchBoardDashboard('STATE_AP')}
           >
             <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-2xl font-bold text-white mb-2">State AP</h3>
-                  <p className="text-orange-100">State Board - Andhra Pradesh</p>
+                  <p className="text-orange-50">State Board - Andhra Pradesh</p>
                   <p className="text-white/80 text-sm mt-4">Click to manage content, exams, and view analytics</p>
                 </div>
                 <BookIcon className="h-16 w-16 text-white/80" />
@@ -285,14 +285,14 @@ export default function SuperAdminDashboard() {
 
           {/* State TS Box */}
           <Card 
-            className="bg-gradient-to-br from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 cursor-pointer transition-all duration-300 shadow-xl border-0"
+            className="bg-gradient-to-br from-sky-400 to-blue-400 hover:from-sky-500 hover:to-blue-500 cursor-pointer transition-all duration-300 shadow-xl border-0"
             onClick={() => fetchBoardDashboard('STATE_TS')}
           >
             <CardContent className="p-8">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-2xl font-bold text-white mb-2">State TS</h3>
-                  <p className="text-amber-100">State Board - Telangana State</p>
+                  <p className="text-sky-50">State Board - Telangana State</p>
                   <p className="text-white/80 text-sm mt-4">Click to manage content, exams, and view analytics</p>
                 </div>
                 <BookIcon className="h-16 w-16 text-white/80" />
@@ -308,22 +308,22 @@ export default function SuperAdminDashboard() {
       {/* Beautiful Super Admin Dashboard - Enhanced Version */}
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-violet-500 to-purple-500 border-violet-400 shadow-xl">
+        <Card className="bg-gradient-to-br from-pink-500 to-pink-600 border-pink-400 shadow-xl">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-violet-100">Total Students</p>
+                <p className="text-sm font-medium text-pink-100">Total Students</p>
                 <p className="text-3xl font-bold text-white">
                   {isLoadingStats ? '...' : stats.totalStudents.toLocaleString()}
                 </p>
-                <p className="text-sm text-violet-100">All students across all admins</p>
+                <p className="text-sm text-pink-100">All students across all admins</p>
               </div>
               <UsersIcon className="h-12 w-12 text-white" />
             </div>
             <div className="mt-4">
               <button 
                 onClick={() => setCurrentView('admins')} 
-                className="text-sm text-white hover:text-violet-100 flex items-center transition-colors"
+                className="text-sm text-white hover:text-pink-100 flex items-center transition-colors"
               >
                 View students by school <ArrowUpRightIcon className="ml-1 h-4 w-4" />
               </button>
@@ -331,20 +331,20 @@ export default function SuperAdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-indigo-500 to-blue-500 border-indigo-400 shadow-xl">
+        <Card className="bg-gradient-to-br from-emerald-400 to-teal-400 border-emerald-300 shadow-xl">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-indigo-100">Exam Results</p>
+                <p className="text-sm font-medium text-emerald-50">Exam Results</p>
                 <p className="text-3xl font-bold text-white">{isLoadingStats ? '...' : stats.examResults}</p>
-                <p className="text-sm text-indigo-100">Total completed</p>
+                <p className="text-sm text-emerald-50">Total completed</p>
               </div>
               <TrendingUpIcon className="h-12 w-12 text-white" />
             </div>
             <div className="mt-4">
               <button 
                 onClick={() => setCurrentView('analytics')} 
-                className="text-sm text-white hover:text-indigo-100 flex items-center transition-colors"
+                className="text-sm text-white hover:text-emerald-50 flex items-center transition-colors"
               >
                 Click for analytics <ArrowUpRightIcon className="ml-1 h-4 w-4" />
               </button>
@@ -352,20 +352,20 @@ export default function SuperAdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-pink-500 to-rose-500 border-pink-400 shadow-xl">
+        <Card className="bg-gradient-to-br from-orange-400 to-pink-400 border-orange-300 shadow-xl">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-pink-100">Courses</p>
+                <p className="text-sm font-medium text-orange-50">Courses</p>
                 <p className="text-3xl font-bold text-white">{isLoadingStats ? '...' : stats.courses}</p>
-                <p className="text-sm text-pink-100">Real-time data</p>
+                <p className="text-sm text-orange-50">Real-time data</p>
               </div>
               <BookIcon className="h-12 w-12 text-white" />
             </div>
             <div className="mt-4">
               <button 
                 onClick={() => setCurrentView('admins')} 
-                className="text-sm text-white hover:text-pink-100 flex items-center transition-colors"
+                className="text-sm text-white hover:text-orange-50 flex items-center transition-colors"
               >
                 Click to manage courses <ArrowUpRightIcon className="ml-1 h-4 w-4" />
               </button>
@@ -373,20 +373,20 @@ export default function SuperAdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-500 to-pink-500 border-purple-400 shadow-xl">
+        <Card className="bg-gradient-to-br from-sky-400 to-blue-400 border-sky-300 shadow-xl">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-purple-100">Admins</p>
+                <p className="text-sm font-medium text-sky-50">Admins</p>
                 <p className="text-3xl font-bold text-white">{isLoadingStats ? '...' : stats.totalAdmins}</p>
-                <p className="text-sm text-purple-100">Real-time data</p>
+                <p className="text-sm text-sky-50">Real-time data</p>
               </div>
               <CrownIcon className="h-12 w-12 text-white" />
             </div>
             <div className="mt-4">
               <button 
                 onClick={() => setCurrentView('admins')} 
-                className="text-sm text-white hover:text-purple-100 flex items-center transition-colors"
+                className="text-sm text-white hover:text-sky-50 flex items-center transition-colors"
               >
                 Click for school details <ArrowUpRightIcon className="ml-1 h-4 w-4" />
               </button>
@@ -394,20 +394,20 @@ export default function SuperAdminDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-violet-500 to-purple-500 border-violet-400 shadow-xl">
+        <Card className="bg-gradient-to-br from-pink-500 to-pink-600 border-pink-400 shadow-xl">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-violet-100">Vidya AI</p>
+                <p className="text-sm font-medium text-pink-100">Vidya AI</p>
                 <p className="text-3xl font-bold text-white">24/7</p>
-                <p className="text-sm text-violet-100">AI Tutor Support</p>
+                <p className="text-sm text-pink-100">AI Tutor Support</p>
               </div>
               <Sparkles className="h-12 w-12 text-white" />
             </div>
             <div className="mt-4">
               <button 
                 onClick={() => setCurrentView('vidya-ai')} 
-                className="text-sm text-white hover:text-violet-100 flex items-center transition-colors"
+                className="text-sm text-white hover:text-pink-100 flex items-center transition-colors"
               >
                 Manage Vidya AI <ArrowUpRightIcon className="ml-1 h-4 w-4" />
               </button>
@@ -418,7 +418,7 @@ export default function SuperAdminDashboard() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-teal-500 to-cyan-500 border-teal-400 shadow-xl hover:from-teal-600 hover:to-cyan-600 transition-all duration-300 cursor-pointer" onClick={() => setCurrentView('admins')}>
+        <Card className="bg-gradient-to-br from-pink-500 to-pink-600 border-pink-400 shadow-xl hover:from-pink-600 hover:to-pink-700 transition-all duration-300 cursor-pointer" onClick={() => setCurrentView('admins')}>
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-white/20 rounded-lg">
@@ -426,13 +426,13 @@ export default function SuperAdminDashboard() {
               </div>
               <div>
                 <h3 className="font-semibold text-white">Add New Admin</h3>
-                <p className="text-sm text-teal-100">Create new admin accounts</p>
+                <p className="text-sm text-pink-100">Create new admin accounts</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-500 to-emerald-500 border-green-400 shadow-xl hover:from-green-600 hover:to-emerald-600 transition-all duration-300 cursor-pointer" onClick={() => setCurrentView('admins')}>
+        <Card className="bg-gradient-to-br from-emerald-400 to-teal-400 border-emerald-300 shadow-xl hover:from-emerald-500 hover:to-teal-500 transition-all duration-300 cursor-pointer" onClick={() => setCurrentView('admins')}>
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-white/20 rounded-lg">
@@ -440,13 +440,13 @@ export default function SuperAdminDashboard() {
               </div>
               <div>
                 <h3 className="font-semibold text-white">Create Course</h3>
-                <p className="text-sm text-green-100">Add new educational content</p>
+                <p className="text-sm text-emerald-50">Add new educational content</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-rose-500 to-pink-500 border-rose-400 shadow-xl hover:from-rose-600 hover:to-pink-600 transition-all duration-300 cursor-pointer" onClick={() => setCurrentView('ai-analytics')}>
+        <Card className="bg-gradient-to-br from-orange-400 to-pink-400 border-orange-300 shadow-xl hover:from-orange-500 hover:to-pink-500 transition-all duration-300 cursor-pointer" onClick={() => setCurrentView('ai-analytics')}>
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-white/20 rounded-lg">
@@ -454,13 +454,13 @@ export default function SuperAdminDashboard() {
               </div>
               <div>
                 <h3 className="font-semibold text-white">AI Analytics</h3>
-                <p className="text-sm text-rose-100">Advanced ML insights</p>
+                <p className="text-sm text-orange-50">Advanced ML insights</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-sky-500 to-blue-500 border-sky-400 shadow-xl hover:from-sky-600 hover:to-blue-600 transition-all duration-300 cursor-pointer" onClick={() => setCurrentView('analytics')}>
+        <Card className="bg-gradient-to-br from-sky-400 to-blue-400 border-sky-300 shadow-xl hover:from-sky-500 hover:to-blue-500 transition-all duration-300 cursor-pointer" onClick={() => setCurrentView('analytics')}>
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-white/20 rounded-lg">
@@ -468,13 +468,13 @@ export default function SuperAdminDashboard() {
               </div>
               <div>
                 <h3 className="font-semibold text-white">Export Data</h3>
-                <p className="text-sm text-sky-100">Download platform analytics</p>
+                <p className="text-sm text-sky-50">Download platform analytics</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-violet-500 to-purple-500 border-violet-400 shadow-xl hover:from-violet-600 hover:to-purple-600 transition-all duration-300 cursor-pointer" onClick={() => setCurrentView('vidya-ai')}>
+        <Card className="bg-gradient-to-br from-pink-500 to-pink-600 border-pink-400 shadow-xl hover:from-pink-600 hover:to-pink-700 transition-all duration-300 cursor-pointer" onClick={() => setCurrentView('vidya-ai')}>
           <CardContent className="p-6">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-white/20 rounded-lg">
@@ -482,7 +482,7 @@ export default function SuperAdminDashboard() {
               </div>
               <div>
                 <h3 className="font-semibold text-white">Vidya AI</h3>
-                <p className="text-sm text-violet-100">Manage AI tutor</p>
+                <p className="text-sm text-pink-100">Manage AI tutor</p>
               </div>
             </div>
           </CardContent>
@@ -702,11 +702,11 @@ export default function SuperAdminDashboard() {
           <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
             <CardContent className="p-6">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg">
+                <div className="p-2 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg">
                   <BrainIcon className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Peak learning hours: 7-9 PM (43% of daily activity)</p>
+                  <p className="text-sm font-medium bg-gradient-to-r from-pink-600 to-pink-700 bg-clip-text text-transparent">Peak learning hours: 7-9 PM (43% of daily activity)</p>
                   <p className="text-xs text-gray-600">Generated 2 hours ago</p>
                 </div>
               </div>
@@ -716,11 +716,11 @@ export default function SuperAdminDashboard() {
           <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
             <CardContent className="p-6">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg">
+                <div className="p-2 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-lg">
                   <TrendingUpIcon className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Most popular subject: Mathematics (35% of total engagement)</p>
+                  <p className="text-sm font-medium bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Most popular subject: Mathematics (35% of total engagement)</p>
                   <p className="text-xs text-gray-600">Generated 1 hour ago</p>
                 </div>
               </div>
@@ -1151,7 +1151,7 @@ export default function SuperAdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 relative overflow-hidden">
+    <div className="min-h-screen bg-sky-50 relative overflow-hidden">
       {/* Interactive Background */}
       <div className="fixed inset-0 z-0">
         <InteractiveBackground />

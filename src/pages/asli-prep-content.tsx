@@ -11,7 +11,7 @@ export default function AsliPrepContentPage() {
   return (
     <>
       <Navigation />
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 via-pink-50 to-orange-50 pt-20 pb-12 px-2 sm:px-4 lg:px-6 relative">
+      <div className="min-h-screen bg-sky-50 pt-20 pb-12 px-2 sm:px-4 lg:px-6 relative">
         <div className="w-full">
           
           {/* Robot GIF - Fixed at Bottom Left */}

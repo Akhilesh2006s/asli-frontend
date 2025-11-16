@@ -297,7 +297,7 @@ export default function AIChat({ userId, context, className }: AIChatProps) {
               onClick={handleSendMessage}
               disabled={!message.trim() || sendMessageMutation.isPending}
               size="icon"
-              className="w-10 h-10 sm:w-12 sm:h-12"
+              className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 hover:bg-blue-700 text-white"
             >
               {sendMessageMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

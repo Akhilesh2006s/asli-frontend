@@ -352,7 +352,7 @@ export default function StudentExams() {
   const getExamTypeColor = (type: string) => {
     switch (type) {
       case 'mains': return 'bg-blue-100 text-blue-700';
-      case 'advanced': return 'bg-purple-100 text-purple-700';
+      case 'advanced': return 'bg-blue-100 text-blue-700';
       case 'weekend': return 'bg-green-100 text-green-700';
       case 'practice': return 'bg-orange-100 text-orange-700';
       default: return 'bg-gray-100 text-gray-700';
@@ -404,12 +404,12 @@ export default function StudentExams() {
 
   if (isLoadingAuth) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+      <div className="min-h-screen bg-sky-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
             <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">Loading...</h2>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent mb-2">Loading...</h2>
           <p className="text-gray-600">Checking authentication...</p>
         </div>
       </div>
@@ -418,7 +418,7 @@ export default function StudentExams() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+      <div className="min-h-screen bg-sky-50 flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-500 mb-4">
             <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -440,12 +440,12 @@ export default function StudentExams() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+      <div className="min-h-screen bg-sky-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
             <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">Loading...</h2>
+          <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent mb-2">Loading...</h2>
           <p className="text-gray-600">Loading exams...</p>
         </div>
       </div>
@@ -454,7 +454,7 @@ export default function StudentExams() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+      <div className="min-h-screen bg-sky-50 flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-500 mb-4">
             <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -475,7 +475,7 @@ export default function StudentExams() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+    <div className="min-h-screen bg-sky-50">
       <Navigation />
       <div className="w-full px-2 sm:px-4 lg:px-6 pt-24 pb-8 relative">
         
@@ -495,7 +495,7 @@ export default function StudentExams() {
         
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">Exams</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent mb-2">Exams</h1>
           <p className="text-gray-600">Take practice exams and track your progress</p>
           
         </div>
@@ -583,7 +583,7 @@ export default function StudentExams() {
                         {/* Action Button */}
                         <Button 
                           onClick={() => handleStartExam(exam)}
-                          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
+                          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg"
                           disabled={status.status !== 'active'}
                         >
                           <Play className="w-4 h-4 mr-2" />
@@ -693,7 +693,7 @@ export default function StudentExams() {
                         {/* View Details Button */}
                         <Button 
                           variant="outline" 
-                          className="w-full border-purple-200 text-purple-800 hover:bg-purple-50"
+                          className="w-full border-blue-200 text-blue-800 hover:bg-blue-50"
                           onClick={async () => {
                             console.log('📋 Viewing details for exam:', exam.title);
                             console.log('📋 Exam result:', result);
