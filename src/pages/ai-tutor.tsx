@@ -166,7 +166,7 @@ export default function AITutor() {
   return (
     <>
       <Navigation />
-      <div className={`w-full px-2 sm:px-4 lg:px-6 pt-responsive pb-responsive bg-sky-50 min-h-screen ${isMobile ? 'pb-20' : ''} relative`}>
+      <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-responsive pb-responsive bg-sky-50 min-h-screen ${isMobile ? 'pb-20' : ''} relative`}>
         
         
         {/* Header */}

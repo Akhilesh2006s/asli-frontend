@@ -321,8 +321,7 @@ export default function EduOTT() {
   return (
     <>
       <Navigation />
-      <div className="w-full px-2 sm:px-4 lg:px-6 pt-24 pb-8 bg-sky-50 min-h-screen relative">
-        <div className="max-w-7xl mx-auto">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8 bg-sky-50 min-h-screen relative">
           
         {/* Robot GIF - Fixed at Bottom Left */}
         {!isMobile && (
@@ -630,7 +629,6 @@ export default function EduOTT() {
               )}
             </TabsContent>
           </Tabs>
-        </div>
       </div>
 
       {/* Video Modal */}

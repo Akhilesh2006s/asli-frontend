@@ -135,50 +135,50 @@ const ClassManagement = () => {
     <div className="space-y-6">
       {/* Modern Header with Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        <div className="bg-gradient-to-br from-pink-600 to-pink-700 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Classes</p>
-              <p className="text-2xl font-bold text-gray-900">{classes.length}</p>
+              <p className="text-sm font-medium text-white/90">Total Classes</p>
+              <p className="text-2xl font-bold text-white">{classes.length}</p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-6 h-6 text-blue-600" />
+            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+              <GraduationCap className="w-6 h-6 text-white" />
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Active Classes</p>
-              <p className="text-2xl font-bold text-gray-900">{classes.filter(c => c.status === 'active').length}</p>
+              <p className="text-sm font-medium text-white/90">Active Classes</p>
+              <p className="text-2xl font-bold text-white">{classes.filter(c => c.status === 'active').length}</p>
             </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-600" />
+            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-white" />
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        <div className="bg-gradient-to-br from-orange-600 to-orange-700 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Students</p>
-              <p className="text-2xl font-bold text-gray-900">{classes.reduce((sum, c) => sum + (c.studentCount || 0), 0)}</p>
+              <p className="text-sm font-medium text-white/90">Total Students</p>
+              <p className="text-2xl font-bold text-white">{classes.reduce((sum, c) => sum + (c.studentCount || 0), 0)}</p>
             </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Users className="w-6 h-6 text-purple-600" />
+            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+              <Users className="w-6 h-6 text-white" />
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        <div className="bg-gradient-to-br from-sky-600 to-sky-700 rounded-xl p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Videos</p>
-              <p className="text-2xl font-bold text-gray-900">{classes.reduce((sum, c) => sum + (c.videoCount || 0), 0)}</p>
+              <p className="text-sm font-medium text-white/90">Total Videos</p>
+              <p className="text-2xl font-bold text-white">{classes.reduce((sum, c) => sum + (c.videoCount || 0), 0)}</p>
             </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-              <Video className="w-6 h-6 text-orange-600" />
+            <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+              <Video className="w-6 h-6 text-white" />
             </div>
           </div>
         </div>

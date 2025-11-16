@@ -477,7 +477,7 @@ export default function StudentExams() {
   return (
     <div className="min-h-screen bg-sky-50">
       <Navigation />
-      <div className="w-full px-2 sm:px-4 lg:px-6 pt-24 pb-8 relative">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8 relative">
         
         {/* Robot GIF - Fixed at Bottom Left */}
         {!isMobile && (

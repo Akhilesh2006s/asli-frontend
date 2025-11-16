@@ -85,13 +85,9 @@ export default function ProgressChart({ subjects, overallProgress, className }: 
                   <p className="text-sm text-gray-600 mb-2">{subject.currentTopic}</p>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
-                      className="h-2 rounded-full transition-all duration-300"
+                      className="h-2 rounded-full transition-all duration-300 bg-gradient-to-r from-pink-500 to-purple-600"
                       style={{
-                        width: `${subject.progress}%`,
-                        backgroundColor: subject.color.includes('blue') ? '#3B82F6' :
-                          subject.color.includes('green') ? '#10B981' :
-                          subject.color.includes('purple') ? '#8B5CF6' :
-                          subject.color.includes('red') ? '#EF4444' : '#F59E0B'
+                        width: `${subject.progress}%`
                       }}
                     />
                   </div>

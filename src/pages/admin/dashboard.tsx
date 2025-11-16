@@ -575,7 +575,7 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-pink-500 to-pink-600 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-pink-600 to-pink-700 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -597,7 +597,7 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-400 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -619,7 +619,7 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                    className="group relative overflow-hidden bg-gradient-to-br from-orange-400 to-pink-400 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                    className="group relative overflow-hidden bg-gradient-to-br from-orange-600 to-orange-700 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -641,7 +641,7 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-sky-400 to-blue-400 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-sky-600 to-sky-700 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -663,7 +663,7 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                    className="group relative overflow-hidden bg-gradient-to-br from-pink-500 to-pink-600 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                    className="group relative overflow-hidden bg-gradient-to-br from-pink-600 to-pink-700 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -685,7 +685,7 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                    className="group relative overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-400 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                    className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -820,7 +820,7 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
-                className="relative overflow-hidden bg-gradient-to-br from-sky-400 to-blue-400 rounded-responsive p-responsive shadow-responsive"
+                className="relative overflow-hidden bg-gradient-to-br from-pink-600 to-pink-700 rounded-responsive p-responsive shadow-responsive"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -848,7 +848,7 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 }}
-                className="relative overflow-hidden bg-gradient-to-br from-orange-400 to-pink-400 rounded-3xl p-8 shadow-xl"
+                className="relative overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-3xl p-8 shadow-xl"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">

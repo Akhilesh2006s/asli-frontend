@@ -339,7 +339,7 @@ export default function SubjectContent() {
     return (
       <>
         <Navigation />
-        <div className="w-full px-2 sm:px-4 lg:px-6 py-8">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">Loading subject content...</div>
         </div>
       </>
@@ -350,7 +350,7 @@ export default function SubjectContent() {
     return (
       <>
         <Navigation />
-        <div className="w-full px-2 sm:px-4 lg:px-6 py-8">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Subject not found</h1>
             <Link href="/learning-paths">
@@ -367,7 +367,7 @@ export default function SubjectContent() {
   return (
     <>
       <Navigation />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8 relative">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8 relative">
         
         {/* Robot GIF - Fixed at Bottom Left */}
         {!isMobile && (

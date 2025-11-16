@@ -1219,7 +1219,7 @@ export default function Dashboard() {
                 
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <Button 
-                    className="bg-white text-blue-600 hover:bg-blue-50 hover:text-blue-700 w-full sm:w-auto font-semibold text-sm py-2 px-4"
+                    className="bg-white text-pink-600 hover:bg-pink-50 hover:text-pink-700 w-full sm:w-auto font-semibold text-sm py-2 px-4"
                     onClick={() => setLocation('/learning-paths')}
                   >
                     Continue Learning
@@ -1254,12 +1254,12 @@ export default function Dashboard() {
         <div className="mb-8 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Today's Progress */}
-            <Card className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 h-full border-0">
+            <Card className="bg-gradient-to-br from-pink-600 to-pink-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 h-full border-0">
               <CardContent className="p-6 flex flex-col h-full relative">
-                <div className="absolute top-6 right-6 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                  <Target className="w-5 h-5 text-gray-600" />
+                <div className="absolute top-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <Target className="w-5 h-5 text-white" />
                 </div>
-                <p className="text-sm font-medium text-gray-500 mb-4 pr-12">Today's Progress</p>
+                <p className="text-sm font-medium text-white/90 mb-4 pr-12">Today's Progress</p>
                 {(() => {
                   const totalTodos = incompleteContent.length + incompleteQuizzes.length;
                   const completedTodos = incompleteContent.filter((c: any) => completedScheduleIds.has(c._id)).length + 
@@ -1267,11 +1267,11 @@ export default function Dashboard() {
                   const percentage = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
                   return (
                     <>
-                      <p className="text-3xl font-bold text-gray-900 mb-3 leading-tight">{completedTodos}/{totalTodos}</p>
-                      <div className="w-full bg-gray-100 rounded-full h-2 mb-2 overflow-hidden">
-                        <div className="bg-gradient-to-r from-cyan-400 to-purple-600 h-2 rounded-full transition-all duration-500" style={{ width: `${percentage}%` }}></div>
+                      <p className="text-3xl font-bold text-white mb-3 leading-tight">{completedTodos}/{totalTodos}</p>
+                      <div className="w-full bg-white/20 rounded-full h-2 mb-2 overflow-hidden">
+                        <div className="bg-white h-2 rounded-full transition-all duration-500" style={{ width: `${percentage}%` }}></div>
                       </div>
-                      <p className="text-xs text-gray-500 mt-auto">Tasks completed {percentage}%</p>
+                      <p className="text-xs text-white/80 mt-auto">Tasks completed {percentage}%</p>
                     </>
                   );
                 })()}
@@ -1279,48 +1279,48 @@ export default function Dashboard() {
             </Card>
 
             {/* Study Time */}
-            <Card className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 h-full border-0">
+            <Card className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 h-full border-0">
               <CardContent className="p-6 flex flex-col h-full relative">
-                <div className="absolute top-6 right-6 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-gray-600" />
+                <div className="absolute top-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-white" />
                 </div>
-                <p className="text-sm font-medium text-gray-500 mb-4 pr-12">Study Time</p>
-                <p className="text-3xl font-bold text-gray-900 mb-2 leading-tight transition-all duration-300">
+                <p className="text-sm font-medium text-white/90 mb-4 pr-12">Study Time</p>
+                <p className="text-3xl font-bold text-white mb-2 leading-tight transition-all duration-300">
                   {studyTimeToday >= 60 
                     ? `${(studyTimeToday / 60).toFixed(1)} hrs` 
                     : studyTimeToday < 1 && studyTimeToday > 0
                     ? '<1m'
                     : `${Math.round(studyTimeToday)}m`}
                 </p>
-                <p className="text-xs text-gray-500 mt-auto">Logged in today</p>
+                <p className="text-xs text-white/80 mt-auto">Logged in today</p>
               </CardContent>
             </Card>
 
             {/* This Week */}
-            <Card className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 h-full border-0">
+            <Card className="bg-gradient-to-br from-orange-600 to-orange-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 h-full border-0">
               <CardContent className="p-6 flex flex-col h-full relative">
-                <div className="absolute top-6 right-6 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-gray-600" />
+                <div className="absolute top-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-white" />
                 </div>
-                <p className="text-sm font-medium text-gray-500 mb-4 pr-12">This Week</p>
-                <p className="text-3xl font-bold text-gray-900 mb-2 leading-tight transition-all duration-300">
+                <p className="text-sm font-medium text-white/90 mb-4 pr-12">This Week</p>
+                <p className="text-3xl font-bold text-white mb-2 leading-tight transition-all duration-300">
                   {studyTimeThisWeek >= 60 
                     ? `${(studyTimeThisWeek / 60).toFixed(1)} hrs` 
                     : studyTimeThisWeek < 1 && studyTimeThisWeek > 0
                     ? '<1m'
                     : `${Math.round(studyTimeThisWeek)}m`}
                 </p>
-                <p className="text-xs text-gray-500 mt-auto">Logged in this week</p>
+                <p className="text-xs text-white/80 mt-auto">Logged in this week</p>
               </CardContent>
             </Card>
 
             {/* Efficiency */}
-            <Card className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 h-full border-0">
+            <Card className="bg-gradient-to-br from-sky-600 to-sky-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 h-full border-0">
               <CardContent className="p-6 flex flex-col h-full relative">
-                <div className="absolute top-6 right-6 w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-gray-600" />
+                <div className="absolute top-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-white" />
                 </div>
-                <p className="text-sm font-medium text-gray-500 mb-4 pr-12">Efficiency</p>
+                <p className="text-sm font-medium text-white/90 mb-4 pr-12">Efficiency</p>
                 {(() => {
                   const totalTodos = incompleteContent.length + incompleteQuizzes.length;
                   const completedTodos = incompleteContent.filter((c: any) => completedScheduleIds.has(c._id)).length + 
@@ -1328,8 +1328,8 @@ export default function Dashboard() {
                   const efficiency = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
                   return (
                     <>
-                      <p className="text-3xl font-bold text-gray-900 mb-2 leading-tight">{efficiency}%</p>
-                      <p className="text-xs text-gray-500 mt-auto">Completion rate</p>
+                      <p className="text-3xl font-bold text-white mb-2 leading-tight">{efficiency}%</p>
+                      <p className="text-xs text-white/80 mt-auto">Completion rate</p>
                     </>
                   );
                 })()}
@@ -1369,7 +1369,7 @@ export default function Dashboard() {
                       <div className="flex-1 relative">
                         <div className="w-full h-6 bg-purple-200 rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-500"
+                            className="h-full bg-gradient-to-r from-pink-500 to-purple-600 rounded-full transition-all duration-500"
                             style={{ width: `${percentage}%` }}
                           />
                         </div>
@@ -1381,8 +1381,8 @@ export default function Dashboard() {
                   );
                 })}
               </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
           {/* To-Dos */}
           <Card className="bg-white rounded-xl shadow-md">
@@ -1538,8 +1538,8 @@ export default function Dashboard() {
                   })}
                 </div>
               )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
         </div>
 
         {/* Teacher Remarks Section */}
@@ -1603,7 +1603,7 @@ export default function Dashboard() {
 
         {/* Quick Stats */}
         <div className="grid-responsive-3 gap-responsive mb-responsive relative z-10">
-          <div className="group relative overflow-hidden bg-gradient-to-br from-blue-700 to-cyan-300 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300">
+          <div className="group relative overflow-hidden bg-gradient-to-br from-pink-600 to-pink-700 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300">
             <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
@@ -1618,7 +1618,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-400 to-teal-400 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300">
+          <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300">
             <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
@@ -1633,7 +1633,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="group relative overflow-hidden bg-gradient-to-br from-blue-400 to-blue-500 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300">
+          <div className="group relative overflow-hidden bg-gradient-to-br from-orange-600 to-orange-700 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300">
             <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
@@ -1695,7 +1695,7 @@ export default function Dashboard() {
                         <p className="text-responsive-xs font-medium text-gray-900">{subject.progress}%</p>
                         <div className="w-16 bg-gray-200 rounded-full h-1 mt-1">
                           <div 
-                            className="bg-primary h-1 rounded-full" 
+                            className="bg-gradient-to-r from-pink-500 to-purple-600 h-1 rounded-full" 
                             style={{ width: `${subject.progress}%` }}
                           />
                         </div>
@@ -1709,7 +1709,7 @@ export default function Dashboard() {
                 </div>
 
                 <Button 
-                  className="w-full bg-gradient-to-r from-blue-700 to-cyan-300 hover:from-blue-800 hover:to-cyan-400 text-white shadow-lg"
+                  className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-lg"
                   onClick={() => setLocation('/learning-paths')}
                 >
                   View Complete Learning Path
@@ -1857,7 +1857,7 @@ export default function Dashboard() {
                             )}
                             
                             <Button
-                              className="w-full bg-gradient-to-r from-blue-700 to-cyan-300 hover:from-blue-800 hover:to-cyan-400 text-white"
+                              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
                               onClick={() => window.location.href = `/quiz/${quiz._id}`}
                             >
                               {quiz.hasAttempted ? 'Review Quiz' : 'Start Quiz'}
@@ -2348,6 +2348,124 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Explore Career Paths */}
+        <div className="mb-responsive relative z-10">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Explore Career Paths</h2>
+            <p className="text-gray-600">Discover various career opportunities and their requirements</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Engineering & Technology */}
+            <Card className="bg-gradient-to-br from-pink-600 to-pink-700 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-start space-x-4 mb-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <TargetIcon className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-2">Engineering & Technology</h3>
+                    <Badge className="bg-white/20 text-white text-xs mb-3 border-white/30">Demand: Very High</Badge>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Computer Science</Badge>
+                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Mechanical</Badge>
+                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Electrical</Badge>
+                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Civil</Badge>
+                </div>
+                <Button
+                  className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
+                  onClick={() => alert('This feature is coming soon!')}
+                >
+                  Explore More
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Medical & Healthcare */}
+            <Card className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-start space-x-4 mb-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <GraduationCap className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-2">Medical & Healthcare</h3>
+                    <Badge className="bg-white/20 text-white text-xs mb-3 border-white/30">Demand: High</Badge>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">MBBS</Badge>
+                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Nursing</Badge>
+                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Pharmacy</Badge>
+                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Physiotherapy</Badge>
+                </div>
+                <Button
+                  className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
+                  onClick={() => alert('This feature is coming soon!')}
+                >
+                  Explore More
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Business & Management */}
+            <Card className="bg-gradient-to-br from-orange-600 to-orange-700 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-start space-x-4 mb-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <BarChartIcon className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-2">Business & Management</h3>
+                    <Badge className="bg-white/20 text-white text-xs mb-3 border-white/30">Demand: High</Badge>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">MBA</Badge>
+                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">CA</Badge>
+                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Marketing</Badge>
+                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Finance</Badge>
+                </div>
+                <Button
+                  className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
+                  onClick={() => alert('This feature is coming soon!')}
+                >
+                  Explore More
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Arts & Design */}
+            <Card className="bg-gradient-to-br from-sky-600 to-sky-700 rounded-xl shadow-md hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-start space-x-4 mb-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-2">Arts & Design</h3>
+                    <Badge className="bg-white/20 text-white text-xs mb-3 border-white/30">Demand: Medium</Badge>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Fine Arts</Badge>
+                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Design</Badge>
+                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Architecture</Badge>
+                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Fashion</Badge>
+                </div>
+                <Button
+                  className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
+                  onClick={() => alert('This feature is coming soon!')}
+                >
+                  Explore More
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
       </div>
 
       {/* Content Preview Modal */}
@@ -2618,7 +2736,7 @@ export default function Dashboard() {
                 </Button>
                 {!completedScheduleIds.has(selectedScheduleItem._id || selectedScheduleItem.id) && (
                   <Button
-                    className="bg-gradient-to-r from-blue-700 to-cyan-300 hover:from-blue-800 hover:to-cyan-400 text-white"
+                    className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
                     onClick={() => handleMarkAsComplete(selectedScheduleItem, selectedScheduleItem.isQuiz)}
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />
@@ -2627,6 +2745,7 @@ export default function Dashboard() {
                 )}
                 {selectedScheduleItem.isQuiz && (
                   <Button
+                    className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
                     onClick={() => {
                       setIsPreviewOpen(false);
                       window.location.href = '/learning-paths';
@@ -2647,128 +2766,6 @@ export default function Dashboard() {
         onClose={handleCloseVideoModal}
         video={selectedVideo}
       />
-
-      {/* Explore Career Paths */}
-      <div className="mb-responsive relative z-10">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Explore Career Paths</h2>
-          <p className="text-gray-600">Discover various career opportunities and their requirements</p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Engineering & Technology */}
-          <Card className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-start space-x-4 mb-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <TargetIcon className="w-6 h-6 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Engineering & Technology</h3>
-                  <Badge className="bg-blue-100 text-blue-700 text-xs mb-3">Demand: Very High</Badge>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Badge variant="outline" className="text-xs">Computer Science</Badge>
-                <Badge variant="outline" className="text-xs">Mechanical</Badge>
-                <Badge variant="outline" className="text-xs">Electrical</Badge>
-                <Badge variant="outline" className="text-xs">Civil</Badge>
-              </div>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => alert('This feature is coming soon!')}
-              >
-                Explore More
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Medical & Healthcare */}
-          <Card className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-start space-x-4 mb-4">
-                <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <GraduationCap className="w-6 h-6 text-orange-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Medical & Healthcare</h3>
-                  <Badge className="bg-blue-100 text-blue-700 text-xs mb-3">Demand: High</Badge>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Badge variant="outline" className="text-xs">MBBS</Badge>
-                <Badge variant="outline" className="text-xs">Nursing</Badge>
-                <Badge variant="outline" className="text-xs">Pharmacy</Badge>
-                <Badge variant="outline" className="text-xs">Physiotherapy</Badge>
-              </div>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => alert('This feature is coming soon!')}
-              >
-                Explore More
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Business & Management */}
-          <Card className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-start space-x-4 mb-4">
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <BarChartIcon className="w-6 h-6 text-purple-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Business & Management</h3>
-                  <Badge className="bg-blue-100 text-blue-700 text-xs mb-3">Demand: High</Badge>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Badge variant="outline" className="text-xs">MBA</Badge>
-                <Badge variant="outline" className="text-xs">CA</Badge>
-                <Badge variant="outline" className="text-xs">Marketing</Badge>
-                <Badge variant="outline" className="text-xs">Finance</Badge>
-              </div>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => alert('This feature is coming soon!')}
-              >
-                Explore More
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Arts & Design */}
-          <Card className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-start space-x-4 mb-4">
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Sparkles className="w-6 h-6 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Arts & Design</h3>
-                  <Badge className="bg-blue-100 text-blue-700 text-xs mb-3">Demand: Medium</Badge>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Badge variant="outline" className="text-xs">Fine Arts</Badge>
-                <Badge variant="outline" className="text-xs">Design</Badge>
-                <Badge variant="outline" className="text-xs">Architecture</Badge>
-                <Badge variant="outline" className="text-xs">Fashion</Badge>
-              </div>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => alert('This feature is coming soon!')}
-              >
-                Explore More
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
     </>
   );
 }

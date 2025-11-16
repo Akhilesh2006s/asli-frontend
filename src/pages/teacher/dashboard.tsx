@@ -1210,7 +1210,7 @@ const TeacherDashboard = () => {
       
       {/* Header */}
       <div className="bg-white/70 backdrop-blur-xl border-b border-white/20 sticky top-0 z-50 relative">
-        <div className="w-full px-2 sm:px-4 lg:px-6 py-4">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-gradient-to-r from-pink-500 to-pink-600 rounded-2xl flex items-center justify-center shadow-xl">
@@ -1241,7 +1241,7 @@ const TeacherDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div className="w-full px-2 sm:px-4 lg:px-6 py-8 relative z-10">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {/* Welcome Message */}
         <div className="mb-8">
           <h1 className="text-responsive-xl font-bold bg-gradient-to-r from-pink-600 to-pink-700 bg-clip-text text-transparent capitalize">

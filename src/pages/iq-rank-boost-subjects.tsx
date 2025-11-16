@@ -147,8 +147,7 @@ export default function IQRankBoostSubjects() {
   return (
     <>
       <Navigation />
-      <div className="w-full px-2 sm:px-4 lg:px-6 pt-24 pb-8 bg-gray-50 min-h-screen">
-        <div className="max-w-7xl mx-auto">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8 bg-gray-50 min-h-screen">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-4 mb-4">
@@ -265,7 +264,6 @@ export default function IQRankBoostSubjects() {
               ))}
             </div>
           )}
-        </div>
       </div>
     </>
   );

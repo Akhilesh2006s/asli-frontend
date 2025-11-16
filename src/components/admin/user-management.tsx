@@ -360,20 +360,20 @@ const UserManagement = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden bg-white/70 backdrop-blur-xl rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20"
+                className="group relative overflow-hidden bg-gradient-to-br from-pink-600 to-pink-700 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-400/20 to-cyan-500/20 backdrop-blur-sm"></div>
+                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl shadow-lg">
+                    <div className="p-3 bg-white/20 rounded-xl shadow-lg">
                       <Users className="w-6 h-6 text-white" />
                     </div>
                     <div className="text-right">
-                      <p className="text-gray-700 text-sm font-medium">Total Students</p>
-                      <p className="text-3xl font-bold text-gray-900">{students.length}</p>
+                      <p className="text-white/90 text-sm font-medium">Total Students</p>
+                      <p className="text-3xl font-bold text-white">{students.length}</p>
                     </div>
                   </div>
-                  <div className="flex items-center text-gray-600 text-sm">
+                  <div className="flex items-center text-white/80 text-sm">
                     <TrendingUp className="w-4 h-4 mr-1" />
                     <span>+12% this month</span>
                   </div>
@@ -384,21 +384,21 @@ const UserManagement = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="group relative overflow-hidden bg-white/70 backdrop-blur-xl rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20"
+                className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-green-400/20 to-emerald-500/20 backdrop-blur-sm"></div>
+                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl shadow-lg">
+                    <div className="p-3 bg-white/20 rounded-xl shadow-lg">
                       <CheckCircle className="w-6 h-6 text-white" />
                     </div>
                     <div className="text-right">
-                      <p className="text-gray-700 text-sm font-medium">Active Students</p>
-                      <p className="text-3xl font-bold text-gray-900">{students.filter(s => s.status === 'active').length}</p>
+                      <p className="text-white/90 text-sm font-medium">Active Students</p>
+                      <p className="text-3xl font-bold text-white">{students.filter(s => s.status === 'active').length}</p>
                     </div>
                   </div>
-                  <div className="flex items-center text-gray-600 text-sm">
-                    <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                  <div className="flex items-center text-white/80 text-sm">
+                    <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></div>
                     <span>Online now</span>
                   </div>
                 </div>
@@ -408,20 +408,20 @@ const UserManagement = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="group relative overflow-hidden bg-white/70 backdrop-blur-xl rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20"
+                className="group relative overflow-hidden bg-gradient-to-br from-orange-600 to-orange-700 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-400/20 to-pink-500/20 backdrop-blur-sm"></div>
+                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl shadow-lg">
+                    <div className="p-3 bg-white/20 rounded-xl shadow-lg">
                       <GraduationCap className="w-6 h-6 text-white" />
                     </div>
                     <div className="text-right">
-                      <p className="text-gray-700 text-sm font-medium">Active Classes</p>
-                      <p className="text-3xl font-bold text-gray-900">{new Set(students.map(s => s.classNumber)).size}</p>
+                      <p className="text-white/90 text-sm font-medium">Active Classes</p>
+                      <p className="text-3xl font-bold text-white">{new Set(students.map(s => s.classNumber)).size}</p>
                     </div>
                   </div>
-                  <div className="flex items-center text-gray-600 text-sm">
+                  <div className="flex items-center text-white/80 text-sm">
                     <BookOpen className="w-4 h-4 mr-1" />
                     <span>Classes running</span>
                   </div>
@@ -432,20 +432,20 @@ const UserManagement = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="group relative overflow-hidden bg-white/70 backdrop-blur-xl rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-white/20"
+                className="group relative overflow-hidden bg-gradient-to-br from-sky-600 to-sky-700 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-orange-400/20 to-red-500/20 backdrop-blur-sm"></div>
+                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl shadow-lg">
+                    <div className="p-3 bg-white/20 rounded-xl shadow-lg">
                       <TrendingUp className="w-6 h-6 text-white" />
                     </div>
                     <div className="text-right">
-                      <p className="text-gray-700 text-sm font-medium">New This Month</p>
-                      <p className="text-3xl font-bold text-gray-900">12</p>
+                      <p className="text-white/90 text-sm font-medium">New This Month</p>
+                      <p className="text-3xl font-bold text-white">12</p>
                     </div>
                   </div>
-                  <div className="flex items-center text-gray-600 text-sm">
+                  <div className="flex items-center text-white/80 text-sm">
                     <span>+25% growth</span>
                   </div>
                 </div>
