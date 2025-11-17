@@ -47,8 +47,11 @@ import {
   Video as VideoIcon,
   Filter,
   Radio,
-  MessageSquare
+  MessageSquare,
+  AlertCircle
 } from 'lucide-react';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import AIChat from '@/components/ai-chat';
 import VideoModal from '@/components/video-modal';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -82,7 +85,10 @@ interface Student {
     recentPercentage?: number;
     totalExams?: number;
     averageMarks?: number;
+    averagePercentage?: number;
     overallProgress?: number;
+    learningProgress?: number; // Content completion progress
+    dailyAverageWatchTime?: number;
   };
 }
 
@@ -153,6 +159,12 @@ const TeacherDashboard = () => {
   const [isSubmittingRemark, setIsSubmittingRemark] = useState(false);
   const [selectedSubjectForRemark, setSelectedSubjectForRemark] = useState<string>('general');
   const [isPositiveRemark, setIsPositiveRemark] = useState(true);
+  const [studentsSubTab, setStudentsSubTab] = useState<'list' | 'track-progress' | 'submissions'>('list');
+  const [isLoadingProgress, setIsLoadingProgress] = useState(false);
+  const [homeworkSubmissions, setHomeworkSubmissions] = useState<any[]>([]);
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
+  const [expandedHomework, setExpandedHomework] = useState<Set<string>>(new Set());
+  const [expandedStudent, setExpandedStudent] = useState<Set<string>>(new Set());
 
   // Modal states
   const [isAddVideoModalOpen, setIsAddVideoModalOpen] = useState(false);
@@ -209,6 +221,52 @@ const TeacherDashboard = () => {
   useEffect(() => {
     fetchTeacherData();
   }, []);
+
+  // Fetch student performance data when Track Progress tab is active
+  useEffect(() => {
+    if (dashboardSubTab === 'students' && studentsSubTab === 'track-progress') {
+      setIsLoadingProgress(true);
+      fetchStudentPerformance().finally(() => {
+        setIsLoadingProgress(false);
+      });
+    }
+  }, [dashboardSubTab, studentsSubTab]);
+
+  // Fetch homework submissions when Submissions tab is active
+  useEffect(() => {
+    if (dashboardSubTab === 'students' && studentsSubTab === 'submissions') {
+      fetchHomeworkSubmissions();
+    }
+  }, [dashboardSubTab, studentsSubTab]);
+
+  // Fetch homework submissions
+  const fetchHomeworkSubmissions = async () => {
+    setIsLoadingSubmissions(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/teacher/homework-submissions`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setHomeworkSubmissions(data.data);
+        } else {
+          setHomeworkSubmissions({ homeworks: [], students: [] });
+        }
+      } else {
+        setHomeworkSubmissions({ homeworks: [], students: [] });
+      }
+    } catch (error) {
+      console.error('Failed to fetch homework submissions:', error);
+    } finally {
+      setIsLoadingSubmissions(false);
+    }
+  };
 
   // Fetch EduOTT videos when tab is active
   useEffect(() => {
@@ -996,26 +1054,57 @@ const TeacherDashboard = () => {
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data) {
-          // Update students with performance data
-          setStudents(data.data.map((student: any) => ({
-            id: student._id || student.id,
-            name: student.fullName || student.name,
-            email: student.email,
-            classNumber: student.classNumber,
-            phone: student.phone,
-            isActive: student.isActive,
-            createdAt: student.createdAt,
-            lastLogin: student.lastLogin,
-            assignedClass: student.assignedClass,
-            performance: student.performance || {
-              recentExamTitle: null,
-              recentMarks: null,
-              recentPercentage: null,
-              totalExams: 0,
-              averageMarks: 0,
-              overallProgress: 0
-            }
-          })));
+          // Update students with performance data from database
+          const studentsWithPerformance = data.data.map((student: any) => {
+            const perf = student.performance || {};
+            // Extract all metrics from database response
+            return {
+              id: student._id || student.id,
+              name: student.fullName || student.name,
+              email: student.email,
+              classNumber: student.classNumber,
+              phone: student.phone,
+              isActive: student.isActive,
+              createdAt: student.createdAt,
+              lastLogin: student.lastLogin,
+              assignedClass: student.assignedClass,
+              performance: {
+                recentExamTitle: perf.recentExamTitle || null,
+                recentMarks: perf.recentMarks || null,
+                recentPercentage: perf.recentPercentage || null,
+                // All metrics from database:
+                // - totalExams: Count from ExamResult collection
+                totalExams: perf.totalExams !== null && perf.totalExams !== undefined ? perf.totalExams : 0,
+                // - averageMarks: Average of obtained marks from ExamResult
+                averageMarks: perf.averageMarks || 0,
+                // - averagePercentage: Average of all exam percentages from ExamResult
+                averagePercentage: perf.averagePercentage !== null && perf.averagePercentage !== undefined ? perf.averagePercentage : null,
+                // - overallProgress: Calculated from exam progress + learning path progress
+                overallProgress: perf.overallProgress !== null && perf.overallProgress !== undefined ? perf.overallProgress : 0,
+                // - learningProgress: Content completion progress from database
+                learningProgress: perf.learningProgress !== null && perf.learningProgress !== undefined ? perf.learningProgress : 0,
+                // - dailyAverageWatchTime: Calculated from UserProgress records (video watch time)
+                dailyAverageWatchTime: perf.dailyAverageWatchTime !== null && perf.dailyAverageWatchTime !== undefined ? perf.dailyAverageWatchTime : 0
+              }
+            };
+          });
+          
+          console.log('📊 Student performance data loaded from database:', {
+            totalStudents: studentsWithPerformance.length,
+            sampleStudent: studentsWithPerformance[0] ? {
+              name: studentsWithPerformance[0].name,
+              performance: studentsWithPerformance[0].performance,
+              watchTime: studentsWithPerformance[0].performance?.dailyAverageWatchTime
+            } : null
+          });
+          
+          // Debug: Log all watch times
+          studentsWithPerformance.forEach((s: any) => {
+            const wt = s.performance?.dailyAverageWatchTime;
+            console.log(`⏱️ Watch time for ${s.name}: ${wt !== null && wt !== undefined ? wt + ' min' : 'null/undefined'}`);
+          });
+          
+          setStudents(studentsWithPerformance);
         }
       }
     } catch (error) {
@@ -2263,18 +2352,51 @@ const TeacherDashboard = () => {
               {/* My Students Tab */}
               {dashboardSubTab === 'students' && (
                 <div className="space-y-8">
-                  {/* Search Bar */}
-                  <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
-                      <Input
-                        placeholder="Search students by name, email, or phone..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 w-full rounded-xl bg-white/70 border-gray-200 text-gray-900 backdrop-blur-sm"
-                      />
+                  {/* Students Sub-Tabs */}
+                  <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-4 shadow-xl border border-white/20">
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant={studentsSubTab === 'list' ? 'default' : 'outline'}
+                        className={studentsSubTab === 'list' ? 'bg-gradient-to-r from-emerald-400 to-teal-400 text-white shadow-lg' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50'}
+                        onClick={() => setStudentsSubTab('list')}
+                      >
+                        <Users className="w-4 h-4 mr-2" />
+                        Student List
+                      </Button>
+                      <Button
+                        variant={studentsSubTab === 'track-progress' ? 'default' : 'outline'}
+                        className={studentsSubTab === 'track-progress' ? 'bg-gradient-to-r from-emerald-400 to-teal-400 text-white shadow-lg' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50'}
+                        onClick={() => setStudentsSubTab('track-progress')}
+                      >
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        Track Progress
+                      </Button>
+                      <Button
+                        variant={studentsSubTab === 'submissions' ? 'default' : 'outline'}
+                        className={studentsSubTab === 'submissions' ? 'bg-gradient-to-r from-emerald-400 to-teal-400 text-white shadow-lg' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50'}
+                        onClick={() => setStudentsSubTab('submissions')}
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        Submissions
+                      </Button>
                     </div>
                   </div>
+
+                  {/* Student List Sub-Tab */}
+                  {studentsSubTab === 'list' && (
+                    <>
+                      {/* Search Bar */}
+                      <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+                          <Input
+                            placeholder="Search students by name, email, or phone..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10 w-full rounded-xl bg-white/70 border-gray-200 text-gray-900 backdrop-blur-sm"
+                          />
+                        </div>
+                      </div>
 
                   <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
                     <div className="overflow-x-auto">
@@ -2353,12 +2475,39 @@ const TeacherDashboard = () => {
                                         {perf.totalExams > 0 && (
                                           <p className="text-xs text-gray-500 mt-1">{perf.totalExams} exam{perf.totalExams !== 1 ? 's' : ''} completed</p>
                                         )}
+                                        {perf.learningProgress !== null && perf.learningProgress !== undefined && perf.learningProgress > 0 && (
+                                          <div className="mt-2 pt-2 border-t border-gray-200">
+                                            <div className="flex items-center justify-between mb-1">
+                                              <span className="text-xs text-gray-600">Learning Progress:</span>
+                                              <Badge className={
+                                                perf.learningProgress >= 70 ? 'bg-blue-100 text-blue-800' : 
+                                                perf.learningProgress >= 50 ? 'bg-yellow-100 text-yellow-800' : 
+                                                'bg-red-100 text-red-800'
+                                              }>
+                                                {perf.learningProgress.toFixed(0)}%
+                                              </Badge>
+                                            </div>
+                                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                              <div 
+                                                className={`h-1.5 rounded-full ${
+                                                  perf.learningProgress >= 70 ? 'bg-blue-500' : 
+                                                  perf.learningProgress >= 50 ? 'bg-yellow-500' : 
+                                                  'bg-red-500'
+                                                }`}
+                                                style={{ width: `${Math.min(perf.learningProgress, 100)}%` }}
+                                              />
+                                            </div>
+                                          </div>
+                                        )}
                                       </div>
                                     ) : (
                                       <div>
                                         <span className="text-sm text-gray-400">No progress data</span>
                                         {perf.totalExams === 0 && (
                                           <p className="text-xs text-gray-400 mt-1">No exams taken</p>
+                                        )}
+                                        {perf.learningProgress === 0 && (
+                                          <p className="text-xs text-gray-400 mt-1">No content completed</p>
                                         )}
                                       </div>
                                     )}
@@ -2536,6 +2685,1004 @@ const TeacherDashboard = () => {
                       </div>
                     </DialogContent>
                   </Dialog>
+                    </>
+                  )}
+
+                  {/* Track Progress Sub-Tab */}
+                  {studentsSubTab === 'track-progress' && (
+                    <div className="space-y-8">
+                      {/* Header */}
+                      <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
+                        <div className="flex items-center gap-3 mb-6">
+                          <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
+                            <BarChart3 className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <h2 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Track Student Progress</h2>
+                            <p className="text-gray-600">Monitor and analyze student performance over time</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Search Bar */}
+                      <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+                          <Input
+                            placeholder="Search students by name, email, or phone..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10 w-full rounded-xl bg-white/70 border-gray-200 text-gray-900 backdrop-blur-sm"
+                          />
+                        </div>
+                      </div>
+
+                      {isLoadingProgress ? (
+                        <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-12 shadow-xl border border-white/20 text-center">
+                          <div className="flex flex-col items-center justify-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mb-4"></div>
+                            <p className="text-gray-600">Loading student progress data...</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                      {/* Visual Graphs and Analyses */}
+                      {(() => {
+                        // Calculate class-wide statistics
+                        const studentsWithData = students.filter(s => {
+                          const perf = s.performance || {};
+                          return perf.totalExams > 0 || perf.overallProgress > 0 || (perf.dailyAverageWatchTime && perf.dailyAverageWatchTime > 0);
+                        });
+
+                        // Exam Performance Analysis
+                        const examPerformanceData = [
+                          {
+                            category: 'Excellent (≥70%)',
+                            count: students.filter(s => {
+                              const perf = s.performance || {};
+                              return perf.averagePercentage && perf.averagePercentage >= 70;
+                            }).length,
+                            color: '#10b981'
+                          },
+                          {
+                            category: 'Good (50-69%)',
+                            count: students.filter(s => {
+                              const perf = s.performance || {};
+                              return perf.averagePercentage && perf.averagePercentage >= 50 && perf.averagePercentage < 70;
+                            }).length,
+                            color: '#f59e0b'
+                          },
+                          {
+                            category: 'Needs Improvement (<50%)',
+                            count: students.filter(s => {
+                              const perf = s.performance || {};
+                              return perf.averagePercentage && perf.averagePercentage < 50;
+                            }).length,
+                            color: '#ef4444'
+                          },
+                          {
+                            category: 'No Exams',
+                            count: students.filter(s => {
+                              const perf = s.performance || {};
+                              return !perf.averagePercentage || perf.totalExams === 0;
+                            }).length,
+                            color: '#9ca3af'
+                          }
+                        ];
+
+                        const avgExamScore = studentsWithData.length > 0
+                          ? studentsWithData.reduce((sum, s) => {
+                              const perf = s.performance || {};
+                              return sum + (perf.averagePercentage || 0);
+                            }, 0) / studentsWithData.filter(s => (s.performance || {}).averagePercentage).length
+                          : 0;
+
+                        // Progress Distribution
+                        const progressDistribution = [
+                          {
+                            name: 'Excellent (≥70%)',
+                            value: students.filter(s => {
+                              const perf = s.performance || {};
+                              return perf.overallProgress && perf.overallProgress >= 70;
+                            }).length,
+                            color: '#10b981'
+                          },
+                          {
+                            name: 'Good (50-69%)',
+                            value: students.filter(s => {
+                              const perf = s.performance || {};
+                              return perf.overallProgress && perf.overallProgress >= 50 && perf.overallProgress < 70;
+                            }).length,
+                            color: '#f59e0b'
+                          },
+                          {
+                            name: 'Needs Improvement (<50%)',
+                            value: students.filter(s => {
+                              const perf = s.performance || {};
+                              return !perf.overallProgress || perf.overallProgress < 50;
+                            }).length,
+                            color: '#ef4444'
+                          }
+                        ];
+
+                        const avgProgress = studentsWithData.length > 0
+                          ? studentsWithData.reduce((sum, s) => {
+                              const perf = s.performance || {};
+                              return sum + (perf.overallProgress || 0);
+                            }, 0) / studentsWithData.length
+                          : 0;
+
+                        // Watch Time Analysis
+                        const watchTimeData = students
+                          .filter(s => {
+                            const perf = s.performance || {};
+                            return perf.dailyAverageWatchTime && perf.dailyAverageWatchTime > 0;
+                          })
+                          .map(s => ({
+                            name: s.name || s.fullName || 'Student',
+                            watchTime: (s.performance || {}).dailyAverageWatchTime || 0
+                          }))
+                          .sort((a, b) => b.watchTime - a.watchTime)
+                          .slice(0, 10); // Top 10 students
+
+                        const avgWatchTime = studentsWithData.length > 0
+                          ? studentsWithData.reduce((sum, s) => {
+                              const perf = s.performance || {};
+                              return sum + (perf.dailyAverageWatchTime || 0);
+                            }, 0) / studentsWithData.filter(s => (s.performance || {}).dailyAverageWatchTime).length
+                          : 0;
+
+                        const watchTimeDistribution = [
+                          {
+                            range: '0-15 min',
+                            count: students.filter(s => {
+                              const perf = s.performance || {};
+                              const time = perf.dailyAverageWatchTime || 0;
+                              return time > 0 && time <= 15;
+                            }).length,
+                            color: '#ef4444'
+                          },
+                          {
+                            range: '16-30 min',
+                            count: students.filter(s => {
+                              const perf = s.performance || {};
+                              const time = perf.dailyAverageWatchTime || 0;
+                              return time > 15 && time <= 30;
+                            }).length,
+                            color: '#f59e0b'
+                          },
+                          {
+                            range: '31-60 min',
+                            count: students.filter(s => {
+                              const perf = s.performance || {};
+                              const time = perf.dailyAverageWatchTime || 0;
+                              return time > 30 && time <= 60;
+                            }).length,
+                            color: '#3b82f6'
+                          },
+                          {
+                            range: '60+ min',
+                            count: students.filter(s => {
+                              const perf = s.performance || {};
+                              const time = perf.dailyAverageWatchTime || 0;
+                              return time > 60;
+                            }).length,
+                            color: '#10b981'
+                          },
+                          {
+                            range: 'No Data',
+                            count: students.filter(s => {
+                              const perf = s.performance || {};
+                              return !perf.dailyAverageWatchTime || perf.dailyAverageWatchTime === 0;
+                            }).length,
+                            color: '#9ca3af'
+                          }
+                        ];
+
+                        return (
+                          <div className="space-y-8">
+                            {/* Class Performance Summary */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                              <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                              >
+                                <div className="flex items-center justify-between mb-4">
+                                  <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl">
+                                    <Target className="w-6 h-6 text-white" />
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-2xl font-bold text-gray-900">
+                                      {avgExamScore.toFixed(1)}%
+                                    </p>
+                                    <p className="text-sm text-gray-600">Avg Exam Score</p>
+                                  </div>
+                                </div>
+                                <p className="text-xs text-gray-500">
+                                  {studentsWithData.filter(s => (s.performance || {}).averagePercentage).length} students with exam data
+                                </p>
+                              </motion.div>
+
+                              <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.1 }}
+                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                              >
+                                <div className="flex items-center justify-between mb-4">
+                                  <div className="p-3 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-xl">
+                                    <TrendingUp className="w-6 h-6 text-white" />
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-2xl font-bold text-gray-900">
+                                      {avgProgress.toFixed(1)}%
+                                    </p>
+                                    <p className="text-sm text-gray-600">Avg Progress</p>
+                                  </div>
+                                </div>
+                                <p className="text-xs text-gray-500">
+                                  {studentsWithData.length} students tracked
+                                </p>
+                              </motion.div>
+
+                              <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                              >
+                                <div className="flex items-center justify-between mb-4">
+                                  <div className="p-3 bg-gradient-to-br from-purple-400 to-pink-400 rounded-xl">
+                                    <Clock className="w-6 h-6 text-white" />
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-2xl font-bold text-gray-900">
+                                      {avgWatchTime.toFixed(1)} min
+                                    </p>
+                                    <p className="text-sm text-gray-600">Avg Watch Time</p>
+                                  </div>
+                                </div>
+                                <p className="text-xs text-gray-500">
+                                  {studentsWithData.filter(s => (s.performance || {}).dailyAverageWatchTime).length} students with watch data
+                                </p>
+                              </motion.div>
+                            </div>
+
+                            {/* Charts Grid */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                              {/* Exam Performance Distribution */}
+                              <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                              >
+                                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                  <BarChart3 className="w-5 h-5 text-emerald-600" />
+                                  Exam Performance Distribution
+                                </h3>
+                                <ChartContainer
+                                  config={{
+                                    count: { label: "Students", color: "hsl(var(--chart-1))" }
+                                  }}
+                                  className="h-[300px]"
+                                >
+                                  <BarChart data={examPerformanceData}>
+                                    <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
+                                    <XAxis 
+                                      dataKey="category" 
+                                      tick={{ fill: '#6b7280', fontSize: 12 }}
+                                      angle={-45}
+                                      textAnchor="end"
+                                      height={80}
+                                    />
+                                    <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} />
+                                    <ChartTooltip content={<ChartTooltipContent />} />
+                                    <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                                      {examPerformanceData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                      ))}
+                                    </Bar>
+                                  </BarChart>
+                                </ChartContainer>
+                                <div className="mt-4 text-sm text-gray-600">
+                                  <p>Total students with exams: {students.filter(s => (s.performance || {}).totalExams > 0).length}</p>
+                                </div>
+                              </motion.div>
+
+                              {/* Progress Distribution Pie Chart */}
+                              <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.1 }}
+                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                              >
+                                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                  <Target className="w-5 h-5 text-emerald-600" />
+                                  Overall Progress Distribution
+                                </h3>
+                                <ChartContainer
+                                  config={{
+                                    excellent: { label: "Excellent", color: "#10b981" },
+                                    good: { label: "Good", color: "#f59e0b" },
+                                    needsImprovement: { label: "Needs Improvement", color: "#ef4444" }
+                                  }}
+                                  className="h-[300px]"
+                                >
+                                  <PieChart>
+                                    <Pie
+                                      data={progressDistribution}
+                                      dataKey="value"
+                                      nameKey="name"
+                                      cx="50%"
+                                      cy="50%"
+                                      outerRadius={100}
+                                      label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
+                                    >
+                                      {progressDistribution.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                      ))}
+                                    </Pie>
+                                    <ChartTooltip content={<ChartTooltipContent />} />
+                                  </PieChart>
+                                </ChartContainer>
+                                <div className="mt-4 text-sm text-gray-600">
+                                  <p>Total students: {students.length}</p>
+                                </div>
+                              </motion.div>
+
+                              {/* Watch Time Distribution */}
+                              <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                              >
+                                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                  <Clock className="w-5 h-5 text-emerald-600" />
+                                  Daily Watch Time Distribution
+                                </h3>
+                                <ChartContainer
+                                  config={{
+                                    count: { label: "Students", color: "hsl(var(--chart-1))" }
+                                  }}
+                                  className="h-[300px]"
+                                >
+                                  <BarChart data={watchTimeDistribution}>
+                                    <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
+                                    <XAxis 
+                                      dataKey="range" 
+                                      tick={{ fill: '#6b7280', fontSize: 12 }}
+                                    />
+                                    <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} />
+                                    <ChartTooltip content={<ChartTooltipContent />} />
+                                    <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                                      {watchTimeDistribution.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                      ))}
+                                    </Bar>
+                                  </BarChart>
+                                </ChartContainer>
+                                <div className="mt-4 text-sm text-gray-600">
+                                  <p>Students with watch data: {students.filter(s => (s.performance || {}).dailyAverageWatchTime).length}</p>
+                                </div>
+                              </motion.div>
+
+                              {/* Top Watch Time Students */}
+                              {watchTimeData.length > 0 && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: 20 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: 0.3 }}
+                                  className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                                >
+                                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                    <TrendingUp className="w-5 h-5 text-emerald-600" />
+                                    Top 10 Watch Time Leaders
+                                  </h3>
+                                  <ChartContainer
+                                    config={{
+                                      watchTime: { label: "Watch Time (min)", color: "#8b5cf6" }
+                                    }}
+                                    className="h-[300px]"
+                                  >
+                                    <BarChart data={watchTimeData} layout="vertical">
+                                      <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
+                                      <XAxis type="number" tick={{ fill: '#6b7280', fontSize: 12 }} />
+                                      <YAxis 
+                                        type="category" 
+                                        dataKey="name" 
+                                        tick={{ fill: '#6b7280', fontSize: 11 }}
+                                        width={120}
+                                      />
+                                      <ChartTooltip content={<ChartTooltipContent />} />
+                                      <Bar dataKey="watchTime" radius={[0, 8, 8, 0]} fill="#8b5cf6" />
+                                    </BarChart>
+                                  </ChartContainer>
+                                </motion.div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Progress Overview Cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                        >
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="p-3 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-xl">
+                              <TrendingUp className="w-6 h-6 text-white" />
+                            </div>
+                            <div className="text-right">
+                              <p className="text-2xl font-bold text-gray-900">
+                                {students.filter(s => {
+                                  const perf = s.performance || {};
+                                  return perf.overallProgress && perf.overallProgress >= 70;
+                                }).length}
+                              </p>
+                              <p className="text-sm text-gray-600">High Performers</p>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-500">Students with ≥70% progress</p>
+                        </motion.div>
+
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.1 }}
+                          className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                        >
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="p-3 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-xl">
+                              <Target className="w-6 h-6 text-white" />
+                            </div>
+                            <div className="text-right">
+                              <p className="text-2xl font-bold text-gray-900">
+                                {students.filter(s => {
+                                  const perf = s.performance || {};
+                                  return perf.overallProgress && perf.overallProgress >= 50 && perf.overallProgress < 70;
+                                }).length}
+                              </p>
+                              <p className="text-sm text-gray-600">Average Performers</p>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-500">Students with 50-69% progress</p>
+                        </motion.div>
+
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.2 }}
+                          className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                        >
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="p-3 bg-gradient-to-br from-red-400 to-pink-400 rounded-xl">
+                              <AlertCircle className="w-6 h-6 text-white" />
+                            </div>
+                            <div className="text-right">
+                              <p className="text-2xl font-bold text-gray-900">
+                                {students.filter(s => {
+                                  const perf = s.performance || {};
+                                  return !perf.overallProgress || perf.overallProgress < 50;
+                                }).length}
+                              </p>
+                              <p className="text-sm text-gray-600">Need Attention</p>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-500">Students with &lt;50% progress</p>
+                        </motion.div>
+                      </div>
+
+                      {/* Student Progress Table */}
+                      <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
+                        <div className="mb-6">
+                          <h3 className="text-xl font-bold text-gray-900 mb-2">Detailed Progress Report</h3>
+                          <p className="text-sm text-gray-600">View individual student progress and performance metrics</p>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b border-gray-200">
+                                <th className="text-left py-3 px-4 font-medium text-gray-900">Student</th>
+                                <th className="text-left py-3 px-4 font-medium text-gray-900">Class</th>
+                                <th className="text-left py-3 px-4 font-medium text-gray-900">Overall Progress</th>
+                                <th className="text-left py-3 px-4 font-medium text-gray-900">Learning Progress</th>
+                                <th className="text-left py-3 px-4 font-medium text-gray-900">Average Score</th>
+                                <th className="text-left py-3 px-4 font-medium text-gray-900">Exams Taken</th>
+                                <th className="text-left py-3 px-4 font-medium text-gray-900">Daily Avg Watch Time</th>
+                                <th className="text-left py-3 px-4 font-medium text-gray-900">Last Activity</th>
+                                <th className="text-left py-3 px-4 font-medium text-gray-900">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {students
+                                .filter(student => 
+                                  student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                  student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                  student.phone?.toLowerCase().includes(searchTerm.toLowerCase())
+                                )
+                                .map((student) => {
+                                  const perf = student.performance || {};
+                                  const classDisplay = student.assignedClass 
+                                    ? `${student.assignedClass.classNumber || student.classNumber}${student.assignedClass.section || ''}`
+                                    : student.classNumber;
+                                  // Get data from database
+                                  const progress = perf.overallProgress !== null && perf.overallProgress !== undefined ? perf.overallProgress : 0;
+                                  const avgScore = perf.averagePercentage !== null && perf.averagePercentage !== undefined ? perf.averagePercentage : 0;
+                                  const examsTaken = perf.totalExams !== null && perf.totalExams !== undefined ? perf.totalExams : 0;
+                                  const watchTime = perf.dailyAverageWatchTime !== null && perf.dailyAverageWatchTime !== undefined ? perf.dailyAverageWatchTime : 0;
+                                  
+                                  // Debug: Log watch time for troubleshooting
+                                  if (student.name) {
+                                    console.log(`Student: ${student.name}, Watch Time: ${watchTime}, Performance:`, perf);
+                                  }
+                                  
+                                  return (
+                                    <tr key={student.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                      <td className="py-3 px-4">
+                                        <div>
+                                          <p className="font-medium text-gray-900">{student.name || student.fullName}</p>
+                                          <p className="text-sm text-gray-600">{student.email}</p>
+                                        </div>
+                                      </td>
+                                      <td className="py-3 px-4">
+                                        <Badge className="bg-blue-100 text-blue-800">{classDisplay}</Badge>
+                                      </td>
+                                      <td className="py-3 px-4">
+                                        <div className="space-y-2">
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium text-gray-900">{progress.toFixed(1)}%</span>
+                                            <Badge className={
+                                              progress >= 70 ? 'bg-green-100 text-green-800' : 
+                                              progress >= 50 ? 'bg-yellow-100 text-yellow-800' : 
+                                              'bg-red-100 text-red-800'
+                                            }>
+                                              {progress >= 70 ? 'Excellent' : progress >= 50 ? 'Good' : 'Needs Improvement'}
+                                            </Badge>
+                                          </div>
+                                          <div className="w-full bg-gray-200 rounded-full h-2">
+                                            <div 
+                                              className={`h-2 rounded-full transition-all ${
+                                                progress >= 70 ? 'bg-green-500' : 
+                                                progress >= 50 ? 'bg-yellow-500' : 
+                                                'bg-red-500'
+                                              }`}
+                                              style={{ width: `${Math.min(progress, 100)}%` }}
+                                            />
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td className="py-3 px-4">
+                                        {(() => {
+                                          const learningProgress = perf.learningProgress !== null && perf.learningProgress !== undefined ? perf.learningProgress : 0;
+                                          return learningProgress > 0 ? (
+                                            <div className="space-y-2">
+                                              <div className="flex items-center justify-between">
+                                                <span className="text-sm font-medium text-gray-900">{learningProgress.toFixed(1)}%</span>
+                                                <Badge className={
+                                                  learningProgress >= 70 ? 'bg-blue-100 text-blue-800' : 
+                                                  learningProgress >= 50 ? 'bg-yellow-100 text-yellow-800' : 
+                                                  'bg-red-100 text-red-800'
+                                                }>
+                                                  {learningProgress >= 70 ? 'High' : learningProgress >= 50 ? 'Medium' : 'Low'}
+                                                </Badge>
+                                              </div>
+                                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                                <div 
+                                                  className={`h-2 rounded-full transition-all ${
+                                                    learningProgress >= 70 ? 'bg-blue-500' : 
+                                                    learningProgress >= 50 ? 'bg-yellow-500' : 
+                                                    'bg-red-500'
+                                                  }`}
+                                                  style={{ width: `${Math.min(learningProgress, 100)}%` }}
+                                                />
+                                              </div>
+                                              <p className="text-xs text-gray-500">Content Completion</p>
+                                            </div>
+                                          ) : (
+                                            <span className="text-sm text-gray-400">No data</span>
+                                          );
+                                        })()}
+                                      </td>
+                                      <td className="py-3 px-4">
+                                        {examsTaken > 0 ? (
+                                          <div>
+                                            <span className="text-sm font-medium text-gray-900">
+                                              {avgScore.toFixed(1)}%
+                                            </span>
+                                            <p className="text-xs text-gray-500">Average Score</p>
+                                          </div>
+                                        ) : (
+                                          <span className="text-sm text-gray-400">No data</span>
+                                        )}
+                                      </td>
+                                      <td className="py-3 px-4">
+                                        <div className="flex items-center space-x-2">
+                                          <ClipboardCheck className="w-4 h-4 text-gray-500" />
+                                          <span className="text-sm font-medium text-gray-900">{examsTaken}</span>
+                                          {examsTaken > 0 && (
+                                            <span className="text-xs text-gray-500">exam{examsTaken !== 1 ? 's' : ''}</span>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className="py-3 px-4">
+                                        {watchTime !== null && watchTime !== undefined && watchTime > 0 ? (
+                                          <div className="flex items-center space-x-2">
+                                            <Clock className="w-4 h-4 text-gray-500" />
+                                            <span className="text-sm font-medium text-gray-900">
+                                              {watchTime.toFixed(1)} min
+                                            </span>
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center space-x-2">
+                                            <Clock className="w-4 h-4 text-gray-400" />
+                                            <span className="text-sm text-gray-400">0 min</span>
+                                          </div>
+                                        )}
+                                      </td>
+                                      <td className="py-3 px-4">
+                                        {student.lastLogin ? (
+                                          <div>
+                                            <p className="text-sm text-gray-900">
+                                              {new Date(student.lastLogin).toLocaleDateString()}
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                              {new Date(student.lastLogin).toLocaleTimeString()}
+                                            </p>
+                                          </div>
+                                        ) : (
+                                          <span className="text-sm text-gray-400">Never</span>
+                                        )}
+                                      </td>
+                                      <td className="py-3 px-4">
+                                        <Badge className={student.isActive !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                                          {student.isActive !== false ? 'Active' : 'Inactive'}
+                                        </Badge>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                            </tbody>
+                          </table>
+                          {students.length === 0 && (
+                            <div className="text-center py-12">
+                              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                              <p className="text-gray-500">No students found</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Submissions Sub-Tab */}
+                  {studentsSubTab === 'submissions' && (
+                    <div className="space-y-8">
+                      {/* Header */}
+                      <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
+                        <div className="flex items-center gap-3 mb-6">
+                          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg flex items-center justify-center">
+                            <FileText className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Homework Submissions</h2>
+                            <p className="text-gray-600">View and manage student homework submissions</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {isLoadingSubmissions ? (
+                        <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-12 shadow-xl border border-white/20 text-center">
+                          <div className="flex flex-col items-center justify-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
+                            <p className="text-gray-600">Loading submissions...</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-8">
+                          {/* Homework Submissions Section */}
+                          <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
+                            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                              <FileText className="w-5 h-5 text-purple-600" />
+                              Homework Submissions
+                            </h3>
+                            <div className="space-y-4">
+                              {homeworkSubmissions.homeworks && homeworkSubmissions.homeworks.length > 0 ? (
+                                homeworkSubmissions.homeworks
+                                  .sort((a: any, b: any) => {
+                                    // Sort by deadline (most recent first), then by creation date
+                                    const deadlineA = a.homework?.deadline ? new Date(a.homework.deadline).getTime() : 0;
+                                    const deadlineB = b.homework?.deadline ? new Date(b.homework.deadline).getTime() : 0;
+                                    if (deadlineB !== deadlineA) return deadlineB - deadlineA;
+                                    const createdA = a.homework?.createdAt ? new Date(a.homework.createdAt).getTime() : 0;
+                                    const createdB = b.homework?.createdAt ? new Date(b.homework.createdAt).getTime() : 0;
+                                    return createdB - createdA;
+                                  })
+                                  .map((item: any) => {
+                                    const homework = item.homework || {};
+                                    const submissions = item.submissions || [];
+                                    const homeworkId = homework._id || homework.id;
+                                    const isExpanded = expandedHomework.has(homeworkId);
+                                    const deadline = homework.deadline ? new Date(homework.deadline) : null;
+                                    const isOverdue = deadline && deadline < new Date() && submissions.length === 0;
+                                    
+                                    return (
+                                      <div key={homeworkId} className="border border-gray-200 rounded-xl overflow-hidden">
+                                        <div
+                                          className={`p-4 bg-gradient-to-r from-purple-50 to-blue-50 hover:from-purple-100 hover:to-blue-100 cursor-pointer transition-all ${isOverdue ? 'border-l-4 border-l-red-500' : ''}`}
+                                          onClick={() => {
+                                            const newExpanded = new Set(expandedHomework);
+                                            if (isExpanded) {
+                                              newExpanded.delete(homeworkId);
+                                            } else {
+                                              newExpanded.add(homeworkId);
+                                            }
+                                            setExpandedHomework(newExpanded);
+                                          }}
+                                        >
+                                          <div className="flex items-center justify-between">
+                                            <div className="flex-1">
+                                              <div className="flex items-center gap-3 mb-2">
+                                                <h4 className="font-semibold text-gray-900">{homework.title || 'Untitled Homework'}</h4>
+                                                {isOverdue && (
+                                                  <Badge className="bg-red-100 text-red-800">Overdue</Badge>
+                                                )}
+                                                {deadline && deadline >= new Date() && (
+                                                  <Badge className="bg-yellow-100 text-yellow-800">Active</Badge>
+                                                )}
+                                              </div>
+                                              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                                                <span className="font-medium">Subject: {homework.subject?.name || homework.subject || 'N/A'}</span>
+                                                {homework.classNumber && (
+                                                  <Badge variant="outline" className="bg-gray-50">
+                                                    Class: {homework.classNumber}
+                                                  </Badge>
+                                                )}
+                                                {homework.topic && (
+                                                  <span className="text-gray-500">Topic: {homework.topic}</span>
+                                                )}
+                                                {deadline && (
+                                                  <span className={isOverdue ? 'text-red-600 font-medium' : 'text-gray-700'}>
+                                                    Deadline: {deadline.toLocaleDateString()} {deadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                  </span>
+                                                )}
+                                              </div>
+                                              {homework.description && (
+                                                <p className="text-sm text-gray-600 mt-2 italic">{homework.description}</p>
+                                              )}
+                                              {homework.fileUrl && (
+                                                <div className="mt-2">
+                                                  <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      window.open(homework.fileUrl, '_blank');
+                                                    }}
+                                                    className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+                                                  >
+                                                    <FileText className="w-4 h-4 mr-1" />
+                                                    View Homework File
+                                                  </Button>
+                                                </div>
+                                              )}
+                                              <div className="flex items-center gap-3 mt-2">
+                                                <Badge className={`${submissions.length > 0 ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-600'}`}>
+                                                  {submissions.length} submission{submissions.length !== 1 ? 's' : ''}
+                                                </Badge>
+                                                {submissions.length > 0 && (
+                                                  <span className="text-xs text-gray-500">
+                                                    {students.length - submissions.length} pending
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </div>
+                                            <ChevronDown
+                                              className={`w-5 h-5 text-gray-500 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
+                                            />
+                                          </div>
+                                        </div>
+                                        {isExpanded && (
+                                          <div className="p-4 bg-white border-t border-gray-200">
+                                            {submissions.length > 0 ? (
+                                              <div className="space-y-3">
+                                                {submissions.map((submission: any) => (
+                                                  <div key={submission._id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                                    <div className="flex items-start justify-between">
+                                                      <div className="flex-1">
+                                                        <div className="flex items-center gap-3 mb-2">
+                                                          <p className="font-medium text-gray-900">
+                                                            {submission.studentId?.fullName || submission.studentId?.name || 'Unknown Student'}
+                                                          </p>
+                                                          <Badge className="bg-green-100 text-green-800">Submitted</Badge>
+                                                          {submission.grade !== null && submission.grade !== undefined && (
+                                                            <Badge className="bg-blue-100 text-blue-800">
+                                                              Grade: {submission.grade}%
+                                                            </Badge>
+                                                          )}
+                                                        </div>
+                                                        <p className="text-sm text-gray-600 mb-2">
+                                                          {submission.studentId?.email || ''}
+                                                        </p>
+                                                        {submission.description && (
+                                                          <p className="text-sm text-gray-700 mb-2">{submission.description}</p>
+                                                        )}
+                                                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                                                          <span>Submitted: {new Date(submission.submittedAt).toLocaleString()}</span>
+                                                          {submission.feedback && (
+                                                            <span className="text-gray-600">Feedback: {submission.feedback}</span>
+                                                          )}
+                                                        </div>
+                                                      </div>
+                                                      <div className="ml-4">
+                                                        <Button
+                                                          size="sm"
+                                                          variant="outline"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            window.open(submission.submissionLink, '_blank');
+                                                          }}
+                                                          className="bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200"
+                                                        >
+                                                          <Eye className="w-4 h-4 mr-1" />
+                                                          View Submission
+                                                        </Button>
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            ) : (
+                                              <div className="text-center py-8 text-gray-500">
+                                                <FileText className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+                                                <p>No submissions yet for this homework</p>
+                                                {deadline && deadline < new Date() && (
+                                                  <p className="text-sm text-red-600 mt-2">This homework is overdue</p>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })
+                              ) : (
+                                <div className="text-center py-12 text-gray-500">
+                                  <FileText className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                                  <p>No homework assignments found for your assigned subjects</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Submissions by Students Section */}
+                          <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
+                            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                              <Users className="w-5 h-5 text-purple-600" />
+                              Submissions by Students
+                            </h3>
+                            <div className="space-y-2">
+                              {students.length > 0 ? (
+                                students.map((student) => {
+                                  const studentId = student.id || student._id;
+                                  const isExpanded = expandedStudent.has(studentId);
+                                  
+                                  // Find submissions for this student
+                                  const studentSubmissions = homeworkSubmissions.students?.find(
+                                    (item: any) => (item.student?._id || item.student?.id) === studentId
+                                  )?.submissions || [];
+                                  
+                                  return (
+                                    <div key={studentId} className="border border-gray-200 rounded-xl overflow-hidden">
+                                      <div
+                                        className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 cursor-pointer transition-all"
+                                        onClick={() => {
+                                          const newExpanded = new Set(expandedStudent);
+                                          if (isExpanded) {
+                                            newExpanded.delete(studentId);
+                                          } else {
+                                            newExpanded.add(studentId);
+                                          }
+                                          setExpandedStudent(newExpanded);
+                                        }}
+                                      >
+                                        <div className="flex items-center justify-between">
+                                          <div className="flex-1">
+                                            <div className="flex items-center gap-3">
+                                              <h4 className="font-semibold text-gray-900">
+                                                {student.name || student.fullName || 'Unknown Student'}
+                                              </h4>
+                                              {student.assignedClass && (
+                                                <Badge className="bg-gray-100 text-gray-700">
+                                                  {student.assignedClass.classNumber || student.classNumber}
+                                                  {student.assignedClass.section || ''}
+                                                </Badge>
+                                              )}
+                                            </div>
+                                            <p className="text-sm text-gray-600 mt-1">{student.email || ''}</p>
+                                            <Badge className={`mt-2 ${studentSubmissions.length > 0 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}`}>
+                                              {studentSubmissions.length} homework{studentSubmissions.length !== 1 ? 's' : ''} submitted
+                                            </Badge>
+                                          </div>
+                                          <ChevronDown
+                                            className={`w-5 h-5 text-gray-500 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
+                                          />
+                                        </div>
+                                      </div>
+                                      {isExpanded && (
+                                        <div className="p-4 bg-white border-t border-gray-200">
+                                          {studentSubmissions.length > 0 ? (
+                                            <div className="space-y-3">
+                                              {studentSubmissions.map((submission: any) => (
+                                                <div key={submission._id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                                  <div className="flex items-start justify-between">
+                                                    <div className="flex-1">
+                                                      <h5 className="font-medium text-gray-900 mb-2">
+                                                        {submission.homeworkId?.title || 'Untitled Homework'}
+                                                      </h5>
+                                                      <div className="flex items-center gap-4 mb-2 text-sm text-gray-600">
+                                                        <span>Subject: {submission.subjectId?.name || submission.subjectId || 'N/A'}</span>
+                                                        {submission.homeworkId?.deadline && (
+                                                          <span>Deadline: {new Date(submission.homeworkId.deadline).toLocaleDateString()}</span>
+                                                        )}
+                                                      </div>
+                                                      {submission.description && (
+                                                        <p className="text-sm text-gray-700 mb-2">{submission.description}</p>
+                                                      )}
+                                                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                                                        <span>Submitted: {new Date(submission.submittedAt).toLocaleString()}</span>
+                                                        {submission.grade !== null && submission.grade !== undefined && (
+                                                          <span>Grade: {submission.grade}%</span>
+                                                        )}
+                                                      </div>
+                                                    </div>
+                                                    <div className="ml-4">
+                                                      <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          window.open(submission.submissionLink, '_blank');
+                                                        }}
+                                                        className="bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200"
+                                                      >
+                                                        <Eye className="w-4 h-4 mr-1" />
+                                                        View
+                                                      </Button>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          ) : (
+                                            <div className="text-center py-8 text-gray-500">
+                                              <FileText className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+                                              <p>No submissions from this student</p>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })
+                              ) : (
+                                <div className="text-center py-12 text-gray-500">
+                                  <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                                  <p>No students found</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 

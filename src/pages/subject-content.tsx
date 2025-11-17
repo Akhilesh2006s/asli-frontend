@@ -101,10 +101,42 @@ export default function SubjectContent() {
   useEffect(() => {
     if (params?.id) {
       fetchSubjectContent(params.id);
-      // Load completed content from localStorage
+      // Load completed content from database and localStorage
+      loadCompletedContentFromDB(params.id);
       loadCompletedContent(params.id);
     }
   }, [params?.id]);
+
+  // Load completed content from database
+  const loadCompletedContentFromDB = async (subjectId: string) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/student/learning-progress?subjectId=${subjectId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          // Get completed content IDs from database
+          const completedIds = data.data.progressRecords
+            .filter((record: any) => record.completed)
+            .map((record: any) => record.contentId?._id || record.contentId);
+          
+          if (completedIds.length > 0) {
+            setCompletedContentIds(new Set(completedIds));
+            // Also sync to localStorage
+            saveCompletedContent(subjectId, new Set(completedIds));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load completed content from database:', error);
+    }
+  };
 
   // Load completed content from localStorage
   const loadCompletedContent = (subjectId: string) => {
@@ -134,19 +166,46 @@ export default function SubjectContent() {
     return Math.round((completedItems / totalItems) * 100);
   };
 
-  // Handle mark as done
-  const handleMarkAsDone = (contentId: string) => {
+  // Handle mark as done - save to database
+  const handleMarkAsDone = async (contentId: string) => {
     const newCompleted = new Set(completedContentIds);
-    if (newCompleted.has(contentId)) {
+    const isCompleted = newCompleted.has(contentId);
+    
+    if (isCompleted) {
       newCompleted.delete(contentId);
     } else {
       newCompleted.add(contentId);
     }
     setCompletedContentIds(newCompleted);
     
-    // Save to localStorage
+    // Save to localStorage (for offline support)
     if (params?.id) {
       saveCompletedContent(params.id, newCompleted);
+    }
+
+    // Save to database
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/student/content-progress`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contentId: contentId,
+          completed: !isCompleted, // Toggle completion status
+          progress: !isCompleted ? 100 : 0
+        })
+      });
+
+      if (response.ok) {
+        console.log('✅ Learning progress saved to database');
+      } else {
+        console.error('Failed to save learning progress to database');
+      }
+    } catch (error) {
+      console.error('Error saving learning progress:', error);
     }
 
     // Update subject progress
@@ -353,8 +412,11 @@ export default function SubjectContent() {
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Subject not found</h1>
-            <Link href="/learning-paths">
-              <Button>Back to Learning Paths</Button>
+            <Link href="/dashboard">
+              <Button>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </Button>
             </Link>
           </div>
         </div>
@@ -383,13 +445,13 @@ export default function SubjectContent() {
         {/* Header Section */}
         <div className="mb-8">
           <div className="flex items-center mb-4">
-            <Link href="/learning-paths">
+            <Link href="/dashboard">
               <Button 
                 variant="outline" 
                 className="mr-4 bg-white/90 backdrop-blur-sm border-gray-300 shadow-sm hover:bg-white hover:shadow-md transition-all"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Learning Paths
+                Back to Dashboard
               </Button>
             </Link>
           </div>

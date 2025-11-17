@@ -140,6 +140,31 @@ export default function Dashboard() {
     };
 
     fetchUser();
+    // Load saved overall progress from database on mount
+    const loadProgress = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+        
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user && data.user.overallProgress !== undefined && data.user.overallProgress !== null) {
+            setOverallProgress(data.user.overallProgress);
+            console.log('✅ Loaded overall progress from database:', data.user.overallProgress);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading overall progress:', error);
+      }
+    };
+    loadProgress();
   }, []);
 
   // Fetch content data
@@ -177,6 +202,58 @@ export default function Dashboard() {
   const [learningPathContent, setLearningPathContent] = useState<any[]>([]);
   const [isLoadingLearningPathContent, setIsLoadingLearningPathContent] = useState(false);
   const [subjects, setSubjects] = useState<any[]>([]);
+  
+  // Save overall progress to database
+  const saveOverallProgressToDB = async (progress: number) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+      
+      const response = await fetch(`${API_BASE_URL}/api/student/overall-progress`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          overallProgress: progress
+        })
+      });
+
+      if (response.ok) {
+        console.log('✅ Overall progress saved to database:', progress);
+      } else {
+        console.error('Failed to save overall progress to database');
+      }
+    } catch (error) {
+      console.error('Error saving overall progress:', error);
+    }
+  };
+  
+  // Load overall progress from database
+  const loadOverallProgressFromDB = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+      
+      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.user && data.user.overallProgress !== undefined && data.user.overallProgress !== null) {
+          setOverallProgress(data.user.overallProgress);
+          console.log('✅ Loaded overall progress from database:', data.user.overallProgress);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading overall progress:', error);
+    }
+  };
   const [learningPathTab, setLearningPathTab] = useState<'subjects' | 'quizzes'>('subjects');
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
@@ -475,10 +552,14 @@ export default function Dashboard() {
         // If no subject progress from exams, set default empty
         if (finalProgressArray.length === 0) {
           setSubjectProgress([]);
-          setOverallProgress(0);
+          // Try to load saved overall progress from database
+          loadOverallProgressFromDB();
         } else {
           setSubjectProgress(finalProgressArray);
           setOverallProgress(calculatedOverallProgress);
+          
+          // Save overall progress to database
+          saveOverallProgressToDB(calculatedOverallProgress);
         }
 
         // Set calculated stats
@@ -791,6 +872,33 @@ export default function Dashboard() {
     // Start session when component mounts
     startSession();
     
+    // Save session time to database every 5 minutes
+    const saveSessionInterval = setInterval(async () => {
+      try {
+        const times = updateStudyTime();
+        const today = new Date().toDateString();
+        const dateKey = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+        
+        // Save today's logged-in time to database
+        const token = localStorage.getItem('authToken');
+        if (token && times.today > 0) {
+          await fetch(`${API_BASE_URL}/api/student/session-time`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              date: dateKey,
+              totalMinutes: times.today
+            })
+          }).catch(err => console.error('Failed to save session time:', err));
+        }
+      } catch (error) {
+        console.error('Error saving session time:', error);
+      }
+    }, 5 * 60 * 1000); // Save every 5 minutes
+    
     // Update display every 1 second for real-time updates
     const displayInterval = setInterval(() => {
       try {
@@ -857,7 +965,27 @@ export default function Dashboard() {
     // Cleanup on unmount
     return () => {
       clearInterval(displayInterval);
+      clearInterval(saveSessionInterval);
       endSession(); // End session when component unmounts
+      
+      // Save final session time before unmounting
+      const finalTimes = updateStudyTime();
+      const dateKey = new Date().toISOString().split('T')[0];
+      const token = localStorage.getItem('authToken');
+      if (token && finalTimes.today > 0) {
+        fetch(`${API_BASE_URL}/api/student/session-time`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            date: dateKey,
+            totalMinutes: finalTimes.today
+          })
+        }).catch(err => console.error('Failed to save final session time:', err));
+      }
+      
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('blur', handleBlur);
