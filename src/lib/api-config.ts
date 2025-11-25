@@ -5,7 +5,11 @@
 // This avoids mixed content issues (HTTPS frontend → HTTP backend)
 // Vercel rewrites /api/* to http://165.232.181.99:3001/api/*
 const isProduction = import.meta.env.PROD || (typeof window !== 'undefined' && !window.location.hostname.includes('localhost'));
-const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
+const isVercel = typeof window !== 'undefined' && (
+  window.location.hostname.includes('vercel.app') ||
+  window.location.hostname.includes('vercel') ||
+  window.location.protocol === 'https:'
+);
 
 // Local development URL
 const LOCAL_URL = 'http://localhost:5000';
@@ -21,9 +25,14 @@ let finalUrl: string;
 
 if (envUrl && !isLocalhostUrl) {
   // Use environment variable if provided (and not localhost)
-  finalUrl = envUrl;
+  // But if on Vercel (HTTPS), force relative URL to avoid mixed content
+  if (isVercel && envUrl.startsWith('http://')) {
+    finalUrl = ''; // Use proxy instead
+  } else {
+    finalUrl = envUrl;
+  }
 } else if (isProduction && isVercel) {
-  // On Vercel: use relative URL to proxy through Vercel (avoids mixed content)
+  // On Vercel (HTTPS): use relative URL to proxy through Vercel (avoids mixed content)
   finalUrl = '';
 } else if (isProduction) {
   // Production but not Vercel: use Digital Ocean URL directly
