@@ -1,9 +1,4 @@
 {
-  "buildCommand": "npm ci && npm rebuild && npm run build",
-  "outputDirectory": "dist",
-  "framework": "vite",
-  "installCommand": "npm ci",
-  "devCommand": "npm run dev",
   "rewrites": [
     {
       "source": "/api/:path*",

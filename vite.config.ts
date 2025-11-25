@@ -24,6 +24,14 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    // Use esbuild for minification to avoid rollup native module issues
+    minify: 'esbuild',
+    // Disable rollup's native module if possible
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
   },
   server: {
     fs: {
