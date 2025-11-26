@@ -32,7 +32,7 @@ export default function AsliPrepContentPage() {
                 <span className="text-white font-bold text-xl">AP</span>
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Asli Learn Exclusive</h1>
+                <h1 className="text-3xl font-bold text-gray-900">Asli Learn Foundation Exclusive</h1>
                 <p className="text-gray-600">Premium study materials created by Super Admin</p>
               </div>
             </div>
