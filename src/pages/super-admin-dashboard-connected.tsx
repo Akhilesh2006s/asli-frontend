@@ -929,7 +929,7 @@ export default function SuperAdminDashboard() {
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
               <span>Platform Name</span>
-              <span className="font-medium">Asli Prep Foundation</span>
+              <span className="font-medium">AsliLearn</span>
             </div>
             <div className="flex justify-between items-center">
               <span>Registration Status</span>

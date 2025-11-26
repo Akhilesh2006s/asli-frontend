@@ -15,11 +15,11 @@ const Navbar = () => {
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <img 
               src="/logo.jpg" 
-              alt="Asli Prep Foundation Logo" 
+              alt="AsliLearn Logo" 
               className="w-12 h-12 object-contain"
             />
             <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Asli Prep Foundation
+              AsliLearn
             </span>
           </Link>
 
@@ -571,7 +571,7 @@ const Index = () => {
       <footer className="bg-gradient-to-br from-purple-900 to-purple-800 text-white py-12">
         <div className="w-full max-w-7xl mx-auto px-4">
           <div className="text-center space-y-6">
-            <h3 className="text-2xl font-bold">Asli Prep Foundation</h3>
+            <h3 className="text-2xl font-bold">AsliLearn</h3>
             <p className="text-purple-200 text-lg">
               Empowering Indian students with world-class AI-driven education
             </p>
@@ -590,7 +590,7 @@ const Index = () => {
             </div>
             <div className="pt-6 border-t border-purple-700">
               <p className="text-sm text-purple-300">
-                © 2025 Asli Prep Foundation. All rights reserved.
+                © 2025 AsliLearn. All rights reserved.
               </p>
             </div>
           </div>

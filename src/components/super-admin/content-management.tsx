@@ -473,7 +473,7 @@ export default function ContentManagement() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-bold text-gray-900">Content Management</h2>
-          <p className="text-gray-600 mt-1">Upload videos and notes for Asli Learn Foundation Exclusive</p>
+          <p className="text-gray-600 mt-1">Upload videos and notes for AsliLearn Exclusive</p>
         </div>
         <Button
           onClick={() => setIsUploadModalOpen(true)}
@@ -642,7 +642,7 @@ export default function ContentManagement() {
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">Upload New Content</DialogTitle>
             <DialogDescription>
-              Upload exclusive videos and notes for Asli Learn Foundation students
+              Upload exclusive videos and notes for AsliLearn students
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpload} className="space-y-4">
