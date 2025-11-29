@@ -738,79 +738,79 @@ export default function AdminManagement() {
         </div>
         
         <div className="flex gap-2">
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <UserPlusIcon className="h-4 w-4 mr-2" />
-                Add New School
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <UserPlusIcon className="h-4 w-4 mr-2" />
+              Add New School
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Add New School</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    value={newAdmin.name}
-                    onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })}
-                    placeholder="Enter school administrator's full name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={newAdmin.email}
-                    onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
-                    placeholder="Enter school administrator's email"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  value={newAdmin.name}
+                  onChange={(e) => setNewAdmin({ ...newAdmin, name: e.target.value })}
+                  placeholder="Enter school administrator's full name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newAdmin.email}
+                  onChange={(e) => setNewAdmin({ ...newAdmin, email: e.target.value })}
+                  placeholder="Enter school administrator's email"
+                />
+              </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={newAdmin.password}
-                    onChange={(e) => setNewAdmin({ ...newAdmin, password: e.target.value })}
-                    placeholder="Enter temporary password"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="board">Board *</Label>
-                  <Select
-                    value={newAdmin.board}
-                    onValueChange={(value) => setNewAdmin({ ...newAdmin, board: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Board" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="CBSE_AP">CBSE Andhra Pradesh</SelectItem>
-                      <SelectItem value="CBSE_TS">CBSE Telangana State</SelectItem>
-                      <SelectItem value="STATE_AP">State Andhra Pradesh</SelectItem>
-                      <SelectItem value="STATE_TS">State Telangana State</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-gray-500 mt-1">Select the board for this admin</p>
-                </div>
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={newAdmin.password}
+                  onChange={(e) => setNewAdmin({ ...newAdmin, password: e.target.value })}
+                  placeholder="Enter temporary password"
+                />
+              </div>
+              <div>
+                <Label htmlFor="board">Board *</Label>
+                <Select
+                  value={newAdmin.board}
+                  onValueChange={(value) => setNewAdmin({ ...newAdmin, board: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Board" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CBSE_AP">CBSE Andhra Pradesh</SelectItem>
+                    <SelectItem value="CBSE_TS">CBSE Telangana State</SelectItem>
+                    <SelectItem value="STATE_AP">State Andhra Pradesh</SelectItem>
+                    <SelectItem value="STATE_TS">State Telangana State</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500 mt-1">Select the board for this admin</p>
+              </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="schoolName">School Name *</Label>
-                  <Input
-                    id="schoolName"
-                    value={newAdmin.schoolName}
-                    onChange={(e) => setNewAdmin({ ...newAdmin, schoolName: e.target.value })}
-                    placeholder="Enter school name"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="schoolName">School Name *</Label>
+                <Input
+                  id="schoolName"
+                  value={newAdmin.schoolName}
+                  onChange={(e) => setNewAdmin({ ...newAdmin, schoolName: e.target.value })}
+                  placeholder="Enter school name"
+                />
+              </div>
                 <div>
                   <Label htmlFor="contactPerson">Contact Person</Label>
                   <Input
@@ -951,53 +951,53 @@ export default function AdminManagement() {
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="edit-name">Full Name *</Label>
-                  <Input
-                    id="edit-name"
-                    value={editAdmin.name}
-                    onChange={(e) => setEditAdmin({ ...editAdmin, name: e.target.value })}
-                    placeholder="Enter school administrator's full name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-email">Email *</Label>
-                  <Input
-                    id="edit-email"
-                    type="email"
-                    value={editAdmin.email}
-                    onChange={(e) => setEditAdmin({ ...editAdmin, email: e.target.value })}
-                    placeholder="Enter school administrator's email"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="edit-name">Full Name *</Label>
+                <Input
+                  id="edit-name"
+                  value={editAdmin.name}
+                  onChange={(e) => setEditAdmin({ ...editAdmin, name: e.target.value })}
+                  placeholder="Enter school administrator's full name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-email">Email *</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={editAdmin.email}
+                  onChange={(e) => setEditAdmin({ ...editAdmin, email: e.target.value })}
+                  placeholder="Enter school administrator's email"
+                />
+              </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="edit-board">Board *</Label>
-                  <Select
-                    value={editAdmin.board}
-                    onValueChange={(value) => setEditAdmin({ ...editAdmin, board: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Board" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="CBSE_AP">CBSE Andhra Pradesh</SelectItem>
-                      <SelectItem value="CBSE_TS">CBSE Telangana State</SelectItem>
-                      <SelectItem value="STATE_AP">State Andhra Pradesh</SelectItem>
-                      <SelectItem value="STATE_TS">State Telangana State</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="edit-schoolName">School Name *</Label>
-                  <Input
-                    id="edit-schoolName"
-                    value={editAdmin.schoolName}
-                    onChange={(e) => setEditAdmin({ ...editAdmin, schoolName: e.target.value })}
-                    placeholder="Enter school name"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="edit-board">Board *</Label>
+                <Select
+                  value={editAdmin.board}
+                  onValueChange={(value) => setEditAdmin({ ...editAdmin, board: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Board" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CBSE_AP">CBSE Andhra Pradesh</SelectItem>
+                    <SelectItem value="CBSE_TS">CBSE Telangana State</SelectItem>
+                    <SelectItem value="STATE_AP">State Andhra Pradesh</SelectItem>
+                    <SelectItem value="STATE_TS">State Telangana State</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit-schoolName">School Name *</Label>
+                <Input
+                  id="edit-schoolName"
+                  value={editAdmin.schoolName}
+                  onChange={(e) => setEditAdmin({ ...editAdmin, schoolName: e.target.value })}
+                  placeholder="Enter school name"
+                />
+              </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>

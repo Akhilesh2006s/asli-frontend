@@ -103,11 +103,11 @@ export default function ContentManagement() {
       } else {
         const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
         if (!silent) {
-          toast({
-            title: 'Error',
-            description: errorData.message || `Failed to fetch subjects (${response.status})`,
-            variant: 'destructive'
-          });
+        toast({
+          title: 'Error',
+          description: errorData.message || `Failed to fetch subjects (${response.status})`,
+          variant: 'destructive'
+        });
         }
       }
     } catch (error: any) {
@@ -127,11 +127,11 @@ export default function ContentManagement() {
       }
       
       if (!silent) {
-        toast({
-          title: 'Error',
-          description: errorMessage,
-          variant: 'destructive'
-        });
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive'
+      });
       }
     }
     return [];
@@ -490,34 +490,34 @@ export default function ContentManagement() {
           ...baseRequestBody,
           board: formData.board,
           subject: formData.subject
-        };
+      };
 
-        console.log('📤 Uploading content with data:', {
-          title: requestBody.title,
-          type: requestBody.type,
-          board: requestBody.board,
-          subject: requestBody.subject,
-          date: requestBody.date,
-          hasFileUrl: !!requestBody.fileUrl
+      console.log('📤 Uploading content with data:', {
+        title: requestBody.title,
+        type: requestBody.type,
+        board: requestBody.board,
+        subject: requestBody.subject,
+        date: requestBody.date,
+        hasFileUrl: !!requestBody.fileUrl
+      });
+
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/content`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast({
+          title: 'Success',
+          description: 'Content uploaded successfully',
         });
-
-        const response = await fetch(`${API_BASE_URL}/api/super-admin/content`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(requestBody)
-        });
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-          toast({
-            title: 'Success',
-            description: 'Content uploaded successfully',
-          });
-          setIsUploadModalOpen(false);
+        setIsUploadModalOpen(false);
         } else {
           toast({
             title: 'Error',
@@ -529,23 +529,23 @@ export default function ContentManagement() {
       }
 
       // Reset form after successful (or partially successful) upload
-      setFormData({
-        title: '',
-        description: '',
-        type: 'Video',
-        board: selectedBoard,
-        subject: '',
-        topic: '',
-        date: '',
-        fileUrl: '',
+        setFormData({
+          title: '',
+          description: '',
+          type: 'Video',
+          board: selectedBoard,
+          subject: '',
+          topic: '',
+          date: '',
+          fileUrl: '',
         fileUrls: [],
-        thumbnailUrl: '',
-        duration: '',
-      });
-      setSelectedFile(null);
-      setSelectedThumbnail(null);
+          thumbnailUrl: '',
+          duration: '',
+        });
+        setSelectedFile(null);
+        setSelectedThumbnail(null);
       setMultiBoardSubjectMap({});
-      fetchContents();
+        fetchContents();
     } catch (error) {
       console.error('Upload error:', error);
       toast({
@@ -776,33 +776,33 @@ export default function ContentManagement() {
                     </div>
                   ) : (
                     <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 bg-white/20 text-white border-white/30 hover:bg-white/30 hover:text-white"
-                        onClick={() => {
-                          const fileUrl = content.fileUrl.startsWith('http') 
-                            ? content.fileUrl 
-                            : `${API_BASE_URL}${content.fileUrl}`;
-                          window.open(fileUrl, '_blank');
-                        }}
-                      >
-                        <Eye className="w-4 h-4 mr-1" />
-                        View
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="bg-white/20 text-white border-white/30 hover:bg-white/30 hover:text-white"
-                        onClick={() => {
-                          const fileUrl = content.fileUrl.startsWith('http') 
-                            ? content.fileUrl 
-                            : `${API_BASE_URL}${content.fileUrl}`;
-                          window.open(fileUrl, '_blank');
-                        }}
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 bg-white/20 text-white border-white/30 hover:bg-white/30 hover:text-white"
+                    onClick={() => {
+                      const fileUrl = content.fileUrl.startsWith('http') 
+                        ? content.fileUrl 
+                        : `${API_BASE_URL}${content.fileUrl}`;
+                      window.open(fileUrl, '_blank');
+                    }}
+                  >
+                    <Eye className="w-4 h-4 mr-1" />
+                    View
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-white/20 text-white border-white/30 hover:bg-white/30 hover:text-white"
+                    onClick={() => {
+                      const fileUrl = content.fileUrl.startsWith('http') 
+                        ? content.fileUrl 
+                        : `${API_BASE_URL}${content.fileUrl}`;
+                      window.open(fileUrl, '_blank');
+                    }}
+                  >
+                    <Download className="w-4 h-4" />
+                  </Button>
                     </div>
                   )}
                 </div>
@@ -846,7 +846,7 @@ export default function ContentManagement() {
                         await loadAllBoardSubjects();
                       }
                     } else {
-                      setSelectedBoard(value);
+                    setSelectedBoard(value);
                       const boardSubjects = await getSubjectsForBoard(value);
                       setSubjects(boardSubjects);
                     }
@@ -1036,7 +1036,7 @@ export default function ContentManagement() {
                   </div>
                 )}
                 
-                <div className="space-y-2">
+              <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Input
                       id="fileUrl"
@@ -1095,23 +1095,23 @@ export default function ContentManagement() {
 
                 <div className="text-xs text-gray-500">
                   <p className="font-semibold mb-1">Or upload a file:</p>
-                  <Input
-                    id="file"
-                    type="file"
-                    accept={formData.type === 'TextBook' || formData.type === 'Workbook' || formData.type === 'Material'
-                      ? '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.odt,.ods,.odp'
-                      : formData.type === 'Video'
-                      ? '.mp4,.mpeg,.mov,.avi,.webm,.mkv'
-                      : '.mp3,.wav,.ogg,.aac,.m4a,.webm'
-                    }
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setSelectedFile(file);
+                <Input
+                  id="file"
+                  type="file"
+                  accept={formData.type === 'TextBook' || formData.type === 'Workbook' || formData.type === 'Material'
+                    ? '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.odt,.ods,.odp'
+                    : formData.type === 'Video'
+                    ? '.mp4,.mpeg,.mov,.avi,.webm,.mkv'
+                    : '.mp3,.wav,.ogg,.aac,.m4a,.webm'
+                  }
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setSelectedFile(file);
                         setFormData({ ...formData, fileUrl: '', fileUrls: [] }); // Clear URLs if file is selected
-                      }
-                    }}
-                    className="cursor-pointer"
+                    }
+                  }}
+                  className="cursor-pointer"
                   />
                 </div>
                 

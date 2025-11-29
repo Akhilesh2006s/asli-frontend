@@ -427,8 +427,13 @@ export default function ExamManagement() {
       if (formData.filterType === 'specific-schools' && formData.selectedSchools.length > 0) {
         payload.targetSchools = formData.selectedSchools;
         payload.isSchoolSpecific = true;
+        payload.isAllBoards = false;
       } else if (formData.filterType === 'specific-boards') {
         payload.isBoardSpecific = true;
+        payload.isAllBoards = false;
+      } else if (formData.filterType === 'all-boards') {
+        payload.isAllBoards = true;
+        payload.isBoardSpecific = false;
       }
 
       const response = await fetch(`${API_BASE_URL}/api/super-admin/exams`, {
@@ -596,9 +601,9 @@ export default function ExamManagement() {
                   rows={3}
                 />
               </div>
-              <div>
+                <div>
                 <Label htmlFor="filterType">Exam Visibility *</Label>
-                <Select
+                  <Select
                   value={formData.filterType}
                   onValueChange={(value: FilterType) => {
                     setFormData({ 
@@ -610,11 +615,11 @@ export default function ExamManagement() {
                       fetchSchools();
                     }
                   }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
                     <SelectItem value="all-boards">All Boards (All schools can see)</SelectItem>
                     <SelectItem value="specific-boards">Specific Board (All schools in that board)</SelectItem>
                     <SelectItem value="specific-schools">Specific Schools (Only selected schools)</SelectItem>
@@ -828,18 +833,18 @@ export default function ExamManagement() {
         </Select>
 
         {filterType === 'specific-boards' && (
-          <Select value={selectedBoard} onValueChange={setSelectedBoard}>
-            <SelectTrigger className="w-[200px]">
+        <Select value={selectedBoard} onValueChange={setSelectedBoard}>
+          <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Select Board" />
-            </SelectTrigger>
-            <SelectContent>
-              {BOARDS.map((board) => (
-                <SelectItem key={board.value} value={board.value}>
-                  {board.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          </SelectTrigger>
+          <SelectContent>
+            {BOARDS.map((board) => (
+              <SelectItem key={board.value} value={board.value}>
+                {board.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         )}
 
         {filterType === 'specific-schools' && (
@@ -924,9 +929,9 @@ export default function ExamManagement() {
                 </div>
               </CardHeader>
               <CardContent>
-                      {exam.description && (
-                        <p className="text-sm text-gray-600 mb-4 line-clamp-2">{exam.description}</p>
-                      )}
+                {exam.description && (
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">{exam.description}</p>
+                )}
                       {exam.targetSchools && exam.targetSchools.length > 0 && (
                         <div className="mb-3">
                           <p className="text-xs text-gray-500 mb-1">Visible to:</p>
@@ -939,7 +944,7 @@ export default function ExamManagement() {
                           </div>
                         </div>
                       )}
-                      <div className="space-y-2 text-sm">
+                <div className="space-y-2 text-sm">
                   <div className="flex items-center text-gray-600">
                     <Clock className="h-4 w-4 mr-2" />
                     <span>{exam.duration} minutes</span>
