@@ -343,12 +343,10 @@ export default function ExamManagement() {
         if (data.success) {
           let fetchedExams = data.data || [];
           
-          // Filter by schools on frontend if needed
-          if (filterType === 'specific-schools' && selectedSchools.length > 0) {
-            fetchedExams = fetchedExams.filter((exam: any) => 
-              exam.targetSchools && exam.targetSchools.some((schoolId: string) => selectedSchools.includes(schoolId))
-            );
-          }
+          // Note: Backend already filters by schoolIds, so no additional frontend filtering needed
+          // The backend returns exams that are either:
+          // 1. Available to all schools (isSchoolSpecific: false)
+          // 2. Available to the selected schools (isSchoolSpecific: true AND targetSchools includes selected schools)
           
           setExams(fetchedExams);
         }
