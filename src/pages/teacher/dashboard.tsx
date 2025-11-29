@@ -875,8 +875,8 @@ const TeacherDashboard = () => {
           alert('Quiz generated and saved successfully!');
         }
         
-        // Reset form after successful save
-        setGeneratedQuiz(null);
+        // Don't clear the generated quiz - keep it visible so user can see it
+        // Only reset the form inputs, but keep the quiz displayed
         setQuizForm({
           subject: '',
           topic: '',
@@ -885,6 +885,14 @@ const TeacherDashboard = () => {
           difficulty: 'medium',
           assignedClasses: []
         });
+        
+        // Optionally, you can scroll to show the saved quiz
+        setTimeout(() => {
+          const quizSection = document.getElementById('generated-quiz-section');
+          if (quizSection) {
+            quizSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
       } else {
         let errorMessage = 'Unknown error';
         try {
@@ -2161,7 +2169,7 @@ const TeacherDashboard = () => {
                     </Button>
 
                     {generatedQuiz && (
-                      <div className="mt-6 space-y-4">
+                      <div id="generated-quiz-section" className="mt-6 space-y-4">
                         <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-lg max-h-96 overflow-y-auto">
                           <div className="flex items-center justify-between mb-4">
                             <h5 className="text-lg font-semibold text-gray-900">Generated Quiz Questions:</h5>
