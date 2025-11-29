@@ -512,16 +512,8 @@ export default function StudentExams() {
           <TabsContent value="available" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {exams.filter((exam: Exam) => {
-                const now = new Date();
-                const startDate = new Date(exam.startDate);
-                const endDate = new Date(exam.endDate);
-                const status = getExamStatus(exam);
-                
-                // Only show exams whose start date has been reached and not yet ended
-                const startDateReached = now >= startDate;
-                const notEnded = now <= endDate;
-                
-                // Only show exams that are active (start date reached and not ended) and not yet attempted
+                // Show ALL exams - no date restrictions, no board restrictions
+                // Only filter out exams that have been attempted
                 const hasAttempted = results?.data?.some((result: any) => {
                   const resultExamId = getExamIdFromResult(result);
                   const examId = exam._id?.toString();
@@ -541,8 +533,8 @@ export default function StudentExams() {
                 if (hasAttempted) {
                   console.log('⚠️ Exam already attempted:', exam.title);
                 }
-                // Show exams where start date has been reached, not ended, and not attempted
-                return startDateReached && notEnded && !hasAttempted;
+                // Show all exams that haven't been attempted (no date filtering)
+                return !hasAttempted;
               }).map((exam: Exam) => {
                 const status = getExamStatus(exam);
                 return (
@@ -593,10 +585,10 @@ export default function StudentExams() {
                         <Button 
                           onClick={() => handleStartExam(exam)}
                           className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg"
-                          disabled={status.status !== 'active'}
+                          disabled={false}
                         >
                           <Play className="w-4 h-4 mr-2" />
-                          {status.status === 'active' ? 'Start Exam' : 'Not Available'}
+                          {status.status === 'active' ? 'Start Exam' : status.status === 'upcoming' ? 'Start Exam (Upcoming)' : 'Start Exam'}
                         </Button>
                       </div>
                     </CardContent>
@@ -606,21 +598,15 @@ export default function StudentExams() {
             </div>
 
             {exams.filter((exam: Exam) => {
-              const now = new Date();
-              const startDate = new Date(exam.startDate);
-              const endDate = new Date(exam.endDate);
-              
-              // Only show exams whose start date has been reached and not yet ended
-              const startDateReached = now >= startDate;
-              const notEnded = now <= endDate;
-              
+              // Show ALL exams - no date restrictions
+              // Only filter out exams that have been attempted
               const hasAttempted = results?.data?.some((result: any) => {
                 const resultExamId = getExamIdFromResult(result);
                 const examId = exam._id?.toString();
                 return resultExamId === examId;
               });
-              // Show exams where start date has been reached, not ended, and not attempted
-              return startDateReached && notEnded && !hasAttempted;
+              // Show all exams that haven't been attempted (no date filtering)
+              return !hasAttempted;
             }).length === 0 && (
               <div className="text-center py-12">
                 <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
