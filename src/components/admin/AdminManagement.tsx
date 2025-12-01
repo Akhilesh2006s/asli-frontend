@@ -565,12 +565,12 @@ export default function AdminManagement() {
 
       {/* Admin Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Total Schools - Dark Blue (matching ASLI EXCLUSIVE SCHOOLS) */}
-        <Card className="bg-gradient-to-r from-blue-800 to-blue-900 text-white border-0 shadow-lg">
+        {/* Total Schools - Orange (matching Asli Exclusive Schools) */}
+        <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-100">Total Schools</p>
+                <p className="text-sm font-medium text-white/90">Total Schools</p>
                 <p className="text-3xl font-bold text-white">{admins?.length || 0}</p>
               </div>
               <CrownIcon className="h-12 w-12 text-white/80" />
@@ -578,12 +578,12 @@ export default function AdminManagement() {
           </CardContent>
         </Card>
 
-        {/* Total Students - Pink (matching Content Management) */}
-        <Card className="bg-gradient-to-br from-pink-600 to-pink-700 text-white border-0 shadow-lg">
+        {/* Total Students - Sky Blue (matching Content Management) */}
+        <Card className="bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-pink-100">Total Students</p>
+                <p className="text-sm font-medium text-white/90">Total Students</p>
                 <p className="text-3xl font-bold text-white">
                   {admins?.reduce((sum, admin) => sum + (admin?.stats?.students || 0), 0) || 0}
                 </p>
@@ -593,12 +593,12 @@ export default function AdminManagement() {
           </CardContent>
         </Card>
 
-        {/* Total Teachers - Dark Green (matching AI Analytics) */}
-        <Card className="bg-gradient-to-br from-green-700 to-green-800 text-white border-0 shadow-lg">
+        {/* Total Teachers - Teal (matching AI Analytics) */}
+        <Card className="bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-100">Total Teachers</p>
+                <p className="text-sm font-medium text-white/90">Total Teachers</p>
                 <p className="text-3xl font-bold text-white">
                   {admins?.reduce((sum, admin) => sum + (admin?.stats?.teachers || 0), 0) || 0}
                 </p>
@@ -616,14 +616,14 @@ export default function AdminManagement() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <CrownIcon className="h-5 w-5 text-blue-600" />
+                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                    <CrownIcon className="h-5 w-5 text-orange-600" />
                   </div>
                   <div>
                     <CardTitle className="text-lg">{admin?.name || 'Unknown Admin'}</CardTitle>
                     <p className="text-sm text-gray-600">{admin?.email || 'No email'}</p>
                     {admin?.schoolName && (
-                      <p className="text-xs text-blue-600 font-medium mt-1">{admin.schoolName}</p>
+                      <p className="text-xs text-orange-600 font-medium mt-1">{admin.schoolName}</p>
                     )}
                     <Badge variant="outline" className="mt-1 text-xs">
                       ASLI EXCLUSIVE SCHOOLS
@@ -638,17 +638,17 @@ export default function AdminManagement() {
             <CardContent>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Students - Pink gradient (matching Content Management) */}
-                  <div className="text-center p-3 bg-gradient-to-br from-pink-600 to-pink-700 rounded-lg text-white">
+                  {/* Students - Orange gradient */}
+                  <div className="text-center p-3 bg-gradient-to-br from-orange-300 to-orange-400 rounded-lg text-white">
                     <UsersIcon className="h-6 w-6 text-white/80 mx-auto mb-2" />
                     <p className="text-2xl font-bold text-white">{admin?.stats?.students || 0}</p>
-                    <p className="text-sm text-pink-100">Students</p>
+                    <p className="text-sm text-white/90">Students</p>
                   </div>
-                  {/* Teachers - Dark green gradient (matching AI Analytics) */}
-                  <div className="text-center p-3 bg-gradient-to-br from-green-700 to-green-800 rounded-lg text-white">
+                  {/* Teachers - Teal gradient */}
+                  <div className="text-center p-3 bg-gradient-to-br from-teal-400 to-teal-500 rounded-lg text-white">
                     <GraduationCapIcon className="h-6 w-6 text-white/80 mx-auto mb-2" />
                     <p className="text-2xl font-bold text-white">{admin?.stats?.teachers || 0}</p>
-                    <p className="text-sm text-green-100">Teachers</p>
+                    <p className="text-sm text-white/90">Teachers</p>
                   </div>
                 </div>
                 
