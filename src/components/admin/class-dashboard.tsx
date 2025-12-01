@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,6 +20,7 @@ import {
   Search, 
   Filter,
   Trash2,
+  AlertTriangle,
   UserPlus,
   Calendar,
   Clock,
@@ -89,6 +91,8 @@ const ClassDashboard = () => {
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [isAddClassDialogOpen, setIsAddClassDialogOpen] = useState(false);
   const [isAddStudentDialogOpen, setIsAddStudentDialogOpen] = useState(false);
+  const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [expandedClassId, setExpandedClassId] = useState<string | null>(null);
   const [newClass, setNewClass] = useState({
@@ -393,6 +397,47 @@ const ClassDashboard = () => {
     }
   };
 
+  const handleDeleteAllClasses = async () => {
+    setIsDeletingAll(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/admin/classes/delete-all`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const responseData = await response.json();
+
+      if (response.ok && responseData.success !== false) {
+        fetchClasses();
+        setIsDeleteAllDialogOpen(false);
+        toast({
+          title: 'Success',
+          description: `All ${classes.length} classes deleted successfully!`,
+          variant: 'default'
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: responseData.message || 'Failed to delete all classes. Please try again.',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to delete all classes:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete all classes. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsDeletingAll(false);
+    }
+  };
+
   const handleClassCardClick = (classId: string) => {
     // If clicking the same class, collapse it
     if (expandedClassId === classId) {
@@ -664,13 +709,51 @@ const ClassDashboard = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button 
-                  onClick={() => setIsAddClassDialogOpen(true)}
-                  className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white rounded-xl"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Class
-                </Button>
+                <div className="flex gap-3">
+                  {classes.length > 0 && (
+                    <AlertDialog open={isDeleteAllDialogOpen} onOpenChange={setIsDeleteAllDialogOpen}>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="destructive"
+                          className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete All
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-white">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="flex items-center gap-2">
+                            <AlertTriangle className="w-5 h-5 text-red-500" />
+                            Delete All Classes?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription className="text-gray-600">
+                            This will permanently delete all {classes.length} classes. This action cannot be undone.
+                            <br /><br />
+                            <strong className="text-red-600">Are you absolutely sure?</strong>
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel disabled={isDeletingAll}>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleDeleteAllClasses}
+                            disabled={isDeletingAll}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            {isDeletingAll ? 'Deleting...' : 'Delete All Classes'}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                  <Button 
+                    onClick={() => setIsAddClassDialogOpen(true)}
+                    className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white rounded-xl"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Class
+                  </Button>
+                </div>
               </div>
             </div>
 

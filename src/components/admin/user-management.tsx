@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { API_BASE_URL } from '@/lib/api-config';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Users, 
   Plus, 
@@ -42,6 +43,7 @@ interface Student {
 }
 
 const UserManagement = () => {
+  const { toast } = useToast();
   const [students, setStudents] = useState<Student[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -217,8 +219,8 @@ const UserManagement = () => {
     formData.append('file', file);
     
     console.log('Uploading file:', file.name, file.size, 'bytes');
-    console.log('API Base URL:', API_BASE_URL);
-    console.log('Upload endpoint:', `${API_BASE_URL}/api/admin/users/upload`);
+      console.log('API Base URL:', API_BASE_URL);
+      console.log('Upload endpoint:', `${API_BASE_URL}/api/admin/students/upload`);
     
     try {
       const token = localStorage.getItem('authToken');
@@ -242,9 +244,9 @@ const UserManagement = () => {
       }
 
       // Check if API_BASE_URL is accessible
-      console.log('Making request to:', `${API_BASE_URL}/api/admin/users/upload`);
+      console.log('Making request to:', `${API_BASE_URL}/api/admin/students/upload`);
       
-      const response = await fetch(`${API_BASE_URL}/api/admin/users/upload`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/students/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -266,17 +268,21 @@ const UserManagement = () => {
         fetchStudents();
         
         // Show detailed results
-        let message = `CSV uploaded successfully!\nCreated ${result.createdUsers?.length || 0} students.\nDefault password: Password123`;
+        let description = `Created ${result.createdUsers?.length || 0} students. Default password: Password123`;
         
         if (result.classesCreated && result.classesCreated > 0) {
-          message += `\n\nCreated ${result.classesCreated} new class${result.classesCreated > 1 ? 'es' : ''} automatically.`;
+          description += ` Created ${result.classesCreated} new class${result.classesCreated > 1 ? 'es' : ''} automatically.`;
         }
         
         if (result.errors && result.errors.length > 0) {
-          message += `\n\nErrors:\n${result.errors.join('\n')}`;
+          description += `\n\nSome errors occurred:\n${result.errors.slice(0, 5).join('\n')}${result.errors.length > 5 ? `\n...and ${result.errors.length - 5} more` : ''}`;
         }
         
-        alert(message);
+        toast({
+          title: 'CSV Upload Successful',
+          description: description,
+          variant: result.errors && result.errors.length > 0 ? 'default' : 'default'
+        });
       } else {
         let errorData;
         try {
@@ -291,9 +297,13 @@ const UserManagement = () => {
         }
         
         const errorMessage = errorData.message || 'Unknown error';
-        const errorHint = errorData.hint ? `\n\nHint: ${errorData.hint}` : '';
-        const fullError = errorData.error ? `${errorMessage}\n\nError details: ${errorData.error}${errorHint}` : `${errorMessage}${errorHint}`;
-        alert(`Failed to upload CSV: ${fullError}`);
+        const errorHint = errorData.hint || '';
+        
+        toast({
+          title: 'CSV Upload Failed',
+          description: `${errorMessage}${errorHint ? `\n\n${errorHint}` : ''}`,
+          variant: 'destructive'
+        });
       }
     } catch (error) {
       console.error('Failed to upload CSV:', error);
@@ -304,13 +314,21 @@ const UserManagement = () => {
       });
       
       let errorMessage = 'Network error';
+      let description = 'Please check your connection and try again.';
+      
       if (error instanceof TypeError && error.message.includes('fetch')) {
-        errorMessage = `Cannot connect to server at ${API_BASE_URL}\n\nPlease check:\n1. The backend server is running\n2. The API_BASE_URL is correct\n3. CORS is properly configured`;
+        errorMessage = 'Cannot connect to server';
+        description = `Cannot connect to ${API_BASE_URL}. Please check:\n1. The backend server is running\n2. The API_BASE_URL is correct\n3. CORS is properly configured`;
       } else if (error instanceof Error) {
         errorMessage = error.message;
+        description = 'Please check:\n1. Your admin account has a board assigned\n2. The CSV file format is correct\n3. Your internet connection is stable';
       }
       
-      alert(`Failed to upload CSV: ${errorMessage}\n\nPlease check:\n1. Your admin account has a board assigned\n2. The CSV file format is correct\n3. Your internet connection is stable\n4. The backend server is running at ${API_BASE_URL}`);
+      toast({
+        title: 'CSV Upload Failed',
+        description: description,
+        variant: 'destructive'
+      });
     } finally {
       setIsUploading(false);
     }
