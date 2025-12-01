@@ -40,8 +40,8 @@
   --hero-gradient-start: 340 100% 97%;
   --hero-gradient-end: 350 100% 92%;
   --font-instrument-serif: "Instrument Serif", serif; /* Instrument Serif font family configuration */
-  /* Added Figtree as the primary font variable */
-  --font-figtree: "Figtree", sans-serif; /* Figtree font family configuration */
+  /* Outfit font - premium modern design font for best UI experience */
+  --font-outfit: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .dark {
@@ -81,8 +81,8 @@
   --hero-gradient-start: 340 30% 15%;
   --hero-gradient-end: 350 30% 20%;
   --font-instrument-serif: "Instrument Serif", serif; /* Instrument Serif font family configuration */
-  /* Added Figtree font variable for dark mode consistency */
-  --font-figtree: "Figtree", sans-serif; /* Figtree font family configuration */
+  /* Outfit font - premium modern design font for best UI experience */
+  --font-outfit: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 
@@ -92,12 +92,20 @@
   }
   body {
     @apply bg-white text-foreground;
-    /* Set Figtree as the default font family for the entire website */
-    font-family: var(--font-figtree);
+    /* Set Outfit as the default font family - premium modern design font */
+    font-family: var(--font-outfit);
+    font-feature-settings: "kern" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
   
   html {
     @apply bg-white;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 }
 

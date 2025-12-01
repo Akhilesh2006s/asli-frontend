@@ -390,7 +390,7 @@ const UserManagement = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50">
       <div className="space-y-8 p-6">
         {/* Hero Section with Vibrant Student Stats */}
         <div className="relative overflow-hidden">
@@ -416,7 +416,7 @@ const UserManagement = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-pink-600 to-pink-700 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-blue-400 to-blue-500 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -595,7 +595,7 @@ const UserManagement = () => {
                 </Dialog>
                 <Button 
                   size="lg" 
-                  className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white rounded-xl px-6 shadow-lg"
+                  className="bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-500 text-white rounded-xl px-6 shadow-lg"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Export
@@ -717,7 +717,7 @@ const UserManagement = () => {
           <DialogTrigger asChild>
             <Button 
               size="lg"
-              className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl px-8 shadow-lg hover:shadow-xl transition-all duration-300"
+              className="bg-gradient-to-r from-orange-500 to-teal-500 hover:from-orange-600 hover:to-teal-600 text-white rounded-xl px-8 shadow-lg hover:shadow-xl transition-all duration-300"
             >
               <UserPlus className="w-4 h-4 mr-2" />
               Add New Student

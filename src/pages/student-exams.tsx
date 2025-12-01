@@ -495,7 +495,7 @@ export default function StudentExams() {
         
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent mb-2">Exams</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent mb-2">Exams</h1>
           <p className="text-gray-600">Take practice exams and track your progress</p>
           
         </div>
@@ -535,62 +535,67 @@ export default function StudentExams() {
                 }
                 // Show all exams that haven't been attempted (no date filtering)
                 return !hasAttempted;
-              }).map((exam: Exam) => {
+              }).map((exam: Exam, index: number) => {
                 const status = getExamStatus(exam);
+                // Randomly assign one of the three dashboard colors
+                const colorSchemes = [
+                  { bg: 'from-orange-300 to-orange-400', text: 'text-white', badge: 'bg-orange-500/20 text-orange-100' },
+                  { bg: 'from-sky-300 to-sky-400', text: 'text-white', badge: 'bg-sky-500/20 text-sky-100' },
+                  { bg: 'from-teal-400 to-teal-500', text: 'text-white', badge: 'bg-teal-500/20 text-teal-100' }
+                ];
+                const colorScheme = colorSchemes[index % 3];
+                
                 return (
-                  <Card key={exam._id} className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl hover:shadow-2xl transition-shadow">
+                  <Card key={exam._id} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <CardTitle className="text-lg mb-2">{exam.title}</CardTitle>
-                          <p className="text-sm text-gray-600 mb-3">{exam.description}</p>
+                          <CardTitle className="text-lg mb-2 text-gray-900">{exam.title}</CardTitle>
+                          {exam.description && (
+                            <p className={`text-sm ${colorScheme.text}/90 mb-3 line-clamp-2`}>{exam.description}</p>
+                          )}
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            <Badge className={`${colorScheme.badge} border-0`}>
+                              {exam.examType.toUpperCase()}
+                            </Badge>
+                            {status.status === 'ended' ? (
+                              <Badge className="bg-red-600 text-white border-2 border-white/50 shadow-lg font-semibold">ENDED</Badge>
+                            ) : status.status === 'active' ? (
+                              <Badge className="bg-teal-600 text-white border-2 border-white/50 shadow-lg font-semibold">ACTIVE</Badge>
+                            ) : (
+                              <Badge className="bg-yellow-600 text-white border-2 border-white/50 shadow-lg font-semibold">UPCOMING</Badge>
+                            )}
+                          </div>
                         </div>
-                        <Badge className={getExamTypeColor(exam.examType)}>
-                          {exam.examType.toUpperCase()}
-                        </Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-4">
-                        {/* Exam Details */}
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Duration</span>
-                            <span className="font-medium">{exam.duration} minutes</span>
-                          </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Questions</span>
-                            <span className="font-medium">{exam.totalQuestions}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Total Marks</span>
-                            <span className="font-medium">{exam.totalMarks}</span>
-                          </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Status</span>
-                            <Badge className={status.color}>
-                              {status.status.toUpperCase()}
-                            </Badge>
-                          </div>
+                      <div className={`space-y-2 text-sm ${colorScheme.text} mb-4`}>
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 mr-2" />
+                          <span>{exam.duration} minutes</span>
                         </div>
-
-                        {/* Instructions Preview */}
-                        <div className="p-3 bg-gray-50 rounded-lg">
-                          <p className="text-xs text-gray-600 line-clamp-2">
-                            {exam.instructions}
-                          </p>
+                        <div className="flex items-center">
+                          <BookOpen className="h-4 w-4 mr-2" />
+                          <span>{exam.totalQuestions} questions • {exam.totalMarks} marks</span>
                         </div>
-
-                        {/* Action Button */}
-                        <Button 
-                          onClick={() => handleStartExam(exam)}
-                          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg"
-                          disabled={false}
-                        >
-                          <Play className="w-4 h-4 mr-2" />
-                          {status.status === 'active' ? 'Start Exam' : status.status === 'upcoming' ? 'Start Exam (Upcoming)' : 'Start Exam'}
-                        </Button>
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          <span className="text-xs">
+                            {new Date(exam.startDate).toLocaleDateString()} - {new Date(exam.endDate).toLocaleDateString()}
+                          </span>
+                        </div>
                       </div>
+
+                      {/* Action Button */}
+                      <Button 
+                        onClick={() => handleStartExam(exam)}
+                        className="w-full bg-white/90 text-gray-900 border-white/30 hover:bg-white hover:text-gray-900 shadow-lg"
+                        disabled={status.status === 'ended'}
+                      >
+                        <Play className="w-4 h-4 mr-2" />
+                        {status.status === 'active' ? 'Start Exam' : status.status === 'upcoming' ? 'Start Exam (Upcoming)' : 'Start Exam'}
+                      </Button>
                     </CardContent>
                   </Card>
                 );
@@ -626,7 +631,7 @@ export default function StudentExams() {
                   const examId = exam._id?.toString();
                   return resultExamId === examId;
                 });
-              }).map((exam: Exam) => {
+              }).map((exam: Exam, index: number) => {
                 const result = results?.data?.find((r: any) => {
                   const resultExamId = getExamIdFromResult(r);
                   const examId = exam._id?.toString();
@@ -634,47 +639,62 @@ export default function StudentExams() {
                 });
                 if (!result) return null;
                 
+                // Randomly assign one of the three dashboard colors
+                const colorSchemes = [
+                  { bg: 'from-orange-300 to-orange-400', text: 'text-white', badge: 'bg-orange-500/20 text-orange-100' },
+                  { bg: 'from-sky-300 to-sky-400', text: 'text-white', badge: 'bg-sky-500/20 text-sky-100' },
+                  { bg: 'from-teal-400 to-teal-500', text: 'text-white', badge: 'bg-teal-500/20 text-teal-100' }
+                ];
+                const colorScheme = colorSchemes[index % 3];
+                
                 return (
-                  <Card key={exam._id} className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl hover:shadow-2xl transition-shadow">
+                  <Card key={exam._id} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <CardTitle className="text-lg mb-2">{exam.title}</CardTitle>
-                          <p className="text-sm text-gray-600 mb-3">{exam.description}</p>
+                          <CardTitle className="text-lg mb-2 text-gray-900">{exam.title}</CardTitle>
+                          {exam.description && (
+                            <p className={`text-sm ${colorScheme.text}/90 mb-3 line-clamp-2`}>{exam.description}</p>
+                          )}
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            <Badge className={`${colorScheme.badge} border-0`}>
+                              {exam.examType.toUpperCase()}
+                            </Badge>
+                            <Badge className="bg-teal-600 text-white border-2 border-white/50 shadow-lg font-semibold">
+                              Attempted
+                            </Badge>
+                          </div>
                         </div>
-                        <Badge className="bg-green-100 text-green-700">
-                          Attempted
-                        </Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
                         {/* Score Display */}
-                        <div className="text-center p-4 bg-white/60 rounded-lg">
+                        <div className="text-center p-4 bg-white/90 rounded-lg">
                           <div className="text-3xl font-bold text-gray-900 mb-1">
                             {result.percentage?.toFixed(1) || '0'}%
                           </div>
-                          <div className="text-sm text-gray-600">
+                          <div className={`text-sm ${colorScheme.text}/90`}>
                             {result.obtainedMarks || 0}/{result.totalMarks || exam.totalMarks} marks
                           </div>
                         </div>
 
                         {/* Performance Breakdown */}
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Correct Answers</span>
-                            <span className="text-green-600 font-medium">{result.correctAnswers || 0}</span>
+                        <div className={`space-y-2 text-sm ${colorScheme.text}`}>
+                          <div className="flex items-center justify-between">
+                            <span>Correct Answers</span>
+                            <span className="font-medium">{result.correctAnswers || 0}</span>
                           </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Wrong Answers</span>
-                            <span className="text-red-600 font-medium">{result.wrongAnswers || 0}</span>
+                          <div className="flex items-center justify-between">
+                            <span>Wrong Answers</span>
+                            <span className="font-medium">{result.wrongAnswers || 0}</span>
                           </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Unattempted</span>
-                            <span className="text-gray-600 font-medium">{result.unattempted || 0}</span>
+                          <div className="flex items-center justify-between">
+                            <span>Unattempted</span>
+                            <span className="font-medium">{result.unattempted || 0}</span>
                           </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-gray-600">Time Taken</span>
+                          <div className="flex items-center justify-between">
+                            <span>Time Taken</span>
                             <span className="font-medium">
                               {result.timeTaken ? `${Math.floor(result.timeTaken / 60)}m ${result.timeTaken % 60}s` : 'N/A'}
                             </span>
@@ -684,9 +704,9 @@ export default function StudentExams() {
                         {/* Grade Badge */}
                         <div className="text-center">
                           <Badge className={
-                            (result.percentage || 0) >= 70 ? 'bg-green-100 text-green-700' :
-                            (result.percentage || 0) >= 50 ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-red-100 text-red-700'
+                            (result.percentage || 0) >= 70 ? 'bg-green-600 text-white border-2 border-white/50 shadow-lg font-semibold' :
+                            (result.percentage || 0) >= 50 ? 'bg-yellow-600 text-white border-2 border-white/50 shadow-lg font-semibold' :
+                            'bg-red-600 text-white border-2 border-white/50 shadow-lg font-semibold'
                           }>
                             {(result.percentage || 0) >= 70 ? 'Excellent' :
                              (result.percentage || 0) >= 50 ? 'Good' : 'Needs Improvement'}
@@ -696,7 +716,7 @@ export default function StudentExams() {
                         {/* View Details Button */}
                         <Button 
                           variant="outline" 
-                          className="w-full border-blue-200 text-blue-800 hover:bg-blue-50"
+                          className="w-full bg-white/90 text-gray-900 border-white/30 hover:bg-white hover:text-gray-900"
                           onClick={async () => {
                             console.log('📋 Viewing details for exam:', exam.title);
                             console.log('📋 Exam result:', result);
@@ -787,57 +807,71 @@ export default function StudentExams() {
           {/* Upcoming Exams */}
           <TabsContent value="upcoming" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {exams.filter((exam: Exam) => getExamStatus(exam).status === 'upcoming').map((exam: Exam) => (
-                <Card key={exam._id} className="hover:shadow-lg transition-shadow bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg mb-2">{exam.title}</CardTitle>
-                        <p className="text-sm text-gray-600 mb-3">{exam.description}</p>
+              {exams.filter((exam: Exam) => getExamStatus(exam).status === 'upcoming').map((exam: Exam, index: number) => {
+                // Randomly assign one of the three dashboard colors
+                const colorSchemes = [
+                  { bg: 'from-orange-300 to-orange-400', text: 'text-white', badge: 'bg-orange-500/20 text-orange-100' },
+                  { bg: 'from-sky-300 to-sky-400', text: 'text-white', badge: 'bg-sky-500/20 text-sky-100' },
+                  { bg: 'from-teal-400 to-teal-500', text: 'text-white', badge: 'bg-teal-500/20 text-teal-100' }
+                ];
+                const colorScheme = colorSchemes[index % 3];
+                
+                return (
+                  <Card key={exam._id} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg mb-2 text-gray-900">{exam.title}</CardTitle>
+                          {exam.description && (
+                            <p className={`text-sm ${colorScheme.text}/90 mb-3 line-clamp-2`}>{exam.description}</p>
+                          )}
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            <Badge className={`${colorScheme.badge} border-0`}>
+                              {exam.examType.toUpperCase()}
+                            </Badge>
+                            <Badge className="bg-yellow-600 text-white border-2 border-white/50 shadow-lg font-semibold">
+                              UPCOMING
+                            </Badge>
+                          </div>
+                        </div>
                       </div>
-                      <Badge className="bg-yellow-100 text-yellow-700">
-                        UPCOMING
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {/* Exam Details */}
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">Duration</span>
-                          <span className="font-medium">{exam.duration} minutes</span>
+                    </CardHeader>
+                    <CardContent>
+                      <div className={`space-y-2 text-sm ${colorScheme.text} mb-4`}>
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 mr-2" />
+                          <span>{exam.duration} minutes</span>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">Questions</span>
-                          <span className="font-medium">{exam.totalQuestions}</span>
+                        <div className="flex items-center">
+                          <BookOpen className="h-4 w-4 mr-2" />
+                          <span>{exam.totalQuestions} questions • {exam.totalMarks} marks</span>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">Starts</span>
-                          <span className="font-medium">
-                            {new Date(exam.startDate).toLocaleDateString()}
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          <span className="text-xs">
+                            Starts: {new Date(exam.startDate).toLocaleDateString()}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600">Ends</span>
-                          <span className="font-medium">
-                            {new Date(exam.endDate).toLocaleDateString()}
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          <span className="text-xs">
+                            Ends: {new Date(exam.endDate).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
 
                       <Button 
                         variant="outline" 
-                        className="w-full"
+                        className="w-full bg-white/90 text-gray-900 border-white/30 hover:bg-white hover:text-gray-900"
                         disabled
                       >
                         <Calendar className="w-4 h-4 mr-2" />
                         Not Yet Available
                       </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
 
             {exams.filter((exam: Exam) => getExamStatus(exam).status === 'upcoming').length === 0 && (

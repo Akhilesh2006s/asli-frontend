@@ -263,7 +263,7 @@ export default function AdminEduOTT() {
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-12 h-12 bg-gradient-to-br from-sky-400 to-teal-500 rounded-lg flex items-center justify-center">
             <VideoIcon className="w-6 h-6 text-white" />
           </div>
           <div>
@@ -351,13 +351,13 @@ export default function AdminEduOTT() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-500 to-blue-600">
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-sky-400 to-teal-500">
                           <VideoIcon className="w-16 h-16 text-white/50" />
                         </div>
                       )}
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
-                          <Play className="w-8 h-8 text-purple-600 ml-1" />
+                          <Play className="w-8 h-8 text-sky-600 ml-1" />
                         </div>
                       </div>
                       <div className="absolute bottom-2 right-2">

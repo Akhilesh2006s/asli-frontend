@@ -38,20 +38,19 @@ export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdmi
     { id: 'iq-rank-boost', label: 'IQ/Rank Boost Activities', icon: TrophyIcon },
     { id: 'vidya-ai', label: 'Vidya AI', icon: Sparkles },
     { id: 'analytics', label: 'Analytics', icon: BarChartIcon },
-    { id: 'board-comparison', label: 'Board Comparison', icon: BarChart3Icon },
     { id: 'ai-analytics', label: 'AI Analytics', icon: BrainCircuitIcon },
     { id: 'subscriptions', label: 'Subscriptions', icon: CreditCardIcon },
     { id: 'settings', label: 'Settings', icon: SettingsIcon },
   ];
 
   return (
-    <div className="w-64 bg-white shadow-sm border-r border-gray-200 min-h-screen flex flex-col">
+    <div className="w-64 bg-gradient-to-b from-orange-400 to-orange-500 shadow-sm border-r border-orange-300 min-h-screen flex flex-col">
       <div className="p-6">
         <div className="flex items-center space-x-3 mb-8">
-          <GraduationCapIcon className="h-8 w-8 text-blue-600" />
+          <GraduationCapIcon className="h-8 w-8 text-white" />
           <div>
-            <h2 className="text-lg font-bold text-gray-900">Aslilearn AI</h2>
-            <p className="text-xs text-gray-500">Super Admin</p>
+            <h2 className="text-lg font-bold text-white">Aslilearn AI</h2>
+            <p className="text-xs text-white/90">Super Admin</p>
           </div>
         </div>
         
@@ -66,8 +65,8 @@ export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdmi
                 onClick={() => onViewChange(item.id as SuperAdminView)}
                 className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                   isActive 
-                    ? "bg-blue-600 text-white" 
-                    : "text-gray-700 hover:bg-gray-100"
+                    ? "bg-white text-orange-600 shadow-md" 
+                    : "text-white hover:bg-orange-600/50"
                 }`}
               >
                 <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
@@ -78,14 +77,14 @@ export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdmi
         </nav>
       </div>
       
-      <div className="mt-auto p-6 border-t border-gray-200">
+      <div className="mt-auto p-6 border-t border-orange-300/50">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-            <CrownIcon className="h-4 w-4 text-blue-600" />
+          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+            <CrownIcon className="h-4 w-4 text-white" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900">{user?.fullName || 'Super Admin'}</p>
-            <p className="text-xs text-gray-500">Super Administrator</p>
+            <p className="text-sm font-medium text-white">{user?.fullName || 'Super Admin'}</p>
+            <p className="text-xs text-white/90">Super Administrator</p>
           </div>
         </div>
       </div>

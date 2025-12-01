@@ -45,7 +45,7 @@ interface Exam {
 }
 
 const BOARDS = [
-  { value: 'ASLI_EXCLUSIVE_SCHOOLS', label: 'ASLI EXCLUSIVE SCHOOLS' }
+  { value: 'ASLI_EXCLUSIVE_SCHOOLS', label: 'Asli Exclusive Schools' }
 ];
 
 const EXAM_TYPES = [
@@ -558,7 +558,7 @@ export default function ExamManagement() {
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+            <Button className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white">
               <Plus className="mr-2 h-4 w-4" />
               Create Exam
             </Button>
@@ -647,7 +647,7 @@ export default function ExamManagement() {
                               className="rounded"
                             />
                             <Label htmlFor={`school-${school.id}`} className="text-sm cursor-pointer">
-                              {school.name} (ASLI EXCLUSIVE SCHOOLS)
+                              {school.name} (Asli Exclusive Schools)
                             </Label>
                           </div>
                         ))
@@ -746,7 +746,7 @@ export default function ExamManagement() {
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateExam} disabled={isCreating}>
+              <Button onClick={handleCreateExam} disabled={isCreating} className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white">
                 {isCreating ? 'Creating...' : 'Create Exam'}
               </Button>
             </DialogFooter>
@@ -755,22 +755,25 @@ export default function ExamManagement() {
       </div>
 
       <div className="flex items-center gap-4 flex-wrap">
-        <Select value={filterType} onValueChange={(value: FilterType) => {
-          setFilterType(value);
-          if (value === 'all-schools') {
-            setSelectedSchools([]);
-          } else if (value === 'specific-schools') {
-            setSelectedSchools([]);
-          }
-        }}>
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Filter Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all-schools">All Schools</SelectItem>
-            <SelectItem value="specific-schools">Specific Schools</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="relative w-[200px]">
+          <div className="absolute -inset-[2px] bg-gradient-to-r from-sky-300 to-teal-400 rounded-md"></div>
+          <Select value={filterType} onValueChange={(value: FilterType) => {
+            setFilterType(value);
+            if (value === 'all-schools') {
+              setSelectedSchools([]);
+            } else if (value === 'specific-schools') {
+              setSelectedSchools([]);
+            }
+          }}>
+            <SelectTrigger className="w-full relative z-10 border-0 bg-white focus:ring-2 focus:ring-blue-700 focus:ring-offset-0">
+              <SelectValue placeholder="Filter Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all-schools">All Schools</SelectItem>
+              <SelectItem value="specific-schools">Specific Schools</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         {filterType === 'specific-schools' && (
           <div className="flex items-center gap-2">
@@ -833,88 +836,109 @@ export default function ExamManagement() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredExams.map((exam) => (
-            <Card key={exam._id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg mb-2">{exam.title}</CardTitle>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      <Badge className={getExamTypeBadgeColor(exam.examType)}>
-                        {EXAM_TYPES.find(t => t.value === exam.examType)?.label}
-                      </Badge>
-                      <Badge className={getBoardBadgeColor(exam.board)}>
-                        ASLI EXCLUSIVE SCHOOLS
-                      </Badge>
-                      {!exam.isActive && (
-                        <Badge variant="outline">Inactive</Badge>
-                      )}
+          {filteredExams.map((exam, index) => {
+            // Randomly assign one of the three dashboard colors
+            const colorSchemes = [
+              { bg: 'from-orange-300 to-orange-400', text: 'text-white', badge: 'bg-orange-500/20 text-orange-100' },
+              { bg: 'from-sky-300 to-sky-400', text: 'text-white', badge: 'bg-sky-500/20 text-sky-100' },
+              { bg: 'from-teal-400 to-teal-500', text: 'text-white', badge: 'bg-teal-500/20 text-teal-100' }
+            ];
+            const colorScheme = colorSchemes[index % 3];
+            
+            return (
+              <Card key={exam._id} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg mb-2 text-gray-900">{exam.title}</CardTitle>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        <Badge className={`${colorScheme.badge} border-0`}>
+                          {EXAM_TYPES.find(t => t.value === exam.examType)?.label}
+                        </Badge>
+                        <Badge className="bg-orange-600 text-white border-2 border-white/50 shadow-lg font-semibold">
+                          Asli Exclusive Schools
+                        </Badge>
+                        {exam.isActive ? (
+                          <Badge className="bg-teal-600 text-white border-2 border-white/50 shadow-lg font-semibold">Active</Badge>
+                        ) : (
+                          <Badge className="bg-gray-600 text-white border-2 border-white/50 shadow-lg font-semibold">Inactive</Badge>
+                        )}
+                      </div>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteExam(exam._id)}
+                      className="text-white hover:text-white/80 hover:bg-white/20"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {exam.description && (
-                  <p className="text-sm text-gray-600 mb-4 line-clamp-2">{exam.description}</p>
-                )}
-                      {exam.targetSchools && exam.targetSchools.length > 0 && (
-                        <div className="mb-3">
-                          <p className="text-xs text-gray-500 mb-1">Visible to:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {exam.targetSchools.map((school: any, idx: number) => (
-                              <Badge key={idx} variant="outline" className="text-xs">
-                                {school.schoolName || school.fullName || 'School'}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center text-gray-600">
-                    <Clock className="h-4 w-4 mr-2" />
-                    <span>{exam.duration} minutes</span>
-                  </div>
-                  <div className="flex items-center text-gray-600">
-                    <BookOpen className="h-4 w-4 mr-2" />
-                    <span>{exam.totalQuestions} questions • {exam.totalMarks} marks</span>
-                  </div>
-                  <div className="flex items-center text-gray-600">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    <span className="text-xs">
-                      {new Date(exam.startDate).toLocaleDateString()} - {new Date(exam.endDate).toLocaleDateString()}
-                    </span>
-                  </div>
-                  {exam.questions && exam.questions.length > 0 && (
-                    <div className="text-xs text-gray-500 mt-2">
-                      {exam.questions.length} {exam.questions.length === 1 ? 'question' : 'questions'} added
+                </CardHeader>
+                <CardContent>
+                  {exam.description && (
+                    <p className={`text-sm ${colorScheme.text}/90 mb-4 line-clamp-2`}>{exam.description}</p>
+                  )}
+                  {exam.targetSchools && exam.targetSchools.length > 0 && (
+                    <div className="mb-3">
+                      <p className={`text-xs ${colorScheme.text}/90 mb-1`}>Visible to:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {exam.targetSchools.map((school: any, idx: number) => (
+                          <Badge key={idx} className={`${colorScheme.badge} border-0 text-xs`}>
+                            {school.schoolName || school.fullName || 'School'}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   )}
-                </div>
-                <div className="flex gap-2 mt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => {
-                      setSelectedExam(exam);
-                      setIsQuestionDialogOpen(true);
-                      fetchQuestions(exam._id);
-                    }}
-                  >
-                    <FileQuestion className="h-4 w-4 mr-1" />
-                    Add Questions
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDeleteExam(exam._id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className={`space-y-2 text-sm ${colorScheme.text}`}>
+                    <div className="flex items-center">
+                      <Clock className="h-4 w-4 mr-2" />
+                      <span>{exam.duration} minutes</span>
+                    </div>
+                    <div className="flex items-center">
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      <span>{exam.totalQuestions} questions • {exam.totalMarks} marks</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      <span className="text-xs">
+                        {new Date(exam.startDate).toLocaleDateString()} - {new Date(exam.endDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                    {exam.questions && exam.questions.length > 0 && (
+                      <div className={`text-xs ${colorScheme.text}/90 mt-2`}>
+                        {exam.questions.length} {exam.questions.length === 1 ? 'question' : 'questions'} added
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 bg-white/90 text-gray-900 border-gray-300 hover:bg-white hover:border-gray-400"
+                      onClick={() => {
+                        setSelectedExam(exam);
+                        setIsQuestionDialogOpen(true);
+                        fetchQuestions(exam._id);
+                      }}
+                    >
+                      <FileQuestion className="h-4 w-4 mr-1" />
+                      Add Questions
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="bg-red-500/80 hover:bg-red-600/80 text-white border-white/30"
+                      onClick={() => handleDeleteExam(exam._id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 

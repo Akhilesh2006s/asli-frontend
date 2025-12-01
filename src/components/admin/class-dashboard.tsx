@@ -513,13 +513,13 @@ const ClassDashboard = () => {
           <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 bg-clip-text text-transparent">
+                <h1 className="text-5xl font-bold bg-gradient-to-r from-sky-500 to-sky-600 bg-clip-text text-transparent">
                   Class Management
                 </h1>
                 <p className="text-gray-700 mt-3 text-xl font-medium">Organize and manage your classes and students with style</p>
               </div>
               <div className="hidden lg:block">
-                <div className="w-24 h-24 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-xl">
+                <div className="w-24 h-24 bg-gradient-to-r from-sky-400 to-sky-500 rounded-full flex items-center justify-center shadow-xl">
                   <GraduationCap className="w-12 h-12 text-white" />
                 </div>
               </div>
@@ -531,9 +531,8 @@ const ClassDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-pink-600 to-pink-700 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl shadow-lg">
@@ -555,9 +554,8 @@ const ClassDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl shadow-lg">
@@ -579,9 +577,8 @@ const ClassDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-orange-600 to-orange-700 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl shadow-lg">
@@ -605,9 +602,8 @@ const ClassDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-sky-600 to-sky-700 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl shadow-lg">

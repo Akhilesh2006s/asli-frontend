@@ -341,13 +341,56 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
     return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : '';
   };
 
+  const extractYouTubeId = (url: string): string | null => {
+    if (!url) return null;
+    
+    // Handle full YouTube URLs
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[2].length === 11) {
+      return match[2];
+    }
+    
+    // Handle partial URLs like "com/watch?v=rducf9ajg0e"
+    const partialMatch = url.match(/watch\?v=([a-zA-Z0-9_-]{11})/);
+    if (partialMatch) {
+      return partialMatch[1];
+    }
+    
+    // Handle youtu.be short URLs
+    const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+    if (shortMatch) {
+      return shortMatch[1];
+    }
+    
+    return null;
+  };
+
   const renderFilePreview = (content: ContentItem) => {
     const previewUrl = getFilePreviewUrl(content.fileUrl);
     const fileExtension = getFileExtension(content.fileUrl);
+    const youtubeId = extractYouTubeId(content.fileUrl);
     const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileExtension);
     const isVideo = ['mp4', 'webm', 'ogg'].includes(fileExtension);
     const isPDF = fileExtension === 'pdf';
     const isAudio = ['mp3', 'wav', 'ogg', 'm4a'].includes(fileExtension);
+    
+    // Handle YouTube videos
+    if (youtubeId) {
+      return (
+        <div className="w-full h-full flex items-center justify-center bg-gray-900 rounded-lg p-4">
+          <div className="w-full max-w-4xl aspect-video">
+            <iframe
+              src={`https://www.youtube.com/embed/${youtubeId}`}
+              className="w-full h-full rounded-lg"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title={content.title}
+            />
+          </div>
+        </div>
+      );
+    }
 
     if (isImage) {
       return (
@@ -604,14 +647,6 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
                     </span>
                   )}
                 </div>
-                
-                <Button
-                  onClick={() => handleDownload(selectedContent)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download
-                </Button>
               </div>
             </div>
           )}

@@ -33,7 +33,7 @@ interface Content {
 }
 
 const BOARDS = [
-  { value: 'ASLI_EXCLUSIVE_SCHOOLS', label: 'ASLI EXCLUSIVE SCHOOLS' }
+  { value: 'ASLI_EXCLUSIVE_SCHOOLS', label: 'Asli Exclusive Schools' }
 ];
 
 const ALL_BOARDS_VALUE = 'ALL_BOARDS';
@@ -514,7 +514,7 @@ export default function ContentManagement() {
   };
 
   const getBoardLabel = (boardCode: string) => {
-    return 'ASLI EXCLUSIVE SCHOOLS';
+    return 'Asli Exclusive Schools';
   };
 
   const handleDeleteAll = async () => {
@@ -591,7 +591,7 @@ export default function ContentManagement() {
           </Button>
           <Button
             onClick={() => setIsUploadModalOpen(true)}
-            className="bg-gradient-to-r from-blue-700 to-cyan-300 hover:from-blue-800 hover:to-cyan-400 text-white"
+            className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
           >
             <Upload className="w-4 h-4 mr-2" />
             Upload Content
@@ -605,7 +605,7 @@ export default function ContentManagement() {
           <div className="flex items-center space-x-4">
             <Label className="font-semibold">Select Board:</Label>
             <div className="relative w-48">
-              <div className="absolute -inset-[2px] bg-gradient-to-r from-blue-700 to-cyan-300 rounded-md"></div>
+              <div className="absolute -inset-[2px] bg-gradient-to-r from-sky-300 to-teal-400 rounded-md"></div>
               <Select value={selectedBoard} onValueChange={setSelectedBoard}>
                 <SelectTrigger className="w-full relative z-10 border-0 bg-white focus:ring-2 focus:ring-blue-700 focus:ring-offset-0">
                   <SelectValue />
@@ -638,7 +638,7 @@ export default function ContentManagement() {
             <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No Content Yet</h3>
             <p className="text-gray-600 mb-4">Start uploading exclusive content for {BOARDS.find(b => b.value === selectedBoard)?.label} students</p>
-            <Button onClick={() => setIsUploadModalOpen(true)}>
+            <Button onClick={() => setIsUploadModalOpen(true)} className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white">
               <Upload className="w-4 h-4 mr-2" />
               Upload First Content
             </Button>
@@ -647,11 +647,13 @@ export default function ContentManagement() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {contents.map((content) => (
-            <Card key={content._id} className="hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-blue-700 to-cyan-300 border-0 overflow-hidden">
+            <Card key={content._id} className="hover:shadow-xl transition-all duration-300 border-0 overflow-hidden" style={{
+              background: 'linear-gradient(135deg, #7dd3fc 0%, #7dd3fc 20%, #2dd4bf 60%, #14b8a6 100%)'
+            }}>
               <CardHeader className="bg-white/10 backdrop-blur-sm">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <CardTitle className="text-lg mb-2 text-white font-semibold">{content.title}</CardTitle>
+                    <CardTitle className="text-lg mb-2 text-gray-900 font-semibold">{content.title}</CardTitle>
                     <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
                       {getTypeIcon(content.type)}
                       <span className="ml-1 capitalize">{content.type}</span>
@@ -709,7 +711,7 @@ export default function ContentManagement() {
                           key={index}
                           variant="outline"
                           size="sm"
-                          className="w-full bg-white/20 text-white border-white/30 hover:bg-white/30 hover:text-white text-left justify-start"
+                          className="w-full bg-white/90 text-gray-900 border-white/50 hover:bg-white hover:text-gray-900 text-left justify-start"
                           onClick={() => {
                             const fileUrl = url.startsWith('http') 
                               ? url 
@@ -728,7 +730,7 @@ export default function ContentManagement() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="flex-1 bg-white/20 text-white border-white/30 hover:bg-white/30 hover:text-white"
+                    className="flex-1 bg-white/90 text-gray-900 border-white/50 hover:bg-white hover:text-gray-900"
                     onClick={() => {
                       const fileUrl = content.fileUrl.startsWith('http') 
                         ? content.fileUrl 
@@ -742,7 +744,7 @@ export default function ContentManagement() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="bg-white/20 text-white border-white/30 hover:bg-white/30 hover:text-white"
+                    className="bg-white/90 text-gray-900 border-white/50 hover:bg-white hover:text-gray-900"
                     onClick={() => {
                       const fileUrl = content.fileUrl.startsWith('http') 
                         ? content.fileUrl 
@@ -1046,7 +1048,7 @@ export default function ContentManagement() {
               </Button>
               <Button 
                 type="submit" 
-                className="bg-gradient-to-r from-blue-700 to-cyan-300 hover:from-blue-800 hover:to-cyan-400 text-white"
+                className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 Upload Content

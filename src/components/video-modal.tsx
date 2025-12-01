@@ -84,9 +84,40 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
   // Use calculated duration if available, otherwise use video.duration
   const displayDuration = calculatedDuration || (video.duration && video.duration > 0 ? video.duration : 0);
 
+  // Extract YouTube video ID from URL
+  const extractYouTubeId = (url: string): string | null => {
+    if (!url) return null;
+    
+    // Handle full YouTube URLs
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[2].length === 11) {
+      return match[2];
+    }
+    
+    // Handle partial URLs like "com/watch?v=rducf9ajg0e"
+    const partialMatch = url.match(/watch\?v=([a-zA-Z0-9_-]{11})/);
+    if (partialMatch) {
+      return partialMatch[1];
+    }
+    
+    // Handle youtu.be short URLs
+    const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+    if (shortMatch) {
+      return shortMatch[1];
+    }
+    
+    return null;
+  };
+
+  // Check if video is a YouTube video
+  const youtubeId = video.youtubeUrl ? extractYouTubeId(video.youtubeUrl) : (video.videoUrl ? extractYouTubeId(video.videoUrl) : null);
+  const isYouTube = video.isYouTubeVideo || !!youtubeId;
+  const youtubeUrl = video.youtubeUrl || (youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : null);
+
   const handleOpenInNewTab = () => {
-    if (video.isYouTubeVideo && video.youtubeUrl) {
-      window.open(video.youtubeUrl, '_blank', 'noopener,noreferrer');
+    if (isYouTube && youtubeUrl) {
+      window.open(youtubeUrl, '_blank', 'noopener,noreferrer');
     } else if (video.videoUrl) {
       window.open(video.videoUrl, '_blank', 'noopener,noreferrer');
     }
@@ -107,7 +138,7 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl w-full max-h-[95vh] p-0 overflow-hidden bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex flex-col">
+      <DialogContent className="max-w-6xl w-full max-h-[95vh] p-0 overflow-y-auto bg-gradient-to-br from-sky-300 via-sky-400 to-teal-400 flex flex-col">
         <AnimatePresence>
           {isOpen && (
             <motion.div
@@ -118,8 +149,7 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
               className="h-full flex flex-col"
             >
               {/* Epic Header with Gradient */}
-              <DialogHeader className="relative p-6 pb-4 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-500">
-                <div className="absolute inset-0 bg-black/20"></div>
+              <DialogHeader className="relative p-6 pb-4 bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400">
                 <div className="relative z-10 flex items-center justify-between">
                   <div className="flex-1">
                     <motion.div
@@ -127,7 +157,7 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                       animate={{ y: 0, opacity: 1 }}
                       transition={{ delay: 0.1 }}
                     >
-                      <DialogTitle className="text-2xl font-bold text-white mb-2 drop-shadow-lg">
+                      <DialogTitle className="text-2xl font-bold text-gray-900 mb-2">
                         {video.title}
                       </DialogTitle>
                     </motion.div>
@@ -137,17 +167,17 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                       transition={{ delay: 0.2 }}
                       className="flex items-center space-x-4"
                     >
-                      <Badge variant="secondary" className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
+                      <Badge variant="secondary" className="bg-white/90 text-gray-900 border-white/50 backdrop-blur-sm">
                         <BookOpen className="w-3 h-3 mr-1" />
                         {video.subject}
                       </Badge>
                       {displayDuration > 0 && (
-                      <Badge variant="secondary" className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
+                      <Badge variant="secondary" className="bg-white/90 text-gray-900 border-white/50 backdrop-blur-sm">
                         <Clock className="w-3 h-3 mr-1" />
                           {displayDuration} min
                       </Badge>
                       )}
-                      <Badge variant="secondary" className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
+                      <Badge variant="secondary" className="bg-white/90 text-gray-900 border-white/50 backdrop-blur-sm">
                         <Star className="w-3 h-3 mr-1" />
                         Premium
                       </Badge>
@@ -163,7 +193,7 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                       size="sm"
                       variant="ghost"
                       onClick={() => setIsLiked(!isLiked)}
-                      className="text-white hover:bg-white/20 backdrop-blur-sm"
+                      className="text-gray-900 hover:bg-white/50 backdrop-blur-sm"
                     >
                       <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
                     </Button>
@@ -171,7 +201,7 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                       size="sm"
                       variant="ghost"
                       onClick={() => setIsBookmarked(!isBookmarked)}
-                      className="text-white hover:bg-white/20 backdrop-blur-sm"
+                      className="text-gray-900 hover:bg-white/50 backdrop-blur-sm"
                     >
                       <ThumbsUp className={`w-4 h-4 ${isBookmarked ? 'fill-blue-500 text-blue-500' : ''}`} />
                     </Button>
@@ -179,7 +209,7 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                       size="sm"
                       variant="ghost"
                       onClick={handleShare}
-                      className="text-white hover:bg-white/20 backdrop-blur-sm"
+                      className="text-gray-900 hover:bg-white/50 backdrop-blur-sm"
                     >
                       <Share2 className="w-4 h-4" />
                     </Button>
@@ -187,7 +217,7 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                       size="sm"
                       variant="ghost"
                       onClick={handleOpenInNewTab}
-                      className="text-white hover:bg-white/20 backdrop-blur-sm"
+                      className="text-gray-900 hover:bg-white/50 backdrop-blur-sm"
                     >
                       <ExternalLink className="w-4 h-4" />
                     </Button>
@@ -195,7 +225,7 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                       size="sm"
                       variant="ghost"
                       onClick={onClose}
-                      className="text-white hover:bg-white/20 backdrop-blur-sm"
+                      className="text-gray-900 hover:bg-white/50 backdrop-blur-sm"
                     >
                       <X className="w-4 h-4" />
                     </Button>
@@ -208,16 +238,16 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="flex-1 p-4 pt-4 relative min-h-0 flex flex-col"
+                className="flex-1 p-4 pt-4 relative min-h-0 flex flex-col overflow-y-auto"
               >
                 <div className="flex-1 relative group min-h-0">
                   {/* Glowing Border Effect */}
-                  <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-500 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000"></div>
+                  <div className="absolute -inset-1 bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000"></div>
                   
                   <div className="relative w-full h-full bg-black rounded-xl overflow-hidden shadow-2xl">
-                    {video.isYouTubeVideo && video.youtubeUrl ? (
+                    {isYouTube && youtubeUrl ? (
                       <YouTubePlayer 
-                        videoUrl={video.youtubeUrl}
+                        videoUrl={youtubeUrl}
                         title={video.title}
                         className="w-full h-full"
                       />
@@ -252,27 +282,27 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                               className="w-20 h-20 bg-white/90 rounded-full flex items-center justify-center shadow-2xl hover:bg-white"
                           >
                               {isPlaying ? (
-                                <Pause className="w-10 h-10 text-purple-600" />
+                                <Pause className="w-10 h-10 text-sky-600" />
                               ) : (
-                                <Play className="w-10 h-10 text-purple-600 ml-1" fill="currentColor" />
+                                <Play className="w-10 h-10 text-sky-600 ml-1" fill="currentColor" />
                               )}
                           </motion.div>
                         </div>
                         )}
                       </div>
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-sky-200 to-teal-300">
                         <motion.div
                           initial={{ scale: 0.8, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ delay: 0.5 }}
                           className="text-center"
                         >
-                          <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Play className="w-10 h-10 text-white" />
                           </div>
-                          <p className="text-white text-lg font-medium mb-2">Video not available</p>
-                          <p className="text-gray-400">No video URL provided</p>
+                          <p className="text-gray-900 text-lg font-medium mb-2">Video not available</p>
+                          <p className="text-gray-700">No video URL provided</p>
                         </motion.div>
                       </div>
                     )}
@@ -285,28 +315,28 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.6 }}
-                    className="mt-4 p-4 bg-gradient-to-r from-slate-800/50 to-purple-800/50 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl flex-shrink-0 max-h-[200px] overflow-y-auto"
+                    className="mt-4 p-4 bg-white/90 backdrop-blur-xl rounded-2xl border border-white/50 shadow-2xl flex-shrink-0 max-h-[200px] overflow-y-auto"
                   >
                     <div className="flex items-center mb-4">
-                      <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mr-3">
+                      <div className="w-8 h-8 bg-gradient-to-r from-sky-400 to-teal-500 rounded-full flex items-center justify-center mr-3">
                         <BookOpen className="w-4 h-4 text-white" />
                       </div>
-                      <h3 className="text-xl font-bold text-white">Description</h3>
+                      <h3 className="text-xl font-bold text-gray-900">Description</h3>
                     </div>
-                    <p className="text-gray-200 leading-relaxed">{video.description}</p>
+                    <p className="text-gray-900 leading-relaxed">{video.description}</p>
                     
                     {/* Action Buttons */}
                     <div className="flex items-center space-x-4 mt-6">
                       <Button
                         variant="outline"
-                        className="border-white/20 text-white hover:bg-white/10 backdrop-blur-sm"
+                        className="border-gray-300 text-gray-900 hover:bg-gray-100 backdrop-blur-sm"
                       >
                         <Download className="w-4 h-4 mr-2" />
                         Download
                       </Button>
                       <Button
                         variant="outline"
-                        className="border-white/20 text-white hover:bg-white/10 backdrop-blur-sm"
+                        className="border-gray-300 text-gray-900 hover:bg-gray-100 backdrop-blur-sm"
                       >
                         <Share2 className="w-4 h-4 mr-2" />
                         Share

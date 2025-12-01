@@ -1239,7 +1239,7 @@ export default function SuperAdminDashboard() {
                         <SelectValue placeholder="Select board" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="ASLI_EXCLUSIVE_SCHOOLS">ASLI EXCLUSIVE SCHOOLS</SelectItem>
+                        <SelectItem value="ASLI_EXCLUSIVE_SCHOOLS">Asli Exclusive Schools</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

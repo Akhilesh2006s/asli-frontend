@@ -82,103 +82,110 @@ export default function SuperAdminAnalyticsDashboard() {
 
       {/* Analytics Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+        {/* Total Admins - Orange (matching admin dashboard) */}
+        <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-600">Total Admins</p>
-                <p className="text-3xl font-bold text-blue-900">{analytics?.length || 0}</p>
-                <p className="text-sm text-blue-600">Active administrators</p>
+                <p className="text-sm font-medium text-white/90">Total Admins</p>
+                <p className="text-3xl font-bold text-white">{analytics?.length || 0}</p>
+                <p className="text-sm text-white/90">Active administrators</p>
               </div>
-              <CrownIcon className="h-12 w-12 text-blue-500" />
+              <CrownIcon className="h-12 w-12 text-white" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+        {/* Total Students - Sky Blue (matching admin dashboard) */}
+        <Card className="bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-600">Total Students</p>
-                <p className="text-3xl font-bold text-green-900">
+                <p className="text-sm font-medium text-white/90">Total Students</p>
+                <p className="text-3xl font-bold text-white">
                   {analytics?.reduce((sum, admin) => sum + (admin.stats?.students || 0), 0) || 0}
                 </p>
-                <p className="text-sm text-green-600">Across all admins</p>
+                <p className="text-sm text-white/90">Across all admins</p>
               </div>
-              <UsersIcon className="h-12 w-12 text-green-500" />
+              <UsersIcon className="h-12 w-12 text-white" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+        {/* Total Teachers - Teal (matching admin dashboard) */}
+        <Card className="bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-purple-600">Total Teachers</p>
-                <p className="text-3xl font-bold text-purple-900">
+                <p className="text-sm font-medium text-white/90">Total Teachers</p>
+                <p className="text-3xl font-bold text-white">
                   {analytics?.reduce((sum, admin) => sum + (admin.stats?.teachers || 0), 0) || 0}
                 </p>
-                <p className="text-sm text-purple-600">Active educators</p>
+                <p className="text-sm text-white/90">Active educators</p>
               </div>
-              <AwardIcon className="h-12 w-12 text-purple-500" />
+              <AwardIcon className="h-12 w-12 text-white" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+        {/* Total Content - Orange (matching admin dashboard) */}
+        <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-orange-600">Total Content</p>
-                <p className="text-3xl font-bold text-orange-900">
+                <p className="text-sm font-medium text-white/90">Total Content</p>
+                <p className="text-3xl font-bold text-white">
                   {analytics?.reduce((sum, admin) => 
                     sum + (admin.stats?.videos || 0) + (admin.stats?.assessments || 0) + (admin.stats?.exams || 0), 0) || 0}
                 </p>
-                <p className="text-sm text-orange-600">Videos, assessments, exams</p>
+                <p className="text-sm text-white/90">Videos, assessments, exams</p>
               </div>
-              <BookIcon className="h-12 w-12 text-orange-500" />
+              <BookIcon className="h-12 w-12 text-white" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Admin Performance */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
+      <Card className="relative border-0 overflow-hidden" style={{
+        background: 'linear-gradient(135deg, #7dd3fc 0%, #7dd3fc 20%, #2dd4bf 60%, #14b8a6 100%)'
+      }}>
+        <div className="absolute inset-0 bg-white/5 pointer-events-none"></div>
+        <CardHeader className="relative z-10">
+          <CardTitle className="flex items-center text-gray-900">
             <TrendingUpIcon className="w-5 h-5 mr-2" />
             Admin Performance Overview
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="relative z-10">
           <div className="space-y-4">
             {analytics?.map((admin) => (
-              <div key={admin.id} className="p-4 bg-gray-50 rounded-lg">
+              <div key={admin.id} className="p-4 bg-white/90 backdrop-blur-sm rounded-lg border border-white/50 shadow-md">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h3 className="font-semibold text-lg">{admin.name}</h3>
+                    <h3 className="font-semibold text-lg text-gray-900">{admin.name}</h3>
                     <p className="text-gray-600">{admin.email}</p>
                   </div>
-                  <Badge className={admin.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                  <Badge className={admin.status === 'Active' ? 'bg-teal-600 text-white border-2 border-teal-700 shadow-lg font-semibold' : 'bg-gray-600 text-white border-2 border-gray-700 shadow-lg font-semibold'}>
                     {admin.status}
                   </Badge>
                 </div>
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div className="text-center">
-                    <p className="font-semibold text-blue-600">{admin.stats?.students || 0}</p>
+                    <p className="font-semibold text-gray-900 text-lg">{admin.stats?.students || 0}</p>
                     <p className="text-gray-600">Students</p>
                   </div>
                   <div className="text-center">
-                    <p className="font-semibold text-green-600">{admin.stats?.teachers || 0}</p>
+                    <p className="font-semibold text-gray-900 text-lg">{admin.stats?.teachers || 0}</p>
                     <p className="text-gray-600">Teachers</p>
                   </div>
                   <div className="text-center">
-                    <p className="font-semibold text-purple-600">{admin.stats?.videos || 0}</p>
+                    <p className="font-semibold text-gray-900 text-lg">{admin.stats?.videos || 0}</p>
                     <p className="text-gray-600">Videos</p>
                   </div>
                   <div className="text-center">
-                    <p className="font-semibold text-orange-600">{admin.stats?.assessments || 0}</p>
+                    <p className="font-semibold text-gray-900 text-lg">{admin.stats?.assessments || 0}</p>
                     <p className="text-gray-600">Assessments</p>
                   </div>
                 </div>

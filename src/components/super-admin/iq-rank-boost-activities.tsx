@@ -586,7 +586,7 @@ export default function IQRankBoostActivities() {
             <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreate}>Create Activity</Button>
+            <Button onClick={handleCreate} className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white">Create Activity</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

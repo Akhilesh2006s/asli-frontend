@@ -770,21 +770,21 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
   const totalSubjects = teachers.reduce((total, teacher) => total + teacher.subjects.length, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50">
       <div className="space-y-8 p-6">
         {/* Hero Section with Vibrant Stats */}
         <div className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 opacity-20 rounded-3xl"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 opacity-20 rounded-3xl"></div>
           <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 bg-clip-text text-transparent">
+                <h1 className="text-5xl font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent">
                   Teacher Management
                 </h1>
                 <p className="text-gray-700 mt-3 text-xl font-medium">Manage teachers and their subject assignments with style</p>
               </div>
               <div className="hidden lg:block">
-                <div className="w-24 h-24 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-xl">
+                <div className="w-24 h-24 bg-gradient-to-r from-orange-500 to-orange-400 rounded-full flex items-center justify-center shadow-xl">
                   <Users className="w-12 h-12 text-white" />
                 </div>
               </div>
@@ -796,9 +796,8 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-pink-600 to-pink-700 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-2xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
@@ -820,9 +819,8 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-2xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
@@ -844,9 +842,8 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-orange-600 to-orange-700 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-2xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
@@ -871,15 +868,15 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white/70 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-white/20">
           <div className="flex flex-col sm:flex-row gap-4 items-center">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-600 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-600 w-5 h-5" />
               <Input
                 placeholder="Search teachers..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-12 w-64 border-purple-200 focus:border-purple-400 bg-white/80 rounded-xl"
+                className="pl-12 w-64 border-orange-200 focus:border-orange-400 bg-white/80 rounded-xl"
               />
             </div>
-            <Button variant="outline" className="border-purple-200 text-purple-700 hover:bg-purple-50 rounded-xl">
+            <Button variant="outline" className="border-orange-200 text-orange-700 hover:bg-orange-50 rounded-xl">
               <Filter className="w-4 h-4 mr-2" />
               Filter
             </Button>
@@ -888,14 +885,14 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
           <div className="flex gap-3">
             <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="border-purple-200 text-purple-700 hover:bg-purple-50 rounded-xl">
+                <Button variant="outline" className="border-orange-200 text-orange-700 hover:bg-orange-50 rounded-xl">
                   <Upload className="w-4 h-4 mr-2" />
                   Upload CSV
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md bg-white/95 border-purple-200 backdrop-blur-xl">
+              <DialogContent className="max-w-md bg-white/95 border-orange-200 backdrop-blur-xl">
                 <DialogHeader>
-                  <DialogTitle className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  <DialogTitle className="text-xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
                     Upload Teachers CSV
                   </DialogTitle>
                   <DialogDescription className="text-gray-600 text-sm">
@@ -903,9 +900,9 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200">
+                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200">
                     <div className="flex items-center gap-3">
-                      <FileSpreadsheet className="w-8 h-8 text-purple-600" />
+                      <FileSpreadsheet className="w-8 h-8 text-orange-600" />
                       <div>
                         <p className="font-medium text-gray-900">CSV Template</p>
                         <p className="text-sm text-gray-600">Download the template file</p>
@@ -915,7 +912,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                       type="button"
                       variant="outline"
                       onClick={downloadTemplate}
-                      className="border-purple-200 text-purple-700 hover:bg-purple-50"
+                      className="border-orange-200 text-orange-700 hover:bg-orange-50"
                     >
                       <Download className="w-4 h-4 mr-2" />
                       Download
@@ -936,7 +933,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                           setSelectedFile(file);
                         }
                       }}
-                      className="border-purple-200 focus:border-purple-400 rounded-xl"
+                      className="border-orange-200 focus:border-orange-400 rounded-xl"
                     />
                     {selectedFile && (
                       <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
@@ -947,7 +944,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                       </div>
                     )}
                   </div>
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                  <div className="bg-blue-50 border border-orange-200 rounded-xl p-3">
                     <p className="text-xs text-blue-800">
                       <strong>Required columns:</strong> name, email<br />
                       <strong>Optional columns:</strong> phone, department, qualifications, subjects (comma-separated)<br />
@@ -978,7 +975,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                       }
                     }}
                     disabled={!selectedFile || isUploading}
-                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white disabled:opacity-50 rounded-xl"
+                    className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 text-white disabled:opacity-50 rounded-xl"
                   >
                     {isUploading ? (
                       <>
@@ -997,14 +994,14 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
             </Dialog>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl px-8 py-3 shadow-xl hover:shadow-2xl transition-all duration-300">
+                <Button className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 text-white rounded-xl px-8 py-3 shadow-xl hover:shadow-2xl transition-all duration-300">
                   <Plus className="w-5 h-5 mr-2" />
                   Add Teacher
                 </Button>
               </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] bg-white/95 border-purple-200 backdrop-blur-xl flex flex-col">
+            <DialogContent className="max-w-2xl max-h-[90vh] bg-white/95 border-orange-200 backdrop-blur-xl flex flex-col">
               <DialogHeader className="flex-shrink-0">
-                <DialogTitle className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Add New Teacher</DialogTitle>
+                <DialogTitle className="text-xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">Add New Teacher</DialogTitle>
                 <DialogDescription className="text-gray-600 text-sm">
                   Create a new teacher account and assign subjects.
                 </DialogDescription>
@@ -1018,7 +1015,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                       id="fullName"
                       value={newTeacher.fullName}
                       onChange={(e) => setNewTeacher({ ...newTeacher, fullName: e.target.value })}
-                      className="border-purple-200 focus:border-purple-400 rounded-xl"
+                      className="border-orange-200 focus:border-orange-400 rounded-xl"
                       required
                     />
                   </div>
@@ -1029,7 +1026,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                       type="email"
                       value={newTeacher.email}
                       onChange={(e) => setNewTeacher({ ...newTeacher, email: e.target.value })}
-                      className="border-purple-200 focus:border-purple-400 rounded-xl"
+                      className="border-orange-200 focus:border-orange-400 rounded-xl"
                       required
                     />
                   </div>
@@ -1039,7 +1036,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                       id="phone"
                       value={newTeacher.phone}
                       onChange={(e) => setNewTeacher({ ...newTeacher, phone: e.target.value })}
-                      className="border-purple-200 focus:border-purple-400 rounded-xl"
+                      className="border-orange-200 focus:border-orange-400 rounded-xl"
                     />
                   </div>
                   <div>
@@ -1050,7 +1047,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                       id="department"
                       value={newTeacher.department}
                       onChange={(e) => setNewTeacher({ ...newTeacher, department: e.target.value })}
-                      className="border-purple-200 focus:border-purple-400 rounded-xl"
+                      className="border-orange-200 focus:border-orange-400 rounded-xl"
                       required
                     />
                   </div>
@@ -1061,7 +1058,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                     id="qualifications"
                     value={newTeacher.qualifications}
                     onChange={(e) => setNewTeacher({ ...newTeacher, qualifications: e.target.value })}
-                    className="border-purple-200 focus:border-purple-400 rounded-xl"
+                    className="border-orange-200 focus:border-orange-400 rounded-xl"
                     rows={2}
                   />
                 </div>
@@ -1074,7 +1071,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                       No subjects available. Please add subjects first.
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 border border-purple-200 rounded-xl bg-gray-50">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 border border-orange-200 rounded-xl bg-gray-50">
                       {subjects.map(subject => {
                         const subjectId = subject.id || subject._id;
                         const isSelected = newTeacher.subjects.includes(subjectId);
@@ -1083,7 +1080,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                             key={subjectId}
                             className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
                               isSelected
-                                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-500 shadow-lg'
+                                ? 'bg-gradient-to-r from-orange-500 to-orange-400 text-white border-orange-500 shadow-lg'
                                 : 'bg-white border-gray-200 hover:border-purple-300'
                             }`}
                             onClick={() => {
@@ -1131,7 +1128,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                         {newTeacher.subjects.map(subjectId => {
                           const subject = subjects.find(s => (s.id || s._id) === subjectId);
                           return subject ? (
-                            <Badge key={subjectId} className="bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 border-purple-200 rounded-lg px-3 py-1">
+                            <Badge key={subjectId} className="bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 border-orange-200 rounded-lg px-3 py-1">
                               {subject.name}
                               <button
                                 type="button"
@@ -1142,7 +1139,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                                     subjects: newTeacher.subjects.filter(id => id !== subjectId) 
                                   });
                                 }}
-                                className="ml-2 text-purple-600 hover:text-purple-800 font-bold"
+                                className="ml-2 text-orange-600 hover:text-purple-800 font-bold"
                               >
                                 ×
                               </button>
@@ -1162,7 +1159,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                 <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)} className="rounded-xl">
                   Cancel
                 </Button>
-                <Button type="submit" form="add-teacher-form" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl">
+                <Button type="submit" form="add-teacher-form" className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 rounded-xl">
                   Add Teacher
                 </Button>
               </div>
@@ -1175,7 +1172,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTeachers.map((teacher, index) => {
             const gradientColors = [
-              'from-purple-500 to-pink-500',
+              'from-orange-500 to-orange-400',
               'from-blue-500 to-cyan-500', 
               'from-emerald-500 to-teal-500',
               'from-orange-500 to-red-500',
@@ -1212,13 +1209,13 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                   <div className="space-y-4 mb-6">
                     {teacher.phone && (
                       <div className="flex items-center text-sm text-gray-700 bg-white/50 rounded-xl p-3">
-                        <Phone className="w-4 h-4 mr-3 text-purple-600" />
+                        <Phone className="w-4 h-4 mr-3 text-orange-600" />
                         <span className="font-medium">{teacher.phone}</span>
                       </div>
                     )}
                     {teacher.department && (
                       <div className="flex items-center text-sm text-gray-700 bg-white/50 rounded-xl p-3">
-                        <GraduationCap className="w-4 h-4 mr-3 text-blue-600" />
+                        <GraduationCap className="w-4 h-4 mr-3 text-orange-600" />
                         <span className="font-medium">{teacher.department}</span>
                       </div>
                     )}
@@ -1282,7 +1279,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                       <Button 
                         size="sm" 
                         variant="outline" 
-                        className="border-purple-200 text-purple-700 hover:bg-purple-50 rounded-xl"
+                        className="border-orange-200 text-orange-700 hover:bg-orange-50 rounded-xl"
                         onClick={() => openAssignClassDialog(teacher)}
                         title="Assign Class"
                       >
@@ -1314,7 +1311,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
 
         {filteredTeachers.length === 0 && (
           <div className="text-center py-16">
-            <div className="w-24 h-24 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
+            <div className="w-24 h-24 bg-gradient-to-r from-orange-500 to-orange-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
               <Users className="w-12 h-12 text-white" />
             </div>
             <h3 className="text-2xl font-bold text-gray-800 mb-3">No teachers found</h3>
@@ -1324,9 +1321,9 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
 
         {/* Subject Assignment Dialog */}
         <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
-          <DialogContent className="max-w-2xl bg-white/95 border-purple-200 backdrop-blur-xl">
+          <DialogContent className="max-w-2xl bg-white/95 border-orange-200 backdrop-blur-xl">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
                 Assign Subjects to {assigningTeacher?.fullName}
               </DialogTitle>
               <DialogDescription className="text-gray-600 text-lg">
@@ -1340,7 +1337,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                   {subjects.map(subject => {
                     const subjectId = subject._id || subject.id;
                     return (
-                      <div key={subjectId} className="flex items-center space-x-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-100 hover:border-purple-200 transition-colors">
+                      <div key={subjectId} className="flex items-center space-x-4 p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-purple-100 hover:border-orange-200 transition-colors">
                         <input
                           type="checkbox"
                           id={`subject-${subjectId}`}
@@ -1352,7 +1349,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                               setSelectedSubjects(selectedSubjects.filter(id => id !== subjectId));
                             }
                           }}
-                          className="w-5 h-5 text-purple-600 border-purple-300 rounded focus:ring-purple-500"
+                          className="w-5 h-5 text-orange-600 border-purple-300 rounded focus:ring-purple-500"
                         />
                         <label htmlFor={`subject-${subjectId}`} className="flex-1 cursor-pointer">
                           <div className="font-bold text-gray-900 text-lg">{subject.name}</div>
@@ -1367,7 +1364,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                 <Button type="button" variant="outline" onClick={() => setIsAssignDialogOpen(false)} className="rounded-xl">
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl">
+                <Button type="submit" className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 rounded-xl">
                   Assign Subjects
                 </Button>
               </div>
@@ -1403,7 +1400,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                               setSelectedClasses(selectedClasses.filter(id => id !== classItem.id));
                             }
                           }}
-                          className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                          className="rounded border-gray-300 text-orange-600 focus:ring-purple-500"
                         />
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">{classItem.name}</div>
@@ -1428,7 +1425,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                 <Button type="button" variant="outline" onClick={() => setIsAssignClassDialogOpen(false)} className="rounded-xl">
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-xl">
+                <Button type="submit" className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 rounded-xl">
                   Assign Classes
                 </Button>
               </div>

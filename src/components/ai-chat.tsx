@@ -2,8 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Loader2, Mic, Image as ImageIcon, Sparkles } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -258,68 +256,103 @@ export default function AIChat({ userId, context, className }: AIChatProps) {
 
   if (isLoading && localMessages.length === 0) {
     return (
-      <Card className={`${className} border-0 shadow-xl`}>
-        <CardContent className="flex items-center justify-center h-96">
-          <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
-        </CardContent>
-      </Card>
+      <div className={`${className} flex flex-col bg-white`}>
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-sky-500" />
+        </div>
+      </div>
     );
   }
 
   const displayMessages = localMessages.length > 0 ? localMessages : sessionMessages;
   const currentSubject = context?.currentSubject || 'General Preparation';
 
+  // Clean up AI output to be student‑friendly: remove markdown stars and turn lists into neat bullets
+  const formatMessage = (text: string) => {
+    if (!text) return "";
+    let cleaned = text;
+    // Remove bold markers like **Study Tip**
+    cleaned = cleaned.replace(/\*\*(.*?)\*\*/g, "$1");
+    // Replace markdown bullets (- or *) at line start with a simple bullet
+    cleaned = cleaned.replace(/^\s*[-*]\s+/gm, "• ");
+    // Collapse multiple spaces introduced by removals
+    cleaned = cleaned.replace(/\s{2,}/g, " ");
+    return cleaned.trim();
+  };
+
+  const quickQuestions = [
+    "Explain the concept of rotational motion with examples",
+    "What's the difference between alcohols and ethers?",
+    "How do I solve integration by parts problems?",
+    "Can you help me understand Newton's laws of motion?",
+    "What are the key formulas for organic chemistry?",
+    "Explain the photoelectric effect in simple terms"
+  ];
+
   return (
-    <Card className={`${className} border-0 shadow-xl flex flex-col h-[600px]`}>
-      {/* Header */}
-      <CardHeader className="border-b bg-gradient-to-r from-purple-600 to-pink-600 text-white pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg overflow-hidden border-2 border-white/30">
+    <div className={`${className} flex flex-col bg-gradient-to-br from-teal-100 via-teal-50 to-teal-100 relative h-full min-h-0`}>
+      {/* Decorative column borders */}
+      <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-teal-200/30 to-transparent hidden lg:block" />
+      <div className="absolute right-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-teal-200/30 to-transparent hidden lg:block" />
+      
+      {/* Chat Messages Area - ChatGPT Style */}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="max-w-3xl mx-auto px-4 py-8 relative">
+          {/* Decorative center column line (subtle) */}
+          <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-teal-200/30 to-transparent hidden xl:block -translate-x-1/2" />
+          {displayMessages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center min-h-[400px] py-16 text-center">
+              <div className="w-16 h-16 rounded-full overflow-hidden mb-6 border-2 border-teal-200">
               <img 
                 src="/ROBOT.gif" 
                 alt="Vidya AI" 
                 className="w-full h-full object-cover"
               />
             </div>
-            <div>
-              <CardTitle className="text-lg font-bold text-white flex items-center gap-2">
-                Vidya AI
-                <Sparkles className="w-4 h-4 text-yellow-300" />
-              </CardTitle>
-              <p className="text-xs text-white/90">Online • {currentSubject}</p>
-            </div>
-          </div>
-        </div>
-      </CardHeader>
-
-      {/* Chat Messages */}
-      <CardContent className="flex-1 p-0 flex flex-col overflow-hidden">
-        <ScrollArea className="flex-1 px-4 py-4">
-          <div className="space-y-4">
-            {displayMessages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full py-8 text-center">
-                <div className="w-16 h-16 rounded-xl overflow-hidden mb-4 border-2 border-purple-200">
-                  <img 
-                    src="/ROBOT.gif" 
-                    alt="Vidya AI" 
-                    className="w-full h-full object-cover"
-                  />
+              <h2 className="text-2xl font-semibold text-gray-800 mb-2">How can I help you today?</h2>
+              <p className="text-gray-600 mb-8">Ask me anything about {currentSubject}</p>
+              
+              {/* Quick Suggestions - Design Columns */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl">
+                {quickQuestions.slice(0, 4).map((question, index) => {
+                  const colors = [
+                    'from-orange-50 to-orange-100 border-orange-200 hover:from-orange-100 hover:to-orange-200',
+                    'from-sky-50 to-sky-100 border-sky-200 hover:from-sky-100 hover:to-sky-200',
+                    'from-teal-50 to-teal-100 border-teal-200 hover:from-teal-100 hover:to-teal-200',
+                    'from-orange-50 to-orange-100 border-orange-200 hover:from-orange-100 hover:to-orange-200'
+                  ];
+                  const colorClass = colors[index % 4];
+                  
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setMessage(question);
+                        setTimeout(() => handleSendMessage(), 100);
+                      }}
+                      className={`text-left p-4 rounded-xl border-2 bg-white/90 backdrop-blur-sm ${colorClass} transition-all duration-200 text-sm text-gray-800 font-medium hover:shadow-md hover:scale-[1.02] group relative overflow-hidden`}
+                    >
+                      <div className="absolute top-0 right-0 w-20 h-20 bg-white/20 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-300" />
+                      <div className="relative z-10">
+                        {question}
                 </div>
-                <p className="text-gray-700 font-medium mb-1">Ask me anything about {currentSubject}!</p>
-                <p className="text-gray-500 text-sm">I'm here to help with your studies</p>
+                    </button>
+                  );
+                })}
+              </div>
               </div>
             ) : (
-              displayMessages.map((msg, index) => (
+            <div className="space-y-6">
+              {displayMessages.map((msg, index) => (
                 <div
                   key={index}
-                  className={`flex items-start gap-3 ${
+                  className={`flex items-start gap-4 ${
                     msg.role === "user" ? "flex-row-reverse" : ""
-                  } animate-in fade-in slide-in-from-bottom-2 duration-200`}
+                  }`}
                 >
                   {/* Avatar */}
                   {msg.role === "assistant" ? (
-                    <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-orange-400 to-orange-500 border-2 border-teal-200/50">
                       <img 
                         src="/ROBOT.gif" 
                         alt="Vidya AI" 
@@ -327,53 +360,45 @@ export default function AIChat({ userId, context, className }: AIChatProps) {
                       />
                     </div>
                   ) : (
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0 text-white text-xs font-semibold">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-400 to-teal-500 flex items-center justify-center flex-shrink-0 text-white text-sm font-semibold border-2 border-teal-200/50">
                       {context?.studentName?.charAt(0).toUpperCase() || 'U'}
                     </div>
                   )}
                   
                   {/* Message */}
-                  <div className={`flex-1 max-w-[80%] ${msg.role === "user" ? "text-right" : ""}`}>
+                  <div className={`flex-1 ${msg.role === "user" ? "text-right" : ""}`}>
                     <div
-                      className={`inline-block rounded-2xl px-4 py-2.5 shadow-sm ${
+                      className={`inline-block rounded-2xl px-4 py-3 ${
                         msg.role === "user"
-                          ? "bg-gradient-to-br from-blue-500 to-cyan-500 text-white rounded-tr-sm"
-                          : "bg-gray-100 text-gray-800 rounded-tl-sm"
+                          ? "bg-gradient-to-br from-sky-400 to-teal-500 text-white"
+                          : "bg-gradient-to-br from-orange-400 to-orange-500 text-white"
                       }`}
                     >
                       <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                        {msg.content}
+                        {formatMessage(msg.content)}
                       </p>
                     </div>
-                    <span className="text-xs text-gray-400 mt-1 block">
-                      {new Date(msg.timestamp).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
                   </div>
                 </div>
-              ))
-            )}
+              ))}
             
             {/* Loading Indicator */}
             {sendMessageMutation.isPending && (
-              <div className="flex items-start gap-3 animate-in fade-in slide-in-from-bottom-2 duration-200">
-                <div className="w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-orange-400 to-orange-500 border-2 border-teal-200/50">
                   <img 
                     src="/ROBOT.gif" 
                     alt="Vidya AI" 
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-2.5">
+                  <div className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-2xl px-4 py-3 shadow-md">
                   <div className="flex items-center gap-2">
                     <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                     </div>
-                    <span className="text-xs text-gray-500">Vidya AI is thinking...</span>
                   </div>
                 </div>
               </div>
@@ -381,39 +406,34 @@ export default function AIChat({ userId, context, className }: AIChatProps) {
             
             <div ref={messagesEndRef} />
           </div>
-        </ScrollArea>
-
-        {/* Subject Badge */}
-        {currentSubject && (
-          <div className="px-4 pb-2 border-t border-gray-100 pt-2">
-            <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs">
-              📚 {currentSubject}
-            </Badge>
+          )}
+        </div>
           </div>
-        )}
 
-        {/* Input Area */}
-        <div className="border-t p-4 bg-gray-50">
-          <div className="flex items-center gap-2">
+      {/* Input Area - ChatGPT Style */}
+      <div className="border-t border-teal-200/50 bg-teal-50/50 backdrop-blur-sm">
+        <div className="max-w-3xl mx-auto px-4 py-4">
+          <div className="flex items-end gap-2 bg-white/90 backdrop-blur-sm rounded-2xl border-2 border-white shadow-sm hover:shadow-md transition-all focus-within:border-white focus-within:shadow-[0_0_20px_rgba(255,255,255,0.8)] focus-within:ring-4 focus-within:ring-white/50">
+            <div className="flex items-center gap-1 px-3 py-2">
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 rounded-lg hover:bg-gray-200"
+                className="h-8 w-8 rounded-lg hover:bg-gray-100"
               onClick={handleVoiceInput}
               disabled={isListening || sendMessageMutation.isPending}
               title="Voice input"
             >
-              <Mic className={`w-4 h-4 ${isListening ? 'text-red-500 animate-pulse' : ''}`} />
+                <Mic className={`w-4 h-4 text-gray-500 ${isListening ? 'text-red-500 animate-pulse' : ''}`} />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 rounded-lg hover:bg-gray-200"
+                className="h-8 w-8 rounded-lg hover:bg-gray-100"
               onClick={() => fileInputRef.current?.click()}
               disabled={sendMessageMutation.isPending}
               title="Upload image"
             >
-              <ImageIcon className="w-4 h-4" />
+                <ImageIcon className="w-4 h-4 text-gray-500" />
             </Button>
             <input
               ref={fileInputRef}
@@ -422,18 +442,26 @@ export default function AIChat({ userId, context, className }: AIChatProps) {
               onChange={handleImageUpload}
               className="hidden"
             />
-            <Input
+            </div>
+            <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={`Ask about ${currentSubject}...`}
-              className="flex-1 h-10 rounded-lg border-gray-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              placeholder={`Message Vidya AI...`}
+              className="flex-1 min-h-[44px] max-h-32 py-3 px-2 resize-none border-0 focus:outline-none focus:ring-0 text-sm"
               disabled={sendMessageMutation.isPending}
+              rows={1}
             />
+            <div className="px-3 py-2">
             <Button
               onClick={handleSendMessage}
               disabled={!message.trim() || sendMessageMutation.isPending}
-              className="h-10 w-10 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-md hover:shadow-lg transition-all"
+                className="h-8 w-8 rounded-lg bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white shadow-sm hover:shadow-md transition-all"
               size="icon"
             >
               {sendMessageMutation.isPending ? (
@@ -444,7 +472,11 @@ export default function AIChat({ userId, context, className }: AIChatProps) {
             </Button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+          <p className="text-xs text-gray-600 text-center mt-2">
+            Vidya AI can make mistakes. Check important info.
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }

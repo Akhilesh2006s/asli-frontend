@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import Navigation from "@/components/navigation";
 import AIChat from "@/components/ai-chat";
 import { 
@@ -14,9 +11,7 @@ import {
   Brain,
   Target,
   Clock,
-  Star,
-  FileText,
-  HelpCircle
+  Star
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { API_BASE_URL } from "@/lib/api-config";
@@ -262,79 +257,110 @@ export default function AITutor() {
   return (
     <>
       <Navigation />
-      <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-responsive pb-responsive bg-sky-50 min-h-screen ${isMobile ? 'pb-20' : ''} relative`}>
-        
-        
-        {/* Header */}
-        <div className="mb-responsive">
-          <div className="flex-responsive-col items-center sm:items-start space-x-responsive space-y-responsive sm:space-y-0 mb-responsive">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center shadow-xl overflow-hidden">
-              <img 
-                src="/ROBOT.gif" 
-                alt="Vidya AI" 
-                className="w-full h-full object-cover rounded-full"
-              />
+      <div className="flex h-screen bg-white overflow-hidden">
+        {/* Sidebar - ChatGPT style with design enhancements */}
+        {!isMobile && (
+          <div className="w-64 bg-gradient-to-b from-gray-900 to-black border-r border-gray-800 flex flex-col shadow-sm">
+            {/* New Chat Button */}
+            <div className="p-3 border-b border-gray-800 bg-black/50 backdrop-blur-sm">
+              <Button
+                className="w-full justify-start bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white border-0 shadow-md hover:shadow-lg transition-all"
+                onClick={() => {
+                  // Clear current session - this would need to be implemented
+                  window.location.reload();
+                }}
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                New Chat
+              </Button>
             </div>
-            <div className="text-center sm:text-left">
-              <h1 className="text-responsive-xl font-bold bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent">Vidya AI</h1>
-              <p className="text-responsive-sm text-gray-600">Your personal AI teaching assistant</p>
-            </div>
-            <Badge className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg">
-              Available 24/7
-            </Badge>
-          </div>
-          
-          {user && (
-            <div className="bg-white/60 backdrop-blur-xl p-responsive rounded-responsive border border-white/20 shadow-xl">
-              <h2 className="font-semibold bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent mb-responsive text-responsive-base">
-                Welcome, {user.fullName?.split(' ')[0] || 'Student'}!
-              </h2>
-              <p className="text-gray-700 text-responsive-sm">
-                I'm here to help you with your studies. 
-                Ask me anything about your subjects!
-              </p>
-            </div>
-          )}
-        </div>
 
-        <div className="grid-responsive-3 gap-responsive">
-          
-          {/* Main Chat Interface */}
-          <div className="lg:col-span-2">
+            {/* Chat History */}
+            <div className="flex-1 overflow-y-auto p-2 bg-gradient-to-b from-gray-900 via-black to-black">
+              <div className="text-xs font-semibold text-white uppercase tracking-wider px-3 py-3 border-b border-gray-800 mb-2">
+                Recent Chats
+              </div>
+              {sessionsLoading ? (
+                <div className="space-y-2 px-2">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-12 bg-gradient-to-r from-gray-200 to-gray-100 rounded-lg animate-pulse" />
+                  ))}
+                </div>
+              ) : chatSessions.length > 0 ? (
+                <div className="space-y-1 px-2">
+                  {(chatSessions as any[]).slice(0, 10).map((session: any, index: number) => (
+                    <button
+                      key={session.id}
+                      className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-gray-800 text-sm text-white truncate transition-all duration-200 border border-transparent hover:border-gray-700 hover:shadow-sm group"
+                      onClick={() => {
+                        // Load this session - would need to implement
+                        console.log('Load session:', session.id);
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <MessageCircle className="w-4 h-4 text-gray-400 group-hover:text-white flex-shrink-0 transition-colors" />
+                        <span className="truncate group-hover:text-white font-medium">
+                          {session.messages?.[0]?.content?.substring(0, 30) || `Chat ${index + 1}`}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-400 text-sm">
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-800 flex items-center justify-center">
+                    <MessageCircle className="w-6 h-6 text-gray-500" />
+                  </div>
+                  <p className="font-medium text-gray-300">No chat history</p>
+                  <p className="text-xs text-gray-500 mt-1">Start a conversation to see it here</p>
+                </div>
+              )}
+            </div>
+
+            {/* User Info */}
+            <div className="p-3 border-t border-gray-800 bg-black/80 backdrop-blur-sm">
+              <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-800 transition-colors">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold shadow-md ring-2 ring-gray-700">
+                  {user?.fullName?.charAt(0).toUpperCase() || 'S'}
+          </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">
+                    {user?.fullName || 'Student'}
+                  </p>
+                  <p className="text-xs text-gray-400 truncate">
+                    {user?.email || 'student@example.com'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Main Chat Area - Full Screen ChatGPT Style with design columns */}
+        <div className="flex-1 flex flex-col bg-gradient-to-br from-teal-100 via-teal-50 to-teal-100 relative min-h-0 overflow-hidden">
+          {/* Decorative left column border */}
+          {!isMobile && (
+            <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-gray-200 to-transparent" />
+          )}
             {(() => {
               // Determine the current subject from available data
               const getCurrentSubject = () => {
-                // Try subjectProgress first (most accurate - from exam results)
                 if (subjectProgress && subjectProgress.length > 0) {
-                  console.log('Using subject from subjectProgress:', subjectProgress[0].name);
                   return subjectProgress[0].name;
                 }
-                
-                // Try subjects array (from API)
                 if (subjects && subjects.length > 0) {
                   const firstSubject = subjects[0];
-                  const subjectName = typeof firstSubject === 'object' ? firstSubject.name : firstSubject;
-                  console.log('Using subject from subjects array:', subjectName);
-                  return subjectName;
+                return typeof firstSubject === 'object' ? firstSubject.name : firstSubject;
                 }
-                
-                // Try user's assignedSubjects
                 if (user?.assignedSubjects && user.assignedSubjects.length > 0) {
                   const firstSubject = user.assignedSubjects[0];
-                  const subjectName = typeof firstSubject === 'object' ? firstSubject.name : firstSubject;
-                  console.log('Using subject from assignedSubjects:', subjectName);
-                  return subjectName;
+                return typeof firstSubject === 'object' ? firstSubject.name : firstSubject;
                 }
-                
-                // Try assignedClass subjects
                 if (user?.assignedClass?.assignedSubjects && user.assignedClass.assignedSubjects.length > 0) {
                   const firstSubject = user.assignedClass.assignedSubjects[0];
-                  const subjectName = typeof firstSubject === 'object' ? firstSubject.name : firstSubject;
-                  console.log('Using subject from assignedClass:', subjectName);
-                  return subjectName;
+                return typeof firstSubject === 'object' ? firstSubject.name : firstSubject;
                 }
-                
-                console.log('No subject found, using default: General Preparation');
                 return 'General Preparation';
               };
               
@@ -343,7 +369,7 @@ export default function AITutor() {
               return (
                 <AIChat 
                   userId={userId}
-                  className="h-[600px]"
+                className="flex-1 h-full"
                   context={{
                     studentName: user?.fullName || user?.email?.split('@')[0] || "Student",
                     currentSubject: currentSubject,
@@ -352,166 +378,6 @@ export default function AITutor() {
                 />
               );
             })()}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            
-            {/* Quick Questions */}
-            <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
-              <CardHeader>
-                <CardTitle className="flex items-center bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent">
-                  <HelpCircle className="w-5 h-5 mr-2 text-blue-600" />
-                  Quick Questions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {quickQuestions.slice(0, 4).map((question, index) => (
-                  <Button
-                    key={index}
-                    variant="ghost"
-                    className="w-full justify-start text-left h-auto p-3 text-sm"
-                    onClick={() => {
-                      // This would trigger sending the question to the chat
-                      // For now, we'll just log it - in a real implementation, 
-                      // this would send the question to the AI chat
-                      console.log("Quick question:", question);
-                      // TODO: Implement sending quick questions to chat
-                    }}
-                  >
-                    {question}
-                  </Button>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* AI Features */}
-            <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
-              <CardHeader>
-                <CardTitle className="flex items-center bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent">
-                  <Zap className="w-5 h-5 mr-2 text-blue-600" />
-                  AI Features
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {tutorFeatures.map((feature, index) => {
-                  const Icon = feature.icon;
-                  return (
-                    <div key={index} className="flex items-start space-x-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${feature.color}`}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900 text-sm">{feature.title}</h4>
-                        <p className="text-xs text-gray-600">{feature.description}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-
-            {/* Study Tips */}
-            <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
-              <CardHeader>
-                <CardTitle className="flex items-center bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent">
-                  <Lightbulb className="w-5 h-5 mr-2 text-blue-600" />
-                  Study Tips
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {studyTips.map((tip, index) => {
-                  const Icon = tip.icon;
-                  return (
-                    <div key={index} className="flex items-start space-x-3">
-                      <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
-                        <Icon className="w-4 h-4 text-yellow-600" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900 text-sm">{tip.title}</h4>
-                        <p className="text-xs text-gray-600">{tip.description}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-
-            {/* Session History */}
-            {sessionsLoading ? (
-              <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
-                <CardHeader>
-                  <CardTitle className="bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent">Recent Sessions</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-16 w-full" />
-                </CardContent>
-              </Card>
-            ) : chatSessions.length > 0 ? (
-              <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
-                <CardHeader>
-                  <CardTitle className="bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent">Recent Sessions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {(chatSessions as any[]).slice(0, 3).map((session: any, index: number) => (
-                    <div key={session.id} className="p-3 border rounded-lg">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-900">
-                          Session {index + 1}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {new Date(session.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-600">
-                        {session.messages?.length || 0} messages
-                      </p>
-                      {session.context?.currentSubject && (
-                        <Badge variant="outline" className="text-xs mt-1">
-                          {session.context.currentSubject}
-                        </Badge>
-                      )}
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
-                <CardContent className="p-6 text-center">
-                  <MessageCircle className="w-12 h-12 mx-auto text-gray-400 mb-3" />
-                  <p className="text-sm text-gray-600">No chat sessions yet</p>
-                  <p className="text-xs text-gray-500 mt-1">Start a conversation to see your history</p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Usage Stats */}
-            <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
-              <CardHeader>
-                <CardTitle className="bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent">Vidya AI Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">
-                    {(chatSessions as any[]).reduce((sum: number, session: any) => sum + (session.messages?.length || 0), 0)}
-                  </div>
-                  <p className="text-sm text-gray-600">Total Messages</p>
-                </div>
-                
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    {(chatSessions as any[]).length}
-                  </div>
-                  <p className="text-sm text-gray-600">Chat Sessions</p>
-                </div>
-                
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-600">24/7</div>
-                  <p className="text-sm text-gray-600">Always Available</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </div>
     </>

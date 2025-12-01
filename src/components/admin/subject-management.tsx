@@ -244,21 +244,21 @@ const SubjectManagement = () => {
   const assignedSubjects = Array.isArray(subjects) ? subjects.filter(s => s.teacher).length : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50">
       <div className="space-y-8 p-6">
         {/* Hero Section with Vibrant Subject Stats */}
         <div className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 opacity-20 rounded-3xl"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 opacity-20 rounded-3xl"></div>
           <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-5xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">
+                <h1 className="text-5xl font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent">
                   Subject Management
                 </h1>
                 <p className="text-gray-700 mt-3 text-xl font-medium">Manage subjects and their assignments with style</p>
               </div>
               <div className="hidden lg:block">
-                <div className="w-24 h-24 bg-gradient-to-r from-violet-500 to-purple-500 rounded-full flex items-center justify-center shadow-xl">
+                <div className="w-24 h-24 bg-gradient-to-r from-orange-500 to-orange-400 rounded-full flex items-center justify-center shadow-xl">
                   <BookOpen className="w-12 h-12 text-white" />
                 </div>
               </div>
@@ -270,9 +270,8 @@ const SubjectManagement = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-pink-600 to-pink-700 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-2xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
@@ -294,9 +293,8 @@ const SubjectManagement = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-2xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
@@ -318,9 +316,8 @@ const SubjectManagement = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-orange-600 to-orange-700 rounded-2xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-2xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">

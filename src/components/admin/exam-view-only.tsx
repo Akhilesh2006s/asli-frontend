@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Eye, BarChart3, Filter, Download, TrendingUp, Users, Clock, Calendar } from 'lucide-react';
+import { Eye, BarChart3, Filter, Download, TrendingUp, Users, Clock, Calendar, BookOpen } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 
 interface Exam {
@@ -446,59 +446,66 @@ export default function ExamViewOnly() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {exams.map((exam) => {
+          {exams.map((exam, index) => {
             const status = getExamStatus(exam);
+            // Cycle through orange, sky blue, and teal gradients
+            const colorSchemes = [
+              { bg: 'from-orange-300 to-orange-400', text: 'text-gray-900', badge: 'bg-orange-500/20 text-gray-900' },
+              { bg: 'from-sky-300 to-sky-400', text: 'text-gray-900', badge: 'bg-sky-500/20 text-gray-900' },
+              { bg: 'from-teal-400 to-teal-500', text: 'text-gray-900', badge: 'bg-teal-500/20 text-gray-900' }
+            ];
+            const colorScheme = colorSchemes[index % 3];
+            
             return (
-              <Card key={exam._id} className="hover:shadow-lg transition-shadow">
+              <Card key={exam._id} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg">{exam.title}</CardTitle>
-                    <Badge className={status.color}>{status.status}</Badge>
+                    <div className="flex-1">
+                      <CardTitle className={`text-lg mb-2 text-gray-900`}>{exam.title}</CardTitle>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        <Badge className={`${colorScheme.badge} border-0`}>
+                          {exam.examType.toUpperCase()}
+                        </Badge>
+                        <Badge className={
+                          status.status === 'Ended' 
+                            ? 'bg-red-600 text-white border-2 border-white/50 shadow-lg font-semibold'
+                            : status.status === 'Active'
+                            ? 'bg-teal-600 text-white border-2 border-white/50 shadow-lg font-semibold'
+                            : 'bg-yellow-600 text-white border-2 border-white/50 shadow-lg font-semibold'
+                        }>
+                          {status.status}
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
                   {exam.description && (
-                    <p className="text-sm text-gray-600 mt-2">{exam.description}</p>
+                    <p className={`text-sm text-white/90 mt-2 line-clamp-2`}>{exam.description}</p>
                   )}
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Type:</span>
-                      <Badge className={getExamTypeColor(exam.examType)}>
-                        {exam.examType.toUpperCase()}
-                      </Badge>
+                  <div className={`space-y-2 text-sm text-white`}>
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-2 text-white" />
+                      <span className="text-white">{exam.duration} minutes</span>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Duration:</span>
-                      <span>{exam.duration} minutes</span>
+                    <div className="flex items-center">
+                      <BookOpen className="h-4 w-4 mr-2 text-white" />
+                      <span className="text-white">{exam.totalQuestions} questions • {exam.totalMarks} marks</span>
                     </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Questions:</span>
-                      <span>{exam.totalQuestions}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">Total Marks:</span>
-                      <span className="font-medium">{exam.totalMarks}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm text-gray-600">
-                      <span className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        Start: {new Date(exam.startDate).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm text-gray-600">
-                      <span className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        End: {new Date(exam.endDate).toLocaleDateString()}
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-2 text-white" />
+                      <span className="text-xs text-white">
+                        {new Date(exam.startDate).toLocaleDateString()} - {new Date(exam.endDate).toLocaleDateString()}
                       </span>
                     </div>
                     {exam.createdBy && (
-                      <div className="text-xs text-gray-500 pt-2 border-t">
+                      <div className={`text-xs text-white/90 pt-2 border-t border-white/30`}>
                         Created by: {exam.createdBy.fullName}
                       </div>
                     )}
                   </div>
                   <Button 
-                    className="w-full mt-4" 
+                    className="w-full mt-4 bg-white/90 text-gray-900 border-white/30 hover:bg-white hover:text-gray-900" 
                     onClick={() => handleViewExam(exam)}
                   >
                     <Eye className="h-4 w-4 mr-2" />

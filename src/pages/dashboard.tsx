@@ -13,7 +13,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import Navigation from "@/components/navigation";
-import AIChat from "@/components/ai-chat";
 import ProgressChart from "@/components/progress-chart";
 import { 
   CheckCircle, 
@@ -50,9 +49,7 @@ import {
   ExternalLink,
   ClipboardList,
   Headphones,
-  Target as TargetIcon,
   GraduationCap,
-  BarChart3 as BarChartIcon,
   Sparkles
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
@@ -415,11 +412,11 @@ export default function Dashboard() {
                            subjectNameMap.get(key) || 
                            key.charAt(0).toUpperCase() + key.slice(1);
           const colors = [
-            'bg-blue-100 text-blue-600',
-            'bg-green-100 text-green-600',
-            'bg-purple-100 text-purple-600',
             'bg-orange-100 text-orange-600',
-            'bg-blue-100 text-blue-600'
+            'bg-sky-100 text-sky-600',
+            'bg-teal-100 text-teal-600',
+            'bg-orange-100 text-orange-600',
+            'bg-sky-100 text-sky-600'
           ];
           return {
             id: key.toLowerCase(),
@@ -527,11 +524,11 @@ export default function Dashboard() {
           // If no match found, add as new entry
           if (!existing) {
             const colors = [
-              'bg-blue-100 text-blue-600',
-              'bg-green-100 text-green-600',
-              'bg-purple-100 text-purple-600',
               'bg-orange-100 text-orange-600',
-              'bg-blue-100 text-blue-600'
+              'bg-green-100 text-green-600',
+              'bg-orange-100 text-orange-600',
+              'bg-orange-100 text-orange-600',
+              'bg-orange-100 text-orange-600'
             ];
             // Use subject ID as key, but display actual name
             mergedProgress.set(subjectId, {
@@ -1403,7 +1400,7 @@ export default function Dashboard() {
   return (
     <>
       <Navigation />
-      <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-responsive pb-responsive bg-sky-50 min-h-screen ${isMobile ? 'pb-20' : ''} relative overflow-hidden`}>
+      <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-responsive pb-responsive bg-sky-50 min-h-screen ${isMobile ? 'pb-20' : ''} relative`}>
         {/* Interactive Background */}
         <div className="fixed inset-0 z-0 bg-sky-50">
           <InteractiveBackground />
@@ -1426,7 +1423,7 @@ export default function Dashboard() {
         
         {/* Welcome Section */}
         <div className="mt-6 sm:mt-8 mb-6 relative z-10">
-        <div className="bg-gradient-to-r from-[#1CD8D2] via-[#1FA2FF] to-[#5B43F1] rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl">
+        <div className="bg-gradient-to-r from-blue-500 via-blue-400 to-teal-400 rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl">
         <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
             <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               {/* Left side - Text content */}
@@ -1440,7 +1437,7 @@ export default function Dashboard() {
                 
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <Button 
-                    className="bg-white text-pink-600 hover:bg-pink-50 hover:text-pink-700 w-full sm:w-auto font-semibold text-sm py-2 px-4"
+                    className="bg-white text-orange-600 hover:bg-orange-50 hover:text-orange-700 w-full sm:w-auto font-semibold text-sm py-2 px-4"
                     onClick={() => setLocation('/learning-paths')}
                   >
                     Continue Learning
@@ -1475,7 +1472,7 @@ export default function Dashboard() {
         <div className="mb-8 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Today's Progress */}
-            <Card className="bg-gradient-to-br from-pink-600 to-pink-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 h-full border-0">
+            <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-lg hover:shadow-md transition-all duration-200 h-full">
               <CardContent className="p-6 flex flex-col h-full relative">
                 <div className="absolute top-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                   <Target className="w-5 h-5 text-white" />
@@ -1500,7 +1497,7 @@ export default function Dashboard() {
             </Card>
 
             {/* Study Time */}
-            <Card className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 h-full border-0">
+            <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg rounded-lg hover:shadow-md transition-all duration-200 h-full">
               <CardContent className="p-6 flex flex-col h-full relative">
                 <div className="absolute top-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                   <Clock className="w-5 h-5 text-white" />
@@ -1518,7 +1515,7 @@ export default function Dashboard() {
             </Card>
 
             {/* This Week */}
-            <Card className="bg-gradient-to-br from-orange-600 to-orange-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 h-full border-0">
+            <Card className="bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-lg hover:shadow-md transition-all duration-200 h-full">
               <CardContent className="p-6 flex flex-col h-full relative">
                 <div className="absolute top-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                   <Calendar className="w-5 h-5 text-white" />
@@ -1536,7 +1533,7 @@ export default function Dashboard() {
             </Card>
 
             {/* Efficiency */}
-            <Card className="bg-gradient-to-br from-sky-600 to-sky-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 h-full border-0">
+            <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-lg hover:shadow-md transition-all duration-200 h-full">
               <CardContent className="p-6 flex flex-col h-full relative">
                 <div className="absolute top-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                   <TrendingUp className="w-5 h-5 text-white" />
@@ -1588,9 +1585,9 @@ export default function Dashboard() {
                         {day.slice(0, 3)}
                       </div>
                       <div className="flex-1 relative">
-                        <div className="w-full h-6 bg-purple-200 rounded-full overflow-hidden">
+                        <div className="w-full h-6 bg-orange-200 rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-gradient-to-r from-pink-500 to-purple-600 rounded-full transition-all duration-500"
+                            className="h-full bg-gradient-to-r from-orange-400 to-orange-600 rounded-full transition-all duration-500"
                             style={{ width: `${percentage}%` }}
                           />
                         </div>
@@ -1769,10 +1766,10 @@ export default function Dashboard() {
             <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
               <CardHeader>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-sky-400 to-blue-400 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-gradient-to-br from-sky-400 to-teal-500 rounded-lg flex items-center justify-center">
                     <MessageSquare className="w-5 h-5 text-white" />
                   </div>
-                  <CardTitle className="bg-gradient-to-r from-blue-700 to-cyan-300 bg-clip-text text-transparent">
+                  <CardTitle className="bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent">
                     Teacher Remarks
                   </CardTitle>
                 </div>
@@ -1827,7 +1824,7 @@ export default function Dashboard() {
           <Card className="bg-white rounded-xl shadow-md">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-400 rounded-lg flex items-center justify-center">
                   <FileText className="w-5 h-5 text-white" />
                 </div>
                 <CardTitle className="text-xl font-bold text-gray-900">
@@ -1838,7 +1835,7 @@ export default function Dashboard() {
             <CardContent>
               {isLoadingSubmissions ? (
                 <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-2"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
                   <p className="text-gray-600 text-sm">Loading submissions...</p>
                 </div>
               ) : homeworkSubmissions.length === 0 ? (
@@ -1884,7 +1881,7 @@ export default function Dashboard() {
                                 href={submission.submissionLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-sm text-purple-600 hover:text-purple-700 font-medium flex items-center gap-1"
+                                className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
                               >
                                 <ExternalLink className="w-4 h-4" />
                                 View Submission
@@ -1912,7 +1909,7 @@ export default function Dashboard() {
                             </div>
                           )}
                           {submission.feedback && (
-                            <div className="mt-2 p-2 bg-blue-50 rounded border-l-4 border-blue-500">
+                            <div className="mt-2 p-2 bg-orange-50 rounded border-l-4 border-blue-500">
                               <p className="text-sm text-gray-700">
                                 <span className="font-medium">Feedback: </span>
                                 {submission.feedback}
@@ -1936,8 +1933,7 @@ export default function Dashboard() {
 
         {/* Quick Stats */}
         <div className="grid-responsive-3 gap-responsive mb-responsive relative z-10">
-          <div className="group relative overflow-hidden bg-gradient-to-br from-pink-600 to-pink-700 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300">
-            <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+          <div className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-responsive p-responsive hover:shadow-xl transition-all duration-300">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
@@ -1951,8 +1947,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300">
-            <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+          <div className="group relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg rounded-responsive p-responsive hover:shadow-xl transition-all duration-300">
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
@@ -1966,7 +1961,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="group relative overflow-hidden bg-gradient-to-br from-orange-600 to-orange-700 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300">
+          <div className="group relative overflow-hidden bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-responsive p-responsive hover:shadow-xl transition-all duration-300">
             <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
@@ -1993,9 +1988,9 @@ export default function Dashboard() {
             <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="bg-gradient-to-r from-blue-700 to-cyan-300 bg-clip-text text-transparent">Your Learning Progress</CardTitle>
-                  <Badge className="bg-gradient-to-r from-emerald-400 to-teal-400 text-white shadow-lg">
-                    {user?.educationStream || 'JEE'} 2024
+                  <CardTitle className="bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent">Your Learning Progress</CardTitle>
+                  <Badge className="bg-gradient-to-r from-orange-400 to-teal-500 text-white shadow-lg">
+                    Asli Learn
                   </Badge>
                 </div>
               </CardHeader>
@@ -2006,7 +2001,7 @@ export default function Dashboard() {
                     <span className="text-responsive-xs font-medium text-gray-700">Overall Progress</span>
                     <span className="text-responsive-xs font-medium text-primary">{overallProgress}%</span>
                   </div>
-                  <Progress value={overallProgress} className="h-3" />
+                  <Progress value={overallProgress} className="h-3 [&>div]:bg-gradient-to-r [&>div]:from-orange-400 [&>div]:via-blue-500 [&>div]:to-teal-500" />
                 </div>
 
                 {/* Subject Progress */}
@@ -2028,7 +2023,7 @@ export default function Dashboard() {
                         <p className="text-responsive-xs font-medium text-gray-900">{subject.progress}%</p>
                         <div className="w-16 bg-gray-200 rounded-full h-1 mt-1">
                           <div 
-                            className="bg-gradient-to-r from-pink-500 to-purple-600 h-1 rounded-full" 
+                            className="bg-gradient-to-r from-orange-400 via-blue-500 to-teal-500 h-1 rounded-full" 
                             style={{ width: `${subject.progress}%` }}
                           />
                         </div>
@@ -2042,7 +2037,7 @@ export default function Dashboard() {
                 </div>
 
                 <Button 
-                  className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-lg"
+                  className="w-full bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white shadow-lg"
                   onClick={() => setLocation('/learning-paths')}
                 >
                   View Complete Learning Path
@@ -2052,7 +2047,7 @@ export default function Dashboard() {
 
             {/* Learning Paths */}
             <div id="learning-paths-section" className="mb-6 scroll-mt-24">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-cyan-300 bg-clip-text text-transparent mb-2">Learning Paths</h1>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent mb-2">Learning Paths</h1>
               
               {/* Tabs */}
               <div className="mb-6">
@@ -2118,7 +2113,7 @@ export default function Dashboard() {
                         onClick={() => window.location.href = `/subject/${subject._id || subject.id}`}
                       >
                         <CardContent className="p-6 flex flex-col items-center text-center">
-                          <div className="w-20 h-20 bg-gradient-to-br from-blue-700 to-cyan-300 rounded-xl flex items-center justify-center shadow-md mb-4">
+                          <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
                             <Icon className="w-10 h-10 text-white" />
                           </div>
                           <CardTitle className="text-lg font-semibold text-gray-900">{subject.name}</CardTitle>
@@ -2153,7 +2148,7 @@ export default function Dashboard() {
                         <Card key={quiz._id} className="hover:shadow-lg transition-all duration-200 hover:scale-105">
                           <CardHeader>
                             <div className="flex items-center justify-between mb-2">
-                              <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-lg flex items-center justify-center shadow-lg">
+                              <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-teal-500 rounded-lg flex items-center justify-center shadow-lg">
                                 <FileText className="w-6 h-6 text-white" />
                               </div>
                               {quiz.hasAttempted && (
@@ -2168,15 +2163,15 @@ export default function Dashboard() {
                           </CardHeader>
                           <CardContent className="space-y-4">
                             <div className="grid grid-cols-2 gap-2 text-center">
-                              <div className="bg-purple-50 rounded-lg p-2">
-                                <Clock className="w-4 h-4 text-purple-600 mx-auto mb-1" />
-                                <p className="text-xs font-medium text-purple-800">{quiz.duration || 60} min</p>
-                                <p className="text-xs text-purple-600">Duration</p>
+                              <div className="bg-orange-50 rounded-lg p-2">
+                                <Clock className="w-4 h-4 text-orange-600 mx-auto mb-1" />
+                                <p className="text-xs font-medium text-orange-800">{quiz.duration || 60} min</p>
+                                <p className="text-xs text-orange-600">Duration</p>
                               </div>
-                              <div className="bg-blue-50 rounded-lg p-2">
-                                <Target className="w-4 h-4 text-blue-600 mx-auto mb-1" />
-                                <p className="text-xs font-medium text-blue-800">{quiz.questions?.length || quiz.questionCount || 0}</p>
-                                <p className="text-xs text-blue-600">Questions</p>
+                              <div className="bg-orange-50 rounded-lg p-2">
+                                <Target className="w-4 h-4 text-orange-600 mx-auto mb-1" />
+                                <p className="text-xs font-medium text-orange-800">{quiz.questions?.length || quiz.questionCount || 0}</p>
+                                <p className="text-xs text-orange-600">Questions</p>
                               </div>
                             </div>
                             
@@ -2190,7 +2185,7 @@ export default function Dashboard() {
                             )}
                             
                             <Button
-                              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
+                              className="w-full bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white"
                               onClick={() => window.location.href = `/quiz/${quiz._id}`}
                             >
                               {quiz.hasAttempted ? 'Review Quiz' : 'Start Quiz'}
@@ -2212,7 +2207,7 @@ export default function Dashboard() {
                 {/* TextBook Card */}
                 <Card 
                   className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
-                    selectedBrowseType === 'TextBook' ? 'ring-2 ring-purple-500' : ''
+                    selectedBrowseType === 'TextBook' ? 'ring-2 ring-orange-500' : ''
                   }`}
                   onClick={() => {
                     const newType = selectedBrowseType === 'TextBook' ? null : 'TextBook';
@@ -2220,7 +2215,7 @@ export default function Dashboard() {
                   }}
                 >
                   <CardContent className="p-6 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-300 rounded-xl flex items-center justify-center shadow-md mb-4">
+                    <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
                       <BookOpen className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                     </div>
                     <CardTitle className="text-lg font-semibold text-gray-900 mb-1">TextBook</CardTitle>
@@ -2233,7 +2228,7 @@ export default function Dashboard() {
                 {/* Workbook Card */}
                 <Card 
                   className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
-                    selectedBrowseType === 'Workbook' ? 'ring-2 ring-purple-500' : ''
+                    selectedBrowseType === 'Workbook' ? 'ring-2 ring-orange-500' : ''
                   }`}
                   onClick={() => {
                     const newType = selectedBrowseType === 'Workbook' ? null : 'Workbook';
@@ -2241,7 +2236,7 @@ export default function Dashboard() {
                   }}
                 >
                   <CardContent className="p-6 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-300 rounded-xl flex items-center justify-center shadow-md mb-4">
+                    <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
                       <FileTextIcon className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                     </div>
                     <CardTitle className="text-lg font-semibold text-gray-900 mb-1">Workbook</CardTitle>
@@ -2254,7 +2249,7 @@ export default function Dashboard() {
                 {/* Material Card */}
                 <Card 
                   className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
-                    selectedBrowseType === 'Material' ? 'ring-2 ring-purple-500' : ''
+                    selectedBrowseType === 'Material' ? 'ring-2 ring-orange-500' : ''
                   }`}
                   onClick={() => {
                     const newType = selectedBrowseType === 'Material' ? null : 'Material';
@@ -2262,7 +2257,7 @@ export default function Dashboard() {
                   }}
                 >
                   <CardContent className="p-6 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-300 rounded-xl flex items-center justify-center shadow-md mb-4">
+                    <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
                       <File className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                     </div>
                     <CardTitle className="text-lg font-semibold text-gray-900 mb-1">Material</CardTitle>
@@ -2275,7 +2270,7 @@ export default function Dashboard() {
                 {/* Video Card */}
                 <Card 
                   className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
-                    selectedBrowseType === 'Video' ? 'ring-2 ring-purple-500' : ''
+                    selectedBrowseType === 'Video' ? 'ring-2 ring-orange-500' : ''
                   }`}
                   onClick={() => {
                     const newType = selectedBrowseType === 'Video' ? null : 'Video';
@@ -2283,7 +2278,7 @@ export default function Dashboard() {
                   }}
                 >
                   <CardContent className="p-6 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-300 rounded-xl flex items-center justify-center shadow-md mb-4">
+                    <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
                       <VideoIcon className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                     </div>
                     <CardTitle className="text-lg font-semibold text-gray-900 mb-1">Video</CardTitle>
@@ -2296,7 +2291,7 @@ export default function Dashboard() {
                 {/* Audio Card */}
                 <Card 
                   className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
-                    selectedBrowseType === 'Audio' ? 'ring-2 ring-purple-500' : ''
+                    selectedBrowseType === 'Audio' ? 'ring-2 ring-orange-500' : ''
                   }`}
                   onClick={() => {
                     const newType = selectedBrowseType === 'Audio' ? null : 'Audio';
@@ -2304,7 +2299,7 @@ export default function Dashboard() {
                   }}
                 >
                   <CardContent className="p-6 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-300 rounded-xl flex items-center justify-center shadow-md mb-4">
+                    <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
                       <Headphones className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                     </div>
                     <CardTitle className="text-lg font-semibold text-gray-900 mb-1">Audio</CardTitle>
@@ -2317,7 +2312,7 @@ export default function Dashboard() {
                 {/* Homework Card */}
                 <Card 
                   className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
-                    selectedBrowseType === 'Homework' ? 'ring-2 ring-purple-500' : ''
+                    selectedBrowseType === 'Homework' ? 'ring-2 ring-orange-500' : ''
                   }`}
                   onClick={() => {
                     const newType = selectedBrowseType === 'Homework' ? null : 'Homework';
@@ -2325,7 +2320,7 @@ export default function Dashboard() {
                   }}
                 >
                   <CardContent className="p-6 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-300 rounded-xl flex items-center justify-center shadow-md mb-4">
+                    <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
                       <ClipboardList className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                     </div>
                     <CardTitle className="text-lg font-semibold text-gray-900 mb-1">Homework</CardTitle>
@@ -2356,7 +2351,7 @@ export default function Dashboard() {
                   
                   {isLoadingFilteredContent ? (
                     <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-2"></div>
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
                       <p className="text-gray-600">Loading content...</p>
                     </div>
                   ) : filteredContent.length === 0 ? (
@@ -2384,7 +2379,7 @@ export default function Dashboard() {
                           <Card key={content._id || content.id} className="hover:shadow-md transition-shadow">
                             <CardContent className="p-4">
                               <div className="flex items-start space-x-3">
-                                <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
                                   <ContentIcon className="w-6 h-6 text-white" />
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -2440,7 +2435,7 @@ export default function Dashboard() {
 
             {/* Recommended Learning Paths */}
             <div className="mb-6">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-6">Recommended for You</h2>
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent mb-6">Recommended for You</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[
                   {
@@ -2464,7 +2459,7 @@ export default function Dashboard() {
                     rating: 0,
                     subjects: [],
                     difficulty: "Coming Soon",
-                    color: "bg-purple-100 text-purple-600",
+                    color: "bg-orange-100 text-orange-600",
                     icon: Gamepad2,
                     isComingSoon: true
                   }
@@ -2479,7 +2474,7 @@ export default function Dashboard() {
                           </div>
                           {/* Show Coming Soon badge for Play Games, difficulty badge for others */}
                           {path.isComingSoon ? (
-                            <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700 border-purple-300">
+                            <Badge variant="secondary" className="text-xs bg-teal-100 text-teal-700 border-teal-300">
                               Coming Soon
                             </Badge>
                           ) : path.id !== "4" && (
@@ -2550,101 +2545,37 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl hover:shadow-2xl transition-shadow duration-200">
-                <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                    <BookOpen className="w-6 h-6 text-blue-600" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Learning Management</h3>
-                  <p className="text-gray-600 text-sm mb-4">Build your own learning journey</p>
-                  <Button variant="outline" className="w-full">
-                    Get Started
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl hover:shadow-2xl transition-shadow duration-200">
-                <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 bg-gradient-to-r from-sky-400 to-blue-400 rounded-lg flex items-center justify-center mx-auto mb-4 shadow-lg">
-                    <CheckCircle className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Vidya AI</h3>
-                  <p className="text-gray-600 text-sm mb-4">Monitor your learning journey</p>
-                  <Button variant="outline" className="w-full border-purple-200 text-purple-800 hover:bg-purple-50">
-                    View Progress
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl hover:shadow-2xl transition-shadow duration-200">
-                <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                    <Star className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Exams</h3>
-                  <p className="text-gray-600 text-sm mb-4">Earn certificates for your achievements</p>
-                  <Button variant="outline" className="w-full">
-                    View Certificates
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
 
           {/* Right Column: Vidya AI & Performance */}
           <div className="space-y-6">
             
-            {/* AI Chat */}
-            {(() => {
-              // Determine the current subject from available data
-              const getCurrentSubject = () => {
-                // Try subjectProgress first (most accurate - from exam results)
-                if (subjectProgress && subjectProgress.length > 0) {
-                  console.log('Using subject from subjectProgress:', subjectProgress[0].name);
-                  return subjectProgress[0].name;
-                }
-                
-                // Try subjects array (from API)
-                if (subjects && subjects.length > 0) {
-                  console.log('Using subject from subjects array:', subjects[0].name || subjects[0]);
-                  return subjects[0].name || subjects[0];
-                }
-                
-                // Try user's assignedSubjects
-                if (user?.assignedSubjects && user.assignedSubjects.length > 0) {
-                  const firstSubject = user.assignedSubjects[0];
-                  const subjectName = typeof firstSubject === 'object' ? firstSubject.name : firstSubject;
-                  console.log('Using subject from assignedSubjects:', subjectName);
-                  return subjectName;
-                }
-                
-                // Try assignedClass subjects
-                if (user?.assignedClass?.assignedSubjects && user.assignedClass.assignedSubjects.length > 0) {
-                  const firstSubject = user.assignedClass.assignedSubjects[0];
-                  const subjectName = typeof firstSubject === 'object' ? firstSubject.name : firstSubject;
-                  console.log('Using subject from assignedClass:', subjectName);
-                  return subjectName;
-                }
-                
-                console.log('No subject found, using default: General Preparation');
-                return 'General Preparation';
-              };
-              
-              const currentSubject = getCurrentSubject();
-              
-              return (
-                <AIChat 
-                  userId={user?._id || user?.id || MOCK_USER_ID}
-                  context={{
-                    studentName: user?.fullName || user?.email?.split('@')[0] || 'Student',
-                    currentSubject: currentSubject,
-                    currentTopic: undefined
+            {/* Vidya AI Card */}
+            <Card 
+              className="bg-gradient-to-br from-sky-400 to-teal-500 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
+              onClick={() => setLocation('/ai-tutor')}
+            >
+              <CardContent className="p-6 flex flex-col items-center justify-center min-h-[200px]">
+                <div className="w-20 h-20 mb-4 rounded-full overflow-hidden border-2 border-white/30">
+                  <img 
+                    src="/ROBOT.gif" 
+                    alt="Vidya AI Robot" 
+                    className="w-full h-full object-cover"
+                  />
+                  </div>
+                <h3 className="text-2xl font-bold mb-2 text-white">Vidya AI</h3>
+                <p className="text-white/90 text-center mb-4">Click to chat with your AI tutor</p>
+                <Button 
+                  className="bg-white text-sky-600 hover:bg-gray-100 font-semibold"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLocation('/ai-tutor');
                   }}
-                />
-              );
-            })()}
+                >
+                  Open Vidya AI
+                  </Button>
+                </CardContent>
+              </Card>
 
             {/* Performance Dashboard */}
             <ProgressChart 
@@ -2655,7 +2586,7 @@ export default function Dashboard() {
             {/* Quick Actions */}
             <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
               <CardHeader>
-                <CardTitle className="bg-gradient-to-r from-blue-700 to-cyan-300 bg-clip-text text-transparent">Quick Actions</CardTitle>
+                <CardTitle className="bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-3">
@@ -2674,7 +2605,7 @@ export default function Dashboard() {
                     onClick={() => alert('Schedule Study feature coming soon!')}
                   >
                     <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mb-2">
-                      <Calendar className="w-4 h-4 text-blue-600" />
+                      <Calendar className="w-4 h-4 text-orange-600" />
                     </div>
                     <p className="text-responsive-xs font-medium text-gray-900">Schedule Study</p>
                   </button>
@@ -2693,8 +2624,8 @@ export default function Dashboard() {
                     className="quick-action-button"
                     onClick={() => alert('Study Groups feature coming soon!')}
                   >
-                    <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mb-2">
-                      <Users className="w-4 h-4 text-purple-600" />
+                    <div className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center mb-2">
+                      <Users className="w-4 h-4 text-orange-600" />
                     </div>
                     <p className="text-responsive-xs font-medium text-gray-900">Study Groups</p>
                   </button>
@@ -2705,7 +2636,7 @@ export default function Dashboard() {
             {/* Recent Achievements */}
             <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
               <CardHeader>
-                <CardTitle className="bg-gradient-to-r from-blue-700 to-cyan-300 bg-clip-text text-transparent">Recent Achievements</CardTitle>
+                <CardTitle className="bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent">Recent Achievements</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="achievement-card">
@@ -2722,123 +2653,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Explore Career Paths */}
-        <div className="mb-responsive relative z-10">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Explore Career Paths</h2>
-            <p className="text-gray-600">Discover various career opportunities and their requirements</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Engineering & Technology */}
-            <Card className="bg-gradient-to-br from-pink-600 to-pink-700 rounded-xl shadow-md hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start space-x-4 mb-4">
-                  <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <TargetIcon className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-white mb-2">Engineering & Technology</h3>
-                    <Badge className="bg-white/20 text-white text-xs mb-3 border-white/30">Demand: Very High</Badge>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Computer Science</Badge>
-                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Mechanical</Badge>
-                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Electrical</Badge>
-                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Civil</Badge>
-                </div>
-                <Button
-                  className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
-                  onClick={() => alert('This feature is coming soon!')}
-                >
-                  Explore More
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Medical & Healthcare */}
-            <Card className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl shadow-md hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start space-x-4 mb-4">
-                  <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <GraduationCap className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-white mb-2">Medical & Healthcare</h3>
-                    <Badge className="bg-white/20 text-white text-xs mb-3 border-white/30">Demand: High</Badge>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">MBBS</Badge>
-                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Nursing</Badge>
-                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Pharmacy</Badge>
-                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Physiotherapy</Badge>
-                </div>
-                <Button
-                  className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
-                  onClick={() => alert('This feature is coming soon!')}
-                >
-                  Explore More
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Business & Management */}
-            <Card className="bg-gradient-to-br from-orange-600 to-orange-700 rounded-xl shadow-md hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start space-x-4 mb-4">
-                  <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <BarChartIcon className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-white mb-2">Business & Management</h3>
-                    <Badge className="bg-white/20 text-white text-xs mb-3 border-white/30">Demand: High</Badge>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">MBA</Badge>
-                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">CA</Badge>
-                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Marketing</Badge>
-                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Finance</Badge>
-                </div>
-                <Button
-                  className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
-                  onClick={() => alert('This feature is coming soon!')}
-                >
-                  Explore More
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Arts & Design */}
-            <Card className="bg-gradient-to-br from-sky-600 to-sky-700 rounded-xl shadow-md hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start space-x-4 mb-4">
-                  <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Sparkles className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-white mb-2">Arts & Design</h3>
-                    <Badge className="bg-white/20 text-white text-xs mb-3 border-white/30">Demand: Medium</Badge>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Fine Arts</Badge>
-                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Design</Badge>
-                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Architecture</Badge>
-                  <Badge variant="outline" className="text-xs bg-white/10 text-white border-white/30">Fashion</Badge>
-                </div>
-                <Button
-                  className="w-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
-                  onClick={() => alert('This feature is coming soon!')}
-                >
-                  Explore More
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
 
       </div>
 
@@ -3036,7 +2850,7 @@ export default function Dashboard() {
                               <div className="w-full bg-gray-100 rounded-lg p-8">
                                 <div className="text-center space-y-4">
                                   <div className="w-24 h-24 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
-                                    <File className="w-12 h-12 text-blue-600" />
+                                    <File className="w-12 h-12 text-orange-600" />
                                   </div>
                                   <audio 
                                     src={fileUrl} 
@@ -3082,7 +2896,7 @@ export default function Dashboard() {
                             <div className="w-full bg-gray-100 rounded-lg p-8">
                               <div className="text-center space-y-4">
                                 <div className="w-24 h-24 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
-                                  <File className="w-12 h-12 text-blue-600" />
+                                  <File className="w-12 h-12 text-orange-600" />
                                 </div>
                                 <p className="text-gray-600">Preview not available for this file type</p>
                                 <p className="text-sm text-gray-500">
@@ -3110,7 +2924,7 @@ export default function Dashboard() {
                 </Button>
                 {!completedScheduleIds.has(selectedScheduleItem._id || selectedScheduleItem.id) && (
                   <Button
-                    className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
+                    className="bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white"
                     onClick={() => handleMarkAsComplete(selectedScheduleItem, selectedScheduleItem.isQuiz)}
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />
@@ -3119,7 +2933,7 @@ export default function Dashboard() {
                 )}
                 {selectedScheduleItem.isQuiz && (
                   <Button
-                    className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white"
+                    className="bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white"
                     onClick={() => {
                       setIsPreviewOpen(false);
                       window.location.href = '/learning-paths';

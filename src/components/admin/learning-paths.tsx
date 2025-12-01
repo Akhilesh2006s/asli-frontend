@@ -172,7 +172,7 @@ export default function AdminLearningPaths() {
               <Card key={subject._id || subject.id} className="hover:shadow-lg transition-all duration-200 hover:scale-105">
                 <CardHeader>
                   <div className="flex items-center justify-between mb-2">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <div className="w-12 h-12 bg-gradient-to-br from-sky-400 to-teal-500 rounded-lg flex items-center justify-center">
                       <Icon className="w-6 h-6 text-white" />
                     </div>
                     <Badge variant="secondary" className="text-xs">
@@ -208,7 +208,7 @@ export default function AdminLearningPaths() {
                   )}
 
                   <Button 
-                    className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
+                    className="w-full bg-gradient-to-r from-sky-400 to-teal-500 hover:from-sky-500 hover:to-teal-600 text-white"
                     onClick={() => setLocation(`/admin/subject/${subject._id || subject.id}`)}
                   >
                     View Content

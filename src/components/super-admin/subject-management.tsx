@@ -23,7 +23,7 @@ interface Subject {
 }
 
 const BOARDS = [
-  { value: 'ASLI_EXCLUSIVE_SCHOOLS', label: 'ASLI EXCLUSIVE SCHOOLS' }
+  { value: 'ASLI_EXCLUSIVE_SCHOOLS', label: 'Asli Exclusive Schools' }
 ];
 
 export default function SubjectManagement() {
@@ -229,7 +229,7 @@ export default function SubjectManagement() {
         <div className="flex gap-2">
           <Button
             onClick={() => setIsAddModalOpen(true)}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+            className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Subject
@@ -242,18 +242,21 @@ export default function SubjectManagement() {
         <CardContent className="p-4">
           <div className="flex items-center space-x-4">
             <Label className="font-semibold">Select Board:</Label>
-            <Select value={selectedBoard} onValueChange={setSelectedBoard}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {BOARDS.map(board => (
-                  <SelectItem key={board.value} value={board.value}>
-                    {board.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="relative w-48">
+              <div className="absolute -inset-[2px] bg-gradient-to-r from-sky-300 to-teal-400 rounded-md"></div>
+              <Select value={selectedBoard} onValueChange={setSelectedBoard}>
+                <SelectTrigger className="w-full relative z-10 border-0 bg-white focus:ring-2 focus:ring-blue-700 focus:ring-offset-0">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {BOARDS.map(board => (
+                    <SelectItem key={board.value} value={board.value}>
+                      {board.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Badge variant="outline" className="ml-auto">
               {subjects.length} subjects
             </Badge>
@@ -273,7 +276,7 @@ export default function SubjectManagement() {
             <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No Subjects Yet</h3>
             <p className="text-gray-600 mb-4">Start creating subjects for {BOARDS.find(b => b.value === selectedBoard)?.label} board</p>
-            <Button onClick={() => setIsAddModalOpen(true)}>
+            <Button onClick={() => setIsAddModalOpen(true)} className="bg-gradient-to-r from-orange-400 to-sky-400 hover:from-orange-500 hover:to-sky-500 text-white">
               <Plus className="w-4 h-4 mr-2" />
               Create First Subject
             </Button>
@@ -281,56 +284,66 @@ export default function SubjectManagement() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {subjects.map((subject) => (
-            <Card key={subject._id} className="hover:shadow-xl transition-all duration-300">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg mb-1">{subject.name}</CardTitle>
-                    {subject.code && (
-                      <Badge variant="outline" className="mb-2">
-                        {subject.code}
-                      </Badge>
-                    )}
-                    {subject.description && (
-                      <p className="text-sm text-gray-600 mt-2 line-clamp-2">{subject.description}</p>
-                    )}
+          {subjects.map((subject, index) => {
+            // Randomly assign one of the three dashboard colors
+            const colorSchemes = [
+              { bg: 'from-orange-300 to-orange-400', text: 'text-white', badge: 'bg-orange-500/20 text-orange-100' },
+              { bg: 'from-sky-300 to-sky-400', text: 'text-white', badge: 'bg-sky-500/20 text-sky-100' },
+              { bg: 'from-teal-400 to-teal-500', text: 'text-white', badge: 'bg-teal-500/20 text-teal-100' }
+            ];
+            const colorScheme = colorSchemes[index % 3];
+            
+            return (
+              <Card key={subject._id} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg mb-1 text-gray-900">{subject.name}</CardTitle>
+                      {subject.code && (
+                        <Badge className={`mb-2 ${colorScheme.badge} border-0`}>
+                          {subject.code}
+                        </Badge>
+                      )}
+                      {subject.description && (
+                        <p className={`text-sm ${colorScheme.text}/90 mt-2 line-clamp-2`}>{subject.description}</p>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(subject._id)}
+                      disabled={isDeleting === subject._id}
+                      className="text-white hover:text-white/80 hover:bg-white/20"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(subject._id)}
-                    disabled={isDeleting === subject._id}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {subject.classNumber && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Class:</span>
-                    <Badge className="bg-blue-100 text-blue-700">
-                      Class {subject.classNumber}
+                </CardHeader>
+                <CardContent>
+                  {subject.classNumber && (
+                    <div className="flex items-center justify-between text-sm mb-2">
+                      <span className={colorScheme.text + '/90'}>Class:</span>
+                      <Badge className={`${colorScheme.badge} border-0`}>
+                        Class {subject.classNumber}
+                      </Badge>
+                    </div>
+                  )}
+                  <div className={`flex items-center justify-between text-sm ${subject.classNumber ? 'mb-2' : ''}`}>
+                    <span className={colorScheme.text + '/90'}>Board:</span>
+                    <Badge className="bg-orange-600 text-white border-2 border-white/50 shadow-lg font-semibold">
+                      Asli Exclusive Schools
                     </Badge>
                   </div>
-                )}
-                <div className={`flex items-center justify-between text-sm ${subject.classNumber ? 'mt-2' : ''}`}>
-                  <span className="text-gray-600">Board:</span>
-                  <Badge className="bg-purple-100 text-purple-700">
-                    ASLI EXCLUSIVE SCHOOLS
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between text-sm mt-2">
-                  <span className="text-gray-600">Status:</span>
-                  <Badge className={subject.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
-                    {subject.isActive ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="flex items-center justify-between text-sm mt-2">
+                    <span className={colorScheme.text + '/90'}>Status:</span>
+                    <Badge className={subject.isActive ? 'bg-teal-600 text-white border-2 border-white/50 shadow-lg font-semibold' : 'bg-gray-600 text-white border-2 border-white/50 shadow-lg font-semibold'}>
+                      {subject.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -431,7 +444,7 @@ export default function SubjectManagement() {
               <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+              <Button type="submit" className="bg-gradient-to-r from-orange-400 to-sky-400 hover:from-orange-500 hover:to-sky-500 text-white">
                 <Plus className="w-4 h-4 mr-2" />
                 Create Subject
               </Button>

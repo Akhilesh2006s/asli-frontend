@@ -242,7 +242,7 @@ export default function DetailedAIAnalyticsDashboard() {
         <AlertCircleIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
         <h3 className="text-xl font-semibold mb-2">No Analytics Data</h3>
         <p className="text-gray-600 mb-4">Click the button below to generate detailed analytics</p>
-        <Button onClick={fetchDetailedAnalytics} className="bg-purple-600 hover:bg-purple-700">
+        <Button onClick={fetchDetailedAnalytics} className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white">
           <SparklesIcon className="w-4 h-4 mr-2" />
           Generate Analytics
         </Button>
@@ -264,7 +264,7 @@ export default function DetailedAIAnalyticsDashboard() {
         <Button 
           onClick={fetchDetailedAnalytics} 
           disabled={isLoading}
-          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+          className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
         >
           {isLoading ? (
             <>
@@ -282,54 +282,58 @@ export default function DetailedAIAnalyticsDashboard() {
 
       {/* Global Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+        {/* Total Admins - Orange (matching Analytics page) */}
+        <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-600">Total Admins</p>
-                <p className="text-3xl font-bold text-blue-900">{analytics.globalAnalytics.totalAdmins}</p>
-                <p className="text-sm text-blue-600">Active administrators</p>
+                <p className="text-sm font-medium text-white/90">Total Admins</p>
+                <p className="text-3xl font-bold text-white">{analytics.globalAnalytics.totalAdmins}</p>
+                <p className="text-sm text-white/90">Active administrators</p>
               </div>
-              <UsersIcon className="h-12 w-12 text-blue-500" />
+              <UsersIcon className="h-12 w-12 text-white" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+        {/* Overall Average - Sky Blue (matching Analytics page) */}
+        <Card className="bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-600">Overall Average</p>
-                <p className="text-3xl font-bold text-green-900">{analytics.globalAnalytics.overallAverageScore?.toFixed(1) || 'N/A'}%</p>
-                <p className="text-sm text-green-600">Platform performance</p>
+                <p className="text-sm font-medium text-white/90">Overall Average</p>
+                <p className="text-3xl font-bold text-white">{analytics.globalAnalytics.overallAverageScore?.toFixed(1) || 'N/A'}%</p>
+                <p className="text-sm text-white/90">Platform performance</p>
               </div>
-              <TrendingUpIcon className="h-12 w-12 text-green-500" />
+              <TrendingUpIcon className="h-12 w-12 text-white" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+        {/* Total Exams - Teal (matching Analytics page) */}
+        <Card className="bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-purple-600">Total Exams</p>
-                <p className="text-3xl font-bold text-purple-900">{analytics.globalAnalytics.totalExams}</p>
-                <p className="text-sm text-purple-600">Conducted</p>
+                <p className="text-sm font-medium text-white/90">Total Exams</p>
+                <p className="text-3xl font-bold text-white">{analytics.globalAnalytics.totalExams}</p>
+                <p className="text-sm text-white/90">Conducted</p>
               </div>
-              <BookIcon className="h-12 w-12 text-purple-500" />
+              <BookIcon className="h-12 w-12 text-white" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+        {/* Exam Results - Orange (matching Analytics page) */}
+        <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-orange-600">Exam Results</p>
-                <p className="text-3xl font-bold text-orange-900">{analytics.globalAnalytics.totalExamResults}</p>
-                <p className="text-sm text-orange-600">Total submissions</p>
+                <p className="text-sm font-medium text-white/90">Exam Results</p>
+                <p className="text-3xl font-bold text-white">{analytics.globalAnalytics.totalExamResults}</p>
+                <p className="text-sm text-white/90">Total submissions</p>
               </div>
-              <AwardIcon className="h-12 w-12 text-orange-500" />
+              <AwardIcon className="h-12 w-12 text-white" />
             </div>
           </CardContent>
         </Card>
@@ -348,20 +352,23 @@ export default function DetailedAIAnalyticsDashboard() {
 
         {/* Admin Comparison Tab */}
         <TabsContent value="admin-comparison" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
+          <Card className="relative border-0 overflow-hidden" style={{
+            background: 'linear-gradient(135deg, #7dd3fc 0%, #7dd3fc 20%, #2dd4bf 60%, #14b8a6 100%)'
+          }}>
+            <div className="absolute inset-0 bg-white/5 pointer-events-none"></div>
+            <CardHeader className="relative z-10">
+              <CardTitle className="flex items-center text-gray-900">
                 <UsersIcon className="w-5 h-5 mr-2" />
                 Admin Performance Comparison
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="relative z-10">
               <div className="space-y-4">
                 {analytics.adminAnalytics.map((admin) => (
-                  <div key={admin.adminId} className="p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center justify-between mb-4">
+                  <div key={admin.adminId} className="p-4 bg-white/90 backdrop-blur-sm rounded-lg border border-white/50 shadow-md">
+                    <div className="flex items-center justify-between mb-3">
                       <div>
-                        <h3 className="font-semibold text-lg">{admin.adminName}</h3>
+                        <h3 className="font-semibold text-lg text-gray-900">{admin.adminName}</h3>
                         <p className="text-gray-600">{admin.adminEmail}</p>
                       </div>
                       <div className="text-right">
@@ -374,26 +381,26 @@ export default function DetailedAIAnalyticsDashboard() {
                     
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div className="text-center">
-                        <p className="font-semibold text-blue-600">{admin.totalStudents}</p>
+                        <p className="font-semibold text-gray-900 text-lg">{admin.totalStudents}</p>
                         <p className="text-gray-600">Students</p>
                       </div>
                       <div className="text-center">
-                        <p className="font-semibold text-green-600">{admin.totalExams}</p>
+                        <p className="font-semibold text-gray-900 text-lg">{admin.totalExams}</p>
                         <p className="text-gray-600">Exams</p>
                       </div>
                       <div className="text-center">
-                        <p className="font-semibold text-purple-600">{admin.examDifficulty.overallDifficulty.toFixed(1)}</p>
+                        <p className="font-semibold text-gray-900 text-lg">{admin.examDifficulty.overallDifficulty.toFixed(1)}</p>
                         <p className="text-gray-600">Difficulty</p>
                       </div>
                       <div className="text-center">
-                        <p className="font-semibold text-orange-600">{admin.topScorers.length}</p>
+                        <p className="font-semibold text-gray-900 text-lg">{admin.topScorers.length}</p>
                         <p className="text-gray-600">Top Scorers</p>
                       </div>
                     </div>
                     
                     <div className="mt-4">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium">Performance Progress</span>
+                        <span className="text-sm font-medium text-gray-900">Performance Progress</span>
                         <span className="text-sm text-gray-600">{admin.averageScore?.toFixed(1) || 'N/A'}%</span>
                       </div>
                       <Progress value={admin.averageScore || 0} className="h-2" />

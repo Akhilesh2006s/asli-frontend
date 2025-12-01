@@ -387,7 +387,7 @@ export default function LiveSessions() {
           <h1 className="text-3xl font-bold text-gray-900">Live Sessions</h1>
           <p className="text-gray-600 mt-1">Manage and monitor live streaming sessions</p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={() => setIsCreateModalOpen(true)} className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white">
           <Plus className="w-4 h-4 mr-2" />
           Create Session
         </Button>
@@ -601,7 +601,7 @@ export default function LiveSessions() {
                     <SelectValue placeholder="Select board" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ASLI_EXCLUSIVE_SCHOOLS">ASLI EXCLUSIVE SCHOOLS</SelectItem>
+                    <SelectItem value="ASLI_EXCLUSIVE_SCHOOLS">Asli Exclusive Schools</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -642,7 +642,7 @@ export default function LiveSessions() {
             <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreate} disabled={!formData.title || !formData.subject || !formData.board || !formData.scheduledTime}>
+            <Button onClick={handleCreate} disabled={!formData.title || !formData.subject || !formData.board || !formData.scheduledTime} className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white">
               Create Session
             </Button>
           </DialogFooter>
@@ -712,7 +712,7 @@ export default function LiveSessions() {
                     <SelectValue placeholder="Select board" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ASLI_EXCLUSIVE_SCHOOLS">ASLI EXCLUSIVE SCHOOLS</SelectItem>
+                    <SelectItem value="ASLI_EXCLUSIVE_SCHOOLS">Asli Exclusive Schools</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

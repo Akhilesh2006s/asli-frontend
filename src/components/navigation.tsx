@@ -100,8 +100,8 @@ export default function Navigation() {
               onClick={item.onClick}
               className={`w-full justify-start rounded-xl transition-all duration-300 group ${
                 isActive 
-                  ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg scale-105" 
-                  : "text-gray-700 hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 hover:text-pink-700 hover:scale-105"
+                  ? "bg-gradient-to-r from-sky-300 to-teal-400 text-white shadow-lg scale-105" 
+                  : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700 hover:scale-105"
               }`}
             >
               <Icon className={`w-4 h-4 mr-3 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
@@ -116,8 +116,8 @@ export default function Navigation() {
               variant="ghost"
               className={`w-full justify-start rounded-xl transition-all duration-300 group ${
                 isActive 
-                  ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg scale-105" 
-                  : "text-gray-700 hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 hover:text-pink-700 hover:scale-105"
+                  ? "bg-gradient-to-r from-sky-300 to-teal-400 text-white shadow-lg scale-105" 
+                  : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700 hover:scale-105"
               }`}
             >
               <Icon className={`w-4 h-4 mr-3 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
@@ -172,8 +172,8 @@ export default function Navigation() {
                         onClick={item.onClick}
                         className={`relative px-5 py-2.5 rounded-full transition-all duration-300 flex items-center space-x-2 group ${
                           isActive 
-                            ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg scale-105" 
-                            : "text-gray-700 hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 hover:text-pink-700"
+                            ? "bg-gradient-to-r from-sky-300 to-teal-400 text-white shadow-lg scale-105" 
+                            : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700"
                         }`}
                       >
                         <Icon className={`w-4 h-4 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
@@ -188,8 +188,8 @@ export default function Navigation() {
                     <Link key={item.path} href={item.path}>
                       <button className={`relative px-5 py-2.5 rounded-full transition-all duration-300 flex items-center space-x-2 group ${
                         isActive 
-                          ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg scale-105" 
-                          : "text-gray-700 hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 hover:text-pink-700"
+                          ? "bg-gradient-to-r from-sky-300 to-teal-400 text-white shadow-lg scale-105" 
+                          : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700"
                       }`}>
                         <Icon className={`w-4 h-4 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
                         <span className="font-medium text-sm">{item.label}</span>
@@ -300,8 +300,8 @@ export default function Navigation() {
                     onClick={item.onClick}
                     className={`flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-300 relative group ${
                       isActive 
-                        ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg scale-105" 
-                        : "text-gray-700 hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 hover:text-pink-700"
+                        ? "bg-gradient-to-r from-sky-300 to-teal-400 text-white shadow-lg scale-105" 
+                        : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700"
                     }`}
                   >
                     <Icon className={`w-5 h-5 mb-1 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
@@ -317,8 +317,8 @@ export default function Navigation() {
                 <Link key={item.path} href={item.path}>
                   <button className={`flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-300 relative group ${
                     isActive 
-                      ? "bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg scale-105" 
-                      : "text-gray-700 hover:bg-gradient-to-r hover:from-pink-50 hover:to-purple-50 hover:text-pink-700"
+                      ? "bg-gradient-to-r from-sky-300 to-teal-400 text-white shadow-lg scale-105" 
+                      : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700"
                   }`}>
                     <Icon className={`w-5 h-5 mb-1 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
                     <span className="text-[10px] font-medium">{item.label.split(" ")[0]}</span>

@@ -245,12 +245,12 @@ const AdminDashboard = () => {
         <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-b border-white/20 relative">
           <div className="flex items-center justify-between p-responsive">
             <div className="flex items-center space-x-responsive">
-              <div className="w-8 h-8 bg-gradient-to-r from-sky-500 to-blue-500 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-responsive-sm">AS</span>
               </div>
               <div>
-                <h1 className="text-responsive-base font-bold bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent">ASLILEARN AI</h1>
-                <p className="text-responsive-xs text-gray-600 font-medium">Admin Panel</p>
+                <h1 className="text-responsive-base font-bold text-white">ASLILEARN AI</h1>
+                <p className="text-responsive-xs text-white/90 font-medium">Admin Panel</p>
               </div>
             </div>
             <Sheet>
@@ -259,112 +259,112 @@ const AdminDashboard = () => {
                   <Menu className="w-4 h-4" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-64">
+              <SheetContent side="left" className="w-64 bg-gradient-to-b from-orange-400 to-orange-500">
                 <div className="p-responsive">
                   <div className="flex items-center space-x-responsive mb-responsive">
-                    <div className="w-10 h-10 bg-gradient-to-r from-sky-500 to-blue-500 rounded-xl flex items-center justify-center">
+                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                       <span className="text-white font-bold text-responsive-lg">AS</span>
                     </div>
                     <div>
-                      <h1 className="text-responsive-lg font-bold bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent">ASLILEARN AI</h1>
-                      <p className="text-responsive-xs text-gray-600 font-medium">Admin Panel</p>
+                      <h1 className="text-responsive-lg font-bold text-white">ASLILEARN AI</h1>
+                      <p className="text-responsive-xs text-white/90 font-medium">Admin Panel</p>
                     </div>
                   </div>
-                  <nav className="space-responsive">
+                  <nav className="space-y-1">
                     <button
                       onClick={() => setActiveTab('overview')}
-                      className={`w-full flex items-center space-x-responsive px-responsive py-responsive rounded-responsive text-left transition-all duration-200 backdrop-blur-sm text-responsive-sm ${
+                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'overview' 
-                          ? 'bg-gradient-to-r from-sky-100 to-blue-100 text-sky-900 border-r-4 border-sky-500 shadow-lg' 
-                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-blue-50 hover:text-sky-900'
+                          ? 'bg-white text-orange-600 shadow-md' 
+                          : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <BarChart3 className="w-4 h-4" />
-                      <span className="font-medium">Dashboard</span>
+                      <BarChart3 className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <span className="truncate">Dashboard</span>
                     </button>
                     
                     <button
                       onClick={() => setActiveTab('students')}
-                      className={`w-full flex items-center space-x-responsive px-responsive py-responsive rounded-responsive text-left transition-all duration-200 backdrop-blur-sm text-responsive-sm ${
+                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'students' 
-                          ? 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-900 border-r-4 border-blue-500 shadow-lg' 
-                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 hover:text-blue-900'
+                          ? 'bg-white text-orange-600 shadow-md' 
+                          : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <Users className="w-4 h-4" />
-                      <span className="font-medium">Students</span>
+                      <Users className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <span className="truncate">Students</span>
                     </button>
                     
                     <button
                       onClick={() => setActiveTab('classes')}
-                      className={`w-full flex items-center space-x-responsive px-responsive py-responsive rounded-responsive text-left transition-all duration-200 backdrop-blur-sm text-responsive-sm ${
+                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'classes' 
-                          ? 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-900 border-r-4 border-blue-500 shadow-lg' 
-                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 hover:text-blue-900'
+                          ? 'bg-white text-orange-600 shadow-md' 
+                          : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <GraduationCap className="w-4 h-4" />
-                      <span className="font-medium">Classes</span>
+                      <GraduationCap className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <span className="truncate">Classes</span>
                     </button>
                     
                     <button
                       onClick={() => setActiveTab('teachers')}
-                      className={`w-full flex items-center space-x-responsive px-responsive py-responsive rounded-responsive text-left transition-all duration-200 backdrop-blur-sm text-responsive-sm ${
+                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'teachers' 
-                          ? 'bg-gradient-to-r from-sky-100 to-blue-100 text-sky-900 border-r-4 border-sky-500 shadow-lg' 
-                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-blue-50 hover:text-sky-900'
+                          ? 'bg-white text-orange-600 shadow-md' 
+                          : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <Users className="w-4 h-4" />
-                      <span className="font-medium">Teachers</span>
+                      <Users className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <span className="truncate">Teachers</span>
                     </button>
                     
                     <button
                       onClick={() => setActiveTab('subjects')}
-                      className={`w-full flex items-center space-x-responsive px-responsive py-responsive rounded-responsive text-left transition-all duration-200 backdrop-blur-sm text-responsive-sm ${
+                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'subjects' 
-                          ? 'bg-gradient-to-r from-sky-100 to-blue-100 text-sky-900 border-r-4 border-sky-500 shadow-lg' 
-                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-blue-50 hover:text-sky-900'
+                          ? 'bg-white text-orange-600 shadow-md' 
+                          : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <BookOpen className="w-4 h-4" />
-                      <span className="font-medium">Subjects</span>
+                      <BookOpen className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <span className="truncate">Subjects</span>
                     </button>
                     
                     <button
                       onClick={() => setActiveTab('exams')}
-                      className={`w-full flex items-center space-x-responsive px-responsive py-responsive rounded-responsive text-left transition-all duration-200 backdrop-blur-sm text-responsive-sm ${
+                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'exams' 
-                          ? 'bg-gradient-to-r from-indigo-100 to-blue-100 text-indigo-900 border-r-4 border-indigo-500 shadow-lg' 
-                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-blue-50 hover:text-indigo-900'
+                          ? 'bg-white text-orange-600 shadow-md' 
+                          : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <FileText className="w-4 h-4" />
-                      <span className="font-medium">Exams</span>
+                      <FileText className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <span className="truncate">Exams</span>
                     </button>
                     
                     <button
                       onClick={() => setActiveTab('learning-paths')}
-                      className={`w-full flex items-center space-x-responsive px-responsive py-responsive rounded-responsive text-left transition-all duration-200 backdrop-blur-sm text-responsive-sm ${
+                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'learning-paths' 
-                          ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-900 border-r-4 border-green-500 shadow-lg' 
-                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:text-green-900'
+                          ? 'bg-white text-orange-600 shadow-md' 
+                          : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <Target className="w-4 h-4" />
-                      <span className="font-medium">Learning Paths</span>
+                      <Target className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <span className="truncate">Learning Paths</span>
                     </button>
                     
                     <button
                       onClick={() => setActiveTab('eduott')}
-                      className={`w-full flex items-center space-x-responsive px-responsive py-responsive rounded-responsive text-left transition-all duration-200 backdrop-blur-sm text-responsive-sm ${
+                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'eduott' 
-                          ? 'bg-gradient-to-r from-sky-100 to-blue-100 text-sky-900 border-r-4 border-sky-500 shadow-lg' 
-                          : 'text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-blue-50 hover:text-sky-900'
+                          ? 'bg-white text-orange-600 shadow-md' 
+                          : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <Play className="w-4 h-4" />
-                      <span className="font-medium">EduOTT</span>
+                      <Play className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <span className="truncate">EduOTT</span>
                     </button>
                     
                     <button
@@ -416,116 +416,116 @@ const AdminDashboard = () => {
 
       {/* Desktop Sidebar */}
       {!isMobile && (
-        <div className="w-64 bg-white/60 backdrop-blur-xl shadow-2xl border-r border-white/20 relative z-10">
+        <div className="w-64 bg-gradient-to-b from-orange-400 to-orange-500 shadow-2xl border-r border-orange-300 relative z-10">
         {/* Logo Section */}
-        <div className="p-6 border-b border-white/20">
+        <div className="p-6 border-b border-orange-300/50">
           <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-r from-[#1CD8D2] via-[#1FA2FF] to-[#5B43F1] rounded-2xl flex items-center justify-center shadow-xl">
+            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center shadow-xl">
               <span className="text-white font-bold text-xl">AS</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-cyan-300 bg-clip-text text-transparent">ASLILEARN AI</h1>
-              <p className="text-xs text-gray-600 font-medium">Admin Panel</p>
+              <h1 className="text-xl font-bold text-white">ASLILEARN AI</h1>
+              <p className="text-xs text-white/90 font-medium">Admin Panel</p>
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-2">
+        <nav className="p-4 space-y-1">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 backdrop-blur-sm ${
+            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
               activeTab === 'overview' 
-                ? 'bg-gradient-to-r from-sky-100 to-blue-100 text-sky-900 border-r-4 border-sky-500 shadow-lg' 
-                : 'text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-blue-50 hover:text-sky-900'
+                ? 'bg-white text-orange-600 shadow-md' 
+                : 'text-white hover:bg-orange-600/50'
             }`}
           >
-            <BarChart3 className="w-5 h-5" />
-            <span className="font-medium">Dashboard</span>
+            <BarChart3 className="mr-3 h-5 w-5 flex-shrink-0" />
+            <span className="truncate">Dashboard</span>
           </button>
           
           <button
             onClick={() => setActiveTab('students')}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 backdrop-blur-sm ${
+            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
               activeTab === 'students' 
-                ? 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-900 border-r-4 border-blue-500 shadow-lg' 
-                : 'text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 hover:text-blue-900'
+                ? 'bg-white text-orange-600 shadow-md' 
+                : 'text-white hover:bg-orange-600/50'
             }`}
           >
-            <Users className="w-5 h-5" />
-            <span className="font-medium">Students</span>
+            <Users className="mr-3 h-5 w-5 flex-shrink-0" />
+            <span className="truncate">Students</span>
           </button>
           
           <button
             onClick={() => setActiveTab('classes')}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 backdrop-blur-sm ${
+            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
               activeTab === 'classes' 
-                ? 'bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-900 border-r-4 border-emerald-500 shadow-lg' 
-                : 'text-gray-700 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-teal-50 hover:text-emerald-900'
+                ? 'bg-white text-orange-600 shadow-md' 
+                : 'text-white hover:bg-orange-600/50'
             }`}
           >
-            <GraduationCap className="w-5 h-5" />
-            <span className="font-medium">Classes</span>
+            <GraduationCap className="mr-3 h-5 w-5 flex-shrink-0" />
+            <span className="truncate">Classes</span>
           </button>
           
           <button
             onClick={() => setActiveTab('teachers')}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 backdrop-blur-sm ${
+            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
               activeTab === 'teachers' 
-                ? 'bg-gradient-to-r from-orange-100 to-red-100 text-orange-900 border-r-4 border-orange-500 shadow-lg' 
-                : 'text-gray-700 hover:bg-gradient-to-r hover:from-orange-50 hover:to-red-50 hover:text-orange-900'
+                ? 'bg-white text-orange-600 shadow-md' 
+                : 'text-white hover:bg-orange-600/50'
             }`}
           >
-            <Users className="w-5 h-5" />
-            <span className="font-medium">Teachers</span>
+            <Users className="mr-3 h-5 w-5 flex-shrink-0" />
+            <span className="truncate">Teachers</span>
           </button>
           
           <button
             onClick={() => setActiveTab('subjects')}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 backdrop-blur-sm ${
+            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
               activeTab === 'subjects' 
-                ? 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-900 border-r-4 border-blue-500 shadow-lg' 
-                : 'text-gray-700 hover:bg-gradient-to-r hover:from-blue-50 hover:to-cyan-50 hover:text-blue-900'
+                ? 'bg-white text-orange-600 shadow-md' 
+                : 'text-white hover:bg-orange-600/50'
             }`}
           >
-            <BookOpen className="w-5 h-5" />
-            <span className="font-medium">Subjects</span>
+            <BookOpen className="mr-3 h-5 w-5 flex-shrink-0" />
+            <span className="truncate">Subjects</span>
           </button>
           
           <button
             onClick={() => setActiveTab('exams')}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 backdrop-blur-sm ${
+            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
               activeTab === 'exams' 
-                ? 'bg-gradient-to-r from-indigo-100 to-blue-100 text-indigo-900 border-r-4 border-indigo-500 shadow-lg' 
-                : 'text-gray-700 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-blue-50 hover:text-indigo-900'
+                ? 'bg-white text-orange-600 shadow-md' 
+                : 'text-white hover:bg-orange-600/50'
             }`}
           >
-            <FileText className="w-5 h-5" />
-            <span className="font-medium">Exams</span>
+            <FileText className="mr-3 h-5 w-5 flex-shrink-0" />
+            <span className="truncate">Exams</span>
           </button>
           
           <button
             onClick={() => setActiveTab('learning-paths')}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 backdrop-blur-sm ${
+            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
               activeTab === 'learning-paths' 
-                ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-900 border-r-4 border-green-500 shadow-lg' 
-                : 'text-gray-700 hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 hover:text-green-900'
+                ? 'bg-white text-orange-600 shadow-md' 
+                : 'text-white hover:bg-orange-600/50'
             }`}
           >
-            <Target className="w-5 h-5" />
-            <span className="font-medium">Learning Paths</span>
+            <Target className="mr-3 h-5 w-5 flex-shrink-0" />
+            <span className="truncate">Learning Paths</span>
           </button>
           
           <button
             onClick={() => setActiveTab('eduott')}
-            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all duration-200 backdrop-blur-sm ${
+            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
               activeTab === 'eduott' 
-                ? 'bg-gradient-to-r from-sky-100 to-blue-100 text-sky-900 border-r-4 border-sky-500 shadow-lg' 
-                : 'text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-blue-50 hover:text-sky-900'
+                ? 'bg-white text-orange-600 shadow-md' 
+                : 'text-white hover:bg-orange-600/50'
             }`}
           >
-            <Play className="w-5 h-5" />
-            <span className="font-medium">EduOTT</span>
+            <Play className="mr-3 h-5 w-5 flex-shrink-0" />
+            <span className="truncate">EduOTT</span>
           </button>
           
         </nav>
@@ -535,12 +535,12 @@ const AdminDashboard = () => {
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col relative z-10">
           {/* Top Header - Student Dashboard Theme */}
-          <div className="bg-gradient-to-r from-blue-900 to-blue-950 text-white shadow-xl border-b-0 rounded-b-3xl px-responsive py-6 relative z-10">
+          <div className="bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 shadow-xl border-b-0 rounded-b-3xl px-responsive py-6 relative z-10">
             <div className="flex-responsive-col items-center sm:items-start justify-between space-y-responsive sm:space-y-0">
               <div className="text-center sm:text-left">
-                <p className="text-xs uppercase tracking-[0.3em] text-white/80 mb-2">Admin Control Center</p>
-                <h2 className="text-responsive-xl font-bold capitalize">{activeTab}</h2>
-                <p className="text-white/90 text-responsive-sm font-medium">Manage your learning platform with style</p>
+                <p className="text-xs uppercase tracking-[0.3em] text-gray-900 mb-2">Admin Control Center</p>
+                <h2 className="text-responsive-xl font-bold capitalize text-gray-900">{activeTab}</h2>
+                <p className="text-gray-900 text-responsive-sm font-medium">Manage your learning platform with style</p>
               </div>
               {!isMobile && (
                 <div className="flex items-center space-x-responsive">
@@ -580,7 +580,7 @@ const AdminDashboard = () => {
                         window.location.href = '/signin';
                       }
                     }}
-                    className="bg-white/20 text-white hover:bg-white/30 rounded-full border-2 border-white/50 backdrop-blur-sm font-semibold shadow-lg"
+                    className="bg-white/90 text-gray-900 hover:bg-white rounded-full border-2 border-gray-300 backdrop-blur-sm font-semibold shadow-lg"
                   >
                     <LogOut className="w-4 h-4 mr-responsive" />
                     Logout
@@ -600,9 +600,8 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-pink-600 to-pink-700 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-responsive p-responsive hover:shadow-xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
@@ -622,9 +621,8 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg rounded-responsive p-responsive hover:shadow-xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
@@ -644,9 +642,8 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                    className="group relative overflow-hidden bg-gradient-to-br from-orange-600 to-orange-700 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-responsive p-responsive hover:shadow-xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
@@ -666,9 +663,8 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-sky-600 to-sky-700 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-responsive p-responsive hover:shadow-xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
@@ -688,9 +684,8 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                    className="group relative overflow-hidden bg-gradient-to-br from-pink-600 to-pink-700 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg rounded-responsive p-responsive hover:shadow-xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
@@ -710,9 +705,8 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                    className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-responsive p-responsive hover:shadow-xl transition-all duration-300"
               >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
@@ -739,25 +733,25 @@ const AdminDashboard = () => {
               >
                 <div className="relative z-10">
                 <div className="flex items-center space-x-3 mb-6">
-                  <div className="p-3 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-xl shadow-lg">
+                  <div className="p-3 bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl shadow-lg">
                     <BarChart3 className="w-8 h-8 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-responsive-lg font-bold bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent">Detailed School Analysis</h3>
+                    <h3 className="text-responsive-lg font-bold text-orange-600">Detailed School Analysis</h3>
                     <p className="text-gray-600 text-responsive-xs">Comprehensive insights about your students</p>
                   </div>
                 </div>
 
                 {isLoadingAnalytics ? (
                   <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {/* Class Distribution */}
                     <div className="bg-white rounded-lg p-4 shadow-md border border-gray-200">
                       <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
-                        <GraduationCap className="w-5 h-5 mr-2 text-indigo-600" />
+                        <GraduationCap className="w-5 h-5 mr-2 text-orange-600" />
                         Class Distribution
                       </h4>
                       <div className="space-y-2">
@@ -765,7 +759,7 @@ const AdminDashboard = () => {
                           studentAnalytics.classDistribution.slice(0, 5).map((item: any, idx: number) => (
                             <div key={idx} className="flex justify-between items-center text-sm">
                               <span className="text-gray-700">{item.className || item.class || 'Unknown'}</span>
-                              <span className="font-semibold text-indigo-600">{item.count || 0} students</span>
+                              <span className="font-semibold text-orange-600">{item.count || 0} students</span>
                             </div>
                           ))
                         ) : (
@@ -789,7 +783,7 @@ const AdminDashboard = () => {
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-sm text-gray-600">Total Exams Taken</span>
-                          <span className="text-lg font-bold text-indigo-600">
+                          <span className="text-lg font-bold text-orange-600">
                             {studentAnalytics.performanceMetrics?.totalExamsTaken || 0}
                           </span>
                         </div>
@@ -810,7 +804,7 @@ const AdminDashboard = () => {
                     {/* Subject Performance */}
                     <div className="bg-white rounded-lg p-4 shadow-md border border-gray-200">
                       <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
-                        <BookOpen className="w-5 h-5 mr-2 text-sky-600" />
+                        <BookOpen className="w-5 h-5 mr-2 text-orange-600" />
                         Subject Performance
                       </h4>
                       <div className="space-y-2">
@@ -819,10 +813,10 @@ const AdminDashboard = () => {
                             <div key={idx} className="flex justify-between items-center text-sm">
                               <span className="text-gray-700 capitalize">{subject.subject || subject.name || 'Unknown'}</span>
                               <div className="flex items-center space-x-2">
-                                <span className="font-semibold text-sky-600">{subject.averageScore || 0}%</span>
+                                <span className="font-semibold text-orange-600">{subject.averageScore || 0}%</span>
                                 <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
                                   <div 
-                                    className="h-full bg-gradient-to-r from-sky-500 to-blue-500"
+                                    className="h-full bg-gradient-to-r from-orange-400 to-orange-500"
                                     style={{ width: `${Math.min(subject.averageScore || 0, 100)}%` }}
                                   ></div>
                                 </div>
@@ -845,7 +839,7 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
-                className="relative overflow-hidden bg-gradient-to-br from-pink-600 to-pink-700 rounded-responsive p-responsive shadow-responsive"
+                className="relative overflow-hidden bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg rounded-responsive p-responsive hover:shadow-xl transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">

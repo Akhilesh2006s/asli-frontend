@@ -17,6 +17,15 @@ export default function BoardComparisonCharts() {
   const [analytics, setAnalytics] = useState<BoardAnalytics[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Format board name to title case
+  const formatBoardName = (name: string): string => {
+    if (!name) return name;
+    if (name === 'ASLI EXCLUSIVE SCHOOLS' || name === 'ASLI_EXCLUSIVE_SCHOOLS') {
+      return 'Asli Exclusive Schools';
+    }
+    return name;
+  };
+
   useEffect(() => {
     fetchBoardAnalytics();
   }, []);
@@ -38,7 +47,7 @@ export default function BoardComparisonCharts() {
         const comparisonData = await comparisonResponse.json();
         if (comparisonData.success && comparisonData.data) {
           const formattedAnalytics = comparisonData.data.map((item: any) => ({
-            board: item.boardName || item.board,
+            board: formatBoardName(item.boardName || item.board),
             students: item.students || 0,
             exams: item.exams || 0,
             totalAttempts: item.totalAttempts || 0,
@@ -76,7 +85,7 @@ export default function BoardComparisonCharts() {
       
       // Format data for comparison
       const formattedAnalytics = results.map((result) => {
-        const boardName = 'ASLI EXCLUSIVE SCHOOLS';
+        const boardName = formatBoardName('Asli Exclusive Schools');
         
         if (result.data && result.data.stats) {
           const stats = result.data.stats;
@@ -294,7 +303,6 @@ export default function BoardComparisonCharts() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Board Performance Comparison</h2>
           <p className="text-gray-600 mt-1">Compare performance across all boards</p>
         </div>
         <Button onClick={fetchBoardAnalytics} variant="outline">
