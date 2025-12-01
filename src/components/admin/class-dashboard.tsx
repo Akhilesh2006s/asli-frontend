@@ -28,7 +28,10 @@ import {
   TrendingUp,
   BarChart3,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  ArrowUp,
+  CheckCircle2,
+  Loader2
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -38,7 +41,7 @@ interface Student {
   email: string;
   classNumber: string;
   phone?: string;
-  status: 'active' | 'inactive';
+  status: 'active' | 'inactive' | 'completed';
   createdAt: string;
   lastLogin?: string;
 }
@@ -104,6 +107,10 @@ const ClassDashboard = () => {
   const [selectedClassForSubjects, setSelectedClassForSubjects] = useState<string>('');
   const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
   const [isAssigningSubjects, setIsAssigningSubjects] = useState(false);
+  const [selectedClassesForPromotion, setSelectedClassesForPromotion] = useState<Set<string>>(new Set());
+  const [isPromoting, setIsPromoting] = useState(false);
+  const [completedStudents, setCompletedStudents] = useState<Student[]>([]);
+  const [isLoadingCompletedStudents, setIsLoadingCompletedStudents] = useState(false);
 
   useEffect(() => {
     fetchClasses();
@@ -229,6 +236,62 @@ const ClassDashboard = () => {
     } catch (error) {
       console.error('Failed to fetch students:', error);
       // Note: Students are fetched as part of classes data
+    }
+  };
+
+  const fetchCompletedStudents = async () => {
+    try {
+      setIsLoadingCompletedStudents(true);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/admin/students`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const responseData = await response.json();
+      const data = responseData.data || responseData;
+      
+      if (!Array.isArray(data)) {
+        console.error('Expected array but got:', responseData);
+        throw new Error('Invalid data format received from server');
+      }
+      
+      // Filter students who have completed (classNumber === 'Finished' or isActive === false)
+      const completed = data
+        .filter((user: any) => {
+          const classNum = user.classNumber || '';
+          const isFinished = classNum === 'Finished' || classNum === 'finished' || 
+                           (user.isActive === false && (classNum.includes('12') || classNum === '12'));
+          return isFinished;
+        })
+        .map((user: any) => ({
+          id: user._id || user.id,
+          name: user.fullName || user.name || 'Unknown Student',
+          email: user.email || '',
+          classNumber: user.classNumber || 'Finished',
+          phone: user.phone || '',
+          status: 'completed' as const,
+          createdAt: user.createdAt || new Date().toISOString(),
+          lastLogin: user.lastLogin || null,
+          assignedClass: user.assignedClass?._id || user.assignedClass || null
+        }));
+      
+      setCompletedStudents(completed);
+    } catch (error) {
+      console.error('Failed to fetch completed students:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch completed students',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoadingCompletedStudents(false);
     }
   };
 
@@ -435,6 +498,94 @@ const ClassDashboard = () => {
       });
     } finally {
       setIsDeletingAll(false);
+    }
+  };
+
+  const handlePromoteClasses = async () => {
+    if (selectedClassesForPromotion.size === 0) {
+      toast({
+        title: 'No Classes Selected',
+        description: 'Please select at least one class to promote.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    const classIds = Array.from(selectedClassesForPromotion);
+    const classesToPromote = classes.filter(c => classIds.includes(c.id));
+    
+    // Show confirmation with details
+    const promotionDetails = classesToPromote.map(c => {
+      // Handle both positive and negative class numbers
+      const cleanClassNum = c.classNumber.replace(/[^-\d]/g, '');
+      const currentClassNum = parseInt(cleanClassNum);
+      const absClassNum = Math.abs(currentClassNum);
+      const willBeFinished = absClassNum === 12;
+      // Calculate next class number (same logic as backend)
+      let nextClassNum;
+      if (absClassNum === 11) {
+        nextClassNum = 12;
+      } else if (absClassNum < 11) {
+        nextClassNum = absClassNum + 1;
+      } else {
+        nextClassNum = absClassNum + 1; // Should not reach here
+      }
+      return `Class ${c.classNumber}${c.section ? c.section : ''} → ${willBeFinished ? 'Finished Academic Career' : `Class ${nextClassNum}${c.section ? c.section : ''}`}`;
+    }).join('\n');
+
+    if (!confirm(`Are you sure you want to promote the following ${classIds.length} class(es)?\n\n${promotionDetails}\n\nThis action cannot be undone.`)) {
+      return;
+    }
+
+    setIsPromoting(true);
+    try {
+      console.log('Promoting classes - Class IDs:', classIds);
+      console.log('Promoting classes - Classes to promote:', classesToPromote.map(c => ({
+        id: c.id,
+        name: c.name,
+        classNumber: c.classNumber,
+        section: c.section
+      })));
+      
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/admin/classes/promote`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          classIds: classIds
+        })
+      });
+
+      const responseData = await response.json();
+      console.log('Promote classes response:', responseData);
+
+      if (response.ok && responseData.success !== false) {
+        fetchClasses();
+        setSelectedClassesForPromotion(new Set());
+        toast({
+          title: 'Success',
+          description: `Successfully promoted ${responseData.promotedCount || classIds.length} class(es)!`,
+          variant: 'default'
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: responseData.message || 'Failed to promote classes. Please try again.',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to promote classes:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to promote classes. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsPromoting(false);
     }
   };
 
@@ -670,7 +821,11 @@ const ClassDashboard = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="classes" className="space-y-6">
+        <Tabs defaultValue="classes" className="space-y-6" onValueChange={(value) => {
+          if (value === 'completed-students') {
+            fetchCompletedStudents();
+          }
+        }}>
           <TabsList className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-3xl p-1">
             <TabsTrigger value="classes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white rounded-2xl">
               <GraduationCap className="w-4 h-4 mr-2" />
@@ -679,6 +834,14 @@ const ClassDashboard = () => {
             <TabsTrigger value="assign-subjects" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white rounded-2xl">
               <BookOpen className="w-4 h-4 mr-2" />
               Assign Subjects
+            </TabsTrigger>
+            <TabsTrigger value="promote-class" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white rounded-2xl">
+              <ArrowUp className="w-4 h-4 mr-2" />
+              Promote Class
+            </TabsTrigger>
+            <TabsTrigger value="completed-students" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white rounded-2xl">
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              Completed Students
             </TabsTrigger>
           </TabsList>
 
@@ -1073,6 +1236,325 @@ const ClassDashboard = () => {
                     {isAssigningSubjects ? 'Saving...' : 'Save'}
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="promote-class" className="space-y-6">
+            <Card className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20">
+              <CardHeader>
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-500 bg-clip-text text-transparent">
+                  Promote Classes
+                </CardTitle>
+                <p className="text-gray-600 mt-2">Promote classes to the next grade level. Classes will move from Class 1 → Class 2 → ... → Class 12 → Finished Academic Career</p>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start">
+                    <AlertTriangle className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-blue-800">
+                      <p className="font-semibold mb-1">Important Notes:</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        <li>Select classes to promote them to the next grade level</li>
+                        <li>Class 1 will become Class 2, Class 2 will become Class 3, and so on</li>
+                        <li>Class 12 will be marked as "Finished Academic Career"</li>
+                        <li>All students in the selected classes will be moved to the new class</li>
+                        <li>This action cannot be undone</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <Label className="text-base font-semibold">Select Classes to Promote</Label>
+                  <div className="space-y-4 max-h-96 overflow-y-auto p-2 border border-gray-200 rounded-lg">
+                    {(() => {
+                      // Group classes by class number
+                      const classesByNumber = classes
+                        .filter(c => {
+                          // Handle both positive and negative class numbers
+                          // Extract numeric part (including negative sign)
+                          const cleanClassNum = c.classNumber.replace(/[^-\d]/g, '');
+                          const classNum = parseInt(cleanClassNum);
+                          // Use absolute value to check if it's between 1-12
+                          const absClassNum = Math.abs(classNum);
+                          // Allow classes from 1-12 (including negative like -10, -11, -12)
+                          return !isNaN(classNum) && absClassNum >= 1 && absClassNum <= 12;
+                        })
+                        .reduce((acc, classItem) => {
+                          // Use the original classNumber as key to preserve negative signs
+                          const classNum = classItem.classNumber;
+                          if (!acc[classNum]) {
+                            acc[classNum] = [];
+                          }
+                          acc[classNum].push(classItem);
+                          return acc;
+                        }, {} as Record<string, typeof classes>);
+
+                      // Sort class numbers (handle negative numbers)
+                      const sortedClassNumbers = Object.keys(classesByNumber).sort((a, b) => {
+                        // Clean the class numbers for comparison
+                        const cleanA = a.replace(/[^-\d]/g, '');
+                        const cleanB = b.replace(/[^-\d]/g, '');
+                        const numA = parseInt(cleanA);
+                        const numB = parseInt(cleanB);
+                        if (!isNaN(numA) && !isNaN(numB)) {
+                          return numA - numB;
+                        }
+                        return a.localeCompare(b);
+                      });
+
+                      return sortedClassNumbers.map((classNum) => {
+                        const classItems = classesByNumber[classNum].sort((a, b) => {
+                          // Sort by section (A, B, C)
+                          const sectionA = a.section || '';
+                          const sectionB = b.section || '';
+                          return sectionA.localeCompare(sectionB);
+                        });
+
+                        // Clean class number for calculations
+                        const cleanClassNum = classNum.replace(/[^-\d]/g, '');
+                        const currentClassNum = parseInt(cleanClassNum);
+                        const absClassNum = Math.abs(currentClassNum);
+                        // Calculate next class number
+                        // - If abs value is 11, promote to 12 (regardless of sign)
+                        // - If abs value < 11, promote to abs value + 1 (always positive)
+                        let nextClassNum;
+                        if (absClassNum === 11) {
+                          nextClassNum = 12;
+                        } else if (absClassNum < 11) {
+                          nextClassNum = absClassNum + 1;
+                        } else {
+                          nextClassNum = absClassNum + 1; // Should not reach here
+                        }
+                        const willBeFinished = absClassNum === 12;
+
+                        return (
+                          <div key={classNum} className="space-y-2">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <h4 className="font-semibold text-gray-700">Class {classNum}</h4>
+                              <Badge variant="outline" className="text-xs">
+                                {classItems.length} section{classItems.length !== 1 ? 's' : ''}
+                              </Badge>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 ml-4">
+                              {classItems.map((classItem) => {
+                                const isSelected = selectedClassesForPromotion.has(classItem.id);
+                                
+                                return (
+                                  <div
+                                    key={classItem.id}
+                                    className={`p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                                      isSelected
+                                        ? 'border-green-500 bg-green-50'
+                                        : 'border-gray-200 bg-white hover:border-gray-300'
+                                    }`}
+                                    onClick={() => {
+                                      const newSet = new Set(selectedClassesForPromotion);
+                                      if (isSelected) {
+                                        newSet.delete(classItem.id);
+                                      } else {
+                                        newSet.add(classItem.id);
+                                      }
+                                      setSelectedClassesForPromotion(newSet);
+                                    }}
+                                  >
+                                    <div className="flex items-start space-x-2">
+                                      <Checkbox
+                                        checked={isSelected}
+                                        onCheckedChange={(checked) => {
+                                          const newSet = new Set(selectedClassesForPromotion);
+                                          if (checked) {
+                                            newSet.add(classItem.id);
+                                          } else {
+                                            newSet.delete(classItem.id);
+                                          }
+                                          setSelectedClassesForPromotion(newSet);
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="font-semibold text-gray-900 text-sm">
+                                            Section {classItem.section || 'N/A'}
+                                          </span>
+                                          {isSelected && (
+                                            <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                          )}
+                                        </div>
+                                        <p className="text-xs text-gray-600 mb-1">
+                                          {classItem.studentCount || 0} students
+                                        </p>
+                                        <div className="flex items-center space-x-1 text-xs">
+                                          <ArrowUp className="w-3 h-3 text-gray-400" />
+                                          <span className="text-gray-500">
+                                            {willBeFinished 
+                                              ? 'Finished'
+                                              : `Class ${nextClassNum}${classItem.section ? classItem.section : ''}`
+                                            }
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                  
+                  {classes.filter(c => {
+                    // Handle both positive and negative class numbers
+                    const cleanClassNum = c.classNumber.replace(/[^-\d]/g, '');
+                    const classNum = parseInt(cleanClassNum);
+                    const absClassNum = Math.abs(classNum);
+                    return !isNaN(classNum) && absClassNum >= 1 && absClassNum <= 12;
+                  }).length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      <GraduationCap className="w-12 h-12 mx-auto mb-2 text-gray-400" />
+                      <p>No classes available for promotion</p>
+                      <p className="text-sm">Classes must be between Class 1 and Class 12</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedClassesForPromotion(new Set());
+                    }}
+                    disabled={isPromoting || selectedClassesForPromotion.size === 0}
+                  >
+                    Clear Selection
+                  </Button>
+                  <Button
+                    onClick={handlePromoteClasses}
+                    disabled={isPromoting || selectedClassesForPromotion.size === 0}
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                  >
+                    {isPromoting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Promoting...
+                      </>
+                    ) : (
+                      <>
+                        <ArrowUp className="w-4 h-4 mr-2" />
+                        Promote {selectedClassesForPromotion.size} Class{selectedClassesForPromotion.size !== 1 ? 'es' : ''}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="completed-students" className="space-y-6">
+            <Card className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-2xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-500 bg-clip-text text-transparent">
+                      Completed Students
+                    </CardTitle>
+                    <p className="text-gray-600 mt-2">Students who have completed Class 12 and finished their academic career</p>
+                  </div>
+                  <Button
+                    onClick={fetchCompletedStudents}
+                    disabled={isLoadingCompletedStudents}
+                    className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white"
+                  >
+                    {isLoadingCompletedStudents ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <Users className="w-4 h-4 mr-2" />
+                        Refresh
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {isLoadingCompletedStudents ? (
+                  <div className="text-center py-12">
+                    <Loader2 className="w-12 h-12 mx-auto mb-4 text-gray-400 animate-spin" />
+                    <p className="text-gray-600">Loading completed students...</p>
+                  </div>
+                ) : completedStudents.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <Badge variant="outline" className="text-lg px-4 py-2">
+                        Total: {completedStudents.length} student{completedStudents.length !== 1 ? 's' : ''}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {completedStudents.map((student) => (
+                        <motion.div
+                          key={student.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200 hover:shadow-lg transition-all"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">
+                                {student.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-gray-900">{student.name}</h4>
+                                <p className="text-xs text-gray-600">{student.email}</p>
+                              </div>
+                            </div>
+                            <Badge className="bg-gradient-to-r from-green-600 to-emerald-600 text-white border-0">
+                              Completed
+                            </Badge>
+                          </div>
+                          <div className="space-y-2 mt-4 pt-4 border-t border-green-200">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600">Status:</span>
+                              <span className="font-medium text-green-700">Finished Academic Career</span>
+                            </div>
+                            {student.phone && (
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-600">Phone:</span>
+                                <span className="font-medium text-gray-900">{student.phone}</span>
+                              </div>
+                            )}
+                            {student.createdAt && (
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-600">Joined:</span>
+                                <span className="font-medium text-gray-900">
+                                  {new Date(student.createdAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <CheckCircle2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 text-lg mb-2">No completed students found</p>
+                    <p className="text-gray-500 text-sm">Students who complete Class 12 will appear here</p>
+                    <Button
+                      onClick={fetchCompletedStudents}
+                      className="mt-4 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white"
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      Refresh List
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

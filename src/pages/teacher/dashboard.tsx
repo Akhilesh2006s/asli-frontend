@@ -203,8 +203,9 @@ const TeacherDashboard = () => {
 
   const [isGeneratingLessonPlan, setIsGeneratingLessonPlan] = useState(false);
   const [generatedLessonPlan, setGeneratedLessonPlan] = useState('');
-  const [vidyaAiTab, setVidyaAiTab] = useState<'teacher-tools'>('teacher-tools');
+  const [vidyaAiTab, setVidyaAiTab] = useState<'teacher-tools' | 'chat'>('teacher-tools');
   const [teacherId, setTeacherId] = useState<string>('');
+  const [teacherUser, setTeacherUser] = useState<any>(null);
   
   // Quiz Generator form state
   const [quizForm, setQuizForm] = useState({
@@ -246,6 +247,7 @@ const TeacherDashboard = () => {
 
   useEffect(() => {
     fetchTeacherData();
+    fetchTeacherUser();
     
     // Check for saved tab preference from tool pages
     const savedTab = localStorage.getItem('teacherDashboardTab');
@@ -255,6 +257,31 @@ const TeacherDashboard = () => {
       localStorage.removeItem('teacherDashboardTab');
     }
   }, []);
+
+  // Fetch teacher user data for chat
+  const fetchTeacherUser = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setTeacherUser(userData.user);
+        if (userData.user?._id || userData.user?.id) {
+          setTeacherId(userData.user._id || userData.user.id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch teacher user:', error);
+    }
+  };
 
   // Fetch student performance data when Track Progress tab is active
   useEffect(() => {
@@ -1865,6 +1892,34 @@ const TeacherDashboard = () => {
                   <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">Vidya AI</h3>
                 </div>
 
+                {/* Tabs for Teacher Tools and Chat */}
+                <div className="mb-6 border-b border-gray-200">
+                  <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
+                    <button
+                      onClick={() => setVidyaAiTab('teacher-tools')}
+                      className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                        vidyaAiTab === 'teacher-tools'
+                          ? 'bg-white text-gray-900 shadow-sm border border-gray-300'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <Wrench className="w-4 h-4 inline mr-2" />
+                      Teacher Tools
+                    </button>
+                    <button
+                      onClick={() => setVidyaAiTab('chat')}
+                      className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                        vidyaAiTab === 'chat'
+                          ? 'bg-white text-gray-900 shadow-sm border border-gray-300'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      <MessageCircle className="w-4 h-4 inline mr-2" />
+                      Chat
+                    </button>
+                  </div>
+                </div>
+
                 {/* Teacher Tools Content */}
                 {vidyaAiTab === 'teacher-tools' && (
                   <div className="space-y-8">
@@ -2247,6 +2302,36 @@ const TeacherDashboard = () => {
                         </motion.div>
                             </div>
                             </div>
+                  </div>
+                )}
+
+                {/* Chat Content */}
+                {vidyaAiTab === 'chat' && (
+                  <div className="space-y-4">
+                    <div>
+                      <h2 className="text-3xl font-bold text-gray-900 mb-2">AI Chat Assistant</h2>
+                      <p className="text-gray-600">Get instant help with teaching questions, lesson planning, and educational guidance</p>
+                    </div>
+                    <div className="bg-white rounded-xl shadow-md border border-gray-200" style={{ minHeight: '600px' }}>
+                      {teacherId ? (
+                        <AIChat
+                          userId={teacherId}
+                          className="flex-1 h-full"
+                          context={{
+                            studentName: teacherUser?.fullName || teacherUser?.email?.split('@')[0] || "Teacher",
+                            currentSubject: teacherSubjects.length > 0 ? teacherSubjects[0].name : "General",
+                            currentTopic: undefined
+                          }}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full min-h-[600px]">
+                          <div className="text-center">
+                            <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                            <p className="text-gray-600">Loading chat...</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </motion.div>

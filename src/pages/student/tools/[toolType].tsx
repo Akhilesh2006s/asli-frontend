@@ -310,9 +310,79 @@ export default function StudentToolPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
   const [copied, setCopied] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   const toolType = params?.toolType || '';
   const config = TOOL_CONFIGS[toolType];
+
+  // Fetch user data to get assigned class
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          setIsLoadingUser(false);
+          return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData.user);
+          
+          // Auto-populate class field with student's assigned class
+          if (userData.user) {
+            const studentClass = userData.user.assignedClass?.classNumber || userData.user.classNumber;
+            if (studentClass) {
+              // Convert class number to match CLASS_OPTIONS format
+              // Handle formats like "8", "-8", "Class 8", "8A", "-11A", etc.
+              let classValue = studentClass.toString().trim();
+              
+              // Remove "Class " prefix if present
+              classValue = classValue.replace(/^Class\s*/i, '');
+              
+              // Extract just the number part (remove section letters like A, B, C)
+              const classNum = classValue.replace(/[^-\d]/g, '');
+              
+              // Map to CLASS_OPTIONS format
+              // CLASS_OPTIONS uses positive numbers only: "Class 6", "Class 7", ..., "Class 12"
+              // So we convert negative numbers to their absolute value
+              const absNum = Math.abs(parseInt(classNum));
+              
+              if (!isNaN(absNum) && absNum >= 6 && absNum <= 12) {
+                const mappedClass = `Class ${absNum}`;
+                if (CLASS_OPTIONS.includes(mappedClass)) {
+                  setFormParams(prev => ({
+                    ...prev,
+                    gradeLevel: mappedClass
+                  }));
+                }
+              } else if (classValue.toLowerCase().includes('dropper')) {
+                // Handle "Dropper Batch"
+                setFormParams(prev => ({
+                  ...prev,
+                  gradeLevel: 'Dropper Batch'
+                }));
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+      } finally {
+        setIsLoadingUser(false);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   if (!config) {
     return (
@@ -490,6 +560,10 @@ export default function StudentToolPage() {
                   const fieldOptions = getFieldOptions(field);
                   const isDisabled = field.dependsOn && !formParams[field.dependsOn];
                   
+                  // Check if this is the gradeLevel field and should be disabled
+                  const isClassField = field.name === 'gradeLevel';
+                  const isClassFieldDisabled = isClassField && user?.classNumber;
+                  
                   return (
                     <div key={field.name}>
                       <Label htmlFor={field.name}>{field.label}</Label>
@@ -497,7 +571,7 @@ export default function StudentToolPage() {
                         <Select
                           value={formParams[field.name] || ''}
                           onValueChange={(value) => handleInputChange(field.name, value)}
-                          disabled={isDisabled}
+                          disabled={isDisabled || isClassFieldDisabled || isLoadingUser}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder={field.placeholder || `Select ${field.label}`} />
