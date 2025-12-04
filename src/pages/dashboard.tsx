@@ -64,7 +64,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import YouTubePlayer from '@/components/youtube-player';
 import DriveViewer from '@/components/drive-viewer';
 import VideoModal from '@/components/video-modal';
@@ -281,6 +281,14 @@ export default function Dashboard() {
   const [filteredContent, setFilteredContent] = useState<any[]>([]);
   const [isLoadingFilteredContent, setIsLoadingFilteredContent] = useState(false);
   const [allContent, setAllContent] = useState<any[]>([]);
+
+  // Memoize filtered content (must be before useEffect that uses it)
+  const memoizedFilteredContent = useMemo(() => {
+    if (!selectedBrowseType || !allContent.length) return [];
+    return allContent.filter((content: any) => 
+      content.type && content.type.toLowerCase() === selectedBrowseType.toLowerCase()
+    );
+  }, [selectedBrowseType, allContent]);
   const [studyTimeToday, setStudyTimeToday] = useState<number>(0); // in minutes
   const [studyTimeThisWeek, setStudyTimeThisWeek] = useState<number>(0); // in minutes
   const [weeklyStudyData, setWeeklyStudyData] = useState<{ [key: string]: number }>({}); // Daily study time in minutes
@@ -917,27 +925,18 @@ export default function Dashboard() {
     fetchContentCounts();
   }, []);
 
-  // Filter content when browse type is selected
+  // Update filteredContent state when memoized value changes
   useEffect(() => {
     if (!selectedBrowseType) {
       setFilteredContent([]);
+      setIsLoadingFilteredContent(false);
       return;
     }
 
     setIsLoadingFilteredContent(true);
-    
-    // Filter by the selected content type (case-insensitive)
-    const filtered = allContent.filter((content: any) => 
-      content.type && content.type.toLowerCase() === selectedBrowseType.toLowerCase()
-    );
-    
-    console.log(`Filtered ${filtered.length} items for type: ${selectedBrowseType}`);
-    const uniqueTypes = allContent.map((c: any) => c.type).filter((type: any, index: number, arr: any[]) => arr.indexOf(type) === index);
-    console.log('All content types in allContent:', uniqueTypes);
-    
-    setFilteredContent(filtered);
+    setFilteredContent(memoizedFilteredContent);
     setIsLoadingFilteredContent(false);
-  }, [selectedBrowseType, allContent]);
+  }, [selectedBrowseType, memoizedFilteredContent]);
 
   // Track study time using timestamp module (ignores background time)
   useEffect(() => {
@@ -1388,6 +1387,20 @@ export default function Dashboard() {
   // Dashboard data is now handled by other queries (userData, contentData)
   // Removed problematic mock query that was causing 404 errors
 
+  // Memoize sliced arrays to avoid recalculating on every render
+  // IMPORTANT: All hooks must be called before any early returns
+  const availableTests = useMemo(() => {
+    return exams.slice(0, 2); // Show first 2 exams as available tests
+  }, [exams]);
+
+  const topIncompleteContent = useMemo(() => {
+    return incompleteContent.slice(0, 10);
+  }, [incompleteContent]);
+
+  const topIncompleteQuizzes = useMemo(() => {
+    return incompleteQuizzes.slice(0, 10);
+  }, [incompleteQuizzes]);
+
   if (isLoadingUser || isLoadingContent || isLoadingDashboard) {
     return (
       <>
@@ -1406,7 +1419,6 @@ export default function Dashboard() {
   }
 
   const recommendedVideos = [];
-  const availableTests = exams.slice(0, 2); // Show first 2 exams as available tests
 
   return (
     <>
@@ -1414,8 +1426,9 @@ export default function Dashboard() {
       <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-responsive pb-responsive bg-sky-50 min-h-screen ${isMobile ? 'pb-20' : ''} relative`}>
         {/* Interactive Background */}
         <div className="fixed inset-0 z-0 bg-sky-50">
-          <InteractiveBackground />
-          <FloatingParticles />
+          {/* Interactive Background - Disabled for better performance */}
+          {/* <InteractiveBackground />
+          <FloatingParticles /> */}
         </div>
         
         {/* Robot GIF - Fixed at Bottom Left */}
@@ -2566,11 +2579,11 @@ export default function Dashboard() {
               <CardHeader>
                 <div className="flex items-center space-x-3 mb-4">
                   <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                    <img 
-                      src="/ROBOT.gif" 
-                      alt="Vidya AI Robot" 
-                      className="w-full h-full object-cover"
-                    />
+                  <img 
+                    src="/ROBOT.gif" 
+                    alt="Vidya AI Robot" 
+                    className="w-full h-full object-cover"
+                  />
                   </div>
                   <div>
                     <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">Vidya AI</CardTitle>
@@ -2789,16 +2802,16 @@ export default function Dashboard() {
 
                 {vidyaAiTab === 'chat' && (
                   <div className="text-center py-8">
-                    <Button 
+                <Button 
                       className="bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800"
                       onClick={() => setLocation('/ai-tutor')}
                     >
                       Open AI Chat
-                    </Button>
+                  </Button>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
             {/* Performance Dashboard */}
             <ProgressChart 

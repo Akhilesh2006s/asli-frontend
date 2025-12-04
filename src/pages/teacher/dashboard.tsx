@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -246,16 +246,17 @@ const TeacherDashboard = () => {
   const [isUploadingHomeworkFile, setIsUploadingHomeworkFile] = useState(false);
 
   useEffect(() => {
-    fetchTeacherData();
-    fetchTeacherUser();
-    
-    // Check for saved tab preference from tool pages
+    // Check for saved tab preference from tool pages first
     const savedTab = localStorage.getItem('teacherDashboardTab');
     if (savedTab && ['ai-classes', 'students', 'eduott', 'vidya-ai'].includes(savedTab)) {
       setDashboardSubTab(savedTab as 'ai-classes' | 'students' | 'eduott' | 'vidya-ai');
       // Clear it after using so it doesn't persist on refresh
       localStorage.removeItem('teacherDashboardTab');
     }
+    
+    // Fetch data after state is set
+    fetchTeacherData();
+    fetchTeacherUser();
   }, []);
 
   // Fetch teacher user data for chat
@@ -298,6 +299,7 @@ const TeacherDashboard = () => {
     if (dashboardSubTab === 'students' && studentsSubTab === 'submissions') {
       fetchHomeworkSubmissions();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboardSubTab, studentsSubTab]);
 
   // Fetch homework submissions
@@ -1449,6 +1451,55 @@ const TeacherDashboard = () => {
     }
   };
 
+  // Memoize filtered videos to avoid recalculating on every render
+  const filteredEduottVideos = useMemo(() => {
+    if (!eduottVideos.length) return [];
+    return eduottVideos.filter((video) => {
+      const matchesSearch = video.title.toLowerCase().includes(eduottSearchTerm.toLowerCase()) ||
+                           (video.description || '').toLowerCase().includes(eduottSearchTerm.toLowerCase());
+      const matchesSubject = eduottSelectedSubject === 'all' || 
+                            video.subjectName === eduottSelectedSubject ||
+                            video.subject === eduottSelectedSubject;
+      return matchesSearch && matchesSubject;
+    });
+  }, [eduottVideos, eduottSearchTerm, eduottSelectedSubject]);
+
+  // Memoize filtered students
+  const filteredStudents = useMemo(() => {
+    if (!searchTerm) return students;
+    const lowerSearch = searchTerm.toLowerCase();
+    return students.filter(student => 
+      student.name.toLowerCase().includes(lowerSearch) ||
+      student.email.toLowerCase().includes(lowerSearch) ||
+      student.classNumber?.toLowerCase().includes(lowerSearch)
+    );
+  }, [students, searchTerm]);
+
+  // Memoize filtered live sessions
+  const filteredLiveSessions = useMemo(() => {
+    return liveSessions.filter((session) => {
+      const matchesSearch = session.title?.toLowerCase().includes(sessionSearchTerm.toLowerCase()) ||
+        session.description?.toLowerCase().includes(sessionSearchTerm.toLowerCase());
+      const matchesStatus = filterStatus === 'all' || session.status === filterStatus;
+      return matchesSearch && matchesStatus;
+    });
+  }, [liveSessions, sessionSearchTerm, filterStatus]);
+
+  // Memoize helper functions
+  const formatDuration = useCallback((minutes: number) => {
+    if (!minutes || minutes === 0) return '0:00';
+    const hrs = Math.floor(minutes / 60);
+    const mins = Math.floor(minutes % 60);
+    return hrs > 0 ? `${hrs}:${mins.toString().padStart(2, '0')}` : `${mins}:00`;
+  }, []);
+
+  const extractYouTubeId = useCallback((url: string) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  }, []);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-sky-50 flex items-center justify-center">
@@ -1465,11 +1516,11 @@ const TeacherDashboard = () => {
 
   return (
     <div className="min-h-screen bg-sky-50 relative overflow-hidden">
-      {/* Interactive Background */}
-      <div className="fixed inset-0 z-0">
+      {/* Interactive Background - Disabled for better performance */}
+      {/* <div className="fixed inset-0 z-0">
         <InteractiveBackground />
         <FloatingParticles />
-      </div>
+      </div> */}
       
       {/* Header - Student Dashboard Theme */}
       <div className="bg-gradient-to-r from-sky-400 via-sky-500 to-teal-500 text-white shadow-xl border-b-0 rounded-b-3xl sticky top-0 z-50 relative">
@@ -2007,14 +2058,14 @@ const TeacherDashboard = () => {
                           </div>
                         </motion.div>
 
-                        {/* Tool 2: Worksheet Generator */}
+                        {/* Tool 2: Worksheet & MCQ Generator */}
                         <motion.div
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.5 }}
                           className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
                           onClick={() => {
-                            setLocation('/teacher/tools/worksheet-generator');
+                            setLocation('/teacher/tools/worksheet-mcq-generator');
                           }}
                         >
                           <div className="flex items-start space-x-4">
@@ -2022,8 +2073,8 @@ const TeacherDashboard = () => {
                               <FileText className="w-6 h-6 text-blue-600" />
                       </div>
                       <div>
-                              <h4 className="font-bold text-gray-900 mb-1">Worksheet Generator</h4>
-                              <p className="text-sm text-gray-600">Design custom worksheets with exercises and problems.</p>
+                              <h4 className="font-bold text-gray-900 mb-1">Worksheet & MCQ Generator</h4>
+                              <p className="text-sm text-gray-600">Design custom worksheets and MCQs with various question types.</p>
                       </div>
                       </div>
                         </motion.div>
@@ -2196,32 +2247,11 @@ const TeacherDashboard = () => {
                           </div>
                         </motion.div>
 
-                        {/* Tool 11: MCQ Generator */}
+                        {/* Tool 11: Short Notes & Summaries Maker */}
                         <motion.div
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 1.4 }}
-                          className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
-                          onClick={() => {
-                            setLocation('/teacher/tools/mcq-generator');
-                          }}
-                        >
-                          <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <CheckCircle2 className="w-6 h-6 text-blue-600" />
-                            </div>
-                                  <div>
-                              <h4 className="font-bold text-gray-900 mb-1">MCQ Generator</h4>
-                              <p className="text-sm text-gray-600">Create multiple-choice questions with detailed explanations.</p>
-                                  </div>
-                                </div>
-                        </motion.div>
-
-                        {/* Tool 12: Short Notes & Summaries Maker */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 1.5 }}
                           className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
                             onClick={() => {
                             setLocation('/teacher/tools/short-notes-summaries-maker');
@@ -2238,11 +2268,11 @@ const TeacherDashboard = () => {
                 </div>
               </motion.div>
 
-                        {/* Tool 13: Flashcard Generator */}
+                        {/* Tool 12: Flashcard Generator */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 1.6 }}
+                          transition={{ delay: 1.5 }}
                           className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
                           onClick={() => {
                             setLocation('/teacher/tools/flashcard-generator');
@@ -2259,11 +2289,11 @@ const TeacherDashboard = () => {
                 </div>
                         </motion.div>
 
-                        {/* Tool 14: Report Card Generator */}
+                        {/* Tool 13: Report Card Generator */}
                         <motion.div
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 1.7 }}
+                          transition={{ delay: 1.6 }}
                           className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
                           onClick={() => {
                             setLocation('/teacher/tools/report-card-generator');
@@ -2284,7 +2314,7 @@ const TeacherDashboard = () => {
                         <motion.div
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 1.8 }}
+                          transition={{ delay: 1.7 }}
                           className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
                           onClick={() => {
                             setLocation('/teacher/tools/student-skill-tracker');
@@ -2403,13 +2433,7 @@ const TeacherDashboard = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {students
-                            .filter(student => 
-                              student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                              student.phone?.toLowerCase().includes(searchTerm.toLowerCase())
-                            )
-                            .map((student) => {
+                          {filteredStudents.map((student) => {
                               const perf = student.performance || {};
                               const classDisplay = student.assignedClass 
                                 ? `${student.assignedClass.classNumber || student.classNumber}${student.assignedClass.section || ''}`
@@ -3741,14 +3765,7 @@ const TeacherDashboard = () => {
                     {/* Results Count */}
                     <div className="mt-4">
                       <p className="text-sm text-gray-600">
-                        Showing {eduottVideos.filter((video) => {
-                          const matchesSearch = video.title.toLowerCase().includes(eduottSearchTerm.toLowerCase()) ||
-                                               (video.description || '').toLowerCase().includes(eduottSearchTerm.toLowerCase());
-                          const matchesSubject = eduottSelectedSubject === 'all' || 
-                                                video.subjectName === eduottSelectedSubject ||
-                                                video.subject === eduottSelectedSubject;
-                          return matchesSearch && matchesSubject;
-                        }).length} of {eduottVideos.length} videos
+                        Showing {filteredEduottVideos.length} of {eduottVideos.length} videos
                       </p>
                     </div>
 
@@ -3770,16 +3787,7 @@ const TeacherDashboard = () => {
                         ))}
                       </div>
                     ) : (() => {
-                      const filteredVideos = eduottVideos.filter((video) => {
-                        const matchesSearch = video.title.toLowerCase().includes(eduottSearchTerm.toLowerCase()) ||
-                                             (video.description || '').toLowerCase().includes(eduottSearchTerm.toLowerCase());
-                        const matchesSubject = eduottSelectedSubject === 'all' || 
-                                              video.subjectName === eduottSelectedSubject ||
-                                              video.subject === eduottSelectedSubject;
-                        return matchesSearch && matchesSubject;
-                      });
-
-                      if (filteredVideos.length === 0) {
+                      if (filteredEduottVideos.length === 0) {
                         return (
                           <div className="text-center py-16 bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 mt-6">
                             <VideoIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -3795,22 +3803,9 @@ const TeacherDashboard = () => {
                         );
                       }
 
-                      const formatDuration = (minutes: number) => {
-                        if (!minutes || minutes === 0) return '0:00';
-                        const hrs = Math.floor(minutes / 60);
-                        const mins = Math.floor(minutes % 60);
-                        return hrs > 0 ? `${hrs}:${mins.toString().padStart(2, '0')}` : `${mins}:00`;
-                      };
-
-                      const extractYouTubeId = (url: string) => {
-                        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-                        const match = url.match(regExp);
-                        return (match && match[2].length === 11) ? match[2] : null;
-                      };
-
                       return (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-                          {filteredVideos.map((video) => (
+                          {filteredEduottVideos.map((video) => (
                             <Card 
                               key={video._id || video.id} 
                               className="overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer group"
@@ -3932,12 +3927,7 @@ const TeacherDashboard = () => {
                               </Card>
                             ))}
                           </div>
-                        ) : liveSessions.filter((session) => {
-                          const matchesSearch = session.title?.toLowerCase().includes(sessionSearchTerm.toLowerCase()) ||
-                            session.description?.toLowerCase().includes(sessionSearchTerm.toLowerCase());
-                          const matchesStatus = filterStatus === 'all' || session.status === filterStatus;
-                          return matchesSearch && matchesStatus;
-                        }).length === 0 ? (
+                        ) : filteredLiveSessions.length === 0 ? (
                           <div className="text-center py-16 bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20">
                             <Radio className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                             <h3 className="text-lg font-semibold text-gray-600 mb-2">
@@ -3951,12 +3941,7 @@ const TeacherDashboard = () => {
                           </div>
                         ) : (
                           <div className="space-y-4">
-                            {liveSessions.filter((session) => {
-                              const matchesSearch = session.title?.toLowerCase().includes(sessionSearchTerm.toLowerCase()) ||
-                                session.description?.toLowerCase().includes(sessionSearchTerm.toLowerCase());
-                              const matchesStatus = filterStatus === 'all' || session.status === filterStatus;
-                              return matchesSearch && matchesStatus;
-                            }).map((session) => {
+                            {filteredLiveSessions.map((session) => {
                               const getStatusColor = (status: string) => {
                                 switch (status) {
                                   case 'live':

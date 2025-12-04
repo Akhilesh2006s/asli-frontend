@@ -58,9 +58,9 @@ export default function AIChat({ userId, context, className }: AIChatProps) {
   const currentSession = sessions?.[0];
   const sessionMessages: Message[] = (currentSession?.messages as Message[]) || [];
 
-  // Merge local and session messages
+  // Merge local and session messages - only if localMessages is empty or session has more messages
   useEffect(() => {
-    if (sessionMessages.length > 0) {
+    if (sessionMessages.length > 0 && (localMessages.length === 0 || sessionMessages.length > localMessages.length)) {
       setLocalMessages(sessionMessages);
     }
   }, [sessionMessages]);
@@ -104,14 +104,23 @@ export default function AIChat({ userId, context, className }: AIChatProps) {
       
       // Add AI response to local state immediately
       if (result.session?.messages) {
+        // Use session messages which includes both user and AI messages
         setLocalMessages(result.session.messages);
       } else if (result.message) {
+        // Fallback: add AI message if session messages not available
         const aiMessage: Message = {
           role: 'assistant',
           content: result.message,
           timestamp: new Date(),
         };
-        setLocalMessages(prev => [...prev, aiMessage]);
+        setLocalMessages(prev => {
+          // Avoid duplicates - check if this message already exists
+          const lastMessage = prev[prev.length - 1];
+          if (lastMessage?.role === 'assistant' && lastMessage.content === result.message) {
+            return prev;
+          }
+          return [...prev, aiMessage];
+        });
       }
 
       return result;
@@ -119,8 +128,8 @@ export default function AIChat({ userId, context, className }: AIChatProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users", userId, "chat-sessions"] });
       setMessage("");
-      // Refetch to get latest session
-      setTimeout(() => refetch(), 500);
+      // Refetch to get latest session, but with a delay to avoid race conditions
+      setTimeout(() => refetch(), 1000);
     },
     onError: (error: any) => {
       toast({

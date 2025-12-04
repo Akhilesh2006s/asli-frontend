@@ -12,6 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, ExternalHyperlink, InternalHyperlink } from 'docx';
+import { saveAs } from 'file-saver';
 
 // Enhanced markdown renderer with math support
 const renderMarkdown = (text: string) => {
@@ -313,17 +315,20 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
       { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
+      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'className', label: 'Section (Optional)', type: 'text', placeholder: 'e.g., A, B, C' }
     ]
   },
-  'worksheet-generator': {
-    name: 'Worksheet Generator',
-    description: 'Design custom worksheets with exercises and problems',
+  'worksheet-mcq-generator': {
+    name: 'Worksheet & MCQ Generator',
+    description: 'Design custom worksheets and MCQs with various question types',
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
       { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
+      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
+      { name: 'questionType', label: 'Question Type *', type: 'select', required: true, options: ['Single Option', 'Multiple Option', 'Integer Type', 'All Types'], placeholder: 'Select question type' },
       { name: 'questionCount', label: 'Number of Questions', type: 'number', placeholder: '10' },
       { name: 'difficulty', label: 'Difficulty', type: 'select', options: ['easy', 'medium', 'hard'] }
     ]
@@ -335,7 +340,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
-      { name: 'concept', label: 'Topic/Concept *', type: 'text', required: true, placeholder: 'Enter concept or topic name' }
+      { name: 'concept', label: 'Topic/Concept *', type: 'text', required: true, placeholder: 'Enter concept or topic name' },
+      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
     ]
   },
   'lesson-planner': {
@@ -346,6 +352,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
       { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
+      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'duration', label: 'Duration (minutes)', type: 'number', placeholder: '90' }
     ]
   },
@@ -357,6 +364,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
       { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
+      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'duration', label: 'Expected Duration (minutes)', type: 'number', placeholder: '30' }
     ]
   },
@@ -367,7 +375,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
-      { name: 'assignmentType', label: 'Assignment Type *', type: 'text', required: true, placeholder: 'e.g., Project, Essay, Lab Report' }
+      { name: 'assignmentType', label: 'Assignment Type *', type: 'text', required: true, placeholder: 'e.g., Project, Essay, Lab Report' },
+      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
     ]
   },
   'learning-outcomes-generator': {
@@ -377,7 +386,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
-      { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' }
+      { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
+      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
     ]
   },
   'story-passage-creator': {
@@ -388,6 +398,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
       { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
+      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'length', label: 'Length', type: 'select', options: ['short', 'medium', 'long'] }
     ]
   },
@@ -398,7 +409,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
-      { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' }
+      { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
+      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
     ]
   },
   'flashcard-generator': {
@@ -409,6 +421,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
       { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
+      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'cardCount', label: 'Number of Cards', type: 'number', placeholder: '20' }
     ]
   },
@@ -420,6 +433,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'studentName', label: 'Student Name *', type: 'select', required: true, placeholder: 'Select student', isStudentSelect: true },
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'term', label: 'Term', type: 'text', placeholder: 'e.g., First Term' }
     ]
   },
@@ -430,7 +444,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'studentName', label: 'Student Name *', type: 'select', required: true, placeholder: 'Select student', isStudentSelect: true },
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] }
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
     ]
   },
   'daily-class-plan-maker': {
@@ -441,6 +456,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'date', label: 'Date', type: 'text', placeholder: 'e.g., 2025-01-15' },
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subjects', label: 'Subjects *', type: 'text', required: true, placeholder: 'e.g., Physics, Chemistry, Mathematics' },
+      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'timeSlots', label: 'Time Slots', type: 'text', placeholder: 'e.g., 9:00-10:00, 10:15-11:15' }
     ]
   },
@@ -452,22 +468,11 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
       { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
+      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'duration', label: 'Exam Duration (minutes)', type: 'number', placeholder: '90' },
       { name: 'difficulty', label: 'Difficulty Mix', type: 'select', options: ['easy', 'medium', 'hard', 'mixed'] }
     ]
   },
-  'mcq-generator': {
-    name: 'MCQ Generator',
-    description: 'Create multiple-choice questions with detailed explanations',
-    icon: Sparkles,
-    fields: [
-      { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
-      { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
-      { name: 'questionCount', label: 'Number of Questions', type: 'number', placeholder: '10' },
-      { name: 'difficulty', label: 'Difficulty', type: 'select', options: ['easy', 'medium', 'hard'] }
-    ]
-  }
 };
 
 export default function TeacherToolPage() {
@@ -478,28 +483,13 @@ export default function TeacherToolPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
   const [copied, setCopied] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [assignedStudents, setAssignedStudents] = useState<Array<{id: string, name: string, classNumber?: string}>>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
 
   // Get tool type from route params
   const toolType = params?.toolType || '';
   const config = TOOL_CONFIGS[toolType];
-
-  if (!config) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Tool Not Found</h1>
-          <Button onClick={() => {
-            localStorage.setItem('teacherDashboardTab', 'vidya-ai');
-            setLocation('/teacher/dashboard');
-          }}>Go Back</Button>
-        </div>
-      </div>
-    );
-  }
-
-  const Icon = config.icon;
 
   // Fetch assigned students on component mount
   useEffect(() => {
@@ -662,21 +652,437 @@ export default function TeacherToolPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownload = () => {
-    const blob = new Blob([generatedContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${config.name.replace(/\s+/g, '-')}-${Date.now()}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast({
-      title: 'Downloaded!',
-      description: 'Content downloaded successfully'
+  // Helper function to clean LaTeX math for Word display
+  const cleanLaTeXForWord = (latex: string): string => {
+    if (!latex) return '';
+    
+    let cleaned = latex.trim();
+    
+    // Handle fractions first (before removing braces)
+    cleaned = cleaned.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, (match, num, den) => {
+      return `(${num})/(${den})`;
+    });
+    
+    // Handle square roots
+    cleaned = cleaned.replace(/\\sqrt\[([^\]]+)\]\{([^}]+)\}/g, (match, root, content) => {
+      return `(${content})^(1/${root})`;
+    });
+    cleaned = cleaned.replace(/\\sqrt\{([^}]+)\}/g, '√($1)');
+    cleaned = cleaned.replace(/\\sqrt/g, '√');
+    
+    // Handle inverse trigonometric functions
+    cleaned = cleaned.replace(/\\tan\^\{\-1\}/g, 'tan⁻¹');
+    cleaned = cleaned.replace(/\\sin\^\{\-1\}/g, 'sin⁻¹');
+    cleaned = cleaned.replace(/\\cos\^\{\-1\}/g, 'cos⁻¹');
+    cleaned = cleaned.replace(/\\cot\^\{\-1\}/g, 'cot⁻¹');
+    cleaned = cleaned.replace(/\\sec\^\{\-1\}/g, 'sec⁻¹');
+    cleaned = cleaned.replace(/\\csc\^\{\-1\}/g, 'csc⁻¹');
+    
+    // Handle common functions
+    cleaned = cleaned.replace(/\\int/g, '∫');
+    cleaned = cleaned.replace(/\\sum/g, 'Σ');
+    cleaned = cleaned.replace(/\\prod/g, 'Π');
+    cleaned = cleaned.replace(/\\pi/g, 'π');
+    cleaned = cleaned.replace(/\\alpha/g, 'α');
+    cleaned = cleaned.replace(/\\beta/g, 'β');
+    cleaned = cleaned.replace(/\\gamma/g, 'γ');
+    cleaned = cleaned.replace(/\\theta/g, 'θ');
+    cleaned = cleaned.replace(/\\lambda/g, 'λ');
+    cleaned = cleaned.replace(/\\mu/g, 'μ');
+    cleaned = cleaned.replace(/\\sigma/g, 'σ');
+    cleaned = cleaned.replace(/\\infty/g, '∞');
+    cleaned = cleaned.replace(/\\pm/g, '±');
+    cleaned = cleaned.replace(/\\mp/g, '∓');
+    cleaned = cleaned.replace(/\\times/g, '×');
+    cleaned = cleaned.replace(/\\div/g, '÷');
+    cleaned = cleaned.replace(/\\leq/g, '≤');
+    cleaned = cleaned.replace(/\\geq/g, '≥');
+    cleaned = cleaned.replace(/\\neq/g, '≠');
+    cleaned = cleaned.replace(/\\approx/g, '≈');
+    cleaned = cleaned.replace(/\\equiv/g, '≡');
+    
+    cleaned = cleaned.replace(/\\ln/g, 'ln');
+    cleaned = cleaned.replace(/\\log/g, 'log');
+    cleaned = cleaned.replace(/\\sin/g, 'sin');
+    cleaned = cleaned.replace(/\\cos/g, 'cos');
+    cleaned = cleaned.replace(/\\tan/g, 'tan');
+    cleaned = cleaned.replace(/\\sec/g, 'sec');
+    cleaned = cleaned.replace(/\\csc/g, 'csc');
+    cleaned = cleaned.replace(/\\cot/g, 'cot');
+    cleaned = cleaned.replace(/\\exp/g, 'exp');
+    
+    // Handle left/right delimiters
+    cleaned = cleaned.replace(/\\left\(/g, '(');
+    cleaned = cleaned.replace(/\\right\)/g, ')');
+    cleaned = cleaned.replace(/\\left\[/g, '[');
+    cleaned = cleaned.replace(/\\right\]/g, ']');
+    cleaned = cleaned.replace(/\\left\|/g, '|');
+    cleaned = cleaned.replace(/\\right\|/g, '|');
+    cleaned = cleaned.replace(/\\left\{/g, '{');
+    cleaned = cleaned.replace(/\\right\}/g, '}');
+    
+    // Handle superscripts and subscripts (with braces) - do this before removing braces
+    cleaned = cleaned.replace(/\^\{([^}]+)\}/g, '^$1');
+    cleaned = cleaned.replace(/\_\{([^}]+)\}/g, '_$1');
+    
+    // Handle simple superscripts/subscripts (without braces)
+    cleaned = cleaned.replace(/\^([a-zA-Z0-9\+\-\=])/g, '^$1');
+    cleaned = cleaned.replace(/\_([a-zA-Z0-9\+\-\=])/g, '_$1');
+    
+    // Remove remaining braces (but keep content) - do this carefully
+    // First handle nested braces
+    let prevCleaned = '';
+    while (cleaned !== prevCleaned) {
+      prevCleaned = cleaned;
+      cleaned = cleaned.replace(/\{([^{}]+)\}/g, '$1');
+    }
+    
+    // Remove backslashes (but keep special characters we've already converted)
+    cleaned = cleaned.replace(/\\([a-zA-Z]+)/g, '$1');
+    cleaned = cleaned.replace(/\\/g, '');
+    
+    // Clean up any double spaces or extra whitespace
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    
+    return cleaned;
+  };
+
+  // Helper function to process text with inline math and formatting
+  const processTextWithMath = (text: string): TextRun[] => {
+    // First, remove all LaTeX math delimiters and clean the expressions
+    let processed = text;
+    
+    // Process block math first ($$...$$) - should already be handled, but just in case
+    processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, (match, mathContent) => {
+      return cleanLaTeXForWord(mathContent.trim());
+    });
+    
+    // Process inline math ($...$) - handle all cases including at start/end of string
+    // Match $...$ but not $$...$$
+    processed = processed.replace(/\$([^$\n]+?)\$/g, (match, mathContent) => {
+      // Skip if this looks like it might be part of block math (shouldn't happen after block math processing)
+      return cleanLaTeXForWord(mathContent.trim());
+    });
+    
+    // Now process bold formatting on the cleaned text
+    const runs: TextRun[] = [];
+    let lastIndex = 0;
+    
+    const boldRegex = /\*\*(.+?)\*\*/g;
+    let match;
+    
+    while ((match = boldRegex.exec(processed)) !== null) {
+      if (match.index > lastIndex) {
+        runs.push(new TextRun(processed.substring(lastIndex, match.index)));
+      }
+      runs.push(new TextRun({
+        text: match[1],
+        bold: true
+      }));
+      lastIndex = match.index + match[0].length;
+    }
+    
+    if (lastIndex < processed.length) {
+      runs.push(new TextRun(processed.substring(lastIndex)));
+    }
+    
+    return runs.length > 0 ? runs : [new TextRun(processed)];
+  };
+
+  // Helper function to process text formatting (bold, etc.) - also handles math
+  const processTextFormatting = (text: string): TextRun[] => {
+    // First clean any remaining LaTeX math
+    let processed = text;
+    
+    // Process inline math ($...$)
+    processed = processed.replace(/\$([^$\n]+?)\$/g, (match, mathContent) => {
+      return cleanLaTeXForWord(mathContent.trim());
+    });
+    
+    // Now process bold formatting
+    const runs: TextRun[] = [];
+    let lastIndex = 0;
+    
+    const boldRegex = /\*\*(.+?)\*\*/g;
+    let match;
+    
+    while ((match = boldRegex.exec(processed)) !== null) {
+      if (match.index > lastIndex) {
+        runs.push(new TextRun(processed.substring(lastIndex, match.index)));
+      }
+      runs.push(new TextRun({
+        text: match[1],
+        bold: true
+      }));
+      lastIndex = match.index + match[0].length;
+    }
+    
+    if (lastIndex < processed.length) {
+      runs.push(new TextRun(processed.substring(lastIndex)));
+    }
+    
+    return runs.length > 0 ? runs : [new TextRun(processed)];
+  };
+
+  const convertToWordDocument = async (content: string): Promise<Document> => {
+    if (!content) {
+      return new Document({
+        sections: [{
+          children: [
+            new Paragraph({
+              children: [new TextRun('No content available')]
+            })
+          ]
+        }]
+      });
+    }
+
+    const children: Paragraph[] = [];
+    
+    // Split content into lines
+    const lines = content.split('\n');
+    let currentParagraph: TextRun[] = [];
+    let inCodeBlock = false;
+    let inList = false;
+    let listItems: string[] = [];
+
+    const flushParagraph = () => {
+      if (currentParagraph.length > 0) {
+        children.push(new Paragraph({
+          children: currentParagraph,
+          spacing: { after: 200 }
+        }));
+        currentParagraph = [];
+      }
+    };
+
+    const flushList = () => {
+      if (listItems.length > 0) {
+        listItems.forEach(item => {
+          children.push(new Paragraph({
+            children: [new TextRun({
+              text: `• ${item.trim()}`,
+              size: 22
+            })],
+            spacing: { after: 100 },
+            indent: { left: 400 }
+          }));
+        });
+        listItems = [];
+        inList = false;
+      }
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      // Skip empty lines (but flush current paragraph)
+      if (!trimmed) {
+        flushParagraph();
+        flushList();
+        continue;
+      }
+
+      // Check for code blocks
+      if (trimmed.startsWith('```')) {
+        inCodeBlock = !inCodeBlock;
+        continue;
+      }
+
+      if (inCodeBlock) {
+        currentParagraph.push(new TextRun({
+          text: line + '\n',
+          font: 'Courier New',
+          size: 20
+        }));
+        continue;
+      }
+
+      // Headings
+      if (trimmed.startsWith('# ')) {
+        flushParagraph();
+        flushList();
+        children.push(new Paragraph({
+          text: trimmed.substring(2),
+          heading: HeadingLevel.TITLE,
+          spacing: { after: 300, before: 200 }
+        }));
+        continue;
+      }
+
+      if (trimmed.startsWith('## ')) {
+        flushParagraph();
+        flushList();
+        children.push(new Paragraph({
+          text: trimmed.substring(3),
+          heading: HeadingLevel.HEADING_1,
+          spacing: { after: 250, before: 200 }
+        }));
+        continue;
+      }
+
+      if (trimmed.startsWith('### ')) {
+        flushParagraph();
+        flushList();
+        children.push(new Paragraph({
+          text: trimmed.substring(4),
+          heading: HeadingLevel.HEADING_2,
+          spacing: { after: 200, before: 150 }
+        }));
+        continue;
+      }
+
+      if (trimmed.startsWith('#### ')) {
+        flushParagraph();
+        flushList();
+        children.push(new Paragraph({
+          text: trimmed.substring(5),
+          heading: HeadingLevel.HEADING_3,
+          spacing: { after: 150, before: 100 }
+        }));
+        continue;
+      }
+
+      // Lists
+      if (trimmed.match(/^[-*]\s+/)) {
+        flushParagraph();
+        const listItem = trimmed.replace(/^[-*]\s+/, '');
+        listItems.push(listItem);
+        inList = true;
+        continue;
+      }
+
+      if (trimmed.match(/^\d+\.\s+/)) {
+        flushParagraph();
+        const listItem = trimmed.replace(/^\d+\.\s+/, '');
+        listItems.push(listItem);
+        inList = true;
+        continue;
+      }
+
+      // Regular paragraph
+      flushList();
+      
+      // Process inline formatting and math
+      let processedLine = trimmed;
+      
+      // First, handle block math ($$...$$) - put on separate line
+      if (processedLine.includes('$$')) {
+        flushParagraph();
+        const blockMathRegex = /\$\$([\s\S]*?)\$\$/g;
+        let mathMatch;
+        let lastMathIndex = 0;
+        const parts: (string | { type: 'math', content: string })[] = [];
+        
+        while ((mathMatch = blockMathRegex.exec(processedLine)) !== null) {
+          if (mathMatch.index > lastMathIndex) {
+            const beforeMath = processedLine.substring(lastMathIndex, mathMatch.index);
+            if (beforeMath.trim()) {
+              parts.push(beforeMath);
+            }
+          }
+          // Clean LaTeX for display using helper function
+          const mathContent = cleanLaTeXForWord(mathMatch[1].trim());
+          parts.push({ type: 'math', content: mathContent });
+          lastMathIndex = mathMatch.index + mathMatch[0].length;
+        }
+        
+        if (lastMathIndex < processedLine.length) {
+          const afterMath = processedLine.substring(lastMathIndex);
+          if (afterMath.trim()) {
+            parts.push(afterMath);
+          }
+        }
+        
+        // Create paragraphs for each part
+        parts.forEach(part => {
+          if (typeof part === 'string') {
+            if (part.trim()) {
+              const textRuns = processTextFormatting(part);
+              if (textRuns.length > 0) {
+                children.push(new Paragraph({
+                  children: textRuns,
+                  spacing: { after: 200 }
+                }));
+              }
+            }
+          } else {
+            // Math block - center it
+            children.push(new Paragraph({
+              children: [new TextRun({
+                text: part.content,
+                font: 'Cambria Math',
+                size: 24
+              })],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 200, before: 100 }
+            }));
+          }
+        });
+        continue;
+      }
+      
+      // Process inline math ($...$) and formatting
+      const runs = processTextWithMath(processedLine);
+      currentParagraph.push(...runs);
+      currentParagraph.push(new TextRun({ text: ' ', break: 1 }));
+    }
+
+    flushParagraph();
+    flushList();
+
+    return new Document({
+      sections: [{
+        children: children.length > 0 ? children : [
+          new Paragraph({
+            children: [new TextRun('No content available')]
+          })
+        ],
+        properties: {}
+      }]
     });
   };
+
+  const handleDownload = async () => {
+    try {
+      setIsDownloading(true);
+      const doc = await convertToWordDocument(generatedContent);
+      const blob = await Packer.toBlob(doc);
+      const fileName = `${config.name.replace(/\s+/g, '-')}-${Date.now()}.docx`;
+      saveAs(blob, fileName);
+      toast({
+        title: 'Downloaded!',
+        description: 'Content downloaded as Word document successfully'
+      });
+    } catch (error) {
+      console.error('Error generating Word document:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate Word document',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // Early return check must be AFTER all hooks
+  if (!config) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Tool Not Found</h1>
+          <Button onClick={() => {
+            localStorage.setItem('teacherDashboardTab', 'vidya-ai');
+            setLocation('/teacher/dashboard');
+          }}>Go Back</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const Icon = config.icon;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-teal-50 p-6">
@@ -813,8 +1219,13 @@ export default function TeacherToolPage() {
                       size="sm"
                       variant="outline"
                       onClick={handleDownload}
+                      disabled={isDownloading || !generatedContent}
                     >
-                      <Download className="w-4 h-4" />
+                      {isDownloading ? (
+                        <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}
                     </Button>
                   </div>
                 )}

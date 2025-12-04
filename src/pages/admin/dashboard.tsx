@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -97,6 +97,7 @@ const AdminDashboard = () => {
 
     checkAuth();
   }, []);
+
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalTeachers: 0,
@@ -120,13 +121,17 @@ const AdminDashboard = () => {
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
-  useEffect(() => {
-    // Fetch admin dashboard data
-    fetchAdminStats();
-    fetchStudentAnalytics();
-  }, []);
+  // Memoize sliced arrays to avoid recalculating on every render
+  const topClassDistribution = useMemo(() => {
+    return studentAnalytics.classDistribution?.slice(0, 5) || [];
+  }, [studentAnalytics.classDistribution]);
 
-  const fetchStudentAnalytics = async () => {
+  const topSubjectPerformance = useMemo(() => {
+    return studentAnalytics.subjectPerformance?.slice(0, 4) || [];
+  }, [studentAnalytics.subjectPerformance]);
+
+  // Memoize fetch functions to prevent unnecessary re-renders
+  const fetchStudentAnalytics = useCallback(async () => {
     try {
       setIsLoadingAnalytics(true);
       const token = localStorage.getItem('authToken');
@@ -150,9 +155,9 @@ const AdminDashboard = () => {
     } finally {
       setIsLoadingAnalytics(false);
     }
-  };
+  }, []);
 
-  const fetchAdminStats = async () => {
+  const fetchAdminStats = useCallback(async () => {
     try {
       setIsLoadingStats(true);
       const token = localStorage.getItem('authToken');
@@ -192,7 +197,13 @@ const AdminDashboard = () => {
     } finally {
       setIsLoadingStats(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // Fetch admin dashboard data
+    fetchAdminStats();
+    fetchStudentAnalytics();
+  }, [fetchAdminStats, fetchStudentAnalytics]);
 
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
@@ -237,8 +248,9 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-sky-50 flex relative overflow-hidden">
       {/* Interactive Background */}
       <div className="fixed inset-0 z-0">
-        <InteractiveBackground />
-        <FloatingParticles />
+        {/* Interactive Background - Disabled for better performance */}
+        {/* <InteractiveBackground />
+        <FloatingParticles /> */}
       </div>
       {/* Mobile Header */}
       {isMobile && (
@@ -755,8 +767,8 @@ const AdminDashboard = () => {
                         Class Distribution
                       </h4>
                       <div className="space-y-2">
-                        {studentAnalytics.classDistribution && studentAnalytics.classDistribution.length > 0 ? (
-                          studentAnalytics.classDistribution.slice(0, 5).map((item: any, idx: number) => (
+                        {topClassDistribution.length > 0 ? (
+                          topClassDistribution.map((item: any, idx: number) => (
                             <div key={idx} className="flex justify-between items-center text-sm">
                               <span className="text-gray-700">{item.className || item.class || 'Unknown'}</span>
                               <span className="font-semibold text-orange-600">{item.count || 0} students</span>
@@ -808,8 +820,8 @@ const AdminDashboard = () => {
                         Subject Performance
                       </h4>
                       <div className="space-y-2">
-                        {studentAnalytics.subjectPerformance && studentAnalytics.subjectPerformance.length > 0 ? (
-                          studentAnalytics.subjectPerformance.slice(0, 4).map((subject: any, idx: number) => (
+                        {topSubjectPerformance.length > 0 ? (
+                          topSubjectPerformance.map((subject: any, idx: number) => (
                             <div key={idx} className="flex justify-between items-center text-sm">
                               <span className="text-gray-700 capitalize">{subject.subject || subject.name || 'Unknown'}</span>
                               <div className="flex items-center space-x-2">
