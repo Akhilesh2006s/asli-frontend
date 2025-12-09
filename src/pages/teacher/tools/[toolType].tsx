@@ -177,6 +177,7 @@ interface ToolConfig {
     options?: string[];
     placeholder?: string;
     dependsOn?: string; // Field name this field depends on
+    showWhen?: (values: Record<string, any>) => boolean; // Condition to show this field
     getOptions?: (value: string) => string[]; // Function to get options based on dependency
     isStudentSelect?: boolean; // If true, populate from assigned students
   }>;
@@ -369,24 +370,16 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     ]
   },
   'rubrics-evaluation-generator': {
-    name: 'Rubrics & Evaluation Generator',
-    description: 'Create clear assessment criteria and rubrics',
+    name: 'Rubrics, Evaluation & Report Card Generator',
+    description: 'Create assessment criteria, rubrics, and comprehensive student progress reports with feedback',
     icon: Sparkles,
     fields: [
+      { name: 'outputType', label: 'Output Type *', type: 'select', required: true, options: ['Rubrics & Evaluation', 'Report Card'], placeholder: 'Select what to generate' },
+      { name: 'studentName', label: 'Student Name', type: 'select', required: false, placeholder: 'Select student (for Report Card)', isStudentSelect: true, dependsOn: 'outputType', showWhen: (values: any) => values.outputType === 'Report Card' },
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
-      { name: 'assignmentType', label: 'Assignment Type *', type: 'text', required: true, placeholder: 'e.g., Project, Essay, Lab Report' },
-      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
-    ]
-  },
-  'learning-outcomes-generator': {
-    name: 'Learning Outcomes Generator',
-    description: 'Define measurable learning outcomes for your courses',
-    icon: Sparkles,
-    fields: [
-      { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
-      { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
+      { name: 'assignmentType', label: 'Assignment Type', type: 'text', required: false, placeholder: 'e.g., Project, Essay, Lab Report (for Rubrics)', showWhen: (values: any) => values.outputType === 'Rubrics & Evaluation' },
+      { name: 'term', label: 'Term', type: 'text', placeholder: 'e.g., First Term (for Report Card)', showWhen: (values: any) => values.outputType === 'Report Card' },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
     ]
   },
@@ -423,29 +416,6 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'cardCount', label: 'Number of Cards', type: 'number', placeholder: '20' }
-    ]
-  },
-  'report-card-generator': {
-    name: 'Report Card Generator',
-    description: 'Generate comprehensive student progress reports with feedback',
-    icon: Sparkles,
-    fields: [
-      { name: 'studentName', label: 'Student Name *', type: 'select', required: true, placeholder: 'Select student', isStudentSelect: true },
-      { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
-      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
-      { name: 'term', label: 'Term', type: 'text', placeholder: 'e.g., First Term' }
-    ]
-  },
-  'student-skill-tracker': {
-    name: 'Student Skill Tracker',
-    description: 'Monitor and track student skill development',
-    icon: Sparkles,
-    fields: [
-      { name: 'studentName', label: 'Student Name *', type: 'select', required: true, placeholder: 'Select student', isStudentSelect: true },
-      { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
-      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
     ]
   },
   'daily-class-plan-maker': {
@@ -495,7 +465,7 @@ export default function TeacherToolPage() {
   useEffect(() => {
     const fetchStudents = async () => {
       // Only fetch if this tool needs student selection
-      if (toolType === 'student-skill-tracker' || toolType === 'report-card-generator') {
+      if (toolType === 'report-card-generator') {
         setIsLoadingStudents(true);
         try {
           const token = localStorage.getItem('authToken');
@@ -1120,6 +1090,10 @@ export default function TeacherToolPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {config.fields.map((field) => {
+                // Check if field should be shown based on showWhen condition
+                if (field.showWhen && !field.showWhen(formParams)) {
+                  return null;
+                }
                 let fieldOptions: string[] = [];
                 let isDisabled = false;
                 

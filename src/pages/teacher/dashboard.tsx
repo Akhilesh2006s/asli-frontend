@@ -171,6 +171,15 @@ const TeacherDashboard = () => {
   const [isPositiveRemark, setIsPositiveRemark] = useState(true);
   const [studentsSubTab, setStudentsSubTab] = useState<'list' | 'track-progress' | 'submissions'>('list');
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
+  const [filterByClass, setFilterByClass] = useState<string>('all');
+  const [filterByStudent, setFilterByStudent] = useState<string>('all');
+
+  // Reset student filter when class filter changes
+  useEffect(() => {
+    if (filterByClass !== 'all') {
+      setFilterByStudent('all');
+    }
+  }, [filterByClass]);
   const [homeworkSubmissions, setHomeworkSubmissions] = useState<any[]>([]);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
   const [expandedHomework, setExpandedHomework] = useState<Set<string>>(new Set());
@@ -2184,7 +2193,7 @@ const TeacherDashboard = () => {
                             </div>
                         </motion.div>
 
-                        {/* Tool 8: Rubrics & Evaluation Generator */}
+                        {/* Tool 8: Rubrics, Evaluation & Report Card Generator */}
                         <motion.div
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -2199,32 +2208,11 @@ const TeacherDashboard = () => {
                               <Scale className="w-6 h-6 text-blue-600" />
                             </div>
                             <div>
-                              <h4 className="font-bold text-gray-900 mb-1">Rubrics & Evaluation Generator</h4>
-                              <p className="text-sm text-gray-600">Create clear assessment criteria and rubrics.</p>
+                              <h4 className="font-bold text-gray-900 mb-1">Rubrics, Evaluation & Report Card Generator</h4>
+                              <p className="text-sm text-gray-600">Create assessment criteria, rubrics, and comprehensive student progress reports with feedback.</p>
                         </div>
                       </div>
               </motion.div>
-
-                        {/* Tool 9: Learning Outcomes Generator */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 1.2 }}
-                          className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
-                          onClick={() => {
-                            setLocation('/teacher/tools/learning-outcomes-generator');
-                          }}
-                        >
-                          <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <Target className="w-6 h-6 text-teal-600" />
-                    </div>
-                            <div>
-                              <h4 className="font-bold text-gray-900 mb-1">Learning Outcomes Generator</h4>
-                              <p className="text-sm text-gray-600">Define measurable learning outcomes for your courses.</p>
-                  </div>
-                </div>
-                        </motion.div>
 
                         {/* Tool 10: Story & Passage Creator */}
                         <motion.div
@@ -2287,48 +2275,6 @@ const TeacherDashboard = () => {
                               <p className="text-sm text-gray-600">Build study flashcards for quick revision.</p>
                   </div>
                 </div>
-                        </motion.div>
-
-                        {/* Tool 13: Report Card Generator */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 1.6 }}
-                          className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
-                          onClick={() => {
-                            setLocation('/teacher/tools/report-card-generator');
-                          }}
-                        >
-                          <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <FileCheck className="w-6 h-6 text-blue-600" />
-                      </div>
-                            <div>
-                              <h4 className="font-bold text-gray-900 mb-1">Report Card Generator</h4>
-                              <p className="text-sm text-gray-600">Generate comprehensive student progress reports with feedback.</p>
-                  </div>
-                  </div>
-                        </motion.div>
-
-                        {/* Tool 15: Student Skill Tracker */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 1.7 }}
-                          className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
-                          onClick={() => {
-                            setLocation('/teacher/tools/student-skill-tracker');
-                          }}
-                        >
-                          <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <TrendingUp className="w-6 h-6 text-teal-600" />
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-gray-900 mb-1">Student Skill Tracker</h4>
-                              <p className="text-sm text-gray-600">Monitor and track student skill development.</p>
-                          </div>
-                            </div>
                         </motion.div>
                             </div>
                             </div>
@@ -2717,16 +2663,91 @@ const TeacherDashboard = () => {
                         </div>
                       </div>
 
-                      {/* Search Bar */}
+                      {/* Search Bar and Filters */}
                       <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
-                          <Input
-                            placeholder="Search students by name, email, or phone..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 w-full rounded-xl bg-white/70 border-gray-200 text-gray-900 backdrop-blur-sm"
-                          />
+                        <div className="space-y-4">
+                          {/* Search Bar */}
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+                            <Input
+                              placeholder="Search students by name, email, or phone..."
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                              className="pl-10 w-full rounded-xl bg-white/70 border-gray-200 text-gray-900 backdrop-blur-sm"
+                            />
+                          </div>
+                          
+                          {/* Filter Row */}
+                          <div className="flex flex-wrap items-center gap-4">
+                            {/* Filter by Class */}
+                            <div className="flex items-center gap-2">
+                              <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">Filter by Class:</Label>
+                              <Select value={filterByClass} onValueChange={setFilterByClass}>
+                                <SelectTrigger className="w-[180px] rounded-xl bg-white/70 border-gray-200">
+                                  <SelectValue placeholder="All Classes" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">All Classes</SelectItem>
+                                  {(() => {
+                                    const uniqueClasses = Array.from(new Set(
+                                      students.map(s => s.classNumber || s.assignedClass?.classNumber).filter(Boolean)
+                                    )).sort((a, b) => {
+                                      const numA = parseInt(a || '0');
+                                      const numB = parseInt(b || '0');
+                                      return numA - numB;
+                                    });
+                                    return uniqueClasses.map(classNum => (
+                                      <SelectItem key={classNum} value={classNum || ''}>
+                                        Class {classNum}
+                                      </SelectItem>
+                                    ));
+                                  })()}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Filter by Student */}
+                            <div className="flex items-center gap-2">
+                              <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">Filter by Student:</Label>
+                              <Select value={filterByStudent} onValueChange={setFilterByStudent}>
+                                <SelectTrigger className="w-[200px] rounded-xl bg-white/70 border-gray-200">
+                                  <SelectValue placeholder="All Students" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">All Students</SelectItem>
+                                  {students
+                                    .filter(s => {
+                                      if (filterByClass !== 'all') {
+                                        const studentClass = s.classNumber || s.assignedClass?.classNumber;
+                                        return studentClass === filterByClass;
+                                      }
+                                      return true;
+                                    })
+                                    .map(student => (
+                                      <SelectItem key={student.id} value={student.id}>
+                                        {student.name || student.email}
+                                      </SelectItem>
+                                    ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* Clear Filters Button */}
+                            {(filterByClass !== 'all' || filterByStudent !== 'all') && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setFilterByClass('all');
+                                  setFilterByStudent('all');
+                                }}
+                                className="rounded-xl border-gray-300 text-gray-700 hover:bg-gray-50"
+                              >
+                                <X className="w-4 h-4 mr-1" />
+                                Clear Filters
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -2741,8 +2762,35 @@ const TeacherDashboard = () => {
                         <>
                       {/* Visual Graphs and Analyses */}
                       {(() => {
+                        // Apply filters
+                        let filteredStudents = students;
+                        
+                        // Filter by class
+                        if (filterByClass !== 'all') {
+                          filteredStudents = filteredStudents.filter(s => {
+                            const studentClass = s.classNumber || s.assignedClass?.classNumber;
+                            return studentClass === filterByClass;
+                          });
+                        }
+                        
+                        // Filter by student
+                        if (filterByStudent !== 'all') {
+                          filteredStudents = filteredStudents.filter(s => s.id === filterByStudent);
+                        }
+                        
+                        // Apply search term filter
+                        if (searchTerm) {
+                          const lowerSearch = searchTerm.toLowerCase();
+                          filteredStudents = filteredStudents.filter(s => {
+                            const name = (s.name || s.email || '').toLowerCase();
+                            const email = (s.email || '').toLowerCase();
+                            const phone = (s.phone || '').toLowerCase();
+                            return name.includes(lowerSearch) || email.includes(lowerSearch) || phone.includes(lowerSearch);
+                          });
+                        }
+                        
                         // Calculate class-wide statistics
-                        const studentsWithData = students.filter(s => {
+                        const studentsWithData = filteredStudents.filter(s => {
                           const perf = s.performance || {};
                           return perf.totalExams > 0 || perf.overallProgress > 0 || (perf.dailyAverageWatchTime && perf.dailyAverageWatchTime > 0);
                         });
@@ -2751,7 +2799,7 @@ const TeacherDashboard = () => {
                         const examPerformanceData = [
                           {
                             category: 'Excellent (≥70%)',
-                            count: students.filter(s => {
+                            count: filteredStudents.filter(s => {
                               const perf = s.performance || {};
                               return perf.averagePercentage && perf.averagePercentage >= 70;
                             }).length,
@@ -2759,7 +2807,7 @@ const TeacherDashboard = () => {
                           },
                           {
                             category: 'Good (50-69%)',
-                            count: students.filter(s => {
+                            count: filteredStudents.filter(s => {
                               const perf = s.performance || {};
                               return perf.averagePercentage && perf.averagePercentage >= 50 && perf.averagePercentage < 70;
                             }).length,
@@ -2767,7 +2815,7 @@ const TeacherDashboard = () => {
                           },
                           {
                             category: 'Needs Improvement (<50%)',
-                            count: students.filter(s => {
+                            count: filteredStudents.filter(s => {
                               const perf = s.performance || {};
                               return perf.averagePercentage && perf.averagePercentage < 50;
                             }).length,
@@ -2775,7 +2823,7 @@ const TeacherDashboard = () => {
                           },
                           {
                             category: 'No Exams',
-                            count: students.filter(s => {
+                            count: filteredStudents.filter(s => {
                               const perf = s.performance || {};
                               return !perf.averagePercentage || perf.totalExams === 0;
                             }).length,
@@ -2794,7 +2842,7 @@ const TeacherDashboard = () => {
                         const progressDistribution = [
                           {
                             name: 'Excellent (≥70%)',
-                            value: students.filter(s => {
+                            value: filteredStudents.filter(s => {
                               const perf = s.performance || {};
                               return perf.overallProgress && perf.overallProgress >= 70;
                             }).length,
@@ -2802,7 +2850,7 @@ const TeacherDashboard = () => {
                           },
                           {
                             name: 'Good (50-69%)',
-                            value: students.filter(s => {
+                            value: filteredStudents.filter(s => {
                               const perf = s.performance || {};
                               return perf.overallProgress && perf.overallProgress >= 50 && perf.overallProgress < 70;
                             }).length,
@@ -2810,7 +2858,7 @@ const TeacherDashboard = () => {
                           },
                           {
                             name: 'Needs Improvement (<50%)',
-                            value: students.filter(s => {
+                            value: filteredStudents.filter(s => {
                               const perf = s.performance || {};
                               return !perf.overallProgress || perf.overallProgress < 50;
                             }).length,
@@ -2826,7 +2874,7 @@ const TeacherDashboard = () => {
                           : 0;
 
                         // Watch Time Analysis
-                        const watchTimeData = students
+                        const watchTimeData = filteredStudents
                           .filter(s => {
                             const perf = s.performance || {};
                             return perf.dailyAverageWatchTime && perf.dailyAverageWatchTime > 0;
@@ -2848,7 +2896,7 @@ const TeacherDashboard = () => {
                         const watchTimeDistribution = [
                           {
                             range: '0-15 min',
-                            count: students.filter(s => {
+                            count: filteredStudents.filter(s => {
                               const perf = s.performance || {};
                               const time = perf.dailyAverageWatchTime || 0;
                               return time > 0 && time <= 15;
@@ -2857,7 +2905,7 @@ const TeacherDashboard = () => {
                           },
                           {
                             range: '16-30 min',
-                            count: students.filter(s => {
+                            count: filteredStudents.filter(s => {
                               const perf = s.performance || {};
                               const time = perf.dailyAverageWatchTime || 0;
                               return time > 15 && time <= 30;
@@ -2866,7 +2914,7 @@ const TeacherDashboard = () => {
                           },
                           {
                             range: '31-60 min',
-                            count: students.filter(s => {
+                            count: filteredStudents.filter(s => {
                               const perf = s.performance || {};
                               const time = perf.dailyAverageWatchTime || 0;
                               return time > 30 && time <= 60;
@@ -2875,7 +2923,7 @@ const TeacherDashboard = () => {
                           },
                           {
                             range: '60+ min',
-                            count: students.filter(s => {
+                            count: filteredStudents.filter(s => {
                               const perf = s.performance || {};
                               const time = perf.dailyAverageWatchTime || 0;
                               return time > 60;
@@ -2884,7 +2932,7 @@ const TeacherDashboard = () => {
                           },
                           {
                             range: 'No Data',
-                            count: students.filter(s => {
+                            count: filteredStudents.filter(s => {
                               const perf = s.performance || {};
                               return !perf.dailyAverageWatchTime || perf.dailyAverageWatchTime === 0;
                             }).length,

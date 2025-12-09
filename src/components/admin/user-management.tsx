@@ -28,7 +28,8 @@ import {
   GraduationCap,
   BookOpen,
   TrendingUp,
-  Loader2
+  Loader2,
+  Edit
 } from 'lucide-react';
 interface Student {
   id: string;
@@ -64,6 +65,15 @@ const UserManagement = () => {
   const [isAssignClassDialogOpen, setIsAssignClassDialogOpen] = useState(false);
   const [selectedStudentForClass, setSelectedStudentForClass] = useState<Student | null>(null);
   const [availableClasses, setAvailableClasses] = useState<any[]>([]);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedStudentForEdit, setSelectedStudentForEdit] = useState<Student | null>(null);
+  const [editStudent, setEditStudent] = useState({
+    name: '',
+    email: '',
+    classNumber: '',
+    phone: '',
+    isActive: true
+  });
 
   useEffect(() => {
     fetchStudents();
@@ -121,7 +131,7 @@ const UserManagement = () => {
         email: user.email || '',
         classNumber: user.classNumber || 'N/A',
         phone: user.phone || '',
-        status: user.isActive ? 'active' : 'inactive',
+        status: (user.isActive ? 'active' : 'inactive') as 'active' | 'inactive',
         createdAt: user.createdAt || new Date().toISOString(),
         lastLogin: user.lastLogin || null,
         assignedClass: user.assignedClass?._id || user.assignedClass || null
@@ -356,6 +366,75 @@ const UserManagement = () => {
         console.error('Failed to delete student:', error);
         alert('Failed to delete student. Please try again.');
       }
+    }
+  };
+
+  const handleEditStudent = (student: Student) => {
+    setSelectedStudentForEdit(student);
+    setEditStudent({
+      name: student.name || '',
+      email: student.email || '',
+      classNumber: student.classNumber || '',
+      phone: student.phone || '',
+      isActive: student.status === 'active'
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedStudentForEdit) return;
+    
+    if (!editStudent.name || !editStudent.email) {
+      toast({
+        title: 'Error',
+        description: 'Please fill in all required fields: Full Name and Email.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/admin/students/${selectedStudentForEdit.id}`, {
+        method: 'PUT',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({
+          fullName: editStudent.name.trim(),
+          classNumber: editStudent.classNumber.trim(),
+          phone: editStudent.phone.trim(),
+          isActive: editStudent.isActive
+        })
+      });
+
+      const responseData = await response.json();
+      
+      if (response.ok && responseData.success) {
+        setIsEditDialogOpen(false);
+        setSelectedStudentForEdit(null);
+        fetchStudents();
+        toast({
+          title: 'Success',
+          description: 'Student details updated successfully!',
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: responseData.message || 'Failed to update student',
+          variant: 'destructive'
+        });
+      }
+    } catch (error: any) {
+      console.error('Failed to update student:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update student. Please try again.',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -1004,14 +1083,26 @@ const UserManagement = () => {
                     </div>
                     
                     <div className="flex items-center justify-between pt-4 border-t border-sky-200">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="text-sky-600 hover:text-red-700 hover:bg-red-100/50 rounded-lg backdrop-blur-sm"
-                        onClick={() => handleDeleteStudent(student.id, student.name || 'Unknown Student')}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center space-x-2">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-sky-600 hover:text-blue-700 hover:bg-blue-100/50 rounded-lg backdrop-blur-sm"
+                          onClick={() => handleEditStudent(student)}
+                          title="Edit Details"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-sky-600 hover:text-red-700 hover:bg-red-100/50 rounded-lg backdrop-blur-sm"
+                          onClick={() => handleDeleteStudent(student.id, student.name || 'Unknown Student')}
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -1134,6 +1225,102 @@ const UserManagement = () => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Student Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md bg-white/80 border-sky-200 backdrop-blur-xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-sky-900">Edit Student Details</DialogTitle>
+            <DialogDescription className="text-sky-700">
+              {selectedStudentForEdit && `Update information for ${selectedStudentForEdit.name}`}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateStudent} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name" className="text-sky-900">Full Name *</Label>
+              <Input
+                id="edit-name"
+                value={editStudent.name}
+                onChange={(e) => setEditStudent({ ...editStudent, name: e.target.value })}
+                placeholder="Enter full name"
+                required
+                className="border-sky-200 focus:border-sky-400"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit-email" className="text-sky-900">Email *</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={editStudent.email}
+                onChange={(e) => setEditStudent({ ...editStudent, email: e.target.value })}
+                placeholder="Enter email"
+                required
+                disabled
+                className="border-sky-200 bg-gray-100"
+              />
+              <p className="text-xs text-sky-600">Email cannot be changed</p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit-classNumber" className="text-sky-900">Class Number</Label>
+              <Input
+                id="edit-classNumber"
+                value={editStudent.classNumber}
+                onChange={(e) => setEditStudent({ ...editStudent, classNumber: e.target.value })}
+                placeholder="Enter class number (e.g., 10, 11, 12)"
+                className="border-sky-200 focus:border-sky-400"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone" className="text-sky-900">Phone Number</Label>
+              <Input
+                id="edit-phone"
+                type="tel"
+                value={editStudent.phone}
+                onChange={(e) => setEditStudent({ ...editStudent, phone: e.target.value })}
+                placeholder="Enter phone number"
+                className="border-sky-200 focus:border-sky-400"
+              />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="edit-isActive"
+                checked={editStudent.isActive}
+                onChange={(e) => setEditStudent({ ...editStudent, isActive: e.target.checked })}
+                className="rounded border-sky-200"
+              />
+              <Label htmlFor="edit-isActive" className="text-sky-900 cursor-pointer">
+                Active Account
+              </Label>
+            </div>
+            
+            <div className="flex justify-end space-x-2 pt-4 border-t border-sky-200">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsEditDialogOpen(false);
+                  setSelectedStudentForEdit(null);
+                }}
+                className="border-sky-200 text-sky-700 hover:bg-sky-50"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white"
+              >
+                Update Student
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

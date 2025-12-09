@@ -9,6 +9,7 @@ import ContentManagement from "@/components/super-admin/content-management";
 import SubjectManagement from "@/components/super-admin/subject-management";
 import ExamManagement from "@/components/super-admin/exam-management";
 import IQRankBoostActivities from "@/components/super-admin/iq-rank-boost-activities";
+import SuperAdminCalendar from "@/components/super-admin/super-admin-calendar";
 import AIChat from "@/components/ai-chat";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -401,10 +402,15 @@ export default function SuperAdminDashboard() {
         </Card>
 
         {/* Student Analytics Widget */}
-        <Card className="bg-white">
+        <Card 
+          className="bg-white cursor-pointer hover:shadow-lg transition-all duration-200 hover:border-orange-300"
+          onClick={() => setCurrentView('analytics')}
+        >
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Student Analytics</CardTitle>
-            <span className="text-sm text-gray-500">View Details &gt;</span>
+            <span className="text-sm text-orange-600 font-medium hover:text-orange-700 transition-colors flex items-center gap-1">
+              View Details <ArrowUpRightIcon className="h-4 w-4" />
+            </span>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -949,6 +955,8 @@ export default function SuperAdminDashboard() {
         return <ExamManagement />;
       case 'iq-rank-boost':
         return <IQRankBoostActivities />;
+      case 'calendar':
+        return <SuperAdminCalendar />;
       case 'vidya-ai':
         return renderVidyaAIContent();
       case 'analytics':

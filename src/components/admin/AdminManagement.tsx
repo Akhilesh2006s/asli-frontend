@@ -15,6 +15,7 @@ interface Admin {
   name: string;
   email: string;
   board?: string;
+  state?: string;
   schoolName?: string;
   permissions: string[];
   status: string;
@@ -66,15 +67,59 @@ export default function AdminManagement() {
     email: '',
     password: '',
     board: '',
+    state: '',
     schoolName: ''
   });
   const [editAdmin, setEditAdmin] = useState({
     name: '',
     email: '',
     board: '',
+    state: '',
     schoolName: '',
     isActive: true
   });
+
+  // Board options
+  const boardOptions = [
+    { value: 'CBSE', label: 'CBSE' },
+    { value: 'SSC', label: 'SSC' },
+    { value: 'ICSE', label: 'ICSE' },
+    { value: 'IB', label: 'IB' },
+    { value: 'Others', label: 'Others' }
+  ];
+
+  // All 29 Indian States
+  const stateOptions = [
+    { value: 'Andhra Pradesh', label: 'Andhra Pradesh (AP)' },
+    { value: 'Arunachal Pradesh', label: 'Arunachal Pradesh' },
+    { value: 'Assam', label: 'Assam' },
+    { value: 'Bihar', label: 'Bihar' },
+    { value: 'Chhattisgarh', label: 'Chhattisgarh' },
+    { value: 'Goa', label: 'Goa' },
+    { value: 'Gujarat', label: 'Gujarat' },
+    { value: 'Haryana', label: 'Haryana' },
+    { value: 'Himachal Pradesh', label: 'Himachal Pradesh' },
+    { value: 'Jharkhand', label: 'Jharkhand' },
+    { value: 'Karnataka', label: 'Karnataka' },
+    { value: 'Kerala', label: 'Kerala' },
+    { value: 'Madhya Pradesh', label: 'Madhya Pradesh' },
+    { value: 'Maharashtra', label: 'Maharashtra' },
+    { value: 'Manipur', label: 'Manipur' },
+    { value: 'Meghalaya', label: 'Meghalaya' },
+    { value: 'Mizoram', label: 'Mizoram' },
+    { value: 'Nagaland', label: 'Nagaland' },
+    { value: 'Odisha', label: 'Odisha' },
+    { value: 'Punjab', label: 'Punjab' },
+    { value: 'Rajasthan', label: 'Rajasthan' },
+    { value: 'Sikkim', label: 'Sikkim' },
+    { value: 'Tamil Nadu', label: 'Tamil Nadu' },
+    { value: 'Telangana', label: 'Telangana (TS)' },
+    { value: 'Tripura', label: 'Tripura' },
+    { value: 'Uttar Pradesh', label: 'Uttar Pradesh' },
+    { value: 'Uttarakhand', label: 'Uttarakhand' },
+    { value: 'West Bengal', label: 'West Bengal' },
+    { value: 'Delhi', label: 'Delhi' }
+  ];
   const { toast } = useToast();
 
   // Fetch admins from API
@@ -120,10 +165,10 @@ export default function AdminManagement() {
   const handleAddAdmin = async () => {
     if (isAddingAdmin) return; // Prevent multiple submissions
     
-    if (!newAdmin.name || !newAdmin.email || !newAdmin.password || !newAdmin.board || !newAdmin.schoolName) {
+    if (!newAdmin.name || !newAdmin.email || !newAdmin.password || !newAdmin.board || !newAdmin.state || !newAdmin.schoolName) {
       toast({
         title: "Error",
-        description: "Please fill in all fields including board and school name",
+        description: "Please fill in all fields including board, state and school name",
         variant: "destructive",
       });
       return;
@@ -147,12 +192,13 @@ export default function AdminManagement() {
     try {
       const token = localStorage.getItem('authToken');
       
-      // Prepare payload - backend expects: name, email, board, schoolName, permissions
+      // Prepare payload - backend expects: name, email, board, state, schoolName, permissions
       // Note: Backend sets default password 'admin123', so we don't send password
       const payload = {
         name: newAdmin.name,
         email: newAdmin.email,
         board: newAdmin.board,
+        state: newAdmin.state,
         schoolName: newAdmin.schoolName,
         permissions: [] // Optional, defaults to empty array
       };
@@ -172,7 +218,7 @@ export default function AdminManagement() {
       if (response.ok) {
         const result = await response.json();
         setAdmins([...(admins || []), result.data]);
-        setNewAdmin({ name: '', email: '', password: '', board: '', schoolName: '' });
+        setNewAdmin({ name: '', email: '', password: '', board: '', state: '', schoolName: '' });
         setIsAddDialogOpen(false);
         toast({
           title: "Success",
@@ -218,6 +264,7 @@ export default function AdminManagement() {
       name: admin.name || '',
       email: admin.email || '',
       board: admin.board || '',
+      state: admin.state || '',
       schoolName: admin.schoolName || '',
       isActive: admin.status === 'active' || admin.status === 'Active'
     });
@@ -234,7 +281,7 @@ export default function AdminManagement() {
       return;
     }
 
-    if (!editAdmin.name || !editAdmin.email || !editAdmin.board || !editAdmin.schoolName) {
+    if (!editAdmin.name || !editAdmin.email || !editAdmin.board || !editAdmin.state || !editAdmin.schoolName) {
       toast({
         title: "Error",
         description: "Please fill in all required fields",
@@ -256,6 +303,7 @@ export default function AdminManagement() {
           name: editAdmin.name,
           email: editAdmin.email,
           board: editAdmin.board,
+          state: editAdmin.state,
           schoolName: editAdmin.schoolName,
           isActive: editAdmin.isActive
         }),
@@ -290,6 +338,7 @@ export default function AdminManagement() {
           name: '',
           email: '',
           board: '',
+          state: '',
           schoolName: '',
           isActive: true
         });
@@ -460,10 +509,33 @@ export default function AdminManagement() {
                     <SelectValue placeholder="Select Board" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ASLI_EXCLUSIVE_SCHOOLS">ASLI EXCLUSIVE SCHOOLS</SelectItem>
+                    {boardOptions.map((board) => (
+                      <SelectItem key={board.value} value={board.value}>
+                        {board.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-500 mt-1">Select the board for this admin</p>
+              </div>
+              <div>
+                <Label htmlFor="state">State *</Label>
+                <Select
+                  value={newAdmin.state}
+                  onValueChange={(value) => setNewAdmin({ ...newAdmin, state: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select State" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stateOptions.map((state) => (
+                      <SelectItem key={state.value} value={state.value}>
+                        {state.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500 mt-1">Select the state for this school</p>
               </div>
               <div>
                 <Label htmlFor="schoolName">School Name *</Label>
@@ -522,7 +594,29 @@ export default function AdminManagement() {
                     <SelectValue placeholder="Select Board" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ASLI_EXCLUSIVE_SCHOOLS">ASLI EXCLUSIVE SCHOOLS</SelectItem>
+                    {boardOptions.map((board) => (
+                      <SelectItem key={board.value} value={board.value}>
+                        {board.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit-state">State *</Label>
+                <Select
+                  value={editAdmin.state}
+                  onValueChange={(value) => setEditAdmin({ ...editAdmin, state: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select State" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {stateOptions.map((state) => (
+                      <SelectItem key={state.value} value={state.value}>
+                        {state.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -625,9 +719,16 @@ export default function AdminManagement() {
                     {admin?.schoolName && (
                       <p className="text-xs text-orange-600 font-medium mt-1">{admin.schoolName}</p>
                     )}
-                    <Badge variant="outline" className="mt-1 text-xs">
-                      ASLI EXCLUSIVE SCHOOLS
-                    </Badge>
+                    {admin?.board && (
+                      <Badge variant="outline" className="mt-1 text-xs mr-1">
+                        {admin.board}
+                      </Badge>
+                    )}
+                    {admin?.state && (
+                      <Badge variant="outline" className="mt-1 text-xs">
+                        {admin.state}
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 <Badge variant={(admin?.status || 'inactive') === 'active' ? 'default' : 'secondary'}>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -51,6 +51,10 @@ const SubjectManagement = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterByDepartment, setFilterByDepartment] = useState<string>('all');
+  const [filterByGrade, setFilterByGrade] = useState<string>('all');
+  const [filterByTeacher, setFilterByTeacher] = useState<string>('all');
+  const [filterByStatus, setFilterByStatus] = useState<string>('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
@@ -232,12 +236,72 @@ const SubjectManagement = () => {
     }
   };
 
-  const filteredSubjects = Array.isArray(subjects) ? subjects.filter(subject =>
-    subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    subject.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    subject.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    subject.teacher?.fullName.toLowerCase().includes(searchTerm.toLowerCase())
-  ) : [];
+  // Get unique values for filters
+  const getUniqueDepartments = (): string[] => {
+    const departments = subjects
+      .map(s => s.department)
+      .filter((d): d is string => Boolean(d));
+    return Array.from(new Set(departments)).sort();
+  };
+
+  const getUniqueGrades = (): string[] => {
+    const grades = subjects
+      .map(s => s.grade)
+      .filter((g): g is string => Boolean(g));
+    return Array.from(new Set(grades)).sort((a, b) => {
+      const numA = parseInt(a);
+      const numB = parseInt(b);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      return a.localeCompare(b);
+    });
+  };
+
+  // Filter subjects based on search term and selected filters
+  const filteredSubjects = useMemo(() => {
+    if (!Array.isArray(subjects)) return [];
+
+    let filtered = subjects;
+
+    // Search filter
+    if (searchTerm.trim()) {
+      const query = searchTerm.toLowerCase();
+      filtered = filtered.filter(subject =>
+        subject.name?.toLowerCase().includes(query) ||
+        subject.code?.toLowerCase().includes(query) ||
+        subject.department?.toLowerCase().includes(query) ||
+        subject.teacher?.fullName?.toLowerCase().includes(query)
+      );
+    }
+
+    // Department filter
+    if (filterByDepartment !== 'all') {
+      filtered = filtered.filter(s => s.department === filterByDepartment);
+    }
+
+    // Grade filter
+    if (filterByGrade !== 'all') {
+      filtered = filtered.filter(s => s.grade === filterByGrade);
+    }
+
+    // Teacher filter
+    if (filterByTeacher !== 'all') {
+      if (filterByTeacher === 'assigned') {
+        filtered = filtered.filter(s => s.teacher);
+      } else if (filterByTeacher === 'unassigned') {
+        filtered = filtered.filter(s => !s.teacher);
+      } else {
+        filtered = filtered.filter(s => s.teacher?.id === filterByTeacher);
+      }
+    }
+
+    // Status filter
+    if (filterByStatus !== 'all') {
+      const isActive = filterByStatus === 'active';
+      filtered = filtered.filter(s => s.isActive === isActive);
+    }
+
+    return filtered;
+  }, [subjects, searchTerm, filterByDepartment, filterByGrade, filterByTeacher, filterByStatus]);
 
   const totalSubjects = Array.isArray(subjects) ? subjects.length : 0;
   const activeSubjects = Array.isArray(subjects) ? subjects.filter(s => s.isActive).length : 0;
@@ -338,22 +402,116 @@ const SubjectManagement = () => {
           </div>
         </div>
 
-        {/* Action Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white/40 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-sky-200">
+        {/* Action Bar with Filters */}
+        <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-sky-200">
+          <div className="flex flex-col gap-4">
+            {/* Search Bar */}
           <div className="flex flex-col sm:flex-row gap-4 items-center">
-            <div className="relative">
+              <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sky-600 w-4 h-4" />
               <Input
                 placeholder="Search subjects..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-64 border-sky-200 focus:border-sky-400"
+                  className="pl-10 w-full border-sky-200 focus:border-sky-400"
               />
+              </div>
+              <Badge variant="outline" className="border-sky-200 text-sky-700 px-4 py-2">
+                {filteredSubjects.length} of {subjects.length} subjects
+              </Badge>
             </div>
-            <Button variant="outline" className="border-sky-200 text-sky-700 hover:bg-sky-50">
-              <Filter className="w-4 h-4 mr-2" />
-              Filter
+
+            {/* Filter Controls */}
+            <div className="flex flex-wrap items-center gap-4">
+              <Label className="font-semibold text-sky-900">Filters:</Label>
+              
+              {/* Department Filter */}
+              <div className="relative">
+                <div className="absolute -inset-[2px] bg-gradient-to-r from-orange-300 to-orange-400 rounded-md"></div>
+                <Select value={filterByDepartment} onValueChange={setFilterByDepartment}>
+                  <SelectTrigger className="w-48 relative z-10 border-0 bg-white focus:ring-2 focus:ring-orange-500 focus:ring-offset-0">
+                    <SelectValue placeholder="All Departments" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Departments</SelectItem>
+                    {getUniqueDepartments().map(dept => (
+                      <SelectItem key={dept} value={dept}>
+                        {dept}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Grade Filter */}
+              <div className="relative">
+                <div className="absolute -inset-[2px] bg-gradient-to-r from-sky-300 to-sky-400 rounded-md"></div>
+                <Select value={filterByGrade} onValueChange={setFilterByGrade}>
+                  <SelectTrigger className="w-40 relative z-10 border-0 bg-white focus:ring-2 focus:ring-sky-500 focus:ring-offset-0">
+                    <SelectValue placeholder="All Grades" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Grades</SelectItem>
+                    {getUniqueGrades().map(grade => (
+                      <SelectItem key={grade} value={grade}>
+                        Grade {grade}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Teacher Filter */}
+              <div className="relative">
+                <div className="absolute -inset-[2px] bg-gradient-to-r from-teal-400 to-teal-500 rounded-md"></div>
+                <Select value={filterByTeacher} onValueChange={setFilterByTeacher}>
+                  <SelectTrigger className="w-48 relative z-10 border-0 bg-white focus:ring-2 focus:ring-teal-500 focus:ring-offset-0">
+                    <SelectValue placeholder="All Teachers" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Teachers</SelectItem>
+                    <SelectItem value="assigned">Assigned</SelectItem>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {teachers.map(teacher => (
+                      <SelectItem key={teacher.id} value={teacher.id}>
+                        {teacher.fullName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Status Filter */}
+              <div className="relative">
+                <div className="absolute -inset-[2px] bg-gradient-to-r from-green-400 to-green-500 rounded-md"></div>
+                <Select value={filterByStatus} onValueChange={setFilterByStatus}>
+                  <SelectTrigger className="w-40 relative z-10 border-0 bg-white focus:ring-2 focus:ring-green-500 focus:ring-offset-0">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Clear Filters Button */}
+              {(filterByDepartment !== 'all' || filterByGrade !== 'all' || filterByTeacher !== 'all' || filterByStatus !== 'all') && (
+                <Button
+                  variant="outline"
+                  className="border-sky-200 text-sky-700 hover:bg-sky-50"
+                  onClick={() => {
+                    setFilterByDepartment('all');
+                    setFilterByGrade('all');
+                    setFilterByTeacher('all');
+                    setFilterByStatus('all');
+                  }}
+                >
+                  Clear Filters
             </Button>
+              )}
+            </div>
           </div>
         </div>
 

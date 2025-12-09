@@ -141,7 +141,7 @@ const Index = () => {
             <div className="hidden lg:block relative">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                 <img 
-                  src="/hero-learning-CPW-7jof.jpg" 
+                  src="/1765111492896.png" 
                   alt="Students Learning Together" 
                   className="w-full h-auto object-cover rounded-2xl"
                 />

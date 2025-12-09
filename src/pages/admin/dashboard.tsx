@@ -34,8 +34,12 @@ import {
   FileText,
   Play,
   Target,
-  Menu
+  Menu,
+  Sparkles,
+  MessageCircle,
+  Calendar as CalendarIcon
 } from 'lucide-react';
+import { useLocation } from 'wouter';
 import UserManagement from '@/components/admin/user-management';
 import ClassManagement from '@/components/admin/class-management';
 import ClassDashboard from '@/components/admin/class-dashboard';
@@ -44,11 +48,16 @@ import SubjectManagement from '@/components/admin/subject-management';
 import ExamViewOnly from '@/components/admin/exam-view-only';
 import AdminLearningPaths from '@/components/admin/learning-paths';
 import AdminEduOTT from '@/components/admin/admin-eduott';
+import AdminCalendar from '@/components/admin/admin-calendar';
+import AIChat from '@/components/ai-chat';
 
 const AdminDashboard = () => {
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState('overview');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [userData, setUserData] = useState<any>(null);
+  const [adminId, setAdminId] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
 
@@ -75,6 +84,8 @@ const AdminDashboard = () => {
           console.log('Admin dashboard auth check - user data:', data);
           if (data.user && data.user.role === 'admin') {
             console.log('Admin user authenticated successfully');
+            setUserData(data.user);
+            setAdminId(data.user._id || data.user.id);
             setIsAuthenticated(true);
           } else {
             console.log('User is not admin, role:', data.user?.role);
@@ -243,6 +254,58 @@ const AdminDashboard = () => {
   if (!isAuthenticated) {
     return null;
   }
+
+  // Vidya AI Corner Button Component
+  const VidyaAICornerButton = () => {
+    const messages = [
+      "Need help managing your school?",
+      "Ask me about student management",
+      "Need help with class assignments?",
+      "Ask me about teacher management?"
+    ];
+    const [currentMessage, setCurrentMessage] = useState(0);
+    
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setCurrentMessage((prev) => (prev + 1) % messages.length);
+      }, 3000);
+      return () => clearInterval(interval);
+    }, [messages.length]);
+    
+    return (
+      <div className="fixed bottom-8 left-4 z-50">
+        {/* Message Popup */}
+        <div className="relative mb-2 animate-fade-in">
+          <div className="bg-white rounded-lg shadow-xl p-3 border-2 border-orange-200 relative">
+            <p className="text-sm font-medium text-gray-800 whitespace-nowrap">
+              {messages[currentMessage]}
+            </p>
+            {/* Speech bubble tail */}
+            <div className="absolute bottom-0 left-8 transform translate-y-full">
+              <div className="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-orange-200"></div>
+              <div className="absolute top-0 left-0 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white" style={{ marginTop: '-1px' }}></div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Vidya AI Image */}
+        <div 
+          className="cursor-pointer"
+          onClick={() => {
+            setActiveTab('vidya-ai');
+            // Scroll to top of the page
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        >
+          <img 
+            src="/Vidya-ai.jpg" 
+            alt="Vidya AI - Click to chat" 
+            className="w-32 h-32 rounded-full shadow-xl opacity-80 hover:opacity-100 hover:scale-105 transition-all duration-300 object-cover"
+          />
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-sky-50 flex relative overflow-hidden">
@@ -528,17 +591,41 @@ const AdminDashboard = () => {
             <span className="truncate">Learning Paths</span>
           </button>
           
-          <button
-            onClick={() => setActiveTab('eduott')}
-            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
-              activeTab === 'eduott' 
-                ? 'bg-white text-orange-600 shadow-md' 
-                : 'text-white hover:bg-orange-600/50'
-            }`}
-          >
-            <Play className="mr-3 h-5 w-5 flex-shrink-0" />
-            <span className="truncate">EduOTT</span>
-          </button>
+                    <button
+                      onClick={() => setActiveTab('eduott')}
+                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                        activeTab === 'eduott' 
+                          ? 'bg-white text-orange-600 shadow-md' 
+                          : 'text-white hover:bg-orange-600/50'
+                      }`}
+                    >
+                      <Play className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <span className="truncate">EduOTT</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => setActiveTab('calendar')}
+                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                        activeTab === 'calendar' 
+                          ? 'bg-white text-orange-600 shadow-md' 
+                          : 'text-white hover:bg-orange-600/50'
+                      }`}
+                    >
+                      <CalendarIcon className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <span className="truncate">Calendar</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => setActiveTab('vidya-ai')}
+                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                        activeTab === 'vidya-ai' 
+                          ? 'bg-white text-orange-600 shadow-md' 
+                          : 'text-white hover:bg-orange-600/50'
+                      }`}
+                    >
+                      <Sparkles className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <span className="truncate">Vidya AI</span>
+                    </button>
           
         </nav>
       </div>
@@ -553,6 +640,16 @@ const AdminDashboard = () => {
                 <p className="text-xs uppercase tracking-[0.3em] text-gray-900 mb-2">Admin Control Center</p>
                 <h2 className="text-responsive-xl font-bold capitalize text-gray-900">{activeTab}</h2>
                 <p className="text-gray-900 text-responsive-sm font-medium">Manage your learning platform with style</p>
+                {userData && (
+                  <div className="mt-2">
+                    <p className="text-gray-800 text-sm font-medium">
+                      {userData.email} ::: {userData.schoolName || userData.fullName || 'School'}
+                    </p>
+                    <p className="text-gray-900 text-base font-semibold mt-1">
+                      Welcome {userData.schoolName || userData.fullName || 'Admin'}
+                    </p>
+                  </div>
+                )}
               </div>
               {!isMobile && (
                 <div className="flex items-center space-x-responsive">
@@ -851,7 +948,8 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
-                className="relative overflow-hidden bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg rounded-responsive p-responsive hover:shadow-xl transition-all duration-300"
+                onClick={() => setActiveTab('students')}
+                className="relative overflow-hidden bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg rounded-responsive p-responsive hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-105"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -871,6 +969,9 @@ const AdminDashboard = () => {
                     <div className="text-white/80 text-responsive-xs">
                       These are the students specifically assigned to your admin account
                     </div>
+                    <div className="text-white/90 text-xs font-medium mt-2 flex items-center gap-1">
+                      Click to view details →
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -879,7 +980,8 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 }}
-                className="relative overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-3xl p-8 shadow-xl"
+                onClick={() => setActiveTab('teachers')}
+                className="relative overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-3xl p-8 shadow-xl cursor-pointer hover:scale-105 transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -899,6 +1001,9 @@ const AdminDashboard = () => {
                     <div className="text-white/80 text-responsive-xs">
                       These are the teachers specifically assigned to your admin account
                     </div>
+                    <div className="text-white/90 text-xs font-medium mt-2 flex items-center gap-1">
+                      Click to view details →
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -916,9 +1021,63 @@ const AdminDashboard = () => {
           {activeTab === 'exams' && <ExamViewOnly />}
           {activeTab === 'learning-paths' && <AdminLearningPaths />}
           {activeTab === 'eduott' && <AdminEduOTT />}
+          {activeTab === 'calendar' && <AdminCalendar />}
+          {activeTab === 'vidya-ai' && (
+            <div className="space-y-6">
+              {/* Vidya AI */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+              >
+                <div className="flex items-center space-x-3 mb-6">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                    <img 
+                      src="/Vidya-ai.jpg" 
+                      alt="Vidya AI" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <h3 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-orange-700 bg-clip-text text-transparent">Vidya AI</h3>
+                </div>
+
+                {/* Chat Content */}
+                <div className="space-y-4">
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-900 mb-2">AI Chat Assistant</h2>
+                    <p className="text-gray-600">Get instant help with administrative questions, student management, and educational guidance</p>
+                  </div>
+                  <div className="bg-white rounded-xl shadow-md border border-gray-200" style={{ minHeight: '600px' }}>
+                    {adminId ? (
+                      <AIChat
+                        userId={adminId}
+                        className="flex-1 h-full"
+                        context={{
+                          studentName: userData?.schoolName || userData?.fullName || userData?.email?.split('@')[0] || "Admin",
+                          currentSubject: "Administration",
+                          currentTopic: undefined
+                        }}
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full min-h-[600px]">
+                        <div className="text-center">
+                          <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-600">Loading chat...</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
           {/* Analytics tab removed */}
         </div>
       </div>
+      
+      {/* Vidya AI Corner Button */}
+      <VidyaAICornerButton />
     </div>
   );
 };

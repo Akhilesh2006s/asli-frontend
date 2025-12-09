@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Upload, Video, FileText, File, X, Trash2, Edit, Play, Eye, Plus } from 'lucide-react';
+import { Upload, Video, FileText, File, X, Trash2, Edit, Play, Eye, Plus, Calendar, Grid3x3, ChevronDown, ChevronUp, BookOpen, GraduationCap } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 
@@ -56,6 +56,8 @@ export default function ContentManagement() {
   const [filterByClass, setFilterByClass] = useState<string>('all');
   const [filterByType, setFilterByType] = useState<string>('all');
   const [viewingContent, setViewingContent] = useState<Content | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid');
+  const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
 
   const [formData, setFormData] = useState({
     title: '',
@@ -642,6 +644,125 @@ export default function ContentManagement() {
     }
   };
 
+  // Calendar View Functions
+  interface WeekContent {
+    weekStart: Date;
+    weekEnd: Date;
+    contents: Content[];
+  }
+
+  const getWeekStart = (date: Date): Date => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + diff);
+    return d;
+  };
+
+  const getWeekEnd = (date: Date): Date => {
+    const weekStart = getWeekStart(date);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+    return weekEnd;
+  };
+
+  const formatDateRange = (start: Date, end: Date): string => {
+    const startStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const endStr = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return `${startStr} - ${endStr}`;
+  };
+
+  const organizeByWeeks = (contents: Content[]): WeekContent[] => {
+    if (!contents || contents.length === 0) {
+      return [];
+    }
+
+    const sortedContents = [...contents].sort((a, b) => {
+      const dateA = a.date ? new Date(a.date) : new Date(a.createdAt);
+      const dateB = b.date ? new Date(b.date) : new Date(b.createdAt);
+      return dateA.getTime() - dateB.getTime();
+    });
+
+    const weeksMap = new Map<string, Content[]>();
+
+    sortedContents.forEach(content => {
+      let contentDate: Date;
+      if (content.date) {
+        contentDate = typeof content.date === 'string' ? new Date(content.date) : new Date(content.date);
+      } else if (content.createdAt) {
+        contentDate = typeof content.createdAt === 'string' ? new Date(content.createdAt) : new Date(content.createdAt);
+      } else {
+        return;
+      }
+      
+      if (isNaN(contentDate.getTime())) {
+        return;
+      }
+      
+      const weekStart = getWeekStart(contentDate);
+      const weekEnd = getWeekEnd(contentDate);
+      const weekKey = `${weekStart.getTime()}_${weekEnd.getTime()}`;
+
+      if (!weeksMap.has(weekKey)) {
+        weeksMap.set(weekKey, []);
+      }
+      weeksMap.get(weekKey)!.push(content);
+    });
+
+    const weeks: WeekContent[] = Array.from(weeksMap.entries())
+      .filter(([_, contents]) => contents.length > 0)
+      .map(([key, contents]) => {
+        const [startTime, endTime] = key.split('_').map(Number);
+        return {
+          weekStart: new Date(startTime),
+          weekEnd: new Date(endTime),
+          contents: contents.sort((a, b) => {
+            const dateA = a.date ? new Date(a.date) : new Date(a.createdAt);
+            const dateB = b.date ? new Date(b.date) : new Date(b.createdAt);
+            return dateA.getTime() - dateB.getTime();
+          })
+        };
+      })
+      .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
+
+    return weeks;
+  };
+
+  const toggleWeek = (weekKey: string) => {
+    setExpandedWeeks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(weekKey)) {
+        newSet.delete(weekKey);
+      } else {
+        newSet.add(weekKey);
+      }
+      return newSet;
+    });
+  };
+
+  const getContentIcon = (type: string) => {
+    switch (type) {
+      case 'Video':
+        return Video;
+      case 'TextBook':
+        return BookOpen;
+      case 'Workbook':
+        return FileText;
+      case 'Material':
+        return File;
+      case 'Audio':
+        return File;
+      default:
+        return File;
+    }
+  };
+
+  const getContentTypeLabel = (type: string): string => {
+    return type.toUpperCase();
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -751,11 +872,36 @@ export default function ContentManagement() {
             <Badge variant="outline" className="ml-auto">
               {filteredContents.length} of {contents.length} items
             </Badge>
+            
+            {/* View Toggle */}
+            <div className="flex items-center gap-2 ml-4">
+              <Label className="font-semibold">View:</Label>
+              <div className="flex border border-gray-300 rounded-md overflow-hidden">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                  className={`rounded-none ${viewMode === 'grid' ? 'bg-sky-500 text-white hover:bg-sky-600' : ''}`}
+                >
+                  <Grid3x3 className="w-4 h-4 mr-1" />
+                  Grid
+                </Button>
+                <Button
+                  variant={viewMode === 'calendar' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('calendar')}
+                  className={`rounded-none ${viewMode === 'calendar' ? 'bg-sky-500 text-white hover:bg-sky-600' : ''}`}
+                >
+                  <Calendar className="w-4 h-4 mr-1" />
+                  Calendar
+                </Button>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Content Grid */}
+      {/* Content View */}
       {isLoading ? (
         <div className="text-center py-12">
           <div className="w-8 h-8 border-4 border-blue-700 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -791,7 +937,7 @@ export default function ContentManagement() {
             </Button>
           </CardContent>
         </Card>
-      ) : (
+      ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredContents.map((content) => (
             <Card key={content._id} className="hover:shadow-xl transition-all duration-300 border-0 overflow-hidden" style={{
@@ -884,6 +1030,143 @@ export default function ContentManagement() {
               </CardContent>
             </Card>
           ))}
+        </div>
+      ) : (
+        // Calendar View
+        <div className="space-y-4">
+          {(() => {
+            const weeks = organizeByWeeks(filteredContents);
+            if (weeks.length === 0) {
+              return (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No content available</h3>
+                    <p className="text-gray-600">Content will appear here once it's uploaded.</p>
+                  </CardContent>
+                </Card>
+              );
+            }
+            return weeks.map((week, index) => {
+              const weekKey = `${week.weekStart.getTime()}_${week.weekEnd.getTime()}`;
+              const isExpanded = expandedWeeks.has(weekKey) || (expandedWeeks.size === 0 && index === 0);
+
+              return (
+                <Card key={weekKey} className="overflow-hidden">
+                  {/* Week Header */}
+                  <button
+                    onClick={() => toggleWeek(weekKey)}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-sky-50 to-teal-50 hover:from-sky-100 hover:to-teal-100 transition-colors flex items-center justify-between"
+                  >
+                    <span className="font-medium text-gray-900">
+                      {formatDateRange(week.weekStart, week.weekEnd)}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-white">
+                        {week.contents.length} item{week.contents.length !== 1 ? 's' : ''}
+                      </Badge>
+                      {isExpanded ? (
+                        <ChevronUp className="w-4 h-4 text-gray-500" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Week Content */}
+                  {isExpanded && (
+                    <CardContent className="p-4 space-y-3">
+                      {week.contents.map((content) => {
+                        const Icon = getContentIcon(content.type);
+                        const contentTypeLabel = getContentTypeLabel(content.type);
+                        const subjectName = content.subject?.name || 'N/A';
+                        const classNumber = content.classNumber || (content.subject?.name ? extractClassNumber(content.subject.name) : null);
+
+                        return (
+                          <div
+                            key={content._id}
+                            className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:shadow-md transition-all duration-200 cursor-pointer group"
+                            onClick={() => setViewingContent(content)}
+                          >
+                            <div className="flex items-center space-x-4 flex-1 min-w-0">
+                              <div className="p-3 bg-gradient-to-br from-sky-100 to-teal-100 rounded-lg group-hover:from-sky-200 group-hover:to-teal-200 transition-colors">
+                                <Icon className="w-5 h-5 text-sky-600" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center space-x-2 mb-1">
+                                  <Badge className={`text-xs ${getTypeColor(content.type)}`}>
+                                    {contentTypeLabel}
+                                  </Badge>
+                                  {content.topic && (
+                                    <Badge variant="outline" className="text-xs">
+                                      {content.topic}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <h4 className="font-semibold text-gray-900 text-base mb-1 truncate">{content.title}</h4>
+                                <div className="flex items-center gap-3 text-sm text-gray-600">
+                                  <span className="flex items-center gap-1">
+                                    <BookOpen className="w-3 h-3" />
+                                    {extractSubjectName(subjectName)}
+                                  </span>
+                                  {classNumber && (
+                                    <span className="flex items-center gap-1">
+                                      <GraduationCap className="w-3 h-3" />
+                                      Class {classNumber}
+                                    </span>
+                                  )}
+                                  {content.date && (
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      {new Date(content.date).toLocaleDateString()}
+                                    </span>
+                                  )}
+                                  {content.duration && (
+                                    <span className="text-xs text-gray-500">
+                                      {content.duration} min
+                                    </span>
+                                  )}
+                                </div>
+                                {content.description && (
+                                  <p className="text-xs text-gray-500 mt-1 line-clamp-1">{content.description}</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 ml-4">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setViewingContent(content);
+                                }}
+                                className="bg-sky-50 hover:bg-sky-100 border-sky-200 text-sky-700"
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                View
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(content._id);
+                                }}
+                                disabled={isDeleting === content._id}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            });
+          })()}
         </div>
       )}
 

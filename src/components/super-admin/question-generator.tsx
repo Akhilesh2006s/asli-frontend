@@ -26,12 +26,18 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
   const [formData, setFormData] = useState({
     numberOfQuestions: 10,
     difficulty: 'medium',
-    subject: ''
+    subject: '',
+    topic: '',
+    subtopic: ''
   });
+
+  const [topics, setTopics] = useState<string[]>([]);
+  const [isLoadingTopics, setIsLoadingTopics] = useState(false);
 
   useEffect(() => {
     fetchSubjectsForClass();
-  }, [classNumber]);
+    fetchTopicsForClass();
+  }, [classNumber, formData.subject]);
 
   const fetchSubjectsForClass = async () => {
     try {
@@ -66,6 +72,48 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
       });
     } finally {
       setIsLoadingSubjects(false);
+    }
+  };
+
+  const fetchTopicsForClass = async () => {
+    if (!formData.subject) {
+      setTopics([]);
+      return;
+    }
+
+    try {
+      setIsLoadingTopics(true);
+      const token = localStorage.getItem('authToken');
+      
+      // Fetch topics from content for the selected subject and class
+      const response = await fetch(
+        `${API_BASE_URL}/api/super-admin/content?classNumber=${classNumber}&subjectId=${formData.subject}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const contentItems = data.data || [];
+        // Extract unique topics from content
+        const uniqueTopics = Array.from(
+          new Set(
+            contentItems
+              .map((item: any) => item.topic)
+              .filter((topic: string) => topic && topic.trim() !== '')
+          )
+        ) as string[];
+        setTopics(uniqueTopics.sort());
+      }
+    } catch (error) {
+      console.error('Error fetching topics:', error);
+      // Don't show error toast for topics as it's optional
+    } finally {
+      setIsLoadingTopics(false);
     }
   };
 
@@ -104,7 +152,9 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
           classNumber: classNumber.toString(),
           numberOfQuestions: formData.numberOfQuestions,
           difficulty: formData.difficulty,
-          subjectId: formData.subject
+          subjectId: formData.subject,
+          topic: formData.topic || undefined,
+          subtopic: formData.subtopic || undefined
         })
       });
 
@@ -118,11 +168,13 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
             description: `Successfully generated ${data.data.questions?.length || 0} questions and created a new quiz! Questions are automatically saved and visible to students.`
           });
           
-          // Reset form after successful generation
+          // Reset form after successful generation (keep class, topic, subtopic)
           setFormData({
             numberOfQuestions: 10,
             difficulty: 'medium',
-            subject: ''
+            subject: formData.subject,
+            topic: formData.topic,
+            subtopic: formData.subtopic
           });
         } else {
           throw new Error(data.message || 'Failed to generate questions');
@@ -169,67 +221,142 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Number of Questions */}
-            <div className="space-y-2">
-              <Label htmlFor="numberOfQuestions">Number of Questions</Label>
-              <Input
-                id="numberOfQuestions"
-                type="number"
-                min="1"
-                max="50"
-                value={formData.numberOfQuestions}
-                onChange={(e) => setFormData({ ...formData, numberOfQuestions: parseInt(e.target.value) || 1 })}
-                placeholder="Enter number of questions"
-              />
-              <p className="text-xs text-gray-500">Between 1 and 50 questions</p>
+          {/* Filter Options Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <Label className="text-base font-semibold">Filter Options</Label>
             </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Class */}
+              <div className="space-y-2">
+                <Label htmlFor="class">Class</Label>
+                <Input
+                  id="class"
+                  type="number"
+                  value={classNumber}
+                  disabled
+                  className="bg-gray-50"
+                />
+                <p className="text-xs text-gray-500">Current class</p>
+              </div>
 
-            {/* Difficulty Level */}
-            <div className="space-y-2">
-              <Label htmlFor="difficulty">Difficulty Level</Label>
-              <Select
-                value={formData.difficulty}
-                onValueChange={(value) => setFormData({ ...formData, difficulty: value })}
-              >
-                <SelectTrigger id="difficulty">
-                  <SelectValue placeholder="Select difficulty" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="easy">Easy</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="hard">Hard</SelectItem>
-                  <SelectItem value="expert">Expert</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Subject */}
+              <div className="space-y-2">
+                <Label htmlFor="subject">Subject *</Label>
+                {isLoadingSubjects ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : (
+                  <Select
+                    value={formData.subject}
+                    onValueChange={(value) => setFormData({ ...formData, subject: value, topic: '', subtopic: '' })}
+                  >
+                    <SelectTrigger id="subject">
+                      <SelectValue placeholder="Select subject" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subjects.length === 0 ? (
+                        <SelectItem value="__no_subjects__" disabled>No subjects available</SelectItem>
+                      ) : (
+                        subjects.map((subject) => (
+                          <SelectItem key={subject._id} value={subject._id}>
+                            {subject.name}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              {/* Topic */}
+              <div className="space-y-2">
+                <Label htmlFor="topic">Topic</Label>
+                {isLoadingTopics ? (
+                  <Skeleton className="h-10 w-full" />
+                ) : topics.length > 0 ? (
+                  <Select
+                    value={formData.topic}
+                    onValueChange={(value) => setFormData({ ...formData, topic: value, subtopic: '' })}
+                  >
+                    <SelectTrigger id="topic">
+                      <SelectValue placeholder="Select topic (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Topics</SelectItem>
+                      {topics.map((topic) => (
+                        <SelectItem key={topic} value={topic}>
+                          {topic}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    id="topic"
+                    value={formData.topic}
+                    onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
+                    placeholder="Enter topic (optional)"
+                  />
+                )}
+                <p className="text-xs text-gray-500">Optional filter</p>
+              </div>
+
+              {/* Subtopic */}
+              <div className="space-y-2">
+                <Label htmlFor="subtopic">Subtopic</Label>
+                <Input
+                  id="subtopic"
+                  value={formData.subtopic}
+                  onChange={(e) => setFormData({ ...formData, subtopic: e.target.value })}
+                  placeholder="Enter subtopic (optional)"
+                  disabled={!formData.topic}
+                />
+                <p className="text-xs text-gray-500">Optional filter</p>
+              </div>
             </div>
+          </div>
 
-            {/* Subject */}
-            <div className="space-y-2">
-              <Label htmlFor="subject">Subject</Label>
-              {isLoadingSubjects ? (
-                <Skeleton className="h-10 w-full" />
-              ) : (
+          {/* Generation Settings Section */}
+          <div className="space-y-4 pt-4 border-t">
+            <div className="flex items-center gap-2 pb-2">
+              <Label className="text-base font-semibold">Generation Settings</Label>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Number of Questions */}
+              <div className="space-y-2">
+                <Label htmlFor="numberOfQuestions">Number of Questions</Label>
+                <Input
+                  id="numberOfQuestions"
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={formData.numberOfQuestions}
+                  onChange={(e) => setFormData({ ...formData, numberOfQuestions: parseInt(e.target.value) || 1 })}
+                  placeholder="Enter number of questions"
+                />
+                <p className="text-xs text-gray-500">Between 1 and 50 questions</p>
+              </div>
+
+              {/* Difficulty Level */}
+              <div className="space-y-2">
+                <Label htmlFor="difficulty">Difficulty Level</Label>
                 <Select
-                  value={formData.subject}
-                  onValueChange={(value) => setFormData({ ...formData, subject: value })}
+                  value={formData.difficulty}
+                  onValueChange={(value) => setFormData({ ...formData, difficulty: value })}
                 >
-                  <SelectTrigger id="subject">
-                    <SelectValue placeholder="Select subject" />
+                  <SelectTrigger id="difficulty">
+                    <SelectValue placeholder="Select difficulty" />
                   </SelectTrigger>
                   <SelectContent>
-                    {subjects.length === 0 ? (
-                      <SelectItem value="__no_subjects__" disabled>No subjects available</SelectItem>
-                    ) : (
-                      subjects.map((subject) => (
-                        <SelectItem key={subject._id} value={subject._id}>
-                          {subject.name}
-                        </SelectItem>
-                      ))
-                    )}
+                    <SelectItem value="easy">Easy</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="hard">Hard</SelectItem>
+                    <SelectItem value="expert">Expert</SelectItem>
                   </SelectContent>
                 </Select>
-              )}
+              </div>
             </div>
           </div>
 

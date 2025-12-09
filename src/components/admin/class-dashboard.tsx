@@ -31,7 +31,8 @@ import {
   ChevronUp,
   ArrowUp,
   CheckCircle2,
-  Loader2
+  Loader2,
+  Eye
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -111,6 +112,10 @@ const ClassDashboard = () => {
   const [isPromoting, setIsPromoting] = useState(false);
   const [completedStudents, setCompletedStudents] = useState<Student[]>([]);
   const [isLoadingCompletedStudents, setIsLoadingCompletedStudents] = useState(false);
+  const [selectedStudentForAnalysis, setSelectedStudentForAnalysis] = useState<Student | null>(null);
+  const [isStudentAnalysisDialogOpen, setIsStudentAnalysisDialogOpen] = useState(false);
+  const [studentAnalysis, setStudentAnalysis] = useState<any>(null);
+  const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
 
   useEffect(() => {
     fetchClasses();
@@ -236,6 +241,42 @@ const ClassDashboard = () => {
     } catch (error) {
       console.error('Failed to fetch students:', error);
       // Note: Students are fetched as part of classes data
+    }
+  };
+
+  const handleViewStudentAnalysis = async (student: Student) => {
+    setSelectedStudentForAnalysis(student);
+    setIsStudentAnalysisDialogOpen(true);
+    setIsLoadingAnalysis(true);
+    
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/admin/students/${student.id}/analytics`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setStudentAnalysis(data);
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch student analysis',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch student analysis:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch student analysis',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoadingAnalysis(false);
     }
   };
 
@@ -1068,13 +1109,24 @@ const ClassDashboard = () => {
                             <p className="text-sm font-medium text-sky-900">{student.name}</p>
                             <p className="text-xs text-sky-600">{student.email}</p>
                           </div>
-                          <Badge variant="outline" className={`text-xs ${
-                            student.status === 'active' 
-                              ? 'border-green-200 text-green-700 bg-green-50' 
-                              : 'border-gray-200 text-gray-700 bg-gray-50'
-                          }`}>
-                            {student.status}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 hover:bg-sky-100"
+                              onClick={() => handleViewStudentAnalysis(student)}
+                              title="View Student Analysis"
+                            >
+                              <Eye className="w-4 h-4 text-sky-600" />
+                            </Button>
+                            <Badge variant="outline" className={`text-xs ${
+                              student.status === 'active' 
+                                ? 'border-green-200 text-green-700 bg-green-50' 
+                                : 'border-gray-200 text-gray-700 bg-gray-50'
+                            }`}>
+                              {student.status}
+                            </Badge>
+                          </div>
                         </div>
                         ))
                       ) : (
@@ -1631,6 +1683,103 @@ const ClassDashboard = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+        {/* Student Analysis Dialog */}
+        <Dialog open={isStudentAnalysisDialogOpen} onOpenChange={setIsStudentAnalysisDialogOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-sky-600" />
+                Student Analysis - {selectedStudentForAnalysis?.name}
+              </DialogTitle>
+              <DialogDescription>
+                {selectedStudentForAnalysis?.email}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {isLoadingAnalysis ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
+                <span className="ml-2 text-gray-600">Loading analysis...</span>
+              </div>
+            ) : studentAnalysis ? (
+              <div className="space-y-6">
+                {/* Performance Summary */}
+                {studentAnalysis.performance && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Performance Summary</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {studentAnalysis.performance.totalExams > 0 && (
+                          <div className="bg-blue-50 rounded-lg p-4">
+                            <p className="text-sm text-gray-600">Total Exams</p>
+                            <p className="text-2xl font-bold text-blue-700">{studentAnalysis.performance.totalExams}</p>
+                          </div>
+                        )}
+                        {studentAnalysis.performance.averageScore && (
+                          <div className="bg-green-50 rounded-lg p-4">
+                            <p className="text-sm text-gray-600">Average Score</p>
+                            <p className="text-2xl font-bold text-green-700">{studentAnalysis.performance.averageScore}%</p>
+                          </div>
+                        )}
+                        {studentAnalysis.performance.overallProgress && (
+                          <div className="bg-purple-50 rounded-lg p-4">
+                            <p className="text-sm text-gray-600">Overall Progress</p>
+                            <p className="text-2xl font-bold text-purple-700">{studentAnalysis.performance.overallProgress}%</p>
+                          </div>
+                        )}
+                        {studentAnalysis.performance.watchTime && (
+                          <div className="bg-orange-50 rounded-lg p-4">
+                            <p className="text-sm text-gray-600">Watch Time</p>
+                            <p className="text-2xl font-bold text-orange-700">{Math.round(studentAnalysis.performance.watchTime / 60)}h</p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Recent Activity */}
+                {studentAnalysis.recentActivity && studentAnalysis.recentActivity.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Recent Activity</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {studentAnalysis.recentActivity.map((activity: any, index: number) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div>
+                              <p className="font-medium text-gray-900">{activity.title || activity.type}</p>
+                              <p className="text-sm text-gray-600">{activity.date || activity.createdAt}</p>
+                            </div>
+                            {activity.score && (
+                              <Badge className="bg-sky-100 text-sky-700">{activity.score}%</Badge>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {!studentAnalysis.performance && !studentAnalysis.recentActivity && (
+                  <div className="text-center py-12">
+                    <BarChart3 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-600">No analysis data available for this student yet.</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <BarChart3 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-600">No analysis data available for this student yet.</p>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
     </div>
   );
 };

@@ -14,7 +14,13 @@ const LOCAL_URL = 'http://localhost:5000';
 // - Ignore localhost URLs (will cause connection errors)
 // - Force HTTP URLs to HTTPS (to prevent mixed content errors)
 const envUrl = import.meta.env.VITE_API_URL;
-const isProduction = import.meta.env.PROD || (typeof window !== 'undefined' && !window.location.hostname.includes('localhost'));
+// Check if we're running on localhost (development)
+const isLocalhost = typeof window !== 'undefined' && (
+  window.location.hostname === 'localhost' || 
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname === ''
+);
+const isProduction = import.meta.env.PROD && !isLocalhost;
 const isLocalhostUrl = envUrl && (envUrl.includes('localhost') || envUrl.includes('127.0.0.1'));
 const isHttpUrl = envUrl && envUrl.startsWith('http://') && !envUrl.includes('localhost');
 
@@ -47,8 +53,14 @@ if (isProduction) {
     finalUrl = PRODUCTION_URL; // Default to production
   }
 } else {
-  // Development mode
-  finalUrl = envUrl || LOCAL_URL; // Use env URL if set, otherwise use localhost
+  // Development mode - prioritize localhost
+  if (isLocalhost) {
+    // If running on localhost, use local backend unless explicitly overridden
+    finalUrl = envUrl && !isLocalhostUrl ? envUrl : LOCAL_URL;
+  } else {
+    // Not localhost but in dev mode - use env URL or local URL
+    finalUrl = envUrl || LOCAL_URL;
+  }
 }
 
 export const API_BASE_URL = finalUrl;
@@ -60,6 +72,7 @@ const envLabel = API_BASE_URL.includes('localhost')
     ? 'DIRECT_IP'
     : 'PRODUCTION';
 console.log(`🔌 API Base URL: ${API_BASE_URL} (${envLabel})`);
+console.log(`🔍 Environment: isProduction=${isProduction}, isLocalhost=${isLocalhost}, envUrl=${envUrl || 'not set'}`);
 
 // Helper function for making API calls
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {

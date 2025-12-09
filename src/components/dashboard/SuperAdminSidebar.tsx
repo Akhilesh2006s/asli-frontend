@@ -15,11 +15,12 @@ import {
   Sparkles,
   CircleDot,
   Shield,
-  Users2
+  Users2,
+  Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export type SuperAdminView = 'dashboard' | 'admins' | 'analytics' | 'ai-analytics' | 'subscriptions' | 'settings' | 'board-comparison' | 'content' | 'board' | 'subjects' | 'exams' | 'iq-rank-boost' | 'vidya-ai' | 'courses' | 'add-admin';
+export type SuperAdminView = 'dashboard' | 'admins' | 'analytics' | 'ai-analytics' | 'subscriptions' | 'settings' | 'board-comparison' | 'content' | 'board' | 'subjects' | 'exams' | 'iq-rank-boost' | 'vidya-ai' | 'courses' | 'add-admin' | 'calendar';
 
 interface SuperAdminSidebarProps {
   currentView: SuperAdminView;
@@ -36,6 +37,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdmi
     { id: 'content', label: 'Content Management', icon: UploadIcon },
     { id: 'exams', label: 'Exam Management', icon: FileTextIcon },
     { id: 'iq-rank-boost', label: 'IQ/Rank Boost Activities', icon: TrophyIcon },
+    { id: 'calendar', label: 'School Calendar', icon: Calendar },
     { id: 'vidya-ai', label: 'Vidya AI', icon: Sparkles },
     { id: 'analytics', label: 'Analytics', icon: BarChartIcon },
     { id: 'ai-analytics', label: 'AI Analytics', icon: BrainCircuitIcon },

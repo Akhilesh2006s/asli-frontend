@@ -171,7 +171,7 @@ const Login = () => {
                   <img 
                     src="/logo.jpg" 
                     alt="ASLILEARN Logo" 
-                    className="w-32 h-32 mx-auto mb-4 object-contain rounded-2xl shadow-2xl ring-4 ring-white/20"
+                    className="w-32 h-32 mx-auto mb-4 object-cover rounded-full shadow-2xl ring-4 ring-white/20"
                   />
                 </motion.div>
                 <motion.h1 
@@ -215,11 +215,11 @@ const Login = () => {
                   transition={{ duration: 0.8, delay: 0.2, type: "spring" }}
                   className="w-24 h-24 mx-auto relative"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-sky-300 to-blue-400 rounded-2xl blur-lg opacity-30"></div>
+                  <div className="absolute inset-0 bg-gradient-to-br from-sky-300 to-blue-400 rounded-full blur-lg opacity-30"></div>
                   <img 
                     src="/logo.jpg" 
                     alt="ASLILEARN Logo" 
-                    className="w-full h-full object-contain rounded-2xl shadow-xl relative z-10 ring-2 ring-sky-200"
+                    className="w-full h-full object-cover rounded-full shadow-xl relative z-10 ring-2 ring-sky-200"
                   />
                 </motion.div>
                 <motion.div

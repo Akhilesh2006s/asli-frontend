@@ -4,6 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { API_BASE_URL } from "@/lib/api-config";
 import { 
   BrainIcon, 
@@ -150,6 +152,53 @@ export default function DetailedAIAnalyticsDashboard() {
   const [analytics, setAnalytics] = useState<DetailedAnalytics | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<string | null>(null);
+  const [admins, setAdmins] = useState<any[]>([]);
+  const [filterState, setFilterState] = useState<string>('all');
+  const [filterBoard, setFilterBoard] = useState<string>('all');
+
+  // Board options
+  const boardOptions = [
+    { value: 'all', label: 'All Boards' },
+    { value: 'CBSE', label: 'CBSE' },
+    { value: 'SSC', label: 'SSC' },
+    { value: 'ICSE', label: 'ICSE' },
+    { value: 'IB', label: 'IB' },
+    { value: 'Others', label: 'Others' }
+  ];
+
+  // All 29 Indian States
+  const stateOptions = [
+    { value: 'all', label: 'All States' },
+    { value: 'Andhra Pradesh', label: 'Andhra Pradesh (AP)' },
+    { value: 'Arunachal Pradesh', label: 'Arunachal Pradesh' },
+    { value: 'Assam', label: 'Assam' },
+    { value: 'Bihar', label: 'Bihar' },
+    { value: 'Chhattisgarh', label: 'Chhattisgarh' },
+    { value: 'Goa', label: 'Goa' },
+    { value: 'Gujarat', label: 'Gujarat' },
+    { value: 'Haryana', label: 'Haryana' },
+    { value: 'Himachal Pradesh', label: 'Himachal Pradesh' },
+    { value: 'Jharkhand', label: 'Jharkhand' },
+    { value: 'Karnataka', label: 'Karnataka' },
+    { value: 'Kerala', label: 'Kerala' },
+    { value: 'Madhya Pradesh', label: 'Madhya Pradesh' },
+    { value: 'Maharashtra', label: 'Maharashtra' },
+    { value: 'Manipur', label: 'Manipur' },
+    { value: 'Meghalaya', label: 'Meghalaya' },
+    { value: 'Mizoram', label: 'Mizoram' },
+    { value: 'Nagaland', label: 'Nagaland' },
+    { value: 'Odisha', label: 'Odisha' },
+    { value: 'Punjab', label: 'Punjab' },
+    { value: 'Rajasthan', label: 'Rajasthan' },
+    { value: 'Sikkim', label: 'Sikkim' },
+    { value: 'Tamil Nadu', label: 'Tamil Nadu' },
+    { value: 'Telangana', label: 'Telangana (TS)' },
+    { value: 'Tripura', label: 'Tripura' },
+    { value: 'Uttar Pradesh', label: 'Uttar Pradesh' },
+    { value: 'Uttarakhand', label: 'Uttarakhand' },
+    { value: 'West Bengal', label: 'West Bengal' },
+    { value: 'Delhi', label: 'Delhi' }
+  ];
 
   const fetchDetailedAnalytics = async () => {
     setIsLoading(true);
@@ -190,8 +239,29 @@ export default function DetailedAIAnalyticsDashboard() {
   };
 
   useEffect(() => {
+    fetchAdmins();
     fetchDetailedAnalytics();
   }, []);
+
+  const fetchAdmins = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/admins`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const adminsList = Array.isArray(data) ? data : (data.data || []);
+        setAdmins(adminsList);
+      }
+    } catch (error) {
+      console.error('Error fetching admins:', error);
+    }
+  };
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -223,6 +293,55 @@ export default function DetailedAIAnalyticsDashboard() {
       default: return 'bg-gray-500';
     }
   };
+
+  // Filter analytics based on state and board
+  const getFilteredAnalytics = (): DetailedAnalytics | null => {
+    if (!analytics) return null;
+
+    let filteredAdminAnalytics = [...analytics.adminAnalytics];
+
+    // Filter by board
+    if (filterBoard !== 'all') {
+      filteredAdminAnalytics = filteredAdminAnalytics.filter(admin => {
+        const adminData = admins.find(a => a.id === admin.adminId || a._id === admin.adminId);
+        return adminData?.board === filterBoard;
+      });
+    }
+
+    // Filter by state
+    if (filterState !== 'all') {
+      filteredAdminAnalytics = filteredAdminAnalytics.filter(admin => {
+        const adminData = admins.find(a => a.id === admin.adminId || a._id === admin.adminId);
+        return adminData?.state === filterState;
+      });
+    }
+
+    // Recalculate global analytics based on filtered data
+    const filteredGlobalAnalytics = {
+      ...analytics.globalAnalytics,
+      totalAdmins: filteredAdminAnalytics.length,
+      overallAverageScore: filteredAdminAnalytics.length > 0
+        ? filteredAdminAnalytics.reduce((sum, admin) => sum + (admin.averageScore || 0), 0) / filteredAdminAnalytics.length
+        : 0,
+      totalExams: filteredAdminAnalytics.reduce((sum, admin) => sum + (admin.totalExams || 0), 0),
+      totalExamResults: filteredAdminAnalytics.reduce((sum, admin) => sum + (admin.totalStudents || 0), 0),
+      topPerformers: analytics.globalAnalytics.topPerformers.filter(performer => {
+        // Filter top performers based on their admin's state/board
+        const adminData = admins.find(a => 
+          filteredAdminAnalytics.some(fa => fa.adminId === (a.id || a._id))
+        );
+        return adminData !== undefined;
+      })
+    };
+
+    return {
+      ...analytics,
+      adminAnalytics: filteredAdminAnalytics,
+      globalAnalytics: filteredGlobalAnalytics
+    };
+  };
+
+  const filteredAnalytics = getFilteredAnalytics();
 
   if (isLoading) {
     return (
@@ -280,64 +399,124 @@ export default function DetailedAIAnalyticsDashboard() {
         </Button>
       </div>
 
+      {/* Filter Options */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Filter Options</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="filter-board">Filter by Board</Label>
+              <Select value={filterBoard} onValueChange={setFilterBoard}>
+                <SelectTrigger id="filter-board">
+                  <SelectValue placeholder="Select Board" />
+                </SelectTrigger>
+                <SelectContent>
+                  {boardOptions.map((board) => (
+                    <SelectItem key={board.value} value={board.value}>
+                      {board.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="filter-state">Filter by State</Label>
+              <Select value={filterState} onValueChange={setFilterState}>
+                <SelectTrigger id="filter-state">
+                  <SelectValue placeholder="Select State" />
+                </SelectTrigger>
+                <SelectContent>
+                  {stateOptions.map((state) => (
+                    <SelectItem key={state.value} value={state.value}>
+                      {state.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {(filterBoard !== 'all' || filterState !== 'all') && (
+            <div className="mt-4 flex items-center gap-2">
+              <Badge variant="outline" className="text-sm">
+                Showing {filteredAnalytics?.adminAnalytics.length || 0} schools
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setFilterBoard('all');
+                  setFilterState('all');
+                }}
+              >
+                Clear Filters
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Global Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Total Admins - Orange (matching Analytics page) */}
-        <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-white/90">Total Admins</p>
-                <p className="text-3xl font-bold text-white">{analytics.globalAnalytics.totalAdmins}</p>
-                <p className="text-sm text-white/90">Active administrators</p>
+      {filteredAnalytics && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Total Admins - Orange (matching Analytics page) */}
+          <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-white/90">Total Admins</p>
+                  <p className="text-3xl font-bold text-white">{filteredAnalytics.globalAnalytics.totalAdmins}</p>
+                  <p className="text-sm text-white/90">Active administrators</p>
+                </div>
+                <UsersIcon className="h-12 w-12 text-white" />
               </div>
-              <UsersIcon className="h-12 w-12 text-white" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Overall Average - Sky Blue (matching Analytics page) */}
-        <Card className="bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-white/90">Overall Average</p>
-                <p className="text-3xl font-bold text-white">{analytics.globalAnalytics.overallAverageScore?.toFixed(1) || 'N/A'}%</p>
-                <p className="text-sm text-white/90">Platform performance</p>
+          {/* Overall Average - Sky Blue (matching Analytics page) */}
+          <Card className="bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-white/90">Overall Average</p>
+                  <p className="text-3xl font-bold text-white">{filteredAnalytics.globalAnalytics.overallAverageScore?.toFixed(1) || 'N/A'}%</p>
+                  <p className="text-sm text-white/90">Platform performance</p>
+                </div>
+                <TrendingUpIcon className="h-12 w-12 text-white" />
               </div>
-              <TrendingUpIcon className="h-12 w-12 text-white" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Total Exams - Teal (matching Analytics page) */}
-        <Card className="bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-white/90">Total Exams</p>
-                <p className="text-3xl font-bold text-white">{analytics.globalAnalytics.totalExams}</p>
-                <p className="text-sm text-white/90">Conducted</p>
+          {/* Total Exams - Teal (matching Analytics page) */}
+          <Card className="bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-white/90">Total Exams</p>
+                  <p className="text-3xl font-bold text-white">{filteredAnalytics.globalAnalytics.totalExams}</p>
+                  <p className="text-sm text-white/90">Conducted</p>
+                </div>
+                <BookIcon className="h-12 w-12 text-white" />
               </div>
-              <BookIcon className="h-12 w-12 text-white" />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Exam Results - Orange (matching Analytics page) */}
-        <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-white/90">Exam Results</p>
-                <p className="text-3xl font-bold text-white">{analytics.globalAnalytics.totalExamResults}</p>
-                <p className="text-sm text-white/90">Total submissions</p>
+          {/* Exam Results - Orange (matching Analytics page) */}
+          <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-white/90">Exam Results</p>
+                  <p className="text-3xl font-bold text-white">{filteredAnalytics.globalAnalytics.totalExamResults}</p>
+                  <p className="text-sm text-white/90">Total submissions</p>
+                </div>
+                <AwardIcon className="h-12 w-12 text-white" />
               </div>
-              <AwardIcon className="h-12 w-12 text-white" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Main Analytics Tabs */}
       <Tabs defaultValue="admin-comparison" className="space-y-4">
@@ -364,49 +543,56 @@ export default function DetailedAIAnalyticsDashboard() {
             </CardHeader>
             <CardContent className="relative z-10">
               <div className="space-y-4">
-                {analytics.adminAnalytics.map((admin) => (
-                  <div key={admin.adminId} className="p-4 bg-white/90 backdrop-blur-sm rounded-lg border border-white/50 shadow-md">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold text-lg text-gray-900">{admin.adminName}</h3>
-                        <p className="text-gray-600">{admin.adminEmail}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className={`text-2xl font-bold ${getScoreColor(admin.averageScore)}`}>
-                          {admin.averageScore?.toFixed(1) || 'N/A'}%
-                        </p>
-                        <p className="text-sm text-gray-600">Average Score</p>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div className="text-center">
-                        <p className="font-semibold text-gray-900 text-lg">{admin.totalStudents}</p>
-                        <p className="text-gray-600">Students</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="font-semibold text-gray-900 text-lg">{admin.totalExams}</p>
-                        <p className="text-gray-600">Exams</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="font-semibold text-gray-900 text-lg">{admin.examDifficulty.overallDifficulty.toFixed(1)}</p>
-                        <p className="text-gray-600">Difficulty</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="font-semibold text-gray-900 text-lg">{admin.topScorers.length}</p>
-                        <p className="text-gray-600">Top Scorers</p>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-900">Performance Progress</span>
-                        <span className="text-sm text-gray-600">{admin.averageScore?.toFixed(1) || 'N/A'}%</span>
-                      </div>
-                      <Progress value={admin.averageScore || 0} className="h-2" />
-                    </div>
+                {filteredAnalytics?.adminAnalytics.length === 0 ? (
+                  <div className="text-center py-8">
+                    <AlertCircleIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No schools found matching the selected filters</p>
                   </div>
-                ))}
+                ) : (
+                  filteredAnalytics?.adminAnalytics.map((admin) => (
+                    <div key={admin.adminId} className="p-4 bg-white/90 backdrop-blur-sm rounded-lg border border-white/50 shadow-md">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h3 className="font-semibold text-lg text-gray-900">{admin.adminName}</h3>
+                          <p className="text-gray-600">{admin.adminEmail}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-2xl font-bold ${getScoreColor(admin.averageScore)}`}>
+                            {admin.averageScore?.toFixed(1) || 'N/A'}%
+                          </p>
+                          <p className="text-sm text-gray-600">Average Score</p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div className="text-center">
+                          <p className="font-semibold text-gray-900 text-lg">{admin.totalStudents}</p>
+                          <p className="text-gray-600">Students</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-semibold text-gray-900 text-lg">{admin.totalExams}</p>
+                          <p className="text-gray-600">Exams</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-semibold text-gray-900 text-lg">{admin.examDifficulty.overallDifficulty.toFixed(1)}</p>
+                          <p className="text-gray-600">Difficulty</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-semibold text-gray-900 text-lg">{admin.topScorers.length}</p>
+                          <p className="text-gray-600">Top Scorers</p>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-900">Performance Progress</span>
+                          <span className="text-sm text-gray-600">{admin.averageScore?.toFixed(1) || 'N/A'}%</span>
+                        </div>
+                        <Progress value={admin.averageScore || 0} className="h-2" />
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -423,7 +609,13 @@ export default function DetailedAIAnalyticsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {analytics.globalAnalytics.topPerformers.map((scorer, index) => (
+                {filteredAnalytics?.globalAnalytics.topPerformers.length === 0 ? (
+                  <div className="text-center py-8">
+                    <AlertCircleIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No top performers found matching the selected filters</p>
+                  </div>
+                ) : (
+                  filteredAnalytics?.globalAnalytics.topPerformers.map((scorer, index) => (
                   <div key={scorer.studentId} className="flex items-center justify-between p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg">
                     <div className="flex items-center space-x-4">
                       <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
@@ -443,7 +635,8 @@ export default function DetailedAIAnalyticsDashboard() {
                       <p className="text-sm text-green-600">Best: {scorer.highestScore?.toFixed(1) || 'N/A'}%</p>
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -451,57 +644,74 @@ export default function DetailedAIAnalyticsDashboard() {
 
         {/* Difficulty Analysis Tab */}
         <TabsContent value="difficulty-analysis" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {analytics.adminAnalytics.map((admin) => (
-              <Card key={admin.adminId}>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <CalculatorIcon className="w-5 h-5 mr-2" />
-                    {admin.adminName} - Exam Difficulty
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="text-center mb-4">
-                      <p className="text-2xl font-bold text-purple-600">
-                        {admin.examDifficulty?.overallDifficulty?.toFixed(1) || 'N/A'}
-                      </p>
-                      <p className="text-sm text-gray-600">Overall Difficulty Score</p>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {(admin.examDifficulty?.exams || []).slice(0, 5).map((exam) => (
-                        <div key={exam.examId} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                          <div className="flex-1">
-                            <p className="font-medium text-sm">{exam.examTitle}</p>
-                            <p className="text-xs text-gray-600">{exam.totalAttempts} attempts</p>
+          {filteredAnalytics?.adminAnalytics.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <AlertCircleIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">No schools found matching the selected filters</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {filteredAnalytics?.adminAnalytics.map((admin) => (
+                <Card key={admin.adminId}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <CalculatorIcon className="w-5 h-5 mr-2" />
+                      {admin.adminName} - Exam Difficulty
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="text-center mb-4">
+                        <p className="text-2xl font-bold text-purple-600">
+                          {admin.examDifficulty?.overallDifficulty?.toFixed(1) || 'N/A'}
+                        </p>
+                        <p className="text-sm text-gray-600">Overall Difficulty Score</p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {(admin.examDifficulty?.exams || []).slice(0, 5).map((exam) => (
+                          <div key={exam.examId} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{exam.examTitle}</p>
+                              <p className="text-xs text-gray-600">{exam.totalAttempts} attempts</p>
+                            </div>
+                            <div className="text-right">
+                              <Badge className={getDifficultyColor(exam.difficulty)}>
+                                {exam.difficulty}
+                              </Badge>
+                              <p className="text-sm font-semibold">{exam.averageScore?.toFixed(1) || 'N/A'}%</p>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <Badge className={getDifficultyColor(exam.difficulty)}>
-                              {exam.difficulty}
-                            </Badge>
-                            <p className="text-sm font-semibold">{exam.averageScore?.toFixed(1) || 'N/A'}%</p>
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
+                      
+                      <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                        <p className="text-sm font-medium text-blue-800">Hardest Exam</p>
+                        <p className="text-sm text-blue-600">{admin.examDifficulty.hardestExam?.examTitle || 'No exams available'}</p>
+                        <p className="text-xs text-blue-500">Score: {admin.examDifficulty.hardestExam?.averageScore?.toFixed(1) || 'N/A'}%</p>
+                      </div>
                     </div>
-                    
-                    <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                      <p className="text-sm font-medium text-blue-800">Hardest Exam</p>
-                      <p className="text-sm text-blue-600">{admin.examDifficulty.hardestExam?.examTitle || 'No exams available'}</p>
-                      <p className="text-xs text-blue-500">Score: {admin.examDifficulty.hardestExam?.averageScore?.toFixed(1) || 'N/A'}%</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         {/* Performance Distribution Tab */}
         <TabsContent value="performance-distribution" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {analytics.adminAnalytics.map((admin) => (
+          {filteredAnalytics?.adminAnalytics.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <AlertCircleIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">No schools found matching the selected filters</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {filteredAnalytics?.adminAnalytics.map((admin) => (
               <Card key={admin.adminId}>
                 <CardHeader>
                   <CardTitle className="flex items-center">
@@ -528,8 +738,9 @@ export default function DetailedAIAnalyticsDashboard() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         {/* Subject Analysis Tab */}
@@ -543,7 +754,13 @@ export default function DetailedAIAnalyticsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {analytics.globalAnalytics.subjectWiseAnalysis.map((subject) => (
+                {filteredAnalytics?.globalAnalytics.subjectWiseAnalysis.length === 0 ? (
+                  <div className="text-center py-8">
+                    <AlertCircleIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No subject data found matching the selected filters</p>
+                  </div>
+                ) : (
+                  filteredAnalytics?.globalAnalytics.subjectWiseAnalysis.map((subject) => (
                   <div key={subject.subject} className="p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="font-semibold text-lg capitalize">{subject.subject}</h3>
@@ -584,7 +801,8 @@ export default function DetailedAIAnalyticsDashboard() {
                       <Progress value={subject.averageScore || 0} className="h-2" />
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -620,7 +838,13 @@ export default function DetailedAIAnalyticsDashboard() {
                 </div>
                 
                 <div className="space-y-4">
-                  {analytics.adminAnalytics.map((admin) => (
+                  {filteredAnalytics?.adminAnalytics.length === 0 ? (
+                    <div className="text-center py-8">
+                      <AlertCircleIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">No performance trends found matching the selected filters</p>
+                    </div>
+                  ) : (
+                    filteredAnalytics?.adminAnalytics.map((admin) => (
                     <div key={admin.adminId} className="p-4 bg-gray-50 rounded-lg">
                       <h3 className="font-semibold mb-3">{admin.adminName} - Monthly Trends</h3>
                       <div className="space-y-2">
@@ -637,7 +861,8 @@ export default function DetailedAIAnalyticsDashboard() {
                         ))}
                       </div>
                     </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -646,7 +871,7 @@ export default function DetailedAIAnalyticsDashboard() {
       </Tabs>
 
       {/* AI Insights */}
-      {analytics.aiInsights && analytics.aiInsights.length > 0 && (
+      {filteredAnalytics?.aiInsights && filteredAnalytics.aiInsights.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -656,7 +881,7 @@ export default function DetailedAIAnalyticsDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {analytics.aiInsights.map((insight, index) => (
+              {filteredAnalytics.aiInsights.map((insight, index) => (
                 <div key={index} className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg">
                   <div className="flex items-start justify-between mb-2">
                     <h3 className="font-semibold">{insight.title}</h3>
