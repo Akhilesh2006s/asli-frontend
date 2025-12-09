@@ -164,10 +164,24 @@ export default function AdminCalendar() {
 
   // Handle date click
   const handleDateClick = (date: Date) => {
-    setSelectedDate(date);
+    // Normalize date to local timezone to avoid timezone issues
+    const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const year = normalizedDate.getFullYear();
+    const month = String(normalizedDate.getMonth() + 1).padStart(2, '0');
+    const day = String(normalizedDate.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+    
+    console.log('Date clicked:', {
+      originalDate: date,
+      normalizedDate: normalizedDate,
+      dateString: dateString,
+      dayOfMonth: date.getDate()
+    });
+    
+    setSelectedDate(normalizedDate);
     setEventForm({
       name: '',
-      date: date.toISOString().split('T')[0],
+      date: dateString,
       photo: null,
       photoUrl: '',
       description: ''
