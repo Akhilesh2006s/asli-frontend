@@ -130,6 +130,7 @@ const AdminDashboard = () => {
     recentActivity: []
   });
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+  const [analyticsLoaded, setAnalyticsLoaded] = useState(false);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
   // Memoize sliced arrays to avoid recalculating on every render
@@ -143,6 +144,9 @@ const AdminDashboard = () => {
 
   // Memoize fetch functions to prevent unnecessary re-renders
   const fetchStudentAnalytics = useCallback(async () => {
+    // Don't fetch if already loaded
+    if (analyticsLoaded) return;
+    
     try {
       setIsLoadingAnalytics(true);
       const token = localStorage.getItem('authToken');
@@ -159,6 +163,7 @@ const AdminDashboard = () => {
         const data = await response.json();
         if (data.success && data.data) {
           setStudentAnalytics(data.data);
+          setAnalyticsLoaded(true);
         }
       }
     } catch (error) {
@@ -166,7 +171,7 @@ const AdminDashboard = () => {
     } finally {
       setIsLoadingAnalytics(false);
     }
-  }, []);
+  }, [analyticsLoaded]);
 
   const fetchAdminStats = useCallback(async () => {
     try {
@@ -211,10 +216,17 @@ const AdminDashboard = () => {
   }, []);
 
   useEffect(() => {
-    // Fetch admin dashboard data
+    // Fetch admin dashboard stats immediately (lightweight)
     fetchAdminStats();
-    fetchStudentAnalytics();
-  }, [fetchAdminStats, fetchStudentAnalytics]);
+    // Don't fetch analytics immediately - load only when needed (lazy loading)
+  }, [fetchAdminStats]);
+
+  // Lazy load analytics when overview tab is active
+  useEffect(() => {
+    if (activeTab === 'overview' && !analyticsLoaded && !isLoadingAnalytics) {
+      fetchStudentAnalytics();
+    }
+  }, [activeTab, analyticsLoaded, isLoadingAnalytics, fetchStudentAnalytics]);
 
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
