@@ -372,7 +372,7 @@ const Index = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Free Explorer */}
             <Card className="border-2 border-gray-200 hover:shadow-xl transition-all duration-300">
               <CardHeader className="text-center pb-4">
@@ -406,7 +406,7 @@ const Index = () => {
                     <span className="text-sm text-gray-700">With ads and watermarks</span>
                   </div>
                 </div>
-                <Link href="/auth/register">
+                <Link href="/auth/login">
                   <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white mt-6">
                     Start Free
                   </Button>
@@ -414,7 +414,7 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            {/* Premium Student - Most Popular */}
+            {/* Premium Plan - ₹249 */}
             <Card className="border-2 border-teal-200 shadow-xl relative hover:shadow-2xl transition-all duration-300">
               <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                 <div className="bg-orange-500 text-white px-4 py-1 rounded-full text-xs font-semibold">
@@ -422,14 +422,11 @@ const Index = () => {
                 </div>
               </div>
               <CardHeader className="text-center pb-4 pt-6">
-                <CardTitle className="text-2xl font-bold text-gray-900">Premium Student</CardTitle>
+                <CardTitle className="text-2xl font-bold text-gray-900">Premium Plan</CardTitle>
                 <p className="text-gray-600 text-sm mt-2">Most popular for serious learners</p>
                 <div className="mt-6">
-                  <div className="text-4xl font-bold text-gray-900">₹99</div>
+                  <div className="text-4xl font-bold text-gray-900">₹249</div>
                   <div className="text-gray-600 text-sm">/month</div>
-                  <div className="mt-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold inline-block">
-                    Save ₹1,188 yearly
-                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -467,69 +464,13 @@ const Index = () => {
                     <span className="text-sm text-gray-700">No ads or watermarks</span>
                   </div>
                 </div>
-                <Link href="/auth/register">
+                <Link href="/auth/login">
                   <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white mt-6">
                     Start 7-Day Free Trial
                   </Button>
                 </Link>
               </CardContent>
             </Card>
-
-            {/* Elite Pro */}
-            <Card className="border-2 border-gray-200 hover:shadow-xl transition-all duration-300">
-              <CardHeader className="text-center pb-4">
-                <CardTitle className="text-2xl font-bold text-gray-900">Elite Pro</CardTitle>
-                <p className="text-gray-600 text-sm mt-2">For competitive exam aspirants</p>
-                <div className="mt-6">
-                  <div className="text-4xl font-bold text-gray-900">₹149</div>
-                  <div className="text-gray-600 text-sm">/month</div>
-                  <div className="mt-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-semibold inline-block">
-                    Save ₹2,388 yearly
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">Everything in Premium, plus:</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">1-on-1 live doubt sessions (4/month)</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">Exclusive NEET/JEE content</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">Mock test series</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">Detailed performance reports</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">Parent dashboard access</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">Career guidance sessions</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">Olympiad preparation</span>
-                  </div>
-                </div>
-                <Link href="/auth/register">
-                  <Button className="w-full bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white mt-6">
-                    Start 7-Day Free Trial
-                  </Button>
-                </Link>
-              </CardContent>
-              </Card>
           </div>
 
           {/* School Discount Message */}
@@ -555,7 +496,7 @@ const Index = () => {
               Join thousands of students achieving their academic dreams with AI-powered education
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <Link href="/auth/register">
+              <Link href="/auth/login">
                 <Button 
                   size="lg" 
                   className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg transition-all px-8 py-6 text-base"

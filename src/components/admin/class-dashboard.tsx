@@ -248,10 +248,19 @@ const ClassDashboard = () => {
     setSelectedStudentForAnalysis(student);
     setIsStudentAnalysisDialogOpen(true);
     setIsLoadingAnalysis(true);
+    setStudentAnalysis(null); // Reset previous analysis
     
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/admin/students/${student.id}/analytics`, {
+      const studentId = student.id;
+      
+      if (!studentId) {
+        console.error('Student ID is missing');
+        setIsLoadingAnalysis(false);
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/admin/students/${studentId}/analytics`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -261,18 +270,25 @@ const ClassDashboard = () => {
       if (response.ok) {
         const data = await response.json();
         setStudentAnalysis(data);
+      } else if (response.status === 404) {
+        // 404 means no analytics data exists yet - this is not an error, just no data
+        setStudentAnalysis(null);
+        // Don't show error toast for 404 - it's expected for new students
       } else {
+        // Only show error for actual server errors (500, 503, etc.)
+        console.error('Failed to fetch student analysis:', response.status, response.statusText);
         toast({
           title: 'Error',
-          description: 'Failed to fetch student analysis',
+          description: 'Failed to fetch student analysis. Please try again later.',
           variant: 'destructive'
         });
       }
     } catch (error) {
+      // Only show error toast for network errors or unexpected errors
       console.error('Failed to fetch student analysis:', error);
       toast({
         title: 'Error',
-        description: 'Failed to fetch student analysis',
+        description: 'Network error. Please check your connection and try again.',
         variant: 'destructive'
       });
     } finally {

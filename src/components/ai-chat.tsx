@@ -299,19 +299,19 @@ export default function AIChat({ userId, context, className }: AIChatProps) {
   ];
 
   return (
-    <div className={`${className} flex flex-col bg-gradient-to-br from-teal-100 via-teal-50 to-teal-100 relative h-full min-h-0`}>
+    <div className={`${className} flex flex-col bg-gradient-to-b from-blue-50 via-cyan-50 to-teal-50 relative h-full min-h-0`}>
       {/* Decorative column borders */}
-      <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-teal-200/30 to-transparent hidden lg:block" />
+      <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-blue-200/30 to-transparent hidden lg:block" />
       <div className="absolute right-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-teal-200/30 to-transparent hidden lg:block" />
       
       {/* Chat Messages Area - ChatGPT Style */}
       <div className="flex-1 overflow-y-auto min-h-0">
         <div className="max-w-3xl mx-auto px-4 py-8 relative">
           {/* Decorative center column line (subtle) */}
-          <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-teal-200/30 to-transparent hidden xl:block -translate-x-1/2" />
+          <div className="absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-cyan-200/30 to-transparent hidden xl:block -translate-x-1/2" />
           {displayMessages.length === 0 ? (
               <div className="flex flex-col items-center justify-center min-h-[400px] py-16 text-center">
-              <div className="w-16 h-16 rounded-full overflow-hidden mb-6 border-2 border-teal-200">
+              <div className="w-16 h-16 rounded-full overflow-hidden mb-6 border-2 border-orange-200">
               <img 
                 src="/Vidya-ai.jpg" 
                 alt="Vidya AI" 
@@ -361,7 +361,7 @@ export default function AIChat({ userId, context, className }: AIChatProps) {
                 >
                   {/* Avatar */}
                   {msg.role === "assistant" ? (
-                    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-orange-400 to-orange-500 border-2 border-teal-200/50">
+                    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-orange-400 to-orange-500 border-2 border-orange-200/50">
                       <img 
                         src="/Vidya-ai.jpg" 
                         alt="Vidya AI" 
@@ -369,17 +369,17 @@ export default function AIChat({ userId, context, className }: AIChatProps) {
                       />
                     </div>
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-400 to-teal-500 flex items-center justify-center flex-shrink-0 text-white text-sm font-semibold border-2 border-teal-200/50">
-                      {context?.studentName?.charAt(0).toUpperCase() || 'U'}
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0 text-white text-sm font-semibold border-2 border-blue-200/50">
+                      {context?.studentName?.charAt(0).toUpperCase() || 'A'}
                     </div>
                   )}
                   
                   {/* Message */}
                   <div className={`flex-1 ${msg.role === "user" ? "text-right" : ""}`}>
                     <div
-                      className={`inline-block rounded-2xl px-4 py-3 ${
+                      className={`inline-block rounded-2xl px-4 py-3 shadow-sm ${
                         msg.role === "user"
-                          ? "bg-gradient-to-br from-sky-400 to-teal-500 text-white"
+                          ? "bg-gradient-to-br from-blue-500 to-cyan-500 text-white"
                           : "bg-gradient-to-br from-orange-400 to-orange-500 text-white"
                       }`}
                     >
@@ -394,14 +394,14 @@ export default function AIChat({ userId, context, className }: AIChatProps) {
             {/* Loading Indicator */}
             {sendMessageMutation.isPending && (
                 <div className="flex items-start gap-4">
-                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-orange-400 to-orange-500 border-2 border-teal-200/50">
+                  <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-orange-400 to-orange-500 border-2 border-orange-200/50">
                   <img 
                     src="/Vidya-ai.jpg" 
                     alt="Vidya AI" 
                     className="w-full h-full object-cover"
                   />
                 </div>
-                  <div className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-2xl px-4 py-3 shadow-md">
+                  <div className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-2xl px-4 py-3 shadow-sm">
                   <div className="flex items-center gap-2">
                     <div className="flex gap-1">
                       <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
@@ -420,9 +420,9 @@ export default function AIChat({ userId, context, className }: AIChatProps) {
           </div>
 
       {/* Input Area - ChatGPT Style */}
-      <div className="border-t border-teal-200/50 bg-teal-50/50 backdrop-blur-sm">
+      <div className="border-t border-gray-200/50 bg-white/80 backdrop-blur-sm">
         <div className="max-w-3xl mx-auto px-4 py-4">
-          <div className="flex items-end gap-2 bg-white/90 backdrop-blur-sm rounded-2xl border-2 border-white shadow-sm hover:shadow-md transition-all focus-within:border-white focus-within:shadow-[0_0_20px_rgba(255,255,255,0.8)] focus-within:ring-4 focus-within:ring-white/50">
+          <div className="flex items-end gap-2 bg-white rounded-2xl border border-gray-200 shadow-sm hover:shadow-md transition-all focus-within:border-blue-300 focus-within:shadow-md">
             <div className="flex items-center gap-1 px-3 py-2">
             <Button
               variant="ghost"
@@ -470,7 +470,7 @@ export default function AIChat({ userId, context, className }: AIChatProps) {
             <Button
               onClick={handleSendMessage}
               disabled={!message.trim() || sendMessageMutation.isPending}
-                className="h-8 w-8 rounded-lg bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white shadow-sm hover:shadow-md transition-all"
+                className="h-8 w-8 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-sm hover:shadow-md transition-all"
               size="icon"
             >
               {sendMessageMutation.isPending ? (
