@@ -1297,9 +1297,20 @@ const TeacherDashboard = () => {
     }
   };
 
-  const fetchTeacherData = async () => {
+  const fetchTeacherData = async (retryCount = 0) => {
+    const maxRetries = 2;
     try {
       const token = localStorage.getItem('authToken');
+      if (!token) {
+        console.error('No auth token found');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log(`[Mobile Debug] Fetching teacher data (attempt ${retryCount + 1}/${maxRetries + 1})...`);
+      console.log(`[Mobile Debug] API URL: ${API_BASE_URL}/api/teacher/dashboard`);
+      console.log(`[Mobile Debug] Token present: ${token ? 'Yes' : 'No'}`);
+      
       const response = await fetch(`${API_BASE_URL}/api/teacher/dashboard`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1307,24 +1318,61 @@ const TeacherDashboard = () => {
         }
       });
 
+      console.log(`[Mobile Debug] Response status: ${response.status}`);
+      console.log(`[Mobile Debug] Response ok: ${response.ok}`);
+
       if (response.ok) {
         const data = await response.json();
-        console.log('Teacher dashboard data:', data);
+        console.log('[Mobile Debug] Teacher dashboard data received:', data);
+        console.log('[Mobile Debug] Data structure:', {
+          hasSuccess: 'success' in data,
+          hasData: 'data' in data,
+          dataKeys: data.data ? Object.keys(data.data) : 'no data object'
+        });
         
-        if (data.success) {
-          setStats({
-            ...(data.data.stats || {}),
+        if (data.success && data.data) {
+          // Ensure stats object has all required fields
+          // Handle both nested stats object and flat stats in data
+          const statsData = data.data.stats || data.data;
+          const studentsData = data.data.students || [];
+          const videosData = data.data.videos || [];
+          const assignedClassesData = data.data.assignedClasses || [];
+          const teacherSubjectsData = data.data.teacherSubjects || [];
+          
+          // Calculate stats from actual data if not provided
+          const calculatedStats = {
+            totalStudents: statsData.totalStudents ?? studentsData.length ?? 0,
+            totalClasses: statsData.totalClasses ?? assignedClassesData.length ?? 0,
+            totalVideos: statsData.totalVideos ?? videosData.length ?? 0,
+            totalAssessments: statsData.totalAssessments ?? 0,
+            averagePerformance: statsData.averagePerformance ?? 0,
             recentActivity: data.data.recentActivity || []
+          };
+          
+          setStats(calculatedStats);
+          
+          console.log('[Mobile Debug] Stats set:', calculatedStats);
+          console.log('[Mobile Debug] Raw data structure:', {
+            hasStats: !!data.data.stats,
+            hasStudents: Array.isArray(studentsData),
+            hasVideos: Array.isArray(videosData),
+            hasAssignedClasses: Array.isArray(assignedClassesData),
+            hasTeacherSubjects: Array.isArray(teacherSubjectsData)
           });
-          setStudents(data.data.students || []);
+          
+          setStudents(studentsData);
+          console.log('[Mobile Debug] Students set:', studentsData.length);
           
           // Fetch performance data for students
           fetchStudentPerformance();
-          setVideos(data.data.videos || []);
+          setVideos(videosData);
+          console.log('[Mobile Debug] Videos set:', videosData.length);
 
-          setTeacherEmail(data.data.teacherEmail || '');
-          setAssignedClasses(data.data.assignedClasses || []);
-          setTeacherSubjects(data.data.teacherSubjects || []);
+          setTeacherEmail(data.data.teacherEmail || localStorage.getItem('userEmail') || '');
+          setAssignedClasses(assignedClassesData);
+          setTeacherSubjects(teacherSubjectsData);
+          console.log('[Mobile Debug] Assigned classes set:', assignedClassesData.length);
+          console.log('[Mobile Debug] Teacher subjects set:', teacherSubjectsData.length);
           
           // Process assigned classes to get unique classNumbers and their subjects
           const classesMap = new Map<string, Set<string>>();
@@ -1416,12 +1464,27 @@ const TeacherDashboard = () => {
               console.error('Failed to extract teacher ID from token:', e);
             }
           }
-          console.log('Teacher subjects received:', data.data.teacherSubjects);
+          console.log('[Mobile Debug] Teacher subjects received:', data.data.teacherSubjects);
         } else {
-          console.error('API returned success: false:', data.message);
+          console.error('[Mobile Debug] API returned success: false:', data.message || 'Unknown error');
+          // Retry if we haven't exceeded max retries
+          if (retryCount < maxRetries) {
+            console.log(`[Mobile Debug] Retrying... (${retryCount + 1}/${maxRetries})`);
+            setTimeout(() => fetchTeacherData(retryCount + 1), 1000 * (retryCount + 1));
+            return;
+          }
         }
       } else {
-        console.error('Failed to fetch teacher data:', response.status);
+        const errorText = await response.text();
+        console.error(`[Mobile Debug] Failed to fetch teacher data: ${response.status}`, errorText);
+        
+        // Retry on network/server errors if we haven't exceeded max retries
+        if ((response.status >= 500 || response.status === 0) && retryCount < maxRetries) {
+          console.log(`[Mobile Debug] Retrying due to server error... (${retryCount + 1}/${maxRetries})`);
+          setTimeout(() => fetchTeacherData(retryCount + 1), 1000 * (retryCount + 1));
+          return;
+        }
+        
         // Show fallback data when API fails
         setStats({
           totalStudents: 0,
@@ -1438,8 +1501,21 @@ const TeacherDashboard = () => {
         setAvailableClasses([]);
         setSelectedClassSubjects([]);
       }
-    } catch (error) {
-      console.error('Failed to fetch teacher data:', error);
+    } catch (error: any) {
+      console.error('[Mobile Debug] Failed to fetch teacher data (catch block):', error);
+      console.error('[Mobile Debug] Error details:', {
+        message: error?.message,
+        stack: error?.stack,
+        name: error?.name
+      });
+      
+      // Retry on network errors if we haven't exceeded max retries
+      if (retryCount < maxRetries && (error?.message?.includes('fetch') || error?.message?.includes('network'))) {
+        console.log(`[Mobile Debug] Retrying due to network error... (${retryCount + 1}/${maxRetries})`);
+        setTimeout(() => fetchTeacherData(retryCount + 1), 1000 * (retryCount + 1));
+        return;
+      }
+      
       // Show fallback data when API fails
       setStats({
         totalStudents: 0,
@@ -1457,6 +1533,7 @@ const TeacherDashboard = () => {
       setSelectedClassSubjects([]);
     } finally {
       setIsLoading(false);
+      console.log('[Mobile Debug] Loading state set to false');
     }
   };
 
@@ -1614,6 +1691,32 @@ const TeacherDashboard = () => {
                     Vidya AI
                   </Button>
                 </div>
+              </div>
+
+              {/* Refresh Button - Mobile Friendly */}
+              <div className="flex justify-end mb-4">
+                <Button
+                  onClick={() => {
+                    setIsLoading(true);
+                    fetchTeacherData();
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/90 hover:bg-white text-orange-600 border-orange-300"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-orange-600 border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="w-4 h-4 mr-2" />
+                      Refresh Data
+                    </>
+                  )}
+                </Button>
               </div>
 
               {/* Stats Cards */}
