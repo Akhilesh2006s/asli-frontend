@@ -305,7 +305,9 @@ const CLASS_SUBJECTS: Record<string, string[]> = {
   ]
 };
 
-const CLASS_OPTIONS = ['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Dropper Batch'];
+const CLASS_OPTIONS = ['Class 9', 'Class 10']; // Only Class 9 and 10 are supported with CSV files
+
+const SUBJECT_OPTIONS = ['maths', 'english', 'science', 'social'];
 
 const TOOL_CONFIGS: Record<string, ToolConfig> = {
   'activity-project-generator': {
@@ -314,8 +316,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
-      { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
+      { name: 'topic', label: 'Topic (CSV File Name) *', type: 'select', required: true, placeholder: 'Select topic', isDynamic: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'className', label: 'Section (Optional)', type: 'text', placeholder: 'e.g., A, B, C' }
     ]
@@ -326,8 +328,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
-      { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
+      { name: 'topic', label: 'Topic (CSV File Name) *', type: 'select', required: true, placeholder: 'Select topic', isDynamic: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'questionType', label: 'Question Type *', type: 'select', required: true, options: ['Single Option', 'Multiple Option', 'Integer Type', 'All Types'], placeholder: 'Select question type' },
       { name: 'questionCount', label: 'Number of Questions', type: 'number', placeholder: '10' },
@@ -351,8 +353,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
-      { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
+      { name: 'topic', label: 'Topic (CSV File Name) *', type: 'select', required: true, placeholder: 'Select topic', isDynamic: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'duration', label: 'Duration (minutes)', type: 'number', placeholder: '90' }
     ]
@@ -363,8 +365,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
-      { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
+      { name: 'topic', label: 'Topic (CSV File Name) *', type: 'select', required: true, placeholder: 'Select topic', isDynamic: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'duration', label: 'Expected Duration (minutes)', type: 'number', placeholder: '30' }
     ]
@@ -389,8 +391,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
-      { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
+      { name: 'topic', label: 'Topic (CSV File Name) *', type: 'select', required: true, placeholder: 'Select topic', isDynamic: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'length', label: 'Length', type: 'select', options: ['short', 'medium', 'long'] }
     ]
@@ -401,8 +403,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
-      { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
+      { name: 'topic', label: 'Topic (CSV File Name) *', type: 'select', required: true, placeholder: 'Select topic', isDynamic: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
     ]
   },
@@ -412,8 +414,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
-      { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
+      { name: 'topic', label: 'Topic (CSV File Name) *', type: 'select', required: true, placeholder: 'Select topic', isDynamic: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'cardCount', label: 'Number of Cards', type: 'number', placeholder: '20' }
     ]
@@ -436,8 +438,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
-      { name: 'topic', label: 'Topic *', type: 'text', required: true, placeholder: 'Enter topic name' },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
+      { name: 'topic', label: 'Topic (CSV File Name) *', type: 'select', required: true, placeholder: 'Select topic', isDynamic: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'duration', label: 'Exam Duration (minutes)', type: 'number', placeholder: '90' },
       { name: 'difficulty', label: 'Difficulty Mix', type: 'select', options: ['easy', 'medium', 'hard', 'mixed'] }
@@ -456,6 +458,8 @@ export default function TeacherToolPage() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [assignedStudents, setAssignedStudents] = useState<Array<{id: string, name: string, classNumber?: string}>>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
+  const [availableTopics, setAvailableTopics] = useState<Array<{name: string, subSubject?: string}>>([]);
+  const [isLoadingTopics, setIsLoadingTopics] = useState(false);
 
   // Get tool type from route params
   const toolType = params?.toolType || '';
@@ -498,6 +502,73 @@ export default function TeacherToolPage() {
     fetchStudents();
   }, [toolType]);
 
+  // Fetch topics when class and subject are selected
+  useEffect(() => {
+    const fetchTopics = async () => {
+      const classValue = formParams.gradeLevel;
+      const subjectValue = formParams.subject;
+      
+      if (!classValue || !subjectValue) {
+        setAvailableTopics([]);
+        return;
+      }
+
+      // Extract class number (e.g., "Class 9" -> 9)
+      const classNumber = classValue.replace('Class ', '');
+      if (classNumber !== '9' && classNumber !== '10') {
+        setAvailableTopics([]);
+        return;
+      }
+
+      setIsLoadingTopics(true);
+      try {
+        const token = localStorage.getItem('authToken');
+        const url = `${API_BASE_URL}/api/teacher/ai/topics?classNumber=${classNumber}&subject=${encodeURIComponent(subjectValue)}`;
+        console.log('🔍 Fetching topics from:', url);
+        
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        console.log('📡 Response status:', response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('📦 Response data:', data);
+          
+          if (data.success && data.data) {
+            console.log('✅ Topics received:', data.data);
+            setAvailableTopics(data.data);
+            // Clear topic if current selection is not in the new list
+            if (formParams.topic) {
+              const topicExists = data.data.some((t: any) => t.name === formParams.topic);
+              if (!topicExists) {
+                setFormParams(prev => ({ ...prev, topic: '' }));
+              }
+            }
+          } else {
+            console.warn('⚠️ No topics in response:', data);
+            setAvailableTopics([]);
+          }
+        } else {
+          const errorText = await response.text();
+          console.error('❌ Failed to fetch topics:', response.status, errorText);
+          setAvailableTopics([]);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching topics:', error);
+        setAvailableTopics([]);
+      } finally {
+        setIsLoadingTopics(false);
+      }
+    };
+
+    fetchTopics();
+  }, [formParams.gradeLevel, formParams.subject]);
+
   const handleInputChange = (fieldName: string, value: any) => {
     setFormParams(prev => {
       const updated = { ...prev, [fieldName]: value };
@@ -517,15 +588,20 @@ export default function TeacherToolPage() {
         }
       }
       
-      // If gradeLevel changes, clear dependent fields (like subject)
+      // If gradeLevel changes, clear dependent fields (like subject, topic)
       if (fieldName === 'gradeLevel') {
         // Clear subject and other dependent fields
         Object.keys(updated).forEach(key => {
           const field = config?.fields.find(f => f.name === key);
-          if (field?.dependsOn === 'gradeLevel') {
+          if (field?.dependsOn === 'gradeLevel' || key === 'topic') {
             delete updated[key];
           }
         });
+      }
+      
+      // If subject changes, clear topic
+      if (fieldName === 'subject') {
+        delete updated.topic;
       }
       
       return updated;
@@ -573,6 +649,9 @@ export default function TeacherToolPage() {
         },
         body: JSON.stringify({
           toolType,
+          classNumber: formParams.gradeLevel ? parseInt(formParams.gradeLevel.replace('Class ', '')) : undefined,
+          subject: formParams.subject,
+          topic: formParams.topic,
           ...formParams
         })
       });
@@ -1101,6 +1180,10 @@ export default function TeacherToolPage() {
                   // Use assigned students for student selection
                   fieldOptions = assignedStudents.map(s => s.name);
                   isDisabled = isLoadingStudents || assignedStudents.length === 0;
+                } else if (field.isDynamic && field.name === 'topic') {
+                  // Use available topics from API
+                  fieldOptions = availableTopics.map(t => t.name);
+                  isDisabled = isLoadingTopics || !formParams.gradeLevel || !formParams.subject || availableTopics.length === 0;
                 } else {
                   fieldOptions = getFieldOptions(field);
                   isDisabled = field.dependsOn && !formParams[field.dependsOn];
@@ -1109,7 +1192,7 @@ export default function TeacherToolPage() {
                 return (
                   <div key={field.name}>
                     <Label htmlFor={field.name}>{field.label}</Label>
-                    {field.type === 'select' ? (
+                    {field.type === 'select' || field.isDynamic ? (
                       <Select
                         value={formParams[field.name] || ''}
                         onValueChange={(value) => handleInputChange(field.name, value)}
@@ -1122,16 +1205,26 @@ export default function TeacherToolPage() {
                                 ? isLoadingStudents 
                                   ? 'Loading students...'
                                   : 'No students assigned'
-                                : `Select ${config.fields.find(f => f.name === field.dependsOn)?.label || 'Class'} first`
+                                : field.isDynamic && field.name === 'topic'
+                                  ? isLoadingTopics
+                                    ? 'Loading topics...'
+                                    : !formParams.gradeLevel || !formParams.subject
+                                      ? 'Select Class and Subject first'
+                                      : 'No topics available'
+                                  : `Select ${config.fields.find(f => f.name === field.dependsOn)?.label || 'Class'} first`
                               : field.placeholder || `Select ${field.label}`
                           } />
                         </SelectTrigger>
                         <SelectContent>
-                          {fieldOptions.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
+                          {fieldOptions.length > 0 ? (
+                            fieldOptions.map((option) => (
+                              <SelectItem key={option} value={option}>
+                                {option}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <div className="px-2 py-1.5 text-sm text-gray-500">No options available</div>
+                          )}
                         </SelectContent>
                       </Select>
                     ) : field.type === 'textarea' ? (

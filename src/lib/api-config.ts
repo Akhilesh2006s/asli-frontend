@@ -6,7 +6,7 @@
 const PRODUCTION_URL = 'https://api.aslilearn.ai';
 
 // Local development URL (for reference)
-const LOCAL_URL = 'http://localhost:5000';
+const LOCAL_URL = 'http://localhost:3001';
 
 // Use production URL by default
 // VITE_API_URL environment variable can override this
