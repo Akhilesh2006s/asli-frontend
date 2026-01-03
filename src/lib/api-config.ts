@@ -1,9 +1,8 @@
 // Centralized API URL Management
 // Production Backend
 
-// Production server URL (using HTTPS for Vercel deployment)
-// Point to the public API domain (served via Nginx proxy on the droplet)
-const PRODUCTION_URL = 'https://api.aslilearn.ai';
+// Production server URL (Railway deployment)
+const PRODUCTION_URL = 'https://asli-stud-back-production.up.railway.app';
 
 // Local development URL (for reference)
 const LOCAL_URL = 'http://localhost:3001';
@@ -53,13 +52,16 @@ if (isProduction) {
     finalUrl = PRODUCTION_URL; // Default to production
   }
 } else {
-  // Development mode - prioritize localhost
-  if (isLocalhost) {
-    // If running on localhost, use local backend unless explicitly overridden
-    finalUrl = envUrl && !isLocalhostUrl ? envUrl : LOCAL_URL;
+  // Development mode - use Railway URL by default, but allow localhost override
+  if (isLocalhost && envUrl && isLocalhostUrl) {
+    // If explicitly set to localhost in dev mode, use it
+    finalUrl = LOCAL_URL;
+  } else if (envUrl && !isLocalhostUrl) {
+    // Use explicit env URL if provided (Railway URL)
+    finalUrl = envUrl;
   } else {
-    // Not localhost but in dev mode - use env URL or local URL
-    finalUrl = envUrl || LOCAL_URL;
+    // Default to Railway production URL
+    finalUrl = PRODUCTION_URL;
   }
 }
 
