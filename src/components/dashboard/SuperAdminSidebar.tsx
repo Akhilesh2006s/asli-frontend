@@ -16,11 +16,12 @@ import {
   CircleDot,
   Shield,
   Users2,
-  Calendar
+  Calendar,
+  AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export type SuperAdminView = 'dashboard' | 'admins' | 'analytics' | 'ai-analytics' | 'subscriptions' | 'settings' | 'board-comparison' | 'content' | 'board' | 'subjects' | 'exams' | 'iq-rank-boost' | 'vidya-ai' | 'courses' | 'add-admin' | 'calendar';
+export type SuperAdminView = 'dashboard' | 'admins' | 'analytics' | 'ai-analytics' | 'subscriptions' | 'settings' | 'board-comparison' | 'content' | 'board' | 'subjects' | 'exams' | 'iq-rank-boost' | 'vidya-ai' | 'courses' | 'add-admin' | 'calendar' | 'ai-risk-analysis';
 
 interface SuperAdminSidebarProps {
   currentView: SuperAdminView;
@@ -41,6 +42,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdmi
     { id: 'vidya-ai', label: 'Vidya AI', icon: Sparkles },
     { id: 'analytics', label: 'Analytics', icon: BarChartIcon },
     { id: 'ai-analytics', label: 'AI Analytics', icon: BrainCircuitIcon },
+    { id: 'ai-risk-analysis', label: 'AI Risk Analysis', icon: AlertTriangle },
     { id: 'subscriptions', label: 'Subscriptions', icon: CreditCardIcon },
     { id: 'settings', label: 'Settings', icon: SettingsIcon },
   ];

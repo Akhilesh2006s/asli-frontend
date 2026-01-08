@@ -40,9 +40,9 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: process.env.VITE_BACKEND_URL || 'https://asli-stud-back-production.up.railway.app',
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:3001',
         changeOrigin: true,
-        secure: true,
+        secure: false, // Set to false for localhost
         rewrite: (path) => path, // Don't rewrite the path
         configure: (proxy, _options) => {
           proxy.on('error', (err, _req, res) => {

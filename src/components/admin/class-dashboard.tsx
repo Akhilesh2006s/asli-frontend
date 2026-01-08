@@ -32,8 +32,10 @@ import {
   ArrowUp,
   CheckCircle2,
   Loader2,
-  Eye
+  Eye,
+  Brain
 } from 'lucide-react';
+import { StudentRiskAnalysisModal } from './StudentRiskAnalysisModal';
 import { motion } from 'framer-motion';
 
 interface Student {
@@ -116,6 +118,8 @@ const ClassDashboard = () => {
   const [isStudentAnalysisDialogOpen, setIsStudentAnalysisDialogOpen] = useState(false);
   const [studentAnalysis, setStudentAnalysis] = useState<any>(null);
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
+  const [isAIRiskAnalysisModalOpen, setIsAIRiskAnalysisModalOpen] = useState(false);
+  const [selectedStudentForAIRisk, setSelectedStudentForAIRisk] = useState<Student | null>(null);
 
   useEffect(() => {
     fetchClasses();
@@ -1135,6 +1139,18 @@ const ClassDashboard = () => {
                             >
                               <Eye className="w-4 h-4 text-sky-600" />
                             </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0 hover:bg-orange-100"
+                              onClick={() => {
+                                setSelectedStudentForAIRisk(student);
+                                setIsAIRiskAnalysisModalOpen(true);
+                              }}
+                              title="AI Risk Analysis"
+                            >
+                              <Brain className="w-4 h-4 text-orange-600" />
+                            </Button>
                             <Badge variant="outline" className={`text-xs ${
                               student.status === 'active' 
                                 ? 'border-green-200 text-green-700 bg-green-50' 
@@ -1796,6 +1812,17 @@ const ClassDashboard = () => {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* AI Risk Analysis Modal */}
+        {selectedStudentForAIRisk && (
+          <StudentRiskAnalysisModal
+            open={isAIRiskAnalysisModalOpen}
+            onOpenChange={setIsAIRiskAnalysisModalOpen}
+            studentId={selectedStudentForAIRisk.id}
+            studentName={selectedStudentForAIRisk.name}
+            isSuperAdmin={false}
+          />
+        )}
     </div>
   );
 };

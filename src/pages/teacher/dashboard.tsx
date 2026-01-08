@@ -66,6 +66,9 @@ import AIChat from '@/components/ai-chat';
 import VideoModal from '@/components/video-modal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
+import { useToast } from '@/hooks/use-toast';
+
+// PDF Upload removed - AI tools now use Gemini API only
 
 interface TeacherStats {
   totalStudents: number;
@@ -2143,10 +2146,25 @@ const TeacherDashboard = () => {
                       </motion.div>
                     </div>
 
+                    {/* PDF Upload Section */}
+                    <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-6 border-2 border-dashed border-purple-300 mb-8">
+                      <div className="flex items-start space-x-4 mb-4">
+                        <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Upload className="w-6 h-6 text-purple-600" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-xl font-bold text-gray-900 mb-1">AI Tools</h3>
+                          <p className="text-sm text-gray-600 mb-4">
+                            All AI tools use Gemini API to generate content. Simply enter any topic name and the AI will create content for you.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Available Tools Section */}
                       <div>
                       <h3 className="text-2xl font-bold text-gray-900 mb-2">Available Tools</h3>
-                      <p className="text-gray-600 mb-6">Select a tool to get started with AI-assisted teaching resources</p>
+                      <p className="text-gray-600 mb-6">Select a tool to get started. All tools use Gemini AI to generate content based on your input.</p>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {/* Tool 1: Activity & Project Generator */}

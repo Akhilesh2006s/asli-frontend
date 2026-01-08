@@ -1,15 +1,18 @@
 // Centralized API URL Management
-// Production Backend - Railway deployment
+// Local Backend - Development
 
-// Railway production URL
+// Local development URL
+const LOCAL_URL = 'http://localhost:3001';
+
+// Railway production URL (for reference)
 const RAILWAY_URL = 'https://asli-stud-back-production.up.railway.app';
 
-// Always use Railway URL - no localhost fallback
+// Use local backend by default
 // Override with VITE_API_URL environment variable if needed
-export const API_BASE_URL = import.meta.env.VITE_API_URL || RAILWAY_URL;
+export const API_BASE_URL = import.meta.env.VITE_API_URL || LOCAL_URL;
 
 // Log current configuration (helps with debugging)
-console.log(`🔌 Backend Mode: RAILWAY`);
+console.log(`🔌 Backend Mode: LOCAL`);
 console.log(`📡 API Base URL: ${API_BASE_URL}`);
 
 // Helper function for making API calls with automatic URL handling

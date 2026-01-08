@@ -11,6 +11,7 @@ import ExamManagement from "@/components/super-admin/exam-management";
 import IQRankBoostActivities from "@/components/super-admin/iq-rank-boost-activities";
 import SuperAdminCalendar from "@/components/super-admin/super-admin-calendar";
 import AIChat from "@/components/ai-chat";
+import SuperAdminAIRiskAnalysis from "./super-admin-ai-risk-analysis";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +41,10 @@ export default function SuperAdminDashboard() {
     activeVideos: 0,
     activeAssessments: 0,
     avgExamsPerStudent: 0,
-    contentEngagement: 0
+    contentEngagement: 0,
+    passRate: 0,
+    activeStudents: 0,
+    activeStudentsPercentage: 0
   });
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [realtimeAnalytics, setRealtimeAnalytics] = useState<any>(null);
@@ -207,33 +211,13 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  // Sample data for charts
-  const totalStudentsData = [
-    { name: 'Jan', value: 4200 },
-    { name: 'Feb', value: 4500 },
-    { name: 'Mar', value: 4800 },
-    { name: 'Apr', value: 5000 },
-    { name: 'May', value: 5230 },
-  ];
+  // Chart data - will be populated from real analytics when available
+  const [totalStudentsData, setTotalStudentsData] = useState<Array<{name: string, value: number}>>([]);
+  const [passRateData, setPassRateData] = useState<Array<{name: string, value: number}>>([]);
 
-  const passRateData = [
-    { name: 'Jan', value: 75 },
-    { name: 'Feb', value: 78 },
-    { name: 'Mar', value: 80 },
-    { name: 'Apr', value: 82 },
-    { name: 'May', value: 80 },
-  ];
-
-  const coursesPerBoardData = [
-    { name: 'Asli Exclusive Schools', value: 100, color: '#fb923c' },
-  ];
-
-  const studentsPerAdminData = [
-    { name: 'Week 1', admin1: 200, admin2: 150 },
-    { name: 'Week 2', admin1: 250, admin2: 180 },
-    { name: 'Week 3', admin1: 300, admin2: 200 },
-    { name: 'Week 4', admin1: 350, admin2: 220 },
-  ];
+  // Chart data will be populated from real analytics when available
+  const [coursesPerBoardData, setCoursesPerBoardData] = useState<Array<{name: string, value: number, color: string}>>([]);
+  const [studentsPerAdminData, setStudentsPerAdminData] = useState<Array<{[key: string]: string | number}>>([]);
 
   // Icon grid using EXACT same icons as sidebar in same order
   const iconGridIcons = [
@@ -342,16 +326,18 @@ export default function SuperAdminDashboard() {
               <div>
                   <p className="text-sm text-gray-600 mb-1">Total Students</p>
                   <p className="text-3xl font-bold text-gray-900">
-                    {isLoadingStats ? '...' : (stats.totalStudents || 5230).toLocaleString().replace(/\s/g, ' ')}
+                    {isLoadingStats ? '...' : (stats.totalStudents || 0).toLocaleString().replace(/\s/g, ' ')}
                   </p>
               </div>
-                <div className="w-16 h-12">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={totalStudentsData}>
-                      <Area type="monotone" dataKey="value" stroke="#fb923c" fill="#fb923c" fillOpacity={0.2} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-            </div>
+                {totalStudentsData.length > 0 && (
+                  <div className="w-16 h-12">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={totalStudentsData}>
+                        <Area type="monotone" dataKey="value" stroke="#fb923c" fill="#fb923c" fillOpacity={0.2} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -361,16 +347,20 @@ export default function SuperAdminDashboard() {
           <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
               <div>
-                  <p className="text-3xl font-bold text-gray-900 mb-1">80%</p>
+                  <p className="text-3xl font-bold text-gray-900 mb-1">
+                    {isLoadingStats ? '...' : (stats.passRate || 0).toFixed(0)}%
+                  </p>
                   <p className="text-sm text-gray-600">Pass rate data</p>
               </div>
-                <div className="w-16 h-12">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={passRateData}>
-                      <Area type="monotone" dataKey="value" stroke="#10B981" fill="#10B981" fillOpacity={0.2} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-            </div>
+                {passRateData.length > 0 && (
+                  <div className="w-16 h-12">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={passRateData}>
+                        <Area type="monotone" dataKey="value" stroke="#10B981" fill="#10B981" fillOpacity={0.2} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -417,13 +407,13 @@ export default function SuperAdminDashboard() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-700">Total Students</span>
                 <span className="text-sm font-semibold text-gray-900">
-                  {isLoadingStats ? '...' : (stats.totalStudents || 1007).toLocaleString()}
+                  {isLoadingStats ? '...' : (stats.totalStudents || 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-700">Active Students</span>
                 <span className="text-sm font-semibold text-orange-600">
-                  {isLoadingStats ? '...' : Math.round((stats.totalStudents || 1007) * 0.85).toLocaleString()} (85%)
+                  {isLoadingStats ? '...' : (stats.activeStudents || 0).toLocaleString()} ({stats.activeStudentsPercentage || 0}%)
                 </span>
               </div>
               <div className="flex items-center justify-between">
@@ -436,13 +426,13 @@ export default function SuperAdminDashboard() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs text-gray-600">Student Engagement</span>
                   <span className="text-xs font-semibold text-gray-900">
-                    {isLoadingStats ? '...' : (stats.contentEngagement || 75).toFixed(0)}%
+                    {isLoadingStats ? '...' : (stats.contentEngagement || 0).toFixed(0)}%
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
                     className="bg-gradient-to-r from-orange-400 to-sky-400 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${isLoadingStats ? 0 : (stats.contentEngagement || 75)}%` }}
+                    style={{ width: `${isLoadingStats ? 0 : (stats.contentEngagement || 0)}%` }}
                   ></div>
                 </div>
               </div>
@@ -633,42 +623,36 @@ export default function SuperAdminDashboard() {
         )}
       </div>
 
-      {/* Auto-Generated Insights */}
-      <div className="space-y-4">
-        <div className="flex items-center space-x-2">
-          <BrainIcon className="h-5 w-5 text-orange-400" />
-          <h2 className="text-xl font-bold text-gray-900">Auto-Generated Insights</h2>
+      {/* AI-Powered Insights - Real data will be displayed here when available */}
+      {realtimeAnalytics && realtimeAnalytics.insights && realtimeAnalytics.insights.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <BrainIcon className="h-5 w-5 text-orange-400" />
+            <h2 className="text-xl font-bold text-gray-900">AI-Powered Insights</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {realtimeAnalytics.insights.slice(0, 2).map((insight: any, index: number) => (
+              <Card key={index} className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-gradient-to-br from-blue-300 to-blue-400 rounded-lg">
+                      <BrainIcon className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent">
+                        {insight.title || insight.description || 'Insight'}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        {insight.generatedAt ? new Date(insight.generatedAt).toLocaleString() : 'Recently generated'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gradient-to-br from-blue-300 to-blue-400 rounded-lg">
-                  <BrainIcon className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent">Peak learning hours: 7-9 PM (43% of daily activity)</p>
-                  <p className="text-xs text-gray-600">Generated 2 hours ago</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-lg">
-                  <TrendingUpIcon className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Most popular subject: Mathematics (35% of total engagement)</p>
-                  <p className="text-xs text-gray-600">Generated 1 hour ago</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        </div>
+      )}
       </div>
 
       {/* Right Sidebar */}
@@ -965,6 +949,8 @@ export default function SuperAdminDashboard() {
         return renderBoardComparisonContent();
       case 'ai-analytics':
         return <DetailedAIAnalyticsDashboard />;
+      case 'ai-risk-analysis':
+        return <SuperAdminAIRiskAnalysis />;
       case 'subscriptions':
         return renderSubscriptionsContent();
       case 'settings':

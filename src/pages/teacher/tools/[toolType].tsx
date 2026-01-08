@@ -14,6 +14,8 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, ExternalHyperlink, InternalHyperlink } from 'docx';
 import { saveAs } from 'file-saver';
+import { FlashcardViewer } from '@/components/flashcard-viewer';
+import { getTopicsForClassAndSubject } from '@/data/ncert-topics';
 
 // Enhanced markdown renderer with math support
 const renderMarkdown = (text: string) => {
@@ -305,9 +307,10 @@ const CLASS_SUBJECTS: Record<string, string[]> = {
   ]
 };
 
-const CLASS_OPTIONS = ['Class 9', 'Class 10']; // Only Class 9 and 10 are supported with CSV files
+const CLASS_OPTIONS = ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'];
 
-const SUBJECT_OPTIONS = ['maths', 'english', 'science', 'social'];
+// Subject options - will be mapped to NCERT syllabus subjects
+const SUBJECT_OPTIONS = ['mathematics', 'maths', 'english', 'science', 'social science', 'social', 'evs', 'sst'];
 
 const TOOL_CONFIGS: Record<string, ToolConfig> = {
   'activity-project-generator': {
@@ -317,7 +320,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
-      { name: 'topic', label: 'Topic (CSV File Name) *', type: 'select', required: true, placeholder: 'Select topic', isDynamic: true },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'className', label: 'Section (Optional)', type: 'text', placeholder: 'e.g., A, B, C' }
     ]
@@ -329,7 +332,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
-      { name: 'topic', label: 'Topic (CSV File Name) *', type: 'select', required: true, placeholder: 'Select topic', isDynamic: true },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'questionType', label: 'Question Type *', type: 'select', required: true, options: ['Single Option', 'Multiple Option', 'Integer Type', 'All Types'], placeholder: 'Select question type' },
       { name: 'questionCount', label: 'Number of Questions', type: 'number', placeholder: '10' },
@@ -354,7 +357,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
-      { name: 'topic', label: 'Topic (CSV File Name) *', type: 'select', required: true, placeholder: 'Select topic', isDynamic: true },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'duration', label: 'Duration (minutes)', type: 'number', placeholder: '90' }
     ]
@@ -366,7 +369,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
-      { name: 'topic', label: 'Topic (CSV File Name) *', type: 'select', required: true, placeholder: 'Select topic', isDynamic: true },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'duration', label: 'Expected Duration (minutes)', type: 'number', placeholder: '30' }
     ]
@@ -392,7 +395,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
-      { name: 'topic', label: 'Topic (CSV File Name) *', type: 'select', required: true, placeholder: 'Select topic', isDynamic: true },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'length', label: 'Length', type: 'select', options: ['short', 'medium', 'long'] }
     ]
@@ -404,7 +407,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
-      { name: 'topic', label: 'Topic (CSV File Name) *', type: 'select', required: true, placeholder: 'Select topic', isDynamic: true },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
     ]
   },
@@ -415,7 +418,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
-      { name: 'topic', label: 'Topic (CSV File Name) *', type: 'select', required: true, placeholder: 'Select topic', isDynamic: true },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'cardCount', label: 'Number of Cards', type: 'number', placeholder: '20' }
     ]
@@ -439,8 +442,9 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
-      { name: 'topic', label: 'Topic (CSV File Name) *', type: 'select', required: true, placeholder: 'Select topic', isDynamic: true },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
+      { name: 'questionCount', label: 'Number of Questions *', type: 'number', required: true, placeholder: '20' },
       { name: 'duration', label: 'Exam Duration (minutes)', type: 'number', placeholder: '90' },
       { name: 'difficulty', label: 'Difficulty Mix', type: 'select', options: ['easy', 'medium', 'hard', 'mixed'] }
     ]
@@ -454,16 +458,18 @@ export default function TeacherToolPage() {
   const [formParams, setFormParams] = useState<Record<string, any>>({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
+  const [contentSource, setContentSource] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [assignedStudents, setAssignedStudents] = useState<Array<{id: string, name: string, classNumber?: string}>>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
-  const [availableTopics, setAvailableTopics] = useState<Array<{name: string, subSubject?: string}>>([]);
-  const [isLoadingTopics, setIsLoadingTopics] = useState(false);
+  const [availableNCERTTopics, setAvailableNCERTTopics] = useState<string[]>([]);
 
   // Get tool type from route params
   const toolType = params?.toolType || '';
   const config = TOOL_CONFIGS[toolType];
+
+  // No PDF auto-fill needed - users can enter any topic with Gemini API
 
   // Fetch assigned students on component mount
   useEffect(() => {
@@ -502,71 +508,27 @@ export default function TeacherToolPage() {
     fetchStudents();
   }, [toolType]);
 
-  // Fetch topics when class and subject are selected
+  // Fetch NCERT topics when class and subject are selected
   useEffect(() => {
-    const fetchTopics = async () => {
-      const classValue = formParams.gradeLevel;
-      const subjectValue = formParams.subject;
-      
-      if (!classValue || !subjectValue) {
-        setAvailableTopics([]);
-        return;
-      }
+    const classValue = formParams.gradeLevel;
+    const subjectValue = formParams.subject;
 
-      // Extract class number (e.g., "Class 9" -> 9)
-      const classNumber = classValue.replace('Class ', '');
-      if (classNumber !== '9' && classNumber !== '10') {
-        setAvailableTopics([]);
-        return;
-      }
+    if (!classValue || !subjectValue) {
+      setAvailableNCERTTopics([]);
+      return;
+    }
 
-      setIsLoadingTopics(true);
-      try {
-        const token = localStorage.getItem('authToken');
-        const url = `${API_BASE_URL}/api/teacher/ai/topics?classNumber=${classNumber}&subject=${encodeURIComponent(subjectValue)}`;
-        console.log('🔍 Fetching topics from:', url);
-        
-        const response = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
+    // Extract class number (e.g., "Class 9" -> 9)
+    const classNumber = parseInt(classValue.replace('Class ', '').trim());
+    
+    if (isNaN(classNumber) || classNumber < 1 || classNumber > 10) {
+      setAvailableNCERTTopics([]);
+      return;
+    }
 
-        console.log('📡 Response status:', response.status);
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('📦 Response data:', data);
-          
-          if (data.success && data.data) {
-            console.log('✅ Topics received:', data.data);
-            setAvailableTopics(data.data);
-            // Clear topic if current selection is not in the new list
-            if (formParams.topic) {
-              const topicExists = data.data.some((t: any) => t.name === formParams.topic);
-              if (!topicExists) {
-                setFormParams(prev => ({ ...prev, topic: '' }));
-              }
-            }
-          } else {
-            console.warn('⚠️ No topics in response:', data);
-            setAvailableTopics([]);
-          }
-        } else {
-          const errorText = await response.text();
-          console.error('❌ Failed to fetch topics:', response.status, errorText);
-          setAvailableTopics([]);
-        }
-      } catch (error) {
-        console.error('❌ Error fetching topics:', error);
-        setAvailableTopics([]);
-      } finally {
-        setIsLoadingTopics(false);
-      }
-    };
-
-    fetchTopics();
+    // Get topics for the selected class and subject
+    const topics = getTopicsForClassAndSubject(classNumber, subjectValue);
+    setAvailableNCERTTopics(topics);
   }, [formParams.gradeLevel, formParams.subject]);
 
   const handleInputChange = (fieldName: string, value: any) => {
@@ -652,6 +614,9 @@ export default function TeacherToolPage() {
           classNumber: formParams.gradeLevel ? parseInt(formParams.gradeLevel.replace('Class ', '')) : undefined,
           subject: formParams.subject,
           topic: formParams.topic,
+          questionCount: formParams.questionCount ? parseInt(formParams.questionCount) : undefined,
+          cardCount: formParams.cardCount ? parseInt(formParams.cardCount) : undefined,
+          duration: formParams.duration ? parseInt(formParams.duration) : undefined,
           ...formParams
         })
       });
@@ -672,9 +637,11 @@ export default function TeacherToolPage() {
       
       if (data.success) {
         setGeneratedContent(data.data.content);
+        const sourceLabel = data.data.metadata?.sourceLabel || (data.data.metadata?.source === 'pdf-extracted' ? 'Textbook (PDF)' : 'Question Bank (CSV)');
+        setContentSource(sourceLabel);
         toast({
           title: 'Success',
-          description: 'Content generated successfully!'
+          description: `Content generated successfully from ${sourceLabel}!`
         });
       } else {
         throw new Error(data.message || 'Failed to generate content');
@@ -1161,9 +1128,9 @@ export default function TeacherToolPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className={`grid grid-cols-1 ${toolType === 'flashcard-generator' ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-6`}>
           {/* Input Form */}
-          <Card>
+          <Card className={toolType === 'flashcard-generator' ? 'lg:col-span-1' : ''}>
             <CardHeader>
               <CardTitle>Tool Parameters</CardTitle>
             </CardHeader>
@@ -1180,10 +1147,10 @@ export default function TeacherToolPage() {
                   // Use assigned students for student selection
                   fieldOptions = assignedStudents.map(s => s.name);
                   isDisabled = isLoadingStudents || assignedStudents.length === 0;
-                } else if (field.isDynamic && field.name === 'topic') {
-                  // Use available topics from API
-                  fieldOptions = availableTopics.map(t => t.name);
-                  isDisabled = isLoadingTopics || !formParams.gradeLevel || !formParams.subject || availableTopics.length === 0;
+                } else if (field.isNCERT && field.name === 'topic') {
+                  // Use NCERT topics based on selected class and subject
+                  fieldOptions = availableNCERTTopics;
+                  isDisabled = !formParams.gradeLevel || !formParams.subject || availableNCERTTopics.length === 0;
                 } else {
                   fieldOptions = getFieldOptions(field);
                   isDisabled = field.dependsOn && !formParams[field.dependsOn];
@@ -1192,7 +1159,7 @@ export default function TeacherToolPage() {
                 return (
                   <div key={field.name}>
                     <Label htmlFor={field.name}>{field.label}</Label>
-                    {field.type === 'select' || field.isDynamic ? (
+                    {(field.type === 'select' || field.isNCERT) ? (
                       <Select
                         value={formParams[field.name] || ''}
                         onValueChange={(value) => handleInputChange(field.name, value)}
@@ -1205,12 +1172,10 @@ export default function TeacherToolPage() {
                                 ? isLoadingStudents 
                                   ? 'Loading students...'
                                   : 'No students assigned'
-                                : field.isDynamic && field.name === 'topic'
-                                  ? isLoadingTopics
-                                    ? 'Loading topics...'
-                                    : !formParams.gradeLevel || !formParams.subject
-                                      ? 'Select Class and Subject first'
-                                      : 'No topics available'
+                                : field.isNCERT && field.name === 'topic'
+                                  ? !formParams.gradeLevel || !formParams.subject
+                                    ? 'Select Class and Subject first'
+                                    : 'No topics available for this class/subject'
                                   : `Select ${config.fields.find(f => f.name === field.dependsOn)?.label || 'Class'} first`
                               : field.placeholder || `Select ${field.label}`
                           } />
@@ -1223,7 +1188,11 @@ export default function TeacherToolPage() {
                               </SelectItem>
                             ))
                           ) : (
-                            <div className="px-2 py-1.5 text-sm text-gray-500">No options available</div>
+                            <div className="px-2 py-1.5 text-sm text-gray-500">
+                              {field.isNCERT && field.name === 'topic'
+                                ? 'No topics available. Please select Class and Subject first.'
+                                : 'No options available'}
+                            </div>
                           )}
                         </SelectContent>
                       </Select>
@@ -1269,10 +1238,20 @@ export default function TeacherToolPage() {
           </Card>
 
           {/* Output */}
-          <Card>
+          <Card className={toolType === 'flashcard-generator' ? 'lg:col-span-2' : ''}>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Generated Content</CardTitle>
+                <div>
+                  <CardTitle>Generated Content</CardTitle>
+                  {generatedContent && contentSource && (
+                    <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                      <span>Source:</span>
+                      <span className={`font-medium ${contentSource.includes('PDF') ? 'text-blue-600' : 'text-purple-600'}`}>
+                        {contentSource}
+                      </span>
+                    </p>
+                  )}
+                </div>
                 {generatedContent && (
                   <div className="flex space-x-2">
                     <Button
@@ -1300,16 +1279,20 @@ export default function TeacherToolPage() {
             </CardHeader>
             <CardContent>
               {generatedContent ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white border border-gray-200 rounded-lg p-6 max-h-[600px] overflow-y-auto shadow-sm"
-                >
-                  <div 
-                    className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-code:text-gray-800"
-                    dangerouslySetInnerHTML={{ __html: renderMarkdown(generatedContent) }}
-                  />
-                </motion.div>
+                toolType === 'flashcard-generator' ? (
+                  <FlashcardViewer content={generatedContent} />
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white border border-gray-200 rounded-lg p-6 max-h-[600px] overflow-y-auto shadow-sm"
+                  >
+                    <div 
+                      className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-code:text-gray-800"
+                      dangerouslySetInnerHTML={{ __html: renderMarkdown(generatedContent) }}
+                    />
+                  </motion.div>
+                )
               ) : (
                 <div className="text-center py-12 text-gray-500">
                   <Icon className="w-16 h-16 mx-auto mb-4 text-gray-300" />

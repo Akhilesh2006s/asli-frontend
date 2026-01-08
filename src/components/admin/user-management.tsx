@@ -29,8 +29,11 @@ import {
   BookOpen,
   TrendingUp,
   Loader2,
-  Edit
+  Edit,
+  Brain,
+  AlertTriangle
 } from 'lucide-react';
+import { StudentRiskAnalysisModal } from './StudentRiskAnalysisModal';
 interface Student {
   id: string;
   name: string;
@@ -74,6 +77,8 @@ const UserManagement = () => {
     phone: '',
     isActive: true
   });
+  const [isRiskAnalysisModalOpen, setIsRiskAnalysisModalOpen] = useState(false);
+  const [selectedStudentForAnalysis, setSelectedStudentForAnalysis] = useState<Student | null>(null);
 
   useEffect(() => {
     fetchStudents();
@@ -1102,6 +1107,18 @@ const UserManagement = () => {
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-orange-600 hover:text-orange-700 hover:bg-orange-100/50 rounded-lg backdrop-blur-sm"
+                          onClick={() => {
+                            setSelectedStudentForAnalysis(student);
+                            setIsRiskAnalysisModalOpen(true);
+                          }}
+                          title="AI Risk Analysis"
+                        >
+                          <Brain className="w-4 h-4" />
+                        </Button>
                       </div>
                       <Button 
                         variant="outline" 
@@ -1323,6 +1340,17 @@ const UserManagement = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* AI Risk Analysis Modal */}
+      {selectedStudentForAnalysis && (
+        <StudentRiskAnalysisModal
+          open={isRiskAnalysisModalOpen}
+          onOpenChange={setIsRiskAnalysisModalOpen}
+          studentId={selectedStudentForAnalysis.id}
+          studentName={selectedStudentForAnalysis.name}
+          isSuperAdmin={false}
+        />
+      )}
     </div>
   );
 };

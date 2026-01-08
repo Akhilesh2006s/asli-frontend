@@ -60,7 +60,8 @@ import {
   ClipboardList as ClipboardListIcon,
   CheckCircle2 as CheckCircle2Icon,
   Layout,
-  Target as TargetIcon
+  Target as TargetIcon,
+  AlertTriangle
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -145,6 +146,8 @@ export default function Dashboard() {
   const [isLoadingRemarks, setIsLoadingRemarks] = useState(false);
   const [homeworkSubmissions, setHomeworkSubmissions] = useState<any[]>([]);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
+  const [riskAnalysisReports, setRiskAnalysisReports] = useState<any[]>([]);
+  const [isLoadingReports, setIsLoadingReports] = useState(false);
 
   // Fetch user data
   useEffect(() => {
@@ -1469,6 +1472,35 @@ export default function Dashboard() {
     };
 
     fetchHomeworkSubmissions();
+
+    // Fetch risk analysis reports
+    const fetchRiskAnalysisReports = async () => {
+      try {
+        setIsLoadingReports(true);
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+
+        const response = await fetch(`${API_BASE_URL}/api/student/risk-analysis-reports`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setRiskAnalysisReports(data.data || []);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch risk analysis reports:', error);
+      } finally {
+        setIsLoadingReports(false);
+      }
+    };
+
+    fetchRiskAnalysisReports();
   }, []);
 
   const handleWatchVideo = (video: any) => {
@@ -1923,6 +1955,107 @@ export default function Dashboard() {
                       Showing 5 of {remarks.length} remarks
                     </p>
                   )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* AI Risk Analysis Reports Section */}
+        {riskAnalysisReports.length > 0 && (
+          <div className="mb-responsive relative z-10">
+            <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-red-500 rounded-lg flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-white" />
+                  </div>
+                  <CardTitle className="bg-gradient-to-r from-orange-600 via-orange-400 to-red-500 bg-clip-text text-transparent">
+                    AI Risk Analysis Reports
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {riskAnalysisReports.map((report: any) => (
+                    <div
+                      key={report._id}
+                      className={`p-4 rounded-lg border-l-4 ${
+                        report.isRead
+                          ? 'bg-gray-50 border-gray-300'
+                          : 'bg-orange-50 border-orange-500'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Brain className="w-4 h-4 text-orange-600" />
+                            <h5 className="font-semibold text-gray-900">
+                              Performance Risk Analysis Report
+                            </h5>
+                            {!report.isRead && (
+                              <Badge className="bg-orange-500 text-white text-xs">New</Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 mb-2">
+                            Sent by {report.adminId?.fullName || 'Administrator'} on{' '}
+                            {new Date(report.sentAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              const token = localStorage.getItem('authToken');
+                              const response = await fetch(
+                                `${API_BASE_URL}/api/student/risk-analysis-reports/${report._id}/download`,
+                                {
+                                  headers: {
+                                    'Authorization': `Bearer ${token}`
+                                  }
+                                }
+                              );
+
+                              if (response.ok) {
+                                const blob = await response.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = report.pdfFilename || 'risk-analysis-report.pdf';
+                                document.body.appendChild(a);
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+                                document.body.removeChild(a);
+
+                                // Refresh reports to update read status
+                                const refreshResponse = await fetch(`${API_BASE_URL}/api/student/risk-analysis-reports`, {
+                                  headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                  }
+                                });
+                                if (refreshResponse.ok) {
+                                  const refreshData = await refreshResponse.json();
+                                  if (refreshData.success) {
+                                    setRiskAnalysisReports(refreshData.data || []);
+                                  }
+                                }
+                              }
+                            } catch (error) {
+                              console.error('Failed to download report:', error);
+                            }
+                          }}
+                          className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Download PDF
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
