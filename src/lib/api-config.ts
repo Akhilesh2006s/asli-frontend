@@ -1,13 +1,13 @@
 // Centralized API URL Management
-// Local Backend - Development
+// Railway Production Backend
 
-// Local development URL (default)
+// Local development URL (for local testing)
 const LOCAL_URL = 'http://localhost:3001';
 
-// Production server URL (Railway deployment) - for reference
+// Production server URL (Railway deployment)
 const PRODUCTION_URL = 'https://asli-stud-back-production.up.railway.app';
 
-// Use local backend by default
+// Use Railway production URL by default
 // VITE_API_URL environment variable can override this
 // However, in production (Vercel):
 // - Ignore localhost URLs (will cause connection errors)
@@ -35,24 +35,20 @@ const isIpAddress = (url?: string) => {
   }
 };
 
-// Default to local backend - use production only in production builds
+// Default to Railway production URL - use local only if explicitly set via env
 let finalUrl: string;
-if (isProduction) {
-  // Production mode - use production URL or env override
-  if (envUrl) {
-    if (isLocalhostUrl) {
-      finalUrl = PRODUCTION_URL; // Ignore localhost in production
-    } else if (isHttpUrl && !allowHttpApi && !isIpAddress(envUrl)) {
-      finalUrl = envUrl.replace('http://', 'https://'); // Force HTTPS for domains
-    } else {
-      finalUrl = envUrl; // Respect explicit env URL (e.g., droplet IP over HTTP)
-    }
+if (envUrl) {
+  // Environment variable is set - respect it (with safety checks)
+  if (isLocalhostUrl && isProduction) {
+    finalUrl = PRODUCTION_URL; // Ignore localhost in production
+  } else if (isHttpUrl && !allowHttpApi && !isIpAddress(envUrl)) {
+    finalUrl = envUrl.replace('http://', 'https://'); // Force HTTPS for domains
   } else {
-    finalUrl = PRODUCTION_URL; // Default to production in production builds
+    finalUrl = envUrl; // Use explicit env URL
   }
 } else {
-  // Development mode - always use local backend
-  finalUrl = envUrl || LOCAL_URL;
+  // No env var set - use Railway production URL by default
+  finalUrl = PRODUCTION_URL;
 }
 
 export const API_BASE_URL = finalUrl;
