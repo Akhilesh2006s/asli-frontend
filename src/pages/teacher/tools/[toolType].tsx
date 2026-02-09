@@ -15,6 +15,9 @@ import 'katex/dist/katex.min.css';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, ExternalHyperlink, InternalHyperlink } from 'docx';
 import { saveAs } from 'file-saver';
 import { FlashcardViewer } from '@/components/flashcard-viewer';
+import { ShortNotesViewer } from '@/components/short-notes-viewer';
+import { ConceptMasteryViewer } from '@/components/concept-mastery-viewer';
+import { LessonPlannerViewer } from '@/components/lesson-planner-viewer';
 import { getTopicsForClassAndSubject } from '@/data/ncert-topics';
 
 // Enhanced markdown renderer with math support
@@ -40,6 +43,13 @@ const renderMarkdown = (text: string) => {
     }
   });
   
+  // Process HTML card markers for Short Notes (before line processing)
+  // Replace the markers and keep the HTML content as-is for direct rendering
+  processedText = processedText.replace(/__NOTE_CARD_START__\n([\s\S]*?)\n__NOTE_CARD_END__/g, (match, cardContent) => {
+    // Return HTML directly without escaping - it will be rendered as HTML
+    return `__HTML_CARD__${cardContent.trim()}__HTML_CARD__`;
+  });
+  
   const lines = processedText.split('\n');
   let html = '';
   let inList = false;
@@ -52,12 +62,33 @@ const renderMarkdown = (text: string) => {
     // Check if this line contains a math block
     const hasMathBlock = line.includes('__MATH_BLOCK__') || line.includes('__MATH_ERROR__');
     
+    // Check if this line contains HTML card marker
+    const hasHTMLCard = line.includes('__HTML_CARD__');
+    
     // Restore math blocks first
     if (hasMathBlock) {
       closeList();
       line = line.replace(/__MATH_BLOCK__(.*?)__MATH_BLOCK__/g, '<div class="my-4 overflow-x-auto">$1</div>');
       line = line.replace(/__MATH_ERROR__(.*?)__MATH_ERROR__/g, '<div class="my-4 p-2 bg-red-50 border border-red-200 rounded text-red-800 text-sm">Math Error: $1</div>');
       html += line;
+      continue;
+    }
+    
+    // Process HTML cards - extract and render directly
+    if (hasHTMLCard) {
+      closeList();
+      line = line.replace(/__HTML_CARD__(.*?)__HTML_CARD__/g, '$1');
+      html += line + '\n';
+      continue;
+    }
+    
+    // Check if this line contains raw HTML (from note cards that span multiple lines)
+    const hasHTML = line.includes('<div') || line.includes('</div>') || line.includes('<h2') || line.includes('<h3') || line.includes('<ul') || line.includes('<li') || line.includes('<p') || line.includes('<span');
+    
+    // If line contains HTML, add it directly without escaping (for note cards)
+    if (hasHTML) {
+      closeList();
+      html += line + '\n';
       continue;
     }
     
@@ -122,8 +153,8 @@ const renderMarkdown = (text: string) => {
   }
   
   function formatInline(text: string): string {
-    // Don't process if it's already HTML (math blocks)
-    if (text.includes('__MATH_BLOCK__') || text.includes('__MATH_ERROR__')) {
+    // Don't process if it's already HTML (math blocks or note cards)
+    if (text.includes('__MATH_BLOCK__') || text.includes('__MATH_ERROR__') || text.includes('__NOTE_CARD')) {
       return text;
     }
     
@@ -309,8 +340,8 @@ const CLASS_SUBJECTS: Record<string, string[]> = {
 
 const CLASS_OPTIONS = ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'];
 
-// Subject options - will be mapped to NCERT syllabus subjects
-const SUBJECT_OPTIONS = ['mathematics', 'maths', 'english', 'science', 'social science', 'social', 'evs', 'sst'];
+// Subject options - will be fetched from API for Class 6, fallback for other classes
+const DEFAULT_SUBJECT_OPTIONS = ['mathematics', 'maths', 'english', 'science', 'social science', 'social', 'evs', 'sst'];
 
 const TOOL_CONFIGS: Record<string, ToolConfig> = {
   'activity-project-generator': {
@@ -319,8 +350,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
-      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true },
+      { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all projects if not selected)', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'className', label: 'Section (Optional)', type: 'text', placeholder: 'e.g., A, B, C' }
     ]
@@ -331,7 +362,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'questionType', label: 'Question Type *', type: 'select', required: true, options: ['Single Option', 'Multiple Option', 'Integer Type', 'All Types'], placeholder: 'Select question type' },
@@ -345,8 +376,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
-      { name: 'concept', label: 'Topic/Concept *', type: 'text', required: true, placeholder: 'Enter concept or topic name' },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
     ]
   },
@@ -356,10 +387,9 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
-      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
-      { name: 'duration', label: 'Duration (minutes)', type: 'number', placeholder: '90' }
+      { name: 'subject', label: 'Subject *', type: 'select', required: true },
+      { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all lessons if not selected)', isNCERT: true },
+      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
     ]
   },
   'homework-creator': {
@@ -368,7 +398,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'duration', label: 'Expected Duration (minutes)', type: 'number', placeholder: '30' }
@@ -382,7 +412,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'outputType', label: 'Output Type *', type: 'select', required: true, options: ['Rubrics & Evaluation', 'Report Card'], placeholder: 'Select what to generate' },
       { name: 'studentName', label: 'Student Name', type: 'select', required: false, placeholder: 'Select student (for Report Card)', isStudentSelect: true, dependsOn: 'outputType', showWhen: (values: any) => values.outputType === 'Report Card' },
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'assignmentType', label: 'Assignment Type', type: 'text', required: false, placeholder: 'e.g., Project, Essay, Lab Report (for Rubrics)', showWhen: (values: any) => values.outputType === 'Rubrics & Evaluation' },
       { name: 'term', label: 'Term', type: 'text', placeholder: 'e.g., First Term (for Report Card)', showWhen: (values: any) => values.outputType === 'Report Card' },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
@@ -390,12 +420,12 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
   },
   'story-passage-creator': {
     name: 'Story & Passage Creator',
-    description: 'Generate engaging stories and reading passages',
+    description: 'Generate engaging stories and reading passages (Available for English and Hindi only)',
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
-      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true },
+      { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all passages if not selected)', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'length', label: 'Length', type: 'select', options: ['short', 'medium', 'long'] }
     ]
@@ -406,7 +436,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
     ]
@@ -417,10 +447,9 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
-      { name: 'cardCount', label: 'Number of Cards', type: 'number', placeholder: '20' }
+      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
     ]
   },
   'daily-class-plan-maker': {
@@ -430,7 +459,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'date', label: 'Date', type: 'text', placeholder: 'e.g., 2025-01-15' },
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subjects', label: 'Subjects *', type: 'text', required: true, placeholder: 'e.g., Physics, Chemistry, Mathematics' },
+      { name: 'subjects', label: 'Subjects *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'timeSlots', label: 'Time Slots', type: 'text', placeholder: 'e.g., 9:00-10:00, 10:15-11:15' }
     ]
@@ -441,7 +470,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, options: SUBJECT_OPTIONS },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
       { name: 'questionCount', label: 'Number of Questions *', type: 'number', required: true, placeholder: '20' },
@@ -458,18 +487,86 @@ export default function TeacherToolPage() {
   const [formParams, setFormParams] = useState<Record<string, any>>({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
+  const [rawGeneratedContent, setRawGeneratedContent] = useState<any>(null);
   const [contentSource, setContentSource] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [assignedStudents, setAssignedStudents] = useState<Array<{id: string, name: string, classNumber?: string}>>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [availableNCERTTopics, setAvailableNCERTTopics] = useState<string[]>([]);
+  const [availableSubjects, setAvailableSubjects] = useState<string[]>(DEFAULT_SUBJECT_OPTIONS);
+  const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
 
   // Get tool type from route params
   const toolType = params?.toolType || '';
   const config = TOOL_CONFIGS[toolType];
 
   // No PDF auto-fill needed - users can enter any topic with Gemini API
+
+  // Fetch subjects from API when a class is selected (classes 5-10)
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      const classValue = formParams.gradeLevel;
+      
+      if (!classValue) {
+        setAvailableSubjects(DEFAULT_SUBJECT_OPTIONS);
+        return;
+      }
+
+      // Extract class number (e.g., "Class 6" -> 6)
+      const classNumber = parseInt(classValue.replace('Class ', '').trim());
+      
+      // Fetch for classes 5-10 (hardcoded content available)
+      if (!isNaN(classNumber) && classNumber >= 5 && classNumber <= 10) {
+        setIsLoadingSubjects(true);
+        try {
+          const token = localStorage.getItem('authToken');
+          const response = await fetch(`${API_BASE_URL}/api/teacher/ai/subjects?classNumber=${classNumber}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data && Array.isArray(data.data)) {
+              // Extract subject names and convert to lowercase for consistency
+              const subjects = data.data.map((subj: any) => 
+                (subj.name || subj.displayName || subj).toLowerCase()
+              );
+              setAvailableSubjects(subjects);
+              console.log(`✅ Fetched subjects for Class ${classNumber}:`, subjects);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch subjects:', error);
+          // Fallback to class-specific subjects or default
+          const classSubjects = CLASS_SUBJECTS[classValue];
+          if (classSubjects && classSubjects.length > 0) {
+            setAvailableSubjects(classSubjects.map(s => s.toLowerCase()));
+          } else {
+            setAvailableSubjects(DEFAULT_SUBJECT_OPTIONS);
+          }
+        } finally {
+          setIsLoadingSubjects(false);
+        }
+      } else if (classValue) {
+        // For other classes, use class-specific subjects or default
+        const classSubjects = CLASS_SUBJECTS[classValue];
+        if (classSubjects && classSubjects.length > 0) {
+          setAvailableSubjects(classSubjects.map(s => s.toLowerCase()));
+        } else {
+          setAvailableSubjects(DEFAULT_SUBJECT_OPTIONS);
+        }
+      } else {
+        // No class selected, use default
+        setAvailableSubjects(DEFAULT_SUBJECT_OPTIONS);
+      }
+    };
+
+    fetchSubjects();
+  }, [formParams.gradeLevel]);
 
   // Fetch assigned students on component mount
   useEffect(() => {
@@ -508,7 +605,7 @@ export default function TeacherToolPage() {
     fetchStudents();
   }, [toolType]);
 
-  // Fetch NCERT topics when class and subject are selected
+  // Fetch topics when class and subject are selected
   useEffect(() => {
     const classValue = formParams.gradeLevel;
     const subjectValue = formParams.subject;
@@ -526,9 +623,43 @@ export default function TeacherToolPage() {
       return;
     }
 
-    // Get topics for the selected class and subject
-    const topics = getTopicsForClassAndSubject(classNumber, subjectValue);
-    setAvailableNCERTTopics(topics);
+    // For classes 5-10, fetch topics from API (hardcoded content)
+    if (classNumber >= 5 && classNumber <= 10) {
+      const fetchTopics = async () => {
+        try {
+          const token = localStorage.getItem('authToken');
+          const response = await fetch(`${API_BASE_URL}/api/teacher/ai/topics?classNumber=${classNumber}&subject=${encodeURIComponent(subjectValue)}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data && Array.isArray(data.data)) {
+              // Extract chapter names from the response
+              const topics = data.data.map((chapter: any) => 
+                chapter.chapterName || chapter.name || chapter
+              );
+              setAvailableNCERTTopics(topics);
+              console.log(`✅ Fetched topics for Class ${classNumber}:`, topics);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch topics:', error);
+          // Fallback to hardcoded NCERT topics
+          const topics = getTopicsForClassAndSubject(classNumber, subjectValue);
+          setAvailableNCERTTopics(topics);
+        }
+      };
+
+      fetchTopics();
+    } else {
+      // For other classes, use hardcoded NCERT topics
+      const topics = getTopicsForClassAndSubject(classNumber, subjectValue);
+      setAvailableNCERTTopics(topics);
+    }
   }, [formParams.gradeLevel, formParams.subject]);
 
   const handleInputChange = (fieldName: string, value: any) => {
@@ -575,12 +706,33 @@ export default function TeacherToolPage() {
       return field.options;
     }
     
-    if (field.dependsOn && field.getOptions) {
-      const dependencyValue = formParams[field.dependsOn];
-      if (dependencyValue) {
-        return field.getOptions(dependencyValue);
+    // Handle getOptions function (for dynamic options like subjects)
+    if (field.getOptions) {
+      if (field.dependsOn) {
+        const dependencyValue = formParams[field.dependsOn];
+        if (dependencyValue) {
+          return field.getOptions(dependencyValue);
+        }
+        return [];
+      } else {
+        // getOptions without dependsOn - check if it's a function that needs state
+        // If getOptions is a function that references availableSubjects, it will be called
+        // and we'll catch the error, or we can use a special marker
+        try {
+          return field.getOptions();
+        } catch (error) {
+          // If getOptions references unavailable state, use availableSubjects for subject fields
+          if (field.name === 'subject') {
+            return availableSubjects;
+          }
+          return [];
+        }
       }
-      return [];
+    }
+    
+    // Special case: subject field without getOptions should use availableSubjects
+    if (field.name === 'subject' && !field.options && !field.getOptions) {
+      return availableSubjects;
     }
     
     return [];
@@ -612,10 +764,10 @@ export default function TeacherToolPage() {
         body: JSON.stringify({
           toolType,
           classNumber: formParams.gradeLevel ? parseInt(formParams.gradeLevel.replace('Class ', '')) : undefined,
-          subject: formParams.subject,
+          // Handle both 'subject' and 'subjects' field names
+          subject: formParams.subject || formParams.subjects,
           topic: formParams.topic,
           questionCount: formParams.questionCount ? parseInt(formParams.questionCount) : undefined,
-          cardCount: formParams.cardCount ? parseInt(formParams.cardCount) : undefined,
           duration: formParams.duration ? parseInt(formParams.duration) : undefined,
           ...formParams
         })
@@ -636,14 +788,44 @@ export default function TeacherToolPage() {
       const data = await response.json();
       
       if (data.success) {
-        setGeneratedContent(data.data.content);
         const sourceLabel = data.data.metadata?.sourceLabel || (data.data.metadata?.source === 'pdf-extracted' ? 'Textbook (PDF)' : 'Question Bank (CSV)');
         setContentSource(sourceLabel);
-        toast({
-          title: 'Success',
-          description: `Content generated successfully from ${sourceLabel}!`
-        });
+        
+        // Keep isGenerating true during 3-second delay to show loading animation
+        // Store raw data if available (for Short Notes, Concept Mastery, and Lesson Planner)
+        if (data.data.rawData) {
+          // Store raw data separately for viewer components
+          setRawGeneratedContent(data.data.rawData);
+          // Store in a way the viewer can access
+          const contentWithData = JSON.stringify({
+            formatted: data.data.content,
+            raw: data.data.rawData
+          });
+          // Show loading for 3 seconds, then display content
+          setTimeout(() => {
+            setGeneratedContent(contentWithData);
+            setIsGenerating(false);
+            toast({
+              title: 'Success',
+              description: `Content generated successfully from ${sourceLabel}!`
+            });
+          }, 3000);
+        } else {
+          // Clear raw content if not available
+          setRawGeneratedContent(null);
+          // Add 3-second delay before showing content with loading state
+          setTimeout(() => {
+            setGeneratedContent(data.data.content);
+            setIsGenerating(false);
+            toast({
+              title: 'Success',
+              description: `Content generated successfully from ${sourceLabel}!`
+            });
+          }, 3000);
+        }
+        // Note: isGenerating stays true until setTimeout completes
       } else {
+        setIsGenerating(false);
         throw new Error(data.message || 'Failed to generate content');
       }
     } catch (error: any) {
@@ -1128,9 +1310,9 @@ export default function TeacherToolPage() {
           </div>
         </div>
 
-        <div className={`grid grid-cols-1 ${toolType === 'flashcard-generator' ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} gap-6`}>
+        <div className={`grid grid-cols-1 ${toolType === 'flashcard-generator' ? 'lg:grid-cols-3' : (toolType === 'short-notes-summaries-maker' || toolType === 'concept-mastery-helper' || toolType === 'lesson-planner') ? 'grid-cols-1' : 'lg:grid-cols-2'} gap-6`}>
           {/* Input Form */}
-          <Card className={toolType === 'flashcard-generator' ? 'lg:col-span-1' : ''}>
+          <Card className={toolType === 'flashcard-generator' ? 'lg:col-span-1' : toolType === 'short-notes-summaries-maker' ? '' : ''}>
             <CardHeader>
               <CardTitle>Tool Parameters</CardTitle>
             </CardHeader>
@@ -1151,6 +1333,10 @@ export default function TeacherToolPage() {
                   // Use NCERT topics based on selected class and subject
                   fieldOptions = availableNCERTTopics;
                   isDisabled = !formParams.gradeLevel || !formParams.subject || availableNCERTTopics.length === 0;
+                } else if (field.name === 'subjects' && field.dependsOn === 'gradeLevel') {
+                  // For daily-class-plan-maker, use available subjects based on class
+                  fieldOptions = availableSubjects;
+                  isDisabled = !formParams.gradeLevel || availableSubjects.length === 0;
                 } else {
                   fieldOptions = getFieldOptions(field);
                   isDisabled = field.dependsOn && !formParams[field.dependsOn];
@@ -1238,7 +1424,7 @@ export default function TeacherToolPage() {
           </Card>
 
           {/* Output */}
-          <Card className={toolType === 'flashcard-generator' ? 'lg:col-span-2' : ''}>
+          <Card className={toolType === 'flashcard-generator' ? 'lg:col-span-2' : toolType === 'short-notes-summaries-maker' ? '' : ''}>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -1278,9 +1464,33 @@ export default function TeacherToolPage() {
               </div>
             </CardHeader>
             <CardContent>
-              {generatedContent ? (
+              {isGenerating ? (
+                <div className="flex flex-col items-center justify-center py-20 space-y-6">
+                  <div className="relative">
+                    <div className="w-20 h-20 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Sparkles className="w-8 h-8 text-blue-600 animate-pulse" />
+                    </div>
+                  </div>
+                  <div className="text-center space-y-2">
+                    <h3 className="text-lg font-semibold text-gray-900">Generating Content...</h3>
+                    <p className="text-sm text-gray-600">Please wait while we prepare your content</p>
+                    <div className="flex items-center justify-center space-x-1 mt-4">
+                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    </div>
+                  </div>
+                </div>
+              ) : generatedContent ? (
                 toolType === 'flashcard-generator' ? (
                   <FlashcardViewer content={generatedContent} />
+                ) : toolType === 'short-notes-summaries-maker' ? (
+                  <ShortNotesViewer content={generatedContent} />
+                ) : toolType === 'concept-mastery-helper' ? (
+                  <ConceptMasteryViewer content={generatedContent} />
+                ) : toolType === 'lesson-planner' ? (
+                  <LessonPlannerViewer content={generatedContent} rawContent={rawGeneratedContent} />
                 ) : (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}

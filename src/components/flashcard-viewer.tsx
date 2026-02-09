@@ -30,10 +30,13 @@ if (typeof document !== 'undefined') {
   }
 }
 
+type CardType = 'question' | 'note' | 'fact';
+
 interface Flashcard {
   front: string;
   back: string;
   options?: string[];
+  type?: CardType;
 }
 
 interface FlashcardViewerProps {
@@ -41,17 +44,52 @@ interface FlashcardViewerProps {
 }
 
 export function FlashcardViewer({ content }: FlashcardViewerProps) {
-  const [cards, setCards] = useState<Flashcard[]>([]);
+  const [allCards, setAllCards] = useState<Flashcard[]>([]);
+  const [activeType, setActiveType] = useState<CardType | 'all'>('all');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+  
+  // Filter cards based on active type
+  const cards = activeType === 'all' 
+    ? allCards 
+    : allCards.filter(card => card.type === activeType);
+  
+  // Count cards by type
+  const questionCount = allCards.filter(c => c.type === 'question').length;
+  const noteCount = allCards.filter(c => c.type === 'note').length;
+  const factCount = allCards.filter(c => c.type === 'fact').length;
 
   useEffect(() => {
     // Parse flashcard content from markdown
     const parsedCards = parseFlashcards(content);
-    setCards(parsedCards);
+    setAllCards(parsedCards);
     setCurrentIndex(0);
     setIsFlipped(false);
+    
+    // Auto-select first available type if current type has no cards
+    if (activeType !== 'all' && parsedCards.length > 0) {
+      const hasType = parsedCards.some(c => c.type === activeType);
+      if (!hasType) {
+        // Switch to first available type
+        if (parsedCards.some(c => c.type === 'question')) {
+          setActiveType('question');
+        } else if (parsedCards.some(c => c.type === 'note')) {
+          setActiveType('note');
+        } else if (parsedCards.some(c => c.type === 'fact')) {
+          setActiveType('fact');
+        } else {
+          setActiveType('all');
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content]);
+  
+  useEffect(() => {
+    // Reset to first card when type changes
+    setCurrentIndex(0);
+    setIsFlipped(false);
+  }, [activeType]);
 
   useEffect(() => {
     // Reset flip when card changes
@@ -81,7 +119,7 @@ export function FlashcardViewer({ content }: FlashcardViewerProps) {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [isFlipped, currentIndex, cards.length]);
 
-  if (cards.length === 0) {
+  if (allCards.length === 0) {
     return (
       <div className="text-center py-12 text-gray-500">
         <p>No flashcards found in the generated content.</p>
@@ -89,11 +127,98 @@ export function FlashcardViewer({ content }: FlashcardViewerProps) {
     );
   }
 
+  if (cards.length === 0) {
+    return (
+      <div className="text-center py-12 text-gray-500">
+        <p>No {activeType} cards found. Try selecting a different category.</p>
+      </div>
+    );
+  }
+
   const currentCard = cards[currentIndex];
   const progress = ((currentIndex + 1) / cards.length) * 100;
+  
+  // Get card styling based on type
+  const getCardStyles = (type?: CardType) => {
+    switch (type) {
+      case 'question':
+        return {
+          front: 'from-blue-50 to-indigo-100 border-blue-200',
+          back: 'from-indigo-50 to-purple-100 border-indigo-200',
+          label: 'text-blue-600',
+          labelText: 'Question'
+        };
+      case 'note':
+        return {
+          front: 'from-green-50 to-emerald-100 border-green-200',
+          back: 'from-emerald-50 to-teal-100 border-emerald-200',
+          label: 'text-green-600',
+          labelText: 'Important Note'
+        };
+      case 'fact':
+        return {
+          front: 'from-orange-50 to-amber-100 border-orange-200',
+          back: 'from-amber-50 to-yellow-100 border-amber-200',
+          label: 'text-orange-600',
+          labelText: 'Quick Fact'
+        };
+      default:
+        return {
+          front: 'from-blue-50 to-indigo-100 border-blue-200',
+          back: 'from-indigo-50 to-purple-100 border-indigo-200',
+          label: 'text-blue-600',
+          labelText: 'Card'
+        };
+    }
+  };
+  
+  const cardStyles = getCardStyles(currentCard.type);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[500px] space-y-6 relative">
+      {/* Type Filter Buttons */}
+      <div className="flex gap-2 mb-4">
+        <Button
+          variant={activeType === 'all' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setActiveType('all')}
+          className="relative"
+        >
+          All
+          <span className="ml-2 text-xs opacity-75">({allCards.length})</span>
+        </Button>
+        <Button
+          variant={activeType === 'question' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setActiveType('question')}
+          className="relative"
+          disabled={questionCount === 0}
+        >
+          Questions
+          <span className="ml-2 text-xs opacity-75">({questionCount})</span>
+        </Button>
+        <Button
+          variant={activeType === 'note' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setActiveType('note')}
+          className="relative"
+          disabled={noteCount === 0}
+        >
+          Important Notes
+          <span className="ml-2 text-xs opacity-75">({noteCount})</span>
+        </Button>
+        <Button
+          variant={activeType === 'fact' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setActiveType('fact')}
+          className="relative"
+          disabled={factCount === 0}
+        >
+          Facts
+          <span className="ml-2 text-xs opacity-75">({factCount})</span>
+        </Button>
+      </div>
+
       {/* Instructions */}
       <div className="text-sm text-gray-600 text-center">
         <p>Press <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">Space</kbd> to flip, <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">←</kbd> / <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">→</kbd> to navigate</p>
@@ -113,7 +238,7 @@ export function FlashcardViewer({ content }: FlashcardViewerProps) {
           >
             {/* Front of card */}
             <motion.div
-              className="absolute inset-0 w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl shadow-xl border-2 border-blue-200 p-8 flex flex-col items-center justify-center cursor-pointer"
+              className={`absolute inset-0 w-full h-full bg-gradient-to-br ${cardStyles.front} rounded-2xl shadow-xl border-2 p-8 flex flex-col items-center justify-center cursor-pointer`}
               onClick={() => setIsFlipped(!isFlipped)}
               style={{ 
                 backfaceVisibility: 'hidden',
@@ -124,8 +249,8 @@ export function FlashcardViewer({ content }: FlashcardViewerProps) {
               whileTap={{ scale: 0.98 }}
             >
               <div className="text-center space-y-4 w-full">
-                <div className="text-sm font-semibold text-blue-600 uppercase tracking-wide mb-4">
-                  Question
+                <div className={`text-sm font-semibold ${cardStyles.label} uppercase tracking-wide mb-4`}>
+                  {cardStyles.labelText}
                 </div>
                 <div className="text-xl font-medium text-gray-900 leading-relaxed">
                   {currentCard.front}
@@ -158,7 +283,7 @@ export function FlashcardViewer({ content }: FlashcardViewerProps) {
 
             {/* Back of card */}
             <motion.div
-              className="absolute inset-0 w-full h-full bg-gradient-to-br from-indigo-50 to-purple-100 rounded-2xl shadow-xl border-2 border-indigo-200 p-8 flex flex-col items-center justify-center"
+              className={`absolute inset-0 w-full h-full bg-gradient-to-br ${cardStyles.back} rounded-2xl shadow-xl border-2 p-8 flex flex-col items-center justify-center`}
               style={{ 
                 backfaceVisibility: 'hidden',
                 WebkitBackfaceVisibility: 'hidden',
@@ -170,7 +295,7 @@ export function FlashcardViewer({ content }: FlashcardViewerProps) {
                   className="cursor-pointer w-full"
                   onClick={() => setIsFlipped(!isFlipped)}
                 >
-                  <div className="text-sm font-semibold text-indigo-600 uppercase tracking-wide mb-4">
+                  <div className={`text-sm font-semibold ${cardStyles.label} uppercase tracking-wide mb-4`}>
                     Answer
                   </div>
                   <div className="text-xl font-medium text-gray-900 leading-relaxed">
@@ -221,7 +346,12 @@ export function FlashcardViewer({ content }: FlashcardViewerProps) {
         {/* Progress bar */}
         <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden pointer-events-none">
           <motion.div
-            className="h-full bg-gradient-to-r from-blue-500 to-indigo-600"
+            className={`h-full bg-gradient-to-r ${
+              currentCard.type === 'question' ? 'from-blue-500 to-indigo-600' :
+              currentCard.type === 'note' ? 'from-green-500 to-emerald-600' :
+              currentCard.type === 'fact' ? 'from-orange-500 to-amber-600' :
+              'from-blue-500 to-indigo-600'
+            }`}
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.3 }}
@@ -267,6 +397,10 @@ function parseFlashcards(content: string): Flashcard[] {
     const section = sections[i];
     if (!section.trim()) continue;
     
+    // Extract card type (question, note, fact)
+    const typeMatch = section.match(/\*\*Type:\*\*\s*(question|note|fact)/i);
+    const cardType = typeMatch ? (typeMatch[1].toLowerCase() as CardType) : undefined;
+    
     // Extract front (question) - everything between "### Front:" and "### Back:"
     const frontMatch = section.match(/### Front:\s*\n\n([\s\S]*?)(?=\n\n### Back:|$)/);
     let front = frontMatch ? frontMatch[1].trim() : '';
@@ -292,7 +426,8 @@ function parseFlashcards(content: string): Flashcard[] {
       cards.push({ 
         front: front.replace(/\*\*/g, '').trim(), 
         back: back.replace(/\*\*/g, '').trim(), 
-        options 
+        options,
+        type: cardType
       });
     }
   }

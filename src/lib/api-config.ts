@@ -1,13 +1,15 @@
 // Centralized API URL Management
-// Railway Production Backend
+// Local Backend - Development
 
-// Local development URL (for local testing)
+// Local development URL (default)
 const LOCAL_URL = 'http://localhost:3001';
 
 // Production server URL (Railway deployment)
-const PRODUCTION_URL = 'https://asli-stud-back-production.up.railway.app';
+// If you change your Railway backend URL, update this:
+// e.g. https://asli-stud-back-production-7ea4.up.railway.app
+const PRODUCTION_URL = 'https://asli-stud-back-production-7ea4.up.railway.app';
 
-// Use Railway production URL by default
+// Use local backend by default
 // VITE_API_URL environment variable can override this
 // However, in production (Vercel):
 // - Ignore localhost URLs (will cause connection errors)
@@ -35,20 +37,24 @@ const isIpAddress = (url?: string) => {
   }
 };
 
-// Default to Railway production URL - use local only if explicitly set via env
+// Default to local backend - use production only in production builds
 let finalUrl: string;
-if (envUrl) {
-  // Environment variable is set - respect it (with safety checks)
-  if (isLocalhostUrl && isProduction) {
-    finalUrl = PRODUCTION_URL; // Ignore localhost in production
-  } else if (isHttpUrl && !allowHttpApi && !isIpAddress(envUrl)) {
-    finalUrl = envUrl.replace('http://', 'https://'); // Force HTTPS for domains
+if (isProduction) {
+  // Production mode - use production URL or env override
+  if (envUrl) {
+    if (isLocalhostUrl) {
+      finalUrl = PRODUCTION_URL; // Ignore localhost in production
+    } else if (isHttpUrl && !allowHttpApi && !isIpAddress(envUrl)) {
+      finalUrl = envUrl.replace('http://', 'https://'); // Force HTTPS for domains
+    } else {
+      finalUrl = envUrl; // Respect explicit env URL (e.g., droplet IP over HTTP)
+    }
   } else {
-    finalUrl = envUrl; // Use explicit env URL
+    finalUrl = PRODUCTION_URL; // Default to production in production builds
   }
 } else {
-  // No env var set - use Railway production URL by default
-  finalUrl = PRODUCTION_URL;
+  // Development mode - always use local backend
+  finalUrl = envUrl || LOCAL_URL;
 }
 
 export const API_BASE_URL = finalUrl;
