@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Sparkles, Download, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Sparkles, Download, Copy, Check, FileText, FileSpreadsheet, FileDown } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
@@ -14,6 +14,13 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, ExternalHyperlink, InternalHyperlink } from 'docx';
 import { saveAs } from 'file-saver';
+import html2pdf from 'html2pdf.js';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { FlashcardViewer } from '@/components/flashcard-viewer';
 import { ShortNotesViewer } from '@/components/short-notes-viewer';
 import { ConceptMasteryViewer } from '@/components/concept-mastery-viewer';
@@ -24,9 +31,23 @@ import { getTopicsForClassAndSubject } from '@/data/ncert-topics';
 const renderMarkdown = (text: string) => {
   if (!text) return '';
   
+  // Handle JSON-wrapped content (for special viewers, but extract formatted content for display)
+  let processedText = text;
+  try {
+    // Check if content is a JSON string with formatted property
+    if (text.trim().startsWith('{') && text.includes('"formatted"')) {
+      const parsed = JSON.parse(text);
+      if (parsed.formatted) {
+        processedText = parsed.formatted;
+      }
+    }
+  } catch (e) {
+    // Not JSON, use as-is
+    processedText = text;
+  }
+  
   // Clean up escaped LaTeX (convert \\ to \ for proper rendering)
   // But be careful - only unescape within math expressions
-  let processedText = text;
   
   // First, process block math ($$...$$) across multiple lines
   processedText = processedText.replace(/\$\$([\s\S]*?)\$\$/g, (match, mathContent) => {
@@ -335,10 +356,16 @@ const CLASS_SUBJECTS: Record<string, string[]> = {
     'Chemistry',
     'Biology',
     'English'
+  ],
+  'IIT-6': [
+    'Physics',
+    'Chemistry',
+    'Maths',
+    'Biology'
   ]
 };
 
-const CLASS_OPTIONS = ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'];
+const CLASS_OPTIONS = ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'IIT-6'];
 
 // Subject options - will be fetched from API for Class 6, fallback for other classes
 const DEFAULT_SUBJECT_OPTIONS = ['mathematics', 'maths', 'english', 'science', 'social science', 'social', 'evs', 'sst'];
@@ -513,6 +540,44 @@ export default function TeacherToolPage() {
         return;
       }
 
+      // Handle IIT-6 specially
+      if (classValue === 'IIT-6') {
+        setIsLoadingSubjects(true);
+        try {
+          const token = localStorage.getItem('authToken');
+          const response = await fetch(`${API_BASE_URL}/api/teacher/ai/subjects?classNumber=IIT-6`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data && Array.isArray(data.data)) {
+              // Extract subject names and convert to lowercase for consistency
+              const subjects = data.data.map((subj: any) => 
+                (subj.name || subj.displayName || subj).toLowerCase()
+              );
+              setAvailableSubjects(subjects);
+              console.log(`✅ Fetched subjects for IIT-6:`, subjects);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch subjects:', error);
+          // Fallback to class-specific subjects
+          const classSubjects = CLASS_SUBJECTS[classValue];
+          if (classSubjects && classSubjects.length > 0) {
+            setAvailableSubjects(classSubjects.map(s => s.toLowerCase()));
+          } else {
+            setAvailableSubjects(DEFAULT_SUBJECT_OPTIONS);
+          }
+        } finally {
+          setIsLoadingSubjects(false);
+        }
+        return;
+      }
+
       // Extract class number (e.g., "Class 6" -> 6)
       const classNumber = parseInt(classValue.replace('Class ', '').trim());
       
@@ -615,6 +680,39 @@ export default function TeacherToolPage() {
       return;
     }
 
+    // Handle IIT-6 specially
+    if (classValue === 'IIT-6') {
+      const fetchTopics = async () => {
+        try {
+          const token = localStorage.getItem('authToken');
+          const response = await fetch(`${API_BASE_URL}/api/teacher/ai/topics?classNumber=IIT-6&subject=${encodeURIComponent(subjectValue)}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.data && Array.isArray(data.data)) {
+              // Extract chapter names from the response
+              const topics = data.data.map((chapter: any) => 
+                chapter.chapterName || chapter.name || chapter
+              );
+              setAvailableNCERTTopics(topics);
+              console.log(`✅ Fetched topics for IIT-6:`, topics);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch topics:', error);
+          setAvailableNCERTTopics([]);
+        }
+      };
+
+      fetchTopics();
+      return;
+    }
+
     // Extract class number (e.g., "Class 9" -> 9)
     const classNumber = parseInt(classValue.replace('Class ', '').trim());
     
@@ -649,8 +747,8 @@ export default function TeacherToolPage() {
         } catch (error) {
           console.error('Failed to fetch topics:', error);
           // Fallback to hardcoded NCERT topics
-          const topics = getTopicsForClassAndSubject(classNumber, subjectValue);
-          setAvailableNCERTTopics(topics);
+    const topics = getTopicsForClassAndSubject(classNumber, subjectValue);
+    setAvailableNCERTTopics(topics);
         }
       };
 
@@ -709,11 +807,11 @@ export default function TeacherToolPage() {
     // Handle getOptions function (for dynamic options like subjects)
     if (field.getOptions) {
       if (field.dependsOn) {
-        const dependencyValue = formParams[field.dependsOn];
-        if (dependencyValue) {
-          return field.getOptions(dependencyValue);
-        }
-        return [];
+      const dependencyValue = formParams[field.dependsOn];
+      if (dependencyValue) {
+        return field.getOptions(dependencyValue);
+      }
+      return [];
       } else {
         // getOptions without dependsOn - check if it's a function that needs state
         // If getOptions is a function that references availableSubjects, it will be called
@@ -763,7 +861,12 @@ export default function TeacherToolPage() {
         },
         body: JSON.stringify({
           toolType,
-          classNumber: formParams.gradeLevel ? parseInt(formParams.gradeLevel.replace('Class ', '')) : undefined,
+          // Handle IIT-6 as string, otherwise parse as number
+          classNumber: formParams.gradeLevel 
+            ? (formParams.gradeLevel === 'IIT-6' 
+                ? 'IIT-6' 
+                : parseInt(formParams.gradeLevel.replace('Class ', '')))
+            : undefined,
           // Handle both 'subject' and 'subjects' field names
           subject: formParams.subject || formParams.subjects,
           topic: formParams.topic,
@@ -796,20 +899,36 @@ export default function TeacherToolPage() {
         if (data.data.rawData) {
           // Store raw data separately for viewer components
           setRawGeneratedContent(data.data.rawData);
-          // Store in a way the viewer can access
-          const contentWithData = JSON.stringify({
-            formatted: data.data.content,
-            raw: data.data.rawData
-          });
-          // Show loading for 3 seconds, then display content
-          setTimeout(() => {
-            setGeneratedContent(contentWithData);
-            setIsGenerating(false);
-            toast({
-              title: 'Success',
-              description: `Content generated successfully from ${sourceLabel}!`
+          // For exam papers and other tools, use the formatted content directly
+          // Only use JSON format for tools that need special viewers
+          if (toolType === 'short-notes-summaries-maker' || 
+              toolType === 'concept-mastery-helper' || 
+              toolType === 'lesson-planner' ||
+              toolType === 'flashcard-generator') {
+            // Store in a way the viewer can access
+            const contentWithData = JSON.stringify({
+              formatted: data.data.content,
+              raw: data.data.rawData
             });
-          }, 3000);
+            setTimeout(() => {
+              setGeneratedContent(contentWithData);
+              setIsGenerating(false);
+              toast({
+                title: 'Success',
+                description: `Content generated successfully from ${sourceLabel}!`
+              });
+            }, 3000);
+          } else {
+            // For exam papers and other tools, use content directly
+            setTimeout(() => {
+              setGeneratedContent(data.data.content);
+              setIsGenerating(false);
+              toast({
+                title: 'Success',
+                description: `Content generated successfully from ${sourceLabel}!`
+              });
+            }, 3000);
+          }
         } else {
           // Clear raw content if not available
           setRawGeneratedContent(null);
@@ -1242,7 +1361,7 @@ export default function TeacherToolPage() {
     });
   };
 
-  const handleDownload = async () => {
+  const handleDownloadWord = async () => {
     try {
       setIsDownloading(true);
       const doc = await convertToWordDocument(generatedContent);
@@ -1258,6 +1377,178 @@ export default function TeacherToolPage() {
       toast({
         title: 'Error',
         description: 'Failed to generate Word document',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    try {
+      setIsDownloading(true);
+      
+      // Find the content container - try multiple selectors
+      let contentElement = document.querySelector('.prose') || 
+                          document.querySelector('[class*="prose"]') ||
+                          document.querySelector('.bg-white.border') ||
+                          document.querySelector('[dangerouslySetInnerHTML]')?.parentElement;
+      
+      if (!contentElement) {
+        // Fallback: create content from generatedContent
+        const tempDiv = document.createElement('div');
+        tempDiv.style.width = '210mm';
+        tempDiv.style.padding = '20mm';
+        tempDiv.style.fontFamily = 'Arial, sans-serif';
+        tempDiv.style.backgroundColor = 'white';
+        tempDiv.innerHTML = renderMarkdown(generatedContent);
+        document.body.appendChild(tempDiv);
+        contentElement = tempDiv;
+      } else {
+        // Create a temporary container for PDF generation
+        const tempDiv = document.createElement('div');
+        tempDiv.style.width = '210mm'; // A4 width
+        tempDiv.style.padding = '20mm';
+        tempDiv.style.fontFamily = 'Arial, sans-serif';
+        tempDiv.style.backgroundColor = 'white';
+        tempDiv.innerHTML = contentElement.innerHTML;
+        document.body.appendChild(tempDiv);
+        contentElement = tempDiv;
+      }
+
+      const opt = {
+        margin: [10, 10, 10, 10] as [number, number, number, number],
+        filename: `${config.name.replace(/\s+/g, '-')}-${Date.now()}.pdf`,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true,
+          logging: false,
+          windowWidth: contentElement.scrollWidth,
+          windowHeight: contentElement.scrollHeight
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      await html2pdf().set(opt).from(contentElement as HTMLElement).save();
+      
+      // Clean up temporary element if we created it
+      if (contentElement.parentElement === document.body) {
+        document.body.removeChild(contentElement);
+      }
+
+      toast({
+        title: 'Downloaded!',
+        description: 'Content downloaded as PDF successfully'
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate PDF',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleDownloadCSV = () => {
+    try {
+      setIsDownloading(true);
+      
+      // For exam papers, extract questions from rawGeneratedContent
+      if (toolType === 'exam-question-paper-generator' && rawGeneratedContent) {
+        const csvRows: string[] = [];
+        
+        // CSV Headers
+        csvRows.push('Question Number,Type,Question,Option A,Option B,Option C,Option D,Correct Answer,Answer,Explanation,Marks');
+        
+        // Extract questions from sections
+        if (rawGeneratedContent.questions) {
+          const questionTypes = ['mcqs', 'fillInBlanks', 'vsaqs', 'saqs', 'laqs'];
+          const typeLabels = {
+            'mcqs': 'MCQ',
+            'fillInBlanks': 'Fill in the Blanks',
+            'vsaqs': 'Very Short Answer',
+            'saqs': 'Short Answer',
+            'laqs': 'Long Answer'
+          };
+
+          questionTypes.forEach(type => {
+            if (rawGeneratedContent.questions[type] && Array.isArray(rawGeneratedContent.questions[type])) {
+              rawGeneratedContent.questions[type].forEach((q: any) => {
+                const row = [
+                  q.question_number || '',
+                  typeLabels[type as keyof typeof typeLabels] || type,
+                  `"${(q.question || '').replace(/"/g, '""')}"`,
+                  q.options?.A ? `"${q.options.A.replace(/"/g, '""')}"` : '',
+                  q.options?.B ? `"${q.options.B.replace(/"/g, '""')}"` : '',
+                  q.options?.C ? `"${q.options.C.replace(/"/g, '""')}"` : '',
+                  q.options?.D ? `"${q.options.D.replace(/"/g, '""')}"` : '',
+                  q.correct_answer ? `"${q.correct_answer.replace(/"/g, '""')}"` : '',
+                  q.answer ? `"${q.answer.replace(/"/g, '""')}"` : '',
+                  q.explanation ? `"${q.explanation.replace(/"/g, '""')}"` : '',
+                  q.marks || ''
+                ];
+                csvRows.push(row.join(','));
+              });
+            }
+          });
+        } else if (rawGeneratedContent.sections && Array.isArray(rawGeneratedContent.sections)) {
+          // Alternative format with sections
+          rawGeneratedContent.sections.forEach((section: any) => {
+            if (section.questions && Array.isArray(section.questions)) {
+              section.questions.forEach((q: any) => {
+                const row = [
+                  q.question_number || '',
+                  section.type || '',
+                  `"${(q.question || '').replace(/"/g, '""')}"`,
+                  q.options?.A ? `"${q.options.A.replace(/"/g, '""')}"` : '',
+                  q.options?.B ? `"${q.options.B.replace(/"/g, '""')}"` : '',
+                  q.options?.C ? `"${q.options.C.replace(/"/g, '""')}"` : '',
+                  q.options?.D ? `"${q.options.D.replace(/"/g, '""')}"` : '',
+                  q.correct_answer ? `"${q.correct_answer.replace(/"/g, '""')}"` : '',
+                  q.answer ? `"${q.answer.replace(/"/g, '""')}"` : '',
+                  q.explanation ? `"${q.explanation.replace(/"/g, '""')}"` : '',
+                  q.marks || ''
+                ];
+                csvRows.push(row.join(','));
+              });
+            }
+          });
+        }
+
+        const csvContent = csvRows.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const fileName = `${config.name.replace(/\s+/g, '-')}-${Date.now()}.csv`;
+        saveAs(blob, fileName);
+
+        toast({
+          title: 'Downloaded!',
+          description: 'Content downloaded as CSV successfully'
+        });
+      } else {
+        // For other tools, create a simple CSV from the content
+        const csvRows: string[] = [];
+        csvRows.push('Content');
+        csvRows.push(`"${generatedContent.replace(/"/g, '""').replace(/\n/g, ' ')}"`);
+        
+        const csvContent = csvRows.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const fileName = `${config.name.replace(/\s+/g, '-')}-${Date.now()}.csv`;
+        saveAs(blob, fileName);
+
+        toast({
+          title: 'Downloaded!',
+          description: 'Content downloaded as CSV successfully'
+        });
+      }
+    } catch (error) {
+      console.error('Error generating CSV:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to generate CSV',
         variant: 'destructive'
       });
     } finally {
@@ -1335,6 +1626,10 @@ export default function TeacherToolPage() {
                   isDisabled = !formParams.gradeLevel || !formParams.subject || availableNCERTTopics.length === 0;
                 } else if (field.name === 'subjects' && field.dependsOn === 'gradeLevel') {
                   // For daily-class-plan-maker, use available subjects based on class
+                  fieldOptions = availableSubjects;
+                  isDisabled = !formParams.gradeLevel || availableSubjects.length === 0;
+                } else if (field.name === 'subject' && field.dependsOn === 'gradeLevel') {
+                  // For subject field that depends on gradeLevel, use available subjects
                   fieldOptions = availableSubjects;
                   isDisabled = !formParams.gradeLevel || availableSubjects.length === 0;
                 } else {
@@ -1447,18 +1742,38 @@ export default function TeacherToolPage() {
                     >
                       {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleDownload}
-                      disabled={isDownloading || !generatedContent}
-                    >
-                      {isDownloading ? (
-                        <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
-                      ) : (
-                        <Download className="w-4 h-4" />
-                      )}
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={isDownloading || !generatedContent}
+                        >
+                          {isDownloading ? (
+                            <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                          ) : (
+                            <>
+                              <Download className="w-4 h-4 mr-2" />
+                              Download
+                            </>
+                          )}
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={handleDownloadPDF} disabled={isDownloading}>
+                          <FileText className="w-4 h-4 mr-2" />
+                          Download as PDF
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleDownloadCSV} disabled={isDownloading}>
+                          <FileSpreadsheet className="w-4 h-4 mr-2" />
+                          Download as CSV
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleDownloadWord} disabled={isDownloading}>
+                          <FileDown className="w-4 h-4 mr-2" />
+                          Download as Word
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 )}
               </div>
@@ -1495,10 +1810,10 @@ export default function TeacherToolPage() {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white border border-gray-200 rounded-lg p-6 max-h-[600px] overflow-y-auto shadow-sm"
+                    className="bg-white border border-gray-200 rounded-lg p-6 max-h-[80vh] overflow-y-auto shadow-sm"
                   >
                     <div 
-                      className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-code:text-gray-800"
+                      className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-code:text-gray-800 prose-img:rounded-lg prose-img:shadow-md prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-gray-300 prose-th:bg-gray-50 prose-th:p-2 prose-td:border prose-td:border-gray-300 prose-td:p-2"
                       dangerouslySetInnerHTML={{ __html: renderMarkdown(generatedContent) }}
                     />
                   </motion.div>

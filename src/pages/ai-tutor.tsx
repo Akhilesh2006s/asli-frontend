@@ -20,7 +20,8 @@ import {
   ClipboardList,
   CheckCircle2,
   Layout,
-  ArrowRight
+  ArrowRight,
+  Sparkles
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -34,70 +35,98 @@ export default function AITutor() {
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [subjectProgress, setSubjectProgress] = useState<any[]>([]);
+  const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const [, setLocation] = useLocation();
 
-  // Student AI Tools
+  // Student AI Tools - All tools available for Class 6 (normal and IIT-6)
   const studentTools = [
+    // Chat tool - first in the list
+    {
+      id: 'ai-chat',
+      name: 'AI Chat Assistant',
+      icon: MessageCircle,
+      color: 'from-blue-400 to-blue-500',
+      description: 'Get instant help with your questions and doubts'
+    },
+    // Original student tools
     {
       id: 'smart-study-guide-generator',
       name: 'Smart Study Guide Generator',
       icon: BookMarked,
-      color: 'from-orange-400 to-orange-500'
+      color: 'from-orange-400 to-orange-500',
+      description: 'Create personalized study guides tailored to your needs'
     },
     {
       id: 'concept-breakdown-explainer',
       name: 'Concept Breakdown Explainer',
       icon: Brain,
-      color: 'from-blue-500 to-blue-600'
-    },
-    {
-      id: 'personalized-revision-planner',
-      name: 'Personalized Revision Planner',
-      icon: Calendar,
-      color: 'from-teal-400 to-teal-500'
+      color: 'from-blue-500 to-blue-600',
+      description: 'Break down complex concepts into simple explanations'
     },
     {
       id: 'smart-qa-practice-generator',
       name: 'Smart Q&A Practice Generator',
       icon: HelpCircle,
-      color: 'from-orange-400 to-orange-500'
+      color: 'from-orange-400 to-orange-500',
+      description: 'Generate practice questions with detailed answers'
     },
     {
       id: 'chapter-summary-creator',
       name: 'Chapter Summary Creator',
       icon: FileText,
-      color: 'from-blue-500 to-blue-600'
+      color: 'from-blue-500 to-blue-600',
+      description: 'Create concise summaries of chapters and topics'
     },
     {
       id: 'key-points-formula-extractor',
-      name: 'Key Points & Formula Extractor',
+      name: 'Key Points Extractor',
       icon: Key,
-      color: 'from-teal-400 to-teal-500'
+      color: 'from-teal-400 to-teal-500',
+      description: 'Extract key points from any topic'
     },
     {
       id: 'quick-assignment-builder',
       name: 'Quick Assignment Builder',
       icon: ClipboardList,
-      color: 'from-orange-400 to-orange-500'
+      color: 'from-orange-400 to-orange-500',
+      description: 'Build structured assignments quickly and efficiently'
+    },
+    // Teacher AI Tools - Now available for students
+    {
+      id: 'flashcard-generator',
+      name: 'Flashcard Generator',
+      icon: BookMarked,
+      color: 'from-pink-400 to-pink-500',
+      description: 'Create flashcards for effective memorization'
     },
     {
-      id: 'exam-readiness-checker',
-      name: 'Exam Readiness Checker',
+      id: 'exam-question-paper-generator',
+      name: 'Exam Question Paper Generator',
       icon: CheckCircle2,
-      color: 'from-blue-500 to-blue-600'
+      color: 'from-red-400 to-red-500',
+      description: 'Generate exam question papers'
     },
     {
-      id: 'project-layout-designer',
-      name: 'Project Layout Designer',
+      id: 'activity-project-generator',
+      name: 'Activity & Project Generator',
       icon: Layout,
-      color: 'from-teal-400 to-teal-500'
+      color: 'from-yellow-400 to-yellow-500',
+      description: 'Generate activities and projects'
     },
     {
-      id: 'goal-motivation-planner',
-      name: 'Goal & Motivation Planner',
-      icon: Target,
-      color: 'from-orange-400 to-orange-500'
+      id: 'story-passage-creator',
+      name: 'Story & Passage Creator',
+      icon: FileText,
+      color: 'from-blue-400 to-blue-500',
+      description: 'Create stories and passages'
+    },
+    {
+      id: 'lesson-planner',
+      name: 'Lesson Planner',
+      icon: Calendar,
+      color: 'from-violet-400 to-violet-500',
+      description: 'Plan your lessons effectively'
     }
   ];
 
@@ -329,116 +358,107 @@ export default function AITutor() {
     );
   }
 
+  // Handle tool click
+  const handleToolClick = (toolId: string) => {
+    if (toolId === 'ai-chat') {
+      setSelectedTool('ai-chat');
+    } else {
+      setLocation(`/student/tools/${toolId}`);
+    }
+  };
+
+  // Get current subject for chat context
+  const getCurrentSubject = () => {
+    if (subjectProgress && subjectProgress.length > 0) {
+      return subjectProgress[0].name;
+    }
+    if (subjects && subjects.length > 0) {
+      const firstSubject = subjects[0];
+      return typeof firstSubject === 'object' ? firstSubject.name : firstSubject;
+    }
+    if (user?.assignedSubjects && user.assignedSubjects.length > 0) {
+      const firstSubject = user.assignedSubjects[0];
+      return typeof firstSubject === 'object' ? firstSubject.name : firstSubject;
+    }
+    if (user?.assignedClass?.assignedSubjects && user.assignedClass.assignedSubjects.length > 0) {
+      const firstSubject = user.assignedClass.assignedSubjects[0];
+      return typeof firstSubject === 'object' ? firstSubject.name : firstSubject;
+    }
+    return 'General Preparation';
+  };
+
+  // If chat tool is selected, show chat interface
+  if (selectedTool === 'ai-chat') {
+    return (
+      <>
+        <Navigation />
+        <div className="min-h-screen bg-gradient-to-br from-teal-100 via-teal-50 to-teal-100">
+          <div className="container mx-auto px-4 py-6">
+            <Button
+              variant="outline"
+              onClick={() => setSelectedTool(null)}
+              className="mb-4"
+            >
+              <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
+              Back to Tools
+            </Button>
+            <div className="bg-white rounded-xl shadow-md border border-gray-200" style={{ minHeight: '600px' }}>
+              <AIChat 
+                userId={userId}
+                className="flex-1 h-full"
+                context={{
+                  studentName: user?.fullName || user?.email?.split('@')[0] || "Student",
+                  currentSubject: getCurrentSubject(),
+                  currentTopic: undefined
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <Navigation />
-      <div className="flex h-screen bg-white overflow-hidden">
-        {/* Sidebar - ChatGPT style with design enhancements */}
-        {!isMobile && (
-          <div className="w-64 bg-gradient-to-b from-gray-900 to-black border-r border-gray-800 flex flex-col shadow-sm">
-            {/* New Chat Button */}
-            <div className="p-3 border-b border-gray-800 bg-black/50 backdrop-blur-sm">
-              <Button
-                className="w-full justify-start bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white border-0 shadow-md hover:shadow-lg transition-all"
-                onClick={() => {
-                  // Clear current session - this would need to be implemented
-                  window.location.reload();
-                }}
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                New Chat
-              </Button>
-            </div>
-
-            {/* AI Tools */}
-            <div className="flex-1 overflow-y-auto p-2 bg-gradient-to-b from-gray-900 via-black to-black">
-              <div className="text-xs font-semibold text-white uppercase tracking-wider px-3 py-3 border-b border-gray-800 mb-2">
-                AI Tools
-              </div>
-              <div className="space-y-1 px-2">
-                {studentTools.map((tool) => {
-                  const Icon = tool.icon;
-                  return (
-                    <button
-                      key={tool.id}
-                      className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-gray-800 text-sm text-white transition-all duration-200 border border-transparent hover:border-gray-700 hover:shadow-sm group"
-                      onClick={() => setLocation(`/student/tools/${tool.id}`)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-lg bg-gradient-to-r ${tool.color} flex items-center justify-center flex-shrink-0 shadow-md`}>
-                          <Icon className="w-4 h-4 text-white" />
-                        </div>
-                        <span className="flex-1 truncate group-hover:text-white font-medium text-gray-300">
-                          {tool.name}
-                        </span>
-                        <ArrowRight className="w-4 h-4 text-gray-500 group-hover:text-white opacity-0 group-hover:opacity-100 transition-all flex-shrink-0" />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* User Info */}
-            <div className="p-3 border-t border-gray-800 bg-black/80 backdrop-blur-sm">
-              <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-800 transition-colors">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold shadow-md ring-2 ring-gray-700">
-                  {user?.fullName?.charAt(0).toUpperCase() || 'S'}
+      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-teal-50 to-blue-50">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent mb-2">
+              AI Tools
+            </h1>
+            <p className="text-gray-600">Select a tool to get started with AI-powered learning</p>
           </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">
-                    {user?.fullName || 'Student'}
-                  </p>
-                  <p className="text-xs text-gray-400 truncate">
-                    {user?.email || 'student@example.com'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Main Chat Area - Full Screen ChatGPT Style with design columns */}
-        <div className="flex-1 flex flex-col bg-gradient-to-br from-teal-100 via-teal-50 to-teal-100 relative min-h-0 overflow-hidden">
-          {/* Decorative left column border */}
-          {!isMobile && (
-            <div className="absolute left-0 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-gray-200 to-transparent" />
-          )}
-            {(() => {
-              // Determine the current subject from available data
-              const getCurrentSubject = () => {
-                if (subjectProgress && subjectProgress.length > 0) {
-                  return subjectProgress[0].name;
-                }
-                if (subjects && subjects.length > 0) {
-                  const firstSubject = subjects[0];
-                return typeof firstSubject === 'object' ? firstSubject.name : firstSubject;
-                }
-                if (user?.assignedSubjects && user.assignedSubjects.length > 0) {
-                  const firstSubject = user.assignedSubjects[0];
-                return typeof firstSubject === 'object' ? firstSubject.name : firstSubject;
-                }
-                if (user?.assignedClass?.assignedSubjects && user.assignedClass.assignedSubjects.length > 0) {
-                  const firstSubject = user.assignedClass.assignedSubjects[0];
-                return typeof firstSubject === 'object' ? firstSubject.name : firstSubject;
-                }
-                return 'General Preparation';
-              };
-              
-              const currentSubject = getCurrentSubject();
-              
+          {/* Tools Grid - 3 per row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {studentTools.map((tool) => {
+              const Icon = tool.icon;
               return (
-                <AIChat 
-                  userId={userId}
-                className="flex-1 h-full"
-                  context={{
-                    studentName: user?.fullName || user?.email?.split('@')[0] || "Student",
-                    currentSubject: currentSubject,
-                    currentTopic: undefined
-                  }}
-                />
+                <button
+                  key={tool.id}
+                  onClick={() => handleToolClick(tool.id)}
+                  className="group bg-white rounded-xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border border-gray-200 hover:border-transparent hover:scale-105 text-left"
+                >
+                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-r ${tool.color} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
+                    <Icon className="w-7 h-7 text-white" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                    {tool.name}
+                  </h3>
+                  <p className="text-sm text-gray-600 line-clamp-2">
+                    {tool.description || 'Click to use this AI tool'}
+                  </p>
+                  <div className="mt-4 flex items-center text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-sm font-medium">Get Started</span>
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </div>
+                </button>
               );
-            })()}
+            })}
+          </div>
         </div>
       </div>
     </>

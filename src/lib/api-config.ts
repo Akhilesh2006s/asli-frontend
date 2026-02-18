@@ -1,7 +1,7 @@
 // Centralized API URL Management
-// Local Backend - Development
+// Production Backend - Railway deployment
 
-// Local development URL (default)
+// Local development URL (for local development override)
 const LOCAL_URL = 'http://localhost:3001';
 
 // Production server URL (Railway deployment)
@@ -9,8 +9,8 @@ const LOCAL_URL = 'http://localhost:3001';
 // e.g. https://asli-stud-back-production-7ea4.up.railway.app
 const PRODUCTION_URL = 'https://asli-stud-back-production-7ea4.up.railway.app';
 
-// Use local backend by default
-// VITE_API_URL environment variable can override this
+// Use production backend by default
+// VITE_API_URL environment variable can override this (e.g., set to LOCAL_URL for local dev)
 // However, in production (Vercel):
 // - Ignore localhost URLs (will cause connection errors)
 // - Force HTTP URLs to HTTPS (to prevent mixed content errors)
@@ -37,7 +37,7 @@ const isIpAddress = (url?: string) => {
   }
 };
 
-// Default to local backend - use production only in production builds
+// Default to production backend - can be overridden with VITE_API_URL
 let finalUrl: string;
 if (isProduction) {
   // Production mode - use production URL or env override
@@ -53,8 +53,8 @@ if (isProduction) {
     finalUrl = PRODUCTION_URL; // Default to production in production builds
   }
 } else {
-  // Development mode - always use local backend
-  finalUrl = envUrl || LOCAL_URL;
+  // Development mode - use production backend by default (can override with VITE_API_URL for local dev)
+  finalUrl = envUrl || PRODUCTION_URL;
 }
 
 export const API_BASE_URL = finalUrl;

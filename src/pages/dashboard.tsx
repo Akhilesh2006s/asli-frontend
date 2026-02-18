@@ -61,7 +61,11 @@ import {
   CheckCircle2 as CheckCircle2Icon,
   Layout,
   Target as TargetIcon,
-  AlertTriangle
+  AlertTriangle,
+  Lightbulb,
+  TrendingDown,
+  ArrowRightCircle,
+  BookCheck
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -2288,6 +2292,162 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
+            {/* Adaptive Learning Section */}
+            <Card className="bg-gradient-to-br from-purple-50 via-blue-50 to-teal-50 border-2 border-purple-200 shadow-xl">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <Brain className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent text-2xl">Adaptive Learning</CardTitle>
+                      <p className="text-sm text-gray-600">AI-powered personalized recommendations</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-md">
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    AI Powered
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Performance Analysis */}
+                <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-purple-100">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <TrendingUp className="w-5 h-5 text-purple-600" />
+                    <h3 className="font-semibold text-gray-900">Performance Insights</h3>
+                  </div>
+                  {subjectProgress.length > 0 ? (
+                    <div className="space-y-2">
+                      {subjectProgress
+                        .sort((a, b) => a.progress - b.progress)
+                        .slice(0, 3)
+                        .map((subject: any, index: number) => (
+                          <div key={subject.id || index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                            <div className="flex items-center space-x-2">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${subject.color}`}>
+                                <span className="text-xs font-medium">{subject.name.substring(0, 2)}</span>
+                              </div>
+                              <div>
+                                <span className="text-sm font-medium text-gray-700 block">{subject.name}</span>
+                                {subject.exams && (
+                                  <span className="text-xs text-gray-500">{subject.exams} exam{subject.exams !== 1 ? 's' : ''} taken</span>
+                                )}
+                              </div>
+                            </div>
+                            <Badge variant={subject.progress < 50 ? "destructive" : subject.progress < 70 ? "default" : "secondary"} className="text-xs">
+                              {subject.progress}%
+                            </Badge>
+                          </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-gray-500 mb-2">Complete exams or learning content to see performance insights</p>
+                      <p className="text-xs text-gray-400">Data sources: Exam results + Learning path completion</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Recommended Next Steps */}
+                <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-blue-100">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <Lightbulb className="w-5 h-5 text-blue-600" />
+                    <h3 className="font-semibold text-gray-900">Recommended Next Steps</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {subjectProgress.length > 0 ? (
+                      subjectProgress
+                        .filter((s: any) => s.progress < 70)
+                        .slice(0, 2)
+                        .map((subject: any, index: number) => (
+                          <div key={subject.id || index} className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200 hover:shadow-md transition-all cursor-pointer group" onClick={() => {
+                            // Navigate to subject or learning path
+                            setLocation(`/subject/${subject.id || subject.name}`);
+                          }}>
+                            <div className="flex items-center space-x-3">
+                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${subject.color} group-hover:scale-110 transition-transform`}>
+                                <BookCheck className="w-5 h-5 text-white" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-900 text-sm">Focus on {subject.name}</p>
+                                <p className="text-xs text-gray-600">Improve from {subject.progress}% to 80%+</p>
+                              </div>
+                            </div>
+                            <ArrowRightCircle className="w-5 h-5 text-blue-600 group-hover:translate-x-1 transition-transform" />
+                          </div>
+                        ))
+                    ) : (
+                      <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+                        <p className="text-sm text-gray-700">Start learning to get personalized recommendations</p>
+                      </div>
+                    )}
+                    {subjectProgress.length > 0 && subjectProgress.filter((s: any) => s.progress < 70).length === 0 && (
+                      <div className="p-3 bg-gradient-to-r from-green-50 to-teal-50 rounded-lg border border-green-200">
+                        <div className="flex items-center space-x-2">
+                          <Award className="w-5 h-5 text-green-600" />
+                          <p className="text-sm font-medium text-gray-700">Great progress! All subjects above 70%</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Adaptive Difficulty */}
+                <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-teal-100">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <Target className="w-5 h-5 text-teal-600" />
+                    <h3 className="font-semibold text-gray-900">Adaptive Difficulty</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {subjectProgress.length > 0 ? (
+                      subjectProgress.map((subject: any, index: number) => {
+                        let difficulty = 'Medium';
+                        let color = 'bg-yellow-100 text-yellow-700';
+                        let recommendation = 'Continue with current level';
+                        if (subject.progress >= 80) {
+                          difficulty = 'Hard';
+                          color = 'bg-red-100 text-red-700';
+                          recommendation = 'Ready for advanced topics';
+                        } else if (subject.progress < 50) {
+                          difficulty = 'Easy';
+                          color = 'bg-green-100 text-green-700';
+                          recommendation = 'Build foundational concepts';
+                        }
+                        return (
+                          <div key={subject.id || index} className="p-2 bg-gray-50 rounded-md">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-medium text-gray-700">{subject.name}</span>
+                              <Badge className={color}>{difficulty}</Badge>
+                            </div>
+                            <p className="text-xs text-gray-500">{recommendation}</p>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-gray-500 mb-2">Complete content to see adaptive difficulty</p>
+                        <p className="text-xs text-gray-400">Based on: Exam performance + Content completion</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    className="bg-white/80 hover:bg-purple-50 border-purple-200 text-purple-700 hover:text-purple-800"
+                    onClick={() => setLocation('/student/tools/smart-study-guide-generator')}
+                  >
+                    <BookMarked className="w-4 h-4 mr-2" />
+                    Study Guide
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Learning Paths */}
             <div id="learning-paths-section" className="mb-6 scroll-mt-24">
               <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent mb-2">Learning Paths</h1>
@@ -2392,7 +2552,7 @@ export default function Dashboard() {
                           <CardHeader>
                             <div className="flex items-center justify-between mb-2">
                               <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-teal-500 rounded-lg flex items-center justify-center shadow-lg">
-                                <FileText className="w-6 h-6 text-white" />
+                                <FileText className="w-5 h-5 text-white" />
                               </div>
                               {quiz.hasAttempted && (
                                 <Badge className="bg-green-100 text-green-700 border-green-300">
@@ -2623,7 +2783,7 @@ export default function Dashboard() {
                             <CardContent className="p-4">
                               <div className="flex items-start space-x-3">
                                 <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                                  <ContentIcon className="w-6 h-6 text-white" />
+                                  <ContentIcon className="w-5 h-5 text-white" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <h5 className="font-semibold text-gray-900 mb-1 truncate">{content.title || 'Untitled'}</h5>
@@ -2838,182 +2998,332 @@ export default function Dashboard() {
               <CardContent>
                 {vidyaAiTab === 'student-tools' && (
                   <div className="space-y-6">
-                    {/* Stats Overview */}
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center p-3 bg-gradient-to-r from-orange-400 to-orange-500 rounded-lg text-white">
-                        <p className="text-2xl font-bold">10</p>
-                        <p className="text-xs text-orange-100">Tools</p>
-                      </div>
-                      <div className="text-center p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg text-white">
-                        <p className="text-2xl font-bold">24/7</p>
-                        <p className="text-xs text-blue-100">Available</p>
-                      </div>
-                      <div className="text-center p-3 bg-gradient-to-br from-teal-400 to-teal-500 rounded-lg text-white">
-                        <p className="text-2xl font-bold">AI</p>
-                        <p className="text-xs text-teal-100">Powered</p>
-                      </div>
-                    </div>
+                    {/* Available Tools Section - Sidebar Style */}
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Available Tools</h3>
+                      <p className="text-sm text-gray-600 mb-4">Select a tool to get started. All tools use pre-generated content and Gemini AI.</p>
 
-                    {/* Tools Grid */}
-                    <div className="grid grid-cols-1 gap-3 max-h-[600px] overflow-y-auto">
+                      {/* Tools List - Vertical scrollable sidebar */}
+                      <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
                       {/* Tool 1: Smart Study Guide Generator */}
                       <div
-                        className="bg-white rounded-lg p-4 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
                         onClick={() => setLocation('/student/tools/smart-study-guide-generator')}
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
                             <BookMarked className="w-5 h-5 text-orange-600" />
                           </div>
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <h4 className="font-bold text-gray-900 mb-1 text-sm">Smart Study Guide Generator</h4>
-                            <p className="text-xs text-gray-600">Create personalized study guides tailored to your needs.</p>
+                            <p className="text-xs text-gray-600 line-clamp-2">Create personalized study guides tailored to your needs.</p>
                           </div>
                         </div>
                       </div>
 
                       {/* Tool 2: Concept Breakdown Explainer */}
                       <div
-                        className="bg-white rounded-lg p-4 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
                         onClick={() => setLocation('/student/tools/concept-breakdown-explainer')}
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                             <Brain className="w-5 h-5 text-blue-600" />
                           </div>
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <h4 className="font-bold text-gray-900 mb-1 text-sm">Concept Breakdown Explainer</h4>
-                            <p className="text-xs text-gray-600">Break down complex concepts into simple explanations.</p>
+                            <p className="text-xs text-gray-600 line-clamp-2">Break down complex concepts into simple explanations.</p>
                           </div>
                         </div>
                       </div>
 
-                      {/* Tool 3: Personalized Revision Planner */}
+                      {/* Tool 1: Smart Study Guide Generator */}
                       <div
-                        className="bg-white rounded-lg p-4 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
-                        onClick={() => setLocation('/student/tools/personalized-revision-planner')}
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
+                        onClick={() => setLocation('/student/tools/smart-study-guide-generator')}
                       >
                         <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <CalendarIcon className="w-5 h-5 text-teal-600" />
+                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <BookMarked className="w-5 h-5 text-orange-600" />
                           </div>
-                          <div className="flex-1">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Personalized Revision Planner</h4>
-                            <p className="text-xs text-gray-600">Get a customized revision schedule based on your goals.</p>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Smart Study Guide Generator</h4>
+                            <p className="text-xs text-gray-600 line-clamp-2">Create personalized study guides tailored to your needs.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tool 2: Concept Breakdown Explainer */}
+                      <div
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
+                        onClick={() => setLocation('/student/tools/concept-breakdown-explainer')}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Brain className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Concept Breakdown Explainer</h4>
+                            <p className="text-xs text-gray-600 line-clamp-2">Break down complex concepts into simple explanations.</p>
                           </div>
                         </div>
                       </div>
 
                       {/* Tool 4: Smart Q&A Practice Generator */}
                       <div
-                        className="bg-white rounded-lg p-4 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
                         onClick={() => setLocation('/student/tools/smart-qa-practice-generator')}
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
                             <HelpCircle className="w-5 h-5 text-orange-600" />
                           </div>
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <h4 className="font-bold text-gray-900 mb-1 text-sm">Smart Q&A Practice Generator</h4>
-                            <p className="text-xs text-gray-600">Generate practice questions with detailed answers.</p>
+                            <p className="text-xs text-gray-600 line-clamp-2">Generate practice questions with detailed answers.</p>
                           </div>
                         </div>
                       </div>
 
                       {/* Tool 5: Chapter Summary Creator */}
                       <div
-                        className="bg-white rounded-lg p-4 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
                         onClick={() => setLocation('/student/tools/chapter-summary-creator')}
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                             <FileTextIcon2 className="w-5 h-5 text-blue-600" />
                           </div>
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <h4 className="font-bold text-gray-900 mb-1 text-sm">Chapter Summary Creator</h4>
-                            <p className="text-xs text-gray-600">Create concise summaries of chapters and topics.</p>
+                            <p className="text-xs text-gray-600 line-clamp-2">Create concise summaries of chapters and topics.</p>
                           </div>
                         </div>
                       </div>
 
-                      {/* Tool 6: Key Points & Formula Extractor */}
+                      {/* Tool 6: Key Points Extractor */}
                       <div
-                        className="bg-white rounded-lg p-4 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
                         onClick={() => setLocation('/student/tools/key-points-formula-extractor')}
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
                             <Key className="w-5 h-5 text-teal-600" />
                           </div>
-                          <div className="flex-1">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Key Points & Formula Extractor</h4>
-                            <p className="text-xs text-gray-600">Extract key points and formulas from any topic.</p>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Key Points Extractor</h4>
+                            <p className="text-xs text-gray-600 line-clamp-2">Extract key points from any topic.</p>
                           </div>
                         </div>
                       </div>
 
                       {/* Tool 7: Quick Assignment Builder */}
                       <div
-                        className="bg-white rounded-lg p-4 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
                         onClick={() => setLocation('/student/tools/quick-assignment-builder')}
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
                             <ClipboardListIcon className="w-5 h-5 text-orange-600" />
                           </div>
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <h4 className="font-bold text-gray-900 mb-1 text-sm">Quick Assignment Builder</h4>
-                            <p className="text-xs text-gray-600">Build structured assignments quickly and efficiently.</p>
+                            <p className="text-xs text-gray-600 line-clamp-2">Build structured assignments quickly and efficiently.</p>
                           </div>
                         </div>
                       </div>
 
                       {/* Tool 8: Exam Readiness Checker */}
                       <div
-                        className="bg-white rounded-lg p-4 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
                         onClick={() => setLocation('/student/tools/exam-readiness-checker')}
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                             <CheckCircle2Icon className="w-5 h-5 text-blue-600" />
                           </div>
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <h4 className="font-bold text-gray-900 mb-1 text-sm">Exam Readiness Checker</h4>
-                            <p className="text-xs text-gray-600">Assess your readiness for upcoming exams.</p>
+                            <p className="text-xs text-gray-600 line-clamp-2">Assess your readiness for upcoming exams.</p>
                           </div>
                         </div>
                       </div>
 
                       {/* Tool 9: Project Layout Designer */}
                       <div
-                        className="bg-white rounded-lg p-4 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
                         onClick={() => setLocation('/student/tools/project-layout-designer')}
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
                             <Layout className="w-5 h-5 text-teal-600" />
                           </div>
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <h4 className="font-bold text-gray-900 mb-1 text-sm">Project Layout Designer</h4>
-                            <p className="text-xs text-gray-600">Design structured layouts for your projects.</p>
+                            <p className="text-xs text-gray-600 line-clamp-2">Design structured layouts for your projects.</p>
                           </div>
                         </div>
                       </div>
 
                       {/* Tool 10: Goal & Motivation Planner */}
                       <div
-                        className="bg-white rounded-lg p-4 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
                         onClick={() => setLocation('/student/tools/goal-motivation-planner')}
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
                             <TargetIcon className="w-5 h-5 text-orange-600" />
                           </div>
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <h4 className="font-bold text-gray-900 mb-1 text-sm">Goal & Motivation Planner</h4>
-                            <p className="text-xs text-gray-600">Set goals and create motivation plans for success.</p>
+                            <p className="text-xs text-gray-600 line-clamp-2">Set goals and create motivation plans for success.</p>
                           </div>
                         </div>
+                      </div>
+
+                      {/* Tool 11: Worksheet & MCQ Generator */}
+                      <div
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
+                        onClick={() => setLocation('/student/tools/worksheet-mcq-generator')}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <FileTextIcon2 className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Worksheet & MCQ Generator</h4>
+                            <p className="text-xs text-gray-600 line-clamp-2">Design custom worksheets and MCQs with various question types.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tool 12: Concept Mastery Helper */}
+                      <div
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
+                        onClick={() => setLocation('/student/tools/concept-mastery-helper')}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Brain className="w-5 h-5 text-teal-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Concept Mastery Helper</h4>
+                            <p className="text-xs text-gray-600 line-clamp-2">Break down complex concepts into digestible lessons.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tool 13: Flashcard Generator */}
+                      <div
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
+                        onClick={() => setLocation('/student/tools/flashcard-generator')}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <BookMarked className="w-5 h-5 text-orange-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Flashcard Generator</h4>
+                            <p className="text-xs text-gray-600 line-clamp-2">Build study flashcards for quick revision.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tool 14: Short Notes & Summaries Maker */}
+                      <div
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
+                        onClick={() => setLocation('/student/tools/short-notes-summaries-maker')}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <FileTextIcon2 className="w-5 h-5 text-teal-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Short Notes & Summaries Maker</h4>
+                            <p className="text-xs text-gray-600 line-clamp-2">Condense complex topics into concise notes.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tool 15: Homework Creator */}
+                      <div
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
+                        onClick={() => setLocation('/student/tools/homework-creator')}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <ClipboardListIcon className="w-5 h-5 text-orange-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Homework Creator</h4>
+                            <p className="text-xs text-gray-600 line-clamp-2">Generate meaningful homework assignments.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tool 16: Exam Question Paper Generator */}
+                      <div
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
+                        onClick={() => setLocation('/student/tools/exam-question-paper-generator')}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <CheckCircle2Icon className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Exam Question Paper Generator</h4>
+                            <p className="text-xs text-gray-600 line-clamp-2">Create comprehensive exam papers with varying difficulty.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tool 17: Activity & Project Generator */}
+                      <div
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
+                        onClick={() => setLocation('/student/tools/activity-project-generator')}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <Sparkles className="w-5 h-5 text-orange-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Activity & Project Generator</h4>
+                            <p className="text-xs text-gray-600 line-clamp-2">Create engaging activities and projects tailored to your curriculum.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tool 18: Story & Passage Creator */}
+                      <div
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
+                        onClick={() => setLocation('/student/tools/story-passage-creator')}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <BookOpen className="w-5 h-5 text-orange-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Story & Passage Creator</h4>
+                            <p className="text-xs text-gray-600 line-clamp-2">Generate engaging stories and reading passages.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Tool 19: Lesson Planner */}
+                      <div
+                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
+                        onClick={() => setLocation('/student/tools/lesson-planner')}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <CalendarIcon className="w-5 h-5 text-orange-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Lesson Planner</h4>
+                            <p className="text-xs text-gray-600 line-clamp-2">Plan structured lessons with objectives and activities.</p>
+                          </div>
+                        </div>
+                      </div>
                       </div>
                     </div>
                   </div>
