@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UsersIcon, UserPlusIcon, EditIcon, TrashIcon, CrownIcon, GraduationCapIcon, BookOpenIcon } from "lucide-react";
+import { UsersIcon, UserPlusIcon, EditIcon, TrashIcon, CrownIcon, GraduationCapIcon, BookOpenIcon, SearchIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
 
@@ -62,6 +62,7 @@ export default function AdminManagement() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null);
   const [isUpdatingAdmin, setIsUpdatingAdmin] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [newAdmin, setNewAdmin] = useState({
     name: '',
     email: '',
@@ -657,6 +658,29 @@ export default function AdminManagement() {
         </Dialog>
       </div>
 
+      {/* Search Bar */}
+      <div className="flex items-center gap-4">
+        <div className="relative flex-1 max-w-md">
+          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Input
+            type="text"
+            placeholder="Search by school name, contact person, email, or board..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        {searchQuery && (
+          <Button
+            variant="outline"
+            onClick={() => setSearchQuery('')}
+            className="shrink-0"
+          >
+            Clear
+          </Button>
+        )}
+      </div>
+
       {/* Admin Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Total Schools - Orange (matching Asli Exclusive Schools) */}
@@ -704,8 +728,25 @@ export default function AdminManagement() {
       </div>
 
       {/* Admins List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {admins?.map((admin) => (
+      {(() => {
+        // Filter admins based on search query
+        const filteredAdmins = admins?.filter((admin) => {
+          if (!searchQuery) return true;
+          const query = searchQuery.toLowerCase();
+          return (
+            (admin.schoolName?.toLowerCase().includes(query)) ||
+            (admin.name?.toLowerCase().includes(query)) ||
+            (admin.email?.toLowerCase().includes(query)) ||
+            (admin.board?.toLowerCase().includes(query)) ||
+            (admin.state?.toLowerCase().includes(query))
+          );
+        });
+
+        return (
+          <>
+            {filteredAdmins && filteredAdmins.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredAdmins.map((admin) => (
           <Card key={admin?.id || Math.random().toString()} className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -714,10 +755,15 @@ export default function AdminManagement() {
                     <CrownIcon className="h-5 w-5 text-orange-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg">{admin?.name || 'Unknown Admin'}</CardTitle>
-                    <p className="text-sm text-gray-600">{admin?.email || 'No email'}</p>
+                    <CardTitle className="text-lg">{admin?.schoolName || admin?.name || 'Unknown School'}</CardTitle>
+                    {admin?.name && admin?.schoolName && (
+                      <p className="text-sm text-gray-600">Contact: {admin.name}</p>
+                    )}
+                    {!admin?.schoolName && (
+                      <p className="text-sm text-gray-600">{admin?.email || 'No email'}</p>
+                    )}
                     {admin?.schoolName && (
-                      <p className="text-xs text-orange-600 font-medium mt-1">{admin.schoolName}</p>
+                      <p className="text-sm text-gray-500">{admin?.email || 'No email'}</p>
                     )}
                     {admin?.board && (
                       <Badge variant="outline" className="mt-1 text-xs mr-1">
@@ -779,10 +825,25 @@ export default function AdminManagement() {
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+                ))}
+              </div>
+            ) : searchQuery ? (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <SearchIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Schools Found</h3>
+                  <p className="text-gray-600 mb-4">No schools match your search query "{searchQuery}"</p>
+                  <Button variant="outline" onClick={() => setSearchQuery('')}>
+                    Clear Search
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : null}
+          </>
+        );
+      })()}
 
-      {(!admins || admins.length === 0) && (
+      {(!admins || admins.length === 0) && !searchQuery && (
         <Card>
           <CardContent className="p-12 text-center">
             <CrownIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />

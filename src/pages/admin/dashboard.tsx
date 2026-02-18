@@ -285,36 +285,36 @@ const AdminDashboard = () => {
     }, [messages.length]);
     
     return (
-      <div className="fixed bottom-8 left-4 z-50">
+      <div className="fixed bottom-6 left-4 z-50">
         {/* Message Popup */}
         <div className="relative mb-2 animate-fade-in">
-          <div className="bg-white rounded-lg shadow-xl p-3 border-2 border-orange-200 relative">
-            <p className="text-sm font-medium text-gray-800 whitespace-nowrap">
+          <div className="bg-white rounded-lg shadow-lg p-2 border border-orange-200 relative">
+            <p className="text-xs font-medium text-gray-800 whitespace-nowrap">
               {messages[currentMessage]}
             </p>
             {/* Speech bubble tail */}
-            <div className="absolute bottom-0 left-8 transform translate-y-full">
-              <div className="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-orange-200"></div>
-              <div className="absolute top-0 left-0 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white" style={{ marginTop: '-1px' }}></div>
+            <div className="absolute bottom-0 left-6 transform translate-y-full">
+              <div className="w-0 h-0 border-l-6 border-r-6 border-t-6 border-l-transparent border-r-transparent border-t-orange-200"></div>
+              <div className="absolute top-0 left-0 w-0 h-0 border-l-6 border-r-6 border-t-6 border-l-transparent border-r-transparent border-t-white" style={{ marginTop: '-1px' }}></div>
             </div>
           </div>
         </div>
         
-        {/* Vidya AI Image */}
-        <div 
-          className="cursor-pointer"
+        {/* Vidya AI Image - Small Button Style */}
+        <button
           onClick={() => {
             setActiveTab('vidya-ai');
             // Scroll to top of the page
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
+          className="w-16 h-16 rounded-full shadow-lg hover:shadow-xl border-2 border-orange-300 hover:border-orange-400 bg-white p-1 transition-all duration-300 hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2"
         >
           <img 
             src="/Vidya-ai.jpg" 
             alt="Vidya AI - Click to chat" 
-            className="w-32 h-32 rounded-full shadow-xl opacity-80 hover:opacity-100 hover:scale-105 transition-all duration-300 object-cover"
+            className="w-full h-full rounded-full object-cover"
           />
-        </div>
+        </button>
       </div>
     );
   };
