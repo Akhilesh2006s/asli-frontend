@@ -1575,6 +1575,11 @@ export default function ContentManagement() {
                     const isFlipbook = fileUrl.includes('flipbook') || fileUrl.includes('epathshala');
                     const isPDF = fileUrl.toLowerCase().endsWith('.pdf') || fileUrl.includes('.pdf');
                     
+                    // Use proxy for external flipbooks to bypass X-Frame-Options
+                    const iframeSrc = isFlipbook 
+                      ? `${API_BASE_URL}/api/proxy/content?url=${encodeURIComponent(fileUrl)}`
+                      : fileUrl;
+                    
                     return (
                       <div className="flex-1 w-full h-full flex flex-col relative bg-white overflow-hidden">
                         {iframeLoading && (
@@ -1586,13 +1591,17 @@ export default function ContentManagement() {
                           </div>
                         )}
                         <iframe
-                          src={fileUrl}
+                          src={iframeSrc}
                           className="w-full h-full border-0 flex-1"
                           title={viewingContent.title}
                           allow="fullscreen; autoplay; encrypted-media; picture-in-picture"
                           allowFullScreen
                           referrerPolicy="no-referrer-when-downgrade"
                           onLoad={() => setIframeLoading(false)}
+                          onError={() => {
+                            setIframeLoading(false);
+                            console.error('Iframe load error');
+                          }}
                           style={{ display: iframeLoading ? 'none' : 'block' }}
                         />
                         {/* Optional: Small toolbar at bottom */}
