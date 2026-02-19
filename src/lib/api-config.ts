@@ -4,9 +4,9 @@
 // Local development URL (default)
 const LOCAL_URL = 'http://localhost:3001';
 
-// Production server URL (DigitalOcean deployment)
-// DigitalOcean Droplet IP: 139.59.44.174
-const PRODUCTION_URL = 'http://139.59.44.174';
+// Production server URL (Railway deployment)
+// Railway backend URL - using Railway for now, will switch to DigitalOcean later
+const PRODUCTION_URL = 'https://asli-stud-back-production.up.railway.app';
 
 // Use local backend by default
 // VITE_API_URL environment variable can override this
@@ -43,10 +43,11 @@ if (isProduction) {
   if (envUrl) {
     if (isLocalhostUrl) {
       finalUrl = PRODUCTION_URL; // Ignore localhost in production
-    } else if (isHttpUrl && !allowHttpApi && !isIpAddress(envUrl)) {
-      finalUrl = envUrl.replace('http://', 'https://'); // Force HTTPS for domains
+    } else if (isHttpUrl && !allowHttpApi) {
+      // Force HTTPS for all HTTP URLs in production (except if explicitly allowed)
+      finalUrl = envUrl.replace('http://', 'https://');
     } else {
-      finalUrl = envUrl; // Respect explicit env URL (e.g., droplet IP over HTTP)
+      finalUrl = envUrl; // Use explicit env URL
     }
   } else {
     finalUrl = PRODUCTION_URL; // Default to production in production builds
