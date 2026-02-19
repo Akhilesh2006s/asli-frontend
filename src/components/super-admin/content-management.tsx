@@ -57,6 +57,7 @@ export default function ContentManagement() {
   const [filterByType, setFilterByType] = useState<string>('all');
   const [viewingContent, setViewingContent] = useState<Content | null>(null);
   const [iframeLoading, setIframeLoading] = useState(true);
+  const [iframeError, setIframeError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid');
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
 
@@ -197,6 +198,22 @@ export default function ContentManagement() {
       setIsLoadingAllBoardSubjects(false);
     }
   };
+
+  // Timeout handler for iframe loading
+  useEffect(() => {
+    if (viewingContent && viewingContent.fileUrl && (viewingContent.fileUrl.includes('flipbook') || viewingContent.fileUrl.includes('epathshala'))) {
+      setIframeLoading(true);
+      setIframeError(null);
+      
+      const timeout = setTimeout(() => {
+        setIframeError('Content is taking too long to load. The external site may be blocking embedding. Try opening in a new tab.');
+        setIframeLoading(false);
+        console.error('Iframe load timeout after 30 seconds');
+      }, 30000); // 30 second timeout
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [viewingContent?.fileUrl]);
 
   const fetchContents = async () => {
     setIsLoading(true);
@@ -1471,6 +1488,7 @@ export default function ContentManagement() {
         if (!open) {
           setViewingContent(null);
           setIframeLoading(true);
+          setIframeError(null);
         }
       }}>
         <DialogContent className="max-w-[95vw] w-full max-h-[95vh] overflow-hidden flex flex-col p-0">
@@ -1574,35 +1592,103 @@ export default function ContentManagement() {
                     // Documents/PDFs/Flipbooks - use iframe with full browser-like experience
                     const isFlipbook = fileUrl.includes('flipbook') || fileUrl.includes('epathshala');
                     const isPDF = fileUrl.toLowerCase().endsWith('.pdf') || fileUrl.includes('.pdf');
+                    const isExternalPDF = isPDF && (fileUrl.startsWith('http://') || fileUrl.startsWith('https://'));
                     
-                    // Use proxy for external flipbooks to bypass X-Frame-Options
-                    const iframeSrc = isFlipbook 
+                    // Use proxy for external PDFs and flipbooks to bypass CORS and X-Frame-Options
+                    // This allows PDFs to be displayed directly in the iframe
+                    const iframeSrc = (isFlipbook || isExternalPDF)
                       ? `${API_BASE_URL}/api/proxy/content?url=${encodeURIComponent(fileUrl)}`
                       : fileUrl;
                     
+                    console.log('Loading content:', { 
+                      isFlipbook, 
+                      fileUrl, 
+                      iframeSrc,
+                      API_BASE_URL 
+                    });
+                    
                     return (
                       <div className="flex-1 w-full h-full flex flex-col relative bg-white overflow-hidden">
-                        {iframeLoading && (
+                        {iframeLoading && !iframeError && (
                           <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
                             <div className="text-center">
                               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
                               <p className="text-sm text-gray-600">Loading content...</p>
+                              {isFlipbook && (
+                                <p className="text-xs text-gray-500 mt-2">Using proxy to load flipbook...</p>
+                              )}
                             </div>
                           </div>
                         )}
+                        {iframeError ? (
+                          <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
+                            <div className="text-center p-6">
+                              <div className="text-red-500 mb-4">
+                                <File className="w-16 h-16 mx-auto mb-2" />
+                                <p className="text-sm font-medium">Failed to load content</p>
+                                <p className="text-xs text-gray-500 mt-1">{iframeError}</p>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setIframeError(null);
+                                  setIframeLoading(true);
+                                  // Force reload by updating key
+                                  const iframe = document.querySelector('iframe[title="' + viewingContent.title + '"]') as HTMLIFrameElement;
+                                  if (iframe) {
+                                    iframe.src = iframe.src;
+                                  }
+                                }}
+                                className="mr-2"
+                              >
+                                Retry
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => window.open(fileUrl, '_blank', 'noopener,noreferrer')}
+                              >
+                                <ExternalLink className="w-3 h-3 mr-1" />
+                                Open in New Tab
+                              </Button>
+                            </div>
+                          </div>
+                        ) : null}
                         <iframe
+                          key={iframeSrc} // Force reload when src changes
                           src={iframeSrc}
                           className="w-full h-full border-0 flex-1"
                           title={viewingContent.title}
-                          allow="fullscreen; autoplay; encrypted-media; picture-in-picture"
+                          allow="fullscreen; autoplay; encrypted-media; picture-in-picture; geolocation; microphone; camera"
                           allowFullScreen
                           referrerPolicy="no-referrer-when-downgrade"
-                          onLoad={() => setIframeLoading(false)}
+                          onLoad={() => {
+                            setIframeLoading(false);
+                            setIframeError(null);
+                            console.log('Iframe loaded successfully');
+                            // Check if iframe actually has content
+                            setTimeout(() => {
+                              const iframe = document.querySelector(`iframe[title="${viewingContent.title}"]`) as HTMLIFrameElement;
+                              if (iframe) {
+                                try {
+                                  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+                                  if (iframeDoc && iframeDoc.body && iframeDoc.body.innerHTML.trim() === '') {
+                                    console.warn('Iframe loaded but appears empty');
+                                  }
+                                } catch (e) {
+                                  // Cross-origin, can't check - that's normal
+                                  console.log('Cannot check iframe content (cross-origin)');
+                                }
+                              }
+                            }, 2000);
+                          }}
                           onError={() => {
                             setIframeLoading(false);
+                            setIframeError('Failed to load iframe content. The external site may be blocking embedding.');
                             console.error('Iframe load error');
                           }}
-                          style={{ display: iframeLoading ? 'none' : 'block' }}
+                          style={{ display: (iframeLoading || iframeError) ? 'none' : 'block' }}
                         />
                         {/* Optional: Small toolbar at bottom */}
                         <div className="absolute bottom-2 right-2 z-20">
