@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Upload, Video, FileText, File, X, Trash2, Edit, Play, Eye, Plus, Calendar, Grid3x3, ChevronDown, ChevronUp, BookOpen, GraduationCap } from 'lucide-react';
+import { Upload, Video, FileText, File, X, Trash2, Edit, Play, Eye, Plus, Calendar, Grid3x3, ChevronDown, ChevronUp, BookOpen, GraduationCap, ExternalLink } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 
@@ -56,6 +56,7 @@ export default function ContentManagement() {
   const [filterByClass, setFilterByClass] = useState<string>('all');
   const [filterByType, setFilterByType] = useState<string>('all');
   const [viewingContent, setViewingContent] = useState<Content | null>(null);
+  const [iframeLoading, setIframeLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'calendar'>('grid');
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
 
@@ -1466,7 +1467,12 @@ export default function ContentManagement() {
       </Dialog>
 
       {/* View Content Modal */}
-      <Dialog open={!!viewingContent} onOpenChange={(open) => !open && setViewingContent(null)}>
+      <Dialog open={!!viewingContent} onOpenChange={(open) => {
+        if (!open) {
+          setViewingContent(null);
+          setIframeLoading(true);
+        }
+      }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl">{viewingContent?.title}</DialogTitle>
@@ -1565,14 +1571,50 @@ export default function ContentManagement() {
                       </div>
                     );
                   } else {
-                    // Documents/PDFs - use iframe
+                    // Documents/PDFs/Flipbooks - use iframe with better handling
+                    const isFlipbook = fileUrl.includes('flipbook') || fileUrl.includes('epathshala');
+                    const isPDF = fileUrl.toLowerCase().endsWith('.pdf') || fileUrl.includes('.pdf');
+                    
                     return (
-                      <div className="w-full h-[600px]">
-                        <iframe
-                          src={fileUrl}
-                          className="w-full h-full rounded-lg border"
-                          title={viewingContent.title}
-                        />
+                      <div className="w-full h-[600px] flex flex-col">
+                        <div className="flex-1 w-full relative bg-gray-100 rounded-lg border">
+                          {iframeLoading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-gray-50 rounded-lg z-10">
+                              <div className="text-center">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                                <p className="text-sm text-gray-600">Loading content...</p>
+                              </div>
+                            </div>
+                          )}
+                          <iframe
+                            src={fileUrl}
+                            className="w-full h-full rounded-lg"
+                            title={viewingContent.title}
+                            allow="fullscreen"
+                            sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation"
+                            onLoad={() => setIframeLoading(false)}
+                            style={{ display: iframeLoading ? 'none' : 'block' }}
+                          />
+                        </div>
+                        {/* Fallback message and open in new tab button */}
+                        <div className="mt-4 flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <div className="flex-1">
+                            <p className="text-sm text-blue-800">
+                              {isFlipbook 
+                                ? 'If the flipbook doesn\'t load properly, click the button below to open it in a new tab.'
+                                : 'If the document doesn\'t load properly, click the button below to open it in a new tab.'}
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(fileUrl, '_blank', 'noopener,noreferrer')}
+                            className="ml-4"
+                          >
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Open in New Tab
+                          </Button>
+                        </div>
                       </div>
                     );
                   }
