@@ -4,10 +4,9 @@
 // Local development URL (default)
 const LOCAL_URL = 'http://localhost:3001';
 
-// Production server URL (Railway deployment)
-// If you change your Railway backend URL, update this:
-// e.g. https://asli-stud-back-production-7ea4.up.railway.app
-const PRODUCTION_URL = 'https://asli-stud-back-production-7ea4.up.railway.app';
+// Production server URL (DigitalOcean deployment)
+// DigitalOcean Droplet IP: 139.59.44.174
+const PRODUCTION_URL = 'http://139.59.44.174';
 
 // Use local backend by default
 // VITE_API_URL environment variable can override this

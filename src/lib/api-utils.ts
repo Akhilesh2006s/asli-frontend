@@ -4,12 +4,12 @@
 // Local development URL
 const LOCAL_URL = 'http://localhost:3001';
 
-// Railway production URL (for reference)
-const RAILWAY_URL = 'https://asli-stud-back-production-7ea4.up.railway.app';
+// DigitalOcean production URL
+const DIGITALOCEAN_URL = 'http://139.59.44.174';
 
 // Use production backend by default
 // Override with VITE_API_URL environment variable if needed (e.g., set to LOCAL_URL for local dev)
-export const API_BASE_URL = import.meta.env.VITE_API_URL || RAILWAY_URL;
+export const API_BASE_URL = import.meta.env.VITE_API_URL || DIGITALOCEAN_URL;
 
 // Log current configuration (helps with debugging)
 const envLabel = API_BASE_URL.includes('localhost') ? 'LOCAL' : 'PRODUCTION';
