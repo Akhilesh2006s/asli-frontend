@@ -1473,8 +1473,8 @@ export default function ContentManagement() {
           setIframeLoading(true);
         }
       }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-[95vw] w-full max-h-[95vh] overflow-hidden flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-2 flex-shrink-0">
             <DialogTitle className="text-2xl">{viewingContent?.title}</DialogTitle>
             <DialogDescription>
               {viewingContent?.description || 'View content'}
@@ -1482,9 +1482,9 @@ export default function ContentManagement() {
           </DialogHeader>
           
           {viewingContent && (
-            <div className="space-y-4 mt-4">
-              {/* Content Info */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="flex-1 flex flex-col overflow-hidden px-6 pb-6">
+              {/* Content Info - Collapsible */}
+              <div className="grid grid-cols-2 gap-4 text-sm mb-4 flex-shrink-0">
                 <div>
                   <span className="font-medium">Subject:</span> {viewingContent.subject?.name || 'N/A'}
                 </div>
@@ -1511,8 +1511,8 @@ export default function ContentManagement() {
                 </div>
               </div>
 
-              {/* Content Display */}
-              <div className="border rounded-lg p-4 bg-gray-50">
+              {/* Content Display - Takes remaining space */}
+              <div className="flex-1 flex flex-col min-h-0 border rounded-lg bg-gray-50 overflow-hidden">
                 {(() => {
                   const fileUrl = viewingContent.fileUrl.startsWith('http') 
                     ? viewingContent.fileUrl 
@@ -1571,47 +1571,39 @@ export default function ContentManagement() {
                       </div>
                     );
                   } else {
-                    // Documents/PDFs/Flipbooks - use iframe with better handling
+                    // Documents/PDFs/Flipbooks - use iframe with full browser-like experience
                     const isFlipbook = fileUrl.includes('flipbook') || fileUrl.includes('epathshala');
                     const isPDF = fileUrl.toLowerCase().endsWith('.pdf') || fileUrl.includes('.pdf');
                     
                     return (
-                      <div className="w-full h-[600px] flex flex-col">
-                        <div className="flex-1 w-full relative bg-gray-100 rounded-lg border">
-                          {iframeLoading && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-gray-50 rounded-lg z-10">
-                              <div className="text-center">
-                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                                <p className="text-sm text-gray-600">Loading content...</p>
-                              </div>
+                      <div className="flex-1 w-full h-full flex flex-col relative bg-white overflow-hidden">
+                        {iframeLoading && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
+                            <div className="text-center">
+                              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                              <p className="text-sm text-gray-600">Loading content...</p>
                             </div>
-                          )}
-                          <iframe
-                            src={fileUrl}
-                            className="w-full h-full rounded-lg"
-                            title={viewingContent.title}
-                            allow="fullscreen"
-                            sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation"
-                            onLoad={() => setIframeLoading(false)}
-                            style={{ display: iframeLoading ? 'none' : 'block' }}
-                          />
-                        </div>
-                        {/* Fallback message and open in new tab button */}
-                        <div className="mt-4 flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
-                          <div className="flex-1">
-                            <p className="text-sm text-blue-800">
-                              {isFlipbook 
-                                ? 'If the flipbook doesn\'t load properly, click the button below to open it in a new tab.'
-                                : 'If the document doesn\'t load properly, click the button below to open it in a new tab.'}
-                            </p>
                           </div>
+                        )}
+                        <iframe
+                          src={fileUrl}
+                          className="w-full h-full border-0 flex-1"
+                          title={viewingContent.title}
+                          allow="fullscreen; autoplay; encrypted-media; picture-in-picture"
+                          allowFullScreen
+                          referrerPolicy="no-referrer-when-downgrade"
+                          onLoad={() => setIframeLoading(false)}
+                          style={{ display: iframeLoading ? 'none' : 'block' }}
+                        />
+                        {/* Optional: Small toolbar at bottom */}
+                        <div className="absolute bottom-2 right-2 z-20">
                           <Button
-                            variant="outline"
+                            variant="secondary"
                             size="sm"
                             onClick={() => window.open(fileUrl, '_blank', 'noopener,noreferrer')}
-                            className="ml-4"
+                            className="text-xs shadow-lg"
                           >
-                            <ExternalLink className="w-4 h-4 mr-2" />
+                            <ExternalLink className="w-3 h-3 mr-1" />
                             Open in New Tab
                           </Button>
                         </div>
@@ -1619,21 +1611,6 @@ export default function ContentManagement() {
                     );
                   }
                 })()}
-              </div>
-
-              {/* File URL */}
-              <div className="text-sm">
-                <span className="font-medium">File URL:</span>
-                <a
-                  href={viewingContent.fileUrl.startsWith('http') 
-                    ? viewingContent.fileUrl 
-                    : `${API_BASE_URL}${viewingContent.fileUrl}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline ml-2 break-all"
-                >
-                  {viewingContent.fileUrl}
-                </a>
               </div>
             </div>
           )}
