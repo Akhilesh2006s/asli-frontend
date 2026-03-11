@@ -1,6 +1,12 @@
-// Simplified API config: always use DigitalOcean backend
+// API config
+// - Development: talk directly to droplet over HTTP
+// - Production: use HTTPS domain fronted by Nginx + Let's Encrypt
 
-export const API_BASE_URL = "http://139.59.18.237:3001";
+const DEV_URL = "http://139.59.18.237:3001";
+const PROD_URL = "https://api.aslilearn.ai";
+
+export const API_BASE_URL =
+  import.meta.env.MODE === "production" ? PROD_URL : DEV_URL;
 
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   const url = endpoint.startsWith("http")
