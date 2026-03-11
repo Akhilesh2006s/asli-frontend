@@ -77,6 +77,11 @@ export default function ContentManagement() {
   const [isLoadingAllBoardSubjects, setIsLoadingAllBoardSubjects] = useState(false);
   const [multiBoardSubjectMap, setMultiBoardSubjectMap] = useState<Record<string, string>>({});
 
+  // Uploaded file (PDF / document) state for content upload
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+
   useEffect(() => {
     fetchSubjects();
     fetchContents();
@@ -309,22 +314,28 @@ export default function ContentManagement() {
     let fileUrl = formData.fileUrl;
     let fileUrls = formData.fileUrls;
 
-    // Validate that at least one URL is provided
-    if (formData.fileUrls.length > 0) {
-      // Use multiple URLs if provided
-      fileUrls = formData.fileUrls;
-      fileUrl = formData.fileUrls[0]; // Keep first URL for backward compatibility
-    } else if (formData.fileUrl) {
-      // Single URL provided
-      fileUrl = formData.fileUrl;
-      fileUrls = [formData.fileUrl];
+    // If a file was uploaded, prefer that URL over manual links
+    if (uploadedFileUrl) {
+      fileUrl = uploadedFileUrl;
+      fileUrls = [uploadedFileUrl];
     } else {
-      toast({
-        title: 'Validation Error',
-        description: 'Please provide at least one file URL',
-        variant: 'destructive'
-      });
-      return;
+      // Validate that at least one URL is provided
+      if (formData.fileUrls.length > 0) {
+        // Use multiple URLs if provided
+        fileUrls = formData.fileUrls;
+        fileUrl = formData.fileUrls[0]; // Keep first URL for backward compatibility
+      } else if (formData.fileUrl) {
+        // Single URL provided
+        fileUrl = formData.fileUrl;
+        fileUrls = [formData.fileUrl];
+      } else {
+        toast({
+          title: 'Validation Error',
+          description: 'Please upload a file or provide at least one file URL',
+          variant: 'destructive'
+        });
+        return;
+      }
     }
 
     try {
@@ -1384,7 +1395,7 @@ export default function ContentManagement() {
             </div>
 
             <div>
-              <Label htmlFor="file">File Links *</Label>
+              <Label htmlFor="file">Content File *</Label>
               <div className="space-y-3">
                 {false && (
                   <div className="p-3 bg-green-50 border border-green-200 rounded-md">
@@ -1406,6 +1417,90 @@ export default function ContentManagement() {
                 )}
                 
               <div className="space-y-2">
+                  {/* File upload (PDF / document). If a file is uploaded we use that instead of URLs */}
+                  <div className="flex items-center gap-3">
+                    <input
+                      id="content-file"
+                      type="file"
+                      accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
+                      className="text-sm"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+
+                        try {
+                          setIsUploadingFile(true);
+                          setUploadedFileUrl(null);
+                          setUploadedFileName(null);
+
+                          const token = localStorage.getItem('authToken');
+                          const formDataUpload = new FormData();
+                          formDataUpload.append('file', file);
+
+                          const uploadResponse = await fetch(
+                            `${API_BASE_URL}/api/super-admin/content/upload-file?contentType=${encodeURIComponent(formData.type)}`,
+                            {
+                              method: 'POST',
+                              headers: {
+                                'Authorization': `Bearer ${token || ''}`,
+                              },
+                              body: formDataUpload,
+                            }
+                          );
+
+                          const uploadData = await uploadResponse.json();
+                          if (!uploadResponse.ok || !uploadData.success) {
+                            throw new Error(uploadData.message || 'Failed to upload file');
+                          }
+
+                          setUploadedFileUrl(uploadData.fileUrl);
+                          setUploadedFileName(uploadData.originalName || file.name);
+
+                          toast({
+                            title: 'File uploaded',
+                            description: 'PDF uploaded successfully. It will be used for this content.',
+                          });
+                        } catch (error: any) {
+                          console.error('File upload error:', error);
+                          toast({
+                            title: 'File upload failed',
+                            description: error?.message || 'Could not upload file. Please try again.',
+                            variant: 'destructive',
+                          });
+                        } finally {
+                          setIsUploadingFile(false);
+                        }
+                      }}
+                    />
+                    {isUploadingFile && (
+                      <span className="text-xs text-gray-500">Uploading...</span>
+                    )}
+                  </div>
+
+                  {uploadedFileUrl && (
+                    <div className="p-2 bg-green-50 border border-green-200 rounded-md flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-green-700 font-medium">File selected:</p>
+                        <p className="text-xs text-gray-800 truncate max-w-xs">
+                          {uploadedFileName || uploadedFileUrl}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700"
+                        onClick={() => {
+                          setUploadedFileUrl(null);
+                          setUploadedFileName(null);
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Fallback: URL links (optional when file uploaded) */}
                   <div className="flex items-center gap-2">
                     <Input
                       id="fileUrl"
@@ -1461,7 +1556,7 @@ export default function ContentManagement() {
                 </div>
 
                 <p className="text-xs text-blue-600 mt-1">
-                  💡 Tip: You can add multiple links for different parts of the chapter. Click the + button after entering each URL.
+                  💡 Tip: You can either upload a PDF/file above or use one or more links for this content.
                 </p>
               </div>
             </div>
@@ -1491,46 +1586,44 @@ export default function ContentManagement() {
           setIframeError(null);
         }
       }}>
-        <DialogContent className="max-w-[95vw] w-full max-h-[95vh] overflow-hidden flex flex-col p-0">
-          <DialogHeader className="px-6 pt-6 pb-2 flex-shrink-0">
-            <DialogTitle className="text-2xl">{viewingContent?.title}</DialogTitle>
-            <DialogDescription>
-              {viewingContent?.description || 'View content'}
-            </DialogDescription>
+        <DialogContent className="max-w-[96vw] w-full h-[90vh] max-h-[90vh] overflow-hidden flex flex-col p-0 rounded-2xl shadow-2xl">
+          <DialogHeader className="px-6 pt-5 pb-3 flex-shrink-0 border-b bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <DialogTitle className="text-xl font-semibold truncate max-w-[60vw]">
+                  {viewingContent?.title || 'Content'}
+                </DialogTitle>
+                <DialogDescription className="text-slate-200/80">
+                  {viewingContent?.description || 'View content'}
+                </DialogDescription>
+              </div>
+              {viewingContent && (
+                <div className="hidden md:flex items-center gap-4 text-xs text-slate-200/80">
+                  <span><span className="font-semibold">Subject:</span> {viewingContent.subject?.name || 'N/A'}</span>
+                  <span><span className="font-semibold">Type:</span> {viewingContent.type}</span>
+                </div>
+              )}
+            </div>
           </DialogHeader>
           
           {viewingContent && (
-            <div className="flex-1 flex flex-col overflow-hidden px-6 pb-6">
-              {/* Content Info - Collapsible */}
-              <div className="grid grid-cols-2 gap-4 text-sm mb-4 flex-shrink-0">
-                <div>
-                  <span className="font-medium">Subject:</span> {viewingContent.subject?.name || 'N/A'}
-                </div>
-                <div>
-                  <span className="font-medium">Board:</span> {getBoardLabel(viewingContent.board)}
-                </div>
+            <div className="flex-1 flex flex-col overflow-hidden px-6 pb-5 pt-3 bg-slate-50">
+              {/* Compact meta row above viewer */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs mb-3 text-slate-600">
+                <div><span className="font-semibold">Board:</span> {getBoardLabel(viewingContent.board)}</div>
                 {viewingContent.topic && (
-                  <div>
-                    <span className="font-medium">Topic:</span> {viewingContent.topic}
-                  </div>
+                  <div><span className="font-semibold">Topic:</span> {viewingContent.topic}</div>
                 )}
                 {viewingContent.date && (
-                  <div>
-                    <span className="font-medium">Date:</span> {new Date(viewingContent.date).toLocaleDateString()}
-                  </div>
+                  <div><span className="font-semibold">Date:</span> {new Date(viewingContent.date).toLocaleDateString()}</div>
                 )}
                 {viewingContent.duration && (viewingContent.type === 'Video' || viewingContent.type === 'Audio') && (
-                  <div>
-                    <span className="font-medium">Duration:</span> {viewingContent.duration} min
-                  </div>
+                  <div><span className="font-semibold">Duration:</span> {viewingContent.duration} min</div>
                 )}
-                <div>
-                  <span className="font-medium">Type:</span> {viewingContent.type}
-                </div>
               </div>
 
               {/* Content Display - Takes remaining space */}
-              <div className="flex-1 flex flex-col min-h-0 border rounded-lg bg-gray-50 overflow-hidden">
+              <div className="flex-1 flex flex-col min-h-0 rounded-xl bg-white border border-slate-200 overflow-hidden shadow-inner">
                 {(() => {
                   const fileUrl = viewingContent.fileUrl.startsWith('http') 
                     ? viewingContent.fileUrl 
@@ -1592,16 +1685,30 @@ export default function ContentManagement() {
                     // Documents/PDFs/Flipbooks - use iframe with full browser-like experience
                     const isFlipbook = fileUrl.includes('flipbook') || fileUrl.includes('epathshala');
                     const isPDF = fileUrl.toLowerCase().endsWith('.pdf') || fileUrl.includes('.pdf');
-                    const isExternalPDF = isPDF && (fileUrl.startsWith('http://') || fileUrl.startsWith('https://'));
-                    
-                    // Use proxy for external PDFs and flipbooks to bypass CORS and X-Frame-Options
-                    // This allows PDFs to be displayed directly in the iframe
-                    const iframeSrc = (isFlipbook || isExternalPDF)
+                    const isExternal = fileUrl.startsWith('http://') || fileUrl.startsWith('https://');
+
+                    // Our own uploaded files (served from backend) should NOT go through proxy
+                    const isOurBackend =
+                      fileUrl.startsWith(API_BASE_URL) ||
+                      fileUrl.startsWith('/uploads') ||
+                      fileUrl.includes('139.59.18.237') ||
+                      fileUrl.includes('aslilearn.ai');
+
+                    // Use proxy ONLY for external flipbook-style HTML viewers (epathshala, etc.)
+                    // Load pure PDF URLs directly in the iframe to avoid network/proxy issues.
+                    const shouldUseProxy =
+                      isExternal &&
+                      !isOurBackend &&
+                      isFlipbook &&
+                      !isPDF;
+
+                    const iframeSrc = shouldUseProxy
                       ? `${API_BASE_URL}/api/proxy/content?url=${encodeURIComponent(fileUrl)}`
                       : fileUrl;
                     
                     console.log('Loading content:', { 
                       isFlipbook, 
+                      isPDF,
                       fileUrl, 
                       iframeSrc,
                       API_BASE_URL 

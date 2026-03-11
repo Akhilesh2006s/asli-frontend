@@ -30,6 +30,7 @@ import SuperAdminLogin from "./pages/super-admin-login";
 import SuperAdminDashboard from "./pages/super-admin-dashboard";
 import SuperAdminTest from "./pages/super-admin-test";
 import Onboarding from "./pages/onboarding";
+import AIToolsDashboard from "./pages/ai-tools-dashboard";
 
 function Router() {
   return (
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/quiz/:id" component={QuizPage} />
       <Route path="/subject/:id" component={SubjectContent} />
       <Route path="/ai-tutor" component={AITutor} />
+      <Route path="/ai-tools" component={AIToolsDashboard} />
       <Route path="/profile" component={Profile} />
       <Route path="/auth/login" component={Login} />
       <Route path="/signin" component={Login} />
