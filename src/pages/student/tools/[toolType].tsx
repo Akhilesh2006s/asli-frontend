@@ -256,7 +256,7 @@ const CLASS_SUBJECTS: Record<string, string[]> = {
   'IIT-6': ['Physics', 'Chemistry', 'Maths', 'Biology']
 };
 
-const CLASS_OPTIONS = ['Class 6', 'Class-6-IIT', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Dropper Batch', 'IIT-6'];
+const CLASS_OPTIONS = ['Class 6', 'Class-6-IIT', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'IIT-6'];
 
 interface ToolConfig {
   name: string;
@@ -620,8 +620,8 @@ export default function StudentToolPage() {
       // Extract class number (e.g., "Class 6" -> 6)
       const classNumber = parseInt(classValue.replace('Class ', '').trim());
       
-      // Fetch for classes 5-10 (hardcoded content available)
-      if (!isNaN(classNumber) && classNumber >= 5 && classNumber <= 10) {
+      // Fetch for classes 6-10 (hardcoded content available)
+      if (!isNaN(classNumber) && classNumber >= 6 && classNumber <= 10) {
         setIsLoadingSubjects(true);
         try {
           const token = localStorage.getItem('authToken');
@@ -719,8 +719,8 @@ export default function StudentToolPage() {
     // Extract class number (e.g., "Class 6" -> 6)
     const classNumber = parseInt(classValue.replace('Class ', '').trim());
     
-    // For classes 5-10, fetch topics from API (hardcoded content)
-    if (!isNaN(classNumber) && classNumber >= 5 && classNumber <= 10) {
+    // For classes 6-10, fetch topics from API (hardcoded content)
+    if (!isNaN(classNumber) && classNumber >= 6 && classNumber <= 10) {
       const fetchTopics = async () => {
         setIsLoadingTopics(true);
         try {

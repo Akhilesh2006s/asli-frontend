@@ -319,22 +319,22 @@ export default function ContentManagement() {
       fileUrl = uploadedFileUrl;
       fileUrls = [uploadedFileUrl];
     } else {
-      // Validate that at least one URL is provided
-      if (formData.fileUrls.length > 0) {
-        // Use multiple URLs if provided
-        fileUrls = formData.fileUrls;
-        fileUrl = formData.fileUrls[0]; // Keep first URL for backward compatibility
-      } else if (formData.fileUrl) {
-        // Single URL provided
-        fileUrl = formData.fileUrl;
-        fileUrls = [formData.fileUrl];
-      } else {
-        toast({
-          title: 'Validation Error',
+    // Validate that at least one URL is provided
+    if (formData.fileUrls.length > 0) {
+      // Use multiple URLs if provided
+      fileUrls = formData.fileUrls;
+      fileUrl = formData.fileUrls[0]; // Keep first URL for backward compatibility
+    } else if (formData.fileUrl) {
+      // Single URL provided
+      fileUrl = formData.fileUrl;
+      fileUrls = [formData.fileUrl];
+    } else {
+      toast({
+        title: 'Validation Error',
           description: 'Please upload a file or provide at least one file URL',
-          variant: 'destructive'
-        });
-        return;
+        variant: 'destructive'
+      });
+      return;
       }
     }
 
@@ -1594,16 +1594,16 @@ export default function ContentManagement() {
                   {viewingContent?.title || 'Content'}
                 </DialogTitle>
                 <DialogDescription className="text-slate-200/80">
-                  {viewingContent?.description || 'View content'}
-                </DialogDescription>
+              {viewingContent?.description || 'View content'}
+            </DialogDescription>
               </div>
-              {viewingContent && (
+          {viewingContent && (
                 <div className="hidden md:flex items-center gap-4 text-xs text-slate-200/80">
                   <span><span className="font-semibold">Subject:</span> {viewingContent.subject?.name || 'N/A'}</span>
                   <span><span className="font-semibold">Type:</span> {viewingContent.type}</span>
                 </div>
               )}
-            </div>
+                </div>
           </DialogHeader>
           
           {viewingContent && (

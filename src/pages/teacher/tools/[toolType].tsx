@@ -365,7 +365,7 @@ const CLASS_SUBJECTS: Record<string, string[]> = {
   ]
 };
 
-const CLASS_OPTIONS = ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'IIT-6'];
+const CLASS_OPTIONS = ['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'IIT-6'];
 
 // Subject options - will be fetched from API for Class 6, fallback for other classes
 const DEFAULT_SUBJECT_OPTIONS = ['mathematics', 'maths', 'english', 'science', 'social science', 'social', 'evs', 'sst'];
@@ -581,8 +581,8 @@ export default function TeacherToolPage() {
       // Extract class number (e.g., "Class 6" -> 6)
       const classNumber = parseInt(classValue.replace('Class ', '').trim());
       
-      // Fetch for classes 5-10 (hardcoded content available)
-      if (!isNaN(classNumber) && classNumber >= 5 && classNumber <= 10) {
+      // Fetch for classes 6-10 (hardcoded content available)
+      if (!isNaN(classNumber) && classNumber >= 6 && classNumber <= 10) {
         setIsLoadingSubjects(true);
         try {
           const token = localStorage.getItem('authToken');
@@ -721,8 +721,8 @@ export default function TeacherToolPage() {
       return;
     }
 
-    // For classes 5-10, fetch topics from API (hardcoded content)
-    if (classNumber >= 5 && classNumber <= 10) {
+    // For classes 6-10, fetch topics from API (hardcoded content)
+    if (classNumber >= 6 && classNumber <= 10) {
       const fetchTopics = async () => {
         try {
           const token = localStorage.getItem('authToken');

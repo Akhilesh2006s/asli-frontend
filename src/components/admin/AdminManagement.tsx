@@ -745,7 +745,7 @@ export default function AdminManagement() {
         return (
           <>
             {filteredAdmins && filteredAdmins.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredAdmins.map((admin) => (
           <Card key={admin?.id || Math.random().toString()} className="hover:shadow-lg transition-shadow">
             <CardHeader>
@@ -760,7 +760,7 @@ export default function AdminManagement() {
                       <p className="text-sm text-gray-600">Contact: {admin.name}</p>
                     )}
                     {!admin?.schoolName && (
-                      <p className="text-sm text-gray-600">{admin?.email || 'No email'}</p>
+                    <p className="text-sm text-gray-600">{admin?.email || 'No email'}</p>
                     )}
                     {admin?.schoolName && (
                       <p className="text-sm text-gray-500">{admin?.email || 'No email'}</p>
@@ -825,8 +825,8 @@ export default function AdminManagement() {
               </div>
             </CardContent>
           </Card>
-                ))}
-              </div>
+        ))}
+      </div>
             ) : searchQuery ? (
               <Card>
                 <CardContent className="p-12 text-center">
