@@ -555,9 +555,9 @@ export default function TeacherToolPage() {
           if (response.ok) {
             const data = await response.json();
             if (data.success && data.data && Array.isArray(data.data)) {
-              // Extract subject names and convert to lowercase for consistency
+              // Extract subject names and keep their original casing
               const subjects = data.data.map((subj: any) => 
-                (subj.name || subj.displayName || subj).toLowerCase()
+                (subj.name || subj.displayName || subj)
               );
               setAvailableSubjects(subjects);
               console.log(`✅ Fetched subjects for IIT-6:`, subjects);
@@ -568,7 +568,7 @@ export default function TeacherToolPage() {
           // Fallback to class-specific subjects
           const classSubjects = CLASS_SUBJECTS[classValue];
           if (classSubjects && classSubjects.length > 0) {
-            setAvailableSubjects(classSubjects.map(s => s.toLowerCase()));
+            setAvailableSubjects(classSubjects);
           } else {
             setAvailableSubjects(DEFAULT_SUBJECT_OPTIONS);
           }
@@ -596,9 +596,9 @@ export default function TeacherToolPage() {
           if (response.ok) {
             const data = await response.json();
             if (data.success && data.data && Array.isArray(data.data)) {
-              // Extract subject names and convert to lowercase for consistency
+              // Extract subject names and keep their original casing
               const subjects = data.data.map((subj: any) => 
-                (subj.name || subj.displayName || subj).toLowerCase()
+                (subj.name || subj.displayName || subj)
               );
               setAvailableSubjects(subjects);
               console.log(`✅ Fetched subjects for Class ${classNumber}:`, subjects);
@@ -609,7 +609,7 @@ export default function TeacherToolPage() {
           // Fallback to class-specific subjects or default
           const classSubjects = CLASS_SUBJECTS[classValue];
           if (classSubjects && classSubjects.length > 0) {
-            setAvailableSubjects(classSubjects.map(s => s.toLowerCase()));
+            setAvailableSubjects(classSubjects);
           } else {
             setAvailableSubjects(DEFAULT_SUBJECT_OPTIONS);
           }
