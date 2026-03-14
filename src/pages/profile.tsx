@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,12 +29,10 @@ import {
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { EDUCATION_STREAMS, getAgeGroup, getStreamsByAge } from "@/lib/constants";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { API_BASE_URL } from "@/lib/api-config";
+import { API_BASE_URL, apiFetch } from "@/lib/api-config";
 
-// Mock user ID - in a real app, this would come from authentication
-const MOCK_USER_ID = "user-1";
+// User ID now comes from authenticated user (/api/auth/me)
 
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
@@ -46,6 +44,8 @@ export default function Profile() {
   // Fetch user data
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Exam results (used as "test attempts" for achievements / quick stats)
+  const [examResults, setExamResults] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -81,25 +81,62 @@ export default function Profile() {
     fetchUser();
   }, []);
 
-  // Fetch user's test attempts for achievements
-  const { data: attempts = [] } = useQuery({
-    queryKey: ["/api/users", MOCK_USER_ID, "test-attempts"],
-  });
+  // Fetch exam results for students (replaces non-existent /api/users/.../test-attempts)
+  useEffect(() => {
+    const fetchExamResults = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/student/exam-results`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (res.ok) {
+          const json = await res.json();
+          setExamResults(json.data || []);
+        } else {
+          setExamResults([]);
+        }
+      } catch {
+        setExamResults([]);
+      }
+    };
+    fetchExamResults();
+  }, []);
 
-  // Update profile mutation
+  // Use exam results as "attempts" for achievements and quick stats
+  const attempts = examResults;
+
+  // Update profile mutation (use apiFetch so request goes to backend URL with auth token)
   const updateProfileMutation = useMutation({
     mutationFn: async (profileData: any) => {
-      const response = await apiRequest("PATCH", `/api/users/${MOCK_USER_ID}`, profileData);
+      const userId = user?.id || user?._id;
+      if (!userId) {
+        throw new Error("User ID not available for profile update");
+      }
+      const response = await apiFetch(`/api/users/${userId}`, {
+        method: "PATCH",
+        body: JSON.stringify(profileData),
+      });
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText || `Update failed: ${response.status}`);
+      }
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users", MOCK_USER_ID] });
+      const userId = user?.id || user?._id || "current";
+      queryClient.invalidateQueries({ queryKey: ["/api/users", userId] });
       setIsEditing(false);
       setEditedProfile({});
       toast({
         title: "Profile Updated",
         description: "Your profile has been successfully updated.",
       });
+      // Refresh the page so all sections show the latest profile data
+      window.location.reload();
     },
     onError: () => {
       toast({
@@ -187,7 +224,7 @@ export default function Profile() {
     return (
       <>
         <Navigation />
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
           <div className="space-y-8">
             <Skeleton className="h-32 w-full" />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -210,7 +247,7 @@ export default function Profile() {
     return (
       <>
         <Navigation />
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
           <Card>
             <CardContent className="p-12 text-center">
               <User className="w-16 h-16 mx-auto text-gray-400 mb-4" />
@@ -229,71 +266,73 @@ export default function Profile() {
   return (
     <>
       <Navigation />
-      <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isMobile ? 'pb-20' : ''}`}>
+      <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8 ${isMobile ? 'pb-20' : ''}`}>
         
         {/* Profile Header */}
-        <Card className="mb-8">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-20 h-20 gradient-accent rounded-full flex items-center justify-center">
-                  <span className="text-2xl font-bold text-white">
-                    {user.fullName?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
-                  </span>
-                </div>
-                <div>
-                  {isEditing ? (
-                    <div className="space-y-2">
-                      <Input
-                        value={editedProfile.fullName}
-                        onChange={(e) => setEditedProfile({...editedProfile, fullName: e.target.value})}
-                        className="text-2xl font-bold"
-                      />
-                      <Input
-                        type="email"
-                        value={editedProfile.email}
-                        onChange={(e) => setEditedProfile({...editedProfile, email: e.target.value})}
-                        className="text-gray-600"
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <h1 className="text-2xl font-bold text-gray-900">{user.fullName || 'User'}</h1>
-                      <p className="text-gray-600">{user.email}</p>
-                    </>
-                  )}
-                  <div className="flex items-center space-x-2 mt-2">
-                    <Badge variant="outline">{ageGroup.label}</Badge>
-                    <Badge className="gradient-primary text-white">{user.educationStream}</Badge>
-                    {user.targetExam && (
-                      <Badge variant="outline">{user.targetExam}</Badge>
+        <Card className="mb-8 overflow-visible min-w-0">
+          <CardContent className="p-6 overflow-visible min-w-0">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center space-x-4 min-w-0 flex-1">
+                  <div className="w-20 h-20 flex-shrink-0 gradient-accent rounded-full flex items-center justify-center">
+                    <span className="text-2xl font-bold text-white">
+                      {user.fullName?.split(' ').map(
+                        (n: string) => n[0]).join('').toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    {isEditing ? (
+                      <div className="space-y-2">
+                        <Input
+                          value={editedProfile.fullName}
+                          onChange={(e) => setEditedProfile({...editedProfile, fullName: e.target.value})}
+                          className="text-2xl font-bold"
+                        />
+                        <Input
+                          type="email"
+                          value={editedProfile.email}
+                          onChange={(e) => setEditedProfile({...editedProfile, email: e.target.value})}
+                          className="text-gray-600"
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <h1 className="text-2xl font-bold text-gray-900 break-words">{user.fullName || 'User'}</h1>
+                        <p className="text-gray-600 break-all">{user.email}</p>
+                      </>
                     )}
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      <Badge variant="outline">{ageGroup.label}</Badge>
+                      <Badge className="gradient-primary text-white">{user.educationStream}</Badge>
+                      {user.targetExam && (
+                        <Badge variant="outline">{user.targetExam}</Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                {isEditing ? (
-                  <>
-                    <Button 
-                      onClick={handleSave}
-                      disabled={updateProfileMutation.isPending}
-                      size="sm"
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      Save
+                <div className="flex items-center space-x-2 flex-shrink-0 w-full sm:w-auto sm:flex-none justify-end sm:justify-start">
+                  {isEditing ? (
+                    <>
+                      <Button 
+                        onClick={handleSave}
+                        disabled={updateProfileMutation.isPending}
+                        size="sm"
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        Save
+                      </Button>
+                      <Button variant="outline" onClick={handleCancel} size="sm">
+                        <X className="w-4 h-4 mr-2" />
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
+                    <Button onClick={handleEdit} variant="outline" size="sm">
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit Profile
                     </Button>
-                    <Button variant="outline" onClick={handleCancel} size="sm">
-                      <X className="w-4 h-4 mr-2" />
-                      Cancel
-                    </Button>
-                  </>
-                ) : (
-                  <Button onClick={handleEdit} variant="outline" size="sm">
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit Profile
-                  </Button>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
@@ -584,8 +623,13 @@ export default function Profile() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Best Score</span>
                   <span className="font-semibold">
-                    {(attempts as any[]).length > 0 
-                      ? `${Math.max(...(attempts as any[]).map((a: any) => Math.round((a.score / a.totalQuestions) * 100)))}%`
+                    {(attempts as any[]).length > 0
+                      ? `${Math.max(...(attempts as any[]).map((a: any) => {
+                          if (a.percentage != null) return Math.round(a.percentage);
+                          if (a.totalMarks > 0 && a.obtainedMarks != null) return Math.round((a.obtainedMarks / a.totalMarks) * 100);
+                          if (a.totalQuestions > 0 && a.correctAnswers != null) return Math.round((a.correctAnswers / a.totalQuestions) * 100);
+                          return 0;
+                        }))}%`
                       : 'N/A'
                     }
                   </span>

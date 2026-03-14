@@ -1,17 +1,47 @@
 import { Link, useLocation } from "wouter";
-import { BookOpen, FileText, MessageCircle, User, Menu, Bell, LogOut, Sparkles, Video } from "lucide-react";
+import { BookOpen, FileText, MessageCircle, User, Menu, LogOut, Sparkles, Video } from "lucide-react";
 import { API_BASE_URL } from '@/lib/api-config';
 import { clearAuthData, getAuthToken } from '@/lib/auth-utils';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Navigation() {
   const [location, setLocation] = useLocation();
   const isMobile = useIsMobile();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [userInitials, setUserInitials] = useState<string>('U');
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const token = getAuthToken();
+      if (!token) {
+        setUserInitials('U');
+        return;
+      }
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          const name = data?.user?.fullName;
+          const initials = name
+            ? name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 3)
+            : 'U';
+          setUserInitials(initials || 'U');
+        }
+      } catch {
+        setUserInitials('U');
+      }
+    };
+    fetchUser();
+  }, []);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -135,19 +165,15 @@ export default function Navigation() {
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/80 border-b border-blue-200/40 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
-            {/* Logo Section - Enhanced */}
+            {/* Logo Section - simplified, no border around logo */}
             <div className="flex items-center space-x-4">
               <Link href="/dashboard">
                 <div className="flex items-center space-x-3 cursor-pointer group">
-                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl bg-gradient-to-br from-blue-600 to-cyan-500 p-1 group-hover:scale-105 transition-transform duration-300">
-                    <div className="w-full h-full rounded-xl bg-white flex items-center justify-center overflow-hidden">
-                      <img 
-                        src="/logo.jpg" 
-                        alt="ASLILEARN Logo" 
-                        className="w-full h-full object-contain p-1"
-                      />
-                    </div>
-                  </div>
+                  <img 
+                    src="/logo.jpg" 
+                    alt="ASLILEARN Logo" 
+                    className="w-14 h-14 rounded-2xl object-contain group-hover:scale-105 transition-transform duration-300"
+                  />
                   <div className="flex flex-col">
                     <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
                       ASLILEARN AI
@@ -205,15 +231,6 @@ export default function Navigation() {
 
             {/* Right Section - Enhanced */}
             <div className="flex items-center space-x-3">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 hover:from-blue-200 hover:to-cyan-200 backdrop-blur-sm border border-blue-200/50 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-110 relative group"
-              >
-                <Bell className="w-5 h-5 text-blue-700 group-hover:animate-pulse" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-              </Button>
-              
               {isMobile ? (
                 <Sheet>
                   <SheetTrigger asChild>
@@ -266,7 +283,7 @@ export default function Navigation() {
                 <div className="flex items-center space-x-3">
                   <Link href="/profile">
                     <div className="w-11 h-11 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-full flex items-center justify-center cursor-pointer shadow-lg backdrop-blur-sm border-2 border-white hover:scale-110 transition-transform duration-300 hover:shadow-xl group">
-                      <span className="text-sm font-semibold text-white group-hover:scale-110 transition-transform">AK</span>
+                      <span className="text-sm font-semibold text-white group-hover:scale-110 transition-transform">{userInitials}</span>
                     </div>
                   </Link>
                   <Button 

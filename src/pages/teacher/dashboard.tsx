@@ -42,7 +42,6 @@ import {
   MessageCircle,
   ClipboardCheck,
   UserCheck,
-  Upload,
   FileText as FileTextIcon,
   X,
   Video as VideoIcon,
@@ -2144,21 +2143,6 @@ const TeacherDashboard = () => {
                         <h3 className="text-white font-semibold mb-1">Resources Created</h3>
                         <p className="text-white/90 text-sm">This month</p>
                       </motion.div>
-                    </div>
-
-                    {/* PDF Upload Section */}
-                    <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl p-6 border-2 border-dashed border-purple-300 mb-8">
-                      <div className="flex items-start space-x-4 mb-4">
-                        <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Upload className="w-6 h-6 text-purple-600" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-xl font-bold text-gray-900 mb-1">AI Tools</h3>
-                          <p className="text-sm text-gray-600 mb-4">
-                            All AI tools use Gemini API to generate content. Simply enter any topic name and the AI will create content for you.
-                          </p>
-                        </div>
-                      </div>
                     </div>
 
                     {/* Available Tools Section */}

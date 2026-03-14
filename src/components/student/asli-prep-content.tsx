@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, FileText, File, Image, Video, Download, Search, Filter, BookOpen } from 'lucide-react';
+import { Play, FileText, File, Image, Video, Download, Search, Filter, BookOpen, ExternalLink } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 
 interface Content {
@@ -321,13 +321,31 @@ export default function AsliPrepContent() {
                       Play Audio
                     </Button>
                   ) : (
-                    <Button 
-                      className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                      onClick={() => window.open(content.fileUrl, '_blank')}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      {content.type === 'TextBook' ? 'View TextBook' : content.type === 'Workbook' ? 'View Workbook' : 'Download Material'}
-                    </Button>
+                    <div className="flex gap-3 mt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs px-0 h-auto text-gray-700 hover:text-blue-600"
+                        onClick={() => window.open(content.fileUrl, '_blank')}
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        {content.type === 'TextBook' || content.type === 'Workbook' ? 'Open' : 'Preview'}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs px-0 h-auto text-gray-700 hover:text-blue-600"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = content.fileUrl;
+                          link.download = content.title || 'download';
+                          link.click();
+                        }}
+                      >
+                        <Download className="h-3 w-3 mr-1" />
+                        Download
+                      </Button>
+                    </div>
                   )}
                 </div>
               </CardContent>

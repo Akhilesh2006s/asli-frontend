@@ -84,6 +84,7 @@ import {
 } from '@/utils/studyTimeTracker';
 import '@/utils/debugStudyTime'; // Load debug helper
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
+import AdaptiveRecommendations from "@/components/dashboard/AdaptiveRecommendations";
 
 // Mock user ID - in a real app, this would come from authentication
 const MOCK_USER_ID = "user-1";
@@ -261,6 +262,7 @@ export default function Dashboard() {
   // Fetch real dashboard data
   const [stats, setStats] = useState({ questionsAnswered: 0, accuracyRate: 0, rank: 0 });
   const [exams, setExams] = useState<any[]>([]);
+  const [examResults, setExamResults] = useState<any[]>([]);
   const [subjectProgress, setSubjectProgress] = useState<any[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
@@ -345,6 +347,11 @@ export default function Dashboard() {
       content.type && content.type.toLowerCase() === selectedBrowseType.toLowerCase()
     );
   }, [selectedBrowseType, allContent]);
+
+  const adaptiveVideosList = useMemo(
+    () => subjects.flatMap((s: any) => s.videos || []),
+    [subjects]
+  );
   const [studyTimeToday, setStudyTimeToday] = useState<number>(0); // in minutes
   const [studyTimeThisWeek, setStudyTimeThisWeek] = useState<number>(0); // in minutes
   const [weeklyStudyData, setWeeklyStudyData] = useState<{ [key: string]: number }>({}); // Daily study time in minutes
@@ -397,6 +404,7 @@ export default function Dashboard() {
         if (resultsRes.ok) {
           const resultsJson = await resultsRes.json();
           resultsData = resultsJson.data || [];
+          setExamResults(resultsData);
         }
 
         let rankingsData = [];
@@ -615,8 +623,8 @@ export default function Dashboard() {
           }
         });
 
-        // Convert to array
-        const finalProgressArray = Array.from(mergedProgress.values());
+        // Convert to array (include id from map key for React keys)
+        const finalProgressArray = Array.from(mergedProgress.entries()).map(([id, value]) => ({ ...value, id }));
 
         // Calculate overall progress as average of all subject progress
         const calculatedOverallProgress = finalProgressArray.length > 0
@@ -2253,8 +2261,8 @@ export default function Dashboard() {
 
                 {/* Subject Progress */}
                 <div className="space-y-4">
-                  {subjectProgress.length > 0 ? subjectProgress.map((subject) => (
-                    <div key={subject.id} className="subject-progress-card">
+                  {subjectProgress.length > 0 ? subjectProgress.map((subject, idx) => (
+                    <div key={subject.id || subject.name || `subject-${idx}`} className="subject-progress-card">
                       <div className="flex items-center space-x-3">
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${subject.color}`}>
                           <span className="text-responsive-xs font-medium">
@@ -2292,161 +2300,15 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* Adaptive Learning Section */}
-            <Card className="bg-gradient-to-br from-purple-50 via-blue-50 to-teal-50 border-2 border-purple-200 shadow-xl">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                      <Brain className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent text-2xl">Adaptive Learning</CardTitle>
-                      <p className="text-sm text-gray-600">AI-powered personalized recommendations</p>
-                    </div>
-                  </div>
-                  <Badge className="bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-md">
-                    <Sparkles className="w-3 h-3 mr-1" />
-                    AI Powered
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Performance Analysis */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-purple-100">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <TrendingUp className="w-5 h-5 text-purple-600" />
-                    <h3 className="font-semibold text-gray-900">Performance Insights</h3>
-                  </div>
-                  {subjectProgress.length > 0 ? (
-                    <div className="space-y-2">
-                      {subjectProgress
-                        .sort((a, b) => a.progress - b.progress)
-                        .slice(0, 3)
-                        .map((subject: any, index: number) => (
-                          <div key={subject.id || index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
-                            <div className="flex items-center space-x-2">
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${subject.color}`}>
-                                <span className="text-xs font-medium">{subject.name.substring(0, 2)}</span>
-                              </div>
-                              <div>
-                                <span className="text-sm font-medium text-gray-700 block">{subject.name}</span>
-                                {subject.exams && (
-                                  <span className="text-xs text-gray-500">{subject.exams} exam{subject.exams !== 1 ? 's' : ''} taken</span>
-                                )}
-                              </div>
-                            </div>
-                            <Badge variant={subject.progress < 50 ? "destructive" : subject.progress < 70 ? "default" : "secondary"} className="text-xs">
-                              {subject.progress}%
-                            </Badge>
-                          </div>
-                        ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-4">
-                      <p className="text-sm text-gray-500 mb-2">Complete exams or learning content to see performance insights</p>
-                      <p className="text-xs text-gray-400">Data sources: Exam results + Learning path completion</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Recommended Next Steps */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-blue-100">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <Lightbulb className="w-5 h-5 text-blue-600" />
-                    <h3 className="font-semibold text-gray-900">Recommended Next Steps</h3>
-                  </div>
-                  <div className="space-y-2">
-                    {subjectProgress.length > 0 ? (
-                      subjectProgress
-                        .filter((s: any) => s.progress < 70)
-                        .slice(0, 2)
-                        .map((subject: any, index: number) => (
-                          <div key={subject.id || index} className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200 hover:shadow-md transition-all cursor-pointer group" onClick={() => {
-                            // Navigate to subject or learning path
-                            setLocation(`/subject/${subject.id || subject.name}`);
-                          }}>
-                            <div className="flex items-center space-x-3">
-                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${subject.color} group-hover:scale-110 transition-transform`}>
-                                <BookCheck className="w-5 h-5 text-white" />
-                              </div>
-                              <div>
-                                <p className="font-medium text-gray-900 text-sm">Focus on {subject.name}</p>
-                                <p className="text-xs text-gray-600">Improve from {subject.progress}% to 80%+</p>
-                              </div>
-                            </div>
-                            <ArrowRightCircle className="w-5 h-5 text-blue-600 group-hover:translate-x-1 transition-transform" />
-                          </div>
-                        ))
-                    ) : (
-                      <div className="p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
-                        <p className="text-sm text-gray-700">Start learning to get personalized recommendations</p>
-                      </div>
-                    )}
-                    {subjectProgress.length > 0 && subjectProgress.filter((s: any) => s.progress < 70).length === 0 && (
-                      <div className="p-3 bg-gradient-to-r from-green-50 to-teal-50 rounded-lg border border-green-200">
-                        <div className="flex items-center space-x-2">
-                          <Award className="w-5 h-5 text-green-600" />
-                          <p className="text-sm font-medium text-gray-700">Great progress! All subjects above 70%</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Adaptive Difficulty */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 border border-teal-100">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <Target className="w-5 h-5 text-teal-600" />
-                    <h3 className="font-semibold text-gray-900">Adaptive Difficulty</h3>
-                  </div>
-                  <div className="space-y-2">
-                    {subjectProgress.length > 0 ? (
-                      subjectProgress.map((subject: any, index: number) => {
-                        let difficulty = 'Medium';
-                        let color = 'bg-yellow-100 text-yellow-700';
-                        let recommendation = 'Continue with current level';
-                        if (subject.progress >= 80) {
-                          difficulty = 'Hard';
-                          color = 'bg-red-100 text-red-700';
-                          recommendation = 'Ready for advanced topics';
-                        } else if (subject.progress < 50) {
-                          difficulty = 'Easy';
-                          color = 'bg-green-100 text-green-700';
-                          recommendation = 'Build foundational concepts';
-                        }
-                        return (
-                          <div key={subject.id || index} className="p-2 bg-gray-50 rounded-md">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm font-medium text-gray-700">{subject.name}</span>
-                              <Badge className={color}>{difficulty}</Badge>
-                            </div>
-                            <p className="text-xs text-gray-500">{recommendation}</p>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="text-center py-4">
-                        <p className="text-sm text-gray-500 mb-2">Complete content to see adaptive difficulty</p>
-                        <p className="text-xs text-gray-400">Based on: Exam performance + Content completion</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Quick Actions */}
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    className="bg-white/80 hover:bg-purple-50 border-purple-200 text-purple-700 hover:text-purple-800"
-                    onClick={() => setLocation('/student/tools/smart-study-guide-generator')}
-                  >
-                    <BookMarked className="w-4 h-4 mr-2" />
-                    Study Guide
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Adaptive Learning - Recommendation Engine */}
+            <AdaptiveRecommendations
+              subjectProgress={subjectProgress}
+              examResults={examResults}
+              quizzes={quizzes}
+              subjects={subjects}
+              videos={adaptiveVideosList}
+              content={allContent}
+            />
 
             {/* Learning Paths */}
             <div id="learning-paths-section" className="mb-6 scroll-mt-24">
@@ -2800,7 +2662,7 @@ export default function Dashboard() {
                                       <Button
                                         variant="outline"
                                         size="sm"
-                                        className="text-xs"
+                                        className="text-xs whitespace-nowrap"
                                         onClick={() => window.open(content.fileUrl, '_blank')}
                                       >
                                         <ExternalLink className="w-3 h-3 mr-1" />
@@ -2811,7 +2673,7 @@ export default function Dashboard() {
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="text-xs"
+                                        className="text-xs whitespace-nowrap"
                                         onClick={() => {
                                           const link = document.createElement('a');
                                           link.href = content.fileUrl;

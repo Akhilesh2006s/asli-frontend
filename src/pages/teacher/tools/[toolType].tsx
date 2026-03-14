@@ -507,6 +507,101 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
   },
 };
 
+type PassagesData = {
+  subject?: string;
+  book?: string;
+  chapter?: string;
+  title?: string;
+  total_passages?: number;
+  instructions?: string;
+  passages: Array<{ passage_number: number; paragraph: string; questions: string[] }>;
+};
+
+// Extract JSON object from string (handles content with text before/after the JSON)
+function extractPassagesJSON(content: string): PassagesData | null {
+  const trimmed = content.trim();
+  const start = trimmed.indexOf('{');
+  if (start === -1) return null;
+  let depth = 0;
+  let end = -1;
+  for (let i = start; i < trimmed.length; i++) {
+    if (trimmed[i] === '{') depth++;
+    else if (trimmed[i] === '}') {
+      depth--;
+      if (depth === 0) {
+        end = i;
+        break;
+      }
+    }
+  }
+  if (end === -1) return null;
+  try {
+    const parsed = JSON.parse(trimmed.slice(start, end + 1));
+    if (parsed && Array.isArray(parsed.passages) && parsed.passages.length > 0) return parsed as PassagesData;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// Story & Passage Creator: simple cards UI when content is passages JSON
+function StoryPassageViewer({ content }: { content: string }) {
+  const data = extractPassagesJSON(content);
+
+  if (!data) {
+    return (
+      <div
+        className="prose prose-sm max-w-none max-h-[80vh] overflow-y-auto p-6"
+        dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
+      />
+    );
+  }
+
+  return (
+    <div className="max-h-[80vh] overflow-y-auto space-y-6 p-1">
+      <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-4">
+        <h2 className="text-lg font-bold text-gray-900">{data.title || 'Reading Passages'}</h2>
+        {(data.subject || data.book || data.chapter) && (
+          <p className="text-sm text-gray-600 mt-1">
+            {[data.subject, data.book, data.chapter].filter(Boolean).join(' · ')}
+          </p>
+        )}
+        {data.instructions && (
+          <p className="mt-3 text-sm text-gray-700 bg-white rounded-lg p-3 border border-amber-100">
+            {data.instructions}
+          </p>
+        )}
+      </div>
+
+      {data.passages.map((p) => (
+        <Card key={p.passage_number} className="border border-gray-200 shadow-sm">
+          <CardHeader className="py-3 px-4 bg-gray-50/50">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <span className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold">
+                {p.passage_number}
+              </span>
+              Passage {p.passage_number}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pt-3 pb-4 space-y-3">
+            <p className="text-gray-800 text-sm leading-relaxed">{p.paragraph}</p>
+            {p.questions && p.questions.length > 0 && (
+              <div className="pt-2 border-t border-gray-100">
+                <p className="text-xs font-medium text-gray-500 mb-1.5">Questions</p>
+                <ol className="list-decimal list-inside space-y-1 text-sm text-gray-800">
+                  {p.questions.map((q, i) => (
+                    <li key={i}>{q}</li>
+                  ))}
+                </ol>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 export default function TeacherToolPage() {
   const [, setLocation] = useLocation();
   const [, params] = useRoute('/teacher/tools/:toolType');
@@ -1806,6 +1901,8 @@ export default function TeacherToolPage() {
                   <ConceptMasteryViewer content={generatedContent} />
                 ) : toolType === 'lesson-planner' ? (
                   <LessonPlannerViewer content={generatedContent} rawContent={rawGeneratedContent} />
+                ) : toolType === 'story-passage-creator' ? (
+                  <StoryPassageViewer content={generatedContent} />
                 ) : (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}

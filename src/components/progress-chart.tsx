@@ -64,8 +64,8 @@ export default function ProgressChart({ subjects, overallProgress, className }: 
         {/* Subject-wise Progress */}
         <div className="space-y-4">
           <h4 className="font-medium text-gray-900">Subject-wise Progress</h4>
-          {subjects.map((subject) => (
-            <div key={subject.id} className="subject-progress-card">
+          {subjects.map((subject, index) => (
+            <div key={subject.id || subject.name || `subject-${index}`} className="subject-progress-card">
               <div className="flex items-center space-x-3">
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${subject.color}`}>
                   <span className="text-sm font-medium">
