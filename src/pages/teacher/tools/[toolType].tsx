@@ -232,8 +232,9 @@ interface ToolConfig {
     placeholder?: string;
     dependsOn?: string; // Field name this field depends on
     showWhen?: (values: Record<string, any>) => boolean; // Condition to show this field
-    getOptions?: (value: string) => string[]; // Function to get options based on dependency
+    getOptions?: (value?: string) => string[]; // Function to get options based on dependency
     isStudentSelect?: boolean; // If true, populate from assigned students
+    isNCERT?: boolean; // If true, use NCERT topics for options
   }>;
 }
 
@@ -832,9 +833,58 @@ export default function TeacherToolPage() {
             const data = await response.json();
             if (data.success && data.data && Array.isArray(data.data)) {
               // Extract chapter names from the response
-              const topics = data.data.map((chapter: any) => 
+              let topics = data.data.map((chapter: any) => 
                 chapter.chapterName || chapter.name || chapter
               );
+
+              // Optional tool-specific filtering based on actually available
+              // hardcoded content. For selected tools, hide topics that do
+              // not have any content for the current toolType so the user
+              // doesn't hit "no pre-generated content" errors.
+              const toolsNeedingFiltering = new Set([
+                'homework-creator',
+                'exam-question-paper-generator',
+                'short-notes-summaries-maker',
+                'worksheet-mcq-generator',
+                'concept-mastery-helper',
+                'lesson-planner',
+                'story-passage-creator',
+              ]);
+
+              if (toolsNeedingFiltering.has(toolType)) {
+                const filtered: string[] = [];
+                for (const topic of topics) {
+                  try {
+                    const acResp = await fetch(
+                      `${API_BASE_URL}/api/teacher/ai/available-content?classNumber=${classNumber}&subject=${encodeURIComponent(subjectValue)}&topic=${encodeURIComponent(topic)}`,
+                      {
+                        headers: {
+                          'Authorization': `Bearer ${token}`,
+                          'Content-Type': 'application/json',
+                        },
+                      },
+                    );
+                    if (acResp.ok) {
+                      const acData = await acResp.json();
+                      if (acData.success && Array.isArray(acData.data)) {
+                        const hasTool = acData.data.some(
+                          (entry: any) => entry.toolType === toolType,
+                        );
+                        if (hasTool) filtered.push(topic);
+                      } else {
+                        // If the check fails for some reason, keep topic to avoid hiding too much
+                        filtered.push(topic);
+                      }
+                    } else {
+                      filtered.push(topic);
+                    }
+                  } catch {
+                    filtered.push(topic);
+                  }
+                }
+                topics = filtered;
+              }
+
               setAvailableNCERTTopics(topics);
               console.log(`✅ Fetched topics for Class ${classNumber}:`, topics);
             }
@@ -853,7 +903,7 @@ export default function TeacherToolPage() {
       const topics = getTopicsForClassAndSubject(classNumber, subjectValue);
       setAvailableNCERTTopics(topics);
     }
-  }, [formParams.gradeLevel, formParams.subject]);
+  }, [formParams.gradeLevel, formParams.subject, toolType]);
 
   const handleInputChange = (fieldName: string, value: any) => {
     setFormParams(prev => {
@@ -902,17 +952,17 @@ export default function TeacherToolPage() {
     // Handle getOptions function (for dynamic options like subjects)
     if (field.getOptions) {
       if (field.dependsOn) {
-      const dependencyValue = formParams[field.dependsOn];
-      if (dependencyValue) {
-        return field.getOptions(dependencyValue);
-      }
-      return [];
+        const dependencyValue = formParams[field.dependsOn];
+        if (dependencyValue) {
+          return field.getOptions(dependencyValue);
+        }
+        return [];
       } else {
         // getOptions without dependsOn - check if it's a function that needs state
         // If getOptions is a function that references availableSubjects, it will be called
         // and we'll catch the error, or we can use a special marker
         try {
-          return field.getOptions();
+          return field.getOptions(undefined);
         } catch (error) {
           // If getOptions references unavailable state, use availableSubjects for subject fields
           if (field.name === 'subject') {
@@ -989,8 +1039,7 @@ export default function TeacherToolPage() {
         const sourceLabel = data.data.metadata?.sourceLabel || (data.data.metadata?.source === 'pdf-extracted' ? 'Textbook (PDF)' : 'Question Bank (CSV)');
         setContentSource(sourceLabel);
         
-        // Keep isGenerating true during 3-second delay to show loading animation
-        // Store raw data if available (for Short Notes, Concept Mastery, and Lesson Planner)
+        // Store raw data if available (for Short Notes, Concept Mastery, Lesson Planner, Flashcards, etc.)
         if (data.data.rawData) {
           // Store raw data separately for viewer components
           setRawGeneratedContent(data.data.rawData);
@@ -1005,39 +1054,31 @@ export default function TeacherToolPage() {
               formatted: data.data.content,
               raw: data.data.rawData
             });
-            setTimeout(() => {
-              setGeneratedContent(contentWithData);
-              setIsGenerating(false);
-              toast({
-                title: 'Success',
-                description: `Content generated successfully from ${sourceLabel}!`
-              });
-            }, 3000);
+            setGeneratedContent(contentWithData);
+            setIsGenerating(false);
+            toast({
+              title: 'Success',
+              description: `Content generated successfully from ${sourceLabel}!`
+            });
           } else {
             // For exam papers and other tools, use content directly
-            setTimeout(() => {
-              setGeneratedContent(data.data.content);
-              setIsGenerating(false);
-              toast({
-                title: 'Success',
-                description: `Content generated successfully from ${sourceLabel}!`
-              });
-            }, 3000);
-          }
-        } else {
-          // Clear raw content if not available
-          setRawGeneratedContent(null);
-          // Add 3-second delay before showing content with loading state
-          setTimeout(() => {
             setGeneratedContent(data.data.content);
             setIsGenerating(false);
             toast({
               title: 'Success',
               description: `Content generated successfully from ${sourceLabel}!`
             });
-          }, 3000);
+          }
+        } else {
+          // Clear raw content if not available
+          setRawGeneratedContent(null);
+          setGeneratedContent(data.data.content);
+          setIsGenerating(false);
+          toast({
+            title: 'Success',
+            description: `Content generated successfully from ${sourceLabel}!`
+          });
         }
-        // Note: isGenerating stays true until setTimeout completes
       } else {
         setIsGenerating(false);
         throw new Error(data.message || 'Failed to generate content');
@@ -1522,7 +1563,7 @@ export default function TeacherToolPage() {
           windowWidth: contentElement.scrollWidth,
           windowHeight: contentElement.scrollHeight
         },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
       };
 
       await html2pdf().set(opt).from(contentElement as HTMLElement).save();
@@ -1703,7 +1744,7 @@ export default function TeacherToolPage() {
               <CardTitle>Tool Parameters</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {config.fields.map((field) => {
+              {config.fields.map((field: any) => {
                 // Check if field should be shown based on showWhen condition
                 if (field.showWhen && !field.showWhen(formParams)) {
                   return null;
@@ -1729,7 +1770,7 @@ export default function TeacherToolPage() {
                   isDisabled = !formParams.gradeLevel || availableSubjects.length === 0;
                 } else {
                   fieldOptions = getFieldOptions(field);
-                  isDisabled = field.dependsOn && !formParams[field.dependsOn];
+                  isDisabled = !!(field.dependsOn && !formParams[field.dependsOn]);
                 }
                 
                 return (
