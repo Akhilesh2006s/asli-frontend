@@ -77,40 +77,8 @@ export default function Navigation() {
     }
   };
 
-  const handleLearningPathsClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    // Check if we're on the dashboard
-    if (location === '/dashboard' || location === '/') {
-      // Scroll to learning paths section
-      setTimeout(() => {
-        const section = document.getElementById('learning-paths-section');
-        if (section) {
-          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 50);
-    } else {
-      // Navigate to dashboard first
-      setLocation('/dashboard');
-      // Wait for navigation and page load, then scroll
-      setTimeout(() => {
-        const section = document.getElementById('learning-paths-section');
-        if (section) {
-          section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else {
-          // If section not found, try again after a longer delay
-          setTimeout(() => {
-            const section = document.getElementById('learning-paths-section');
-            if (section) {
-              section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-          }, 500);
-        }
-      }, 300);
-    }
-  };
-
   const navItems = [
-    { path: "/learning-paths", label: "Learning Paths", icon: BookOpen, onClick: handleLearningPathsClick },
+    { path: "/learning-paths", label: "Learning Paths", icon: BookOpen },
     { path: "/edu-ott", label: "EduOTT", icon: Video },
     { path: "/student-exams", label: "Exams", icon: FileText },
     { path: "/ai-tutor", label: "Vidya AI", icon: MessageCircle },

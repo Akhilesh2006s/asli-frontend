@@ -1,0 +1,1020 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { API_BASE_URL } from '@/lib/api-config';
+import { useToast } from '@/hooks/use-toast';
+import {
+  BookOpen,
+  ChevronRight,
+  File,
+  FileText,
+  Loader2,
+  Plus,
+  Trash2,
+  Video,
+  AudioLines,
+  Edit
+} from 'lucide-react';
+
+interface SubjectItem {
+  _id: string;
+  name: string;
+  description?: string;
+  code?: string;
+  board: string;
+  classNumber?: string;
+  isActive?: boolean;
+}
+
+type ContentType = 'TextBook' | 'Workbook' | 'Material' | 'Video' | 'Audio';
+
+interface ContentItem {
+  _id: string;
+  title: string;
+  description?: string;
+  type: ContentType;
+  board: string;
+  subject: {
+    _id: string;
+    name: string;
+  };
+  classNumber?: string;
+  topic?: string;
+  date: string;
+  fileUrl: string;
+  fileUrls?: string[];
+  thumbnailUrl?: string;
+  thumbnail?: string;
+  videoThumbnail?: string;
+  previewImage?: string;
+  image?: string;
+  duration?: number;
+  createdAt: string;
+}
+
+const BOARD_CODE = 'ASLI_EXCLUSIVE_SCHOOLS';
+
+const extractClassNumberFromSubjectName = (name: string): string | null => {
+  const match = name.match(/_(\d+)$/);
+  return match ? match[1] : null;
+};
+
+const extractPlainSubjectName = (name: string): string => {
+  const match = name.match(/^(.+?)_\d+$/);
+  return match ? match[1] : name;
+};
+
+const getContentTypeIcon = (type: ContentType) => {
+  switch (type) {
+    case 'Video':
+      return Video;
+    case 'TextBook':
+      return FileText;
+    case 'Workbook':
+    case 'Material':
+      return File;
+    case 'Audio':
+      return AudioLines;
+    default:
+      return File;
+  }
+};
+
+const isPdfUrl = (url: string): boolean => {
+  const lower = url.toLowerCase();
+  return lower.endsWith('.pdf') || lower.includes('.pdf');
+};
+
+export default function SubjectContentManagement() {
+  const { toast } = useToast();
+
+  const [subjects, setSubjects] = useState<SubjectItem[]>([]);
+  const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
+
+  const [contents, setContents] = useState<ContentItem[]>([]);
+  const [isLoadingContents, setIsLoadingContents] = useState(false);
+
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
+
+  const [isAddSubjectOpen, setIsAddSubjectOpen] = useState(false);
+  const [newSubjectName, setNewSubjectName] = useState('');
+
+  const [isAddContentOpen, setIsAddContentOpen] = useState(false);
+  const [contentForm, setContentForm] = useState({
+    title: '',
+    description: '',
+    type: 'Video' as ContentType,
+    date: '',
+    fileUrl: '',
+  });
+
+  const [isSavingSubject, setIsSavingSubject] = useState(false);
+  const [isSavingContent, setIsSavingContent] = useState(false);
+  const [deletingSubjectId, setDeletingSubjectId] = useState<string | null>(null);
+  const [deletingContentId, setDeletingContentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Load subjects and content as soon as the page mounts
+    fetchSubjects();
+    fetchContents();
+  }, []);
+
+  // Unique class labels derived from subject data, e.g. "Class 6"
+  const classOptions = useMemo(() => {
+    const classSet = new Set<string>();
+    subjects.forEach((subj) => {
+      // Prefer explicit classNumber if present
+      if (subj.classNumber) {
+        classSet.add(`Class ${subj.classNumber}`);
+        return;
+      }
+      // Fallback: derive from subject.name suffix (e.g. "Chemistry_10")
+      const classNum = extractClassNumberFromSubjectName(subj.name);
+      if (classNum) {
+        classSet.add(`Class ${classNum}`);
+      }
+    });
+    return Array.from(classSet).sort((a, b) => {
+      const aNum = parseInt(a.replace('Class ', ''), 10);
+      const bNum = parseInt(b.replace('Class ', ''), 10);
+      if (Number.isNaN(aNum) || Number.isNaN(bNum)) return a.localeCompare(b);
+      return aNum - bNum;
+    });
+  }, [subjects]);
+
+  const [selectedClassLabel, setSelectedClassLabel] = useState<string | null>(null);
+
+  // When subjects load, auto-select first class (for auto page load UX)
+  useEffect(() => {
+    if (!selectedClassLabel && classOptions.length > 0) {
+      setSelectedClassLabel(classOptions[0]);
+    }
+  }, [classOptions, selectedClassLabel]);
+
+  const selectedClassNumber =
+    selectedClassLabel?.startsWith('Class ')
+      ? selectedClassLabel.replace('Class ', '')
+      : '';
+
+  const filteredSubjects = useMemo(() => {
+    if (!selectedClassNumber) return [];
+    return subjects.filter((subj) => {
+      if (subj.classNumber && subj.classNumber === selectedClassNumber) return true;
+      const fromName = extractClassNumberFromSubjectName(subj.name);
+      return fromName === selectedClassNumber;
+    });
+  }, [subjects, selectedClassNumber]);
+
+  const filteredContents = useMemo(() => {
+    if (!selectedSubjectId) return [];
+
+    // Find selected subject name for graceful name-based matching
+    const selectedSubject = subjects.find((s) => s._id === selectedSubjectId);
+    const selectedSubjectName = selectedSubject
+      ? extractPlainSubjectName(selectedSubject.name).toLowerCase()
+      : '';
+
+    return contents.filter((item) => {
+      // Prefer strict id match if subject object is present
+      if (item.subject?._id === selectedSubjectId) return true;
+
+      if (!selectedSubjectName) return false;
+
+      // Fallback: match by subject name text when structure differs
+      const itemSubjectName = item.subject?.name
+        ? extractPlainSubjectName(item.subject.name).toLowerCase()
+        : '';
+
+      return itemSubjectName.includes(selectedSubjectName);
+    });
+  }, [contents, selectedSubjectId, subjects]);
+
+  const fetchSubjects = async () => {
+    setIsLoadingSubjects(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(
+        `${API_BASE_URL}/api/super-admin/boards/${BOARD_CODE}/subjects`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && Array.isArray(data.data)) {
+          setSubjects(data.data);
+        }
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to load subjects',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch subjects:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load subjects',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingSubjects(false);
+    }
+  };
+
+  const fetchContents = async () => {
+    setIsLoadingContents(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(
+        `${API_BASE_URL}/api/super-admin/boards/${BOARD_CODE}/content`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && Array.isArray(data.data)) {
+          setContents(data.data);
+        }
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to load content',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch contents:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load content',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingContents(false);
+    }
+  };
+
+  const handleOpenAddSubject = () => {
+    if (!selectedClassNumber) {
+      toast({
+        title: 'Select a class',
+        description: 'Please select a class before adding a subject.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setNewSubjectName('');
+    setIsAddSubjectOpen(true);
+  };
+
+  const handleSaveSubject = async () => {
+    if (!newSubjectName.trim() || !selectedClassNumber) {
+      toast({
+        title: 'Validation error',
+        description: 'Subject name is required.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSavingSubject(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const storedName = `${newSubjectName.trim()}_${selectedClassNumber}`;
+      const body = {
+        name: storedName,
+        board: BOARD_CODE,
+      };
+
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/subjects`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok && data.success) {
+        toast({
+          title: 'Subject created',
+          description: 'Subject added successfully under the selected class.',
+        });
+        setIsAddSubjectOpen(false);
+        await fetchSubjects();
+      } else {
+        toast({
+          title: 'Error',
+          description: data.message || 'Failed to create subject',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to create subject:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create subject',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingSubject(false);
+    }
+  };
+
+  const handleDeleteSubject = async (subjectId: string) => {
+    if (!window.confirm('Delete this subject and all its content?')) return;
+    setDeletingSubjectId(subjectId);
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(
+        `${API_BASE_URL}/api/super-admin/subjects/${subjectId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        toast({
+          title: 'Subject deleted',
+          description: 'Subject and related content deleted successfully.',
+        });
+        if (selectedSubjectId === subjectId) {
+          setSelectedSubjectId(null);
+        }
+        await fetchSubjects();
+        await fetchContents();
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to delete subject',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to delete subject:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete subject',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingSubjectId(null);
+    }
+  };
+
+  const handleOpenAddContent = () => {
+    if (!selectedSubjectId || !selectedClassNumber) {
+      toast({
+        title: 'Select subject',
+        description: 'Please select a subject before adding content.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setContentForm({
+      title: '',
+      description: '',
+      type: 'Video',
+      date: new Date().toISOString().slice(0, 10),
+      fileUrl: '',
+    });
+    setIsAddContentOpen(true);
+  };
+
+  const handleSaveContent = async () => {
+    if (
+      !selectedSubjectId ||
+      !selectedClassNumber ||
+      !contentForm.title.trim() ||
+      !contentForm.date ||
+      !contentForm.fileUrl.trim()
+    ) {
+      toast({
+        title: 'Validation error',
+        description:
+          'Title, date, file/video URL, class and subject are required.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSavingContent(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const body: any = {
+        title: contentForm.title.trim(),
+        description: contentForm.description?.trim() || undefined,
+        type: contentForm.type,
+        board: BOARD_CODE,
+        subject: selectedSubjectId,
+        date: contentForm.date,
+        fileUrl: contentForm.fileUrl.trim(),
+        classNumber: selectedClassNumber,
+      };
+
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/content`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok && data.success) {
+        toast({
+          title: 'Content added',
+          description: 'Content added successfully under the selected subject.',
+        });
+        setIsAddContentOpen(false);
+        await fetchContents();
+      } else {
+        toast({
+          title: 'Error',
+          description: data.message || 'Failed to add content',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to add content:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to add content',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingContent(false);
+    }
+  };
+
+  const handleDeleteContent = async (contentId: string) => {
+    if (!window.confirm('Delete this content item?')) return;
+    setDeletingContentId(contentId);
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(
+        `${API_BASE_URL}/api/super-admin/content/${contentId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.ok) {
+        toast({
+          title: 'Content deleted',
+          description: 'Content deleted successfully.',
+        });
+        await fetchContents();
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to delete content',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to delete content:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete content',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingContentId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold text-gray-900">
+            Subject &amp; Content Management
+          </h2>
+          <p className="text-gray-600 mt-1">
+            Manage subjects and learning content by class in one place.
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        {/* Row 1: Classes | Subjects */}
+        <div className="grid grid-cols-1 lg:grid-cols-[300px,minmax(0,1fr)] gap-5">
+          {/* Left: Classes */}
+          <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Classes</span>
+              {isLoadingSubjects && <Loader2 className="w-4 h-4 animate-spin" />}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {classOptions.length === 0 && !isLoadingSubjects ? (
+              <p className="text-sm text-gray-500">
+                No classes found yet. Create a subject first to populate classes.
+              </p>
+            ) : (
+              <div className="space-y-2 max-h-[480px] overflow-auto pr-1">
+                {classOptions.map((label) => {
+                  const isActive = label === selectedClassLabel;
+                  return (
+                    <button
+                      key={label}
+                      onClick={() => {
+                        setSelectedClassLabel(label);
+                        setSelectedSubjectId(null);
+                      }}
+                      className={`w-full flex items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+                        isActive
+                          ? 'border-sky-400 bg-sky-50'
+                          : 'border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <div className="font-medium text-gray-900">{label}</div>
+                      <ChevronRight className="w-4 h-4 text-gray-400" />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+          </Card>
+
+          {/* Right: Subjects under Class */}
+          <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle>Subjects under Class</CardTitle>
+              <p className="text-sm text-gray-500">
+                {selectedClassLabel
+                  ? `Showing subjects for ${selectedClassLabel}`
+                  : 'Select a class to see subjects.'}
+              </p>
+            </div>
+            <Button
+              size="sm"
+              onClick={handleOpenAddSubject}
+              disabled={!selectedClassNumber}
+              className="bg-gradient-to-r from-orange-400 to-sky-400 hover:from-orange-500 hover:to-sky-500 text-white"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add Subject
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {isLoadingSubjects ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="w-6 h-6 animate-spin text-sky-500" />
+              </div>
+            ) : !selectedClassNumber ? (
+              <p className="text-sm text-gray-500">
+                Select a class from the left to view its subjects.
+              </p>
+            ) : filteredSubjects.length === 0 ? (
+              <div className="py-8 text-center text-sm text-gray-500">
+                No subjects found for this class. Use &quot;Add Subject&quot; to
+                create one.
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[480px] overflow-auto pr-1">
+                {filteredSubjects.map((subj) => {
+                  const isActive = selectedSubjectId === subj._id;
+                  const Icon = BookOpen;
+                  return (
+                    <div
+                      key={subj._id}
+                      className={`flex items-center justify-between rounded-md border px-3 py-2 text-sm ${
+                        isActive
+                          ? 'border-sky-400 bg-sky-50'
+                          : 'border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <button
+                        className="flex items-center gap-3 flex-1 text-left"
+                        onClick={() => setSelectedSubjectId(subj._id)}
+                      >
+                        <div className="p-2 rounded-md bg-sky-100 text-sky-700">
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {extractPlainSubjectName(subj.name)}
+                          </div>
+                          {subj.description && (
+                            <div className="text-xs text-gray-500 line-clamp-1">
+                              {subj.description}
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                      <div className="flex items-center gap-1 ml-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          disabled
+                          className="text-gray-400 hover:text-gray-500"
+                          title="Edit subject (not available yet)"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteSubject(subj._id)}
+                          disabled={deletingSubjectId === subj._id}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          {deletingSubjectId === subj._id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+          </Card>
+        </div>
+
+        {/* Row 2: Content under Subject (full width) */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle>Content under Subject</CardTitle>
+              <p className="text-sm text-gray-500">
+                {selectedSubjectId
+                  ? 'Content items linked to the selected subject.'
+                  : 'Select a subject to see its content.'}
+              </p>
+            </div>
+            <Button
+              size="sm"
+              onClick={handleOpenAddContent}
+              disabled={!selectedSubjectId || !selectedClassNumber}
+              className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Add Content
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {isLoadingContents ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 className="w-6 h-6 animate-spin text-sky-500" />
+              </div>
+            ) : !selectedSubjectId ? (
+              <p className="text-sm text-gray-500">Select a subject to view content.</p>
+            ) : filteredContents.length === 0 ? (
+              <div className="py-8 text-center text-sm text-gray-500">
+                No content found for this subject. Use &quot;Add Content&quot; to
+                create one.
+              </div>
+            ) : (
+              <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
+                {filteredContents.map((content) => {
+                  const Icon = getContentTypeIcon(content.type);
+                  const subjectLabel = content.subject?.name
+                    ? extractPlainSubjectName(content.subject.name)
+                    : '';
+                  const durationLabel =
+                    content.duration && content.duration > 0
+                      ? `${content.duration} mins`
+                      : '0 mins';
+
+                  const thumbnailSrc =
+                    content.thumbnailUrl ||
+                    content.thumbnail ||
+                    content.videoThumbnail ||
+                    content.previewImage ||
+                    content.image ||
+                    null;
+
+                  const fileUrl = content.fileUrl.startsWith('http')
+                    ? content.fileUrl
+                    : `${API_BASE_URL}${content.fileUrl}`;
+
+                  const showPdfPreview = !thumbnailSrc && isPdfUrl(fileUrl);
+                  const pdfPreviewUrl = showPdfPreview
+                    ? `${fileUrl}#page=1&view=FitH&toolbar=0&navpanes=0&scrollbar=0`
+                    : null;
+
+                  return (
+                    <div
+                      key={content._id}
+                      className="group rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col"
+                    >
+                      <div className="relative h-40 overflow-hidden bg-gradient-to-br from-sky-300 to-teal-400 flex items-center justify-center">
+                        {thumbnailSrc ? (
+                          <img
+                            src={thumbnailSrc}
+                            alt={content.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : showPdfPreview && pdfPreviewUrl ? (
+                          <iframe
+                            src={pdfPreviewUrl}
+                            title={`${content.title} preview`}
+                            className="w-full h-full"
+                            style={{ border: 0 }}
+                          />
+                        ) : content.type === 'Video' ? (
+                          <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                            <Video className="w-8 h-8 text-sky-500" />
+                          </div>
+                        ) : (
+                          <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                            <Icon className="w-7 h-7 text-sky-500" />
+                          </div>
+                        )}
+                        <div className="absolute bottom-2 right-2 px-2 py-1 rounded-full bg-black/70 text-white text-xs">
+                          {durationLabel}
+                        </div>
+                      </div>
+
+                      <div className="p-4 flex-1 flex flex-col space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="font-semibold text-gray-900 text-sm line-clamp-2">
+                            {content.title}
+                          </h4>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                          {subjectLabel && (
+                            <Badge
+                              variant="outline"
+                              className="border-sky-200 bg-sky-50 text-sky-700"
+                            >
+                              {subjectLabel}
+                            </Badge>
+                          )}
+                          <Badge
+                            variant="outline"
+                            className="border-gray-200 bg-gray-50 text-gray-700"
+                          >
+                            {content.type}
+                          </Badge>
+                          <span>
+                            {new Date(content.date || content.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        {content.topic && (
+                          <p className="text-xs text-gray-600 line-clamp-1">
+                            Topic: {content.topic}
+                          </p>
+                        )}
+                        {content.description && (
+                          <p className="text-xs text-gray-500 line-clamp-2">
+                            {content.description}
+                          </p>
+                        )}
+
+                        <div className="mt-3 flex items-center justify-between">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                            onClick={() =>
+                              window.open(fileUrl, '_blank', 'noopener,noreferrer')
+                            }
+                          >
+                            View
+                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled
+                              className="text-gray-400 hover:text-gray-500"
+                              title="Edit content (coming soon)"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteContent(content._id)}
+                              disabled={deletingContentId === content._id}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              {deletingContentId === content._id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Dialog open={isAddSubjectOpen} onOpenChange={setIsAddSubjectOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Subject</DialogTitle>
+            <DialogDescription>
+              Create a new subject under the selected class. The class is auto
+              selected.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Class</Label>
+              <Input value={selectedClassLabel ?? ''} disabled />
+            </div>
+            <div>
+              <Label>Subject Name</Label>
+              <Input
+                placeholder="e.g., Mathematics"
+                value={newSubjectName}
+                onChange={(e) => setNewSubjectName(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddSubjectOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSaveSubject}
+                disabled={isSavingSubject}
+                className="bg-gradient-to-r from-orange-400 to-sky-400 hover:from-orange-500 hover:to-sky-500 text-white"
+              >
+                {isSavingSubject && (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                )}
+                Save
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAddContentOpen} onOpenChange={setIsAddContentOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add Content</DialogTitle>
+            <DialogDescription>
+              Upload or link learning content for the selected subject. Class and
+              subject are auto selected.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Class</Label>
+                <Input value={selectedClassLabel ?? ''} disabled />
+              </div>
+              <div>
+                <Label>Subject</Label>
+                <Input
+                  value={
+                    selectedSubjectId
+                      ? extractPlainSubjectName(
+                          filteredSubjects.find((s) => s._id === selectedSubjectId)
+                            ?.name || ''
+                        )
+                      : ''
+                  }
+                  disabled
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Content Title</Label>
+              <Input
+                value={contentForm.title}
+                onChange={(e) =>
+                  setContentForm((prev) => ({ ...prev, title: e.target.value }))
+                }
+                placeholder="e.g., Algebra Basics - Part 1"
+              />
+            </div>
+            <div>
+              <Label>Description</Label>
+              <Textarea
+                value={contentForm.description}
+                onChange={(e) =>
+                  setContentForm((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
+                rows={3}
+                placeholder="Short description for this content"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Type</Label>
+                <Select
+                  value={contentForm.type}
+                  onValueChange={(value: ContentType) =>
+                    setContentForm((prev) => ({ ...prev, type: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Video">Video</SelectItem>
+                    <SelectItem value="TextBook">TextBook</SelectItem>
+                    <SelectItem value="Workbook">Workbook</SelectItem>
+                    <SelectItem value="Material">Material</SelectItem>
+                    <SelectItem value="Audio">Audio</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Date</Label>
+                <Input
+                  type="date"
+                  value={contentForm.date}
+                  onChange={(e) =>
+                    setContentForm((prev) => ({ ...prev, date: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+            <div>
+              <Label>File / Video / Document URL</Label>
+              <Input
+                value={contentForm.fileUrl}
+                onChange={(e) =>
+                  setContentForm((prev) => ({
+                    ...prev,
+                    fileUrl: e.target.value,
+                  }))
+                }
+                placeholder="https://..."
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddContentOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSaveContent}
+                disabled={isSavingContent}
+                className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
+              >
+                {isSavingContent && (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                )}
+                Save
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+

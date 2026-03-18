@@ -7,6 +7,7 @@ import DetailedAIAnalyticsDashboard from "./detailed-ai-analytics";
 import BoardComparisonCharts from "@/components/admin/board-comparison-charts";
 import ContentManagement from "@/components/super-admin/content-management";
 import SubjectManagement from "@/components/super-admin/subject-management";
+import SubjectContentManagement from "@/components/super-admin/subject-content-management";
 import ExamManagement from "@/components/super-admin/exam-management";
 import IQRankBoostActivities from "@/components/super-admin/iq-rank-boost-activities";
 import SuperAdminCalendar from "@/components/super-admin/super-admin-calendar";
@@ -52,6 +53,7 @@ export default function SuperAdminDashboard() {
   const [selectedBoard, setSelectedBoard] = useState<string | null>(null);
   const [boardData, setBoardData] = useState<any>(null);
   const [isLoadingBoard, setIsLoadingBoard] = useState(false);
+  const [boardError, setBoardError] = useState<string | null>(null);
   const [adminSummary, setAdminSummary] = useState<any[]>([]);
 
   // Fetch real dashboard stats
@@ -153,8 +155,13 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  const fetchBoardDashboard = async (boardCode: string, showToast = true) => {
+  const fetchBoardDashboard = async (
+    boardCode: string,
+    showToast = true,
+    switchView: boolean = true
+  ) => {
     setIsLoadingBoard(true);
+    setBoardError(null);
     try {
       const token = localStorage.getItem('authToken');
       console.log('📊 Fetching board dashboard for:', boardCode);
@@ -175,9 +182,14 @@ export default function SuperAdminDashboard() {
           console.log('Schools found:', data.data.schoolParticipation?.length || 0);
           setBoardData(data.data);
           setSelectedBoard(boardCode);
-          setCurrentView('board');
+          if (switchView) {
+            setCurrentView('board');
+          }
         } else {
           console.error('API returned success: false:', data.message);
+          setBoardData(null);
+          setSelectedBoard(boardCode);
+          setBoardError(data.message || 'Failed to fetch board data');
           if (showToast) {
             toast({
               title: 'Error',
@@ -189,6 +201,9 @@ export default function SuperAdminDashboard() {
       } else {
         const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
         console.error('API error response:', errorData);
+        setBoardData(null);
+        setSelectedBoard(boardCode);
+        setBoardError(errorData.message || `Failed to fetch board dashboard (${response.status})`);
         if (showToast) {
           toast({
             title: 'Error',
@@ -199,6 +214,9 @@ export default function SuperAdminDashboard() {
       }
     } catch (error) {
       console.error('Error fetching board dashboard:', error);
+      setBoardData(null);
+      setSelectedBoard(boardCode);
+      setBoardError('Failed to fetch board dashboard. Please check your connection.');
       if (showToast) {
         toast({
           title: 'Error',
@@ -218,6 +236,16 @@ export default function SuperAdminDashboard() {
   // Chart data will be populated from real analytics when available
   const [coursesPerBoardData, setCoursesPerBoardData] = useState<Array<{name: string, value: number, color: string}>>([]);
   const [studentsPerAdminData, setStudentsPerAdminData] = useState<Array<{[key: string]: string | number}>>([]);
+
+  // Prefetch default board dashboard data so Board Management opens instantly
+  useEffect(() => {
+    const defaultBoard = 'ASLI_EXCLUSIVE_SCHOOLS';
+    // Only prefetch if we don't already have data for this board
+    if (!boardData && !isLoadingBoard) {
+      fetchBoardDashboard(defaultBoard, false, false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Icon grid using EXACT same icons as sidebar in same order
   const iconGridIcons = [
@@ -688,40 +716,34 @@ export default function SuperAdminDashboard() {
     );
   };
 
-  // Refresh board dashboard when view changes to board
+  // Auto-load board data when entering Board Management
   useEffect(() => {
-    if (currentView === 'board' && selectedBoard) {
-      console.log('🔄 Refreshing board dashboard for:', selectedBoard);
-      fetchBoardDashboard(selectedBoard, false); // Don't show toast on auto-refresh
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentView]); // Only refresh when view changes, not on every render
+    if (currentView !== 'board') return;
+    if (isLoadingBoard) return;
+    if (boardData) return;
+    if (boardError) return;
+
+    const boardCode = selectedBoard || 'ASLI_EXCLUSIVE_SCHOOLS';
+    console.log('🔄 Auto-loading board dashboard for:', boardCode);
+    fetchBoardDashboard(boardCode, false); // Don't show toast on auto-load
+    // Intentionally include dependencies so it runs on mount/view change and doesn't rely on manual refresh.
+  }, [currentView, selectedBoard, isLoadingBoard, boardData, boardError]);
 
   const renderBoardDashboard = () => {
-    if (isLoadingBoard) {
-      return (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="w-8 h-8 border-4 border-orange-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading board data...</p>
-          </div>
-        </div>
-      );
-    }
-
-    if (!boardData) {
+    if (boardError) {
       return (
         <div className="text-center py-12">
-          <p className="text-gray-600">No board data available. Please try again.</p>
+          <p className="text-gray-600">{boardError}</p>
           <Button onClick={() => fetchBoardDashboard(selectedBoard || 'ASLI_EXCLUSIVE_SCHOOLS')} className="mt-4">
-            Refresh
+            Retry
           </Button>
         </div>
       );
     }
 
-    console.log('Rendering board dashboard with data:', boardData);
-    let boardName = boardData.board?.name || selectedBoard || 'Board';
+    // Use cached data when available; otherwise fall back to safe defaults
+    const stats = boardData?.stats || {};
+    let boardName = boardData?.board?.name || selectedBoard || 'Board';
     // Format board name to title case
     if (boardName === 'ASLI EXCLUSIVE SCHOOLS' || boardName === 'ASLI_EXCLUSIVE_SCHOOLS') {
       boardName = 'Asli Exclusive Schools';
@@ -748,7 +770,7 @@ export default function SuperAdminDashboard() {
             <CardContent className="p-6">
               <p className="text-sm text-orange-600 font-medium">Students</p>
               <p className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-orange-300 bg-clip-text text-transparent">
-                {typeof boardData.stats?.students === 'number' ? boardData.stats.students : 0}
+                {typeof stats.students === 'number' ? stats.students : 0}
               </p>
             </CardContent>
           </Card>
@@ -756,7 +778,7 @@ export default function SuperAdminDashboard() {
             <CardContent className="p-6">
               <p className="text-sm text-teal-600 font-medium">Teachers</p>
               <p className="text-3xl font-bold bg-gradient-to-r from-teal-400 to-orange-400 bg-clip-text text-transparent">
-                {typeof boardData.stats?.teachers === 'number' ? boardData.stats.teachers : 0}
+                {typeof stats.teachers === 'number' ? stats.teachers : 0}
               </p>
             </CardContent>
           </Card>
@@ -764,7 +786,7 @@ export default function SuperAdminDashboard() {
             <CardContent className="p-6">
               <p className="text-sm text-orange-600 font-medium">Exams</p>
               <p className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-orange-500 bg-clip-text text-transparent">
-                {typeof boardData.stats?.exams === 'number' ? boardData.stats.exams : 0}
+                {typeof stats.exams === 'number' ? stats.exams : 0}
               </p>
             </CardContent>
           </Card>
@@ -772,7 +794,9 @@ export default function SuperAdminDashboard() {
             <CardContent className="p-6">
               <p className="text-sm text-violet-700 font-medium">Avg Score</p>
               <p className="text-3xl font-bold bg-gradient-to-r from-teal-400 to-orange-400 bg-clip-text text-transparent">
-                {boardData.stats?.averageScore ? `${boardData.stats.averageScore}%` : '0.00%'}
+                {typeof stats.averageScore === 'number' || typeof stats.averageScore === 'string'
+                  ? `${stats.averageScore}%`
+                  : '0.00%'}
               </p>
             </CardContent>
           </Card>
@@ -931,6 +955,8 @@ export default function SuperAdminDashboard() {
         return renderBoardDashboard();
       case 'admins':
         return renderAdminsContent();
+      case 'subjects-and-content':
+        return <SubjectContentManagement />;
       case 'content':
         return <ContentManagement />;
       case 'subjects':
@@ -968,18 +994,18 @@ export default function SuperAdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex">
-        <SuperAdminSidebar 
-          currentView={currentView} 
-          onViewChange={setCurrentView} 
-          user={user} 
-        />
-        
-        <div className="flex-1">
-          <div className="p-6">
-            {renderContent()}
-          </div>
+    <div className="bg-gray-50">
+      {/* Fixed sidebar */}
+      <SuperAdminSidebar
+        currentView={currentView}
+        onViewChange={setCurrentView}
+        user={user}
+      />
+
+      {/* Scrollable main content area */}
+      <div className="ml-64 h-screen overflow-y-auto">
+        <div className="p-6">
+          {renderContent()}
         </div>
       </div>
     </div>

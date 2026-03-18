@@ -1,9 +1,9 @@
-import { 
-  BarChart3Icon, 
-  UsersIcon, 
-  BookIcon, 
-  BarChartIcon, 
-  CreditCardIcon, 
+import {
+  BarChart3Icon,
+  UsersIcon,
+  BookIcon,
+  BarChartIcon,
+  CreditCardIcon,
   SettingsIcon,
   CrownIcon,
   UserPlusIcon,
@@ -13,6 +13,7 @@ import {
   FileTextIcon,
   TrophyIcon,
   Sparkles,
+  LayoutList,
   CircleDot,
   Shield,
   Users2,
@@ -21,7 +22,25 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export type SuperAdminView = 'dashboard' | 'admins' | 'analytics' | 'ai-analytics' | 'subscriptions' | 'settings' | 'board-comparison' | 'content' | 'board' | 'subjects' | 'exams' | 'iq-rank-boost' | 'vidya-ai' | 'courses' | 'add-admin' | 'calendar' | 'ai-risk-analysis';
+export type SuperAdminView =
+  | 'dashboard'
+  | 'admins'
+  | 'analytics'
+  | 'ai-analytics'
+  | 'subscriptions'
+  | 'settings'
+  | 'board-comparison'
+  | 'content'
+  | 'board'
+  | 'subjects'
+  | 'subjects-and-content'
+  | 'exams'
+  | 'iq-rank-boost'
+  | 'vidya-ai'
+  | 'courses'
+  | 'add-admin'
+  | 'calendar'
+  | 'ai-risk-analysis';
 
 interface SuperAdminSidebarProps {
   currentView: SuperAdminView;
@@ -34,8 +53,9 @@ export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdmi
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3Icon },
     { id: 'board', label: 'Board Management', icon: Users2 },
     { id: 'admins', label: 'School Management', icon: Shield },
-    { id: 'subjects', label: 'Subject Management', icon: FileTextIcon },
-    { id: 'content', label: 'Content Management', icon: UploadIcon },
+    { id: 'subjects-and-content', label: 'Subject & Content', icon: LayoutList },
+ //   { id: 'subjects', label: 'Subject Management', icon: FileTextIcon },
+ //   { id: 'content', label: 'Content Management', icon: UploadIcon },
     { id: 'exams', label: 'Exam Management', icon: FileTextIcon },
     { id: 'iq-rank-boost', label: 'IQ/Rank Boost Activities', icon: TrophyIcon },
     { id: 'calendar', label: 'School Calendar', icon: Calendar },
@@ -48,7 +68,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdmi
   ];
 
   return (
-    <div className="w-64 bg-gradient-to-b from-orange-400 to-orange-500 shadow-sm border-r border-orange-300 min-h-screen flex flex-col">
+    <div className="super-admin-sidebar w-64 bg-gradient-to-b from-orange-400 to-orange-500 shadow-sm border-r border-orange-300 h-screen fixed top-0 left-0 overflow-y-auto flex flex-col z-20">
       <div className="p-6">
         <div className="flex items-center space-x-3 mb-8">
           <GraduationCapIcon className="h-8 w-8 text-white" />

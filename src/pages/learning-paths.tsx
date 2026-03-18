@@ -1173,47 +1173,6 @@ export default function LearningPaths() {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="hover:shadow-lg transition-shadow duration-200">
-            <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <BookOpen className="w-6 h-6 text-blue-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Learning Management</h3>
-              <p className="text-gray-600 text-sm mb-4">Build your own learning journey</p>
-              <Button variant="outline" className="w-full">
-                Get Started
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow duration-200">
-            <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Vidya AI</h3>
-              <p className="text-gray-600 text-sm mb-4">Monitor your learning journey</p>
-              <Button variant="outline" className="w-full">
-                View Progress
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow duration-200">
-            <CardContent className="p-6 text-center">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Star className="w-6 h-6 text-blue-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Exams</h3>
-              <p className="text-gray-600 text-sm mb-4">Earn certificates for your achievements</p>
-              <Button variant="outline" className="w-full">
-                View Certificates
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </>
   );

@@ -224,7 +224,7 @@ export default function BoardComparisonCharts() {
 
           const csvContent = [
             headers.map(h => `"${h}"`).join(','),
-            ...rows.map(row => row.join(','))
+            ...rows.map((row: string[]) => row.join(','))
           ].join('\n');
 
           const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

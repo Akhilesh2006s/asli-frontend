@@ -4,18 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { 
   Play, 
   Clock, 
   Search,
-  Filter,
   Video as VideoIcon,
   BookOpen,
   Radio,
@@ -42,6 +34,8 @@ interface Video {
   createdAt: string;
   subjectId?: string;
   subjectName?: string;
+  fileUrl?: string;
+  id?: string;
 }
 
 interface Subject {
@@ -225,6 +219,17 @@ export default function EduOTT() {
     }
   }, [subjects, activeTab]);
 
+  // Auto-select first subject when subjects load
+  useEffect(() => {
+    if (subjects.length > 0 && (selectedSubject === 'all' || !selectedSubject)) {
+      const first = subjects[0];
+      const firstId = (first as any)._id || (first as any).id || (first as any).name;
+      if (firstId) {
+        setSelectedSubject(firstId);
+      }
+    }
+  }, [subjects, selectedSubject]);
+
   // Fetch live sessions
   useEffect(() => {
     const fetchLiveSessions = async () => {
@@ -359,9 +364,32 @@ export default function EduOTT() {
 
             {/* Videos Tab */}
             <TabsContent value="videos" className="space-y-6">
-              {/* Search and Filter Section */}
-              <div className="mb-6 space-y-4 md:space-y-0 md:flex md:items-center md:gap-4">
-                {/* Search Input */}
+              {/* Subjects Section (Top) */}
+              <div className="mb-4">
+                <div className="flex flex-wrap gap-2">
+                  {subjects.map((subject) => {
+                    const value = subject._id || subject.name;
+                    const isActive = selectedSubject === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setSelectedSubject(value)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                          isActive
+                            ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
+                            : 'bg-white text-gray-700 border-gray-200 hover:bg-sky-50 hover:border-sky-300 hover:text-sky-700'
+                        }`}
+                      >
+                        {subject.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Search Section */}
+              <div className="mb-6">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <Input
@@ -371,24 +399,6 @@ export default function EduOTT() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 w-full"
                   />
-                </div>
-
-                {/* Subject Filter */}
-                <div className="md:w-64">
-                  <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                    <SelectTrigger className="w-full">
-                      <Filter className="w-4 h-4 mr-2" />
-                      <SelectValue placeholder="Filter by subject" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Subjects</SelectItem>
-                      {subjects.map((subject) => (
-                        <SelectItem key={subject._id || subject.name} value={subject._id || subject.name}>
-                          {subject.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
               </div>
 
@@ -526,19 +536,29 @@ export default function EduOTT() {
 
                 {/* Status Filter */}
                 <div className="md:w-64">
-                  <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger className="w-full">
-                      <Filter className="w-4 h-4 mr-2" />
-                      <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="scheduled">Scheduled</SelectItem>
-                      <SelectItem value="live">Live</SelectItem>
-                      <SelectItem value="ended">Ended</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2 flex-wrap">
+                    {['all', 'scheduled', 'live', 'ended', 'cancelled'].map((status) => {
+                      const isActive = filterStatus === status;
+                      const label =
+                        status === 'all'
+                          ? 'All Status'
+                          : status.charAt(0).toUpperCase() + status.slice(1);
+                      return (
+                        <button
+                          key={status}
+                          type="button"
+                          onClick={() => setFilterStatus(status)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                            isActive
+                              ? 'bg-sky-600 text-white border-sky-600'
+                              : 'bg-white text-gray-700 border-gray-200 hover:bg-sky-50 hover:border-sky-300 hover:text-sky-700'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
@@ -636,7 +656,7 @@ export default function EduOTT() {
         isOpen={isVideoModalOpen}
         onClose={handleCloseVideoModal}
         video={selectedVideo ? {
-          id: selectedVideo._id || selectedVideo.id,
+          id: selectedVideo._id || selectedVideo.id || '',
           title: selectedVideo.title || '',
           description: selectedVideo.description || '',
           duration: selectedVideo.duration && selectedVideo.duration > 0 
