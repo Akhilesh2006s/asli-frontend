@@ -2,7 +2,7 @@
 // - Development: talk to local backend (update port if your local backend is different)
 // - Production: use HTTPS domain fronted by Nginx + Let's Encrypt
 
-const DEV_URL = "http://localhost:5000";
+const DEV_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const PROD_URL = "https://api.aslilearn.ai";
 
 export const API_BASE_URL =

@@ -18,7 +18,6 @@ import {
   Plus,
   Trash2,
   Video,
-  AudioLines,
   Edit
 } from 'lucide-react';
 
@@ -32,7 +31,7 @@ interface SubjectItem {
   isActive?: boolean;
 }
 
-type ContentType = 'TextBook' | 'Workbook' | 'Material' | 'Video' | 'Audio';
+type ContentType = 'TextBook' | 'Workbook' | 'Material' | 'Video';
 
 interface ContentItem {
   _id: string;
@@ -79,16 +78,25 @@ const getContentTypeIcon = (type: ContentType) => {
     case 'Workbook':
     case 'Material':
       return File;
-    case 'Audio':
-      return AudioLines;
     default:
       return File;
   }
 };
 
+const isUploadType = (type: ContentType) =>
+  type === 'TextBook' || type === 'Workbook' || type === 'Material';
+
 const isPdfUrl = (url: string): boolean => {
   const lower = url.toLowerCase();
   return lower.endsWith('.pdf') || lower.includes('.pdf');
+};
+
+const isServerHostedFileUrl = (url: string): boolean => {
+  const trimmed = url.trim();
+  return (
+    trimmed.startsWith('/uploads/') ||
+    trimmed.startsWith(`${API_BASE_URL}/uploads/`)
+  );
 };
 
 export default function SubjectContentManagement() {
@@ -113,6 +121,8 @@ export default function SubjectContentManagement() {
     date: '',
     fileUrl: '',
   });
+  const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
 
   const [isSavingSubject, setIsSavingSubject] = useState(false);
   const [isSavingContent, setIsSavingContent] = useState(false);
@@ -421,6 +431,16 @@ export default function SubjectContentManagement() {
       return;
     }
 
+    if (!isServerHostedFileUrl(contentForm.fileUrl)) {
+      toast({
+        title: 'Upload required',
+        description:
+          'Please upload the file first. Only DigitalOcean server files (/uploads/...) are allowed.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSavingContent(true);
     try {
       const token = localStorage.getItem('authToken');
@@ -469,6 +489,64 @@ export default function SubjectContentManagement() {
       });
     } finally {
       setIsSavingContent(false);
+    }
+  };
+
+  const handleUploadContentFile = async () => {
+    if (!selectedUploadFile) {
+      toast({
+        title: 'Select a file',
+        description: 'Please choose a file to upload first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUploadingFile(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const formData = new FormData();
+      formData.append('file', selectedUploadFile);
+      formData.append('contentType', contentForm.type);
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/super-admin/content/upload-file?contentType=${encodeURIComponent(
+          contentForm.type
+        )}`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok && data.success && typeof data.fileUrl === 'string') {
+        setContentForm((prev) => ({ ...prev, fileUrl: data.fileUrl }));
+        setSelectedUploadFile(null);
+        toast({
+          title: 'Uploaded',
+          description: 'File uploaded successfully. You can now save the content.',
+        });
+      } else {
+        toast({
+          title: 'Upload failed',
+          description: data.message || 'Failed to upload file',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to upload content file:', error);
+      toast({
+        title: 'Upload failed',
+        description: 'Failed to upload file',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploadingFile(false);
     }
   };
 
@@ -952,7 +1030,7 @@ export default function SubjectContentManagement() {
                 <Select
                   value={contentForm.type}
                   onValueChange={(value: ContentType) =>
-                    setContentForm((prev) => ({ ...prev, type: value }))
+                    setContentForm((prev) => ({ ...prev, type: value, fileUrl: '' }))
                   }
                 >
                   <SelectTrigger>
@@ -963,7 +1041,6 @@ export default function SubjectContentManagement() {
                     <SelectItem value="TextBook">TextBook</SelectItem>
                     <SelectItem value="Workbook">Workbook</SelectItem>
                     <SelectItem value="Material">Material</SelectItem>
-                    <SelectItem value="Audio">Audio</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -979,17 +1056,43 @@ export default function SubjectContentManagement() {
               </div>
             </div>
             <div>
-              <Label>File / Video / Document URL</Label>
-              <Input
-                value={contentForm.fileUrl}
-                onChange={(e) =>
-                  setContentForm((prev) => ({
-                    ...prev,
-                    fileUrl: e.target.value,
-                  }))
-                }
-                placeholder="https://..."
-              />
+              <Label>Upload File (saved on DigitalOcean server)</Label>
+              <div className="mt-2 flex flex-col gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Input
+                    type="file"
+                    accept={
+                      isUploadType(contentForm.type)
+                        ? '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx'
+                        : 'video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/webm,video/x-matroska'
+                    }
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      setSelectedUploadFile(file);
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleUploadContentFile}
+                    disabled={isUploadingFile || !selectedUploadFile}
+                  >
+                    {isUploadingFile ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Uploading
+                      </span>
+                    ) : (
+                      'Upload'
+                    )}
+                  </Button>
+                </div>
+                <Input
+                  value={contentForm.fileUrl}
+                  readOnly
+                  placeholder="Uploaded file path will appear here (/uploads/...)"
+                />
+              </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button
