@@ -1,9 +1,9 @@
 // API config
-// - Development: talk to local backend (update port if your local backend is different)
-// - Production: use HTTPS domain fronted by Nginx + Let's Encrypt
+// - Development: use local/non-SSL backend if needed
+// - Production: MUST use HTTPS API endpoint (no mixed content)
 
 const DEV_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const PROD_URL = import.meta.env.VITE_API_URL || "http://134.199.232.175:5000";
+const PROD_URL = import.meta.env.VITE_API_URL_PROD || "https://api.aslilearn.ai";
 
 export const API_BASE_URL =
   import.meta.env.MODE === "production" ? PROD_URL : DEV_URL;
