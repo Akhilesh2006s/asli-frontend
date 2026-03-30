@@ -3,7 +3,7 @@
 // - Production: use HTTPS domain fronted by Nginx + Let's Encrypt
 
 const DEV_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const PROD_URL = "https://api.aslilearn.ai";
+const PROD_URL = import.meta.env.VITE_API_URL || "http://134.199.232.175:5000";
 
 export const API_BASE_URL =
   import.meta.env.MODE === "production" ? PROD_URL : DEV_URL;
