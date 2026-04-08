@@ -61,6 +61,45 @@ function monthKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
+/** Super-admin path is canonical; retry legacy `/api/calendar/events` only if the server returns 404 (old deploys / gateway rules). */
+async function fetchCalendarEventsGet(
+  searchParams: URLSearchParams,
+  token: string | null
+): Promise<Response> {
+  const headers: HeadersInit = {
+    ...(token && { Authorization: `Bearer ${token}` }),
+    'Content-Type': 'application/json',
+  };
+  const paths = ['/api/super-admin/calendar/events', '/api/calendar/events'] as const;
+  let last: Response | undefined;
+  for (const path of paths) {
+    last = await fetch(`${API_BASE_URL}${path}?${searchParams.toString()}`, { headers });
+    if (last.status !== 404) return last;
+  }
+  return last!;
+}
+
+async function fetchCalendarEventsPost(
+  body: Record<string, unknown>,
+  token: string | null
+): Promise<Response> {
+  const headers: HeadersInit = {
+    ...(token && { Authorization: `Bearer ${token}` }),
+    'Content-Type': 'application/json',
+  };
+  const paths = ['/api/super-admin/calendar/events', '/api/calendar/events'] as const;
+  let last: Response | undefined;
+  for (const path of paths) {
+    last = await fetch(`${API_BASE_URL}${path}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+    if (last.status !== 404) return last;
+  }
+  return last!;
+}
+
 function toDatetimeLocal(d: Date) {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -135,13 +174,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
       if (selectedSchoolId && selectedSchoolId !== 'all') {
         params.set('schoolId', selectedSchoolId);
       }
-      const url = `${API_BASE_URL}/api/calendar/events?${params.toString()}`;
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetchCalendarEventsGet(params, token);
 
       if (response.ok) {
         const data = await response.json();
@@ -327,21 +360,17 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
         setIsSavingCustom(false);
         return;
       }
-      const response = await fetch(`${API_BASE_URL}/api/calendar/events`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const response = await fetchCalendarEventsPost(
+        {
           title: customTitle.trim(),
           schoolId: selectedSchoolId,
           startDate: start.toISOString(),
           endDate: end.toISOString(),
           eventKind: customKind,
           description: customDescription.trim(),
-        }),
-      });
+        },
+        token
+      );
       const data = await response.json().catch(() => ({}));
       if (response.ok && data.success) {
         toast({ title: 'Saved', description: 'Event added to calendar' });
