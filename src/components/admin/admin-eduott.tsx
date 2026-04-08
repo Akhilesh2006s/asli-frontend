@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,11 @@ import {
 import VideoModal from '@/components/video-modal';
 import { API_BASE_URL } from '@/lib/api-config';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Label } from '@/components/ui/label';
+import {
+  extractPlainSubjectName,
+  getSubjectClassLabel,
+} from '@/lib/subject-names';
 
 interface Video {
   _id: string;
@@ -40,6 +45,7 @@ interface Video {
   createdAt: string;
   subjectId?: string;
   subjectName?: string;
+  classNumber?: string;
 }
 
 interface LiveSession {
@@ -66,51 +72,29 @@ interface LiveSession {
   createdAt: string;
 }
 
-interface Subject {
-  _id: string;
-  name: string;
-}
-
 export default function AdminEduOTT() {
   const [activeTab, setActiveTab] = useState('videos');
   const [videos, setVideos] = useState<Video[]>([]);
   const [liveSessions, setLiveSessions] = useState<LiveSession[]>([]);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sessionSearchTerm, setSessionSearchTerm] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState<string>('all');
+  const [videoClassFilter, setVideoClassFilter] = useState<string>('all');
+  const [videoSubjectFilter, setVideoSubjectFilter] = useState<string>('all');
+  const [sessionClassFilter, setSessionClassFilter] = useState<string>('all');
+  const [sessionSubjectFilter, setSessionSubjectFilter] = useState<string>('all');
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
-  // Fetch subjects
   useEffect(() => {
-    const fetchSubjects = async () => {
-      try {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
+    setVideoSubjectFilter('all');
+  }, [videoClassFilter]);
 
-        const response = await fetch(`${API_BASE_URL}/api/admin/subjects`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const subjectsList = Array.isArray(data) ? data : (data.data || data.subjects || []);
-          setSubjects(subjectsList);
-        }
-      } catch (error) {
-        console.error('Failed to fetch subjects:', error);
-      }
-    };
-
-    fetchSubjects();
-  }, []);
+  useEffect(() => {
+    setSessionSubjectFilter('all');
+  }, [sessionClassFilter]);
 
   // Fetch videos
   useEffect(() => {
@@ -137,6 +121,13 @@ export default function AdminEduOTT() {
           const videosWithSubjects = videosList.map((content: any) => {
             const subjectName = content.subject?.name || content.subject || 'Unknown Subject';
             const subjectId = content.subject?._id || content.subject;
+            const classNum =
+              content.classNumber != null && String(content.classNumber).trim() !== ''
+                ? String(content.classNumber).trim()
+                : content.subject?.classNumber != null &&
+                    String(content.subject.classNumber).trim() !== ''
+                  ? String(content.subject.classNumber).trim()
+                  : undefined;
             
             const rawDuration = content.duration;
             const durationInMinutes = rawDuration && rawDuration > 0 
@@ -166,7 +157,8 @@ export default function AdminEduOTT() {
               views: content.views || 0,
               createdAt: content.createdAt || content.date || new Date().toISOString(),
               subjectId: subjectId,
-              subjectName: subjectName
+              subjectName: subjectName,
+              classNumber: classNum
             };
           });
 
@@ -221,19 +213,100 @@ export default function AdminEduOTT() {
     }
   }, [activeTab]);
 
-  const filteredVideos = videos.filter(video => {
-    const matchesSearch = video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      video.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSubject = selectedSubject === 'all' || video.subjectId === selectedSubject;
-    return matchesSearch && matchesSubject;
-  });
+  const videoClassOptions = useMemo(() => {
+    const set = new Set<string>();
+    videos.forEach((v) => {
+      const l = getSubjectClassLabel({
+        name: v.subjectName,
+        classNumber: v.classNumber,
+      });
+      if (l) set.add(l);
+    });
+    return Array.from(set).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+  }, [videos]);
 
-  const filteredSessions = liveSessions.filter(session => {
-    const matchesSearch = session.title.toLowerCase().includes(sessionSearchTerm.toLowerCase()) ||
-      session.description?.toLowerCase().includes(sessionSearchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || session.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+  const videoSubjectOptions = useMemo(() => {
+    const names = new Set<string>();
+    videos.forEach((v) => {
+      const l = getSubjectClassLabel({
+        name: v.subjectName,
+        classNumber: v.classNumber,
+      });
+      if (videoClassFilter !== 'all' && l !== videoClassFilter) return;
+      names.add(extractPlainSubjectName(v.subjectName || '').trim());
+    });
+    return Array.from(names).filter(Boolean).sort((a, b) => a.localeCompare(b));
+  }, [videos, videoClassFilter]);
+
+  const filteredVideos = useMemo(() => {
+    return videos.filter((video) => {
+      const matchesSearch =
+        video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (video.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const classL = getSubjectClassLabel({
+        name: video.subjectName,
+        classNumber: video.classNumber,
+      });
+      const matchesClass =
+        videoClassFilter === 'all' || classL === videoClassFilter;
+      const plain = extractPlainSubjectName(video.subjectName || '').toLowerCase();
+      const matchesSubject =
+        videoSubjectFilter === 'all' ||
+        plain === videoSubjectFilter.toLowerCase();
+      return matchesSearch && matchesClass && matchesSubject;
+    });
+  }, [videos, searchTerm, videoClassFilter, videoSubjectFilter]);
+
+  const sessionClassOptions = useMemo(() => {
+    const set = new Set<string>();
+    liveSessions.forEach((session) => {
+      const l = getSubjectClassLabel({
+        name: session.subject?.name,
+        classNumber: session.classNumber,
+      });
+      if (l) set.add(l);
+    });
+    return Array.from(set).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+  }, [liveSessions]);
+
+  const sessionSubjectOptions = useMemo(() => {
+    const names = new Set<string>();
+    liveSessions.forEach((session) => {
+      const l = getSubjectClassLabel({
+        name: session.subject?.name,
+        classNumber: session.classNumber,
+      });
+      if (sessionClassFilter !== 'all' && l !== sessionClassFilter) return;
+      names.add(extractPlainSubjectName(session.subject?.name || '').trim());
+    });
+    return Array.from(names).filter(Boolean).sort((a, b) => a.localeCompare(b));
+  }, [liveSessions, sessionClassFilter]);
+
+  const filteredSessions = useMemo(() => {
+    return liveSessions.filter((session) => {
+      const matchesSearch =
+        session.title.toLowerCase().includes(sessionSearchTerm.toLowerCase()) ||
+        (session.description || '').toLowerCase().includes(sessionSearchTerm.toLowerCase());
+      const matchesStatus = filterStatus === 'all' || session.status === filterStatus;
+      const classL = getSubjectClassLabel({
+        name: session.subject?.name,
+        classNumber: session.classNumber,
+      });
+      const matchesClass =
+        sessionClassFilter === 'all' || classL === sessionClassFilter;
+      const plain = extractPlainSubjectName(session.subject?.name || '').toLowerCase();
+      const matchesSubject =
+        sessionSubjectFilter === 'all' ||
+        plain === sessionSubjectFilter.toLowerCase();
+      return matchesSearch && matchesStatus && matchesClass && matchesSubject;
+    });
+  }, [
+    liveSessions,
+    sessionSearchTerm,
+    filterStatus,
+    sessionClassFilter,
+    sessionSubjectFilter,
+  ]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -282,8 +355,8 @@ export default function AdminEduOTT() {
           {/* Videos Tab */}
           <TabsContent value="videos" className="space-y-6 mt-6">
             {/* Search and Filter */}
-            <div className="space-y-4 md:space-y-0 md:flex md:items-center md:gap-4">
-              <div className="flex-1 relative">
+            <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end">
+              <div className="flex-1 min-w-[200px] relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
                   placeholder="Search videos..."
@@ -292,20 +365,39 @@ export default function AdminEduOTT() {
                   className="pl-10"
                 />
               </div>
-              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                <SelectTrigger className="w-full md:w-48">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Filter by subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Subjects</SelectItem>
-                  {subjects.map((subject) => (
-                    <SelectItem key={subject._id} value={subject._id}>
-                      {subject.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-1.5 w-full sm:w-auto">
+                <Label className="text-xs text-gray-500">Class</Label>
+                <Select value={videoClassFilter} onValueChange={setVideoClassFilter}>
+                  <SelectTrigger className="w-full md:w-[180px] bg-white">
+                    <SelectValue placeholder="All classes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All classes</SelectItem>
+                    {videoClassOptions.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        Class {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 w-full sm:w-auto">
+                <Label className="text-xs text-gray-500">Subject</Label>
+                <Select value={videoSubjectFilter} onValueChange={setVideoSubjectFilter}>
+                  <SelectTrigger className="w-full md:w-[200px] bg-white">
+                    <Filter className="w-4 h-4 mr-2 shrink-0" />
+                    <SelectValue placeholder="All subjects" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All subjects</SelectItem>
+                    {videoSubjectOptions.map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Videos Grid */}
@@ -337,7 +429,7 @@ export default function AdminEduOTT() {
                     <div className="relative aspect-video bg-gray-900 overflow-hidden">
                       {video.isYouTubeVideo && video.youtubeUrl ? (
                         <img
-                          src={`https://img.youtube.com/vi/${video.youtubeUrl.split('v=')[1]?.split('&')[0]}/maxresdefault.jpg`}
+                          src={`https://img.youtube.com/vi/${video.youtubeUrl.split('v=')[1]?.split('&')[0]}/hqdefault.jpg`}
                           alt={video.title}
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -369,11 +461,25 @@ export default function AdminEduOTT() {
                     </div>
                     <CardContent className="p-4">
                       <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{video.title}</h3>
-                      {video.subjectName && (
-                        <Badge variant="outline" className="text-xs mb-2">
-                          {video.subjectName}
-                        </Badge>
-                      )}
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {video.subjectName ? (
+                          <Badge variant="outline" className="text-xs font-medium">
+                            {extractPlainSubjectName(video.subjectName)}
+                          </Badge>
+                        ) : null}
+                        {getSubjectClassLabel({
+                          name: video.subjectName,
+                          classNumber: video.classNumber,
+                        }) ? (
+                          <Badge className="text-xs bg-sky-100 text-sky-800 border-0">
+                            Class{' '}
+                            {getSubjectClassLabel({
+                              name: video.subjectName,
+                              classNumber: video.classNumber,
+                            })}
+                          </Badge>
+                        ) : null}
+                      </div>
                       {video.description && (
                         <p className="text-sm text-gray-600 line-clamp-2">{video.description}</p>
                       )}
@@ -387,8 +493,8 @@ export default function AdminEduOTT() {
           {/* Live Sessions Tab */}
           <TabsContent value="live-sessions" className="space-y-6 mt-6">
             {/* Search and Filter */}
-            <div className="space-y-4 md:space-y-0 md:flex md:items-center md:gap-4">
-              <div className="flex-1 relative">
+            <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end">
+              <div className="flex-1 min-w-[200px] relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
                   placeholder="Search live sessions..."
@@ -397,19 +503,54 @@ export default function AdminEduOTT() {
                   className="pl-10"
                 />
               </div>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-full md:w-48">
-                  <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="scheduled">Scheduled</SelectItem>
-                  <SelectItem value="live">Live</SelectItem>
-                  <SelectItem value="ended">Ended</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="space-y-1.5 w-full sm:w-auto">
+                <Label className="text-xs text-gray-500">Class</Label>
+                <Select value={sessionClassFilter} onValueChange={setSessionClassFilter}>
+                  <SelectTrigger className="w-full md:w-[180px] bg-white">
+                    <SelectValue placeholder="All classes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All classes</SelectItem>
+                    {sessionClassOptions.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        Class {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 w-full sm:w-auto">
+                <Label className="text-xs text-gray-500">Subject</Label>
+                <Select value={sessionSubjectFilter} onValueChange={setSessionSubjectFilter}>
+                  <SelectTrigger className="w-full md:w-[200px] bg-white">
+                    <SelectValue placeholder="All subjects" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All subjects</SelectItem>
+                    {sessionSubjectOptions.map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 w-full sm:w-auto">
+                <Label className="text-xs text-gray-500">Status</Label>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="w-full md:w-[160px] bg-white">
+                    <Filter className="w-4 h-4 mr-2 shrink-0" />
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                    <SelectItem value="live">Live</SelectItem>
+                    <SelectItem value="ended">Ended</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Live Sessions List */}
@@ -451,12 +592,21 @@ export default function AdminEduOTT() {
                             {session.subject?.name && (
                               <div className="flex items-center gap-1">
                                 <BookOpen className="w-4 h-4" />
-                                <span>{session.subject.name}</span>
+                                <span>{extractPlainSubjectName(session.subject.name)}</span>
                               </div>
                             )}
-                            {session.classNumber && (
-                              <Badge variant="outline">Class {session.classNumber}</Badge>
-                            )}
+                            {getSubjectClassLabel({
+                              name: session.subject?.name,
+                              classNumber: session.classNumber,
+                            }) ? (
+                              <Badge variant="outline">
+                                Class{' '}
+                                {getSubjectClassLabel({
+                                  name: session.subject?.name,
+                                  classNumber: session.classNumber,
+                                })}
+                              </Badge>
+                            ) : null}
                             <div className="flex items-center gap-1">
                               <Eye className="w-4 h-4" />
                               <span>{session.viewerCount || 0} viewers</span>

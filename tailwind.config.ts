@@ -13,6 +13,9 @@ export default {
       '2xl': '1536px',
     },
     extend: {
+      fontFamily: {
+        inter: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",

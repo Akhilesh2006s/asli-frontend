@@ -49,6 +49,7 @@ import ExamViewOnly from '@/components/admin/exam-view-only';
 import AdminLearningPaths from '@/components/admin/learning-paths';
 import AdminEduOTT from '@/components/admin/admin-eduott';
 import AdminCalendar from '@/components/admin/admin-calendar';
+import { AdminTeacherDiaryFeed } from '@/components/admin/AdminTeacherDiaryFeed';
 import AIChat from '@/components/ai-chat';
 
 const AdminDashboard = () => {
@@ -844,6 +845,8 @@ const AdminDashboard = () => {
               </motion.div>
 
             </div>
+
+            <AdminTeacherDiaryFeed />
 
             {/* Detailed School Analysis Section */}
               <motion.div

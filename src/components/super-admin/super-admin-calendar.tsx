@@ -1,30 +1,49 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { API_BASE_URL } from '@/lib/api-config';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+  ChevronLeft,
+  ChevronRight,
   Calendar as CalendarIcon,
   Eye,
-  Building2
+  Building2,
+  Plus,
+  BookOpen,
+  PartyPopper,
+  StickyNote,
 } from 'lucide-react';
 
-interface Event {
-  _id?: string;
-  id?: string;
-  name: string;
-  date: string;
-  photo?: string;
+export type CalendarEventRecord = {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  type: 'exam' | 'holiday' | 'custom' | 'school_event';
+  examId?: string;
   description?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
+  meta?: { examType?: string; subject?: string; duration?: number };
+};
 
 interface Admin {
   id: string;
@@ -34,30 +53,121 @@ interface Admin {
   schoolName?: string;
 }
 
-export default function SuperAdminCalendar() {
+function stripTime(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+function monthKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function toDatetimeLocal(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+const TYPE_STYLES: Record<
+  CalendarEventRecord['type'],
+  { bar: string; dot: string; label: string }
+> = {
+  exam: {
+    bar: 'bg-blue-600 hover:bg-blue-700',
+    dot: 'bg-blue-500',
+    label: 'Exam',
+  },
+  holiday: {
+    bar: 'bg-emerald-600 hover:bg-emerald-700',
+    dot: 'bg-emerald-500',
+    label: 'Holiday',
+  },
+  custom: {
+    bar: 'bg-orange-500 hover:bg-orange-600',
+    dot: 'bg-orange-500',
+    label: 'Custom',
+  },
+  school_event: {
+    bar: 'bg-violet-600 hover:bg-violet-700',
+    dot: 'bg-violet-500',
+    label: 'School',
+  },
+};
+
+interface SuperAdminCalendarProps {
+  onNavigateToExams?: (prefill: {
+    startDate: string;
+    endDate: string;
+    filterType: 'all-schools' | 'specific-schools';
+    selectedSchools: string[];
+  }) => void;
+}
+
+export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCalendarProps) {
   const { toast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<CalendarEventRecord[]>([]);
   const [admins, setAdmins] = useState<Admin[]>([]);
-  const [selectedAdminId, setSelectedAdminId] = useState<string>('');
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [selectedSchoolId, setSelectedSchoolId] = useState<string>('all');
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEventRecord | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
 
-  // Fetch admins on component mount
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [quickAddDate, setQuickAddDate] = useState<Date | null>(null);
+
+  const [customOpen, setCustomOpen] = useState(false);
+  const [customKind, setCustomKind] = useState<'holiday' | 'custom'>('custom');
+  const [customTitle, setCustomTitle] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+  const [customDescription, setCustomDescription] = useState('');
+  const [isSavingCustom, setIsSavingCustom] = useState(false);
+
   useEffect(() => {
     fetchAdmins();
   }, []);
 
-  // Fetch events when admin is selected
-  useEffect(() => {
-    if (selectedAdminId) {
-      fetchEvents(selectedAdminId);
-    } else {
+  const fetchCalendarEvents = useCallback(async () => {
+    const month = monthKey(currentDate);
+    try {
+      setIsLoadingEvents(true);
+      const token = localStorage.getItem('authToken');
+      const params = new URLSearchParams({ month });
+      if (selectedSchoolId && selectedSchoolId !== 'all') {
+        params.set('schoolId', selectedSchoolId);
+      }
+      const url = `${API_BASE_URL}/api/calendar/events?${params.toString()}`;
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const list = (data.data || data || []) as CalendarEventRecord[];
+        setEvents(Array.isArray(list) ? list : []);
+      } else {
+        const err = await response.json().catch(() => ({}));
+        toast({
+          title: 'Error',
+          description: err.message || 'Failed to load calendar',
+          variant: 'destructive',
+        });
+        setEvents([]);
+      }
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Error', description: 'Failed to load calendar', variant: 'destructive' });
       setEvents([]);
+    } finally {
+      setIsLoadingEvents(false);
     }
-  }, [selectedAdminId]);
+  }, [currentDate, selectedSchoolId, toast]);
+
+  useEffect(() => {
+    fetchCalendarEvents();
+  }, [fetchCalendarEvents]);
 
   const fetchAdmins = async () => {
     try {
@@ -65,137 +175,68 @@ export default function SuperAdminCalendar() {
       const token = localStorage.getItem('authToken');
       const response = await fetch(`${API_BASE_URL}/api/super-admin/admins`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
 
       if (response.ok) {
         const data = await response.json();
-        const adminsList = Array.isArray(data) ? data : (data.data || []);
+        const adminsList = Array.isArray(data) ? data : data.data || [];
         setAdmins(adminsList);
       } else {
         toast({
-          title: "Error",
-          description: "Failed to fetch schools",
-          variant: "destructive",
+          title: 'Error',
+          description: 'Failed to fetch schools',
+          variant: 'destructive',
         });
       }
     } catch (error) {
       console.error('Error fetching admins:', error);
       toast({
-        title: "Error",
-        description: "Failed to fetch schools",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to fetch schools',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const fetchEvents = async (adminId: string) => {
-    try {
-      setIsLoadingEvents(true);
-      const token = localStorage.getItem('authToken');
-      console.log('Fetching events for admin:', adminId);
-      
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/events/${adminId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+  const getFirstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
+  const getLastDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0);
 
-      if (response.ok) {
-        const data = await response.json();
-        const eventsList = Array.isArray(data) ? data : (data.events || data.data || []);
-        console.log(`Fetched ${eventsList.length} events for admin ${adminId}`, eventsList);
-        setEvents(eventsList);
-      } else {
-        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        console.error('Failed to fetch events:', response.status, errorData);
-        toast({
-          title: "Error",
-          description: errorData.message || "Failed to fetch events",
-          variant: "destructive",
-        });
-        setEvents([]);
-      }
-    } catch (error) {
-      console.error('Error fetching events:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch events",
-        variant: "destructive",
-      });
-      setEvents([]);
-    } finally {
-      setIsLoadingEvents(false);
-    }
-  };
-
-  // Get first day of month
-  const getFirstDayOfMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth(), 1);
-  };
-
-  // Get last day of month
-  const getLastDayOfMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0);
-  };
-
-  // Generate calendar days
   const calendarDays = useMemo(() => {
     const firstDay = getFirstDayOfMonth(currentDate);
-    const lastDay = getLastDayOfMonth(currentDate);
     const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - startDate.getDay()); // Start from Sunday
-    
+    startDate.setDate(startDate.getDate() - startDate.getDay());
+
     const days: Date[] = [];
     const current = new Date(startDate);
-    
-    // Generate 42 days (6 weeks)
     for (let i = 0; i < 42; i++) {
       days.push(new Date(current));
       current.setDate(current.getDate() + 1);
     }
-    
     return days;
   }, [currentDate]);
 
-  // Get events for a specific date
   const getEventsForDate = (date: Date) => {
-    // Normalize date to midnight in local timezone for accurate comparison
-    const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const dateStr = `${normalizedDate.getFullYear()}-${String(normalizedDate.getMonth() + 1).padStart(2, '0')}-${String(normalizedDate.getDate()).padStart(2, '0')}`;
-    
-    return events.filter(event => {
-      // Normalize event date to midnight in local timezone
-      const eventDateObj = new Date(event.date);
-      const normalizedEventDate = new Date(
-        eventDateObj.getFullYear(), 
-        eventDateObj.getMonth(), 
-        eventDateObj.getDate()
-      );
-      const eventDateStr = `${normalizedEventDate.getFullYear()}-${String(normalizedEventDate.getMonth() + 1).padStart(2, '0')}-${String(normalizedEventDate.getDate()).padStart(2, '0')}`;
-      
-      return eventDateStr === dateStr;
+    const t = stripTime(date);
+    return events.filter((ev) => {
+      const s = stripTime(new Date(ev.startDate));
+      const e = stripTime(new Date(ev.endDate));
+      return t >= s && t <= e;
     });
   };
 
-  // Check if date is today
   const isToday = (date: Date) => {
     const today = new Date();
     return date.toDateString() === today.toDateString();
   };
 
-  // Check if date is in current month
-  const isCurrentMonth = (date: Date) => {
-    return date.getMonth() === currentDate.getMonth() && 
-           date.getFullYear() === currentDate.getFullYear();
-  };
+  const isCurrentMonth = (date: Date) =>
+    date.getMonth() === currentDate.getMonth() && date.getFullYear() === currentDate.getFullYear();
 
-  // Navigate months
   const goToPreviousMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   };
@@ -204,88 +245,190 @@ export default function SuperAdminCalendar() {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
-  const goToToday = () => {
-    setCurrentDate(new Date());
-  };
+  const goToToday = () => setCurrentDate(new Date());
 
-  // Handle view event
-  const handleViewEvent = (event: Event) => {
+  const handleViewEvent = (event: CalendarEventRecord) => {
     setSelectedEvent(event);
     setIsViewDialogOpen(true);
   };
 
-  // Get month name
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
-    'July', 'August', 'September', 'October', 'November', 'December'];
+  const monthNames = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  // Color coding for events (cycling through colors)
-  const eventColors = [
-    'bg-green-500',
-    'bg-blue-500',
-    'bg-pink-500',
-    'bg-purple-500',
-    'bg-yellow-500',
-    'bg-orange-500',
-  ];
+  const selectedAdmin = admins.find((a) => (a.id || a._id) === selectedSchoolId);
 
-  const getEventColor = (index: number) => {
-    return eventColors[index % eventColors.length];
+  const openQuickAdd = (date: Date) => {
+    setQuickAddDate(date);
+    setQuickAddOpen(true);
   };
 
-  const selectedAdmin = admins.find(admin => (admin.id || admin._id) === selectedAdminId);
+  const goToExamWithDate = (date: Date) => {
+    const start = new Date(date);
+    start.setHours(9, 0, 0, 0);
+    const end = new Date(date);
+    end.setHours(21, 0, 0, 0);
+    const prefill = {
+      startDate: toDatetimeLocal(start),
+      endDate: toDatetimeLocal(end),
+      filterType:
+        selectedSchoolId !== 'all'
+          ? ('specific-schools' as const)
+          : ('all-schools' as const),
+      selectedSchools: selectedSchoolId !== 'all' ? [selectedSchoolId] : [],
+    };
+    onNavigateToExams?.(prefill);
+    setQuickAddOpen(false);
+  };
+
+  const openCustomForm = (kind: 'holiday' | 'custom') => {
+    if (!quickAddDate || selectedSchoolId === 'all') return;
+    setCustomKind(kind);
+    setCustomTitle('');
+    setCustomDescription('');
+    const d = quickAddDate;
+    setCustomEndDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+    setQuickAddOpen(false);
+    setCustomOpen(true);
+  };
+
+  const saveCustomEvent = async () => {
+    if (!quickAddDate || selectedSchoolId === 'all' || !customTitle.trim()) {
+      toast({ title: 'Validation', description: 'Title is required', variant: 'destructive' });
+      return;
+    }
+    setIsSavingCustom(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const start = new Date(quickAddDate);
+      start.setHours(0, 0, 0, 0);
+      let end: Date;
+      if (customEndDate) {
+        const [yy, mm, dd] = customEndDate.split('-').map(Number);
+        end = new Date(yy, mm - 1, dd, 23, 59, 59, 999);
+      } else {
+        end = new Date(start);
+        end.setHours(23, 59, 59, 999);
+      }
+      if (end < start) {
+        toast({ title: 'Invalid range', description: 'End date must be on or after start', variant: 'destructive' });
+        setIsSavingCustom(false);
+        return;
+      }
+      const response = await fetch(`${API_BASE_URL}/api/calendar/events`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: customTitle.trim(),
+          schoolId: selectedSchoolId,
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
+          eventKind: customKind,
+          description: customDescription.trim(),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.success) {
+        toast({ title: 'Saved', description: 'Event added to calendar' });
+        setCustomOpen(false);
+        setQuickAddDate(null);
+        fetchCalendarEvents();
+      } else {
+        toast({
+          title: 'Error',
+          description: data.message || 'Failed to save',
+          variant: 'destructive',
+        });
+      }
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Error', description: 'Failed to save event', variant: 'destructive' });
+    } finally {
+      setIsSavingCustom(false);
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900">School Calendar</h2>
-          <p className="text-gray-600 mt-1">View events created by school admins</p>
-        </div>
-        <Button onClick={goToToday} variant="outline">
-          Today
-        </Button>
-      </div>
-
-      {/* School Selector */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center space-x-4">
-            <Building2 className="h-5 w-5 text-gray-500" />
-            <div className="flex-1">
-              <Label htmlFor="school-select">Select School</Label>
-              <Select value={selectedAdminId} onValueChange={setSelectedAdminId}>
-                <SelectTrigger id="school-select" className="w-full">
-                  <SelectValue placeholder="Select a school to view events" />
-                </SelectTrigger>
-                <SelectContent>
-                  {admins.map((admin) => {
-                    const adminId = admin.id || admin._id || '';
-                    console.log('Admin option:', { id: adminId, name: admin.schoolName || admin.name, email: admin.email });
-                    return (
-                      <SelectItem key={adminId} value={adminId}>
-                        {admin.schoolName || admin.name || admin.email}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
+    <TooltipProvider>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900">School Calendar</h2>
+            <p className="text-gray-600 mt-1">
+              Exams, holidays, and events by school. Exams sync from Exam Management.
+            </p>
           </div>
-          {selectedAdmin && (
-            <div className="mt-4 p-4 bg-orange-50 rounded-lg">
-              <p className="text-sm text-gray-700">
-                <span className="font-semibold">Viewing events for:</span> {selectedAdmin.schoolName || selectedAdmin.name}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">{selectedAdmin.email}</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          <Button onClick={goToToday} variant="outline">
+            Today
+          </Button>
+        </div>
 
-      {/* Calendar Navigation */}
-      {selectedAdminId && (
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+              <Building2 className="h-5 w-5 text-gray-500 shrink-0" />
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="school-select">School filter</Label>
+                <Select value={selectedSchoolId} onValueChange={setSelectedSchoolId}>
+                  <SelectTrigger id="school-select" className="w-full max-w-md">
+                    <SelectValue placeholder="Select scope" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Schools</SelectItem>
+                    {admins.map((admin) => {
+                      const adminId = admin.id || admin._id || '';
+                      return (
+                        <SelectItem key={adminId} value={adminId}>
+                          {admin.schoolName || admin.name || admin.email}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500">
+                  Legend:{' '}
+                  <span className="inline-flex items-center gap-1">
+                    <span className="inline-block w-2 h-2 rounded-full bg-blue-500" /> Exam
+                  </span>{' '}
+                  <span className="inline-flex items-center gap-1 ml-2">
+                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" /> Holiday
+                  </span>{' '}
+                  <span className="inline-flex items-center gap-1 ml-2">
+                    <span className="inline-block w-2 h-2 rounded-full bg-orange-500" /> Custom
+                  </span>{' '}
+                  <span className="inline-flex items-center gap-1 ml-2">
+                    <span className="inline-block w-2 h-2 rounded-full bg-violet-500" /> School (admin)
+                  </span>
+                </p>
+              </div>
+            </div>
+            {selectedSchoolId !== 'all' && selectedAdmin && (
+              <div className="mt-4 p-4 bg-orange-50 rounded-lg">
+                <p className="text-sm text-gray-700">
+                  <span className="font-semibold">Filtered school:</span>{' '}
+                  {selectedAdmin.schoolName || selectedAdmin.name}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">{selectedAdmin.email}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-6">
@@ -302,24 +445,21 @@ export default function SuperAdminCalendar() {
               </div>
             </div>
 
-            {isLoadingEvents ? (
+            {isLoading || isLoadingEvents ? (
               <div className="flex items-center justify-center h-64">
                 <div className="text-center">
                   <CalendarIcon className="w-12 h-12 text-gray-400 mx-auto mb-4 animate-pulse" />
-                  <p className="text-gray-600">Loading events...</p>
+                  <p className="text-gray-600">Loading calendar…</p>
                 </div>
               </div>
             ) : (
-              /* Calendar Grid */
               <div className="grid grid-cols-7 gap-2">
-                {/* Day Headers */}
-                {dayNames.map(day => (
+                {dayNames.map((day) => (
                   <div key={day} className="text-center text-sm font-semibold text-gray-600 py-2">
                     {day}
                   </div>
                 ))}
 
-                {/* Calendar Days */}
                 {calendarDays.map((date, index) => {
                   const dayEvents = getEventsForDate(date);
                   const isCurrentMonthDay = isCurrentMonth(date);
@@ -329,40 +469,67 @@ export default function SuperAdminCalendar() {
                     <motion.div
                       key={index}
                       className={`
-                        min-h-[100px] border border-gray-200 rounded-lg p-2
+                        min-h-[112px] border border-gray-200 rounded-lg p-1.5 flex flex-col
                         transition-all
                         ${!isCurrentMonthDay ? 'bg-gray-50 opacity-50' : 'bg-white'}
-                        ${isTodayDate ? 'ring-2 ring-orange-500' : ''}
+                        ${isTodayDate ? 'ring-2 ring-orange-500 ring-offset-1 shadow-sm' : ''}
                       `}
-                      whileHover={{ scale: 1.02 }}
+                      whileHover={{ scale: 1.01 }}
                     >
-                      <div className={`
-                        text-sm font-medium mb-1
-                        ${isTodayDate ? 'text-orange-600 font-bold' : 'text-gray-700'}
-                        ${!isCurrentMonthDay ? 'text-gray-400' : ''}
-                      `}>
-                        {date.getDate()}
+                      <div className="flex items-start justify-between gap-1 mb-1">
+                        <span
+                          className={`
+                          text-sm font-medium px-1
+                          ${isTodayDate ? 'text-orange-600 font-bold' : 'text-gray-700'}
+                          ${!isCurrentMonthDay ? 'text-gray-400' : ''}
+                        `}
+                        >
+                          {date.getDate()}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 shrink-0 text-gray-500 hover:text-sky-600"
+                          title="Add"
+                          onClick={() => openQuickAdd(date)}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
-                      
-                      {/* Events */}
-                      <div className="space-y-1">
-                        {dayEvents.slice(0, 3).map((event, eventIndex) => (
-                          <div
-                            key={event._id || event.id || eventIndex}
-                            className={`
-                              text-xs p-1 rounded truncate text-white cursor-pointer
-                              ${getEventColor(eventIndex)}
-                              hover:opacity-80
-                            `}
-                            onClick={() => handleViewEvent(event)}
-                            title={event.name}
-                          >
-                            {event.name}
-                          </div>
-                        ))}
-                        {dayEvents.length > 3 && (
-                          <div className="text-xs text-gray-500 font-medium">
-                            +{dayEvents.length - 3} more
+
+                      <div className="space-y-0.5 flex-1 overflow-hidden">
+                        {dayEvents.slice(0, 4).map((ev) => {
+                          const st = TYPE_STYLES[ev.type] || TYPE_STYLES.custom;
+                          const tip = [
+                            ev.title,
+                            ev.description,
+                            ev.meta?.subject ? `Subject: ${ev.meta.subject}` : '',
+                            ev.type === 'exam' && ev.meta?.duration ? `${ev.meta.duration} min` : '',
+                          ]
+                            .filter(Boolean)
+                            .join('\n');
+                          return (
+                            <Tooltip key={ev.id}>
+                              <TooltipTrigger asChild>
+                                <button
+                                  type="button"
+                                  onClick={() => handleViewEvent(ev)}
+                                  className={`w-full text-left text-[10px] leading-tight px-1 py-0.5 rounded text-white truncate ${st.bar}`}
+                                >
+                                  <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1 align-middle ${st.dot}`} />
+                                  {ev.title}
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs whitespace-pre-wrap">
+                                {tip}
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        })}
+                        {dayEvents.length > 4 && (
+                          <div className="text-[10px] text-gray-500 font-medium px-0.5">
+                            +{dayEvents.length - 4} more
                           </div>
                         )}
                       </div>
@@ -373,61 +540,143 @@ export default function SuperAdminCalendar() {
             )}
           </CardContent>
         </Card>
-      )}
 
-      {!selectedAdminId && (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <CalendarIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No School Selected</h3>
-            <p className="text-gray-600">Please select a school from the dropdown above to view their calendar events.</p>
-          </CardContent>
-        </Card>
-      )}
+        {/* Quick add */}
+        <Dialog open={quickAddOpen} onOpenChange={setQuickAddOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add on this date</DialogTitle>
+              <DialogDescription>
+                {quickAddDate?.toLocaleDateString(undefined, {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-2">
+              <Button
+                className="justify-start gap-2 bg-blue-600 hover:bg-blue-700"
+                onClick={() => {
+                  if (quickAddDate) goToExamWithDate(quickAddDate);
+                }}
+              >
+                <BookOpen className="h-4 w-4" />
+                Add Exam (Exam Management)
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-start gap-2 border-emerald-300 text-emerald-800"
+                onClick={() => openCustomForm('holiday')}
+                disabled={selectedSchoolId === 'all'}
+              >
+                <PartyPopper className="h-4 w-4" />
+                Add Holiday
+              </Button>
+              <Button
+                variant="outline"
+                className="justify-start gap-2 border-orange-300 text-orange-800"
+                onClick={() => openCustomForm('custom')}
+                disabled={selectedSchoolId === 'all'}
+              >
+                <StickyNote className="h-4 w-4" />
+                Add Custom Event
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
-      {/* View Event Dialog */}
-      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{selectedEvent?.name}</DialogTitle>
-          </DialogHeader>
-          {selectedEvent && (
-            <div className="space-y-4">
-              {selectedEvent.photo && (
-                <div className="w-full h-64 rounded-lg overflow-hidden">
-                  <img
-                    src={selectedEvent.photo}
-                    alt={selectedEvent.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              )}
+        {/* Holiday / Custom form */}
+        <Dialog open={customOpen} onOpenChange={setCustomOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{customKind === 'holiday' ? 'Add holiday' : 'Add custom event'}</DialogTitle>
+              <DialogDescription>
+                School: {selectedAdmin?.schoolName || selectedAdmin?.name || '—'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
               <div>
-                <Label>Date</Label>
-                <p className="text-gray-700">
-                  {new Date(selectedEvent.date).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </p>
+                <Label>Title *</Label>
+                <Input value={customTitle} onChange={(e) => setCustomTitle(e.target.value)} placeholder="Event title" />
               </div>
-              {selectedEvent.description && (
-                <div>
-                  <Label>Description</Label>
-                  <p className="text-gray-700 whitespace-pre-wrap">{selectedEvent.description}</p>
-                </div>
-              )}
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
-                <Eye className="h-4 w-4" />
-                <span>Read-only view</span>
+              <div>
+                <Label>End date (optional)</Label>
+                <Input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} />
+                <p className="text-xs text-gray-500 mt-1">Leave as start date for a single-day entry.</p>
+              </div>
+              <div>
+                <Label>Description</Label>
+                <Textarea
+                  rows={3}
+                  value={customDescription}
+                  onChange={(e) => setCustomDescription(e.target.value)}
+                  placeholder="Optional details"
+                />
               </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCustomOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={saveCustomEvent} disabled={isSavingCustom}>
+                {isSavingCustom ? 'Saving…' : 'Save'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* View */}
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{selectedEvent?.title}</DialogTitle>
+              <DialogDescription>
+                {selectedEvent && TYPE_STYLES[selectedEvent.type]?.label} ·{' '}
+                {selectedEvent?.type === 'exam' ? 'Linked exam' : 'Calendar entry'}
+              </DialogDescription>
+            </DialogHeader>
+            {selectedEvent && (
+              <div className="space-y-3 text-sm">
+                <div>
+                  <Label>Start</Label>
+                  <p className="text-gray-800">
+                    {new Date(selectedEvent.startDate).toLocaleString(undefined, {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <Label>End</Label>
+                  <p className="text-gray-800">
+                    {new Date(selectedEvent.endDate).toLocaleString(undefined, {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    })}
+                  </p>
+                </div>
+                {selectedEvent.description && (
+                  <div>
+                    <Label>Description</Label>
+                    <p className="text-gray-700 whitespace-pre-wrap">{selectedEvent.description}</p>
+                  </div>
+                )}
+                {selectedEvent.meta?.subject && (
+                  <p className="text-gray-600">
+                    Subject: <span className="font-medium">{selectedEvent.meta.subject}</span>
+                  </p>
+                )}
+                <div className="flex items-center gap-2 text-gray-500">
+                  <Eye className="h-4 w-4" />
+                  <span>Read-only</span>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    </TooltipProvider>
   );
 }
-

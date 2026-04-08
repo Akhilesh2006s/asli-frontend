@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { ExternalLink, Download, FileText } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { FileText } from 'lucide-react';
 
 interface DriveViewerProps {
   driveUrl: string;
@@ -31,47 +30,15 @@ const DriveViewer = ({ driveUrl, title, className = '' }: DriveViewerProps) => {
 
   const embedUrl = getEmbedUrl(driveUrl);
 
-  const handleOpenInNewTab = () => {
-    window.open(driveUrl, '_blank', 'noopener,noreferrer');
-  };
-
-  const handleDownload = () => {
-    // Convert to direct download link
-    const downloadUrl = driveUrl.replace('/view?usp=sharing', '').replace('/file/d/', '/uc?export=download&id=');
-    window.open(downloadUrl, '_blank', 'noopener,noreferrer');
-  };
-
   return (
     <div className={`bg-white rounded-lg border border-gray-200 overflow-hidden ${className}`}>
       {/* Header */}
       <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <FileText className="w-5 h-5 text-blue-600" />
-            <h3 className="font-medium text-gray-900">
-              {title || 'Google Drive Document'}
-            </h3>
-          </div>
-          <div className="flex space-x-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleDownload}
-              className="text-blue-600 border-blue-200 hover:bg-blue-50"
-            >
-              <Download className="w-4 h-4 mr-1" />
-              Download
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleOpenInNewTab}
-              className="text-gray-600 border-gray-200 hover:bg-gray-50"
-            >
-              <ExternalLink className="w-4 h-4 mr-1" />
-              Open
-            </Button>
-          </div>
+        <div className="flex items-center space-x-2">
+          <FileText className="w-5 h-5 text-blue-600" />
+          <h3 className="font-medium text-gray-900">
+            {title || 'Google Drive Document'}
+          </h3>
         </div>
       </div>
 
@@ -99,7 +66,7 @@ const DriveViewer = ({ driveUrl, title, className = '' }: DriveViewerProps) => {
       {/* Footer */}
       <div className="bg-gray-50 px-4 py-2 border-t border-gray-200">
         <p className="text-xs text-gray-500 text-center">
-          This document is hosted on Google Drive. Click "Open" to view in full screen.
+          This document is embedded for in-window viewing.
         </p>
       </div>
     </div>

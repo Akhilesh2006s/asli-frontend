@@ -1,8 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import Navigation from '@/components/navigation';
 import { 
   Clock, 
@@ -23,6 +31,11 @@ import AnimatedExam from '@/components/animated-exam';
 import ExamResults from '@/components/exam-results';
 import StudentRanking from '@/components/student/student-ranking';
 import { API_BASE_URL } from '@/lib/api-config';
+import {
+  CLASS_FILTER_OPTIONS,
+  examMatchesStudentClassFilter,
+  getExamClassStrings,
+} from '@/lib/exam-classes';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface Question {
@@ -43,6 +56,8 @@ interface Exam {
   title: string;
   description: string;
   examType: 'weekend' | 'mains' | 'advanced' | 'practice';
+  classNumber?: string;
+  assignedClasses?: string[];
   duration: number;
   totalQuestions: number;
   totalMarks: number;
@@ -83,6 +98,14 @@ export default function StudentExams() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<string>('available');
+  const [examClassFilter, setExamClassFilter] = useState<string>('all');
+  const didInitClassFilter = useRef(false);
+
+  useEffect(() => {
+    if (didInitClassFilter.current || !user?.classNumber) return;
+    didInitClassFilter.current = true;
+    setExamClassFilter('my');
+  }, [user?.classNumber]);
 
   // Helper function to extract examId from result (handles both populated object and ObjectId)
   const getExamIdFromResult = (result: any): string | null => {
@@ -211,6 +234,14 @@ export default function StudentExams() {
   // Ensure exams is always an array
   const exams = Array.isArray(examsData) ? examsData : [];
 
+  const classFilteredExams = useMemo(
+    () =>
+      exams.filter((e: Exam) =>
+        examMatchesStudentClassFilter(e, examClassFilter, user?.classNumber)
+      ),
+    [exams, examClassFilter, user?.classNumber]
+  );
+
   // Fetch assessments
   const { data: assessments, isLoading: isLoadingAssessments, error: assessmentsError } = useQuery({
     queryKey: ['/api/assessments'],
@@ -274,6 +305,32 @@ export default function StudentExams() {
     refetchOnWindowFocus: true,
     refetchOnMount: true
   });
+
+  const attemptedExamIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (Array.isArray(results?.data)) {
+      for (const result of results.data) {
+        const id = getExamIdFromResult(result);
+        if (id) ids.add(String(id));
+      }
+    }
+    return ids;
+  }, [results?.data]);
+
+  const availableActiveExams = useMemo(
+    () =>
+      classFilteredExams.filter((exam: Exam) => {
+        const examId = String(exam._id || '');
+        if (!examId || attemptedExamIds.has(examId)) return false;
+        // Show only currently attemptable exams (inline to avoid init-order issues)
+        const now = new Date();
+        const startDate = new Date(exam.startDate);
+        const endDate = new Date(exam.endDate);
+        const isActiveByDate = now >= startDate && now <= endDate;
+        return exam.isActive !== false && isActiveByDate;
+      }),
+    [classFilteredExams, attemptedExamIds]
+  );
 
   const handleStartExam = (exam: Exam) => {
     console.log('Starting exam:', exam);
@@ -497,7 +554,27 @@ export default function StudentExams() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent mb-2">Exams</h1>
           <p className="text-gray-600">Take practice exams and track your progress</p>
-          
+          <div className="flex flex-wrap items-center gap-2 mt-4">
+            <Label htmlFor="exam-class-filter" className="text-sm text-gray-600 whitespace-nowrap">
+              Class
+            </Label>
+            <Select value={examClassFilter} onValueChange={setExamClassFilter}>
+              <SelectTrigger id="exam-class-filter" className="w-[220px] bg-white">
+                <SelectValue placeholder="All classes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All classes</SelectItem>
+                {user?.classNumber ? (
+                  <SelectItem value="my">My class ({String(user.classNumber)})</SelectItem>
+                ) : null}
+                {CLASS_FILTER_OPTIONS.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    Class {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -511,31 +588,7 @@ export default function StudentExams() {
           {/* Available Exams */}
           <TabsContent value="available" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {exams.filter((exam: Exam) => {
-                // Show ALL exams - no date restrictions, no board restrictions
-                // Only filter out exams that have been attempted
-                const hasAttempted = results?.data?.some((result: any) => {
-                  const resultExamId = getExamIdFromResult(result);
-                  const examId = exam._id?.toString();
-                  
-                  const isMatch = resultExamId === examId;
-                  if (isMatch) {
-                    console.log('✅ Match found:', {
-                      examTitle: exam.title,
-                      resultExamId,
-                      examId,
-                      resultExamIdType: typeof resultExamId,
-                      examIdType: typeof examId
-                    });
-                  }
-                  return isMatch;
-                });
-                if (hasAttempted) {
-                  console.log('⚠️ Exam already attempted:', exam.title);
-                }
-                // Show all exams that haven't been attempted (no date filtering)
-                return !hasAttempted;
-              }).map((exam: Exam, index: number) => {
+              {availableActiveExams.map((exam: Exam, index: number) => {
                 const status = getExamStatus(exam);
                 // Randomly assign one of the three dashboard colors
                 const colorSchemes = [
@@ -544,6 +597,7 @@ export default function StudentExams() {
                   { bg: 'from-teal-400 to-teal-500', text: 'text-white', badge: 'bg-teal-500/20 text-teal-100' }
                 ];
                 const colorScheme = colorSchemes[index % 3];
+                const classLabels = getExamClassStrings(exam);
                 
                 return (
                   <Card key={exam._id} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
@@ -558,6 +612,14 @@ export default function StudentExams() {
                             <Badge className={`${colorScheme.badge} border-0`}>
                               {exam.examType.toUpperCase()}
                             </Badge>
+                            {classLabels.map((cl) => (
+                              <Badge
+                                key={cl}
+                                className="bg-white/90 text-gray-900 border-0 font-medium"
+                              >
+                                Class {cl}
+                              </Badge>
+                            ))}
                             {status.status === 'ended' ? (
                               <Badge className="bg-red-600 text-white border-2 border-white/50 shadow-lg font-semibold">ENDED</Badge>
                             ) : status.status === 'active' ? (
@@ -602,21 +664,13 @@ export default function StudentExams() {
               })}
             </div>
 
-            {exams.filter((exam: Exam) => {
-              // Show ALL exams - no date restrictions
-              // Only filter out exams that have been attempted
-              const hasAttempted = results?.data?.some((result: any) => {
-                const resultExamId = getExamIdFromResult(result);
-                const examId = exam._id?.toString();
-                return resultExamId === examId;
-              });
-              // Show all exams that haven't been attempted (no date filtering)
-              return !hasAttempted;
-            }).length === 0 && (
+            {availableActiveExams.length === 0 && (
               <div className="text-center py-12">
                 <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Available Exams</h3>
-                <p className="text-gray-600">All available exams have been attempted or check back later for new exams</p>
+                <p className="text-gray-600">
+                  No active exams are available right now. Check Upcoming for scheduled exams.
+                </p>
               </div>
             )}
           </TabsContent>
@@ -624,7 +678,7 @@ export default function StudentExams() {
           {/* Attempted Exams */}
           <TabsContent value="attempted" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {exams.filter((exam: Exam) => {
+              {classFilteredExams.filter((exam: Exam) => {
                 // Show exams that have been attempted
                 return results?.data?.some((result: any) => {
                   const resultExamId = getExamIdFromResult(result);
@@ -646,6 +700,7 @@ export default function StudentExams() {
                   { bg: 'from-teal-400 to-teal-500', text: 'text-white', badge: 'bg-teal-500/20 text-teal-100' }
                 ];
                 const colorScheme = colorSchemes[index % 3];
+                const classLabelsAttempted = getExamClassStrings(exam);
                 
                 return (
                   <Card key={exam._id} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
@@ -660,6 +715,14 @@ export default function StudentExams() {
                             <Badge className={`${colorScheme.badge} border-0`}>
                               {exam.examType.toUpperCase()}
                             </Badge>
+                            {classLabelsAttempted.map((cl) => (
+                              <Badge
+                                key={cl}
+                                className="bg-white/90 text-gray-900 border-0 font-medium"
+                              >
+                                Class {cl}
+                              </Badge>
+                            ))}
                             <Badge className="bg-teal-600 text-white border-2 border-white/50 shadow-lg font-semibold">
                               Attempted
                             </Badge>
@@ -782,7 +845,7 @@ export default function StudentExams() {
               })}
             </div>
 
-            {exams.filter((exam: Exam) => {
+            {classFilteredExams.filter((exam: Exam) => {
               return results?.data?.some((result: any) => {
                 const resultExamId = getExamIdFromResult(result);
                 const examId = exam._id?.toString();
@@ -807,7 +870,7 @@ export default function StudentExams() {
           {/* Upcoming Exams */}
           <TabsContent value="upcoming" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {exams.filter((exam: Exam) => getExamStatus(exam).status === 'upcoming').map((exam: Exam, index: number) => {
+              {classFilteredExams.filter((exam: Exam) => getExamStatus(exam).status === 'upcoming').map((exam: Exam, index: number) => {
                 // Randomly assign one of the three dashboard colors
                 const colorSchemes = [
                   { bg: 'from-orange-300 to-orange-400', text: 'text-white', badge: 'bg-orange-500/20 text-orange-100' },
@@ -815,6 +878,7 @@ export default function StudentExams() {
                   { bg: 'from-teal-400 to-teal-500', text: 'text-white', badge: 'bg-teal-500/20 text-teal-100' }
                 ];
                 const colorScheme = colorSchemes[index % 3];
+                const classLabelsUpcoming = getExamClassStrings(exam);
                 
                 return (
                   <Card key={exam._id} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
@@ -829,6 +893,14 @@ export default function StudentExams() {
                             <Badge className={`${colorScheme.badge} border-0`}>
                               {exam.examType.toUpperCase()}
                             </Badge>
+                            {classLabelsUpcoming.map((cl) => (
+                              <Badge
+                                key={cl}
+                                className="bg-white/90 text-gray-900 border-0 font-medium"
+                              >
+                                Class {cl}
+                              </Badge>
+                            ))}
                             <Badge className="bg-yellow-600 text-white border-2 border-white/50 shadow-lg font-semibold">
                               UPCOMING
                             </Badge>
@@ -874,7 +946,7 @@ export default function StudentExams() {
               })}
             </div>
 
-            {exams.filter((exam: Exam) => getExamStatus(exam).status === 'upcoming').length === 0 && (
+            {classFilteredExams.filter((exam: Exam) => getExamStatus(exam).status === 'upcoming').length === 0 && (
               <div className="text-center py-12">
                 <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Upcoming Exams</h3>

@@ -147,7 +147,16 @@ interface AIInsight {
   data: any;
 }
 
-export default function DetailedAIAnalyticsDashboard() {
+export type DetailedAIAnalyticsDashboardProps = {
+  /** When set, only this school’s rows are shown (from combined analytics drill-down). */
+  singleAdminId?: string | null;
+  onClearSchoolFocus?: () => void;
+};
+
+export default function DetailedAIAnalyticsDashboard({
+  singleAdminId = null,
+  onClearSchoolFocus,
+}: DetailedAIAnalyticsDashboardProps = {}) {
   const { toast } = useToast();
   const [analytics, setAnalytics] = useState<DetailedAnalytics | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -299,6 +308,12 @@ export default function DetailedAIAnalyticsDashboard() {
     if (!analytics) return null;
 
     let filteredAdminAnalytics = [...analytics.adminAnalytics];
+
+    if (singleAdminId) {
+      filteredAdminAnalytics = filteredAdminAnalytics.filter(
+        (a) => String(a.adminId) === String(singleAdminId)
+      );
+    }
 
     // Filter by board
     if (filterBoard !== 'all') {
@@ -456,6 +471,34 @@ export default function DetailedAIAnalyticsDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {singleAdminId && (
+        <Card className="border-teal-200 bg-gradient-to-r from-teal-50 to-sky-50">
+          <CardContent className="py-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-teal-900">School detail view</p>
+              <p className="text-sm text-teal-800">
+                {filteredAnalytics?.adminAnalytics?.[0]?.adminName || 'Selected school'} — exam difficulty, scorers, and
+                trends below are scoped to this school.
+              </p>
+            </div>
+            {onClearSchoolFocus && (
+              <Button type="button" variant="outline" size="sm" onClick={onClearSchoolFocus}>
+                Back to all schools
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {singleAdminId && filteredAnalytics && filteredAnalytics.adminAnalytics.length === 0 && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="py-6 text-center text-sm text-amber-900">
+            No exam analytics data matched this school in the AI pipeline yet. Try refreshing analytics or check that
+            exams exist for this administrator.
+          </CardContent>
+        </Card>
+      )}
 
       {/* Global Overview */}
       {filteredAnalytics && (

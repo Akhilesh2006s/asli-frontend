@@ -23,13 +23,18 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { API_BASE_URL } from '@/lib/api-config';
-import { Plus, Trash2, Edit, Eye, Calendar, Clock, BookOpen, FileQuestion, X, Upload, Download } from 'lucide-react';
+import { getExamClassStrings } from '@/lib/exam-classes';
+import { Plus, Trash2, Edit, Eye, Calendar, Clock, BookOpen, FileQuestion, X, Upload, Download, School, GraduationCap } from 'lucide-react';
 
 interface Exam {
   _id: string;
   title: string;
   description: string;
   examType: 'weekend' | 'mains' | 'advanced' | 'practice';
+  classNumber?: string;
+  subject: 'maths' | 'physics' | 'chemistry' | 'biology';
+  maxAttempts: number;
+  assignedClasses?: string[];
   board: string;
   duration: number;
   totalQuestions: number;
@@ -40,6 +45,7 @@ interface Exam {
   isActive: boolean;
   questions?: string[];
   targetSchools?: Array<{ _id: string; schoolName?: string; fullName?: string; email?: string }>;
+  schoolId?: string;
   isSchoolSpecific?: boolean;
   createdAt: string;
 }
@@ -55,19 +61,37 @@ const EXAM_TYPES = [
   { value: 'practice', label: 'Practice' }
 ];
 
+const EXAM_SUBJECTS = [
+  { value: 'maths', label: 'Mathematics' },
+  { value: 'physics', label: 'Physics' },
+  { value: 'chemistry', label: 'Chemistry' },
+  { value: 'biology', label: 'Biology' }
+];
+
+const CLASS_OPTIONS = ['6', '7', '8', '9', '10', '11', '12'];
+
 type FilterType = 'all-schools' | 'specific-schools';
+
+const normalizeDisplayText = (value?: string) =>
+  (value || '')
+    .replace(/[._-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 export default function ExamManagement() {
   const { toast } = useToast();
   const [exams, setExams] = useState<Exam[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filterType, setFilterType] = useState<FilterType>('all-schools');
-  const [selectedSchools, setSelectedSchools] = useState<string[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState('all-schools');
+  const [selectedClass, setSelectedClass] = useState('all-classes');
   const [schools, setSchools] = useState<any[]>([]);
   const [isLoadingSchools, setIsLoadingSchools] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingExamId, setEditingExamId] = useState<string | null>(null);
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
+  const [classModalSearch, setClassModalSearch] = useState('');
   const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false);
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
   const [questions, setQuestions] = useState<any[]>([]);
@@ -96,6 +120,10 @@ export default function ExamManagement() {
     title: '',
     description: '',
     examType: 'mains' as 'mains' | 'advanced' | 'weekend' | 'practice',
+    classNumber: '',
+    assignedClasses: [] as string[],
+    subject: 'maths' as 'maths' | 'physics' | 'chemistry' | 'biology',
+    maxAttempts: '1',
     board: 'ASLI_EXCLUSIVE_SCHOOLS',
     filterType: 'all-schools' as FilterType,
     selectedSchools: [] as string[],
@@ -109,13 +137,35 @@ export default function ExamManagement() {
 
   useEffect(() => {
     fetchExams();
-  }, [filterType, selectedSchools]);
+  }, []);
 
   useEffect(() => {
-    if (filterType === 'specific-schools') {
-      fetchSchools();
+    const raw = sessionStorage.getItem('examCalendarPrefill');
+    if (!raw) return;
+    try {
+      const p = JSON.parse(raw) as {
+        startDate?: string;
+        endDate?: string;
+        filterType?: FilterType;
+        selectedSchools?: string[];
+      };
+      sessionStorage.removeItem('examCalendarPrefill');
+      setFormData((prev) => ({
+        ...prev,
+        startDate: p.startDate ?? prev.startDate,
+        endDate: p.endDate ?? prev.endDate,
+        filterType: p.filterType ?? prev.filterType,
+        selectedSchools: Array.isArray(p.selectedSchools) ? p.selectedSchools : prev.selectedSchools,
+      }));
+      setIsDialogOpen(true);
+    } catch {
+      sessionStorage.removeItem('examCalendarPrefill');
     }
-  }, [filterType]);
+  }, []);
+
+  useEffect(() => {
+    fetchSchools();
+  }, []);
 
   const fetchQuestions = async (examId: string) => {
     setIsLoadingQuestions(true);
@@ -488,16 +538,6 @@ export default function ExamManagement() {
       const token = localStorage.getItem('authToken');
       let url = `${API_BASE_URL}/api/super-admin/exams`;
       
-      // Add query parameters based on filter type
-      const params = new URLSearchParams();
-      if (filterType === 'specific-schools' && selectedSchools.length > 0) {
-        params.append('schoolIds', selectedSchools.join(','));
-      }
-      
-      if (params.toString()) {
-        url += `?${params.toString()}`;
-      }
-      
       console.log('🌐 Fetching exams from:', url);
       
       const response = await fetch(url, {
@@ -510,13 +550,21 @@ export default function ExamManagement() {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          let fetchedExams = data.data || [];
-          
+          const raw = (data.data || []) as Exam[];
+          const fetchedExams = raw.map((ex) => {
+            const labels = getExamClassStrings(ex);
+            return {
+              ...ex,
+              assignedClasses: labels,
+              classNumber: labels[0] ?? ex.classNumber ?? '',
+            };
+          });
+
           // Note: Backend already filters by schoolIds, so no additional frontend filtering needed
           // The backend returns exams that are either:
           // 1. Available to all schools (isSchoolSpecific: false)
           // 2. Available to the selected schools (isSchoolSpecific: true AND targetSchools includes selected schools)
-          
+
           setExams(fetchedExams);
         }
       } else {
@@ -553,11 +601,20 @@ export default function ExamManagement() {
     }
   };
 
-  const handleCreateExam = async () => {
-    if (!formData.title || !formData.duration || !formData.totalQuestions || !formData.totalMarks || !formData.startDate || !formData.endDate) {
+  const handleSaveExam = async () => {
+    if (!formData.title || formData.assignedClasses.length === 0 || !formData.subject || !formData.maxAttempts || !formData.duration || !formData.totalQuestions || !formData.totalMarks || !formData.startDate || !formData.endDate) {
       toast({
         title: 'Validation Error',
         description: 'Please fill in all required fields',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if ((parseInt(formData.maxAttempts, 10) || 0) < 1) {
+      toast({
+        title: 'Validation Error',
+        description: 'No. of Attempts must be at least 1',
         variant: 'destructive'
       });
       return;
@@ -581,6 +638,10 @@ export default function ExamManagement() {
         title: formData.title,
         description: formData.description,
         examType: formData.examType,
+        classNumber: formData.assignedClasses[0],
+        assignedClasses: formData.assignedClasses,
+        subject: formData.subject,
+        maxAttempts: parseInt(formData.maxAttempts, 10),
         board: formData.board,
         duration: parseInt(formData.duration),
         totalQuestions: parseInt(formData.totalQuestions),
@@ -589,6 +650,7 @@ export default function ExamManagement() {
         startDate: formData.startDate,
         endDate: formData.endDate
       };
+      console.log('🧾 Exam save payload:', payload);
 
       // Add school-specific targeting if selected
       if (formData.filterType === 'specific-schools' && formData.selectedSchools.length > 0) {
@@ -602,8 +664,13 @@ export default function ExamManagement() {
         payload.targetSchools = [];
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/exams`, {
-        method: 'POST',
+      const endpoint = isEditing && editingExamId
+        ? `${API_BASE_URL}/api/super-admin/exams/${editingExamId}`
+        : `${API_BASE_URL}/api/super-admin/exams`;
+      console.log('🌐 Exam save endpoint:', endpoint, 'method:', isEditing ? 'PUT' : 'POST');
+
+      const response = await fetch(endpoint, {
+        method: isEditing ? 'PUT' : 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -612,17 +679,25 @@ export default function ExamManagement() {
       });
 
       const data = await response.json();
+      console.log('📦 Exam save response:', { status: response.status, ok: response.ok, data });
 
       if (response.ok && data.success) {
         toast({
           title: 'Success',
-          description: 'Exam created successfully'
+          description: isEditing ? 'Exam updated successfully' : 'Exam created successfully'
         });
         setIsDialogOpen(false);
+        setIsEditing(false);
+        setEditingExamId(null);
+        setClassModalSearch('');
         setFormData({
           title: '',
           description: '',
           examType: 'mains',
+          classNumber: '',
+          assignedClasses: [],
+          subject: 'maths',
+          maxAttempts: '1',
           board: 'ASLI_EXCLUSIVE_SCHOOLS',
           filterType: 'all-schools',
           selectedSchools: [],
@@ -633,11 +708,11 @@ export default function ExamManagement() {
           startDate: '',
           endDate: ''
         });
-        fetchExams();
+        await fetchExams();
       } else {
         toast({
           title: 'Error',
-          description: data.message || 'Failed to create exam',
+          description: data.message || 'Failed to save exam',
           variant: 'destructive'
         });
       }
@@ -645,7 +720,7 @@ export default function ExamManagement() {
       console.error('Failed to create exam:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create exam',
+        description: 'Failed to save exam',
         variant: 'destructive'
       });
     } finally {
@@ -659,6 +734,9 @@ export default function ExamManagement() {
       'title',
       'description',
       'examType',
+      'classNumber',
+      'subject',
+      'maxAttempts',
       'board',
       'duration',
       'totalQuestions',
@@ -674,6 +752,9 @@ export default function ExamManagement() {
       'JEE Mains Mock Test 2024',
       'Mock test for JEE Mains preparation',
       'mains',
+      '10',
+      'maths',
+      '1',
       'ASLI_EXCLUSIVE_SCHOOLS',
       '180',
       '90',
@@ -837,19 +918,86 @@ export default function ExamManagement() {
     }
   };
 
-  const filteredExams = (() => {
-    if (filterType === 'all-schools') {
-      return exams;
-    } else if (filterType === 'specific-schools' && selectedSchools.length > 0) {
-      return exams.filter(exam => 
-        exam.targetSchools && exam.targetSchools.some((school: any) => {
+  const filteredExams = exams.filter((exam) => {
+    const schoolMatches = selectedSchool === 'all-schools'
+      ? true
+      : (!exam.isSchoolSpecific || (exam.targetSchools || []).some((school: any) => {
           const schoolId = typeof school === 'string' ? school : school._id;
-          return selectedSchools.includes(schoolId);
-        })
-      );
+          return schoolId === selectedSchool;
+        }));
+
+    const examClasses = getExamClassStrings(exam);
+    const classMatches =
+      selectedClass === 'all-classes'
+        ? true
+        : examClasses.map((c) => String(c)).includes(String(selectedClass));
+
+    return schoolMatches && classMatches;
+  });
+
+  const classWiseStats = CLASS_OPTIONS
+    .map((cls) => {
+      const count = exams.filter((exam) => {
+        const classes = getExamClassStrings(exam);
+        return classes.map((c) => String(c)).includes(String(cls));
+      }).length;
+      return { cls, count };
+    })
+    .filter((x) => x.count > 0);
+
+  const openCreateExamDialog = () => {
+    setIsEditing(false);
+    setEditingExamId(null);
+    setClassModalSearch('');
+    setFormData({
+      title: '',
+      description: '',
+      examType: 'mains',
+      classNumber: '',
+      assignedClasses: [],
+      subject: 'maths',
+      maxAttempts: '1',
+      board: 'ASLI_EXCLUSIVE_SCHOOLS',
+      filterType: 'all-schools',
+      selectedSchools: [],
+      duration: '',
+      totalQuestions: '',
+      totalMarks: '',
+      instructions: '',
+      startDate: '',
+      endDate: ''
+    });
+    setIsDialogOpen(true);
+  };
+
+  const openEditExamDialog = (exam: Exam) => {
+    const assigned = getExamClassStrings(exam);
+    setIsEditing(true);
+    setEditingExamId(exam._id);
+    setClassModalSearch('');
+    setFormData({
+      title: exam.title || '',
+      description: exam.description || '',
+      examType: exam.examType || 'mains',
+      classNumber: assigned[0] || '',
+      assignedClasses: assigned,
+      subject: (exam.subject || 'maths') as any,
+      maxAttempts: String(exam.maxAttempts || 1),
+      board: exam.board || 'ASLI_EXCLUSIVE_SCHOOLS',
+      filterType: exam.isSchoolSpecific ? 'specific-schools' : 'all-schools',
+      selectedSchools: exam.targetSchools?.map((s: any) => s._id || s).filter(Boolean) || [],
+      duration: String(exam.duration || ''),
+      totalQuestions: String(exam.totalQuestions || ''),
+      totalMarks: String(exam.totalMarks || ''),
+      instructions: exam.instructions || '',
+      startDate: exam.startDate ? new Date(exam.startDate).toISOString().slice(0, 16) : '',
+      endDate: exam.endDate ? new Date(exam.endDate).toISOString().slice(0, 16) : ''
+    });
+    if (exam.isSchoolSpecific && schools.length === 0) {
+      fetchSchools();
     }
-    return exams;
-  })();
+    setIsDialogOpen(true);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -907,7 +1055,7 @@ export default function ExamManagement() {
                     className="mt-1"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    CSV file should contain: title, description, examType, board, duration, totalQuestions, totalMarks, instructions, startDate, endDate, filterType, targetSchools
+                    CSV file should contain: title, description, examType, classNumber, subject, maxAttempts, board, duration, totalQuestions, totalMarks, instructions, startDate, endDate, filterType, targetSchools
                   </p>
                 </div>
 
@@ -949,14 +1097,14 @@ export default function ExamManagement() {
           </Dialog>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white">
+              <Button onClick={openCreateExamDialog} className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white">
                 <Plus className="mr-2 h-4 w-4" />
                 Create Exam
               </Button>
             </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create New Exam</DialogTitle>
+              <DialogTitle>{isEditing ? 'Edit Exam' : 'Create New Exam'}</DialogTitle>
               <DialogDescription>
                 Create a new exam for students. You can make it available to all schools or specific schools only. Exams can be Mains, Advanced, Weekend, or Practice type.
               </DialogDescription>
@@ -1072,6 +1220,78 @@ export default function ExamManagement() {
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
+                  <Label htmlFor="classSearch">Assigned Classes *</Label>
+                  <Input
+                    id="classSearch"
+                    value={classModalSearch}
+                    onChange={(e) => setClassModalSearch(e.target.value)}
+                    placeholder="Search class..."
+                  />
+                  <div className="mt-2 max-h-32 overflow-y-auto rounded-md border bg-white p-2 space-y-2">
+                    {CLASS_OPTIONS.filter((cls) => `Class ${cls}`.toLowerCase().includes(classModalSearch.toLowerCase())).map((cls) => (
+                      <label key={cls} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={formData.assignedClasses.includes(cls)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              const next = [...formData.assignedClasses, cls];
+                              setFormData({ ...formData, assignedClasses: next, classNumber: next[0] || '' });
+                            } else {
+                              const next = formData.assignedClasses.filter((c) => c !== cls);
+                              setFormData({ ...formData, assignedClasses: next, classNumber: next[0] || '' });
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        <span>{`Class ${cls}`}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {formData.assignedClasses.map((cls) => (
+                      <Badge key={cls} className="bg-sky-100 text-sky-700 font-semibold rounded-full">
+                        {`Class ${cls}`}
+                        <X className="ml-1 h-3 w-3 cursor-pointer" onClick={() => {
+                          const next = formData.assignedClasses.filter((c) => c !== cls);
+                          setFormData({ ...formData, assignedClasses: next, classNumber: next[0] || '' });
+                        }} />
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="subject">Subject *</Label>
+                  <Select
+                    value={formData.subject}
+                    onValueChange={(value: any) => setFormData({ ...formData, subject: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EXAM_SUBJECTS.map((subject) => (
+                        <SelectItem key={subject.value} value={subject.value}>
+                          {subject.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="maxAttempts">No. of Attempts *</Label>
+                  <Input
+                    id="maxAttempts"
+                    type="number"
+                    min={1}
+                    value={formData.maxAttempts}
+                    onChange={(e) => setFormData({ ...formData, maxAttempts: e.target.value })}
+                    placeholder="1"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
                   <Label htmlFor="duration">Duration (minutes) *</Label>
                   <Input
                     id="duration"
@@ -1137,8 +1357,8 @@ export default function ExamManagement() {
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateExam} disabled={isCreating} className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white">
-                {isCreating ? 'Creating...' : 'Create Exam'}
+              <Button onClick={handleSaveExam} disabled={isCreating} className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white">
+                {isCreating ? (isEditing ? 'Updating...' : 'Creating...') : (isEditing ? 'Update Exam' : 'Create Exam')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1146,7 +1366,17 @@ export default function ExamManagement() {
       </div>
       </div>
 
-      <div className="flex items-center gap-4 flex-wrap">
+      {classWiseStats.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {classWiseStats.map((item) => (
+            <Badge key={item.cls} className="bg-sky-100 text-sky-700 font-semibold rounded-full">
+              {`Class ${item.cls} -> ${item.count} Exams`}
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
         {/* Quick Add Questions Option */}
         {filteredExams.length > 0 && (
           <div className="relative">
@@ -1162,7 +1392,7 @@ export default function ExamManagement() {
                 }
               }}
             >
-              <SelectTrigger className="w-[220px] relative z-10 border-0 bg-white focus:ring-2 focus:ring-purple-500 focus:ring-offset-0">
+              <SelectTrigger className="w-full min-h-11 relative z-10 rounded-xl border border-gray-200 bg-white px-[14px] py-[10px] focus:ring-2 focus:ring-purple-500 focus:ring-offset-0">
                 <SelectValue placeholder="Quick Add Questions" />
               </SelectTrigger>
               <SelectContent>
@@ -1184,70 +1414,49 @@ export default function ExamManagement() {
           </div>
         )}
 
-        <div className="relative w-[200px]">
+        <div className="relative">
           <div className="absolute -inset-[2px] bg-gradient-to-r from-sky-300 to-teal-400 rounded-md"></div>
-          <Select value={filterType} onValueChange={(value: FilterType) => {
-            setFilterType(value);
-            if (value === 'all-schools') {
-              setSelectedSchools([]);
-            } else if (value === 'specific-schools') {
-              setSelectedSchools([]);
-            }
-          }}>
-            <SelectTrigger className="w-full relative z-10 border-0 bg-white focus:ring-2 focus:ring-blue-700 focus:ring-offset-0">
-              <SelectValue placeholder="Filter Type" />
+          <Select value={selectedSchool} onValueChange={setSelectedSchool}>
+            <SelectTrigger className="w-full min-h-11 relative z-10 rounded-xl border border-gray-200 bg-white px-[14px] py-[10px] focus:ring-2 focus:ring-teal-500 focus:ring-offset-0">
+              <div className="flex items-center gap-2">
+                <School className="h-4 w-4 text-gray-600" />
+                <SelectValue placeholder="All Schools" />
+              </div>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all-schools">All Schools</SelectItem>
-              <SelectItem value="specific-schools">Specific Schools</SelectItem>
+              {schools.map((school) => (
+                <SelectItem key={school.id} value={school.id}>
+                  {school.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
 
-        {filterType === 'specific-schools' && (
-          <div className="flex items-center gap-2">
-            <Select 
-              value="" 
-              onValueChange={(value) => {
-                if (value && !selectedSchools.includes(value)) {
-                  setSelectedSchools([...selectedSchools, value]);
-                }
-              }}
-            >
-              <SelectTrigger className="w-[250px]">
-                <SelectValue placeholder={isLoadingSchools ? "Loading schools..." : "Add School"} />
-              </SelectTrigger>
-              <SelectContent>
-                {schools.filter(school => !selectedSchools.includes(school.id)).map((school) => (
-                  <SelectItem key={school.id} value={school.id}>
-                    {school.name} ({BOARDS.find(b => b.value === school.board)?.label || school.board})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedSchools.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {selectedSchools.map((schoolId) => {
-                  const school = schools.find(s => s.id === schoolId);
-                  return school ? (
-                    <Badge key={schoolId} variant="secondary" className="flex items-center gap-1">
-                      {school.name}
-                      <X 
-                        className="h-3 w-3 cursor-pointer" 
-                        onClick={() => setSelectedSchools(selectedSchools.filter(id => id !== schoolId))}
-                      />
-                    </Badge>
-                  ) : null;
-                })}
+        <div className="relative">
+          <div className="absolute -inset-[2px] bg-gradient-to-r from-sky-300 to-teal-400 rounded-md"></div>
+          <Select value={selectedClass} onValueChange={setSelectedClass}>
+            <SelectTrigger className="w-full min-h-11 relative z-10 rounded-xl border border-gray-200 bg-white px-[14px] py-[10px] focus:ring-2 focus:ring-teal-500 focus:ring-offset-0">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="h-4 w-4 text-gray-600" />
+                <SelectValue placeholder="All Classes" />
               </div>
-            )}
-          </div>
-        )}
-
-        <Badge variant="outline" className="ml-2">
-          {filteredExams.length} {filteredExams.length === 1 ? 'Exam' : 'Exams'}
-        </Badge>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all-classes">All Classes</SelectItem>
+              {CLASS_OPTIONS.map((cls) => (
+                <SelectItem key={cls} value={cls}>
+                  {`Class ${cls}`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+      <Badge variant="outline" className="w-fit">
+        {filteredExams.length} {filteredExams.length === 1 ? 'Exam' : 'Exams'}
+      </Badge>
 
       {isLoading ? (
         <div className="text-center py-12">
@@ -1273,6 +1482,7 @@ export default function ExamManagement() {
               { bg: 'from-teal-400 to-teal-500', text: 'text-white', badge: 'bg-teal-500/20 text-teal-100' }
             ];
             const colorScheme = colorSchemes[index % 3];
+            const examClassLabels = getExamClassStrings(exam);
             
             return (
               <Card key={exam._id} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
@@ -1283,6 +1493,13 @@ export default function ExamManagement() {
                       <div className="flex flex-wrap gap-2 mt-2">
                         <Badge className={`${colorScheme.badge} border-0`}>
                           {EXAM_TYPES.find(t => t.value === exam.examType)?.label}
+                        </Badge>
+                        <Badge className="bg-indigo-100 text-indigo-700 border-0 text-xs font-semibold rounded-full">
+                          {examClassLabels.length > 0
+                            ? examClassLabels.length === 1
+                              ? `Class ${examClassLabels[0]}`
+                              : `${examClassLabels.length} classes`
+                            : 'Class —'}
                         </Badge>
                         <Badge className="bg-orange-600 text-white border-2 border-white/50 shadow-lg font-semibold">
                           Asli Exclusive Schools
@@ -1320,6 +1537,20 @@ export default function ExamManagement() {
                       </div>
                     </div>
                   )}
+                  <div className="mb-3">
+                    <p className={`text-xs ${colorScheme.text}/90 mb-1`}>Assigned Classes</p>
+                    {examClassLabels.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {examClassLabels.map((cls: string, idx: number) => (
+                          <Badge key={`${exam._id}-class-${idx}`} className="bg-white/80 text-gray-900 border-0 text-xs font-semibold rounded-full">
+                            {`Class ${cls}`}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-200">No Class Assigned</p>
+                    )}
+                  </div>
                   <div className={`space-y-2 text-sm ${colorScheme.text}`}>
                     <div className="flex items-center">
                       <Clock className="h-4 w-4 mr-2" />
@@ -1328,6 +1559,18 @@ export default function ExamManagement() {
                     <div className="flex items-center">
                       <BookOpen className="h-4 w-4 mr-2" />
                       <span>{exam.totalQuestions} questions • {exam.totalMarks} marks</span>
+                    </div>
+                    <div className="flex items-center">
+                      <Eye className="h-4 w-4 mr-2" />
+                      <span>
+                        {[
+                          examClassLabels.length > 0
+                            ? examClassLabels.map((c) => `Class ${normalizeDisplayText(c)}`).join(', ')
+                            : '',
+                          normalizeDisplayText(exam.subject),
+                          `${exam.maxAttempts || 1} attempt(s)`
+                        ].filter(Boolean).join(' • ')}
+                      </span>
                     </div>
                     <div className="flex items-center">
                       <Calendar className="h-4 w-4 mr-2" />
@@ -1342,6 +1585,14 @@ export default function ExamManagement() {
                     )}
                   </div>
                   <div className="flex gap-2 mt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-white/90 text-gray-900 border-gray-300 hover:bg-white hover:border-gray-400"
+                      onClick={() => openEditExamDialog(exam)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"

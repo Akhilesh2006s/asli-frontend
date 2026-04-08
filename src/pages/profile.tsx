@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
@@ -28,7 +27,7 @@ import {
   X
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { EDUCATION_STREAMS, getAgeGroup, getStreamsByAge } from "@/lib/constants";
+import { getAgeGroup } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL, apiFetch } from "@/lib/api-config";
 
@@ -261,7 +260,6 @@ export default function Profile() {
   }
 
   const ageGroup = getAgeGroup(user.age);
-  const availableStreams = getStreamsByAge(user.age);
 
   return (
     <>
@@ -550,21 +548,13 @@ export default function Profile() {
                           
                           <div>
                             <Label htmlFor="stream">Education Stream</Label>
-                            <Select 
-                              value={editedProfile.educationStream} 
-                              onValueChange={(value) => setEditedProfile({...editedProfile, educationStream: value})}
-                            >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {availableStreams.map(stream => (
-                                  <SelectItem key={stream.value} value={stream.value}>
-                                    {stream.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <Input
+                              id="stream"
+                              value={editedProfile.educationStream || user.educationStream || ""}
+                              disabled
+                              readOnly
+                              className="bg-gray-100 text-gray-600 cursor-not-allowed"
+                            />
                           </div>
                         </div>
                         

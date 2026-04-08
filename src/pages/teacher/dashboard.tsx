@@ -57,7 +57,8 @@ import {
   Layers,
   CreditCard,
   FileCheck,
-  CheckCircle2
+  CheckCircle2,
+  BookMarked
 } from 'lucide-react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
@@ -65,7 +66,14 @@ import AIChat from '@/components/ai-chat';
 import VideoModal from '@/components/video-modal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
+import { TeacherDashboardSchedule } from '@/components/teacher/TeacherDashboardSchedule';
+import { ClassCard } from '@/components/teacher/ClassCard';
+import { TeacherWorkDiaryPanel } from '@/components/teacher/TeacherWorkDiaryPanel';
 import { useToast } from '@/hooks/use-toast';
+import {
+  extractPlainSubjectName,
+  getSubjectClassLabel,
+} from '@/lib/subject-names';
 
 // PDF Upload removed - AI tools now use Gemini API only
 
@@ -143,7 +151,8 @@ const TeacherDashboard = () => {
   const [videos, setVideos] = useState<Video[]>([]);
   const [eduottVideos, setEduottVideos] = useState<Video[]>([]);
   const [eduottSearchTerm, setEduottSearchTerm] = useState('');
-  const [eduottSelectedSubject, setEduottSelectedSubject] = useState<string>('all');
+  const [eduottClassFilter, setEduottClassFilter] = useState<string>('all');
+  const [eduottSubjectFilter, setEduottSubjectFilter] = useState<string>('all');
   const [isLoadingEduott, setIsLoadingEduott] = useState(false);
   const [selectedEduottVideo, setSelectedEduottVideo] = useState<any>(null);
   const [isEduottVideoModalOpen, setIsEduottVideoModalOpen] = useState(false);
@@ -152,6 +161,8 @@ const TeacherDashboard = () => {
   const [isLoadingLiveSessions, setIsLoadingLiveSessions] = useState(false);
   const [sessionSearchTerm, setSessionSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [sessionClassFilter, setSessionClassFilter] = useState<string>('all');
+  const [sessionSubjectFilter, setSessionSubjectFilter] = useState<string>('all');
   const [assignedClasses, setAssignedClasses] = useState<any[]>([]);
   const [teacherSubjects, setTeacherSubjects] = useState<any[]>([]);
   const [availableClasses, setAvailableClasses] = useState<{classNumber: string, subjects: any[]}[]>([]);
@@ -171,7 +182,9 @@ const TeacherDashboard = () => {
   const [isSubmittingRemark, setIsSubmittingRemark] = useState(false);
   const [selectedSubjectForRemark, setSelectedSubjectForRemark] = useState<string>('general');
   const [isPositiveRemark, setIsPositiveRemark] = useState(true);
-  const [studentsSubTab, setStudentsSubTab] = useState<'list' | 'track-progress' | 'submissions'>('list');
+  const [studentsSubTab, setStudentsSubTab] = useState<
+    'list' | 'track-progress' | 'submissions' | 'diary'
+  >('list');
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
   const [filterByClass, setFilterByClass] = useState<string>('all');
   const [filterByStudent, setFilterByStudent] = useState<string>('all');
@@ -182,6 +195,14 @@ const TeacherDashboard = () => {
       setFilterByStudent('all');
     }
   }, [filterByClass]);
+
+  useEffect(() => {
+    setEduottSubjectFilter('all');
+  }, [eduottClassFilter]);
+
+  useEffect(() => {
+    setSessionSubjectFilter('all');
+  }, [sessionClassFilter]);
   const [homeworkSubmissions, setHomeworkSubmissions] = useState<any[]>([]);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
   const [expandedHomework, setExpandedHomework] = useState<Set<string>>(new Set());
@@ -1539,18 +1560,48 @@ const TeacherDashboard = () => {
     }
   };
 
+  const eduottClassOptions = useMemo(() => {
+    const set = new Set<string>();
+    eduottVideos.forEach((video: any) => {
+      const l = getSubjectClassLabel({
+        name: video.subjectName,
+        classNumber: video.classNumber,
+      });
+      if (l) set.add(l);
+    });
+    return Array.from(set).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+  }, [eduottVideos]);
+
+  const eduottSubjectOptions = useMemo(() => {
+    const names = new Set<string>();
+    eduottVideos.forEach((video: any) => {
+      const l = getSubjectClassLabel({
+        name: video.subjectName,
+        classNumber: video.classNumber,
+      });
+      if (eduottClassFilter !== 'all' && l !== eduottClassFilter) return;
+      names.add(extractPlainSubjectName(video.subjectName || '').trim());
+    });
+    return Array.from(names).filter(Boolean).sort((a, b) => a.localeCompare(b));
+  }, [eduottVideos, eduottClassFilter]);
+
   // Memoize filtered videos to avoid recalculating on every render
   const filteredEduottVideos = useMemo(() => {
     if (!eduottVideos.length) return [];
-    return eduottVideos.filter((video) => {
+    return eduottVideos.filter((video: any) => {
       const matchesSearch = video.title.toLowerCase().includes(eduottSearchTerm.toLowerCase()) ||
                            (video.description || '').toLowerCase().includes(eduottSearchTerm.toLowerCase());
-      const matchesSubject = eduottSelectedSubject === 'all' || 
-                            video.subjectName === eduottSelectedSubject ||
-                            video.subject === eduottSelectedSubject;
-      return matchesSearch && matchesSubject;
+      const classL = getSubjectClassLabel({
+        name: video.subjectName,
+        classNumber: video.classNumber,
+      });
+      const matchesClass = eduottClassFilter === 'all' || classL === eduottClassFilter;
+      const plain = extractPlainSubjectName(video.subjectName || '').toLowerCase();
+      const matchesSubject =
+        eduottSubjectFilter === 'all' || plain === eduottSubjectFilter.toLowerCase();
+      return matchesSearch && matchesClass && matchesSubject;
     });
-  }, [eduottVideos, eduottSearchTerm, eduottSelectedSubject]);
+  }, [eduottVideos, eduottSearchTerm, eduottClassFilter, eduottSubjectFilter]);
 
   // Memoize filtered students
   const filteredStudents = useMemo(() => {
@@ -1563,15 +1614,48 @@ const TeacherDashboard = () => {
     );
   }, [students, searchTerm]);
 
+  const liveSessionClassOptions = useMemo(() => {
+    const set = new Set<string>();
+    liveSessions.forEach((session: any) => {
+      const l = getSubjectClassLabel({
+        name: session.subject?.name,
+        classNumber: session.classNumber,
+      });
+      if (l) set.add(l);
+    });
+    return Array.from(set).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+  }, [liveSessions]);
+
+  const liveSessionSubjectOptions = useMemo(() => {
+    const names = new Set<string>();
+    liveSessions.forEach((session: any) => {
+      const l = getSubjectClassLabel({
+        name: session.subject?.name,
+        classNumber: session.classNumber,
+      });
+      if (sessionClassFilter !== 'all' && l !== sessionClassFilter) return;
+      names.add(extractPlainSubjectName(session.subject?.name || '').trim());
+    });
+    return Array.from(names).filter(Boolean).sort((a, b) => a.localeCompare(b));
+  }, [liveSessions, sessionClassFilter]);
+
   // Memoize filtered live sessions
   const filteredLiveSessions = useMemo(() => {
-    return liveSessions.filter((session) => {
+    return liveSessions.filter((session: any) => {
       const matchesSearch = session.title?.toLowerCase().includes(sessionSearchTerm.toLowerCase()) ||
         session.description?.toLowerCase().includes(sessionSearchTerm.toLowerCase());
       const matchesStatus = filterStatus === 'all' || session.status === filterStatus;
-      return matchesSearch && matchesStatus;
+      const classL = getSubjectClassLabel({
+        name: session.subject?.name,
+        classNumber: session.classNumber,
+      });
+      const matchesClass = sessionClassFilter === 'all' || classL === sessionClassFilter;
+      const plain = extractPlainSubjectName(session.subject?.name || '').toLowerCase();
+      const matchesSubject =
+        sessionSubjectFilter === 'all' || plain === sessionSubjectFilter.toLowerCase();
+      return matchesSearch && matchesStatus && matchesClass && matchesSubject;
     });
-  }, [liveSessions, sessionSearchTerm, filterStatus]);
+  }, [liveSessions, sessionSearchTerm, filterStatus, sessionClassFilter, sessionSubjectFilter]);
 
   // Memoize helper functions
   const formatDuration = useCallback((minutes: number) => {
@@ -1823,107 +1907,92 @@ const TeacherDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                className="font-inter rounded-2xl border border-gray-200/80 bg-[#F9FAFB] p-4 sm:p-5 lg:p-6 shadow-[0_4px_24px_rgba(15,23,42,0.06)]"
               >
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-xl flex items-center justify-center shadow-lg">
-                      <Users className="w-5 h-5 text-white" />
+                <div className="mb-5 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 shadow-sm ring-4 ring-indigo-600/10">
+                      <Users className="h-5 w-5 text-white" />
                     </div>
-                    <h3 className="text-2xl font-bold bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">My Classes</h3>
+                    <h3 className="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">
+                      My Classes
+                    </h3>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {assignedClasses.length > 0 ? (
-                    assignedClasses.map((classItem, index) => (
-                      <div key={classItem.id || index} className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-200">
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-xl font-bold text-gray-900">{classItem.name}</h3>
-                          <Badge className="bg-green-100 text-green-800">Active</Badge>
-                        </div>
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-gray-600">Students:</span>
-                            <span className="font-medium">{classItem.studentCount}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-gray-600">Subject:</span>
-                            <span className="font-medium">{classItem.subject}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-gray-600">Schedule:</span>
-                            <span className="font-medium">{classItem.schedule}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-gray-600">Room:</span>
-                            <span className="font-medium">{classItem.room}</span>
-                          </div>
-                        </div>
-                        
-                        {/* Students List - Conditionally Rendered */}
-                        {expandedClasses.has(classItem.id || index.toString()) && classItem.students && classItem.students.length > 0 && (
-                          <div className="mt-4 space-y-2">
-                            <h4 className="font-semibold text-gray-900 text-sm">Students:</h4>
-                            <div className="space-y-1 max-h-64 overflow-y-auto">
-                              {classItem.students.map(student => (
-                                <div key={student.id} className="flex items-center justify-between bg-gray-50 rounded-lg p-2">
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-900">{student.name}</p>
-                                    <p className="text-xs text-gray-600">{student.email}</p>
-                                  </div>
-                                  <Badge variant="outline" className="text-xs border-green-200 text-green-700">
-                                    {student.status}
-                                  </Badge>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        <div className="mt-4">
-                          <Button 
-                            size="sm" 
-                            className="w-full"
-                            onClick={() => {
-                              const classId = classItem.id || index.toString();
-                              setExpandedClasses(prev => {
-                                const newSet = new Set(prev);
-                                if (newSet.has(classId)) {
-                                  newSet.delete(classId);
+                {/* Stack vertically so a short class card never sits beside a tall calendar stack (no dead area below the card) */}
+                <div className="flex flex-col gap-5">
+                  <div className="w-full min-w-0">
+                    <div
+                      className={
+                        assignedClasses.length > 1
+                          ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5'
+                          : 'grid grid-cols-1 gap-4 sm:gap-5'
+                      }
+                    >
+                      {assignedClasses.length > 0 ? (
+                        assignedClasses.map((classItem, index) => {
+                          const classId = classItem.id || index.toString();
+                          return (
+                            <ClassCard
+                              key={classId}
+                              name={classItem.name}
+                              subject={classItem.subject}
+                              studentCount={classItem.studentCount}
+                              schedule={classItem.schedule}
+                              room={classItem.room}
+                              expanded={expandedClasses.has(classId)}
+                              students={classItem.students}
+                              onToggleStudents={() => {
+                                setExpandedClasses((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(classId)) next.delete(classId);
+                                  else next.add(classId);
+                                  return next;
+                                });
+                              }}
+                              onViewStudentAnalysis={(studentId) => {
+                                setDashboardSubTab('students');
+                                setStudentsSubTab('track-progress');
+                                if (classItem.classNumber != null && classItem.classNumber !== '') {
+                                  setFilterByClass(String(classItem.classNumber));
                                 } else {
-                                  newSet.add(classId);
+                                  setFilterByClass('all');
                                 }
-                                return newSet;
-                              });
-                            }}
-                          >
-                            {expandedClasses.has(classItem.id || index.toString()) ? (
-                              <>
-                                <ChevronUp className="w-4 h-4 mr-2" />
-                                Hide Students
-                              </>
-                            ) : (
-                              <>
-                                <ChevronDown className="w-4 h-4 mr-2" />
-                                View Students
-                              </>
-                            )}
+                                setFilterByStudent(studentId);
+                                window.setTimeout(() => {
+                                  document
+                                    .getElementById('teacher-student-progress')
+                                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }, 150);
+                              }}
+                            />
+                          );
+                        })
+                      ) : (
+                        <div className="col-span-full rounded-2xl border border-dashed border-gray-200 bg-white p-8 text-center shadow-sm">
+                          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100 text-gray-400">
+                            <Users className="h-8 w-8" />
+                          </div>
+                          <h3 className="mb-2 text-xl font-semibold text-gray-900">
+                            No classes assigned
+                          </h3>
+                          <p className="mb-4 text-gray-600">
+                            You haven&apos;t been assigned to any classes yet. Contact your administrator.
+                          </p>
+                          <Button className="w-full rounded-xl bg-indigo-600 font-semibold text-white shadow-sm hover:bg-indigo-700 sm:w-auto">
+                            Request class assignment
                           </Button>
                         </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="col-span-full bg-white/60 backdrop-blur-xl rounded-3xl p-8 shadow-xl border border-white/20 text-center">
-                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Users className="w-8 h-8 text-gray-400" />
-                      </div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">No Classes Assigned</h3>
-                      <p className="text-gray-600 mb-4">You haven't been assigned to any classes yet. Contact your administrator.</p>
-                      <Button className="bg-gradient-to-r from-sky-400 to-blue-400 hover:from-sky-500 hover:to-blue-500 text-white">
-                        Request Class Assignment
-                      </Button>
+                      )}
                     </div>
-                  )}
+                  </div>
+
+                  <div className="w-full min-w-0">
+                    <TeacherDashboardSchedule
+                      storageKey={teacherEmail || localStorage.getItem('userEmail') || 'teacher'}
+                    />
+                  </div>
                 </div>
               </motion.div>
 
@@ -2398,6 +2467,7 @@ const TeacherDashboard = () => {
                         <AIChat
                           userId={teacherId}
                           className="flex-1 h-full"
+                          promptVariant="teacher"
                           context={{
                             studentName: teacherUser?.fullName || teacherUser?.email?.split('@')[0] || "Teacher",
                             currentSubject: teacherSubjects.length > 0 ? teacherSubjects[0].name : "General",
@@ -2424,7 +2494,8 @@ const TeacherDashboard = () => {
                 <div className="space-y-8">
                   {/* Students Sub-Tabs */}
                   <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-4 shadow-xl border border-white/20">
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="flex flex-wrap items-center gap-2">
                       <Button
                         variant={studentsSubTab === 'list' ? 'default' : 'outline'}
                         className={studentsSubTab === 'list' ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50'}
@@ -2449,6 +2520,15 @@ const TeacherDashboard = () => {
                         <FileText className="w-4 h-4 mr-2" />
                         Submissions
                       </Button>
+                      <Button
+                        variant={studentsSubTab === 'diary' ? 'default' : 'outline'}
+                        className={studentsSubTab === 'diary' ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50'}
+                        onClick={() => setStudentsSubTab('diary')}
+                      >
+                        <BookMarked className="w-4 h-4 mr-2" />
+                        Diary
+                      </Button>
+                    </div>
                     </div>
                   </div>
 
@@ -2754,7 +2834,7 @@ const TeacherDashboard = () => {
 
                   {/* Track Progress Sub-Tab */}
                   {studentsSubTab === 'track-progress' && (
-                    <div className="space-y-8">
+                    <div id="teacher-student-progress" className="space-y-8 scroll-mt-24">
                       {/* Header */}
                       <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
                         <div className="flex items-center gap-3 mb-6">
@@ -3046,7 +3126,7 @@ const TeacherDashboard = () => {
                         ];
 
                         return (
-                          <div className="space-y-8">
+                          <div id="teacher-progress-analytics" className="space-y-8 scroll-mt-24">
                             {/* Class Performance Summary */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                               <motion.div
@@ -3362,15 +3442,31 @@ const TeacherDashboard = () => {
                                 <th className="text-left py-3 px-4 font-medium text-gray-900">Daily Avg Watch Time</th>
                                 <th className="text-left py-3 px-4 font-medium text-gray-900">Last Activity</th>
                                 <th className="text-left py-3 px-4 font-medium text-gray-900">Status</th>
+                                <th className="text-right py-3 px-4 font-medium text-gray-900">Actions</th>
                               </tr>
                             </thead>
                             <tbody>
                               {students
-                                .filter(student => 
-                                  student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                  student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                  student.phone?.toLowerCase().includes(searchTerm.toLowerCase())
-                                )
+                                .filter((student) => {
+                                  if (filterByClass !== 'all') {
+                                    const studentClass =
+                                      student.classNumber || student.assignedClass?.classNumber;
+                                    if (studentClass !== filterByClass) return false;
+                                  }
+                                  if (filterByStudent !== 'all') {
+                                    const sid = student.id || student._id;
+                                    if (String(sid) !== String(filterByStudent)) return false;
+                                  }
+                                  return (
+                                    (student.name || '')
+                                      .toLowerCase()
+                                      .includes(searchTerm.toLowerCase()) ||
+                                    student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    (student.phone || '')
+                                      .toLowerCase()
+                                      .includes(searchTerm.toLowerCase())
+                                  );
+                                })
                                 .map((student) => {
                                   const perf = student.performance || {};
                                   const classDisplay = student.assignedClass 
@@ -3508,6 +3604,39 @@ const TeacherDashboard = () => {
                                         <Badge className={student.isActive !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
                                           {student.isActive !== false ? 'Active' : 'Inactive'}
                                         </Badge>
+                                      </td>
+                                      <td className="py-3 px-4 text-right">
+                                        <div className="flex flex-wrap items-center justify-end gap-2">
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 rounded-lg border-indigo-200 bg-white text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
+                                            onClick={() => {
+                                              const sid = student.id || student._id;
+                                              const classNum =
+                                                student.classNumber ||
+                                                student.assignedClass?.classNumber;
+                                              if (classNum != null && String(classNum).trim() !== '') {
+                                                setFilterByClass(String(classNum));
+                                              } else {
+                                                setFilterByClass('all');
+                                              }
+                                              setFilterByStudent(String(sid));
+                                              window.setTimeout(() => {
+                                                document
+                                                  .getElementById('teacher-progress-analytics')
+                                                  ?.scrollIntoView({
+                                                    behavior: 'smooth',
+                                                    block: 'start',
+                                                  });
+                                              }, 120);
+                                            }}
+                                          >
+                                            <Eye className="mr-1 h-3.5 w-3.5" aria-hidden />
+                                            View
+                                          </Button>
+                                        </div>
                                       </td>
                                     </tr>
                                   );
@@ -3858,6 +3987,9 @@ const TeacherDashboard = () => {
                       )}
                     </div>
                   )}
+
+                  {studentsSubTab === 'diary' && <TeacherWorkDiaryPanel />}
+
                 </div>
               )}
 
@@ -3886,8 +4018,8 @@ const TeacherDashboard = () => {
                       {/* Videos Tab */}
                       <TabsContent value="videos" className="space-y-6">
                         {/* Search and Filter */}
-                        <div className="space-y-4 md:space-y-0 md:flex md:items-center md:gap-4">
-                      <div className="flex-1 relative">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end">
+                      <div className="flex-1 min-w-[200px] relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <Input
                           type="text"
@@ -3897,17 +4029,34 @@ const TeacherDashboard = () => {
                           className="pl-10 w-full"
                         />
                       </div>
-                      <div className="md:w-64">
-                        <Select value={eduottSelectedSubject} onValueChange={setEduottSelectedSubject}>
-                          <SelectTrigger className="w-full">
-                            <Filter className="w-4 h-4 mr-2" />
-                            <SelectValue placeholder="Filter by subject" />
+                      <div className="space-y-1.5 w-full sm:w-auto">
+                        <Label className="text-xs text-gray-500">Class</Label>
+                        <Select value={eduottClassFilter} onValueChange={setEduottClassFilter}>
+                          <SelectTrigger className="w-full md:w-[180px] bg-white">
+                            <SelectValue placeholder="All classes" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="all">All Subjects</SelectItem>
-                            {teacherSubjects.map((subject) => (
-                              <SelectItem key={subject._id || subject.id} value={subject.name}>
-                                {subject.name}
+                            <SelectItem value="all">All classes</SelectItem>
+                            {eduottClassOptions.map((c) => (
+                              <SelectItem key={c} value={c}>
+                                Class {c}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5 w-full sm:w-auto">
+                        <Label className="text-xs text-gray-500">Subject</Label>
+                        <Select value={eduottSubjectFilter} onValueChange={setEduottSubjectFilter}>
+                          <SelectTrigger className="w-full md:w-[200px] bg-white">
+                            <Filter className="w-4 h-4 mr-2 shrink-0" />
+                            <SelectValue placeholder="All subjects" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All subjects</SelectItem>
+                            {eduottSubjectOptions.map((name) => (
+                              <SelectItem key={name} value={name}>
+                                {name}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -3977,7 +4126,7 @@ const TeacherDashboard = () => {
                                   />
                                 ) : video.isYouTubeVideo && video.youtubeUrl ? (
                                   <img
-                                    src={`https://img.youtube.com/vi/${extractYouTubeId(video.youtubeUrl)}/maxresdefault.jpg`}
+                                    src={`https://img.youtube.com/vi/${extractYouTubeId(video.youtubeUrl)}/hqdefault.jpg`}
                                     alt={video.title}
                                     className="w-full h-48 object-cover"
                                   />
@@ -4010,10 +4159,24 @@ const TeacherDashboard = () => {
                                   </CardTitle>
                                 </div>
                                 {(video.subjectName || video.subject) && (
-                                  <Badge variant="outline" className="mt-2 w-fit">
-                                    <BookOpen className="w-3 h-3 mr-1" />
-                                    {video.subjectName || video.subject}
-                                  </Badge>
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    <Badge variant="outline" className="w-fit font-medium">
+                                      <BookOpen className="w-3 h-3 mr-1" />
+                                      {extractPlainSubjectName(String(video.subjectName || video.subject))}
+                                    </Badge>
+                                    {getSubjectClassLabel({
+                                      name: String(video.subjectName || video.subject),
+                                      classNumber: video.classNumber,
+                                    }) ? (
+                                      <Badge className="w-fit bg-sky-100 text-sky-800 border-0">
+                                        Class{' '}
+                                        {getSubjectClassLabel({
+                                          name: String(video.subjectName || video.subject),
+                                          classNumber: video.classNumber,
+                                        })}
+                                      </Badge>
+                                    ) : null}
+                                  </div>
                                 )}
                               </CardHeader>
 
@@ -4043,8 +4206,8 @@ const TeacherDashboard = () => {
                       {/* Live Sessions Tab */}
                       <TabsContent value="live-sessions" className="space-y-6">
                         {/* Search and Filter */}
-                        <div className="space-y-4 md:space-y-0 md:flex md:items-center md:gap-4">
-                          <div className="flex-1 relative">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end">
+                          <div className="flex-1 min-w-[200px] relative">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                             <Input
                               type="text"
@@ -4054,10 +4217,43 @@ const TeacherDashboard = () => {
                               className="pl-10 w-full"
                             />
                           </div>
-                          <div className="md:w-64">
+                          <div className="space-y-1.5 w-full sm:w-auto">
+                            <Label className="text-xs text-gray-500">Class</Label>
+                            <Select value={sessionClassFilter} onValueChange={setSessionClassFilter}>
+                              <SelectTrigger className="w-full md:w-[180px] bg-white">
+                                <SelectValue placeholder="All classes" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All classes</SelectItem>
+                                {liveSessionClassOptions.map((c) => (
+                                  <SelectItem key={c} value={c}>
+                                    Class {c}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5 w-full sm:w-auto">
+                            <Label className="text-xs text-gray-500">Subject</Label>
+                            <Select value={sessionSubjectFilter} onValueChange={setSessionSubjectFilter}>
+                              <SelectTrigger className="w-full md:w-[200px] bg-white">
+                                <SelectValue placeholder="All subjects" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All subjects</SelectItem>
+                                {liveSessionSubjectOptions.map((name) => (
+                                  <SelectItem key={name} value={name}>
+                                    {name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1.5 w-full sm:w-auto">
+                            <Label className="text-xs text-gray-500">Status</Label>
                             <Select value={filterStatus} onValueChange={setFilterStatus}>
-                              <SelectTrigger className="w-full">
-                                <Filter className="w-4 h-4 mr-2" />
+                              <SelectTrigger className="w-full md:w-[160px] bg-white">
+                                <Filter className="w-4 h-4 mr-2 shrink-0" />
                                 <SelectValue placeholder="Filter by status" />
                               </SelectTrigger>
                               <SelectContent>
@@ -4134,12 +4330,21 @@ const TeacherDashboard = () => {
                                           {session.subject?.name && (
                                             <div className="flex items-center gap-1">
                                               <BookOpen className="w-4 h-4" />
-                                              <span>{session.subject.name}</span>
+                                              <span>{extractPlainSubjectName(session.subject.name)}</span>
                                             </div>
                                           )}
-                                          {session.classNumber && (
-                                            <Badge variant="outline">Class {session.classNumber}</Badge>
-                                          )}
+                                          {getSubjectClassLabel({
+                                            name: session.subject?.name,
+                                            classNumber: session.classNumber,
+                                          }) ? (
+                                            <Badge variant="outline">
+                                              Class{' '}
+                                              {getSubjectClassLabel({
+                                                name: session.subject?.name,
+                                                classNumber: session.classNumber,
+                                              })}
+                                            </Badge>
+                                          ) : null}
                                           <div className="flex items-center gap-1">
                                             <Eye className="w-4 h-4" />
                                             <span>{session.viewerCount || 0} viewers</span>

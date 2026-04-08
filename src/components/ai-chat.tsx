@@ -15,6 +15,8 @@ interface Message {
   type?: "text" | "voice" | "image";
 }
 
+export type AIChatPromptVariant = "student" | "teacher" | "admin" | "super-admin";
+
 interface AIChatProps {
   userId: string;
   context?: {
@@ -24,9 +26,63 @@ interface AIChatProps {
     recentTest?: string;
   };
   className?: string;
+  /** When set, controls suggested starter questions. If omitted, "admin" is inferred when currentSubject is Administration. */
+  promptVariant?: AIChatPromptVariant;
 }
 
-export default function AIChat({ userId, context, className }: AIChatProps) {
+const STUDENT_QUICK_QUESTIONS = [
+  "Explain the concept of rotational motion with examples",
+  "What's the difference between alcohols and ethers?",
+  "How do I solve integration by parts problems?",
+  "Can you help me understand Newton's laws of motion?",
+  "What are the key formulas for organic chemistry?",
+  "Explain the photoelectric effect in simple terms",
+];
+
+const ADMIN_QUICK_QUESTIONS = [
+  "How do I enroll students and assign them to the right classes?",
+  "What reports can I use to track attendance and academic performance?",
+  "How do I create or schedule an exam and notify teachers and students?",
+  "How do I add teachers, manage classes, and update the school calendar?",
+  "How should I handle fee collection and subscription or billing questions?",
+  "Give me a checklist for starting a new academic term in the dashboard",
+];
+
+const TEACHER_QUICK_QUESTIONS = [
+  "Help me plan an engaging lesson for my next class",
+  "How can I differentiate instruction for mixed-ability students?",
+  "Suggest quick formative assessments I can use this week",
+  "How do I explain a difficult concept in simpler steps?",
+  "What are effective ways to give feedback on assignments?",
+  "Help me draft clear learning objectives for a unit",
+];
+
+const SUPER_ADMIN_QUICK_QUESTIONS = [
+  "How do I onboard a new school or organization on the platform?",
+  "Where can I review platform-wide usage, exams, and AI activity?",
+  "How do school subscriptions and billing work end to end?",
+  "What should I monitor for security, compliance, and data hygiene?",
+  "How can I help schools get the most from Vidya AI and analytics?",
+  "Summarize best practices for multi-school administration",
+];
+
+function resolvePromptVariant(
+  promptVariant: AIChatPromptVariant | undefined,
+  currentSubject: string | undefined
+): AIChatPromptVariant {
+  if (promptVariant) return promptVariant;
+  if (currentSubject?.trim().toLowerCase() === "administration") return "admin";
+  return "student";
+}
+
+const QUICK_QUESTIONS_BY_VARIANT: Record<AIChatPromptVariant, string[]> = {
+  student: STUDENT_QUICK_QUESTIONS,
+  admin: ADMIN_QUICK_QUESTIONS,
+  teacher: TEACHER_QUICK_QUESTIONS,
+  "super-admin": SUPER_ADMIN_QUICK_QUESTIONS,
+};
+
+export default function AIChat({ userId, context, className, promptVariant }: AIChatProps) {
   const [message, setMessage] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
@@ -275,6 +331,8 @@ export default function AIChat({ userId, context, className }: AIChatProps) {
 
   const displayMessages = localMessages.length > 0 ? localMessages : sessionMessages;
   const currentSubject = context?.currentSubject || 'General Preparation';
+  const resolvedVariant = resolvePromptVariant(promptVariant, context?.currentSubject);
+  const quickQuestions = QUICK_QUESTIONS_BY_VARIANT[resolvedVariant];
 
   // Clean up AI output to be student‑friendly: remove markdown stars and turn lists into neat bullets
   const formatMessage = (text: string) => {
@@ -288,15 +346,6 @@ export default function AIChat({ userId, context, className }: AIChatProps) {
     cleaned = cleaned.replace(/\s{2,}/g, " ");
     return cleaned.trim();
   };
-
-  const quickQuestions = [
-    "Explain the concept of rotational motion with examples",
-    "What's the difference between alcohols and ethers?",
-    "How do I solve integration by parts problems?",
-    "Can you help me understand Newton's laws of motion?",
-    "What are the key formulas for organic chemistry?",
-    "Explain the photoelectric effect in simple terms"
-  ];
 
   return (
     <div className={`${className} flex flex-col bg-gradient-to-b from-blue-50 via-cyan-50 to-teal-50 relative h-full min-h-0`}>

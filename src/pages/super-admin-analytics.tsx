@@ -15,7 +15,18 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
 
-export default function SuperAdminAnalyticsDashboard() {
+export type SchoolSummary = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+type SuperAdminAnalyticsDashboardProps = {
+  /** Opens Exam & AI insights for this school (combined analytics page). */
+  onSelectSchool?: (admin: SchoolSummary) => void;
+};
+
+export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAdminAnalyticsDashboardProps) {
   const { toast } = useToast();
   const [analytics, setAnalytics] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -159,38 +170,86 @@ export default function SuperAdminAnalyticsDashboard() {
         </CardHeader>
         <CardContent className="relative z-10">
           <div className="space-y-4">
-            {analytics?.map((admin) => (
-              <div key={admin.id} className="p-4 bg-white/90 backdrop-blur-sm rounded-lg border border-white/50 shadow-md">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="font-semibold text-lg text-gray-900">{admin.name}</h3>
-                    <p className="text-gray-600">{admin.email}</p>
+            {analytics?.map((admin) => {
+              const schoolId = String(admin.id || admin._id || '');
+              const interactive = Boolean(onSelectSchool && schoolId);
+              return (
+                <div
+                  key={schoolId || admin.email}
+                  role={interactive ? 'button' : undefined}
+                  tabIndex={interactive ? 0 : undefined}
+                  onClick={
+                    interactive
+                      ? () =>
+                          onSelectSchool!({
+                            id: schoolId,
+                            name: admin.name || admin.schoolName || 'School',
+                            email: admin.email || '',
+                          })
+                      : undefined
+                  }
+                  onKeyDown={
+                    interactive
+                      ? (e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            onSelectSchool!({
+                              id: schoolId,
+                              name: admin.name || admin.schoolName || 'School',
+                              email: admin.email || '',
+                            });
+                          }
+                        }
+                      : undefined
+                  }
+                  className={`p-4 bg-white/90 backdrop-blur-sm rounded-lg border border-white/50 shadow-md ${
+                    interactive
+                      ? 'cursor-pointer transition hover:ring-2 hover:ring-teal-400 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500'
+                      : ''
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h3 className="font-semibold text-lg text-gray-900">{admin.name}</h3>
+                      <p className="text-gray-600">{admin.email}</p>
+                      {interactive && (
+                        <p className="text-xs text-teal-700 font-medium mt-1">
+                          Click for detailed exam &amp; AI analytics →
+                        </p>
+                      )}
+                    </div>
+                    <Badge
+                      className={
+                        admin.status === 'Active'
+                          ? 'bg-teal-600 text-white border-2 border-teal-700 shadow-lg font-semibold'
+                          : 'bg-gray-600 text-white border-2 border-gray-700 shadow-lg font-semibold'
+                      }
+                    >
+                      {admin.status}
+                    </Badge>
                   </div>
-                  <Badge className={admin.status === 'Active' ? 'bg-teal-600 text-white border-2 border-teal-700 shadow-lg font-semibold' : 'bg-gray-600 text-white border-2 border-gray-700 shadow-lg font-semibold'}>
-                    {admin.status}
-                  </Badge>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div className="text-center">
+                      <p className="font-semibold text-gray-900 text-lg">{admin.stats?.students || 0}</p>
+                      <p className="text-gray-600">Students</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="font-semibold text-gray-900 text-lg">{admin.stats?.teachers || 0}</p>
+                      <p className="text-gray-600">Teachers</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="font-semibold text-gray-900 text-lg">{admin.stats?.videos || 0}</p>
+                      <p className="text-gray-600">Videos</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="font-semibold text-gray-900 text-lg">{admin.stats?.assessments || 0}</p>
+                      <p className="text-gray-600">Assessments</p>
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div className="text-center">
-                    <p className="font-semibold text-gray-900 text-lg">{admin.stats?.students || 0}</p>
-                    <p className="text-gray-600">Students</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-semibold text-gray-900 text-lg">{admin.stats?.teachers || 0}</p>
-                    <p className="text-gray-600">Teachers</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-semibold text-gray-900 text-lg">{admin.stats?.videos || 0}</p>
-                    <p className="text-gray-600">Videos</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-semibold text-gray-900 text-lg">{admin.stats?.assessments || 0}</p>
-                    <p className="text-gray-600">Assessments</p>
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>

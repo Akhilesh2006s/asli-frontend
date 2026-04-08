@@ -13,6 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import Navigation from "@/components/navigation";
+import { StudentTeacherDiaryFeed } from "@/components/student/StudentTeacherDiaryFeed";
 import ProgressChart from "@/components/progress-chart";
 import { 
   CheckCircle, 
@@ -46,6 +47,8 @@ import {
   File,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   ExternalLink,
   ClipboardList,
   Headphones,
@@ -361,6 +364,11 @@ export default function Dashboard() {
   const [selectedScheduleItem, setSelectedScheduleItem] = useState<any | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [completedScheduleIds, setCompletedScheduleIds] = useState<Set<string>>(new Set());
+  const [calendarMonth, setCalendarMonth] = useState<Date>(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date>(new Date());
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -1541,6 +1549,216 @@ export default function Dashboard() {
   const topIncompleteQuizzes = useMemo(() => {
     return incompleteQuizzes.slice(0, 10);
   }, [incompleteQuizzes]);
+  const [selectedTopicSubject, setSelectedTopicSubject] = useState<string>('');
+
+  const topicWiseProgress = useMemo(() => {
+    if (!learningPathContent.length) return [];
+
+    const groupedBySubject = new Map<string, any[]>();
+    learningPathContent.forEach((item: any) => {
+      const subjectId = String(item.subjectId || item.subject?._id || item.subject?.id || item.subjectName || 'general');
+      if (!groupedBySubject.has(subjectId)) groupedBySubject.set(subjectId, []);
+      groupedBySubject.get(subjectId)!.push(item);
+    });
+
+    const progressMap = new Map(
+      subjectProgress.map((s: any) => [String(s.id || s.name), s])
+    );
+
+    return Array.from(groupedBySubject.entries()).map(([subjectId, items]) => {
+      const subjectName = items[0]?.subjectName || items[0]?.subject?.name || 'Subject';
+      const completedKey = `completed_content_${subjectId}`;
+      let completedIds: string[] = [];
+      try {
+        completedIds = JSON.parse(localStorage.getItem(completedKey) || '[]');
+      } catch {
+        completedIds = [];
+      }
+      const completedSet = new Set(completedIds.map(String));
+
+      const chapters = new Map<string, any[]>();
+      items.forEach((item: any) => {
+        const chapterName =
+          item.chapterName ||
+          item.chapter ||
+          item.unitName ||
+          item.unit ||
+          item.module ||
+          'General';
+        if (!chapters.has(chapterName)) chapters.set(chapterName, []);
+        chapters.get(chapterName)!.push(item);
+      });
+
+      const chapterList = Array.from(chapters.entries()).map(([chapterName, chapterItems], index) => {
+        const topics = chapterItems.map((topic: any) => {
+          const topicId = String(topic._id || topic.id || `${subjectId}-${chapterName}-${topic.title || topic.topicName || index}`);
+          const topicTitle = topic.topicName || topic.topic || topic.title || 'Untitled Topic';
+          const isCompleted = completedSet.has(topicId);
+          const topicProgress = isCompleted ? 100 : Math.max(0, Math.min(95, Number(topic.progress || topic.completionPercentage || 0)));
+          const status = isCompleted ? 'completed' : topicProgress > 0 ? 'in_progress' : 'pending';
+          return { id: topicId, title: topicTitle, progress: topicProgress, status, raw: topic };
+        });
+
+        const completedTopics = topics.filter(t => t.status === 'completed').length;
+        const chapterProgress = topics.length > 0 ? Math.round((completedTopics / topics.length) * 100) : 0;
+        return {
+          id: `${subjectId}-${chapterName}`,
+          chapterName,
+          order: index + 1,
+          topics,
+          completedTopics,
+          totalTopics: topics.length,
+          progress: chapterProgress
+        };
+      });
+
+      const totalTopics = chapterList.reduce((sum, c) => sum + c.totalTopics, 0);
+      const totalCompleted = chapterList.reduce((sum, c) => sum + c.completedTopics, 0);
+      const overallProgress = totalTopics > 0 ? Math.round((totalCompleted / totalTopics) * 100) : 0;
+      const mapped = progressMap.get(subjectId) || progressMap.get(subjectName);
+
+      return {
+        subjectId,
+        subjectName,
+        subjectProgress: mapped?.progress ?? overallProgress,
+        chapters: chapterList
+      };
+    });
+  }, [learningPathContent, subjectProgress]);
+
+  useEffect(() => {
+    if (!topicWiseProgress.length) return;
+    const exists = topicWiseProgress.some((s: any) => s.subjectId === selectedTopicSubject);
+    if (!selectedTopicSubject || !exists) {
+      setSelectedTopicSubject(topicWiseProgress[0].subjectId);
+    }
+  }, [topicWiseProgress, selectedTopicSubject]);
+
+  const getTaskTimeLabel = (item: any, isQuiz: boolean) => {
+    const candidate =
+      item?.startTime ||
+      item?.scheduledTime ||
+      item?.startDate ||
+      item?.deadline ||
+      item?.dueDate ||
+      item?.scheduledDate;
+    if (candidate) {
+      const dt = new Date(candidate);
+      if (!Number.isNaN(dt.getTime())) {
+        const itemDay = formatDateKey(dt);
+        const todayDay = formatDateKey(new Date());
+        if (itemDay !== todayDay) {
+          return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+        return dt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      }
+    }
+    if (isQuiz && item?.duration) return `${item.duration} min`;
+    return 'Anytime';
+  };
+
+  const formatDateKey = (date: Date) => {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const parseDate = (value: any): Date | null => {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  const calendarEntries = useMemo(() => {
+    const contentEntries = incompleteContent
+      .map((content: any) => {
+        const date =
+          parseDate(content.deadline) ||
+          parseDate(content.dueDate) ||
+          parseDate(content.scheduledDate) ||
+          parseDate(content.publishDate);
+        if (!date) return null;
+        return {
+          id: content._id || content.id,
+          type: 'content' as const,
+          title: content.title || 'Study Content',
+          subject: getSubjectName(content),
+          date,
+          source: content
+        };
+      })
+      .filter(Boolean) as any[];
+
+    const quizEntries = incompleteQuizzes
+      .map((quiz: any) => {
+        const date =
+          parseDate(quiz.startDate) ||
+          parseDate(quiz.scheduledDate) ||
+          parseDate(quiz.deadline);
+        if (!date) return null;
+        return {
+          id: quiz._id || quiz.id,
+          type: 'quiz' as const,
+          title: quiz.title || 'Quiz',
+          subject:
+            typeof quiz.subject === 'string'
+              ? quiz.subject
+              : quiz.subject?.name || 'General',
+          date,
+          source: quiz
+        };
+      })
+      .filter(Boolean) as any[];
+
+    const examEntries = exams
+      .map((exam: any) => {
+        const date = parseDate(exam.startDate) || parseDate(exam.examDate) || parseDate(exam.date);
+        if (!date) return null;
+        return {
+          id: exam._id || exam.id,
+          type: 'exam' as const,
+          title: exam.title || exam.examTitle || 'Exam',
+          subject:
+            typeof exam.subject === 'string'
+              ? exam.subject
+              : exam.subject?.name || 'Exam',
+          date,
+          source: exam
+        };
+      })
+      .filter(Boolean) as any[];
+
+    return [...contentEntries, ...quizEntries, ...examEntries];
+  }, [incompleteContent, incompleteQuizzes, exams, getSubjectName]);
+
+  const entriesByDate = useMemo(() => {
+    return calendarEntries.reduce((acc: Record<string, any[]>, entry: any) => {
+      const key = formatDateKey(entry.date);
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(entry);
+      return acc;
+    }, {});
+  }, [calendarEntries]);
+
+  const selectedDateEntries = useMemo(() => {
+    const key = formatDateKey(selectedCalendarDate);
+    const entries = entriesByDate[key] || [];
+    return [...entries].sort((a, b) => a.date.getTime() - b.date.getTime());
+  }, [selectedCalendarDate, entriesByDate]);
+
+  const calendarDays = useMemo(() => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const offset = (firstDay.getDay() + 6) % 7; // Monday-first
+    const cells: (Date | null)[] = [];
+
+    for (let i = 0; i < offset; i += 1) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d += 1) cells.push(new Date(year, month, d));
+    return cells;
+  }, [calendarMonth]);
 
   if (isLoadingUser || isLoadingContent || isLoadingDashboard) {
     return (
@@ -1710,61 +1928,150 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Weekly Overview */}
+        {/* Student Calendar + Timetable */}
         <div className="mb-6 relative z-10">
-          <Card className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle className="text-xl font-bold text-gray-900">Weekly Overview</CardTitle>
-              <p className="text-sm text-gray-600 mt-1">Your study plan for this week</p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day, index) => {
-                  // Get the date for this day of the week
-                  const today = new Date();
-                  const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-                  const daysFromMonday = (dayOfWeek === 0 ? 6 : dayOfWeek - 1); // Convert to Monday = 0
-                  const targetDate = new Date(today);
-                  targetDate.setDate(today.getDate() - daysFromMonday + index);
-                  const dateKey = targetDate.toDateString();
-                  
-                  const studyMinutes = weeklyStudyData[dateKey] || 0;
-                  const studyHours = (studyMinutes / 60).toFixed(1);
-                  const maxHours = 8; // Maximum hours to show on scale
-                  const percentage = Math.min((studyMinutes / 60 / maxHours) * 100, 100);
-                  
-                  return (
-                    <div key={day} className="flex items-center space-x-4">
-                      <div className="w-16 text-sm font-medium text-gray-700 flex-shrink-0">
-                        {day.slice(0, 3)}
-                      </div>
-                      <div className="flex-1 relative">
-                        <div className="w-full h-6 bg-orange-200 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-orange-400 to-orange-600 rounded-full transition-all duration-500"
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                      <div className="w-16 text-sm text-gray-500 text-right flex-shrink-0">
-                        {studyHours}h
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <Card className="lg:col-span-2 bg-white rounded-xl shadow-md">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl font-bold text-gray-900">Study Calendar</CardTitle>
+                    <p className="text-sm text-gray-600 mt-1">Plan content, quizzes, and exams in one place</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setCalendarMonth(
+                          prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
+                        )
+                      }
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <p className="text-sm font-semibold text-gray-800 min-w-[120px] text-center">
+                      {calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setCalendarMonth(
+                          prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
+                        )
+                      }
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-7 gap-2 mb-2">
+                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                    <p key={day} className="text-xs font-semibold text-gray-500 text-center">{day}</p>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-2">
+                  {calendarDays.map((day, idx) => {
+                    if (!day) return <div key={`empty-${idx}`} className="h-12" />;
+                    const dayKey = formatDateKey(day);
+                    const isSelected = formatDateKey(selectedCalendarDate) === dayKey;
+                    const itemCount = (entriesByDate[dayKey] || []).length;
+                    const isToday = formatDateKey(new Date()) === dayKey;
+                    return (
+                      <button
+                        key={dayKey}
+                        type="button"
+                        onClick={() => setSelectedCalendarDate(day)}
+                        className={`h-12 rounded-lg border text-sm transition-colors relative ${
+                          isSelected
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : isToday
+                            ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                            : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                        }`}
+                      >
+                        {day.getDate()}
+                        {itemCount > 0 && (
+                          <span
+                            className={`absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full ${
+                              isSelected ? 'bg-white text-indigo-700' : 'bg-orange-100 text-orange-700'
+                            }`}
+                          >
+                            {itemCount}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </CardContent>
             </Card>
 
-          {/* To-Dos */}
+            <Card className="bg-white rounded-xl shadow-md">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-semibold text-gray-900">Timetable</CardTitle>
+                <p className="text-sm text-gray-600">
+                  {selectedCalendarDate.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    month: 'short',
+                    day: 'numeric'
+                  })}
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {selectedDateEntries.length === 0 ? (
+                  <div className="text-center py-6">
+                    <CalendarIcon className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm font-medium text-gray-600">No scheduled items</p>
+                    <p className="text-xs text-gray-500 mt-1">Select another date to check planned study and exams.</p>
+                  </div>
+                ) : (
+                  selectedDateEntries.map((entry: any) => {
+                    const badgeClass =
+                      entry.type === 'exam'
+                        ? 'bg-red-100 text-red-700'
+                        : entry.type === 'quiz'
+                        ? 'bg-orange-100 text-orange-700'
+                        : 'bg-blue-100 text-blue-700';
+                    const timeLabel = entry.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    return (
+                      <div
+                        key={`${entry.type}-${entry.id}`}
+                        className="p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
+                        onClick={() => {
+                          if (entry.type === 'exam') {
+                            setLocation('/student-exams');
+                          } else {
+                            handleOpenPreview(entry.source, entry.type === 'quiz');
+                          }
+                        }}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-gray-900 line-clamp-1">{entry.title}</p>
+                          <Badge className={`${badgeClass} text-[10px]`}>{entry.type.toUpperCase()}</Badge>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1">{entry.subject}</p>
+                        <p className="text-xs text-gray-500 mt-1">{timeLabel}</p>
+                      </div>
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Today's Tasks */}
           <Card className="bg-white rounded-xl shadow-md">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-teal-600" />
+                  <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 text-gray-500" />
                   </div>
-                  <CardTitle className="text-xl font-semibold">To-Dos</CardTitle>
+                  <CardTitle className="text-xl font-semibold tracking-wide text-gray-700">TODAY'S TASKS</CardTitle>
                 </div>
                 <p className="text-sm text-gray-600">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</p>
               </div>
@@ -1782,7 +2089,7 @@ export default function Dashboard() {
                   <p className="text-gray-500 text-sm mt-1">No pending content or quizzes</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {/* Incomplete Quizzes */}
                   {incompleteQuizzes.map((quiz: any) => {
                     const getPriorityColor = (difficulty: string) => {
@@ -1799,47 +2106,48 @@ export default function Dashboard() {
 
                     const isCompleted = completedScheduleIds.has(quiz._id);
                     
+                    const timeLabel = getTaskTimeLabel(quiz, true);
                     return (
                       <div 
                         key={`quiz-${quiz._id}`}
-                        className={`flex items-start space-x-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer ${
-                          isCompleted ? 'bg-green-50' : ''
+                        className={`flex items-center gap-4 px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${
+                          isCompleted ? 'bg-emerald-50' : ''
                         }`}
                         onClick={() => handleOpenPreview(quiz, true)}
                       >
                         {isCompleted ? (
-                          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <div className="w-7 h-7 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
                             <CheckCircle className="w-4 h-4 text-white" />
                           </div>
                         ) : (
-                          <div className="w-6 h-6 border-2 border-gray-300 rounded-full flex-shrink-0 mt-0.5"></div>
+                          <div className="w-7 h-7 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
                         )}
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <h4 className={`font-medium text-gray-900 ${isCompleted ? 'line-through' : ''}`}>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h4 className={`font-semibold text-gray-900 truncate ${isCompleted ? 'line-through text-gray-400' : ''}`}>
                               Complete {quiz.title || 'Quiz'}
                             </h4>
-                            <Badge className={`${getPriorityColor(quiz.difficulty || 'Easy')} text-xs`}>
+                            <Badge className={`${getPriorityColor(quiz.difficulty || 'Easy')} text-[10px]`}>
                               {getPriorityLabel(quiz.difficulty || 'Easy')}
                             </Badge>
                           </div>
-                          <div className="flex items-center space-x-4 text-sm text-gray-600">
-                            <span>
+                          <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                            <span className="truncate">
                               {typeof quiz.subject === 'string' 
                                 ? quiz.subject 
                                 : (typeof quiz.subject === 'object' && quiz.subject?.name 
                                   ? quiz.subject.name 
                                   : 'Unknown Subject')}
                             </span>
-                            <span className="flex items-center space-x-1">
+                            <span className="flex items-center space-x-1 whitespace-nowrap">
                               <Clock className="w-3 h-3" />
                               <span>{quiz.duration || 30} min</span>
                             </span>
-                            {quiz.questionCount > 0 && (
-                              <span>{quiz.questionCount} questions</span>
-                            )}
                           </div>
                         </div>
+                        <Badge variant="outline" className="rounded-full px-3 py-1 text-xs bg-white">
+                          {timeLabel}
+                        </Badge>
                       </div>
                     );
                   })}
@@ -1869,35 +2177,36 @@ export default function Dashboard() {
                     const deadline = content.deadline ? new Date(content.deadline) : null;
                     const isOverdue = deadline && deadline < new Date() && !isCompleted;
                     
+                    const timeLabel = getTaskTimeLabel(content, false);
                     return (
                       <div 
                         key={`content-${content._id}`}
-                        className={`flex items-start space-x-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer ${
-                          isCompleted ? 'bg-green-50' : ''
-                        } ${isOverdue ? 'border-red-300 bg-red-50' : ''}`}
+                        className={`flex items-center gap-4 px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${
+                          isCompleted ? 'bg-emerald-50' : ''
+                        } ${isOverdue ? 'bg-red-50' : ''}`}
                         onClick={() => handleOpenPreview(content, false)}
                       >
                         {isCompleted ? (
-                          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <div className="w-7 h-7 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
                             <CheckCircle className="w-4 h-4 text-white" />
                           </div>
                         ) : (
-                          <div className="w-6 h-6 border-2 border-gray-300 rounded-full flex-shrink-0 mt-0.5"></div>
+                          <div className="w-7 h-7 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
                         )}
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <h4 className={`font-medium text-gray-900 ${isCompleted ? 'line-through' : ''}`}>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h4 className={`font-semibold text-gray-900 truncate ${isCompleted ? 'line-through text-gray-400' : ''}`}>
                               {getContentTypeLabel(content.type || 'Material')} {content.title || 'Content'}
                             </h4>
-                            <Badge className={`${getPriorityColorForContent()} text-xs`}>{getPriorityLabel()}</Badge>
+                            <Badge className={`${getPriorityColorForContent()} text-[10px]`}>{getPriorityLabel()}</Badge>
                           </div>
-                          <div className="flex items-center space-x-4 text-sm text-gray-600">
-                            <span>{subjectName}</span>
+                          <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
+                            <span className="truncate">{subjectName}</span>
                             {content.type && (
-                              <span className="text-xs bg-gray-100 px-2 py-1 rounded">{content.type}</span>
+                              <span className="text-xs bg-gray-100 px-2 py-1 rounded whitespace-nowrap">{content.type}</span>
                             )}
                             {isHomework && deadline && (
-                              <span className={`text-xs px-2 py-1 rounded font-medium ${
+                              <span className={`text-xs px-2 py-1 rounded font-medium whitespace-nowrap ${
                                 isOverdue ? 'bg-red-100 text-red-700' : 'text-red-600'
                               }`}>
                                 Due: {deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -1905,6 +2214,9 @@ export default function Dashboard() {
                             )}
                           </div>
                         </div>
+                        <Badge variant="outline" className="rounded-full px-3 py-1 text-xs bg-white whitespace-nowrap">
+                          {isCompleted ? 'Done' : timeLabel}
+                        </Badge>
                       </div>
                     );
                   })}
@@ -1912,6 +2224,11 @@ export default function Dashboard() {
               )}
               </CardContent>
             </Card>
+        </div>
+
+        {/* Teacher daily diary (class updates from teachers) */}
+        <div className="mb-responsive relative z-10">
+          <StudentTeacherDiaryFeed />
         </div>
 
         {/* Teacher Remarks Section */}
@@ -2262,26 +2579,40 @@ export default function Dashboard() {
                 {/* Subject Progress */}
                 <div className="space-y-4">
                   {subjectProgress.length > 0 ? subjectProgress.map((subject, idx) => (
-                    <div key={subject.id || subject.name || `subject-${idx}`} className="subject-progress-card">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${subject.color}`}>
-                          <span className="text-responsive-xs font-medium">
-                            {subject.name.substring(0, 2)}
-                          </span>
+                    <div
+                      key={subject.id || subject.name || `subject-${idx}`}
+                      className="rounded-2xl border border-orange-50 bg-white p-4 shadow-sm"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-xl flex-shrink-0">
+                            {(() => {
+                              const name = (subject.name || '').toLowerCase();
+                              if (name.includes('math')) return '📐';
+                              if (name.includes('physics')) return '⚛️';
+                              if (name.includes('chem')) return '🧪';
+                              if (name.includes('bio') || name.includes('science')) return '🔬';
+                              if (name.includes('english')) return '📖';
+                              if (name.includes('hindi') || name.includes('language')) return '📝';
+                              if (name.includes('social') || name.includes('history') || name.includes('geo')) return '🌍';
+                              if (name.includes('computer') || name.includes('cs')) return '💻';
+                              return '📘';
+                            })()}
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="font-semibold text-gray-900 truncate">{subject.name}</h3>
+                            <p className="text-responsive-xs text-gray-500 truncate">{subject.currentTopic}</p>
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium text-gray-900">{subject.name}</h3>
-                          <p className="text-responsive-xs text-gray-600">{subject.currentTopic}</p>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-3xl font-bold text-slate-900 leading-none">{subject.progress}%</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-responsive-xs font-medium text-gray-900">{subject.progress}%</p>
-                        <div className="w-16 bg-gray-200 rounded-full h-1 mt-1">
-                          <div 
-                            className="bg-gradient-to-r from-orange-400 via-blue-500 to-teal-500 h-1 rounded-full" 
-                            style={{ width: `${subject.progress}%` }}
-                          />
-                        </div>
+                      <div className="mt-3 h-2.5 w-full rounded-full bg-gray-100 overflow-hidden">
+                        <div
+                          className="h-2.5 rounded-full bg-gradient-to-r from-orange-400 via-blue-500 to-teal-500"
+                          style={{ width: `${subject.progress}%` }}
+                        />
                       </div>
                     </div>
                   )) : (
@@ -2290,6 +2621,82 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
+
+                {/* Topic-wise Learning Roadmap */}
+                {topicWiseProgress.length > 0 && (
+                  <div className="space-y-4 pt-2">
+                    <div className="flex flex-wrap gap-2">
+                      {topicWiseProgress.map((subject: any) => (
+                        <button
+                          key={subject.subjectId}
+                          onClick={() => setSelectedTopicSubject(subject.subjectId)}
+                          className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
+                            selectedTopicSubject === subject.subjectId
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          {subject.subjectName}
+                        </button>
+                      ))}
+                    </div>
+
+                    {topicWiseProgress
+                      .filter((subject: any) => subject.subjectId === selectedTopicSubject)
+                      .map((subject: any) => (
+                        <div key={subject.subjectId} className="space-y-4">
+                          <div className="rounded-xl border border-orange-100 bg-orange-50 px-4 py-3 text-sm text-gray-800">
+                            Based on your progress, continue with the next pending topic in {subject.subjectName}.
+                          </div>
+
+                          {subject.chapters.map((chapter: any) => (
+                            <div key={chapter.id} className="rounded-2xl border border-gray-200 bg-white p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-semibold text-gray-900">{chapter.order}. {chapter.chapterName}</h4>
+                                <Badge variant="outline" className="rounded-full">
+                                  {chapter.completedTopics}/{chapter.totalTopics}
+                                </Badge>
+                              </div>
+                              <div className="h-2 bg-gray-100 rounded-full mb-4 overflow-hidden">
+                                <div className="h-2 bg-indigo-500 rounded-full" style={{ width: `${chapter.progress}%` }} />
+                              </div>
+
+                              <div className="space-y-3">
+                                {chapter.topics.map((topic: any) => (
+                                  <div
+                                    key={topic.id}
+                                    className="flex items-center justify-between gap-3 cursor-pointer"
+                                    onClick={() => handleOpenPreview(topic.raw, false)}
+                                  >
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      <div className="flex-shrink-0">
+                                        {topic.status === 'completed' ? (
+                                          <CheckCircle2Icon className="w-5 h-5 text-emerald-500" />
+                                        ) : topic.status === 'in_progress' ? (
+                                          <Play className="w-5 h-5 text-amber-500" />
+                                        ) : (
+                                          <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
+                                        )}
+                                      </div>
+                                      <p className="text-sm text-gray-900 truncate">{topic.title}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {topic.progress > 0 && (
+                                        <Badge className="bg-orange-100 text-orange-700 border-0">
+                                          {topic.progress}%
+                                        </Badge>
+                                      )}
+                                      <ArrowRight className="w-4 h-4 text-gray-400" />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                  </div>
+                )}
 
                 <Button 
                   className="w-full bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white shadow-lg"
@@ -2663,26 +3070,12 @@ export default function Dashboard() {
                                         variant="outline"
                                         size="sm"
                                         className="text-xs whitespace-nowrap"
-                                        onClick={() => window.open(content.fileUrl, '_blank')}
-                                      >
-                                        <ExternalLink className="w-3 h-3 mr-1" />
-                                        {isImage ? 'View' : isPDF ? 'Open PDF' : 'Open'}
-                                      </Button>
-                                    )}
-                                    {content.fileUrl && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-xs whitespace-nowrap"
                                         onClick={() => {
-                                          const link = document.createElement('a');
-                                          link.href = content.fileUrl;
-                                          link.download = content.title || 'download';
-                                          link.click();
+                                          setSelectedScheduleItem(content);
+                                          setIsPreviewOpen(true);
                                         }}
                                       >
-                                        <Download className="w-3 h-3 mr-1" />
-                                        Download
+                                        {isImage ? 'View' : isPDF ? 'View PDF' : 'View'}
                                       </Button>
                                     )}
                                   </div>
@@ -2696,118 +3089,6 @@ export default function Dashboard() {
                   )}
                 </div>
               )}
-            </div>
-
-            {/* Recommended Learning Paths */}
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent mb-6">Recommended for You</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {[
-                  {
-                    id: "4",
-                    title: "IQ/Rank Boost Practice",
-                    description: "Boost your IQ and improve your rank with targeted practice",
-                    duration: "2 months",
-                    students: 3200,
-                    rating: 4.6,
-                    subjects: ["Physics", "Chemistry", "Mathematics"],
-                    difficulty: "Beginner",
-                    color: "bg-orange-100 text-orange-600",
-                    icon: Zap
-                  },
-                  {
-                    id: "5",
-                    title: "Play Games",
-                    description: "Engage in fun educational games to enhance your learning experience",
-                    duration: "Coming Soon",
-                    students: 0,
-                    rating: 0,
-                    subjects: [],
-                    difficulty: "Coming Soon",
-                    color: "bg-orange-100 text-orange-600",
-                    icon: Gamepad2,
-                    isComingSoon: true
-                  }
-                ].map((path) => {
-                  const Icon = path.icon;
-                  return (
-                    <Card key={path.id} className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl hover:shadow-2xl transition-shadow duration-200">
-                      <CardHeader>
-                        <div className="flex items-center justify-between mb-2">
-                          <div className={`w-10 h-10 ${path.color} rounded-lg flex items-center justify-center`}>
-                            <Icon className="w-5 h-5" />
-                          </div>
-                          {/* Show Coming Soon badge for Play Games, difficulty badge for others */}
-                          {path.isComingSoon ? (
-                            <Badge variant="secondary" className="text-xs bg-teal-100 text-teal-700 border-teal-300">
-                              Coming Soon
-                            </Badge>
-                          ) : path.id !== "4" && (
-                            <Badge variant="secondary" className="text-xs">
-                              {path.difficulty}
-                            </Badge>
-                          )}
-                        </div>
-                        <CardTitle className="text-lg">{path.title}</CardTitle>
-                        <p className="text-gray-600 text-sm">{path.description}</p>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {/* Subjects - Hide for Coming Soon */}
-                        {!path.isComingSoon && (
-                          <div>
-                            <p className="text-sm font-medium text-gray-700 mb-2">Subjects</p>
-                            <div className="flex flex-wrap gap-1">
-                              {path.subjects.map((subject, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {subject}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Stats - Show Coming Soon message or stats */}
-                        {path.isComingSoon ? (
-                          <div className="text-center py-4">
-                            <p className="text-sm text-gray-500 italic">
-                              Exciting educational games are on the way! Stay tuned for updates.
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-between text-sm text-gray-600">
-                            <div className="flex items-center space-x-1">
-                              <Clock className="w-4 h-4" />
-                              <span>{path.duration}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Users className="w-4 h-4" />
-                              <span>{path.students.toLocaleString()}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Star className="w-4 h-4 text-yellow-500" />
-                              <span>{path.rating}</span>
-                            </div>
-                          </div>
-                        )}
-
-                        {path.isComingSoon ? (
-                          <Button variant="outline" className="w-full" disabled>
-                            Coming Soon
-                            <ArrowRight className="w-4 h-4 ml-2 opacity-50" />
-                          </Button>
-                        ) : (
-                          <Link href={path.id === "4" ? "/iq-rank-boost-subjects" : `/subject-content/${path.id}`}>
-                            <Button variant="outline" className="w-full">
-                              Start Learning
-                              <ArrowRight className="w-4 h-4 ml-2" />
-                            </Button>
-                          </Link>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
             </div>
 
                   </div>
@@ -3239,16 +3520,6 @@ export default function Dashboard() {
 
                   <button 
                     className="quick-action-button"
-                    onClick={() => setLocation('/asli-prep-content')}
-                  >
-                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mb-2">
-                      <Download className="w-4 h-4 text-green-600" />
-                    </div>
-                    <p className="text-responsive-xs font-medium text-gray-900">Download Notes</p>
-                  </button>
-
-                  <button 
-                    className="quick-action-button"
                     onClick={() => alert('Study Groups feature coming soon!')}
                   >
                     <div className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center mb-2">
@@ -3266,14 +3537,23 @@ export default function Dashboard() {
                 <CardTitle className="bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent">Recent Achievements</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <div className="achievement-card">
-                  <div className="w-8 h-8 gradient-accent rounded-full flex items-center justify-center">
-                    <Award className="w-4 h-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-responsive-xs font-medium text-gray-900">Quiz Champion</p>
-                    <p className="text-xs text-gray-600">90% accuracy in daily quizzes</p>
-                  </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {[
+                    { icon: '🏆', label: 'First Ace' },
+                    { icon: '⭐', label: 'Champion' },
+                    { icon: '📝', label: 'Perfect HW' },
+                    { icon: '🔥', label: '7-Day' },
+                    { icon: '🤖', label: 'AI Fan' },
+                    { icon: '📚', label: 'Explorer' }
+                  ].map((achievement) => (
+                    <div
+                      key={achievement.label}
+                      className="rounded-2xl border border-gray-100 bg-gradient-to-b from-orange-50 to-white px-3 py-3 text-center"
+                    >
+                      <p className="text-2xl mb-1">{achievement.icon}</p>
+                      <p className="text-xs font-semibold text-gray-800">{achievement.label}</p>
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -3360,39 +3640,6 @@ export default function Dashboard() {
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-medium text-gray-700">Content Preview</p>
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const url = selectedScheduleItem.fileUrl;
-                                const fullUrl = url && !url.startsWith('http') && !url.startsWith('//')
-                                  ? (url.startsWith('/') ? `${API_BASE_URL}${url}` : `${API_BASE_URL}/${url}`)
-                                  : url;
-                                window.open(fullUrl, '_blank');
-                              }}
-                            >
-                              <ExternalLink className="w-4 h-4 mr-2" />
-                              Open
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const url = selectedScheduleItem.fileUrl;
-                                const fullUrl = url && !url.startsWith('http') && !url.startsWith('//')
-                                  ? (url.startsWith('/') ? `${API_BASE_URL}${url}` : `${API_BASE_URL}/${url}`)
-                                  : url;
-                                const link = document.createElement('a');
-                                link.href = fullUrl;
-                                link.download = selectedScheduleItem.title || 'download';
-                                link.click();
-                              }}
-                            >
-                              <Download className="w-4 h-4 mr-2" />
-                              Download
-                            </Button>
-                          </div>
                         </div>
                         
                         {/* Content Preview */}
@@ -3461,10 +3708,11 @@ export default function Dashboard() {
                           }
                           
                           if (isPDF) {
+                            const pdfViewerUrl = `${fileUrl}#toolbar=0&navpanes=0&scrollbar=1`;
                             return (
                               <div className="w-full h-[60vh] bg-gray-100 rounded-lg overflow-hidden">
                                 <iframe
-                                  src={fileUrl}
+                                  src={pdfViewerUrl}
                                   className="w-full h-full border-0"
                                   title={selectedScheduleItem.title}
                                 />
@@ -3527,7 +3775,7 @@ export default function Dashboard() {
                                 </div>
                                 <p className="text-gray-600">Preview not available for this file type</p>
                                 <p className="text-sm text-gray-500">
-                                  Click "Open" to view in a new tab
+                                  This file can only be viewed in this preview window.
                                 </p>
                               </div>
                             </div>

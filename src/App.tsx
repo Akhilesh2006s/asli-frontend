@@ -23,6 +23,15 @@ import StudentExams from "./pages/student-exams";
 import AsliPrepContentPage from "./pages/asli-prep-content";
 import SubjectContent from "./pages/subject-content";
 import EduOTT from "./pages/edu-ott";
+import { EduOTTFilterProvider } from "@/contexts/edu-ott-filter-context";
+
+function EduOTTWithFilters() {
+  return (
+    <EduOTTFilterProvider>
+      <EduOTT />
+    </EduOTTFilterProvider>
+  );
+}
 import IQRankBoostSubjects from "./pages/iq-rank-boost-subjects";
 import IQRankBoostQuiz from "./pages/iq-rank-boost-quiz";
 import QuizPage from "./pages/quiz";
@@ -41,7 +50,7 @@ function Router() {
       <Route path="/tests" component={PracticeTests} />
       <Route path="/student-exams" component={StudentExams} />
       <Route path="/asli-prep-content" component={AsliPrepContentPage} />
-      <Route path="/edu-ott" component={EduOTT} />
+      <Route path="/edu-ott" component={EduOTTWithFilters} />
       <Route path="/iq-rank-boost-subjects" component={IQRankBoostSubjects} />
       <Route path="/iq-rank-boost/quiz/:quizId" component={IQRankBoostQuiz} />
       <Route path="/quiz/:id" component={QuizPage} />

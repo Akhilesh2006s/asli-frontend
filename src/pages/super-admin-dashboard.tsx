@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { SuperAdminSidebar, type SuperAdminView } from "@/components/dashboard/SuperAdminSidebar";
 import AdminManagement from "@/components/admin/AdminManagement";
-import SuperAdminAnalyticsDashboard from "./super-admin-analytics";
-import DetailedAIAnalyticsDashboard from "./detailed-ai-analytics";
+import CombinedSuperAdminAnalytics from "./combined-super-admin-analytics";
 import BoardComparisonCharts from "@/components/admin/board-comparison-charts";
 import ContentManagement from "@/components/super-admin/content-management";
 import SubjectManagement from "@/components/super-admin/subject-management";
@@ -13,10 +12,27 @@ import IQRankBoostActivities from "@/components/super-admin/iq-rank-boost-activi
 import SuperAdminCalendar from "@/components/super-admin/super-admin-calendar";
 import AIChat from "@/components/ai-chat";
 import SuperAdminAIRiskAnalysis from "./super-admin-ai-risk-analysis";
+import SubscriptionManagement from "@/components/super-admin/subscription-management";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BellIcon, LogOutIcon, UsersIcon, TrendingUpIcon, BookIcon, Presentation, UserPlusIcon, BookPlusIcon, SettingsIcon, DownloadIcon, HomeIcon, CrownIcon, BarChart3Icon, CreditCardIcon, ArrowUpRightIcon, ArrowDownRightIcon, StarIcon, TargetIcon, BrainIcon, ZapIcon, AlertTriangleIcon, TrendingDownIcon, RefreshCw, Sparkles, MessageSquare, Clock, Plus, Monitor, Grid3x3, FileText, FileTextIcon, Shield, Search, Camera, PieChart, User, Download, Circle, Square, Bot, Users2, UploadIcon, TrophyIcon, BarChartIcon, BrainCircuitIcon } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { BellIcon, LogOutIcon, UsersIcon, TrendingUpIcon, BookIcon, UserPlusIcon, BookPlusIcon, SettingsIcon, DownloadIcon, HomeIcon, CrownIcon, BarChart3Icon, CreditCardIcon, ArrowUpRightIcon, ArrowDownRightIcon, StarIcon, TargetIcon, BrainIcon, ZapIcon, AlertTriangleIcon, TrendingDownIcon, RefreshCw, Sparkles, MessageSquare, Clock, Plus, Monitor, Grid3x3, FileText, FileTextIcon, Shield, Search, Camera, PieChart, User, Download, Circle, Square, Bot, Users2, UploadIcon, TrophyIcon, BarChartIcon, BrainCircuitIcon } from "lucide-react";
 import { LineChart, Line, PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
@@ -55,6 +71,13 @@ export default function SuperAdminDashboard() {
   const [isLoadingBoard, setIsLoadingBoard] = useState(false);
   const [boardError, setBoardError] = useState<string | null>(null);
   const [adminSummary, setAdminSummary] = useState<any[]>([]);
+  const [vidyaSettingsOpen, setVidyaSettingsOpen] = useState(false);
+  const [systemSettingsOpen, setSystemSettingsOpen] = useState(false);
+  const [vidyaExplainDepth, setVidyaExplainDepth] = useState<
+    "concise" | "balanced" | "detailed"
+  >("balanced");
+
+  const VIDYA_PREFS_KEY = "superAdminVidyaPrefs";
 
   // Fetch real dashboard stats
   useEffect(() => {
@@ -106,6 +129,31 @@ export default function SuperAdminDashboard() {
       window.removeEventListener('adminDeleted', handleAdminDeleted);
     };
   }, [toast]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(VIDYA_PREFS_KEY);
+      if (!raw) return;
+      const p = JSON.parse(raw) as { explainDepth?: typeof vidyaExplainDepth };
+      if (p.explainDepth === "concise" || p.explainDepth === "balanced" || p.explainDepth === "detailed") {
+        setVidyaExplainDepth(p.explainDepth);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const saveVidyaPreferences = () => {
+    localStorage.setItem(
+      VIDYA_PREFS_KEY,
+      JSON.stringify({ explainDepth: vidyaExplainDepth, updatedAt: Date.now() })
+    );
+    toast({
+      title: "Preferences saved",
+      description: "Vidya AI display preferences are stored in this browser.",
+    });
+    setVidyaSettingsOpen(false);
+  };
 
   const fetchRealtimeAnalytics = async () => {
     setIsLoadingAnalytics(true);
@@ -229,6 +277,18 @@ export default function SuperAdminDashboard() {
     }
   };
 
+  const openBoardManagement = () => {
+    const defaultBoard = 'ASLI_EXCLUSIVE_SCHOOLS';
+
+    // If prefetch already has current board data, switch view instantly.
+    if (boardData && selectedBoard === defaultBoard) {
+      setCurrentView('board');
+      return;
+    }
+
+    fetchBoardDashboard(defaultBoard);
+  };
+
   // Chart data - will be populated from real analytics when available
   const [totalStudentsData, setTotalStudentsData] = useState<Array<{name: string, value: number}>>([]);
   const [passRateData, setPassRateData] = useState<Array<{name: string, value: number}>>([]);
@@ -259,7 +319,6 @@ export default function SuperAdminDashboard() {
     { Icon: Sparkles, view: 'vidya-ai', label: 'Vidya AI' },
     { Icon: BarChartIcon, view: 'analytics', label: 'Analytics' },
     { Icon: BarChart3Icon, view: 'board-comparison', label: 'Board Comparison' },
-    { Icon: BrainCircuitIcon, view: 'ai-analytics', label: 'AI Analytics' },
     { Icon: CreditCardIcon, view: 'subscriptions', label: 'Subscriptions' },
     { Icon: SettingsIcon, view: 'settings', label: 'Settings' },
     { Icon: Shield, view: 'admins', label: 'School Management' },
@@ -296,7 +355,7 @@ export default function SuperAdminDashboard() {
           <h2 className="text-xl font-bold text-gray-900">Board Management</h2>
           <div className="grid grid-cols-1 gap-4">
             {/* ASLI EXCLUSIVE SCHOOLS */}
-            <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 cursor-pointer hover:from-orange-400 hover:to-orange-500 transition-colors shadow-lg" onClick={() => fetchBoardDashboard('ASLI_EXCLUSIVE_SCHOOLS')}>
+            <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 cursor-pointer hover:from-orange-400 hover:to-orange-500 transition-colors shadow-lg" onClick={openBoardManagement}>
               <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -327,16 +386,16 @@ export default function SuperAdminDashboard() {
             </CardContent>
           </Card>
 
-          {/* AI Analytics - Teal (STATE TS color) */}
+          {/* Analytics (overview + exam / AI insights) */}
           <Card 
             className="bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 cursor-pointer hover:from-teal-500 hover:to-teal-600 transition-all duration-300 shadow-lg"
-            onClick={() => setCurrentView('ai-analytics')}
+            onClick={() => setCurrentView('analytics')}
           >
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold mb-1">AI Analytics</h3>
-                  <p className="text-teal-100 text-sm">Advanced ML insights</p>
+                  <h3 className="text-xl font-bold mb-1">Analytics</h3>
+                  <p className="text-teal-100 text-sm">Schools, exams &amp; AI insights</p>
                 </div>
                 <BrainCircuitIcon className="h-12 w-12 text-white/80" />
               </div>
@@ -815,30 +874,13 @@ export default function SuperAdminDashboard() {
     <AdminManagement />
   );
 
-  const renderAnalyticsContent = () => (
-    <SuperAdminAnalyticsDashboard />
-  );
+  const renderAnalyticsContent = () => <CombinedSuperAdminAnalytics />;
 
   const renderBoardComparisonContent = () => (
     <BoardComparisonCharts />
   );
 
-  const renderSubscriptionsContent = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Subscription Management</h2>
-      
-      <Card>
-        <CardContent className="p-6">
-          <div className="text-center py-8">
-            <Presentation className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Subscriptions</h3>
-            <p className="text-gray-600 mb-4">Manage user subscriptions and billing</p>
-            <Button>View Subscriptions</Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  const renderSubscriptionsContent = () => <SubscriptionManagement />;
 
   const renderSettingsContent = () => (
     <div className="space-y-6">
@@ -850,7 +892,13 @@ export default function SuperAdminDashboard() {
             <SettingsIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Settings</h3>
             <p className="text-gray-600 mb-4">Configure system settings and preferences</p>
-            <Button>Open Settings</Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setSystemSettingsOpen(true)}
+            >
+              Open Settings
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -938,7 +986,11 @@ export default function SuperAdminDashboard() {
                 <span className="text-sm text-gray-600">Multi</span>
               </div>
             </div>
-            <Button className="w-full bg-gradient-to-r from-orange-400 to-orange-300 hover:from-orange-500 hover:to-orange-400">
+            <Button
+              type="button"
+              className="w-full bg-gradient-to-r from-orange-400 to-orange-300 hover:from-orange-500 hover:to-orange-400"
+              onClick={() => setVidyaSettingsOpen(true)}
+            >
               Configure Settings
             </Button>
           </CardContent>
@@ -966,7 +1018,14 @@ export default function SuperAdminDashboard() {
       case 'iq-rank-boost':
         return <IQRankBoostActivities />;
       case 'calendar':
-        return <SuperAdminCalendar />;
+        return (
+          <SuperAdminCalendar
+            onNavigateToExams={(prefill) => {
+              sessionStorage.setItem('examCalendarPrefill', JSON.stringify(prefill));
+              setCurrentView('exams');
+            }}
+          />
+        );
       case 'vidya-ai':
         return renderVidyaAIContent();
       case 'analytics':
@@ -974,7 +1033,7 @@ export default function SuperAdminDashboard() {
       case 'board-comparison':
         return renderBoardComparisonContent();
       case 'ai-analytics':
-        return <DetailedAIAnalyticsDashboard />;
+        return renderAnalyticsContent();
       case 'ai-risk-analysis':
         return <SuperAdminAIRiskAnalysis />;
       case 'subscriptions':
@@ -1008,6 +1067,147 @@ export default function SuperAdminDashboard() {
           {renderContent()}
         </div>
       </div>
+
+      <Dialog open={vidyaSettingsOpen} onOpenChange={setVidyaSettingsOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vidya AI settings</DialogTitle>
+            <DialogDescription>
+              Model choice and API credentials are configured on the server (environment / deployment). Here you can set
+              tutor display preferences for this browser and jump to related tools.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="vidya-depth">Default explanation depth</Label>
+              <Select
+                value={vidyaExplainDepth}
+                onValueChange={(v: "concise" | "balanced" | "detailed") => setVidyaExplainDepth(v)}
+              >
+                <SelectTrigger id="vidya-depth">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="concise">Concise — short answers</SelectItem>
+                  <SelectItem value="balanced">Balanced — recommended</SelectItem>
+                  <SelectItem value="detailed">Detailed — step-by-step</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Stored locally in your browser; future chat updates can read this preference.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => {
+                  setVidyaSettingsOpen(false);
+                  setCurrentView("analytics");
+                }}
+              >
+                Open AI Analytics
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => {
+                  setVidyaSettingsOpen(false);
+                  setCurrentView("settings");
+                }}
+              >
+                Open system settings
+              </Button>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => setVidyaSettingsOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="bg-gradient-to-r from-orange-400 to-orange-300 hover:from-orange-500 hover:to-orange-400"
+              onClick={saveVidyaPreferences}
+            >
+              Save preferences
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={systemSettingsOpen} onOpenChange={setSystemSettingsOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>System settings</DialogTitle>
+            <DialogDescription>
+              Shortcuts to main modules. Secrets and database URLs are set on the server, not here.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-1">
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Quick links</p>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => {
+                    setSystemSettingsOpen(false);
+                    setCurrentView("vidya-ai");
+                    setVidyaSettingsOpen(true);
+                  }}
+                >
+                  Vidya AI preferences
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => {
+                    setSystemSettingsOpen(false);
+                    setCurrentView("calendar");
+                  }}
+                >
+                  School Calendar
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => {
+                    setSystemSettingsOpen(false);
+                    setCurrentView("exams");
+                  }}
+                >
+                  Exam Management
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => {
+                    setSystemSettingsOpen(false);
+                    setCurrentView("admins");
+                  }}
+                >
+                  School Management
+                </Button>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              To change AI provider keys, JWT secrets, or database URLs, update the backend <code className="rounded bg-muted px-1">.env</code> and
+              redeploy.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button type="button" onClick={() => setSystemSettingsOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

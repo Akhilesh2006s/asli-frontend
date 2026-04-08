@@ -14,6 +14,7 @@ import {
   ChevronRight,
   File,
   FileText,
+  Headphones,
   Loader2,
   Plus,
   Trash2,
@@ -31,7 +32,13 @@ interface SubjectItem {
   isActive?: boolean;
 }
 
-type ContentType = 'TextBook' | 'Workbook' | 'Material' | 'Video';
+type ContentType =
+  | 'TextBook'
+  | 'Workbook'
+  | 'Material'
+  | 'Video'
+  | 'Audio'
+  | 'Homework';
 
 interface ContentItem {
   _id: string;
@@ -59,6 +66,13 @@ interface ContentItem {
 
 const BOARD_CODE = 'ASLI_EXCLUSIVE_SCHOOLS';
 
+const PRIMARY_CONTENT_TYPES: ContentType[] = [
+  'TextBook',
+  'Workbook',
+  'Video',
+  'Audio',
+];
+
 const extractClassNumberFromSubjectName = (name: string): string | null => {
   const match = name.match(/_(\d+)$/);
   return match ? match[1] : null;
@@ -73,10 +87,13 @@ const getContentTypeIcon = (type: ContentType) => {
   switch (type) {
     case 'Video':
       return Video;
+    case 'Audio':
+      return Headphones;
     case 'TextBook':
       return FileText;
     case 'Workbook':
     case 'Material':
+    case 'Homework':
       return File;
     default:
       return File;
@@ -84,11 +101,25 @@ const getContentTypeIcon = (type: ContentType) => {
 };
 
 const isUploadType = (type: ContentType) =>
-  type === 'TextBook' || type === 'Workbook' || type === 'Material';
+  type === 'TextBook' ||
+  type === 'Workbook' ||
+  type === 'Material' ||
+  type === 'Audio' ||
+  type === 'Homework';
 
 const isPdfUrl = (url: string): boolean => {
   const lower = url.toLowerCase();
   return lower.endsWith('.pdf') || lower.includes('.pdf');
+};
+
+const getUploadAcceptForContentType = (type: ContentType): string => {
+  if (type === 'Video') {
+    return 'video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/webm,video/x-matroska';
+  }
+  if (type === 'Audio') {
+    return 'audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac';
+  }
+  return '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx';
 };
 
 const isServerHostedFileUrl = (url: string): boolean => {
@@ -204,6 +235,34 @@ export default function SubjectContentManagement() {
       return itemSubjectName.includes(selectedSubjectName);
     });
   }, [contents, selectedSubjectId, subjects]);
+
+  const contentSections = useMemo(() => {
+    const sections: { title: string; items: ContentItem[] }[] = [
+      {
+        title: 'Textbooks',
+        items: filteredContents.filter((c) => c.type === 'TextBook'),
+      },
+      {
+        title: 'Workbooks',
+        items: filteredContents.filter((c) => c.type === 'Workbook'),
+      },
+      {
+        title: 'Videos',
+        items: filteredContents.filter((c) => c.type === 'Video'),
+      },
+      {
+        title: 'Audio',
+        items: filteredContents.filter((c) => c.type === 'Audio'),
+      },
+    ];
+    const other = filteredContents.filter(
+      (c) => !PRIMARY_CONTENT_TYPES.includes(c.type)
+    );
+    if (other.length > 0) {
+      sections.push({ title: 'Other', items: other });
+    }
+    return sections.filter((s) => s.items.length > 0);
+  }, [filteredContents]);
 
   const fetchSubjects = async () => {
     setIsLoadingSubjects(true);
@@ -781,143 +840,158 @@ export default function SubjectContentManagement() {
                 create one.
               </div>
             ) : (
-              <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
-                {filteredContents.map((content) => {
-                  const Icon = getContentTypeIcon(content.type);
-                  const subjectLabel = content.subject?.name
-                    ? extractPlainSubjectName(content.subject.name)
-                    : '';
-                  const durationLabel =
-                    content.duration && content.duration > 0
-                      ? `${content.duration} mins`
-                      : '0 mins';
+              <div className="space-y-10">
+                {contentSections.map((section) => (
+                  <div key={section.title} className="space-y-4">
+                    <h3 className="text-base font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                      {section.title}
+                    </h3>
+                    <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
+                      {section.items.map((content) => {
+                        const Icon = getContentTypeIcon(content.type);
+                        const subjectLabel = content.subject?.name
+                          ? extractPlainSubjectName(content.subject.name)
+                          : '';
+                        const durationLabel =
+                          content.duration && content.duration > 0
+                            ? `${content.duration} mins`
+                            : '0 mins';
 
-                  const thumbnailSrc =
-                    content.thumbnailUrl ||
-                    content.thumbnail ||
-                    content.videoThumbnail ||
-                    content.previewImage ||
-                    content.image ||
-                    null;
+                        const thumbnailSrc =
+                          content.thumbnailUrl ||
+                          content.thumbnail ||
+                          content.videoThumbnail ||
+                          content.previewImage ||
+                          content.image ||
+                          null;
 
-                  const fileUrl = content.fileUrl.startsWith('http')
-                    ? content.fileUrl
-                    : `${API_BASE_URL}${content.fileUrl}`;
+                        const fileUrl = content.fileUrl.startsWith('http')
+                          ? content.fileUrl
+                          : `${API_BASE_URL}${content.fileUrl}`;
 
-                  const showPdfPreview = !thumbnailSrc && isPdfUrl(fileUrl);
-                  const pdfPreviewUrl = showPdfPreview
-                    ? `${fileUrl}#page=1&view=FitH&toolbar=0&navpanes=0&scrollbar=0`
-                    : null;
+                        const showPdfPreview = !thumbnailSrc && isPdfUrl(fileUrl);
+                        const pdfPreviewUrl = showPdfPreview
+                          ? `${fileUrl}#page=1&view=FitH&toolbar=0&navpanes=0&scrollbar=0`
+                          : null;
 
-                  return (
-                    <div
-                      key={content._id}
-                      className="group rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col"
-                    >
-                      <div className="relative h-40 overflow-hidden bg-gradient-to-br from-sky-300 to-teal-400 flex items-center justify-center">
-                        {thumbnailSrc ? (
-                          <img
-                            src={thumbnailSrc}
-                            alt={content.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : showPdfPreview && pdfPreviewUrl ? (
-                          <iframe
-                            src={pdfPreviewUrl}
-                            title={`${content.title} preview`}
-                            className="w-full h-full"
-                            style={{ border: 0 }}
-                          />
-                        ) : content.type === 'Video' ? (
-                          <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                            <Video className="w-8 h-8 text-sky-500" />
-                          </div>
-                        ) : (
-                          <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                            <Icon className="w-7 h-7 text-sky-500" />
-                          </div>
-                        )}
-                        <div className="absolute bottom-2 right-2 px-2 py-1 rounded-full bg-black/70 text-white text-xs">
-                          {durationLabel}
-                        </div>
-                      </div>
-
-                      <div className="p-4 flex-1 flex flex-col space-y-2">
-                        <div className="flex items-start justify-between gap-2">
-                          <h4 className="font-semibold text-gray-900 text-sm line-clamp-2">
-                            {content.title}
-                          </h4>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-                          {subjectLabel && (
-                            <Badge
-                              variant="outline"
-                              className="border-sky-200 bg-sky-50 text-sky-700"
-                            >
-                              {subjectLabel}
-                            </Badge>
-                          )}
-                          <Badge
-                            variant="outline"
-                            className="border-gray-200 bg-gray-50 text-gray-700"
+                        return (
+                          <div
+                            key={content._id}
+                            className="group rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col"
                           >
-                            {content.type}
-                          </Badge>
-                          <span>
-                            {new Date(content.date || content.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                        {content.topic && (
-                          <p className="text-xs text-gray-600 line-clamp-1">
-                            Topic: {content.topic}
-                          </p>
-                        )}
-                        {content.description && (
-                          <p className="text-xs text-gray-500 line-clamp-2">
-                            {content.description}
-                          </p>
-                        )}
-
-                        <div className="mt-3 flex items-center justify-between">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs"
-                            onClick={() =>
-                              window.open(fileUrl, '_blank', 'noopener,noreferrer')
-                            }
-                          >
-                            View
-                          </Button>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              disabled
-                              className="text-gray-400 hover:text-gray-500"
-                              title="Edit content (coming soon)"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteContent(content._id)}
-                              disabled={deletingContentId === content._id}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              {deletingContentId === content._id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                            <div className="relative h-40 overflow-hidden bg-gradient-to-br from-sky-300 to-teal-400 flex items-center justify-center">
+                              {thumbnailSrc ? (
+                                <img
+                                  src={thumbnailSrc}
+                                  alt={content.title}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : showPdfPreview && pdfPreviewUrl ? (
+                                <iframe
+                                  src={pdfPreviewUrl}
+                                  title={`${content.title} preview`}
+                                  className="w-full h-full"
+                                  style={{ border: 0 }}
+                                />
+                              ) : content.type === 'Video' ? (
+                                <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                                  <Video className="w-8 h-8 text-sky-500" />
+                                </div>
+                              ) : content.type === 'Audio' ? (
+                                <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                                  <Headphones className="w-8 h-8 text-sky-500" />
+                                </div>
                               ) : (
-                                <Trash2 className="w-4 h-4" />
+                                <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                                  <Icon className="w-7 h-7 text-sky-500" />
+                                </div>
                               )}
-                            </Button>
+                              <div className="absolute bottom-2 right-2 px-2 py-1 rounded-full bg-black/70 text-white text-xs">
+                                {durationLabel}
+                              </div>
+                            </div>
+
+                            <div className="p-4 flex-1 flex flex-col space-y-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <h4 className="font-semibold text-gray-900 text-sm line-clamp-2">
+                                  {content.title}
+                                </h4>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                                {subjectLabel && (
+                                  <Badge
+                                    variant="outline"
+                                    className="border-sky-200 bg-sky-50 text-sky-700"
+                                  >
+                                    {subjectLabel}
+                                  </Badge>
+                                )}
+                                <Badge
+                                  variant="outline"
+                                  className="border-gray-200 bg-gray-50 text-gray-700"
+                                >
+                                  {content.type}
+                                </Badge>
+                                <span>
+                                  {new Date(
+                                    content.date || content.createdAt
+                                  ).toLocaleDateString()}
+                                </span>
+                              </div>
+                              {content.topic && (
+                                <p className="text-xs text-gray-600 line-clamp-1">
+                                  Topic: {content.topic}
+                                </p>
+                              )}
+                              {content.description && (
+                                <p className="text-xs text-gray-500 line-clamp-2">
+                                  {content.description}
+                                </p>
+                              )}
+
+                              <div className="mt-3 flex items-center justify-between">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-xs"
+                                  onClick={() =>
+                                    window.open(fileUrl, '_blank', 'noopener,noreferrer')
+                                  }
+                                >
+                                  View
+                                </Button>
+                                <div className="flex items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    disabled
+                                    className="text-gray-400 hover:text-gray-500"
+                                    title="Edit content (coming soon)"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteContent(content._id)}
+                                    disabled={deletingContentId === content._id}
+                                    className="text-red-600 hover:text-red-700"
+                                  >
+                                    {deletingContentId === content._id ? (
+                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="w-4 h-4" />
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
@@ -1038,9 +1112,11 @@ export default function SubjectContentManagement() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Video">Video</SelectItem>
+                    <SelectItem value="Audio">Audio</SelectItem>
                     <SelectItem value="TextBook">TextBook</SelectItem>
                     <SelectItem value="Workbook">Workbook</SelectItem>
                     <SelectItem value="Material">Material</SelectItem>
+                    <SelectItem value="Homework">Homework</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1063,7 +1139,7 @@ export default function SubjectContentManagement() {
                     type="file"
                     accept={
                       isUploadType(contentForm.type)
-                        ? '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx'
+                        ? getUploadAcceptForContentType(contentForm.type)
                         : 'video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/webm,video/x-matroska'
                     }
                     onChange={(e) => {

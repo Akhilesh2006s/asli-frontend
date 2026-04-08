@@ -273,7 +273,7 @@ export default function VideoLectures() {
                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                 <div className="relative">
                   <img
-                    src={video.thumbnailUrl || (video.isYouTubeVideo && video.youtubeUrl ? `https://img.youtube.com/vi/${extractYouTubeId(video.youtubeUrl)}/maxresdefault.jpg` : "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=450")}
+                    src={video.thumbnailUrl || (video.isYouTubeVideo && video.youtubeUrl ? `https://img.youtube.com/vi/${extractYouTubeId(video.youtubeUrl)}/hqdefault.jpg` : "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=450")}
                     alt={video.title}
                     className="w-full h-48 object-cover rounded-t-lg"
                   />

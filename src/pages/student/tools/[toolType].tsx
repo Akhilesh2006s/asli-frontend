@@ -25,6 +25,7 @@ import { FlashcardViewer } from '@/components/flashcard-viewer';
 import { ShortNotesViewer } from '@/components/short-notes-viewer';
 import { ConceptMasteryViewer } from '@/components/concept-mastery-viewer';
 import { LessonPlannerViewer } from '@/components/lesson-planner-viewer';
+import { ActivityProjectViewer } from '@/components/activity-project-viewer';
 
 // Import the renderMarkdown function from teacher tool page
 const renderMarkdown = (text: string) => {
@@ -849,6 +850,10 @@ export default function StudentToolPage() {
     }
 
     setIsGenerating(true);
+    // Prevent stale previous output from looking like a successful new topic render
+    setGeneratedContent('');
+    setRawGeneratedContent(null);
+    setContentSource('');
     try {
       const token = localStorage.getItem('authToken');
       
@@ -996,6 +1001,9 @@ export default function StudentToolPage() {
       }
     } catch (error: any) {
       console.error('Generate error:', error);
+      setGeneratedContent('');
+      setRawGeneratedContent(null);
+      setContentSource('');
       toast({
         title: 'Error',
         description: error.message || 'Failed to generate content',
@@ -1766,38 +1774,7 @@ export default function StudentToolPage() {
                       >
                         {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                       </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                      <Button
-                        size="sm"
-                            variant="outline"
-                            disabled={isDownloading || !generatedContent}
-                          >
-                            {isDownloading ? (
-                              <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
-                            ) : (
-                              <>
-                                <Download className="w-4 h-4 mr-2" />
-                                Download
-                              </>
-                            )}
-                      </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={handleDownloadPDF} disabled={isDownloading}>
-                            <FileText className="w-4 h-4 mr-2" />
-                            Download as PDF
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={handleDownloadCSV} disabled={isDownloading}>
-                            <FileSpreadsheet className="w-4 h-4 mr-2" />
-                            Download as CSV
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={handleDownloadWord} disabled={isDownloading}>
-                            <FileDown className="w-4 h-4 mr-2" />
-                            Download as Word
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {/* Download removed from Tools pages */}
                     </div>
                   )}
                 </div>
@@ -1830,6 +1807,8 @@ export default function StudentToolPage() {
                     <ConceptMasteryViewer content={generatedContent} />
                   ) : toolType === 'lesson-planner' ? (
                     <LessonPlannerViewer content={generatedContent} rawContent={rawGeneratedContent} />
+                  ) : toolType === 'activity-project-generator' ? (
+                    <ActivityProjectViewer activities={rawGeneratedContent?.activities || []} />
                   ) : (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}

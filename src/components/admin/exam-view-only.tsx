@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,12 +7,19 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Eye, BarChart3, Filter, Download, TrendingUp, Users, Clock, Calendar, BookOpen } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
+import {
+  CLASS_FILTER_OPTIONS,
+  examIncludesClass,
+  getExamClassStrings,
+} from '@/lib/exam-classes';
 
 interface Exam {
   _id: string;
   title: string;
   description?: string;
   examType: string;
+  classNumber?: string;
+  assignedClasses?: string[];
   duration: number;
   totalQuestions: number;
   totalMarks: number;
@@ -55,6 +62,21 @@ export default function ExamViewOnly() {
     startDate: '',
     endDate: ''
   });
+  const [listClassFilter, setListClassFilter] = useState<string>('all');
+
+  const filteredExams = useMemo(() => {
+    const list =
+      listClassFilter === 'all'
+        ? [...exams]
+        : exams.filter((e) => examIncludesClass(e, listClassFilter));
+    list.sort((a, b) => {
+      const na = parseInt(getExamClassStrings(a)[0] || '0', 10);
+      const nb = parseInt(getExamClassStrings(b)[0] || '0', 10);
+      if (na !== nb) return na - nb;
+      return (a.title || '').localeCompare(b.title || '');
+    });
+    return list;
+  }, [exams, listClassFilter]);
 
   useEffect(() => {
     fetchExams();
@@ -235,11 +257,24 @@ export default function ExamViewOnly() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <Label>Class</Label>
-                <Input
-                  placeholder="Class number"
-                  value={filters.classNumber}
-                  onChange={(e) => setFilters({ ...filters, classNumber: e.target.value })}
-                />
+                <Select
+                  value={filters.classNumber || 'all'}
+                  onValueChange={(v) =>
+                    setFilters({ ...filters, classNumber: v === 'all' ? '' : v })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="All classes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All classes</SelectItem>
+                    {CLASS_FILTER_OPTIONS.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        Class {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label>Subject</Label>
@@ -430,10 +465,26 @@ export default function ExamViewOnly() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold">Exams (View Only)</h2>
           <p className="text-gray-600 mt-1">View exams created by Super Admin for your board</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Label className="text-sm text-gray-600 whitespace-nowrap">Class</Label>
+          <Select value={listClassFilter} onValueChange={setListClassFilter}>
+            <SelectTrigger className="w-[200px] bg-white">
+              <SelectValue placeholder="All classes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All classes</SelectItem>
+              {CLASS_FILTER_OPTIONS.map((c) => (
+                <SelectItem key={c} value={c}>
+                  Class {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -444,10 +495,20 @@ export default function ExamViewOnly() {
             <p className="text-gray-600">No exams available. Exams are created by Super Admin.</p>
           </CardContent>
         </Card>
+      ) : filteredExams.length === 0 ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <Filter className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600">
+              No exams for this class. Choose another class or &quot;All classes&quot;.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {exams.map((exam, index) => {
+          {filteredExams.map((exam, index) => {
             const status = getExamStatus(exam);
+            const classLabels = getExamClassStrings(exam);
             // Cycle through orange, sky blue, and teal gradients
             const colorSchemes = [
               { bg: 'from-orange-300 to-orange-400', text: 'text-gray-900', badge: 'bg-orange-500/20 text-gray-900' },
@@ -475,6 +536,14 @@ export default function ExamViewOnly() {
                         }>
                           {status.status}
                         </Badge>
+                        {classLabels.map((cl) => (
+                          <Badge
+                            key={cl}
+                            className="bg-white/90 text-gray-900 border-0 font-medium"
+                          >
+                            Class {cl}
+                          </Badge>
+                        ))}
                       </div>
                     </div>
                   </div>

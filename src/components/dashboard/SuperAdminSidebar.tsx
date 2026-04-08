@@ -8,7 +8,6 @@ import {
   CrownIcon,
   UserPlusIcon,
   GraduationCapIcon,
-  BrainCircuitIcon,
   UploadIcon,
   FileTextIcon,
   TrophyIcon,
@@ -61,7 +60,6 @@ export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdmi
     { id: 'calendar', label: 'School Calendar', icon: Calendar },
     { id: 'vidya-ai', label: 'Vidya AI', icon: Sparkles },
     { id: 'analytics', label: 'Analytics', icon: BarChartIcon },
-    { id: 'ai-analytics', label: 'AI Analytics', icon: BrainCircuitIcon },
     { id: 'ai-risk-analysis', label: 'AI Risk Analysis', icon: AlertTriangle },
     { id: 'subscriptions', label: 'Subscriptions', icon: CreditCardIcon },
     { id: 'settings', label: 'Settings', icon: SettingsIcon },
@@ -81,7 +79,9 @@ export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdmi
         <nav className="space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = currentView === item.id;
+            const isActive =
+              currentView === item.id ||
+              (item.id === 'analytics' && currentView === 'ai-analytics');
             
             return (
               <button

@@ -1,8 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { 
   BookOpen, 
   Play, 
@@ -15,6 +23,19 @@ import {
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { API_BASE_URL } from '@/lib/api-config';
+import {
+  extractPlainSubjectName,
+  getSubjectClassLabel,
+} from '@/lib/subject-names';
+
+function subjectMatchesClassFilter(
+  subject: { name?: string; classNumber?: string },
+  classFilter: string
+): boolean {
+  if (classFilter === 'all') return true;
+  const label = getSubjectClassLabel(subject);
+  return label === classFilter;
+}
 
 export default function AdminLearningPaths() {
   const [, setLocation] = useLocation();
@@ -22,6 +43,43 @@ export default function AdminLearningPaths() {
   const [isLoading, setIsLoading] = useState(true);
   const [subjectsWithContent, setSubjectsWithContent] = useState<any[]>([]);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
+  const [classFilter, setClassFilter] = useState<string>('all');
+  const [subjectFilter, setSubjectFilter] = useState<string>('all');
+
+  const classOptionsFromData = useMemo(() => {
+    const classSet = new Set<string>();
+    subjectsWithContent.forEach((subj: any) => {
+      const label = getSubjectClassLabel(subj);
+      if (label) classSet.add(label);
+    });
+    return Array.from(classSet).sort(
+      (a, b) => parseInt(a, 10) - parseInt(b, 10)
+    );
+  }, [subjectsWithContent]);
+
+  const subjectNameOptions = useMemo(() => {
+    const names = new Set<string>();
+    subjectsWithContent.forEach((subj: any) => {
+      if (!subjectMatchesClassFilter(subj, classFilter)) return;
+      names.add(extractPlainSubjectName(subj.name || '').trim());
+    });
+    return Array.from(names).filter(Boolean).sort((a, b) => a.localeCompare(b));
+  }, [subjectsWithContent, classFilter]);
+
+  const filteredSubjectsWithContent = useMemo(() => {
+    return subjectsWithContent.filter((subj: any) => {
+      if (!subjectMatchesClassFilter(subj, classFilter)) return false;
+      if (subjectFilter === 'all') return true;
+      return (
+        extractPlainSubjectName(subj.name || '').toLowerCase() ===
+        subjectFilter.toLowerCase()
+      );
+    });
+  }, [subjectsWithContent, classFilter, subjectFilter]);
+
+  useEffect(() => {
+    setSubjectFilter('all');
+  }, [classFilter]);
 
   useEffect(() => {
     fetchSubjects();
@@ -95,6 +153,7 @@ export default function AdminLearningPaths() {
               name: subject.name || 'Unknown Subject',
               description: subject.description || '',
               board: subject.board || '',
+              classNumber: subject.classNumber,
               asliPrepContent: asliPrepContent,
               totalContent: asliPrepContent.length
             };
@@ -142,11 +201,51 @@ export default function AdminLearningPaths() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h2 className="text-3xl font-bold text-gray-900">Learning Paths</h2>
           <p className="text-gray-600 mt-1">View content uploaded for each subject in your board</p>
         </div>
+        {!isLoadingContent && subjectsWithContent.length > 0 && (
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="space-y-1.5">
+              <Label htmlFor="lp-class-filter" className="text-xs text-gray-500">
+                Class
+              </Label>
+              <Select value={classFilter} onValueChange={setClassFilter}>
+                <SelectTrigger id="lp-class-filter" className="w-full sm:w-[200px] bg-white">
+                  <SelectValue placeholder="All classes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All classes</SelectItem>
+                  {classOptionsFromData.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      Class {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="lp-subject-filter" className="text-xs text-gray-500">
+                Subject
+              </Label>
+              <Select value={subjectFilter} onValueChange={setSubjectFilter}>
+                <SelectTrigger id="lp-subject-filter" className="w-full sm:w-[220px] bg-white">
+                  <SelectValue placeholder="All subjects" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All subjects</SelectItem>
+                  {subjectNameOptions.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
       </div>
 
       {isLoadingContent ? (
@@ -163,10 +262,23 @@ export default function AdminLearningPaths() {
             <p className="text-gray-500">No subjects have been registered for your board yet.</p>
           </CardContent>
         </Card>
+      ) : filteredSubjectsWithContent.length === 0 ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-600 mb-2">No matches</h3>
+            <p className="text-gray-500">
+              No subjects match the selected class and subject filters. Try choosing &quot;All
+              classes&quot; or &quot;All subjects&quot;.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {subjectsWithContent.map((subject: any) => {
+          {filteredSubjectsWithContent.map((subject: any) => {
             const Icon = getSubjectIcon(subject.name);
+            const displayName = extractPlainSubjectName(subject.name || '');
+            const classLabel = getSubjectClassLabel(subject);
             
             return (
               <Card key={subject._id || subject.id} className="hover:shadow-lg transition-all duration-200 hover:scale-105">
@@ -179,8 +291,17 @@ export default function AdminLearningPaths() {
                       {subject.totalContent || 0} items
                     </Badge>
                   </div>
-                  <CardTitle className="text-lg">{subject.name}</CardTitle>
-                  <p className="text-gray-600 text-sm mt-2">{subject.description || `Content for ${subject.name}`}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <CardTitle className="text-lg">{displayName}</CardTitle>
+                    {classLabel ? (
+                      <Badge className="bg-sky-100 text-sky-800 border-0 text-xs">
+                        Class {classLabel}
+                      </Badge>
+                    ) : null}
+                  </div>
+                  <p className="text-gray-600 text-sm mt-2">
+                    {subject.description || `Content for ${displayName}${classLabel ? ` (${classLabel})` : ''}`}
+                  </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Content Stats */}
