@@ -569,9 +569,20 @@ export default function ExamManagement() {
         }
       } else {
         const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error(
+          '[exams] request failed',
+          response.status,
+          response.statusText,
+          errorData,
+          { hasToken: !!token }
+        );
+        const hint =
+          response.status === 401 || response.status === 400
+            ? ' Try logging out and logging in again on this site (production uses a different session than localhost).'
+            : '';
         toast({
           title: 'Error',
-          description: errorData.message || `Failed to fetch exams (${response.status})`,
+          description: (errorData.message || `Failed to fetch exams (${response.status})`) + hint,
           variant: 'destructive'
         });
       }
