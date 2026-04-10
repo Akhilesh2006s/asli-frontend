@@ -15,7 +15,7 @@ const Navbar = () => {
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <img 
               src="/logo.jpg" 
-              alt="AsliLearn Logo" 
+              alt="AsliLearn AI company logo" 
               className="w-12 h-12 object-contain"
             />
             <span className="text-2xl md:text-3xl font-extrabold text-blue-600 animate-blue-glow">
@@ -52,7 +52,7 @@ const Index = () => {
     document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const renderAnimatedHeading = (text = "Learn Smarter,") => (
+  const renderAnimatedHeading = (text = "Learn Smarter, Achieve Faster!") => (
     <span className="inline-block">
       {text.split("").map((char, index) => (
         <span
@@ -88,8 +88,6 @@ const Index = () => {
             {/* Main Heading */}
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
                 {renderAnimatedHeading()}
-                <br />
-                <span className="text-gray-900">Achieve Faster!</span>
             </h1>
 
             {/* Description */}
@@ -142,7 +140,7 @@ const Index = () => {
               <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                 <img 
                   src="/1765111492896.png" 
-                  alt="Students Learning Together" 
+                  alt="Students learning with AsliLearn AI on digital devices" 
                   className="w-full h-auto object-cover rounded-2xl"
                 />
               </div>

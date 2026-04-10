@@ -40,6 +40,9 @@ import SuperAdminDashboard from "./pages/super-admin-dashboard";
 import SuperAdminTest from "./pages/super-admin-test";
 import Onboarding from "./pages/onboarding";
 import AIToolsDashboard from "./pages/ai-tools-dashboard";
+import Privacy from "./pages/privacy";
+import Terms from "./pages/terms";
+import Contact from "./pages/contact";
 
 function Router() {
   return (
@@ -72,6 +75,9 @@ function Router() {
       <Route path="/super-admin/dashboard" component={SuperAdminDashboard} />
       <Route path="/super-admin/test" component={SuperAdminTest} />
       <Route path="/onboarding" component={Onboarding} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
+      <Route path="/contact" component={Contact} />
       <Route component={NotFound} />
     </Switch>
   );

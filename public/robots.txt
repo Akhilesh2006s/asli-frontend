@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Disallow: /auth/login
+Disallow: /auth/register
+Disallow: /auth/
+
+Sitemap: https://www.aslilearn.ai/sitemap.xml
