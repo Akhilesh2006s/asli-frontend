@@ -83,6 +83,24 @@ const extractPlainSubjectName = (name: string): string => {
   return match ? match[1] : name;
 };
 
+/** Prefer content.classNumber; else derive from linked subject (matches selected class in UI). */
+function effectiveContentClass(
+  item: ContentItem,
+  subjects: SubjectItem[]
+): string | null {
+  if (item.classNumber != null && String(item.classNumber).trim() !== '') {
+    return String(item.classNumber).trim();
+  }
+  const sid = item.subject?._id;
+  if (!sid) return null;
+  const subj = subjects.find((s) => String(s._id) === String(sid));
+  if (!subj) return null;
+  if (subj.classNumber != null && String(subj.classNumber).trim() !== '') {
+    return String(subj.classNumber).trim();
+  }
+  return extractClassNumberFromSubjectName(subj.name);
+}
+
 const getContentTypeIcon = (type: ContentType) => {
   switch (type) {
     case 'Video':
@@ -213,28 +231,25 @@ export default function SubjectContentManagement() {
   }, [subjects, selectedClassNumber]);
 
   const filteredContents = useMemo(() => {
-    if (!selectedSubjectId) return [];
+    if (!selectedSubjectId || !selectedClassNumber) return [];
 
-    // Find selected subject name for graceful name-based matching
     const selectedSubject = subjects.find((s) => s._id === selectedSubjectId);
-    const selectedSubjectName = selectedSubject
-      ? extractPlainSubjectName(selectedSubject.name).toLowerCase()
-      : '';
+    if (!selectedSubject) return [];
+
+    const selectedPlain = extractPlainSubjectName(selectedSubject.name).toLowerCase();
 
     return contents.filter((item) => {
-      // Prefer strict id match if subject object is present
-      if (item.subject?._id === selectedSubjectId) return true;
+      const effClass = effectiveContentClass(item, subjects);
+      if (effClass !== selectedClassNumber) return false;
 
-      if (!selectedSubjectName) return false;
+      if (String(item.subject?._id) === String(selectedSubjectId)) return true;
 
-      // Fallback: match by subject name text when structure differs
-      const itemSubjectName = item.subject?.name
+      const itemPlain = item.subject?.name
         ? extractPlainSubjectName(item.subject.name).toLowerCase()
         : '';
-
-      return itemSubjectName.includes(selectedSubjectName);
+      return itemPlain === selectedPlain;
     });
-  }, [contents, selectedSubjectId, subjects]);
+  }, [contents, selectedSubjectId, selectedClassNumber, subjects]);
 
   const contentSections = useMemo(() => {
     const sections: { title: string; items: ContentItem[] }[] = [

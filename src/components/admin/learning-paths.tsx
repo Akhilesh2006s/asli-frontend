@@ -25,16 +25,159 @@ import { useLocation } from 'wouter';
 import { API_BASE_URL } from '@/lib/api-config';
 import {
   extractPlainSubjectName,
-  getSubjectClassLabel,
+  getLearningPathClassLabel,
 } from '@/lib/subject-names';
 
 function subjectMatchesClassFilter(
-  subject: { name?: string; classNumber?: string },
+  row: {
+    name?: string;
+    classNumber?: string;
+    asliPrepContent?: Array<{ classNumber?: string }>;
+  },
   classFilter: string
 ): boolean {
   if (classFilter === 'all') return true;
-  const label = getSubjectClassLabel(subject);
+  const label = getLearningPathClassLabel(row);
   return label === classFilter;
+}
+
+function getContentSubjectId(content: any): string | null {
+  const subj = content?.subject;
+  if (subj == null) return null;
+  if (typeof subj === 'object' && subj._id != null) return String(subj._id);
+  if (typeof subj === 'string' && subj.trim()) return subj.trim();
+  return null;
+}
+
+/** Collapse duplicate Subject rows (e.g. BIO vs Biology vs BIOLOGY) for the same class. */
+function normalizeSubjectNameForMerge(name: string): string {
+  const plain = extractPlainSubjectName(name || '').trim().toLowerCase();
+  if (/^bio(logy)?$/.test(plain) || plain === 'bio') return 'biology';
+  return plain;
+}
+
+function groupKeyForSubjectRow(row: {
+  name?: string;
+  classNumber?: string;
+  asliPrepContent?: any[];
+}): string {
+  const classLabel =
+    getLearningPathClassLabel(row) ||
+    String(row.classNumber || '').trim() ||
+    'none';
+  return `${classLabel}::${normalizeSubjectNameForMerge(row.name || '')}`;
+}
+
+function consolidateDuplicateSubjectCards(rows: any[]): any[] {
+  const byKey = new Map<string, any>();
+
+  for (const row of rows) {
+    const key = groupKeyForSubjectRow(row);
+    const rowId = String(row._id || row.id);
+    const incoming = [...(row.asliPrepContent || [])];
+
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        ...row,
+        mergedSubjectIds: [rowId],
+        asliPrepContent: incoming,
+      });
+      continue;
+    }
+
+    const agg = byKey.get(key)!;
+    const idSet = new Set<string>(
+      Array.isArray(agg.mergedSubjectIds)
+        ? agg.mergedSubjectIds
+        : [String(agg._id || agg.id)]
+    );
+    idSet.add(rowId);
+    agg.mergedSubjectIds = Array.from(idSet);
+
+    const seen = new Set(
+      (agg.asliPrepContent || []).map((c: any) => String(c._id))
+    );
+    for (const c of incoming) {
+      const cid = String(c._id);
+      if (!seen.has(cid)) {
+        seen.add(cid);
+        agg.asliPrepContent.push(c);
+      }
+    }
+
+    if ((row.name || '').length > (agg.name || '').length) {
+      agg.name = row.name;
+    }
+    if ((!agg.description || !String(agg.description).trim()) && row.description) {
+      agg.description = row.description;
+    }
+    if (
+      (agg.classNumber == null || String(agg.classNumber).trim() === '') &&
+      row.classNumber != null
+    ) {
+      agg.classNumber = row.classNumber;
+    }
+  }
+
+  const result = Array.from(byKey.values()).map((agg) => {
+    const contents = (agg.asliPrepContent || []).slice().sort((a: any, b: any) => {
+      const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return tb - ta;
+    });
+    const ids: string[] =
+      agg.mergedSubjectIds && agg.mergedSubjectIds.length > 0
+        ? agg.mergedSubjectIds
+        : [String(agg._id || agg.id)];
+
+    const countBySubject = new Map<string, number>();
+    for (const c of contents) {
+      const sid = getContentSubjectId(c);
+      if (!sid) continue;
+      countBySubject.set(sid, (countBySubject.get(sid) || 0) + 1);
+    }
+
+    let primaryId = String(agg._id || agg.id);
+    let max = -1;
+    for (const sid of ids) {
+      const n = countBySubject.get(sid) || 0;
+      if (n > max) {
+        max = n;
+        primaryId = sid;
+      }
+    }
+    if (max <= 0) {
+      primaryId = ids[0];
+    }
+
+    const inferredClass =
+      (agg.classNumber != null && String(agg.classNumber).trim() !== ''
+        ? String(agg.classNumber).trim()
+        : null) ||
+      (() => {
+        for (const c of contents) {
+          const cn = c?.classNumber != null && String(c.classNumber).trim() !== ''
+            ? String(c.classNumber).trim()
+            : '';
+          if (cn) return cn;
+        }
+        return null;
+      })();
+
+    return {
+      ...agg,
+      _id: primaryId,
+      id: primaryId,
+      mergedSubjectIds: ids,
+      asliPrepContent: contents,
+      totalContent: contents.length,
+      ...(inferredClass ? { classNumber: inferredClass } : {}),
+    };
+  });
+
+  return result.sort((a: any, b: any) =>
+    (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })
+  );
 }
 
 export default function AdminLearningPaths() {
@@ -49,12 +192,15 @@ export default function AdminLearningPaths() {
   const classOptionsFromData = useMemo(() => {
     const classSet = new Set<string>();
     subjectsWithContent.forEach((subj: any) => {
-      const label = getSubjectClassLabel(subj);
+      const label = getLearningPathClassLabel(subj);
       if (label) classSet.add(label);
     });
-    return Array.from(classSet).sort(
-      (a, b) => parseInt(a, 10) - parseInt(b, 10)
-    );
+    return Array.from(classSet).sort((a, b) => {
+      const na = parseInt(a, 10);
+      const nb = parseInt(b, 10);
+      if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+      return a.localeCompare(b, undefined, { numeric: true });
+    });
   }, [subjectsWithContent]);
 
   const subjectNameOptions = useMemo(() => {
@@ -86,10 +232,9 @@ export default function AdminLearningPaths() {
   }, []);
 
   useEffect(() => {
-    if (subjects.length > 0) {
-      fetchSubjectsWithContent();
-    }
-  }, [subjects]);
+    if (isLoading) return;
+    void fetchSubjectsWithContent();
+  }, [subjects, isLoading]);
 
   const fetchSubjects = async () => {
     try {
@@ -121,57 +266,90 @@ export default function AdminLearningPaths() {
       setIsLoadingContent(true);
       const token = localStorage.getItem('authToken');
 
-      // Fetch content for each subject
-      const subjectsWithContentResults = await Promise.allSettled(
-        subjects.map(async (subject: any) => {
-          try {
-            const subjectId = subject._id || subject.id;
-            
-            // Fetch Asli Prep content for this subject
-            let asliPrepContent = [];
-            try {
-              const contentResponse = await fetch(`${API_BASE_URL}/api/admin/asli-prep-content?subject=${encodeURIComponent(subjectId)}`, {
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                }
-              });
-              
-              if (contentResponse.ok) {
-                const contentData = await contentResponse.json();
-                asliPrepContent = contentData.data || contentData || [];
-                if (!Array.isArray(asliPrepContent)) asliPrepContent = [];
-              }
-            } catch (contentError) {
-              console.error('Error fetching content for subject:', subjectId, contentError);
-              asliPrepContent = [];
-            }
-
-            return {
-              _id: subject._id || subject.id,
-              id: subject._id || subject.id,
-              name: subject.name || 'Unknown Subject',
-              description: subject.description || '',
-              board: subject.board || '',
-              classNumber: subject.classNumber,
-              asliPrepContent: asliPrepContent,
-              totalContent: asliPrepContent.length
-            };
-          } catch (error) {
-            console.error('Error processing subject:', subject, error);
-            return null;
+      // One request for all Asli Prep content (same source Super Admin uses), then group by subject.
+      // This avoids missing paths when the catalog has more content than per-subject calls surface.
+      let allContent: any[] = [];
+      try {
+        const contentResponse = await fetch(
+          `${API_BASE_URL}/api/admin/asli-prep-content`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
           }
-        })
-      );
+        );
+        if (contentResponse.ok) {
+          const contentData = await contentResponse.json();
+          allContent = contentData.data || contentData || [];
+          if (!Array.isArray(allContent)) allContent = [];
+        }
+      } catch (e) {
+        console.error('Failed to fetch all asli-prep content:', e);
+        allContent = [];
+      }
 
-      // Filter out failed results
-      const validSubjects = subjectsWithContentResults
-        .filter((result): result is PromiseFulfilledResult<any> => 
-          result.status === 'fulfilled' && result.value !== null
-        )
-        .map(result => result.value);
+      const bySubjectId = new Map<string, any[]>();
+      for (const item of allContent) {
+        const sid = getContentSubjectId(item);
+        if (!sid) continue;
+        if (!bySubjectId.has(sid)) bySubjectId.set(sid, []);
+        bySubjectId.get(sid)!.push(item);
+      }
 
-      setSubjectsWithContent(validSubjects);
+      const consumedIds = new Set<string>();
+      const merged: any[] = [];
+
+      for (const subject of subjects) {
+        const subjectId = String(subject._id || subject.id);
+        const asliPrepContent = (bySubjectId.get(subjectId) || [])
+          .slice()
+          .sort((a: any, b: any) => {
+            const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return tb - ta;
+          });
+        consumedIds.add(subjectId);
+        merged.push({
+          _id: subject._id || subject.id,
+          id: subject._id || subject.id,
+          name: subject.name || 'Unknown Subject',
+          description: subject.description || '',
+          board: subject.board || '',
+          classNumber: subject.classNumber,
+          asliPrepContent,
+          totalContent: asliPrepContent.length,
+        });
+      }
+
+      // Subjects that only appear on content (e.g. catalog row missing from /subjects response)
+      bySubjectId.forEach((items, subjectId) => {
+        if (consumedIds.has(subjectId)) return;
+        const sorted = items.slice().sort((a: any, b: any) => {
+          const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return tb - ta;
+        });
+        const first = sorted[0];
+        const populated = first?.subject;
+        const nameFromPopulate =
+          typeof populated === 'object' && populated?.name
+            ? populated.name
+            : 'Subject';
+        merged.push({
+          _id: subjectId,
+          id: subjectId,
+          name: nameFromPopulate,
+          description: `Content for ${nameFromPopulate}`,
+          board: first?.board || '',
+          classNumber: first?.classNumber,
+          asliPrepContent: sorted,
+          totalContent: sorted.length,
+        });
+      });
+
+      const consolidated = consolidateDuplicateSubjectCards(merged);
+      setSubjectsWithContent(consolidated);
     } catch (error) {
       console.error('Failed to fetch subjects with content:', error);
       setSubjectsWithContent([]);
@@ -278,10 +456,22 @@ export default function AdminLearningPaths() {
           {filteredSubjectsWithContent.map((subject: any) => {
             const Icon = getSubjectIcon(subject.name);
             const displayName = extractPlainSubjectName(subject.name || '');
-            const classLabel = getSubjectClassLabel(subject);
-            
+            const classLabel = getLearningPathClassLabel(subject);
+            const primaryId = String(subject._id || subject.id);
+            const mergedIds: string[] = Array.isArray(subject.mergedSubjectIds)
+              ? subject.mergedSubjectIds.map(String)
+              : [primaryId];
+            const otherIds = mergedIds.filter((id) => id !== primaryId);
+            const viewHref =
+              otherIds.length > 0
+                ? `/admin/subject/${primaryId}?merge=${encodeURIComponent(otherIds.join(','))}`
+                : `/admin/subject/${primaryId}`;
+
             return (
-              <Card key={subject._id || subject.id} className="hover:shadow-lg transition-all duration-200 hover:scale-105">
+              <Card
+                key={mergedIds.slice().sort().join('-')}
+                className="hover:shadow-lg transition-all duration-200 hover:scale-105"
+              >
                 <CardHeader>
                   <div className="flex items-center justify-between mb-2">
                     <div className="w-12 h-12 bg-gradient-to-br from-sky-400 to-teal-500 rounded-lg flex items-center justify-center">
@@ -330,7 +520,7 @@ export default function AdminLearningPaths() {
 
                   <Button 
                     className="w-full bg-gradient-to-r from-sky-400 to-teal-500 hover:from-sky-500 hover:to-teal-600 text-white"
-                    onClick={() => setLocation(`/admin/subject/${subject._id || subject.id}`)}
+                    onClick={() => setLocation(viewHref)}
                   >
                     View Content
                     <ArrowRight className="w-4 h-4 ml-2" />

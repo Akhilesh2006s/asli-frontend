@@ -19,3 +19,29 @@ export function getSubjectClassLabel(subject: {
   }
   return extractClassNumberFromSubjectName(subject.name || '');
 }
+
+/** When Subject has no classNumber / _N suffix, use class from linked prep content (common for 11–12). */
+export function inferClassNumberFromPrepContent(
+  items: Array<{ classNumber?: string }> | undefined
+): string | null {
+  if (!items || !Array.isArray(items)) return null;
+  for (const item of items) {
+    const cn =
+      item?.classNumber != null && String(item.classNumber).trim() !== ''
+        ? String(item.classNumber).trim()
+        : null;
+    if (cn) return cn;
+  }
+  return null;
+}
+
+/** Admin Learning Paths: subject row may only have class on Content documents (e.g. Class 11 Chemistry). */
+export function getLearningPathClassLabel(subject: {
+  name?: string;
+  classNumber?: string;
+  asliPrepContent?: Array<{ classNumber?: string }>;
+}): string | null {
+  const fromSubject = getSubjectClassLabel(subject);
+  if (fromSubject) return fromSubject;
+  return inferClassNumberFromPrepContent(subject.asliPrepContent);
+}

@@ -144,7 +144,14 @@ const TeacherManagement = () => {
           id: teacherId,
           subjects: teacher.subjects && Array.isArray(teacher.subjects) 
             ? teacher.subjects
-                .filter((subject: any) => subject !== null && subject !== undefined && typeof subject === 'object')
+                .filter(
+                  (subject: any) =>
+                    subject != null &&
+                    typeof subject === 'object' &&
+                    (subject._id || subject.id) &&
+                    typeof subject.name === 'string' &&
+                    subject.isActive !== false
+                )
                 .map((subject: any) => ({
                   ...subject,
                   id: subject._id || subject.id || Math.random().toString(36).substr(2, 9) // Fallback ID

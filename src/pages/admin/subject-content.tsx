@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useRoute, useLocation } from 'wouter';
+import { useRoute, useLocation, useSearch } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,9 +36,18 @@ interface Subject {
   description?: string;
 }
 
+function getContentSubjectId(content: any): string | null {
+  const subj = content?.subject;
+  if (subj == null) return null;
+  if (typeof subj === 'object' && subj._id != null) return String(subj._id);
+  if (typeof subj === 'string' && subj.trim()) return subj.trim();
+  return null;
+}
+
 export default function AdminSubjectContent() {
   const [, params] = useRoute('/admin/subject/:id');
   const [, setLocation] = useLocation();
+  const search = useSearch();
   const [subject, setSubject] = useState<Subject | null>(null);
   const [loading, setLoading] = useState(true);
   const [contents, setContents] = useState<ContentItem[]>([]);
@@ -47,14 +56,24 @@ export default function AdminSubjectContent() {
 
   useEffect(() => {
     if (params?.id) {
-      fetchSubjectContent(params.id);
+      const q = search.startsWith('?') ? search.slice(1) : search;
+      const mergeParam = new URLSearchParams(q).get('merge');
+      const mergeIds = mergeParam
+        ? mergeParam
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [];
+      void fetchSubjectContent(params.id, mergeIds);
     }
-  }, [params?.id]);
+  }, [params?.id, search]);
 
-  const fetchSubjectContent = async (subjectId: string) => {
+  const fetchSubjectContent = async (subjectId: string, mergeSubjectIds: string[]) => {
     try {
       setLoading(true);
       const token = localStorage.getItem('authToken');
+
+      const allowedIds = new Set<string>([subjectId, ...mergeSubjectIds]);
 
       // Fetch subject info
       const subjectResponse = await fetch(`${API_BASE_URL}/api/subjects/${subjectId}`, {
@@ -77,9 +96,9 @@ export default function AdminSubjectContent() {
         setSubject({ _id: subjectId, name: 'Subject' });
       }
 
-      // Fetch Asli Prep content - use admin endpoint
+      // Load all prep content once, then keep items for this subject + merged duplicates (same as Learning Paths).
       setLoadingContents(true);
-      const contentsResponse = await fetch(`${API_BASE_URL}/api/admin/asli-prep-content?subject=${encodeURIComponent(subjectId)}`, {
+      const contentsResponse = await fetch(`${API_BASE_URL}/api/admin/asli-prep-content`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -90,8 +109,18 @@ export default function AdminSubjectContent() {
         const contentType = contentsResponse.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
           const contentsData = await contentsResponse.json();
-          const contentsList = contentsData.data || contentsData || [];
-          setContents(contentsList);
+          let contentsList = contentsData.data || contentsData || [];
+          if (!Array.isArray(contentsList)) contentsList = [];
+          const filtered = contentsList.filter((item: any) => {
+            const sid = getContentSubjectId(item);
+            return sid && allowedIds.has(sid);
+          });
+          filtered.sort((a: any, b: any) => {
+            const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return tb - ta;
+          });
+          setContents(filtered);
         }
       } else {
         setContents([]);
