@@ -1039,35 +1039,75 @@ const AdminDashboard = () => {
           {activeTab === 'calendar' && <AdminCalendar />}
           {activeTab === 'vidya-ai' && (
             <div className="space-y-6">
-              {/* Vidya AI */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                className="space-y-5"
               >
-                <div className="flex items-center space-x-3 mb-6">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                    <img 
-                      src="/Vidya-ai.jpg" 
-                      alt="Vidya AI" 
-                      className="w-full h-full object-cover"
-                    />
+                <div className="rounded-2xl bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 p-6 shadow-lg border border-white/40">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-11 h-11 rounded-xl bg-white/25 backdrop-blur-sm flex items-center justify-center border border-white/40">
+                      <Sparkles className="w-5 h-5 text-white" />
+                    </div>
+                    <Badge className="bg-white text-sky-700 hover:bg-white">School Operations</Badge>
                   </div>
-                  <h3 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-orange-700 bg-clip-text text-transparent">Vidya AI</h3>
+                  <h2 className="text-3xl font-bold text-white">School AI Assistant</h2>
+                  <p className="text-white/90 mt-1">Manage students, teachers, and academic workflows</p>
                 </div>
 
-                {/* Chat Content */}
-                <div className="space-y-4">
-                  <div>
-                    <h2 className="text-3xl font-bold text-gray-900 mb-2">AI Chat Assistant</h2>
-                    <p className="text-gray-600">Get instant help with administrative questions, student management, and educational guidance</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    { title: "Enroll Students", description: "Onboard students into classes quickly", icon: UserPlus, tab: "students" },
+                    { title: "Assign Teachers", description: "Map teachers to classes and subjects", icon: Users, tab: "teachers" },
+                    { title: "Schedule Exams", description: "Plan test windows and exam timelines", icon: CalendarIcon, tab: "exams" },
+                    { title: "View Reports", description: "Track attendance and performance trends", icon: BarChart3, tab: "overview" },
+                  ].map((action) => {
+                    const Icon = action.icon;
+                    return (
+                      <Card
+                        key={action.title}
+                        className="bg-white/80 border border-white/70 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => setActiveTab(action.tab)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-sky-100 to-teal-100 flex items-center justify-center mb-3">
+                            <Icon className="w-4 h-4 text-sky-700" />
+                          </div>
+                          <h3 className="text-sm font-semibold text-slate-900">{action.title}</h3>
+                          <p className="text-xs text-slate-600 mt-1">{action.description}</p>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="rounded-xl bg-white border border-sky-100 px-4 py-3 shadow-sm">
+                    <p className="text-xs uppercase tracking-wide text-slate-500">Total Students</p>
+                    <p className="text-2xl font-bold text-sky-700 mt-1">{isLoadingStats ? "..." : stats.totalStudents}</p>
                   </div>
-                  <div className="bg-white rounded-xl shadow-md border border-gray-200" style={{ minHeight: '600px' }}>
+                  <div className="rounded-xl bg-white border border-teal-100 px-4 py-3 shadow-sm">
+                    <p className="text-xs uppercase tracking-wide text-slate-500">Active Classes</p>
+                    <p className="text-2xl font-bold text-teal-700 mt-1">{isLoadingStats ? "..." : stats.totalClasses}</p>
+                  </div>
+                  <div className="rounded-xl bg-white border border-cyan-100 px-4 py-3 shadow-sm">
+                    <p className="text-xs uppercase tracking-wide text-slate-500">Exams Scheduled</p>
+                    <p className="text-2xl font-bold text-cyan-700 mt-1">{isLoadingStats ? "..." : stats.totalAssessments}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-sky-100 bg-gradient-to-r from-sky-50 to-teal-50 px-4 py-3 text-sm text-slate-700">
+                  AI assists with administrative tasks and reporting
+                </div>
+
+                <div className="w-full max-w-5xl mx-auto rounded-2xl bg-gradient-to-b from-sky-50 via-cyan-50 to-teal-50 p-4 border border-white/70 shadow-xl">
+                  <div className="bg-white/85 rounded-2xl border border-sky-100 shadow-md" style={{ minHeight: '600px' }}>
                     {adminId ? (
                       <AIChat
                         userId={adminId}
                         className="flex-1 h-full"
+                        promptVariant="admin"
                         context={{
                           studentName: userData?.schoolName || userData?.fullName || userData?.email?.split('@')[0] || "Admin",
                           currentSubject: "Administration",

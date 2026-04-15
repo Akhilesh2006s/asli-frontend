@@ -236,6 +236,7 @@ const TeacherDashboard = () => {
   const [isGeneratingLessonPlan, setIsGeneratingLessonPlan] = useState(false);
   const [generatedLessonPlan, setGeneratedLessonPlan] = useState('');
   const [vidyaAiTab, setVidyaAiTab] = useState<'teacher-tools' | 'chat'>('teacher-tools');
+  const [teacherChatFocusTab, setTeacherChatFocusTab] = useState<'lesson-planning' | 'assessments' | 'classroom-help'>('lesson-planning');
   const [teacherId, setTeacherId] = useState<string>('');
   const [teacherUser, setTeacherUser] = useState<any>(null);
   
@@ -2457,12 +2458,78 @@ const TeacherDashboard = () => {
 
                 {/* Chat Content */}
                 {vidyaAiTab === 'chat' && (
-                  <div className="space-y-4">
-                    <div>
-                      <h2 className="text-3xl font-bold text-gray-900 mb-2">AI Chat Assistant</h2>
-                      <p className="text-gray-600">Get instant help with teaching questions, lesson planning, and educational guidance</p>
+                  <div className="space-y-4 max-w-4xl mx-auto">
+                    <div className="rounded-2xl bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 p-5 shadow-md border border-white/40">
+                      <h2 className="text-2xl font-bold text-white">Teaching Assistant AI</h2>
+                      <p className="text-white/90 mt-1">Plan lessons, assessments, and classroom activities</p>
                     </div>
-                    <div className="bg-white rounded-xl shadow-md border border-gray-200" style={{ minHeight: '600px' }}>
+
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setTeacherChatFocusTab('lesson-planning')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                          teacherChatFocusTab === 'lesson-planning'
+                            ? 'bg-sky-600 text-white shadow-sm'
+                            : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        Lesson Planning
+                      </button>
+                      <button
+                        onClick={() => setTeacherChatFocusTab('assessments')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                          teacherChatFocusTab === 'assessments'
+                            ? 'bg-sky-600 text-white shadow-sm'
+                            : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        Assessments
+                      </button>
+                      <button
+                        onClick={() => setTeacherChatFocusTab('classroom-help')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                          teacherChatFocusTab === 'classroom-help'
+                            ? 'bg-sky-600 text-white shadow-sm'
+                            : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        Classroom Help
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <Badge className="bg-sky-100 text-sky-700 hover:bg-sky-100 border border-sky-200">
+                        {(teacherSubjects?.[0]?.name || 'General') + ' - ' + (availableClasses?.[0]?.classNumber || assignedClasses?.[0]?.classNumber || 'Grade 7')}
+                      </Badge>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-sky-200 text-sky-700 hover:bg-sky-50"
+                          onClick={() => setLocation('/teacher/tools/worksheet-mcq-generator')}
+                        >
+                          Generate Worksheet
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-teal-200 text-teal-700 hover:bg-teal-50"
+                          onClick={() => setLocation('/teacher/tools/exam-question-paper-generator')}
+                        >
+                          Create Quiz
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-violet-200 text-violet-700 hover:bg-violet-50"
+                          onClick={() => setLocation('/teacher/tools/concept-mastery-helper')}
+                        >
+                          Explain Concept
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-200" style={{ minHeight: '600px' }}>
                       {teacherId ? (
                         <AIChat
                           userId={teacherId}

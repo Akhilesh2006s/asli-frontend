@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -88,6 +87,7 @@ import {
 import '@/utils/debugStudyTime'; // Load debug helper
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import AdaptiveRecommendations from "@/components/dashboard/AdaptiveRecommendations";
+import AIChat from "@/components/ai-chat.tsx";
 
 // Mock user ID - in a real app, this would come from authentication
 const MOCK_USER_ID = "user-1";
@@ -326,6 +326,7 @@ export default function Dashboard() {
   };
   const [learningPathTab, setLearningPathTab] = useState<'subjects' | 'quizzes'>('subjects');
   const [vidyaAiTab, setVidyaAiTab] = useState<'student-tools' | 'chat'>('student-tools');
+  const [studentLearningMode, setStudentLearningMode] = useState<'explain' | 'quiz' | 'practice'>('explain');
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
@@ -3473,13 +3474,90 @@ export default function Dashboard() {
                 )}
 
                 {vidyaAiTab === 'chat' && (
-                  <div className="text-center py-8">
-                <Button 
-                      className="bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800"
-                      onClick={() => setLocation('/ai-tutor')}
-                    >
-                      Open AI Chat
-                  </Button>
+                  <div className="space-y-4 max-w-2xl mx-auto">
+                    <div className="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-sky-200 shadow-sm">
+                            <img
+                              src="/Vidya-ai.jpg"
+                              alt="Vidya AI Avatar"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <span className="absolute -right-1 -bottom-1 text-sm animate-bounce">✨</span>
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-slate-900">Your AI Study Buddy</h3>
+                          <p className="text-sm text-slate-600">Ask anything and learn smarter</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-sky-50 p-3 shadow-sm">
+                        <p className="text-xs uppercase tracking-wide text-slate-500">Current Subject</p>
+                        <p className="text-sm font-semibold text-indigo-700 mt-1">
+                          {subjectProgress?.[0]?.name || subjects?.[0]?.name || "General Study"}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 p-3 shadow-sm">
+                        <p className="text-xs uppercase tracking-wide text-slate-500">Learning Progress %</p>
+                        <p className="text-sm font-semibold text-emerald-700 mt-1">{overallProgress}%</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 rounded-xl bg-white border border-slate-200 p-2 shadow-sm">
+                      <button
+                        onClick={() => setStudentLearningMode('explain')}
+                        className={`px-3 py-1.5 text-sm rounded-lg transition-all ${
+                          studentLearningMode === 'explain'
+                            ? 'bg-sky-600 text-white'
+                            : 'text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        Explain Mode
+                      </button>
+                      <button
+                        onClick={() => setStudentLearningMode('quiz')}
+                        className={`px-3 py-1.5 text-sm rounded-lg transition-all ${
+                          studentLearningMode === 'quiz'
+                            ? 'bg-sky-600 text-white'
+                            : 'text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        Quiz Mode
+                      </button>
+                      <button
+                        onClick={() => setStudentLearningMode('practice')}
+                        className={`px-3 py-1.5 text-sm rounded-lg transition-all ${
+                          studentLearningMode === 'practice'
+                            ? 'bg-sky-600 text-white'
+                            : 'text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        Practice Mode
+                      </button>
+                    </div>
+
+                    <div className="rounded-2xl border border-sky-100 bg-gradient-to-b from-sky-50 via-indigo-50 to-teal-50 p-3 shadow-md">
+                      <div className="rounded-2xl border border-white/80 bg-white/85 backdrop-blur-sm shadow-sm" style={{ minHeight: '560px' }}>
+                        <AIChat
+                          userId={String(user?._id || user?.id || localStorage.getItem('userId') || MOCK_USER_ID)}
+                          promptVariant="student"
+                          className="h-full max-w-2xl mx-auto"
+                          context={{
+                            studentName: user?.fullName || user?.name || "Student",
+                            currentSubject: subjectProgress?.[0]?.name || subjects?.[0]?.name || "General Study",
+                            currentTopic: studentLearningMode === 'explain'
+                              ? "Explain concepts clearly"
+                              : studentLearningMode === 'quiz'
+                                ? "Quiz and revision support"
+                                : "Practice and problem solving",
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
                 </CardContent>

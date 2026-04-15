@@ -8,9 +8,17 @@ type CalendarWidgetProps = {
   onSelect: (date: Date | undefined) => void;
   /** Highlight days that have timetable entries */
   hasScheduleOnDate: (date: Date) => boolean;
+  hasExamOnDate: (date: Date) => boolean;
+  hasAdminEventOnDate: (date: Date) => boolean;
 };
 
-export function CalendarWidget({ selected, onSelect, hasScheduleOnDate }: CalendarWidgetProps) {
+export function CalendarWidget({
+  selected,
+  onSelect,
+  hasScheduleOnDate,
+  hasExamOnDate,
+  hasAdminEventOnDate,
+}: CalendarWidgetProps) {
   return (
     <div
       className={cn(
@@ -36,11 +44,20 @@ export function CalendarWidget({ selected, onSelect, hasScheduleOnDate }: Calend
           selected={selected}
           onSelect={onSelect}
           className="rounded-lg border-0 bg-transparent p-0"
-          modifiers={{ hasSchedule: hasScheduleOnDate }}
+          modifiers={{
+            hasSchedule: hasScheduleOnDate,
+            hasExam: hasExamOnDate,
+            hasAdminEvent: hasAdminEventOnDate,
+          }}
           modifiersClassNames={{
-            hasSchedule: cn(
-              'relative font-semibold text-indigo-700',
-              'after:absolute after:bottom-0.5 after:left-1/2 after:h-1 after:w-1 after:-translate-x-1/2 after:rounded-full after:bg-indigo-500'
+            hasSchedule: cn('font-semibold text-indigo-700 bg-indigo-50'),
+            hasExam: cn(
+              'relative',
+              'before:absolute before:right-1 before:top-1 before:h-1.5 before:w-1.5 before:rounded-full before:bg-red-500'
+            ),
+            hasAdminEvent: cn(
+              'relative',
+              'after:absolute after:left-1 after:top-1 after:h-1.5 after:w-1.5 after:rounded-full after:bg-violet-500'
             ),
           }}
           classNames={{

@@ -30,8 +30,6 @@ import {
   Building2,
   Plus,
   BookOpen,
-  PartyPopper,
-  StickyNote,
 } from 'lucide-react';
 
 export type CalendarEventRecord = {
@@ -42,7 +40,14 @@ export type CalendarEventRecord = {
   type: 'exam' | 'holiday' | 'custom' | 'school_event';
   examId?: string;
   description?: string;
-  meta?: { examType?: string; subject?: string; duration?: number };
+  meta?: {
+    examType?: string;
+    subject?: string;
+    duration?: number;
+    schoolNames?: string[];
+    schoolIds?: string[];
+    isSchoolSpecific?: boolean;
+  };
 };
 
 interface Admin {
@@ -153,17 +158,81 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
 
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickAddDate, setQuickAddDate] = useState<Date | null>(null);
-
-  const [customOpen, setCustomOpen] = useState(false);
-  const [customKind, setCustomKind] = useState<'holiday' | 'custom'>('custom');
-  const [customTitle, setCustomTitle] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
-  const [customDescription, setCustomDescription] = useState('');
+  const [quickAddForm, setQuickAddForm] = useState({
+    title: '',
+    date: '',
+    startTime: '09:00',
+    endTime: '10:00',
+    priority: 'medium' as 'low' | 'medium' | 'high',
+    category: 'custom' as 'custom' | 'holiday' | 'school_event',
+    notes: '',
+  });
   const [isSavingCustom, setIsSavingCustom] = useState(false);
 
   useEffect(() => {
     fetchAdmins();
   }, []);
+
+  const fetchExamCalendarEvents = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/exams`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) return [] as CalendarEventRecord[];
+      const data = await response.json();
+      const exams = (data.data || []) as any[];
+      const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+      return exams
+        .filter((exam) => {
+          const start = new Date(exam.startDate);
+          const end = new Date(exam.endDate);
+          const overlapsMonth = start <= monthEnd && end >= monthStart;
+          if (!overlapsMonth) return false;
+
+          if (selectedSchoolId === 'all') return true;
+          if (!exam.isSchoolSpecific) return true;
+          const targets = exam.targetSchools || [];
+          return targets.some((s: any) => {
+            const id = typeof s === 'string' ? s : s._id;
+            return id === selectedSchoolId;
+          });
+        })
+        .map((exam) => {
+          const schoolTargets = exam.targetSchools || [];
+          const schoolIds = schoolTargets.map((s: any) => (typeof s === 'string' ? s : s._id)).filter(Boolean);
+          const schoolNames = schoolTargets
+            .map((s: any) => (typeof s === 'string' ? getSchoolLabelById(s) : (s.schoolName || s.name || s.email || getSchoolLabelById(s._id))))
+            .filter(Boolean);
+          return {
+            id: `exam-${exam._id}`,
+            title: exam.title,
+            startDate: exam.startDate,
+            endDate: exam.endDate,
+            type: 'exam' as const,
+            examId: exam._id,
+            description: exam.description,
+            meta: {
+              examType: exam.examType,
+              subject: exam.subject,
+              duration: exam.duration,
+              schoolIds,
+              schoolNames,
+              isSchoolSpecific: !!exam.isSchoolSpecific,
+            },
+          };
+        });
+    } catch (error) {
+      console.error('Failed to fetch exam calendar events:', error);
+      return [] as CalendarEventRecord[];
+    }
+  }, [currentDate, selectedSchoolId]);
 
   const fetchCalendarEvents = useCallback(async () => {
     const month = monthKey(currentDate);
@@ -179,7 +248,19 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
       if (response.ok) {
         const data = await response.json();
         const list = (data.data || data || []) as CalendarEventRecord[];
-        setEvents(Array.isArray(list) ? list : []);
+        const syncedEvents = Array.isArray(list) ? list : [];
+        const examEvents = await fetchExamCalendarEvents();
+        const merged = [...syncedEvents];
+        const seenExamIds = new Set(
+          syncedEvents
+            .filter((ev) => ev.type === 'exam')
+            .map((ev) => ev.examId || ev.id)
+        );
+        examEvents.forEach((ev) => {
+          const key = ev.examId || ev.id;
+          if (!seenExamIds.has(key)) merged.push(ev);
+        });
+        setEvents(merged);
       } else {
         const err = await response.json().catch(() => ({}));
         toast({
@@ -196,7 +277,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
     } finally {
       setIsLoadingEvents(false);
     }
-  }, [currentDate, selectedSchoolId, toast]);
+  }, [currentDate, selectedSchoolId, toast, fetchExamCalendarEvents]);
 
   useEffect(() => {
     fetchCalendarEvents();
@@ -302,9 +383,26 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   const selectedAdmin = admins.find((a) => (a.id || a._id) === selectedSchoolId);
+  const selectedSchoolLabel = selectedAdmin?.schoolName || selectedAdmin?.name || selectedAdmin?.email || '';
+  const getSchoolLabelById = (schoolId: string) => {
+    const school = admins.find((a) => (a.id || a._id) === schoolId);
+    return school?.schoolName || school?.name || school?.email || '';
+  };
 
   const openQuickAdd = (date: Date) => {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
     setQuickAddDate(date);
+    setQuickAddForm({
+      title: '',
+      date: `${yyyy}-${mm}-${dd}`,
+      startTime: '09:00',
+      endTime: '10:00',
+      priority: 'medium',
+      category: 'custom',
+      notes: '',
+    });
     setQuickAddOpen(true);
   };
 
@@ -326,55 +424,60 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
     setQuickAddOpen(false);
   };
 
-  const openCustomForm = (kind: 'holiday' | 'custom') => {
-    if (!quickAddDate || selectedSchoolId === 'all') return;
-    setCustomKind(kind);
-    setCustomTitle('');
-    setCustomDescription('');
-    const d = quickAddDate;
-    setCustomEndDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
-    setQuickAddOpen(false);
-    setCustomOpen(true);
-  };
-
   const saveCustomEvent = async () => {
-    if (!quickAddDate || selectedSchoolId === 'all' || !customTitle.trim()) {
-      toast({ title: 'Validation', description: 'Title is required', variant: 'destructive' });
+    if (selectedSchoolId === 'all') {
+      toast({
+        title: 'Select school',
+        description: 'Please select a specific school before adding events.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!quickAddForm.title.trim() || !quickAddForm.date) {
+      toast({
+        title: 'Validation',
+        description: 'Event title and date are required.',
+        variant: 'destructive',
+      });
       return;
     }
     setIsSavingCustom(true);
     try {
       const token = localStorage.getItem('authToken');
-      const start = new Date(quickAddDate);
-      start.setHours(0, 0, 0, 0);
-      let end: Date;
-      if (customEndDate) {
-        const [yy, mm, dd] = customEndDate.split('-').map(Number);
-        end = new Date(yy, mm - 1, dd, 23, 59, 59, 999);
-      } else {
-        end = new Date(start);
-        end.setHours(23, 59, 59, 999);
-      }
-      if (end < start) {
-        toast({ title: 'Invalid range', description: 'End date must be on or after start', variant: 'destructive' });
+      const [yy, mm, dd] = quickAddForm.date.split('-').map(Number);
+      const [startHour, startMinute] = quickAddForm.startTime.split(':').map(Number);
+      const [endHour, endMinute] = quickAddForm.endTime.split(':').map(Number);
+      const start = new Date(yy, mm - 1, dd, startHour || 0, startMinute || 0, 0, 0);
+      const end = new Date(yy, mm - 1, dd, endHour || 0, endMinute || 0, 0, 0);
+      if (end <= start) {
+        toast({
+          title: 'Invalid time range',
+          description: 'End time must be later than start time.',
+          variant: 'destructive',
+        });
         setIsSavingCustom(false);
         return;
       }
+      const priorityLabel =
+        quickAddForm.priority.charAt(0).toUpperCase() + quickAddForm.priority.slice(1);
+      const composedDescription = [`Priority: ${priorityLabel}`, quickAddForm.notes.trim()]
+        .filter(Boolean)
+        .join('\n\n');
       const response = await fetchCalendarEventsPost(
         {
-          title: customTitle.trim(),
+          title: quickAddForm.title.trim(),
           schoolId: selectedSchoolId,
           startDate: start.toISOString(),
           endDate: end.toISOString(),
-          eventKind: customKind,
-          description: customDescription.trim(),
+          eventKind: quickAddForm.category,
+          description: composedDescription,
         },
         token
       );
       const data = await response.json().catch(() => ({}));
       if (response.ok && data.success) {
         toast({ title: 'Saved', description: 'Event added to calendar' });
-        setCustomOpen(false);
+        setQuickAddOpen(false);
         setQuickAddDate(null);
         fetchCalendarEvents();
       } else {
@@ -572,9 +675,9 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
 
         {/* Quick add */}
         <Dialog open={quickAddOpen} onOpenChange={setQuickAddOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Add on this date</DialogTitle>
+              <DialogTitle>Add Event</DialogTitle>
               <DialogDescription>
                 {quickAddDate?.toLocaleDateString(undefined, {
                   weekday: 'long',
@@ -584,75 +687,134 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                 })}
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-2">
-              <Button
-                className="justify-start gap-2 bg-blue-600 hover:bg-blue-700"
-                onClick={() => {
-                  if (quickAddDate) goToExamWithDate(quickAddDate);
-                }}
-              >
-                <BookOpen className="h-4 w-4" />
-                Add Exam (Exam Management)
-              </Button>
-              <Button
-                variant="outline"
-                className="justify-start gap-2 border-emerald-300 text-emerald-800"
-                onClick={() => openCustomForm('holiday')}
-                disabled={selectedSchoolId === 'all'}
-              >
-                <PartyPopper className="h-4 w-4" />
-                Add Holiday
-              </Button>
-              <Button
-                variant="outline"
-                className="justify-start gap-2 border-orange-300 text-orange-800"
-                onClick={() => openCustomForm('custom')}
-                disabled={selectedSchoolId === 'all'}
-              >
-                <StickyNote className="h-4 w-4" />
-                Add Custom Event
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5 space-y-4">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <p className="text-sm text-slate-600">
+                  Fill event details and save to calendar.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-lg"
+                  onClick={() => {
+                    if (quickAddDate) goToExamWithDate(quickAddDate);
+                  }}
+                >
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  Add Exam Instead
+                </Button>
+              </div>
 
-        {/* Holiday / Custom form */}
-        <Dialog open={customOpen} onOpenChange={setCustomOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{customKind === 'holiday' ? 'Add holiday' : 'Add custom event'}</DialogTitle>
-              <DialogDescription>
-                School: {selectedAdmin?.schoolName || selectedAdmin?.name || '—'}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <Label>Title *</Label>
-                <Input value={customTitle} onChange={(e) => setCustomTitle(e.target.value)} placeholder="Event title" />
-              </div>
-              <div>
-                <Label>End date (optional)</Label>
-                <Input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} />
-                <p className="text-xs text-gray-500 mt-1">Leave as start date for a single-day entry.</p>
-              </div>
-              <div>
-                <Label>Description</Label>
-                <Textarea
-                  rows={3}
-                  value={customDescription}
-                  onChange={(e) => setCustomDescription(e.target.value)}
-                  placeholder="Optional details"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2 space-y-2">
+                  <Label htmlFor="quick-add-title">Event title *</Label>
+                  <Input
+                    id="quick-add-title"
+                    value={quickAddForm.title}
+                    onChange={(e) => setQuickAddForm((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder="Enter event title"
+                    className="rounded-lg bg-white"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="quick-add-date">Date *</Label>
+                  <Input
+                    id="quick-add-date"
+                    type="date"
+                    value={quickAddForm.date}
+                    onChange={(e) => setQuickAddForm((prev) => ({ ...prev, date: e.target.value }))}
+                    className="rounded-lg bg-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="quick-add-start-time">Start time</Label>
+                    <Input
+                      id="quick-add-start-time"
+                      type="time"
+                      value={quickAddForm.startTime}
+                      onChange={(e) => setQuickAddForm((prev) => ({ ...prev, startTime: e.target.value }))}
+                      className="rounded-lg bg-white"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="quick-add-end-time">End time</Label>
+                    <Input
+                      id="quick-add-end-time"
+                      type="time"
+                      value={quickAddForm.endTime}
+                      onChange={(e) => setQuickAddForm((prev) => ({ ...prev, endTime: e.target.value }))}
+                      className="rounded-lg bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Priority</Label>
+                  <Select
+                    value={quickAddForm.priority}
+                    onValueChange={(value: 'low' | 'medium' | 'high') =>
+                      setQuickAddForm((prev) => ({ ...prev, priority: value }))
+                    }
+                  >
+                    <SelectTrigger className="rounded-lg bg-white">
+                      <SelectValue placeholder="Select priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Category</Label>
+                  <Select
+                    value={quickAddForm.category}
+                    onValueChange={(value: 'custom' | 'holiday' | 'school_event') =>
+                      setQuickAddForm((prev) => ({ ...prev, category: value }))
+                    }
+                  >
+                    <SelectTrigger className="rounded-lg bg-white">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="custom">Custom</SelectItem>
+                      <SelectItem value="holiday">Holiday</SelectItem>
+                      <SelectItem value="school_event">School Event</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="md:col-span-2 space-y-2">
+                  <Label htmlFor="quick-add-notes">Notes / Content</Label>
+                  <Textarea
+                    id="quick-add-notes"
+                    rows={4}
+                    value={quickAddForm.notes}
+                    onChange={(e) => setQuickAddForm((prev) => ({ ...prev, notes: e.target.value }))}
+                    placeholder="Type any notes or custom content here..."
+                    className="rounded-lg bg-white"
+                  />
+                </div>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setCustomOpen(false)}>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setQuickAddOpen(false)} className="rounded-lg">
                 Cancel
               </Button>
-              <Button onClick={saveCustomEvent} disabled={isSavingCustom}>
-                {isSavingCustom ? 'Saving…' : 'Save'}
+              <Button onClick={saveCustomEvent} disabled={isSavingCustom} className="rounded-lg">
+                {isSavingCustom ? 'Saving...' : 'Save Event'}
               </Button>
             </DialogFooter>
+            {selectedSchoolId === 'all' && (
+              <p className="text-xs text-amber-700">
+                Select a specific school first to save custom events.
+              </p>
+            )}
           </DialogContent>
         </Dialog>
 
@@ -697,6 +859,28 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                     Subject: <span className="font-medium">{selectedEvent.meta.subject}</span>
                   </p>
                 )}
+                {selectedEvent.type === 'exam' && (() => {
+                  const schoolNamesFromEvent = selectedEvent.meta?.schoolNames || [];
+                  const schoolIdsFromEvent = selectedEvent.meta?.schoolIds || [];
+                  const schoolNamesFromIds = schoolIdsFromEvent
+                    .map((schoolId) => getSchoolLabelById(schoolId))
+                    .filter(Boolean);
+                  const resolvedSchoolNames = schoolNamesFromEvent.length > 0 ? schoolNamesFromEvent : schoolNamesFromIds;
+                  const resolvedLabel =
+                    resolvedSchoolNames.length > 0
+                      ? resolvedSchoolNames.join(', ')
+                      : selectedEvent.meta?.isSchoolSpecific === false
+                        ? 'All Schools'
+                        : selectedSchoolId !== 'all' && selectedSchoolLabel
+                          ? selectedSchoolLabel
+                          : 'Specific Schools';
+                  return (
+                    <p className="text-gray-600">
+                      School{resolvedSchoolNames.length > 1 ? 's' : ''}:{' '}
+                      <span className="font-medium">{resolvedLabel}</span>
+                    </p>
+                  );
+                })()}
                 <div className="flex items-center gap-2 text-gray-500">
                   <Eye className="h-4 w-4" />
                   <span>Read-only</span>

@@ -905,99 +905,115 @@ export default function SuperAdminDashboard() {
     </div>
   );
 
-  const renderVidyaAIContent = () => (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-orange-300 bg-clip-text text-transparent">Vidya AI Management</h2>
-          <p className="text-gray-600 mt-1">Manage and monitor your AI tutor system</p>
+  const renderVidyaAIContent = () => {
+    const quickActions = [
+      {
+        title: "View AI Usage Reports",
+        description: "Review adoption and query patterns by school",
+        icon: BarChart3Icon,
+      },
+      {
+        title: "Monitor Active Sessions",
+        description: "Track live AI conversations across organizations",
+        icon: Monitor,
+      },
+      {
+        title: "Configure AI Models",
+        description: "Tune model behavior and global response controls",
+        icon: BrainCircuitIcon,
+      },
+      {
+        title: "Risk & Compliance Insights",
+        description: "Audit policy exceptions and moderation signals",
+        icon: Shield,
+      },
+    ];
+
+    return (
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-orange-200 bg-gradient-to-r from-orange-400 to-orange-500 p-6 shadow-lg">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center border border-white/30">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <Badge className="bg-white text-orange-600 hover:bg-white">System Control</Badge>
+          </div>
+          <h2 className="text-3xl font-bold text-white">AI System Assistant</h2>
+          <p className="text-white/90 mt-1">Manage and monitor AI across all schools</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <Card key={action.title} className="border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center mb-3">
+                    <Icon className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-slate-900">{action.title}</h3>
+                  <p className="text-xs text-slate-600 mt-1">{action.description}</p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
+          <div className="w-full rounded-2xl bg-[#F5F7FA] border border-slate-200 shadow-[0_20px_40px_-30px_rgba(15,23,42,0.8)] p-2">
+            <AIChat
+              userId="super-admin"
+              context={{}}
+              promptVariant="super-admin"
+              className="w-full h-[640px]"
+            />
+          </div>
+
+          <Card className="border-slate-200 shadow-sm bg-white">
+            <CardHeader className="pb-3 border-b border-slate-100">
+              <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
+                <Grid3x3 className="w-4 h-4 text-orange-500" />
+                AI Operations Panel
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-4">
+              <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
+                <p className="text-xs uppercase tracking-wide text-slate-500">AI Status</p>
+                <div className="mt-1 flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-800">Inference Service</span>
+                  <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Online</Badge>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
+                <p className="text-xs uppercase tracking-wide text-slate-500">Model Version</p>
+                <div className="mt-1 flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-800">Primary Model</span>
+                  <span className="text-sm text-slate-600">v3.2.1</span>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
+                <p className="text-xs uppercase tracking-wide text-slate-500">Active Requests</p>
+                <div className="mt-1 flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-800">Current Queue</span>
+                  <span className="text-sm font-semibold text-orange-600">124</span>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                className="w-full bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600"
+                onClick={() => setVidyaSettingsOpen(true)}
+              >
+                Open System Controls
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Vidya AI Chat Interface */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-r from-orange-300 to-orange-200 rounded-lg flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <span>Vidya AI Chat Interface</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <AIChat userId="super-admin" context={{}} />
-          </CardContent>
-        </Card>
-
-        {/* AI Statistics */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BrainIcon className="w-5 h-5 text-violet-600" />
-              <span>AI Statistics</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-violet-50 rounded-lg">
-              <div>
-                <p className="text-sm text-gray-600">Total Queries</p>
-                <p className="text-2xl font-bold text-violet-600">-</p>
-              </div>
-              <MessageSquare className="w-8 h-8 text-violet-400" />
-            </div>
-            <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
-              <div>
-                <p className="text-sm text-gray-600">Active Sessions</p>
-                <p className="text-2xl font-bold text-orange-500">-</p>
-              </div>
-              <ZapIcon className="w-8 h-8 text-orange-300" />
-            </div>
-            <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-              <div>
-                <p className="text-sm text-gray-600">Average Response Time</p>
-                <p className="text-2xl font-bold text-blue-600">-</p>
-              </div>
-              <Clock className="w-8 h-8 text-blue-400" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* AI Configuration */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <SettingsIcon className="w-5 h-5 text-violet-600" />
-              <span>AI Configuration</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm font-medium">AI Status</span>
-                <Badge className="bg-green-100 text-green-800">Online</Badge>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm font-medium">Model Version</span>
-                <span className="text-sm text-gray-600">Latest</span>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm font-medium">Language Support</span>
-                <span className="text-sm text-gray-600">Multi</span>
-              </div>
-            </div>
-            <Button
-              type="button"
-              className="w-full bg-gradient-to-r from-orange-400 to-orange-300 hover:from-orange-500 hover:to-orange-400"
-              onClick={() => setVidyaSettingsOpen(true)}
-            >
-              Configure Settings
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderContent = () => {
     switch (currentView) {

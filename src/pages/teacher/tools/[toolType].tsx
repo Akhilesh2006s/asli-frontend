@@ -619,7 +619,36 @@ export default function TeacherToolPage() {
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [availableNCERTTopics, setAvailableNCERTTopics] = useState<string[]>([]);
   const [availableSubjects, setAvailableSubjects] = useState<string[]>(DEFAULT_SUBJECT_OPTIONS);
+  const [assignedSubjectNames, setAssignedSubjectNames] = useState<string[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
+
+  const normalizeSubjectName = (value: string) => {
+    const compact = value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (compact === 'maths') return 'mathematics';
+    if (compact === 'socialscience' || compact === 'socialstudies' || compact === 'sst') return 'socialscience';
+    if (compact === 'computerscience') return 'computerscience';
+    return compact;
+  };
+
+  const uniquePreserveOrder = (items: string[]) => {
+    const seen = new Set<string>();
+    const result: string[] = [];
+    for (const item of items) {
+      const key = normalizeSubjectName(item);
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      result.push(item.trim());
+    }
+    return result;
+  };
+
+  const restrictToAssignedSubjects = (subjects: string[]) => {
+    if (assignedSubjectNames.length === 0) return subjects;
+    const allowed = new Set(assignedSubjectNames.map(normalizeSubjectName));
+    return uniquePreserveOrder(
+      subjects.filter((subject) => allowed.has(normalizeSubjectName(subject)))
+    );
+  };
 
   // Get tool type from route params
   const toolType = params?.toolType || '';
@@ -627,13 +656,47 @@ export default function TeacherToolPage() {
 
   // No PDF auto-fill needed - users can enter any topic with Gemini API
 
+  // Fetch teacher-assigned subjects once and keep them as default constraints for all tools
+  useEffect(() => {
+    const fetchAssignedSubjects = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+        const response = await fetch(`${API_BASE_URL}/api/teacher/subjects`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        const rows = Array.isArray(data?.data) ? data.data : [];
+        const names = rows
+          .map((subj: any) => String(subj?.name || subj?.displayName || '').trim())
+          .filter(Boolean);
+        const uniqueAssigned = uniquePreserveOrder(names);
+        setAssignedSubjectNames(uniqueAssigned);
+        if (uniqueAssigned.length > 0) {
+          setAvailableSubjects(uniqueAssigned);
+        }
+      } catch (error) {
+        console.error('Failed to fetch teacher assigned subjects:', error);
+      }
+    };
+    fetchAssignedSubjects();
+  }, []);
+
   // Fetch subjects from API when a class is selected (classes 5-10)
   useEffect(() => {
     const fetchSubjects = async () => {
       const classValue = formParams.gradeLevel;
       
       if (!classValue) {
-        setAvailableSubjects(DEFAULT_SUBJECT_OPTIONS);
+        setAvailableSubjects(
+          assignedSubjectNames.length > 0
+            ? assignedSubjectNames
+            : restrictToAssignedSubjects(DEFAULT_SUBJECT_OPTIONS)
+        );
         return;
       }
 
@@ -656,7 +719,14 @@ export default function TeacherToolPage() {
               const subjects = data.data.map((subj: any) => 
                 (subj.name || subj.displayName || subj)
               );
-              setAvailableSubjects(subjects);
+              const restricted = restrictToAssignedSubjects(subjects);
+              setAvailableSubjects(
+                restricted.length > 0
+                  ? restricted
+                  : assignedSubjectNames.length > 0
+                    ? assignedSubjectNames
+                    : subjects
+              );
               console.log(`✅ Fetched subjects for IIT-6:`, subjects);
             }
           }
@@ -665,9 +735,20 @@ export default function TeacherToolPage() {
           // Fallback to class-specific subjects
           const classSubjects = CLASS_SUBJECTS[classValue];
           if (classSubjects && classSubjects.length > 0) {
-            setAvailableSubjects(classSubjects);
+            const restricted = restrictToAssignedSubjects(classSubjects);
+            setAvailableSubjects(
+              restricted.length > 0
+                ? restricted
+                : assignedSubjectNames.length > 0
+                  ? assignedSubjectNames
+                  : classSubjects
+            );
           } else {
-            setAvailableSubjects(DEFAULT_SUBJECT_OPTIONS);
+            setAvailableSubjects(
+              assignedSubjectNames.length > 0
+                ? assignedSubjectNames
+                : restrictToAssignedSubjects(DEFAULT_SUBJECT_OPTIONS)
+            );
           }
         } finally {
           setIsLoadingSubjects(false);
@@ -697,7 +778,14 @@ export default function TeacherToolPage() {
               const subjects = data.data.map((subj: any) => 
                 (subj.name || subj.displayName || subj)
               );
-              setAvailableSubjects(subjects);
+              const restricted = restrictToAssignedSubjects(subjects);
+              setAvailableSubjects(
+                restricted.length > 0
+                  ? restricted
+                  : assignedSubjectNames.length > 0
+                    ? assignedSubjectNames
+                    : subjects
+              );
               console.log(`✅ Fetched subjects for Class ${classNumber}:`, subjects);
             }
           }
@@ -706,9 +794,20 @@ export default function TeacherToolPage() {
           // Fallback to class-specific subjects or default
           const classSubjects = CLASS_SUBJECTS[classValue];
           if (classSubjects && classSubjects.length > 0) {
-            setAvailableSubjects(classSubjects);
+            const restricted = restrictToAssignedSubjects(classSubjects);
+            setAvailableSubjects(
+              restricted.length > 0
+                ? restricted
+                : assignedSubjectNames.length > 0
+                  ? assignedSubjectNames
+                  : classSubjects
+            );
           } else {
-            setAvailableSubjects(DEFAULT_SUBJECT_OPTIONS);
+            setAvailableSubjects(
+              assignedSubjectNames.length > 0
+                ? assignedSubjectNames
+                : restrictToAssignedSubjects(DEFAULT_SUBJECT_OPTIONS)
+            );
           }
         } finally {
           setIsLoadingSubjects(false);
@@ -717,18 +816,50 @@ export default function TeacherToolPage() {
         // For other classes, use class-specific subjects or default
         const classSubjects = CLASS_SUBJECTS[classValue];
         if (classSubjects && classSubjects.length > 0) {
-          setAvailableSubjects(classSubjects.map(s => s.toLowerCase()));
+          const restricted = restrictToAssignedSubjects(classSubjects);
+          setAvailableSubjects(
+            restricted.length > 0
+              ? restricted
+              : assignedSubjectNames.length > 0
+                ? assignedSubjectNames
+                : classSubjects
+          );
         } else {
-          setAvailableSubjects(DEFAULT_SUBJECT_OPTIONS);
+          setAvailableSubjects(
+            assignedSubjectNames.length > 0
+              ? assignedSubjectNames
+              : restrictToAssignedSubjects(DEFAULT_SUBJECT_OPTIONS)
+          );
         }
       } else {
         // No class selected, use default
-        setAvailableSubjects(DEFAULT_SUBJECT_OPTIONS);
+        setAvailableSubjects(
+          assignedSubjectNames.length > 0
+            ? assignedSubjectNames
+            : restrictToAssignedSubjects(DEFAULT_SUBJECT_OPTIONS)
+        );
       }
     };
 
     fetchSubjects();
-  }, [formParams.gradeLevel]);
+  }, [formParams.gradeLevel, assignedSubjectNames]);
+
+  // Keep subject defaults aligned with teacher-assigned/available subjects across tools
+  useEffect(() => {
+    if (availableSubjects.length === 0) return;
+    setFormParams((prev) => {
+      const currentSubject = prev.subject || prev.subjects;
+      const hasCurrent = currentSubject && availableSubjects.some((s) => normalizeSubjectName(s) === normalizeSubjectName(String(currentSubject)));
+      if (hasCurrent) return prev;
+      const defaultSubject = availableSubjects[0];
+      return {
+        ...prev,
+        ...(prev.subject !== undefined ? { subject: defaultSubject } : {}),
+        ...(prev.subjects !== undefined ? { subjects: defaultSubject } : {}),
+        ...(prev.subject === undefined && prev.subjects === undefined ? { subject: defaultSubject } : {}),
+      };
+    });
+  }, [availableSubjects]);
 
   // Fetch assigned students on component mount
   useEffect(() => {

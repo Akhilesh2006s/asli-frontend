@@ -14,7 +14,6 @@ import {
   Users, 
   Plus, 
   Search, 
-  Filter, 
   Trash2, 
   Upload, 
   Download, 
@@ -31,7 +30,9 @@ import {
   Loader2,
   Edit,
   Brain,
-  AlertTriangle
+  AlertTriangle,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { StudentRiskAnalysisModal } from './StudentRiskAnalysisModal';
 interface Student {
@@ -53,8 +54,11 @@ const UserManagement = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
-  const [isAdvancedFilterOpen, setIsAdvancedFilterOpen] = useState(false);
   const [selectedClassFilter, setSelectedClassFilter] = useState<string>('all');
+  const [selectedSectionFilter, setSelectedSectionFilter] = useState<string>('all');
+  const [studentViewMode, setStudentViewMode] = useState<'all' | 'class-wise' | 'section-wise'>('class-wise');
+  const [collapsedClasses, setCollapsedClasses] = useState<Record<string, boolean>>({});
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [deleteAllConfirmStep, setDeleteAllConfirmStep] = useState(1);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -475,8 +479,63 @@ const UserManagement = () => {
     setIsDeleteAllDialogOpen(false);
   };
 
-  // Get all unique classes from students
-  const allClasses = Array.from(new Set(students.map(s => s.classNumber).filter(c => c && c !== 'N/A'))).sort();
+  const getClassSectionMeta = (classNumber: string) => {
+    const raw = (classNumber || '').trim();
+    if (!raw || raw === 'N/A') {
+      return { classKey: 'Unassigned', sectionKey: 'General' };
+    }
+
+    const compact = raw.replace(/\s+/g, '');
+    const compactMatch = compact.match(/^(\d+)([A-Za-z])$/);
+    if (compactMatch) {
+      return {
+        classKey: `Class ${compactMatch[1]}`,
+        sectionKey: `Section ${compactMatch[2].toUpperCase()}`
+      };
+    }
+
+    const labeledMatch = raw.match(/class[-\s]*(\d+)\s*([A-Za-z])?/i);
+    if (labeledMatch) {
+      return {
+        classKey: `Class ${labeledMatch[1]}`,
+        sectionKey: labeledMatch[2] ? `Section ${labeledMatch[2].toUpperCase()}` : 'General'
+      };
+    }
+
+    return { classKey: raw, sectionKey: 'General' };
+  };
+
+  const getClassSortValue = (label: string) => {
+    const match = label.match(/(\d+)/);
+    return match ? parseInt(match[1], 10) : Number.MAX_SAFE_INTEGER;
+  };
+
+  const sortByClassLabel = (a: string, b: string) => {
+    const numDiff = getClassSortValue(a) - getClassSortValue(b);
+    if (numDiff !== 0) return numDiff;
+    return a.localeCompare(b);
+  };
+
+  // Get all unique classes/sections from students
+  const allClasses = Array.from(
+    new Set(students.map((s) => getClassSectionMeta(s.classNumber).classKey))
+  ).sort(sortByClassLabel);
+
+  const sectionsByClass = allClasses.reduce<Record<string, string[]>>((acc, classKey) => {
+    const sections = Array.from(
+      new Set(
+        students
+          .filter((s) => getClassSectionMeta(s.classNumber).classKey === classKey)
+          .map((s) => getClassSectionMeta(s.classNumber).sectionKey)
+      )
+    ).sort();
+    acc[classKey] = sections;
+    return acc;
+  }, {});
+
+  const availableSectionsForClass = selectedClassFilter === 'all'
+    ? []
+    : (sectionsByClass[selectedClassFilter] || []);
 
   const filteredStudents = students.filter(student => {
     // Search filter
@@ -486,10 +545,130 @@ const UserManagement = () => {
       (student.classNumber || '').includes(searchTerm);
     
     // Class filter
-    const matchesClass = selectedClassFilter === 'all' || student.classNumber === selectedClassFilter;
+    const { classKey, sectionKey } = getClassSectionMeta(student.classNumber || '');
+    const matchesClass = selectedClassFilter === 'all' || classKey === selectedClassFilter;
+    const matchesSection = selectedSectionFilter === 'all' || sectionKey === selectedSectionFilter;
     
-    return matchesSearch && matchesClass;
+    return matchesSearch && matchesClass && matchesSection;
   });
+
+  useEffect(() => {
+    setSelectedSectionFilter('all');
+  }, [selectedClassFilter]);
+
+  const classSectionGroups = filteredStudents.reduce<Record<string, Record<string, Student[]>>>((acc, student) => {
+    const { classKey, sectionKey } = getClassSectionMeta(student.classNumber || '');
+    if (!acc[classKey]) acc[classKey] = {};
+    if (!acc[classKey][sectionKey]) acc[classKey][sectionKey] = [];
+    acc[classKey][sectionKey].push(student);
+    return acc;
+  }, {});
+
+  const sectionClassGroups = filteredStudents.reduce<Record<string, Record<string, Student[]>>>((acc, student) => {
+    const { classKey, sectionKey } = getClassSectionMeta(student.classNumber || '');
+    if (!acc[sectionKey]) acc[sectionKey] = {};
+    if (!acc[sectionKey][classKey]) acc[sectionKey][classKey] = [];
+    acc[sectionKey][classKey].push(student);
+    return acc;
+  }, {});
+
+  const toggleClassCollapse = (classKey: string) => {
+    setCollapsedClasses((prev) => ({ ...prev, [classKey]: !(prev[classKey] ?? true) }));
+  };
+
+  const toggleSectionCollapse = (scopeKey: string) => {
+    setCollapsedSections((prev) => ({ ...prev, [scopeKey]: !(prev[scopeKey] ?? true) }));
+  };
+
+  const renderStudentCard = (student: Student, indexKey: string | number) => (
+    <motion.div
+      key={student.id}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: typeof indexKey === 'number' ? 0.03 * indexKey : 0 }}
+      className="group relative bg-white/80 backdrop-blur-xl rounded-xl p-4 border border-sky-200 hover:border-sky-400 hover:shadow-lg transition-all duration-200"
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center space-x-3">
+          <div className="relative">
+            <div className="w-11 h-11 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md">
+              {(student.name || 'U').charAt(0).toUpperCase()}
+            </div>
+            <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
+              (student.status || 'inactive') === 'active' ? 'bg-green-500' : 'bg-gray-400'
+            }`} />
+          </div>
+          <div className="min-w-0">
+            <h4 className="font-semibold text-sky-900 text-sm truncate">{student.name || 'Unknown Student'}</h4>
+            <p className="text-sky-700 text-xs truncate">{student.email || 'No email'}</p>
+          </div>
+        </div>
+        <Badge className="bg-sky-100 text-sky-700 border border-sky-200 text-[10px]">
+          {student.classNumber || 'N/A'}
+        </Badge>
+      </div>
+
+      <div className="space-y-1.5 mb-3">
+        {student.phone && (
+          <div className="flex items-center text-xs text-sky-700">
+            <Phone className="w-3.5 h-3.5 mr-2 text-sky-600" />
+            <span className="truncate">{student.phone}</span>
+          </div>
+        )}
+        <div className="flex items-center text-xs text-sky-700">
+          <Calendar className="w-3.5 h-3.5 mr-2 text-sky-600" />
+          <span className="truncate">Last login: {student.lastLogin ? new Date(student.lastLogin).toLocaleDateString() : 'Never'}</span>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between pt-3 border-t border-sky-200">
+        <div className="flex items-center space-x-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-sky-600 hover:text-blue-700 hover:bg-blue-100/50 rounded-lg h-8 w-8 p-0"
+            onClick={() => handleEditStudent(student)}
+            title="Edit Details"
+          >
+            <Edit className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-sky-600 hover:text-red-700 hover:bg-red-100/50 rounded-lg h-8 w-8 p-0"
+            onClick={() => handleDeleteStudent(student.id, student.name || 'Unknown Student')}
+            title="Delete"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-orange-600 hover:text-orange-700 hover:bg-orange-100/50 rounded-lg h-8 w-8 p-0"
+            onClick={() => {
+              setSelectedStudentForAnalysis(student);
+              setIsRiskAnalysisModalOpen(true);
+            }}
+            title="AI Risk Analysis"
+          >
+            <Brain className="w-4 h-4" />
+          </Button>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-sky-600 hover:text-sky-800 border-sky-200 hover:bg-sky-50 rounded-lg h-8 text-xs"
+          onClick={() => {
+            setSelectedStudentForClass(student);
+            setIsAssignClassDialogOpen(true);
+          }}
+        >
+          <GraduationCap className="w-3.5 h-3.5 mr-1.5" />
+          Assign Class
+        </Button>
+      </div>
+    </motion.div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50">
@@ -619,9 +798,43 @@ const UserManagement = () => {
           transition={{ delay: 0.5 }}
           className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
         >
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-1">
-              <div className="relative flex-1 max-w-md">
+          <div className="space-y-4">
+            <div className="flex flex-col xl:flex-row xl:items-center gap-4">
+              <div className="flex flex-1 flex-wrap items-center gap-3">
+                <Select value={selectedClassFilter} onValueChange={setSelectedClassFilter}>
+                  <SelectTrigger className="w-full sm:w-[220px] bg-white border-sky-200 text-sky-900 rounded-xl">
+                    <SelectValue placeholder="Select Class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Select Class</SelectItem>
+                    {allClasses.map((classNum) => (
+                      <SelectItem key={classNum} value={classNum}>
+                        {classNum}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={selectedSectionFilter}
+                  onValueChange={setSelectedSectionFilter}
+                  disabled={selectedClassFilter === 'all'}
+                >
+                  <SelectTrigger className="w-full sm:w-[220px] bg-white border-sky-200 text-sky-900 rounded-xl disabled:opacity-60">
+                    <SelectValue placeholder="Select Section" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Select Section</SelectItem>
+                    {availableSectionsForClass.map((section) => (
+                      <SelectItem key={section} value={section}>
+                        {section}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="relative w-full xl:w-[360px] xl:ml-auto">
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
                 <Input
                   placeholder="Search students by name, email, or class..."
@@ -630,82 +843,47 @@ const UserManagement = () => {
                   className="pl-12 h-12 bg-white/70 border-gray-200 text-gray-900 placeholder-gray-600 focus:border-blue-400 focus:ring-blue-400/20 rounded-xl backdrop-blur-sm"
                 />
               </div>
+            </div>
+
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+              <div className="inline-flex rounded-xl border border-sky-200 bg-white p-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={studentViewMode === 'all' ? 'default' : 'ghost'}
+                  className={studentViewMode === 'all' ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white rounded-lg' : 'text-sky-700 rounded-lg'}
+                  onClick={() => setStudentViewMode('all')}
+                >
+                  All Students
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={studentViewMode === 'class-wise' ? 'default' : 'ghost'}
+                  className={studentViewMode === 'class-wise' ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white rounded-lg' : 'text-sky-700 rounded-lg'}
+                  onClick={() => setStudentViewMode('class-wise')}
+                >
+                  Class-wise View
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={studentViewMode === 'section-wise' ? 'default' : 'ghost'}
+                  className={studentViewMode === 'section-wise' ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white rounded-lg' : 'text-sky-700 rounded-lg'}
+                  onClick={() => setStudentViewMode('section-wise')}
+                >
+                  Section-wise View
+                </Button>
+              </div>
+
               <div className="flex items-center gap-3">
-                <Dialog open={isAdvancedFilterOpen} onOpenChange={setIsAdvancedFilterOpen}>
-                  <DialogTrigger asChild>
-                    <Button 
-                      size="lg" 
-                      className={`bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white rounded-xl px-6 shadow-lg ${selectedClassFilter !== 'all' ? 'ring-2 ring-blue-300 ring-offset-2' : ''}`}
-                    >
-                      <Filter className="w-4 h-4 mr-2" />
-                      Advanced Filter
-                      {selectedClassFilter !== 'all' && (
-                        <Badge variant="secondary" className="ml-2 bg-white/20 text-white border-white/30">
-                          {selectedClassFilter}
-                        </Badge>
-                      )}
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md bg-white/80 border-blue-200 backdrop-blur-xl">
-                    <DialogHeader>
-                      <DialogTitle className="text-xl font-semibold text-blue-900">Advanced Filter</DialogTitle>
-                      <DialogDescription className="text-blue-700">
-                        Filter students by class
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-6 py-4">
-                      <div>
-                        <Label htmlFor="classFilter" className="text-sm font-medium text-blue-800 mb-2 block">
-                          Select Class
-                        </Label>
-                        <Select value={selectedClassFilter} onValueChange={setSelectedClassFilter}>
-                          <SelectTrigger id="classFilter" className="w-full">
-                            <SelectValue placeholder="Select a class" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Classes</SelectItem>
-                            {allClasses.map((classNum) => (
-                              <SelectItem key={classNum} value={classNum}>
-                                {classNum}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {allClasses.length === 0 && (
-                          <p className="text-xs text-gray-500 mt-2">No classes found in the database</p>
-                        )}
-                      </div>
-                      <div className="flex justify-end gap-3">
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedClassFilter('all');
-                            setIsAdvancedFilterOpen(false);
-                          }}
-                        >
-                          Reset
-                        </Button>
-                        <Button
-                          onClick={() => setIsAdvancedFilterOpen(false)}
-                          className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
-                        >
-                          Apply Filter
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   className="bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-500 text-white rounded-xl px-6 shadow-lg"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Export
                 </Button>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
             <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
               <DialogTrigger asChild>
                 <Button 
@@ -1003,6 +1181,7 @@ const UserManagement = () => {
 
           </div>
         </div>
+          </div>
         </motion.div>
 
         {/* Modern Students Grid */}
@@ -1031,111 +1210,113 @@ const UserManagement = () => {
         </div>
         
           {filteredStudents.length > 0 ? (
-            <div className="p-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredStudents.map((student, index) => (
-                  <motion.div
-                    key={student.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 * index }}
-                    className="group relative bg-white/70 backdrop-blur-xl rounded-2xl p-6 border border-sky-200 hover:border-sky-400 hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center space-x-4">
-                        <div className="relative">
-                          <div className="w-14 h-14 bg-gradient-to-br from-sky-500 to-blue-600 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg">
-                        {(student.name || 'U').charAt(0).toUpperCase()}
-                      </div>
-                          <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white flex items-center justify-center ${
-                            (student.status || 'inactive') === 'active' ? 'bg-green-500' : 'bg-gray-400'
-                          }`}>
-                            {(student.status || 'inactive') === 'active' ? (
-                              <CheckCircle className="w-3 h-3 text-white" />
-                            ) : (
-                              <XCircle className="w-3 h-3 text-white" />
-                            )}
+            <div className="p-6 space-y-6">
+              {studentViewMode === 'all' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {filteredStudents.map((student, index) => renderStudentCard(student, index))}
+                </div>
+              )}
+
+              {studentViewMode === 'class-wise' && (
+                <div className="space-y-4">
+                  {Object.keys(classSectionGroups).sort(sortByClassLabel).map((classKey) => {
+                    const isClassCollapsed = collapsedClasses[classKey] ?? true;
+                    return (
+                      <div key={classKey} className="rounded-xl border border-sky-200 bg-white/70 shadow-sm">
+                        <button
+                          type="button"
+                          onClick={() => toggleClassCollapse(classKey)}
+                          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-sky-50/70 rounded-xl"
+                        >
+                          <div className="flex items-center gap-2">
+                            {isClassCollapsed ? <ChevronRight className="w-4 h-4 text-sky-700" /> : <ChevronDown className="w-4 h-4 text-sky-700" />}
+                            <span className="font-semibold text-sky-900">{classKey}</span>
                           </div>
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-sky-900 text-lg">{student.name || 'Unknown Student'}</h4>
-                          <p className="text-sky-700 text-sm">{student.email || 'No email'}</p>
-                          <div className="flex items-center mt-2">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-sky-100 text-sky-800 border border-sky-200 backdrop-blur-sm">
-                              <GraduationCap className="w-3 h-3 mr-1" />
-                              Class {student.classNumber || 'N/A'}
-                            </span>
+                          <Badge className="bg-sky-100 text-sky-700 border border-sky-200">
+                            {Object.values(classSectionGroups[classKey]).flat().length} students
+                          </Badge>
+                        </button>
+
+                        {!isClassCollapsed && (
+                          <div className="px-4 pb-4 space-y-3">
+                            {Object.keys(classSectionGroups[classKey]).sort().map((sectionKey) => {
+                              const sectionScopeKey = `${classKey}::${sectionKey}`;
+                              const isSectionCollapsed = collapsedSections[sectionScopeKey] ?? true;
+                              return (
+                                <div key={sectionScopeKey} className="rounded-lg border border-sky-100 bg-white p-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleSectionCollapse(sectionScopeKey)}
+                                    className="w-full flex items-center justify-between text-left"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      {isSectionCollapsed ? <ChevronRight className="w-4 h-4 text-teal-700" /> : <ChevronDown className="w-4 h-4 text-teal-700" />}
+                                      <span className="font-medium text-sky-900">{sectionKey}</span>
+                                    </div>
+                                    <Badge className="bg-teal-100 text-teal-700 border border-teal-200">
+                                      {classSectionGroups[classKey][sectionKey].length}
+                                    </Badge>
+                                  </button>
+                                  {!isSectionCollapsed && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-3">
+                                      {classSectionGroups[classKey][sectionKey].map((student, idx) => renderStudentCard(student, `${sectionScopeKey}-${idx}`))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
-                        </div>
+                        )}
                       </div>
-                    </div>
-                    
-                    <div className="space-y-3 mb-6">
-                      <div className="flex items-center text-sm text-sky-700">
-                        <Mail className="w-4 h-4 mr-3 text-sky-600" />
-                        <span className="truncate">{student.email || 'No email'}</span>
+                    );
+                  })}
+                </div>
+              )}
+
+              {studentViewMode === 'section-wise' && (
+                <div className="space-y-4">
+                  {Object.keys(sectionClassGroups).sort().map((sectionKey) => {
+                    const isSectionCollapsed = collapsedSections[sectionKey] ?? true;
+                    return (
+                      <div key={sectionKey} className="rounded-xl border border-teal-200 bg-white/70 shadow-sm">
+                        <button
+                          type="button"
+                          onClick={() => toggleSectionCollapse(sectionKey)}
+                          className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-teal-50/70 rounded-xl"
+                        >
+                          <div className="flex items-center gap-2">
+                            {isSectionCollapsed ? <ChevronRight className="w-4 h-4 text-teal-700" /> : <ChevronDown className="w-4 h-4 text-teal-700" />}
+                            <span className="font-semibold text-teal-900">{sectionKey}</span>
+                          </div>
+                          <Badge className="bg-teal-100 text-teal-700 border border-teal-200">
+                            {Object.values(sectionClassGroups[sectionKey]).flat().length} students
+                          </Badge>
+                        </button>
+
+                        {!isSectionCollapsed && (
+                          <div className="px-4 pb-4 space-y-3">
+                            {Object.keys(sectionClassGroups[sectionKey]).sort(sortByClassLabel).map((classKey) => (
+                              <div key={`${sectionKey}::${classKey}`} className="rounded-lg border border-sky-100 bg-white p-3">
+                                <div className="flex items-center justify-between mb-3">
+                                  <span className="font-medium text-sky-900">{classKey}</span>
+                                  <Badge className="bg-sky-100 text-sky-700 border border-sky-200">
+                                    {sectionClassGroups[sectionKey][classKey].length}
+                                  </Badge>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                  {sectionClassGroups[sectionKey][classKey].map((student, idx) =>
+                                    renderStudentCard(student, `${sectionKey}-${classKey}-${idx}`)
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      {student.phone && (
-                        <div className="flex items-center text-sm text-sky-700">
-                          <Phone className="w-4 h-4 mr-3 text-sky-600" />
-                          <span>{student.phone}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center text-sm text-sky-700">
-                        <Calendar className="w-4 h-4 mr-3 text-sky-600" />
-                        <span>Last login: {student.lastLogin ? new Date(student.lastLogin).toLocaleDateString() : 'Never'}</span>
-                    </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between pt-4 border-t border-sky-200">
-                      <div className="flex items-center space-x-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-sky-600 hover:text-blue-700 hover:bg-blue-100/50 rounded-lg backdrop-blur-sm"
-                          onClick={() => handleEditStudent(student)}
-                          title="Edit Details"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-sky-600 hover:text-red-700 hover:bg-red-100/50 rounded-lg backdrop-blur-sm"
-                          onClick={() => handleDeleteStudent(student.id, student.name || 'Unknown Student')}
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-orange-600 hover:text-orange-700 hover:bg-orange-100/50 rounded-lg backdrop-blur-sm"
-                          onClick={() => {
-                            setSelectedStudentForAnalysis(student);
-                            setIsRiskAnalysisModalOpen(true);
-                          }}
-                          title="AI Risk Analysis"
-                        >
-                          <Brain className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="text-sky-600 hover:text-sky-800 border-sky-200 hover:bg-sky-50 rounded-lg backdrop-blur-sm"
-                        onClick={() => {
-                          setSelectedStudentForClass(student);
-                          setIsAssignClassDialogOpen(true);
-                        }}
-                      >
-                        <GraduationCap className="w-4 h-4 mr-2" />
-                        Assign Class
-                      </Button>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ) : (
             <div className="p-12 text-center">

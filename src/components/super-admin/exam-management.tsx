@@ -945,6 +945,29 @@ export default function ExamManagement() {
 
     return schoolMatches && classMatches;
   });
+  const groupedExams = filteredExams.reduce((acc, exam) => {
+    const examClassLabels = getExamClassStrings(exam);
+    const classBuckets = examClassLabels.length > 0 ? examClassLabels : ['unassigned'];
+    const subjectKey = (exam.subject || 'unknown').toLowerCase();
+    const subjectLabel = EXAM_SUBJECTS.find((item) => item.value === subjectKey)?.label || normalizeDisplayText(subjectKey) || 'Unknown';
+
+    classBuckets.forEach((classKey) => {
+      if (!acc[classKey]) {
+        acc[classKey] = {};
+      }
+      if (!acc[classKey][subjectLabel]) {
+        acc[classKey][subjectLabel] = [];
+      }
+      acc[classKey][subjectLabel].push(exam);
+    });
+
+    return acc;
+  }, {} as Record<string, Record<string, Exam[]>>);
+  const classSectionKeys = Object.keys(groupedExams).sort((a, b) => {
+    if (a === 'unassigned') return 1;
+    if (b === 'unassigned') return -1;
+    return Number(a) - Number(b);
+  });
 
   const classWiseStats = CLASS_OPTIONS
     .map((cls) => {
@@ -1387,13 +1410,12 @@ export default function ExamManagement() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-        {/* Quick Add Questions Option */}
-        {filteredExams.length > 0 && (
-          <div className="relative">
-            <div className="absolute -inset-[2px] bg-gradient-to-r from-purple-300 to-purple-400 rounded-md"></div>
-            <Select 
-              value="" 
+      <div className="rounded-lg border border-gray-200 bg-gray-50/80 p-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 items-center">
+          {/* Quick Add Questions Option */}
+          {filteredExams.length > 0 ? (
+            <Select
+              value=""
               onValueChange={(examId) => {
                 const exam = filteredExams.find(e => e._id === examId);
                 if (exam) {
@@ -1403,17 +1425,17 @@ export default function ExamManagement() {
                 }
               }}
             >
-              <SelectTrigger className="w-full min-h-11 relative z-10 rounded-xl border border-gray-200 bg-white px-[14px] py-[10px] focus:ring-2 focus:ring-purple-500 focus:ring-offset-0">
+              <SelectTrigger className="h-10 rounded-md border border-gray-300 bg-white text-sm">
                 <SelectValue placeholder="Quick Add Questions" />
               </SelectTrigger>
               <SelectContent>
                 {filteredExams.map((exam) => (
                   <SelectItem key={exam._id} value={exam._id}>
                     <div className="flex items-center gap-2">
-                      <FileQuestion className="h-4 w-4" />
-                      <span>{exam.title}</span>
+                      <FileQuestion className="h-3.5 w-3.5" />
+                      <span className="truncate">{exam.title}</span>
                       {exam.questions && exam.questions.length > 0 && (
-                        <Badge variant="outline" className="ml-2 text-xs">
+                        <Badge variant="outline" className="ml-1 text-[10px]">
                           {exam.questions.length} Q
                         </Badge>
                       )}
@@ -1422,15 +1444,14 @@ export default function ExamManagement() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-        )}
+          ) : (
+            <div />
+          )}
 
-        <div className="relative">
-          <div className="absolute -inset-[2px] bg-gradient-to-r from-sky-300 to-teal-400 rounded-md"></div>
           <Select value={selectedSchool} onValueChange={setSelectedSchool}>
-            <SelectTrigger className="w-full min-h-11 relative z-10 rounded-xl border border-gray-200 bg-white px-[14px] py-[10px] focus:ring-2 focus:ring-teal-500 focus:ring-offset-0">
+            <SelectTrigger className="h-10 rounded-md border border-gray-300 bg-white text-sm">
               <div className="flex items-center gap-2">
-                <School className="h-4 w-4 text-gray-600" />
+                <School className="h-3.5 w-3.5 text-gray-600" />
                 <SelectValue placeholder="All Schools" />
               </div>
             </SelectTrigger>
@@ -1443,14 +1464,11 @@ export default function ExamManagement() {
               ))}
             </SelectContent>
           </Select>
-        </div>
 
-        <div className="relative">
-          <div className="absolute -inset-[2px] bg-gradient-to-r from-sky-300 to-teal-400 rounded-md"></div>
           <Select value={selectedClass} onValueChange={setSelectedClass}>
-            <SelectTrigger className="w-full min-h-11 relative z-10 rounded-xl border border-gray-200 bg-white px-[14px] py-[10px] focus:ring-2 focus:ring-teal-500 focus:ring-offset-0">
+            <SelectTrigger className="h-10 rounded-md border border-gray-300 bg-white text-sm">
               <div className="flex items-center gap-2">
-                <GraduationCap className="h-4 w-4 text-gray-600" />
+                <GraduationCap className="h-3.5 w-3.5 text-gray-600" />
                 <SelectValue placeholder="All Classes" />
               </div>
             </SelectTrigger>
@@ -1463,11 +1481,14 @@ export default function ExamManagement() {
               ))}
             </SelectContent>
           </Select>
+
+          <div className="flex xl:justify-end">
+            <Badge variant="outline" className="w-fit bg-white">
+              {filteredExams.length} {filteredExams.length === 1 ? 'Exam' : 'Exams'}
+            </Badge>
+          </div>
         </div>
       </div>
-      <Badge variant="outline" className="w-fit">
-        {filteredExams.length} {filteredExams.length === 1 ? 'Exam' : 'Exams'}
-      </Badge>
 
       {isLoading ? (
         <div className="text-center py-12">
@@ -1484,150 +1505,119 @@ export default function ExamManagement() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredExams.map((exam, index) => {
-            // Randomly assign one of the three dashboard colors
-            const colorSchemes = [
-              { bg: 'from-orange-300 to-orange-400', text: 'text-white', badge: 'bg-orange-500/20 text-orange-100' },
-              { bg: 'from-sky-300 to-sky-400', text: 'text-white', badge: 'bg-sky-500/20 text-sky-100' },
-              { bg: 'from-teal-400 to-teal-500', text: 'text-white', badge: 'bg-teal-500/20 text-teal-100' }
-            ];
-            const colorScheme = colorSchemes[index % 3];
-            const examClassLabels = getExamClassStrings(exam);
-            
+        <div className="space-y-8">
+          {classSectionKeys.map((classKey) => {
+            const classLabel = classKey === 'unassigned' ? 'Unassigned Class' : `Class ${classKey}`;
+            const subjects = groupedExams[classKey];
+            const subjectKeys = Object.keys(subjects).sort((a, b) => a.localeCompare(b));
+
             return (
-              <Card key={exam._id} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg mb-2 text-gray-900">{exam.title}</CardTitle>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        <Badge className={`${colorScheme.badge} border-0`}>
-                          {EXAM_TYPES.find(t => t.value === exam.examType)?.label}
-                        </Badge>
-                        <Badge className="bg-indigo-100 text-indigo-700 border-0 text-xs font-semibold rounded-full">
-                          {examClassLabels.length > 0
-                            ? examClassLabels.length === 1
-                              ? `Class ${examClassLabels[0]}`
-                              : `${examClassLabels.length} classes`
-                            : 'Class —'}
-                        </Badge>
-                        <Badge className="bg-orange-600 text-white border-2 border-white/50 shadow-lg font-semibold">
-                          Asli Exclusive Schools
-                        </Badge>
-                        {exam.isActive ? (
-                          <Badge className="bg-teal-600 text-white border-2 border-white/50 shadow-lg font-semibold">Active</Badge>
-                        ) : (
-                          <Badge className="bg-gray-600 text-white border-2 border-white/50 shadow-lg font-semibold">Inactive</Badge>
-                        )}
-                      </div>
+              <section key={classKey} className="space-y-5">
+                <div className="border-b border-gray-200 pb-2">
+                  <h3 className="text-lg font-semibold text-gray-900">{classLabel}</h3>
+                </div>
+
+                {subjectKeys.map((subjectKey) => (
+                  <div key={`${classKey}-${subjectKey}`} className="space-y-3">
+                    <h4 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">{subjectKey}</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+                      {subjects[subjectKey].map((exam) => {
+                        const examClassLabels = getExamClassStrings(exam);
+
+                        return (
+                          <Card key={exam._id} className="border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+                            <CardHeader className="px-4 pb-2 pt-4">
+                              <div className="space-y-2">
+                                <CardTitle className="text-base font-bold text-gray-900 leading-tight line-clamp-2">{exam.title}</CardTitle>
+                                <div className="flex flex-wrap gap-1.5">
+                                  <Badge className={`${getExamTypeBadgeColor(exam.examType)} border text-[11px]`}>
+                                    {EXAM_TYPES.find(t => t.value === exam.examType)?.label}
+                                  </Badge>
+                                  {exam.isActive ? (
+                                    <Badge className="bg-green-100 text-green-700 border border-green-200 text-[11px]">Active</Badge>
+                                  ) : (
+                                    <Badge className="bg-gray-100 text-gray-600 border border-gray-200 text-[11px]">Inactive</Badge>
+                                  )}
+                                  <Badge className="bg-gray-100 text-gray-700 border border-gray-200 text-[11px]">Asli Exclusive Schools</Badge>
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="px-4 pb-4 pt-1 space-y-3">
+                              {exam.description && (
+                                <p className="text-xs text-gray-600 line-clamp-2">{exam.description}</p>
+                              )}
+                              <div className="space-y-1.5 text-xs text-gray-600">
+                                <div className="flex items-center gap-1.5">
+                                  <Clock className="h-3.5 w-3.5 text-gray-500" />
+                                  <span>{exam.duration} min</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <BookOpen className="h-3.5 w-3.5 text-gray-500" />
+                                  <span>{exam.totalQuestions} questions · {exam.totalMarks} marks</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <Eye className="h-3.5 w-3.5 text-gray-500" />
+                                  <span>{exam.maxAttempts || 1} attempt(s)</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <Calendar className="h-3.5 w-3.5 text-gray-500" />
+                                  <span>
+                                    {new Date(exam.startDate).toLocaleDateString()} - {new Date(exam.endDate).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex flex-wrap gap-1">
+                                {examClassLabels.length > 0 ? (
+                                  examClassLabels.map((cls: string, idx: number) => (
+                                    <Badge key={`${exam._id}-class-${idx}`} variant="outline" className="text-[10px] bg-gray-50">
+                                      {`Class ${cls}`}
+                                    </Badge>
+                                  ))
+                                ) : (
+                                  <Badge variant="outline" className="text-[10px] bg-gray-50">No Class Assigned</Badge>
+                                )}
+                              </div>
+                              <div className="grid grid-cols-[auto,1fr,auto] items-center gap-2 pt-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 px-2 text-xs shrink-0"
+                                  onClick={() => openEditExamDialog(exam)}
+                                >
+                                  <Edit className="h-3.5 w-3.5 mr-1" />
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 px-2 text-xs min-w-0"
+                                  onClick={() => {
+                                    setSelectedExam(exam);
+                                    setIsQuestionDialogOpen(true);
+                                    fetchQuestions(exam._id);
+                                  }}
+                                >
+                                  <FileQuestion className="h-3.5 w-3.5 mr-1" />
+                                  <span className="truncate">Add Questions</span>
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 px-2 text-xs text-red-600 border-red-200 hover:bg-red-50 shrink-0"
+                                  onClick={() => handleDeleteExam(exam._id)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 mr-1" />
+                                  Delete
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteExam(exam._id)}
-                      className="text-white hover:text-white/80 hover:bg-white/20"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  {exam.description && (
-                    <p className={`text-sm ${colorScheme.text}/90 mb-4 line-clamp-2`}>{exam.description}</p>
-                  )}
-                  {exam.targetSchools && exam.targetSchools.length > 0 && (
-                    <div className="mb-3">
-                      <p className={`text-xs ${colorScheme.text}/90 mb-1`}>Visible to:</p>
-                      <div className="flex flex-wrap gap-1">
-                        {exam.targetSchools.map((school: any, idx: number) => (
-                          <Badge key={idx} className={`${colorScheme.badge} border-0 text-xs`}>
-                            {school.schoolName || school.fullName || 'School'}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  <div className="mb-3">
-                    <p className={`text-xs ${colorScheme.text}/90 mb-1`}>Assigned Classes</p>
-                    {examClassLabels.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {examClassLabels.map((cls: string, idx: number) => (
-                          <Badge key={`${exam._id}-class-${idx}`} className="bg-white/80 text-gray-900 border-0 text-xs font-semibold rounded-full">
-                            {`Class ${cls}`}
-                          </Badge>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-200">No Class Assigned</p>
-                    )}
-                  </div>
-                  <div className={`space-y-2 text-sm ${colorScheme.text}`}>
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-2" />
-                      <span>{exam.duration} minutes</span>
-                    </div>
-                    <div className="flex items-center">
-                      <BookOpen className="h-4 w-4 mr-2" />
-                      <span>{exam.totalQuestions} questions • {exam.totalMarks} marks</span>
-                    </div>
-                    <div className="flex items-center">
-                      <Eye className="h-4 w-4 mr-2" />
-                      <span>
-                        {[
-                          examClassLabels.length > 0
-                            ? examClassLabels.map((c) => `Class ${normalizeDisplayText(c)}`).join(', ')
-                            : '',
-                          normalizeDisplayText(exam.subject),
-                          `${exam.maxAttempts || 1} attempt(s)`
-                        ].filter(Boolean).join(' • ')}
-                      </span>
-                    </div>
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      <span className="text-xs">
-                        {new Date(exam.startDate).toLocaleDateString()} - {new Date(exam.endDate).toLocaleDateString()}
-                      </span>
-                    </div>
-                    {exam.questions && exam.questions.length > 0 && (
-                      <div className={`text-xs ${colorScheme.text}/90 mt-2`}>
-                        {exam.questions.length} {exam.questions.length === 1 ? 'question' : 'questions'} added
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex gap-2 mt-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-white/90 text-gray-900 border-gray-300 hover:bg-white hover:border-gray-400"
-                      onClick={() => openEditExamDialog(exam)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 bg-white/90 text-gray-900 border-gray-300 hover:bg-white hover:border-gray-400"
-                      onClick={() => {
-                        setSelectedExam(exam);
-                        setIsQuestionDialogOpen(true);
-                        fetchQuestions(exam._id);
-                      }}
-                    >
-                      <FileQuestion className="h-4 w-4 mr-1" />
-                      Add Questions
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="bg-red-500/80 hover:bg-red-600/80 text-white border-white/30"
-                      onClick={() => handleDeleteExam(exam._id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                ))}
+              </section>
             );
           })}
         </div>

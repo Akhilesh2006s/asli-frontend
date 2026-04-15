@@ -9,6 +9,7 @@ import { ArrowLeft, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { extractClassNumberFromSubjectName } from '@/lib/subject-names';
 
 interface QuestionGeneratorProps {
   classNumber: number;
@@ -39,13 +40,18 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
     fetchTopicsForClass();
   }, [classNumber, formData.subject]);
 
+  useEffect(() => {
+    if (formData.subject && !subjects.some((subject) => subject._id === formData.subject)) {
+      setFormData((prev) => ({ ...prev, subject: '', topic: '', subtopic: '' }));
+      setTopics([]);
+    }
+  }, [subjects, formData.subject]);
+
   const fetchSubjectsForClass = async () => {
     try {
       setIsLoadingSubjects(true);
       const token = localStorage.getItem('authToken');
       
-      // Fetch all subjects first, then filter by class if needed
-      // For now, we'll fetch all subjects - you can filter by class later if needed
       const response = await fetch(`${API_BASE_URL}/api/super-admin/subjects`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -55,7 +61,21 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
 
       if (response.ok) {
         const data = await response.json();
-        setSubjects(data.data || []);
+        const allSubjects = data.data || [];
+        const currentClass = String(classNumber);
+
+        const classFilteredSubjects = allSubjects.filter((subject: any) => {
+          const classFromField =
+            subject?.classNumber != null && String(subject.classNumber).trim() !== ''
+              ? String(subject.classNumber).trim()
+              : null;
+          const classFromName = extractClassNumberFromSubjectName(subject?.name || '');
+          const subjectClass = classFromField || classFromName;
+
+          return subjectClass === currentClass;
+        });
+
+        setSubjects(classFilteredSubjects);
       } else {
         toast({
           title: 'Error',

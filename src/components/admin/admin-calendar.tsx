@@ -24,6 +24,11 @@ interface Event {
   id?: string;
   name: string;
   date: string;
+  startDate?: string;
+  endDate?: string;
+  type?: 'event' | 'exam';
+  examType?: string;
+  examId?: string;
   photo?: string;
   description?: string;
   createdAt?: string;
@@ -59,19 +64,55 @@ export default function AdminCalendar() {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/admin/events`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const [eventsResponse, examsResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/admin/events`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }),
+        fetch(`${API_BASE_URL}/api/admin/exams/viewable`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }),
+      ]);
 
-      if (response.ok) {
-        const data = await response.json();
-        setEvents(Array.isArray(data) ? data : (data.events || data.data || []));
-      } else {
-        console.error('Failed to fetch events');
+      const calendarEvents: Event[] = [];
+
+      if (eventsResponse.ok) {
+        const data = await eventsResponse.json();
+        const baseEvents = Array.isArray(data) ? data : (data.events || data.data || []);
+        calendarEvents.push(
+          ...baseEvents.map((event: any) => ({
+            ...event,
+            type: 'event' as const,
+            startDate: event.date,
+            endDate: event.date,
+          }))
+        );
       }
+
+      if (examsResponse.ok) {
+        const examData = await examsResponse.json();
+        const exams = examData?.data || [];
+        calendarEvents.push(
+          ...exams.map((exam: any) => ({
+            id: `exam-${exam._id}`,
+            examId: exam._id,
+            name: exam.title,
+            date: exam.startDate,
+            startDate: exam.startDate,
+            endDate: exam.endDate,
+            description: exam.description,
+            type: 'exam' as const,
+            examType: exam.examType,
+          }))
+        );
+      }
+
+      setEvents(calendarEvents);
     } catch (error) {
       console.error('Error fetching events:', error);
     } finally {
@@ -115,20 +156,21 @@ export default function AdminCalendar() {
     const dateStr = `${normalizedDate.getFullYear()}-${String(normalizedDate.getMonth() + 1).padStart(2, '0')}-${String(normalizedDate.getDate()).padStart(2, '0')}`;
     
     return events.filter(event => {
-      // Normalize event date to midnight in local timezone
-      const eventDateObj = new Date(event.date);
-      const normalizedEventDate = new Date(
-        eventDateObj.getFullYear(), 
-        eventDateObj.getMonth(), 
-        eventDateObj.getDate()
-      );
-      const eventDateStr = `${normalizedEventDate.getFullYear()}-${String(normalizedEventDate.getMonth() + 1).padStart(2, '0')}-${String(normalizedEventDate.getDate()).padStart(2, '0')}`;
-      
-      const matches = eventDateStr === dateStr;
+      const start = event.startDate || event.date;
+      const end = event.endDate || event.date;
+      const startDateObj = new Date(start);
+      const endDateObj = new Date(end);
+      const normalizedStartDate = new Date(startDateObj.getFullYear(), startDateObj.getMonth(), startDateObj.getDate());
+      const normalizedEndDate = new Date(endDateObj.getFullYear(), endDateObj.getMonth(), endDateObj.getDate());
+      const startStr = `${normalizedStartDate.getFullYear()}-${String(normalizedStartDate.getMonth() + 1).padStart(2, '0')}-${String(normalizedStartDate.getDate()).padStart(2, '0')}`;
+      const endStr = `${normalizedEndDate.getFullYear()}-${String(normalizedEndDate.getMonth() + 1).padStart(2, '0')}-${String(normalizedEndDate.getDate()).padStart(2, '0')}`;
+
+      const matches = dateStr >= startStr && dateStr <= endStr;
       if (matches) {
         console.log('Event matched for date:', {
           calendarDate: dateStr,
-          eventDate: eventDateStr,
+          eventStartDate: startStr,
+          eventEndDate: endStr,
           eventName: event.name,
           eventId: event._id || event.id
         });
@@ -362,7 +404,8 @@ export default function AdminCalendar() {
     'bg-orange-500',
   ];
 
-  const getEventColor = (index: number) => {
+  const getEventColor = (event: Event, index: number) => {
+    if (event.type === 'exam') return 'bg-blue-600';
     return eventColors[index % eventColors.length];
   };
 
@@ -441,7 +484,7 @@ export default function AdminCalendar() {
                             key={eventId}
                             className={`
                               text-xs p-1 rounded truncate text-white cursor-pointer
-                              ${getEventColor(eventIndex)}
+                              ${getEventColor(event, eventIndex)}
                               hover:opacity-80
                             `}
                             onClick={(e) => {
@@ -450,7 +493,7 @@ export default function AdminCalendar() {
                             }}
                             title={event.name}
                           >
-                            {event.name}
+                            {event.type === 'exam' ? `Exam: ${event.name}` : event.name}
                           </div>
                         );
                       })}
@@ -569,7 +612,7 @@ export default function AdminCalendar() {
               <div>
                 <Label>Date</Label>
                 <p className="text-gray-700">
-                  {new Date(selectedEvent.date).toLocaleDateString('en-US', {
+                  {new Date(selectedEvent.startDate || selectedEvent.date).toLocaleDateString('en-US', {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
@@ -577,34 +620,59 @@ export default function AdminCalendar() {
                   })}
                 </p>
               </div>
+              {selectedEvent.endDate && selectedEvent.endDate !== selectedEvent.startDate && (
+                <div>
+                  <Label>End Date</Label>
+                  <p className="text-gray-700">
+                    {new Date(selectedEvent.endDate).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
+              )}
+              {selectedEvent.type === 'exam' && (
+                <div>
+                  <Label>Type</Label>
+                  <p className="text-gray-700">Exam ({selectedEvent.examType || 'scheduled'})</p>
+                </div>
+              )}
               {selectedEvent.description && (
                 <div>
                   <Label>Description</Label>
                   <p className="text-gray-700 whitespace-pre-wrap">{selectedEvent.description}</p>
                 </div>
               )}
-              <div className="flex justify-end space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsViewDialogOpen(false);
-                    handleEditEvent(selectedEvent);
-                  }}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    setIsViewDialogOpen(false);
-                    handleDeleteEvent(selectedEvent);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              </div>
+              {selectedEvent.type !== 'exam' ? (
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsViewDialogOpen(false);
+                      handleEditEvent(selectedEvent);
+                    }}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      setIsViewDialogOpen(false);
+                      handleDeleteEvent(selectedEvent);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                </div>
+              ) : (
+                <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700">
+                  Exam entries are managed from Super Admin Exam Management.
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
