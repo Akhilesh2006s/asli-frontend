@@ -911,21 +911,25 @@ export default function SuperAdminDashboard() {
         title: "View AI Usage Reports",
         description: "Review adoption and query patterns by school",
         icon: BarChart3Icon,
+        prompt: "Show AI usage statistics across schools",
       },
       {
         title: "Monitor Active Sessions",
         description: "Track live AI conversations across organizations",
         icon: Monitor,
+        prompt: "Monitor active AI sessions and highlight spikes",
       },
       {
         title: "Configure AI Models",
         description: "Tune model behavior and global response controls",
         icon: BrainCircuitIcon,
+        prompt: "Configure model behavior and recommended guardrails",
       },
       {
         title: "Risk & Compliance Insights",
         description: "Audit policy exceptions and moderation signals",
         icon: Shield,
+        prompt: "Detect anomalies in AI responses and compliance risks",
       },
     ];
 
@@ -946,7 +950,20 @@ export default function SuperAdminDashboard() {
           {quickActions.map((action) => {
             const Icon = action.icon;
             return (
-              <Card key={action.title} className="border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+              <Card
+                key={action.title}
+                className="cursor-pointer border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+                onClick={() =>
+                  window.dispatchEvent(
+                    new CustomEvent("vidya-chat-prefill", {
+                      detail: {
+                        role: "super_admin",
+                        message: action.prompt,
+                      },
+                    })
+                  )
+                }
+              >
                 <CardContent className="p-4">
                   <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center mb-3">
                     <Icon className="w-5 h-5 text-orange-600" />

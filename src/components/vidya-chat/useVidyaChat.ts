@@ -49,6 +49,11 @@ interface UseVidyaChatOptions {
   context?: AIChatContext;
 }
 
+type VidyaChatPrefillEvent = CustomEvent<{
+  role?: VidyaChatRole;
+  message: string;
+}>;
+
 export function useVidyaChat({
   userId,
   role,
@@ -197,6 +202,21 @@ export function useVidyaChat({
   };
 
   const handleSendMessage = () => sendSpecificMessage(message);
+
+  useEffect(() => {
+    const onPrefill = (event: Event) => {
+      const prefillEvent = event as VidyaChatPrefillEvent;
+      const payload = prefillEvent.detail;
+      if (!payload?.message?.trim()) return;
+      if (payload.role && payload.role !== role) return;
+      sendSpecificMessage(payload.message);
+    };
+
+    window.addEventListener("vidya-chat-prefill", onPrefill);
+    return () => {
+      window.removeEventListener("vidya-chat-prefill", onPrefill);
+    };
+  }, [role, sendMessageMutation.isPending, context, userId]);
 
   const onPromptClick = (question: string) => {
     setMessage(question);
