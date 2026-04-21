@@ -35,6 +35,7 @@ import {
   CLASS_FILTER_OPTIONS,
   examMatchesStudentClassFilter,
   getExamClassStrings,
+  normalizeClassNumber,
 } from '@/lib/exam-classes';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -565,7 +566,7 @@ export default function StudentExams() {
               <SelectContent>
                 <SelectItem value="all">All classes</SelectItem>
                 {user?.classNumber ? (
-                  <SelectItem value="my">My class ({String(user.classNumber)})</SelectItem>
+                  <SelectItem value="my">My class ({normalizeClassNumber(user.classNumber) || String(user.classNumber)})</SelectItem>
                 ) : null}
                 {CLASS_FILTER_OPTIONS.map((c) => (
                   <SelectItem key={c} value={c}>

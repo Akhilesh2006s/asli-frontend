@@ -31,6 +31,8 @@ interface Exam {
     email: string;
   };
   questions?: any[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface ExamResult {
@@ -64,15 +66,24 @@ export default function ExamViewOnly() {
   });
   const [listClassFilter, setListClassFilter] = useState<string>('all');
 
+  const getExamSortTime = (exam: Exam) => {
+    const candidates = [exam.updatedAt, exam.createdAt, exam.startDate, exam.endDate];
+    for (const value of candidates) {
+      if (!value) continue;
+      const ts = new Date(value).getTime();
+      if (!Number.isNaN(ts)) return ts;
+    }
+    return 0;
+  };
+
   const filteredExams = useMemo(() => {
     const list =
       listClassFilter === 'all'
         ? [...exams]
         : exams.filter((e) => examIncludesClass(e, listClassFilter));
     list.sort((a, b) => {
-      const na = parseInt(getExamClassStrings(a)[0] || '0', 10);
-      const nb = parseInt(getExamClassStrings(b)[0] || '0', 10);
-      if (na !== nb) return na - nb;
+      const timeDiff = getExamSortTime(b) - getExamSortTime(a);
+      if (timeDiff !== 0) return timeDiff;
       return (a.title || '').localeCompare(b.title || '');
     });
     return list;

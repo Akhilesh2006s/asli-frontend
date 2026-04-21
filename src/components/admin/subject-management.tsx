@@ -308,18 +308,18 @@ const SubjectManagement = () => {
   const assignedSubjects = Array.isArray(subjects) ? subjects.filter(s => s.teacher).length : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50">
-      <div className="space-y-8 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50 overflow-x-hidden">
+      <div className="space-y-6 p-3 sm:space-y-8 sm:p-4 lg:p-6">
         {/* Hero Section with Vibrant Subject Stats */}
         <div className="relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 opacity-20 rounded-3xl"></div>
-          <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20">
-            <div className="flex items-center justify-between mb-8">
+          <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:rounded-3xl sm:p-6 lg:p-8 shadow-2xl border border-white/20">
+            <div className="flex items-center justify-between mb-6 sm:mb-8">
               <div>
-                <h1 className="text-5xl font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl leading-tight font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent break-words">
                   Subject Management
                 </h1>
-                <p className="text-gray-700 mt-3 text-xl font-medium">Manage subjects and their assignments with style</p>
+                <p className="text-gray-700 mt-2 sm:mt-3 text-sm sm:text-base lg:text-xl font-medium">Manage subjects and their assignments with style</p>
               </div>
               <div className="hidden lg:block">
                 <div className="w-24 h-24 bg-gradient-to-r from-orange-500 to-orange-400 rounded-full flex items-center justify-center shadow-xl">
@@ -343,7 +343,7 @@ const SubjectManagement = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-white/90 text-sm font-medium">Total Subjects</p>
-                      <p className="text-4xl font-bold text-white">{totalSubjects}</p>
+                      <p className="text-3xl sm:text-4xl font-bold text-white">{totalSubjects}</p>
                     </div>
                   </div>
                   <div className="flex items-center text-white/80 text-sm">
@@ -366,7 +366,7 @@ const SubjectManagement = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-white/90 text-sm font-medium">Active Subjects</p>
-                      <p className="text-4xl font-bold text-white">{activeSubjects}</p>
+                      <p className="text-3xl sm:text-4xl font-bold text-white">{activeSubjects}</p>
                     </div>
                   </div>
                   <div className="flex items-center text-white/80 text-sm">
@@ -389,7 +389,7 @@ const SubjectManagement = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-white/90 text-sm font-medium">Assigned Subjects</p>
-                      <p className="text-4xl font-bold text-white">{assignedSubjects}</p>
+                      <p className="text-3xl sm:text-4xl font-bold text-white">{assignedSubjects}</p>
                     </div>
                   </div>
                   <div className="flex items-center text-white/80 text-sm">
@@ -429,7 +429,7 @@ const SubjectManagement = () => {
               <div className="relative">
                 <div className="absolute -inset-[2px] bg-gradient-to-r from-orange-300 to-orange-400 rounded-md"></div>
                 <Select value={filterByDepartment} onValueChange={setFilterByDepartment}>
-                  <SelectTrigger className="w-48 relative z-10 border-0 bg-white focus:ring-2 focus:ring-orange-500 focus:ring-offset-0">
+                  <SelectTrigger className="w-full sm:w-48 relative z-10 border-0 bg-white focus:ring-2 focus:ring-orange-500 focus:ring-offset-0">
                     <SelectValue placeholder="All Departments" />
                   </SelectTrigger>
                   <SelectContent>
@@ -447,7 +447,7 @@ const SubjectManagement = () => {
               <div className="relative">
                 <div className="absolute -inset-[2px] bg-gradient-to-r from-sky-300 to-sky-400 rounded-md"></div>
                 <Select value={filterByGrade} onValueChange={setFilterByGrade}>
-                  <SelectTrigger className="w-40 relative z-10 border-0 bg-white focus:ring-2 focus:ring-sky-500 focus:ring-offset-0">
+                  <SelectTrigger className="w-full sm:w-40 relative z-10 border-0 bg-white focus:ring-2 focus:ring-sky-500 focus:ring-offset-0">
                     <SelectValue placeholder="All Grades" />
                   </SelectTrigger>
                   <SelectContent>
@@ -465,7 +465,7 @@ const SubjectManagement = () => {
               <div className="relative">
                 <div className="absolute -inset-[2px] bg-gradient-to-r from-teal-400 to-teal-500 rounded-md"></div>
                 <Select value={filterByTeacher} onValueChange={setFilterByTeacher}>
-                  <SelectTrigger className="w-48 relative z-10 border-0 bg-white focus:ring-2 focus:ring-teal-500 focus:ring-offset-0">
+                  <SelectTrigger className="w-full sm:w-48 relative z-10 border-0 bg-white focus:ring-2 focus:ring-teal-500 focus:ring-offset-0">
                     <SelectValue placeholder="All Teachers" />
                   </SelectTrigger>
                   <SelectContent>
@@ -485,7 +485,7 @@ const SubjectManagement = () => {
               <div className="relative">
                 <div className="absolute -inset-[2px] bg-gradient-to-r from-green-400 to-green-500 rounded-md"></div>
                 <Select value={filterByStatus} onValueChange={setFilterByStatus}>
-                  <SelectTrigger className="w-40 relative z-10 border-0 bg-white focus:ring-2 focus:ring-green-500 focus:ring-offset-0">
+                  <SelectTrigger className="w-full sm:w-40 relative z-10 border-0 bg-white focus:ring-2 focus:ring-green-500 focus:ring-offset-0">
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -517,7 +517,8 @@ const SubjectManagement = () => {
 
         {/* Subjects Table */}
         <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-lg border border-sky-200 overflow-hidden">
-          <Table>
+          <div className="overflow-x-auto">
+          <Table className="min-w-[820px]">
             <TableHeader>
               <TableRow className="bg-sky-50/50">
                 <TableHead className="text-sky-900 font-semibold">Subject</TableHead>
@@ -597,6 +598,7 @@ const SubjectManagement = () => {
               ))}
             </TableBody>
           </Table>
+          </div>
         </div>
 
         {filteredSubjects.length === 0 && (

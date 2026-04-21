@@ -13,13 +13,12 @@ import {
 } from '@/components/ui/select';
 import { 
   BookOpen, 
-  Play, 
-  FileText, 
+  GraduationCap,
   BarChart3,
   Target,
   Zap,
   ArrowRight,
-  Video
+  Layers3
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { API_BASE_URL } from '@/lib/api-config';
@@ -223,6 +222,44 @@ export default function AdminLearningPaths() {
     });
   }, [subjectsWithContent, classFilter, subjectFilter]);
 
+  const groupedSubjectsByClass = useMemo(() => {
+    const grouped = new Map<string, any[]>();
+    for (const subj of filteredSubjectsWithContent) {
+      const classLabel = getLearningPathClassLabel(subj) || 'Unassigned';
+      if (!grouped.has(classLabel)) grouped.set(classLabel, []);
+      grouped.get(classLabel)!.push(subj);
+    }
+
+    const classKeys = Array.from(grouped.keys()).sort((a, b) => {
+      if (a === 'Unassigned') return 1;
+      if (b === 'Unassigned') return -1;
+      const na = parseInt(a, 10);
+      const nb = parseInt(b, 10);
+      if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+      return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+    });
+
+    return classKeys.map((classKey) => ({
+      classKey,
+      subjects: (grouped.get(classKey) || []).slice().sort((a: any, b: any) =>
+        extractPlainSubjectName(a.name || '').localeCompare(
+          extractPlainSubjectName(b.name || ''),
+          undefined,
+          { sensitivity: 'base' }
+        )
+      ),
+    }));
+  }, [filteredSubjectsWithContent]);
+
+  const totalContentItemsInView = useMemo(
+    () =>
+      filteredSubjectsWithContent.reduce(
+        (sum: number, subj: any) => sum + (subj.asliPrepContent?.length || 0),
+        0
+      ),
+    [filteredSubjectsWithContent]
+  );
+
   useEffect(() => {
     setSubjectFilter('all');
   }, [classFilter]);
@@ -379,52 +416,91 @@ export default function AdminLearningPaths() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900">Learning Paths</h2>
-          <p className="text-gray-600 mt-1">View content uploaded for each subject in your board</p>
-        </div>
-        {!isLoadingContent && subjectsWithContent.length > 0 && (
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-            <div className="space-y-1.5">
-              <Label htmlFor="lp-class-filter" className="text-xs text-gray-500">
-                Class
-              </Label>
-              <Select value={classFilter} onValueChange={setClassFilter}>
-                <SelectTrigger id="lp-class-filter" className="w-full sm:w-[200px] bg-white">
-                  <SelectValue placeholder="All classes" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All classes</SelectItem>
-                  {classOptionsFromData.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      Class {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="lp-subject-filter" className="text-xs text-gray-500">
-                Subject
-              </Label>
-              <Select value={subjectFilter} onValueChange={setSubjectFilter}>
-                <SelectTrigger id="lp-subject-filter" className="w-full sm:w-[220px] bg-white">
-                  <SelectValue placeholder="All subjects" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All subjects</SelectItem>
-                  {subjectNameOptions.map((name) => (
-                    <SelectItem key={name} value={name}>
-                      {name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      <div className="rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50 via-white to-teal-50 p-5 sm:p-6">
+        <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Learning Paths</h2>
+            <p className="text-gray-600">
+              Redesigned by class structure: quickly view every class and its subjects.
+            </p>
           </div>
-        )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Card className="border-sky-100 shadow-none">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-500">Classes</p>
+                  <p className="text-xl font-bold text-gray-900">{groupedSubjectsByClass.length}</p>
+                </div>
+                <GraduationCap className="h-5 w-5 text-sky-600" />
+              </CardContent>
+            </Card>
+            <Card className="border-sky-100 shadow-none">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-500">Subjects In View</p>
+                  <p className="text-xl font-bold text-gray-900">{filteredSubjectsWithContent.length}</p>
+                </div>
+                <Layers3 className="h-5 w-5 text-teal-600" />
+              </CardContent>
+            </Card>
+            <Card className="border-sky-100 shadow-none">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-500">Content Items</p>
+                  <p className="text-xl font-bold text-gray-900">{totalContentItemsInView}</p>
+                </div>
+                <BarChart3 className="h-5 w-5 text-orange-600" />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
+
+      {!isLoadingContent && subjectsWithContent.length > 0 && (
+        <Card className="border-sky-100">
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+              <div className="space-y-1.5">
+                <Label htmlFor="lp-class-filter" className="text-xs text-gray-500">
+                  Class
+                </Label>
+                <Select value={classFilter} onValueChange={setClassFilter}>
+                  <SelectTrigger id="lp-class-filter" className="w-full sm:w-[200px] bg-white">
+                    <SelectValue placeholder="All classes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All classes</SelectItem>
+                    {classOptionsFromData.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        Class {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="lp-subject-filter" className="text-xs text-gray-500">
+                  Subject
+                </Label>
+                <Select value={subjectFilter} onValueChange={setSubjectFilter}>
+                  <SelectTrigger id="lp-subject-filter" className="w-full sm:w-[220px] bg-white">
+                    <SelectValue placeholder="All subjects" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All subjects</SelectItem>
+                    {subjectNameOptions.map((name) => (
+                      <SelectItem key={name} value={name}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {isLoadingContent ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -452,79 +528,98 @@ export default function AdminLearningPaths() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredSubjectsWithContent.map((subject: any) => {
-            const Icon = getSubjectIcon(subject.name);
-            const displayName = extractPlainSubjectName(subject.name || '');
-            const classLabel = getLearningPathClassLabel(subject);
-            const primaryId = String(subject._id || subject.id);
-            const mergedIds: string[] = Array.isArray(subject.mergedSubjectIds)
-              ? subject.mergedSubjectIds.map(String)
-              : [primaryId];
-            const otherIds = mergedIds.filter((id) => id !== primaryId);
-            const viewHref =
-              otherIds.length > 0
-                ? `/admin/subject/${primaryId}?merge=${encodeURIComponent(otherIds.join(','))}`
-                : `/admin/subject/${primaryId}`;
+        <div className="space-y-5">
+          {groupedSubjectsByClass.map(({ classKey, subjects }) => {
+            const classContentCount = subjects.reduce(
+              (sum, s) => sum + (s.asliPrepContent?.length || 0),
+              0
+            );
 
             return (
-              <Card
-                key={mergedIds.slice().sort().join('-')}
-                className="hover:shadow-lg transition-all duration-200 hover:scale-105"
-              >
-                <CardHeader>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="w-12 h-12 bg-gradient-to-br from-sky-400 to-teal-500 rounded-lg flex items-center justify-center">
-                      <Icon className="w-6 h-6 text-white" />
-                    </div>
-                    <Badge variant="secondary" className="text-xs">
-                      {subject.totalContent || 0} items
-                    </Badge>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <CardTitle className="text-lg">{displayName}</CardTitle>
-                    {classLabel ? (
-                      <Badge className="bg-sky-100 text-sky-800 border-0 text-xs">
-                        Class {classLabel}
+              <Card key={classKey} className="border-sky-100 overflow-hidden">
+                <CardHeader className="bg-sky-50/60 border-b border-sky-100">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-sky-600 text-white border-0">
+                        {classKey === 'Unassigned' ? 'Unassigned' : `Class ${classKey}`}
                       </Badge>
-                    ) : null}
+                      <CardTitle className="text-base text-gray-900">
+                        {subjects.length} subject{subjects.length === 1 ? '' : 's'}
+                      </CardTitle>
+                    </div>
+                    <p className="text-xs text-gray-600">
+                      {classContentCount} content item{classContentCount === 1 ? '' : 's'}
+                    </p>
                   </div>
-                  <p className="text-gray-600 text-sm mt-2">
-                    {subject.description || `Content for ${displayName}${classLabel ? ` (${classLabel})` : ''}`}
-                  </p>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Content Stats */}
-                  <div className="grid grid-cols-1 gap-2 text-center">
-                    <div className="bg-orange-50 rounded-lg p-2">
-                      <BarChart3 className="w-4 h-4 text-orange-600 mx-auto mb-1" />
-                      <p className="text-xs font-medium text-orange-800">{subject.asliPrepContent?.length || 0}</p>
-                      <p className="text-xs text-orange-600">Content Items</p>
-                    </div>
+                <CardContent className="p-4 sm:p-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {subjects.map((subject: any) => {
+                      const Icon = getSubjectIcon(subject.name);
+                      const displayName = extractPlainSubjectName(subject.name || '');
+                      const primaryId = String(subject._id || subject.id);
+                      const mergedIds: string[] = Array.isArray(subject.mergedSubjectIds)
+                        ? subject.mergedSubjectIds.map(String)
+                        : [primaryId];
+                      const otherIds = mergedIds.filter((id) => id !== primaryId);
+                      const viewHref =
+                        otherIds.length > 0
+                          ? `/admin/subject/${primaryId}?merge=${encodeURIComponent(otherIds.join(','))}`
+                          : `/admin/subject/${primaryId}`;
+
+                      return (
+                        <Card
+                          key={mergedIds.slice().sort().join('-')}
+                          className="border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 h-full"
+                        >
+                          <CardContent className="p-4 h-full flex flex-col gap-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-sky-400 to-teal-500 flex items-center justify-center shrink-0">
+                                  <Icon className="w-4 h-4 text-white" />
+                                </div>
+                                <h3 className="font-semibold text-gray-900 truncate">{displayName}</h3>
+                              </div>
+                              <Badge variant="secondary" className="text-xs shrink-0">
+                                {subject.totalContent || 0}
+                              </Badge>
+                            </div>
+
+                            <p className="text-xs text-gray-600 line-clamp-2">
+                              {subject.description ||
+                                `Structured content for ${displayName} in ${
+                                  classKey === 'Unassigned' ? 'unassigned class' : `Class ${classKey}`
+                                }.`}
+                            </p>
+
+                            <div className="space-y-1.5 min-h-[52px]">
+                              {subject.asliPrepContent?.slice(0, 2).map((content: any, idx: number) => (
+                                <div
+                                  key={content._id || idx}
+                                  className="rounded-md bg-gray-50 border border-gray-100 px-2 py-1"
+                                >
+                                  <p className="text-xs text-gray-800 font-medium truncate">
+                                    {content.title || 'Untitled'}
+                                  </p>
+                                  <p className="text-[11px] text-gray-500 truncate">
+                                    {content.type || 'Content'}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+
+                            <Button
+                              className="w-full mt-auto bg-gradient-to-r from-sky-400 to-teal-500 hover:from-sky-500 hover:to-teal-600 text-white"
+                              onClick={() => setLocation(viewHref)}
+                            >
+                              View Content
+                              <ArrowRight className="w-4 h-4 ml-2" />
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
-
-                  {/* Recent Content Preview */}
-                  {subject.asliPrepContent?.length > 0 && (
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700 mb-2">Recent Content:</p>
-                      <div className="space-y-1">
-                        {subject.asliPrepContent.slice(0, 2).map((content: any, idx: number) => (
-                          <div key={content._id || idx} className="bg-gray-50 rounded-lg p-2 text-xs">
-                            <p className="text-gray-900 font-medium truncate">{content.title || 'Untitled'}</p>
-                            <p className="text-gray-600 text-xs">Type: {content.type || 'Unknown'}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <Button 
-                    className="w-full bg-gradient-to-r from-sky-400 to-teal-500 hover:from-sky-500 hover:to-teal-600 text-white"
-                    onClick={() => setLocation(viewHref)}
-                  >
-                    View Content
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
                 </CardContent>
               </Card>
             );

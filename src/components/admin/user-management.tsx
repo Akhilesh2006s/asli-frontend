@@ -621,7 +621,7 @@ const UserManagement = () => {
         </div>
       </div>
 
-      <div className="flex items-center justify-between pt-3 border-t border-sky-200">
+      <div className="pt-3 border-t border-sky-200 space-y-2 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
         <div className="flex items-center space-x-1">
           <Button
             variant="ghost"
@@ -657,7 +657,7 @@ const UserManagement = () => {
         <Button
           variant="outline"
           size="sm"
-          className="text-sky-600 hover:text-sky-800 border-sky-200 hover:bg-sky-50 rounded-lg h-8 text-xs"
+          className="w-full sm:w-auto text-sky-600 hover:text-sky-800 border-sky-200 hover:bg-sky-50 rounded-lg h-8 text-xs"
           onClick={() => {
             setSelectedStudentForClass(student);
             setIsAssignClassDialogOpen(true);
@@ -671,18 +671,18 @@ const UserManagement = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50">
-      <div className="space-y-8 p-6">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50">
+      <div className="space-y-6 p-3 sm:p-4 lg:space-y-8 lg:p-6">
         {/* Hero Section with Vibrant Student Stats */}
         <div className="relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-500 opacity-20 rounded-3xl"></div>
-          <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20">
-            <div className="flex items-center justify-between mb-8">
+          <div className="relative rounded-2xl border border-white/20 bg-white/80 p-4 shadow-2xl backdrop-blur-xl sm:rounded-3xl sm:p-6 lg:p-8">
+            <div className="mb-6 flex items-center justify-between gap-3 sm:mb-8">
               <div>
-                <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-500 bg-clip-text text-transparent">
+                <h1 className="bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-500 bg-clip-text text-3xl font-bold text-transparent sm:text-4xl lg:text-5xl">
                   Student Management
                 </h1>
-                <p className="text-gray-700 mt-3 text-xl font-medium">Manage students and their academic progress with style</p>
+                <p className="mt-2 text-sm font-medium text-gray-700 sm:mt-3 sm:text-base lg:text-xl">Manage students and their academic progress with style</p>
               </div>
               <div className="hidden lg:block">
                 <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center shadow-xl">
@@ -692,12 +692,12 @@ const UserManagement = () => {
             </div>
         
             {/* Enhanced Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 lg:gap-6">
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-blue-400 to-blue-500 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-400 to-blue-500 p-4 shadow-lg transition-all duration-300 hover:shadow-xl sm:p-5 lg:p-6"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -721,7 +721,7 @@ const UserManagement = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 p-4 shadow-lg transition-all duration-300 hover:shadow-xl sm:p-5 lg:p-6"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -745,7 +745,7 @@ const UserManagement = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-orange-600 to-orange-700 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-600 to-orange-700 p-4 shadow-lg transition-all duration-300 hover:shadow-xl sm:p-5 lg:p-6"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -769,7 +769,7 @@ const UserManagement = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-sky-600 to-sky-700 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-600 to-sky-700 p-4 shadow-lg transition-all duration-300 hover:shadow-xl sm:p-5 lg:p-6"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
@@ -796,7 +796,7 @@ const UserManagement = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+          className="rounded-2xl border border-white/20 bg-white/80 p-4 shadow-xl backdrop-blur-xl sm:rounded-3xl sm:p-6"
         >
           <div className="space-y-4">
             <div className="flex flex-col xl:flex-row xl:items-center gap-4">
@@ -845,13 +845,13 @@ const UserManagement = () => {
               </div>
             </div>
 
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-              <div className="inline-flex rounded-xl border border-sky-200 bg-white p-1">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="inline-flex flex-wrap rounded-xl border border-sky-200 bg-white p-1">
                 <Button
                   type="button"
                   size="sm"
                   variant={studentViewMode === 'all' ? 'default' : 'ghost'}
-                  className={studentViewMode === 'all' ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white rounded-lg' : 'text-sky-700 rounded-lg'}
+                  className={studentViewMode === 'all' ? 'rounded-lg bg-gradient-to-r from-sky-500 to-cyan-500 text-xs text-white sm:text-sm' : 'rounded-lg text-xs text-sky-700 sm:text-sm'}
                   onClick={() => setStudentViewMode('all')}
                 >
                   All Students
@@ -860,7 +860,7 @@ const UserManagement = () => {
                   type="button"
                   size="sm"
                   variant={studentViewMode === 'class-wise' ? 'default' : 'ghost'}
-                  className={studentViewMode === 'class-wise' ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white rounded-lg' : 'text-sky-700 rounded-lg'}
+                  className={studentViewMode === 'class-wise' ? 'rounded-lg bg-gradient-to-r from-sky-500 to-cyan-500 text-xs text-white sm:text-sm' : 'rounded-lg text-xs text-sky-700 sm:text-sm'}
                   onClick={() => setStudentViewMode('class-wise')}
                 >
                   Class-wise View
@@ -869,17 +869,16 @@ const UserManagement = () => {
                   type="button"
                   size="sm"
                   variant={studentViewMode === 'section-wise' ? 'default' : 'ghost'}
-                  className={studentViewMode === 'section-wise' ? 'bg-gradient-to-r from-sky-500 to-cyan-500 text-white rounded-lg' : 'text-sky-700 rounded-lg'}
+                  className={studentViewMode === 'section-wise' ? 'rounded-lg bg-gradient-to-r from-sky-500 to-cyan-500 text-xs text-white sm:text-sm' : 'rounded-lg text-xs text-sky-700 sm:text-sm'}
                   onClick={() => setStudentViewMode('section-wise')}
                 >
                   Section-wise View
                 </Button>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <Button
-                  size="lg"
-                  className="bg-gradient-to-r from-orange-500 to-orange-400 hover:from-orange-600 hover:to-orange-500 text-white rounded-xl px-6 shadow-lg"
+                  className="rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 px-4 text-white shadow-lg hover:from-orange-600 hover:to-orange-500 sm:px-6"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Export
@@ -887,8 +886,7 @@ const UserManagement = () => {
             <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
               <DialogTrigger asChild>
                 <Button 
-                  size="lg"
-                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-xl px-6 shadow-lg"
+                  className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 px-4 text-white shadow-lg hover:from-green-600 hover:to-emerald-600 sm:px-6"
                 >
                   <Upload className="w-4 h-4 mr-2" />
                   Upload CSV
@@ -996,8 +994,7 @@ const UserManagement = () => {
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button 
-              size="lg"
-              className="bg-gradient-to-r from-orange-500 to-teal-500 hover:from-orange-600 hover:to-teal-600 text-white rounded-xl px-8 shadow-lg hover:shadow-xl transition-all duration-300"
+              className="rounded-xl bg-gradient-to-r from-orange-500 to-teal-500 px-4 text-white shadow-lg transition-all duration-300 hover:from-orange-600 hover:to-teal-600 hover:shadow-xl sm:px-8"
             >
               <UserPlus className="w-4 h-4 mr-2" />
               Add New Student
@@ -1096,9 +1093,9 @@ const UserManagement = () => {
             <Dialog open={isDeleteAllDialogOpen} onOpenChange={setIsDeleteAllDialogOpen}>
               <DialogTrigger asChild>
                 <Button 
-                  size="lg"
+                  size="default"
                   variant="destructive"
-                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl px-6 backdrop-blur-sm"
+                  className="rounded-xl bg-gradient-to-r from-red-500 to-red-600 px-4 text-white backdrop-blur-sm hover:from-red-600 hover:to-red-700 sm:px-6"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete All Students
@@ -1189,18 +1186,17 @@ const UserManagement = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-lg border border-sky-200 overflow-hidden"
+          className="overflow-hidden rounded-2xl border border-sky-200 bg-white/60 shadow-lg backdrop-blur-xl"
         >
           <div className="p-6 border-b border-sky-200">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-2xl font-bold text-sky-900">Students Directory</h3>
                 <p className="text-sky-700 mt-1">{filteredStudents.length} students found</p>
               </div>
               <div className="flex items-center space-x-3">
                 <Button 
-                  size="lg"
-                  className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white rounded-xl px-6 backdrop-blur-sm"
+                  className="rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 px-4 text-white backdrop-blur-sm hover:from-sky-600 hover:to-blue-700 sm:px-6"
                 >
                 <Download className="w-4 h-4 mr-2" />
                   Export Data

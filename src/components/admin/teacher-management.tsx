@@ -777,18 +777,18 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
   const totalSubjects = teachers.reduce((total, teacher) => total + teacher.subjects.length, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50">
-      <div className="space-y-8 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50 overflow-x-hidden">
+      <div className="space-y-6 p-3 sm:space-y-8 sm:p-4 lg:p-6">
         {/* Hero Section with Vibrant Stats */}
         <div className="relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 opacity-20 rounded-3xl"></div>
-          <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20">
-            <div className="flex items-center justify-between mb-8">
+          <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:rounded-3xl sm:p-6 lg:p-8 shadow-2xl border border-white/20">
+            <div className="flex items-center justify-between mb-6 sm:mb-8">
               <div>
-                <h1 className="text-5xl font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl leading-tight font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent break-words">
                   Teacher Management
                 </h1>
-                <p className="text-gray-700 mt-3 text-xl font-medium">Manage teachers and their subject assignments with style</p>
+                <p className="text-gray-700 mt-2 sm:mt-3 text-sm sm:text-base lg:text-xl font-medium">Manage teachers and their subject assignments with style</p>
               </div>
               <div className="hidden lg:block">
                 <div className="w-24 h-24 bg-gradient-to-r from-orange-500 to-orange-400 rounded-full flex items-center justify-center shadow-xl">
@@ -812,7 +812,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                     </div>
                     <div className="text-right">
                       <p className="text-white/90 text-sm font-medium">Total Teachers</p>
-                      <p className="text-4xl font-bold text-white">{totalTeachers}</p>
+                      <p className="text-3xl sm:text-4xl font-bold text-white">{totalTeachers}</p>
                     </div>
                   </div>
                   <div className="flex items-center text-white/80 text-sm">
@@ -835,7 +835,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                     </div>
                     <div className="text-right">
                       <p className="text-white/90 text-sm font-medium">Active Teachers</p>
-                      <p className="text-4xl font-bold text-white">{activeTeachers}</p>
+                      <p className="text-3xl sm:text-4xl font-bold text-white">{activeTeachers}</p>
                     </div>
                   </div>
                   <div className="flex items-center text-white/80 text-sm">
@@ -858,7 +858,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                     </div>
                     <div className="text-right">
                       <p className="text-white/90 text-sm font-medium">Total Subjects</p>
-                      <p className="text-4xl font-bold text-white">{totalSubjects}</p>
+                      <p className="text-3xl sm:text-4xl font-bold text-white">{totalSubjects}</p>
                     </div>
                   </div>
                   <div className="flex items-center text-white/80 text-sm">
@@ -872,7 +872,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
         </div>
 
         {/* Action Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white/70 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-white/20">
+        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white/70 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-xl border border-white/20">
           <div className="flex flex-col sm:flex-row gap-4 items-center">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-600 w-5 h-5" />
@@ -880,7 +880,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                 placeholder="Search teachers..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-12 w-64 border-orange-200 focus:border-orange-400 bg-white/80 rounded-xl"
+                className="pl-12 w-full sm:w-64 border-orange-200 focus:border-orange-400 bg-white/80 rounded-xl"
               />
             </div>
             <Button variant="outline" className="border-orange-200 text-orange-700 hover:bg-orange-50 rounded-xl">
@@ -1204,8 +1204,8 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                         {teacher.fullName.split(' ').map(n => n[0]).join('')}
                       </div>
                       <div>
-                        <h3 className="font-bold text-gray-900 text-xl">{teacher.fullName}</h3>
-                        <p className="text-gray-600 text-sm">{teacher.email}</p>
+                        <h3 className="font-bold text-gray-900 text-base sm:text-xl break-words">{teacher.fullName}</h3>
+                        <p className="text-gray-600 text-xs sm:text-sm break-all">{teacher.email}</p>
                       </div>
                     </div>
                     <Badge className={`${teacher.isActive ? 'bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 border-emerald-200' : 'bg-gradient-to-r from-red-100 to-pink-100 text-red-800 border-red-200'} rounded-lg px-3 py-1`}>

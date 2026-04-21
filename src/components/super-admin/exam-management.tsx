@@ -172,7 +172,6 @@ export default function ExamManagement() {
     correctAnswers: [] as string[],
     integerAnswer: ''
   });
-  const [selectedQuestionSubjects, setSelectedQuestionSubjects] = useState<string[]>(['maths']);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -536,7 +535,6 @@ export default function ExamManagement() {
         correctAnswers,
         integerAnswer,
       }));
-      setSelectedQuestionSubjects([subject]);
       toast({
         title: 'CSV Preview Loaded',
         description: 'First CSV row auto-filled in question form',
@@ -563,23 +561,6 @@ export default function ExamManagement() {
       toast({
         title: 'Validation Error',
         description: 'At least one option is required for MCQ questions',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    const normalizedSubjects = Array.from(
-      new Set(
-        selectedQuestionSubjects
-          .map((s) => String(s || '').trim().toLowerCase())
-          .filter(Boolean)
-      )
-    );
-
-    if (normalizedSubjects.length === 0) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please select at least one subject',
         variant: 'destructive'
       });
       return;
@@ -633,46 +614,32 @@ export default function ExamManagement() {
     setIsAddingQuestion(true);
     try {
       const token = localStorage.getItem('authToken');
-      let createdCount = 0;
-      const failedSubjects: string[] = [];
-      let lastErrorMessage = '';
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          questionText: questionFormData.questionText.trim(),
+          questionImage: questionFormData.questionImage.trim() || undefined,
+          questionType: questionFormData.questionType,
+          options: formattedOptions,
+          correctAnswer,
+          marks: parseInt(questionFormData.marks) || 1,
+          negativeMarks: parseFloat(questionFormData.negativeMarks) || 0,
+          explanation: questionFormData.explanation.trim() || undefined,
+          subject: questionFormData.subject,
+          board: selectedExam.board
+        })
+      });
 
-      for (const subject of normalizedSubjects) {
-        const response = await fetch(`${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            questionText: questionFormData.questionText.trim(),
-            questionImage: questionFormData.questionImage.trim() || undefined,
-            questionType: questionFormData.questionType,
-            options: formattedOptions,
-            correctAnswer,
-            marks: parseInt(questionFormData.marks) || 1,
-            negativeMarks: parseFloat(questionFormData.negativeMarks) || 0,
-            explanation: questionFormData.explanation.trim() || undefined,
-            subject,
-            board: selectedExam.board
-          })
-        });
+      const data = await response.json();
 
-        const data = await response.json();
-        if (response.ok && data.success) {
-          createdCount += 1;
-        } else {
-          failedSubjects.push(subject);
-          lastErrorMessage = data.message || 'Failed to add question';
-        }
-      }
-
-      if (createdCount > 0 && failedSubjects.length === 0) {
+      if (response.ok && data.success) {
         toast({
           title: 'Success',
-          description: createdCount > 1
-            ? `Question added for ${createdCount} subjects`
-            : 'Question added successfully'
+          description: 'Question added successfully'
         });
         setQuestionFormData({
           questionText: '',
@@ -687,23 +654,12 @@ export default function ExamManagement() {
           correctAnswers: [],
           integerAnswer: ''
         });
-        setSelectedQuestionSubjects((prev) => {
-          const next = prev.filter((s) => availableQuestionSubjects.includes(s as any));
-          return next.length > 0 ? [next[0]] : [availableQuestionSubjects[0] || 'maths'];
-        });
-        fetchQuestions(selectedExam._id);
-        fetchExams(); // Refresh exam list to update question count
-      } else if (createdCount > 0 && failedSubjects.length > 0) {
-        toast({
-          title: 'Partial Success',
-          description: `Added question for ${createdCount} subject(s), failed for: ${failedSubjects.join(', ')}`
-        });
         fetchQuestions(selectedExam._id);
         fetchExams(); // Refresh exam list to update question count
       } else {
         toast({
           title: 'Error',
-          description: lastErrorMessage || `Failed to add question for subjects: ${failedSubjects.join(', ')}`,
+          description: data.message || 'Failed to add question',
           variant: 'destructive'
         });
       }
@@ -1244,10 +1200,6 @@ export default function ExamManagement() {
 
   useEffect(() => {
     if (!selectedExam) return;
-    setSelectedQuestionSubjects((prev) => {
-      const next = prev.filter((s) => availableQuestionSubjects.includes(s as any));
-      return next.length > 0 ? next : [availableQuestionSubjects[0] || 'maths'];
-    });
     if (!availableQuestionSubjects.includes(questionFormData.subject as any)) {
       setQuestionFormData((prev) => ({
         ...prev,
@@ -1940,37 +1892,6 @@ export default function ExamManagement() {
           </DialogHeader>
 
           <div className="space-y-6">
-            {/* Existing Questions */}
-            {isLoadingQuestions ? (
-              <div className="text-center py-4">
-                <p className="text-gray-500">Loading questions...</p>
-              </div>
-            ) : questions.length > 0 ? (
-              <div className="space-y-3">
-                <h3 className="font-semibold">Existing Questions ({questions.length})</h3>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {questions.map((q: any, idx: number) => (
-                    <Card key={q._id || idx} className="p-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Badge variant="outline">{q.questionType?.toUpperCase() || 'MCQ'}</Badge>
-                            <span className="text-sm text-gray-600">{q.marks} marks</span>
-                          </div>
-                          <p className="text-sm line-clamp-2">{q.questionText || 'Image question'}</p>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-4 text-gray-500">
-                <FileQuestion className="h-12 w-12 mx-auto mb-2 text-gray-400" />
-                <p>No questions added yet</p>
-              </div>
-            )}
-
             {/* CSV Upload Section */}
             <div className="border-t pt-6 space-y-4">
               <div className="flex items-center justify-between">
@@ -2176,30 +2097,21 @@ export default function ExamManagement() {
 
               <div>
                 <Label>Subject *</Label>
-                <div className="mt-2 rounded-md border bg-white p-2 space-y-2">
-                  {availableQuestionSubjects.map((subjectValue: string) => (
-                    <label key={subjectValue} className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        className="rounded"
-                        checked={selectedQuestionSubjects.includes(subjectValue)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedQuestionSubjects((prev) =>
-                              prev.includes(subjectValue) ? prev : [...prev, subjectValue]
-                            );
-                          } else {
-                            setSelectedQuestionSubjects((prev) =>
-                              prev.filter((s) => s !== subjectValue)
-                            );
-                          }
-                        }}
-                      />
-                      <span>{EXAM_SUBJECTS.find((s) => s.value === subjectValue)?.label || normalizeDisplayText(subjectValue)}</span>
-                    </label>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Question will be created for each selected subject.</p>
+                <Select
+                  value={questionFormData.subject}
+                  onValueChange={(value) => setQuestionFormData({ ...questionFormData, subject: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableQuestionSubjects.map((subjectValue: string) => (
+                      <SelectItem key={subjectValue} value={subjectValue}>
+                        {EXAM_SUBJECTS.find((s) => s.value === subjectValue)?.label || normalizeDisplayText(subjectValue)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>

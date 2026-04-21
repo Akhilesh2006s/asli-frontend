@@ -59,6 +59,7 @@ const AdminDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [userData, setUserData] = useState<any>(null);
   const [adminId, setAdminId] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
 
 
@@ -133,6 +134,10 @@ const AdminDashboard = () => {
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [analyticsLoaded, setAnalyticsLoaded] = useState(false);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const handleMobileTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setMobileMenuOpen(false);
+  };
 
   // Memoize sliced arrays to avoid recalculating on every render
   const topClassDistribution = useMemo(() => {
@@ -286,8 +291,9 @@ const AdminDashboard = () => {
     }, [messages.length]);
     
     return (
-      <div className="fixed bottom-6 left-4 z-50">
+      <div className={`${isMobile ? 'fixed bottom-4 right-3 z-40' : 'fixed bottom-6 left-4 z-50'}`}>
         {/* Message Popup */}
+        {!isMobile && (
         <div className="relative mb-2 animate-fade-in">
           <div className="bg-white rounded-lg shadow-lg p-2 border border-orange-200 relative">
             <p className="text-xs font-medium text-gray-800 whitespace-nowrap">
@@ -300,6 +306,7 @@ const AdminDashboard = () => {
             </div>
           </div>
         </div>
+        )}
         
         {/* Vidya AI Image - Small Button Style */}
         <button
@@ -308,7 +315,7 @@ const AdminDashboard = () => {
             // Scroll to top of the page
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
-          className="w-16 h-16 rounded-full shadow-lg hover:shadow-xl border-2 border-orange-300 hover:border-orange-400 bg-white p-1 transition-all duration-300 hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2"
+          className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} rounded-full shadow-lg hover:shadow-xl border-2 border-orange-300 hover:border-orange-400 bg-white p-1 transition-all duration-300 hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2`}
         >
           <img 
             src="/Vidya-ai.jpg" 
@@ -321,7 +328,7 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-sky-50 flex relative overflow-hidden">
+    <div className="min-h-screen bg-sky-50 relative overflow-hidden md:flex md:h-screen">
       {/* Interactive Background */}
       <div className="fixed inset-0 z-0">
         {/* Interactive Background - Disabled for better performance */}
@@ -330,7 +337,7 @@ const AdminDashboard = () => {
       </div>
       {/* Mobile Header */}
       {isMobile && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-b border-white/20 relative">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 backdrop-blur-xl border-b border-white/30 md:hidden">
           <div className="flex items-center justify-between p-responsive">
             <div className="flex items-center space-x-responsive">
               <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
@@ -341,7 +348,7 @@ const AdminDashboard = () => {
                 <p className="text-responsive-xs text-white/90 font-medium">Admin Panel</p>
               </div>
             </div>
-            <Sheet>
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm">
                   <Menu className="w-4 h-4" />
@@ -360,7 +367,7 @@ const AdminDashboard = () => {
                   </div>
                   <nav className="space-y-1">
                     <button
-                      onClick={() => setActiveTab('overview')}
+                      onClick={() => handleMobileTabChange('overview')}
                       className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'overview' 
                           ? 'bg-white text-orange-600 shadow-md' 
@@ -372,7 +379,7 @@ const AdminDashboard = () => {
                     </button>
                     
                     <button
-                      onClick={() => setActiveTab('students')}
+                      onClick={() => handleMobileTabChange('students')}
                       className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'students' 
                           ? 'bg-white text-orange-600 shadow-md' 
@@ -384,7 +391,7 @@ const AdminDashboard = () => {
                     </button>
                     
                     <button
-                      onClick={() => setActiveTab('classes')}
+                      onClick={() => handleMobileTabChange('classes')}
                       className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'classes' 
                           ? 'bg-white text-orange-600 shadow-md' 
@@ -396,7 +403,7 @@ const AdminDashboard = () => {
                     </button>
                     
                     <button
-                      onClick={() => setActiveTab('teachers')}
+                      onClick={() => handleMobileTabChange('teachers')}
                       className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'teachers' 
                           ? 'bg-white text-orange-600 shadow-md' 
@@ -408,7 +415,7 @@ const AdminDashboard = () => {
                     </button>
                     
                     <button
-                      onClick={() => setActiveTab('subjects')}
+                      onClick={() => handleMobileTabChange('subjects')}
                       className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'subjects' 
                           ? 'bg-white text-orange-600 shadow-md' 
@@ -420,7 +427,7 @@ const AdminDashboard = () => {
                     </button>
                     
                     <button
-                      onClick={() => setActiveTab('exams')}
+                      onClick={() => handleMobileTabChange('exams')}
                       className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'exams' 
                           ? 'bg-white text-orange-600 shadow-md' 
@@ -432,7 +439,7 @@ const AdminDashboard = () => {
                     </button>
                     
                     <button
-                      onClick={() => setActiveTab('learning-paths')}
+                      onClick={() => handleMobileTabChange('learning-paths')}
                       className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'learning-paths' 
                           ? 'bg-white text-orange-600 shadow-md' 
@@ -444,7 +451,7 @@ const AdminDashboard = () => {
                     </button>
                     
                     <button
-                      onClick={() => setActiveTab('eduott')}
+                      onClick={() => handleMobileTabChange('eduott')}
                       className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'eduott' 
                           ? 'bg-white text-orange-600 shadow-md' 
@@ -454,10 +461,35 @@ const AdminDashboard = () => {
                       <Play className="mr-3 h-5 w-5 flex-shrink-0" />
                       <span className="truncate">EduOTT</span>
                     </button>
+
+                    <button
+                      onClick={() => handleMobileTabChange('calendar')}
+                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                        activeTab === 'calendar' 
+                          ? 'bg-white text-orange-600 shadow-md' 
+                          : 'text-white hover:bg-orange-600/50'
+                      }`}
+                    >
+                      <CalendarIcon className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <span className="truncate">Calendar</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleMobileTabChange('vidya-ai')}
+                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                        activeTab === 'vidya-ai' 
+                          ? 'bg-white text-orange-600 shadow-md' 
+                          : 'text-white hover:bg-orange-600/50'
+                      }`}
+                    >
+                      <Sparkles className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <span className="truncate">Vidya AI</span>
+                    </button>
                     
                     <button
                       onClick={async () => {
                         try {
+                          setMobileMenuOpen(false);
                           const token = localStorage.getItem('authToken');
                           if (token) {
                             try {
@@ -504,7 +536,7 @@ const AdminDashboard = () => {
 
       {/* Desktop Sidebar */}
       {!isMobile && (
-        <div className="w-64 bg-gradient-to-b from-orange-400 to-orange-500 shadow-2xl border-r border-orange-300 relative z-10">
+        <div className="hidden md:flex md:flex-col md:sticky md:top-0 md:h-screen w-64 bg-gradient-to-b from-orange-400 to-orange-500 shadow-2xl border-r border-orange-300 relative z-10">
         {/* Logo Section */}
         <div className="p-6 border-b border-orange-300/50">
           <div className="flex items-center space-x-3">
@@ -519,7 +551,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-1">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           <button
             onClick={() => setActiveTab('overview')}
             className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
@@ -645,9 +677,9 @@ const AdminDashboard = () => {
       )}
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col relative z-10">
+        <div className="flex-1 w-full min-w-0 flex flex-col relative z-10 md:h-screen md:overflow-y-auto">
           {/* Top Header - Student Dashboard Theme */}
-          <div className="bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 shadow-xl border-b-0 rounded-b-3xl px-responsive py-6 relative z-10">
+          <div className="bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 shadow-xl border-b-0 rounded-b-3xl md:rounded-b-3xl rounded-b-2xl px-responsive py-6 relative z-10">
             <div className="flex-responsive-col items-center sm:items-start justify-between space-y-responsive sm:space-y-0">
               <div className="text-center sm:text-left">
                 <p className="text-xs uppercase tracking-[0.3em] text-gray-900 mb-2">Admin Control Center</p>
@@ -713,7 +745,7 @@ const AdminDashboard = () => {
           </div>
 
           {/* Content Area */}
-          <div className={`flex-1 p-responsive overflow-auto ${isMobile ? 'pt-20' : ''} relative z-10`}>
+          <div className={`flex-1 w-full p-responsive ${isMobile ? 'pt-20 pb-24' : ''} relative z-10`}>
           {activeTab === 'overview' && (
             <div className="space-y-8">
             {/* Colorful Stats Cards */}
