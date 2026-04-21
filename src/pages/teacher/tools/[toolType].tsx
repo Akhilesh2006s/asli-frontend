@@ -1585,10 +1585,10 @@ export default function TeacherToolPage() {
   const Icon = config.icon;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-teal-50 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-teal-50 p-3 sm:p-4 lg:p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           <Button
             variant="ghost"
             onClick={() => {
@@ -1601,12 +1601,12 @@ export default function TeacherToolPage() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 min-w-0">
             <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
               <Icon className="w-6 h-6 text-white" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">{config.name}</h1>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">{config.name}</h1>
               <p className="text-gray-600">{config.description}</p>
             </div>
           </div>

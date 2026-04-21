@@ -563,7 +563,7 @@ export default function DetailedAIAnalyticsDashboard({
 
       {/* Main Analytics Tabs */}
       <Tabs defaultValue="admin-comparison" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
           <TabsTrigger value="admin-comparison">Admin Comparison</TabsTrigger>
           <TabsTrigger value="top-scorers">Top Scorers</TabsTrigger>
           <TabsTrigger value="difficulty-analysis">Difficulty Analysis</TabsTrigger>

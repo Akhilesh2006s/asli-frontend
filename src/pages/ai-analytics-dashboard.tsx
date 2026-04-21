@@ -394,7 +394,7 @@ export default function AIAnalyticsDashboard() {
 
       {/* AI Insights Tabs */}
       <Tabs defaultValue="insights" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
           <TabsTrigger value="insights">AI Insights</TabsTrigger>
           <TabsTrigger value="predictions">Predictions</TabsTrigger>
           <TabsTrigger value="recommendations">Recommendations</TabsTrigger>

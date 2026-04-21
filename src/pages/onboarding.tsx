@@ -62,8 +62,8 @@ export default function Onboarding() {
 	const slide = slides[index];
 
 	return (
-		<div className="min-h-screen flex items-center justify-center bg-white">
-			<div className="w-[360px] h-[720px] border rounded-[28px] shadow-2xl overflow-hidden relative bg-white">
+		<div className="min-h-screen flex items-center justify-center bg-white p-3 sm:p-4">
+			<div className="w-[92vw] max-w-[360px] h-[82vh] max-h-[720px] border rounded-[28px] shadow-2xl overflow-hidden relative bg-white">
 				{/* Status bar mock */}
 				<div className="h-10 flex items-center justify-between px-4 text-[10px] text-gray-500">
 					<span>9:43</span>

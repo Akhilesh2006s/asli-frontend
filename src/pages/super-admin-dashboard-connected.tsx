@@ -1094,9 +1094,9 @@ export default function SuperAdminDashboard() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50">
       {/* Super Admin Sidebar */}
-      <div className="w-64 bg-white shadow-lg">
+      <div className="w-full lg:w-64 bg-white shadow-lg lg:min-h-screen">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center">
             <CrownIcon className="h-8 w-8 text-red-600 mr-2" />
@@ -1104,8 +1104,8 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
         
-        <nav className="mt-6">
-          <div className="px-4 space-y-2">
+        <nav className="mt-2 lg:mt-6">
+          <div className="px-4 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
             {[
               { id: 'dashboard', label: 'Dashboard', icon: BarChartIcon },
               { id: 'admin-management', label: 'Admin Management', icon: ShieldIcon },
@@ -1121,7 +1121,7 @@ export default function SuperAdminDashboard() {
                 <Button
                   key={item.id}
                   variant="ghost"
-                  className={`w-full justify-start ${
+                  className={`w-full justify-start whitespace-nowrap ${
                     currentView === item.id 
                       ? "bg-red-100 text-red-700 hover:bg-red-200" 
                       : "text-gray-600 hover:bg-gray-100"
@@ -1136,7 +1136,7 @@ export default function SuperAdminDashboard() {
           </div>
         </nav>
         
-        <div className="absolute bottom-0 w-64 p-4 border-t border-gray-200">
+        <div className="lg:absolute lg:bottom-0 w-full lg:w-64 p-4 border-t border-gray-200">
           <div className="flex items-center">
             <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
               <CrownIcon className="w-6 h-6 text-red-600" />
@@ -1153,12 +1153,12 @@ export default function SuperAdminDashboard() {
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <header className="bg-white shadow-sm border-b border-gray-200">
-          <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-3 sm:px-6 py-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{getPageTitle()}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{getPageTitle()}</h1>
               <p className="text-sm text-gray-600">Welcome back, Super Admin!</p>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center flex-wrap gap-2 sm:gap-4">
               <Button variant="outline" size="sm" onClick={() => alert('Notifications feature - Would show recent platform activities')}>
                 <BellIcon className="w-4 h-4 mr-2" />
                 Notifications
@@ -1172,7 +1172,7 @@ export default function SuperAdminDashboard() {
         </header>
 
         {/* Main Content Area */}
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="flex-1 p-3 sm:p-6 overflow-auto">
           {renderContent()}
         </main>
       </div>

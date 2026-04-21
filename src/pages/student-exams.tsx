@@ -534,7 +534,7 @@ export default function StudentExams() {
   return (
     <div className="min-h-screen bg-sky-50">
       <Navigation />
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8 relative">
+      <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-8 ${isMobile ? 'pb-20' : ''} relative`}>
         
         {/* Robot GIF - Fixed at Bottom Left */}
         {!isMobile && (
@@ -559,7 +559,7 @@ export default function StudentExams() {
               Class
             </Label>
             <Select value={examClassFilter} onValueChange={setExamClassFilter}>
-              <SelectTrigger id="exam-class-filter" className="w-[220px] bg-white">
+              <SelectTrigger id="exam-class-filter" className="w-full sm:w-[220px] bg-white">
                 <SelectValue placeholder="All classes" />
               </SelectTrigger>
               <SelectContent>
@@ -578,7 +578,7 @@ export default function StudentExams() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
             <TabsTrigger value="available">Available Exams</TabsTrigger>
             <TabsTrigger value="attempted">Attempted Exams</TabsTrigger>
             <TabsTrigger value="ranking">My Rankings</TabsTrigger>

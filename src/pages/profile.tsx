@@ -341,7 +341,7 @@ export default function Profile() {
           {/* Main Content */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="achievements">Achievements</TabsTrigger>
                 <TabsTrigger value="progress">Progress</TabsTrigger>
@@ -399,7 +399,7 @@ export default function Profile() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-7 gap-2">
+                    <div className="grid grid-cols-7 gap-2 overflow-x-auto">
                       {weeklyStats.map((day, index) => (
                         <div key={index} className="text-center">
                           <div className="text-xs text-gray-600 mb-1">{day.day}</div>

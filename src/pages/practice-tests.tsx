@@ -168,14 +168,14 @@ export default function PracticeTests() {
         {/* Test Header */}
         <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h1 className="text-xl font-semibold text-gray-900">{selectedTest.title}</h1>
                 <p className="text-sm text-gray-600">
                   Question {currentQuestion + 1} of {testQuestions.length}
                 </p>
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center flex-wrap gap-2 sm:gap-4">
                 <Badge variant="outline" className="flex items-center">
                   <Timer className="w-3 h-3 mr-1" />
                   {formatTime(timeLeft)}
@@ -197,7 +197,7 @@ export default function PracticeTests() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <CardTitle className="text-lg">
                   Question {currentQuestion + 1}
                 </CardTitle>
@@ -230,7 +230,7 @@ export default function PracticeTests() {
                 </RadioGroup>
               )}
 
-              <div className="flex items-center justify-between pt-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-4 gap-3">
                 <Button 
                   variant="outline" 
                   onClick={prevQuestion} 
@@ -267,7 +267,7 @@ export default function PracticeTests() {
     return (
       <>
         <Navigation />
-        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isMobile ? 'pb-20' : ''}`}>
+        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 py-8 ${isMobile ? 'pb-20' : ''}`}>
           <div className="mb-6">
             <Button 
               variant="outline" 
@@ -290,7 +290,7 @@ export default function PracticeTests() {
   return (
     <>
       <Navigation />
-      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${isMobile ? 'pb-20' : ''}`}>
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 py-8 ${isMobile ? 'pb-20' : ''}`}>
         
         {/* Header */}
         <div className="mb-8">
@@ -301,10 +301,10 @@ export default function PracticeTests() {
         {/* Filter */}
         <Card className="mb-8">
           <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
               <label className="text-sm font-medium text-gray-700">Filter by Exam Type:</label>
               <Select value={selectedExamType} onValueChange={setSelectedExamType}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="All Exam Types" />
                 </SelectTrigger>
                 <SelectContent>
@@ -347,8 +347,8 @@ export default function PracticeTests() {
                 {filteredTests.map((test) => (
                   <Card key={test.id} className="hover:shadow-md transition-shadow">
                     <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-start sm:items-center space-x-4">
                           <div className="w-12 h-12 gradient-accent rounded-lg flex items-center justify-center">
                             <FileText className="w-6 h-6 text-white" />
                           </div>
@@ -382,7 +382,7 @@ export default function PracticeTests() {
                         </div>
                         <Button 
                           onClick={() => startTest(test)}
-                          className="bg-primary text-white hover:bg-primary/90"
+                          className="bg-primary text-white hover:bg-primary/90 w-full sm:w-auto"
                         >
                           <Play className="w-4 h-4 mr-2" />
                           Start Test

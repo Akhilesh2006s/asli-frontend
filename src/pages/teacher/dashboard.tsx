@@ -1698,7 +1698,7 @@ const TeacherDashboard = () => {
       {/* Header - Student Dashboard Theme */}
       <div className="bg-gradient-to-r from-sky-400 via-sky-500 to-teal-500 text-white shadow-xl border-b-0 rounded-b-3xl sticky top-0 z-50 relative">
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-xl">
                 <GraduationCap className="w-6 h-6 text-white" />
@@ -1708,8 +1708,8 @@ const TeacherDashboard = () => {
                 <p className="text-xs text-white/80 font-medium">Teacher Portal</p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
+            <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto space-x-3 sm:space-x-4">
+              <div className="text-left sm:text-right">
                 <p className="text-sm font-medium text-white">{teacherEmail || localStorage.getItem('userEmail') || 'Teacher'}</p>
                 <p className="text-xs text-white/80">Welcome back!</p>
               </div>
@@ -1717,7 +1717,7 @@ const TeacherDashboard = () => {
                 variant="ghost" 
                 size="sm"
                 onClick={handleLogout}
-                className="bg-white/90 text-sky-600 hover:bg-white rounded-full border-2 border-teal-400 backdrop-blur-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                className="bg-white/90 text-sky-600 hover:bg-white rounded-full border-2 border-teal-400 backdrop-blur-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 w-auto"
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout
@@ -1741,10 +1741,10 @@ const TeacherDashboard = () => {
         <div className="space-y-8">
           {/* Dashboard Sub-Tabs */}
               <div className="bg-gradient-to-b from-orange-400 to-orange-500 rounded-3xl p-4 shadow-xl border border-orange-300">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 overflow-x-auto pb-1">
                   <Button
                     variant={dashboardSubTab === 'ai-classes' ? 'default' : 'outline'}
-                    className={dashboardSubTab === 'ai-classes' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'}
+                    className={`${dashboardSubTab === 'ai-classes' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} whitespace-nowrap`}
                     onClick={() => setDashboardSubTab('ai-classes')}
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
@@ -1752,7 +1752,7 @@ const TeacherDashboard = () => {
                   </Button>
                   <Button
                     variant={dashboardSubTab === 'students' ? 'default' : 'outline'}
-                    className={dashboardSubTab === 'students' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'}
+                    className={`${dashboardSubTab === 'students' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} whitespace-nowrap`}
                     onClick={() => setDashboardSubTab('students')}
                   >
                     <Users className="w-4 h-4 mr-2" />

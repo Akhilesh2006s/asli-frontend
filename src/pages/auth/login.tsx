@@ -201,19 +201,19 @@ const Login = () => {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.6, type: "spring" }}
-            className="relative z-10 w-full max-w-md"
+            className="relative z-10 w-full max-w-md sm:max-w-lg"
           >
             {/* Glassmorphism Card with Enhanced Design */}
             <Card className="backdrop-blur-xl bg-white/90 border-white/30 shadow-2xl relative overflow-hidden">
               {/* Decorative gradient overlay */}
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-400 via-blue-400 to-cyan-400"></div>
               
-              <CardHeader className="text-center space-y-4 pb-6 pt-8">
+              <CardHeader className="text-center space-y-4 pb-4 sm:pb-6 pt-6 sm:pt-8 px-4 sm:px-6">
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0, rotate: -180 }}
                   animate={{ scale: 1, opacity: 1, rotate: 0 }}
                   transition={{ duration: 0.8, delay: 0.2, type: "spring" }}
-                  className="w-24 h-24 mx-auto relative"
+                  className="w-20 h-20 sm:w-24 sm:h-24 mx-auto relative"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-sky-300 to-blue-400 rounded-full blur-lg opacity-30"></div>
                   <img 
@@ -227,7 +227,7 @@ const Login = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
                 >
-                  <CardTitle className="text-3xl font-bold bg-gradient-to-r from-sky-600 via-blue-500 to-cyan-600 bg-clip-text text-transparent">
+                  <CardTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-sky-600 via-blue-500 to-cyan-600 bg-clip-text text-transparent">
                     Welcome Back
                   </CardTitle>
                   <p className="text-gray-600 mt-2 text-sm">
@@ -236,7 +236,7 @@ const Login = () => {
                 </motion.div>
               </CardHeader>
               
-              <CardContent className="space-y-6 px-8 pb-8">
+              <CardContent className="space-y-5 sm:space-y-6 px-4 sm:px-8 pb-6 sm:pb-8">
                 {error && (
                   <motion.div
                     initial={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -317,7 +317,7 @@ const Login = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.7 }}
-                    className="flex items-center justify-between"
+                    className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-0 sm:justify-between"
                   >
                     <div className="flex items-center space-x-2">
                       <input
@@ -393,7 +393,7 @@ const Login = () => {
                 </motion.div>
 
                 {/* Decorative Icons */}
-                <div className="absolute bottom-4 right-4 flex gap-2 opacity-20">
+                <div className="absolute bottom-4 right-4 hidden sm:flex gap-2 opacity-20">
                   <BookOpen className="w-6 h-6 text-cyan-400" />
                   <GraduationCap className="w-6 h-6 text-sky-400" />
                   <Sparkles className="w-6 h-6 text-blue-400" />

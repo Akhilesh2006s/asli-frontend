@@ -393,7 +393,7 @@ export default function AITutor() {
       <>
         <Navigation />
         <div className="min-h-screen bg-gradient-to-br from-teal-100 via-teal-50 to-teal-100">
-          <div className="container mx-auto px-4 py-6">
+          <div className={`container mx-auto px-4 pt-20 sm:pt-24 py-6 ${isMobile ? 'pb-20' : ''}`}>
             <Button
               variant="outline"
               onClick={() => setSelectedTool(null)}
@@ -423,10 +423,10 @@ export default function AITutor() {
     <>
       <Navigation />
       <div className="min-h-screen bg-gradient-to-br from-sky-50 via-teal-50 to-blue-50">
-        <div className="container mx-auto px-4 py-8">
+        <div className={`container mx-auto px-4 pt-20 sm:pt-24 py-8 ${isMobile ? 'pb-20' : ''}`}>
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent mb-2">
+            <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent mb-2">
               AI Tools
             </h1>
             <p className="text-gray-600">Select a tool to get started with AI-powered learning</p>

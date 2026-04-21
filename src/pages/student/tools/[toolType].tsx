@@ -1615,12 +1615,12 @@ export default function StudentToolPage() {
             Back
           </Button>
           
-          <div className="flex items-center space-x-3 mb-4">
+          <div className="flex items-center space-x-3 mb-4 min-w-0">
             <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
               <Icon className="w-6 h-6 text-white" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">{config.name}</h1>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">{config.name}</h1>
               <p className="text-gray-600">{config.description}</p>
             </div>
           </div>

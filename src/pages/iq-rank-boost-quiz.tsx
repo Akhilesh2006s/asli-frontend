@@ -204,7 +204,7 @@ export default function IQRankBoostQuiz() {
     return (
       <>
         <Navigation />
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8 bg-gray-50 min-h-screen">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-20 bg-gray-50 min-h-screen">
           <div className="max-w-4xl mx-auto">
             <Card>
               <CardHeader>
@@ -229,7 +229,7 @@ export default function IQRankBoostQuiz() {
     return (
       <>
         <Navigation />
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8 bg-gray-50 min-h-screen">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-20 bg-gray-50 min-h-screen">
           <div className="max-w-4xl mx-auto">
             <Card>
               <CardContent className="py-16 text-center">
@@ -256,7 +256,7 @@ export default function IQRankBoostQuiz() {
     return (
       <>
         <Navigation />
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8 bg-gray-50 min-h-screen">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-20 bg-gray-50 min-h-screen">
           <div className="max-w-4xl mx-auto">
             <Card className="mb-6">
               <CardHeader>
@@ -385,7 +385,7 @@ export default function IQRankBoostQuiz() {
   return (
     <>
       <Navigation />
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8 bg-gray-50 min-h-screen">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-20 bg-gray-50 min-h-screen">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="mb-6">

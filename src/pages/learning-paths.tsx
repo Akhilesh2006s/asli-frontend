@@ -653,7 +653,7 @@ export default function LearningPaths() {
   return (
     <>
       <Navigation />
-      <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8 bg-sky-50 min-h-screen ${isMobile ? 'pb-20' : ''} relative`}>
+      <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-8 bg-sky-50 min-h-screen ${isMobile ? 'pb-20' : ''} relative`}>
         
         {/* Robot GIF - Fixed at Bottom Left */}
         {!isMobile && (
@@ -670,9 +670,9 @@ export default function LearningPaths() {
         
         {/* Header Section */}
         <div className="mb-8">
-          <div className="gradient-primary rounded-2xl p-8 text-white relative overflow-hidden">
+          <div className="gradient-primary rounded-2xl p-5 sm:p-8 text-white relative overflow-hidden">
             <div className="relative z-10">
-              <h1 className="text-3xl font-bold mb-2">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-2 break-words">
                 Learning Paths for {user?.email || 'Student'}
               </h1>
               <p className="text-blue-100 mb-6">
@@ -691,10 +691,10 @@ export default function LearningPaths() {
 
         {/* Tabs */}
         <div className="mb-8">
-          <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-6">
+          <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-6 overflow-x-auto">
             <button
               onClick={() => setActiveTab('subjects')}
-              className={`flex-1 px-6 py-3 text-sm font-medium rounded-md transition-all ${
+              className={`flex-1 min-w-[140px] px-4 sm:px-6 py-3 text-sm font-medium rounded-md transition-all ${
                 activeTab === 'subjects'
                   ? 'bg-white text-gray-900 shadow-sm border border-gray-300'
                   : 'text-gray-600 hover:text-gray-900'
@@ -704,7 +704,7 @@ export default function LearningPaths() {
             </button>
             <button
               onClick={() => setActiveTab('quizzes')}
-              className={`flex-1 px-6 py-3 text-sm font-medium rounded-md transition-all ${
+              className={`flex-1 min-w-[140px] px-4 sm:px-6 py-3 text-sm font-medium rounded-md transition-all ${
                 activeTab === 'quizzes'
                   ? 'bg-white text-gray-900 shadow-sm border border-gray-300'
                   : 'text-gray-600 hover:text-gray-900'

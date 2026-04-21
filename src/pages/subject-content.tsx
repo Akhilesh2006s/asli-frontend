@@ -398,7 +398,7 @@ export default function SubjectContent() {
     return (
       <>
         <Navigation />
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 py-8 ${isMobile ? 'pb-20' : ''}`}>
           <div className="text-center">Loading subject content...</div>
         </div>
       </>
@@ -429,7 +429,7 @@ export default function SubjectContent() {
   return (
     <>
       <Navigation />
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8 relative">
+      <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-8 ${isMobile ? 'pb-20' : ''} relative`}>
         
         {/* Robot GIF - Fixed at Bottom Left */}
         {!isMobile && (
@@ -456,7 +456,7 @@ export default function SubjectContent() {
             </Link>
           </div>
           
-          <div className="gradient-primary rounded-2xl p-8 text-white relative overflow-hidden">
+          <div className="gradient-primary rounded-2xl p-5 sm:p-8 text-white relative overflow-hidden">
             <div className="relative z-10">
               <div className="flex items-center space-x-4 mb-4">
                 <div className={`w-16 h-16 ${subject.color} rounded-2xl flex items-center justify-center`}>

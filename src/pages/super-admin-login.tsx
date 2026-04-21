@@ -62,20 +62,20 @@ export default function SuperAdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-md sm:max-w-lg">
         <Card className="backdrop-blur-sm bg-white/10 border-white/20">
-          <CardHeader className="text-center">
+          <CardHeader className="text-center px-4 sm:px-6">
             <div className="flex justify-center mb-4">
               <div className="p-3 bg-yellow-100 rounded-full">
                 <Crown className="h-8 w-8 text-yellow-600" />
               </div>
             </div>
-            <CardTitle className="text-2xl font-bold text-white">Super Admin Access</CardTitle>
-            <p className="text-white/80">Enter your credentials to access the system</p>
+            <CardTitle className="text-xl sm:text-2xl font-bold text-white">Super Admin Access</CardTitle>
+            <p className="text-sm sm:text-base text-white/80">Enter your credentials to access the system</p>
           </CardHeader>
           
-          <CardContent>
+          <CardContent className="px-4 sm:px-6 pb-6 sm:pb-8">
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-white">Email Address</Label>
@@ -151,7 +151,7 @@ export default function SuperAdminLogin() {
             <div className="mt-4 text-center">
               <Button
                 variant="ghost"
-                className="text-white/80 hover:text-white"
+                className="text-white/80 hover:text-white w-full sm:w-auto"
                 onClick={() => window.location.href = "/"}
               >
                 ← Back to Home

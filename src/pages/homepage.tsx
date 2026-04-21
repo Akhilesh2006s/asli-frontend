@@ -9,33 +9,33 @@ import {
 const Navbar = () => {
   return (
     <nav className="w-full bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-      <div className="w-full max-w-7xl mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
+      <div className="w-full max-w-7xl mx-auto px-4 py-3 sm:py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
           {/* Left - Logo and Brand Name */}
           <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
             <img 
               src="/logo.jpg" 
               alt="AsliLearn AI company logo" 
-              className="w-12 h-12 object-contain"
+              className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
             />
-            <span className="text-2xl md:text-3xl font-extrabold text-blue-600 animate-blue-glow">
+            <span className="text-lg sm:text-2xl md:text-3xl font-extrabold text-blue-600 animate-blue-glow">
               ASLILEARN AI
             </span>
           </Link>
 
           {/* Right - Login/Signup Buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <Link href="/auth/login">
               <Button 
                 variant="outline" 
-                className="border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                className="border-gray-300 bg-white text-gray-700 hover:bg-gray-50 w-full sm:w-auto"
               >
                 Login
               </Button>
             </Link>
             <Link href="/auth/register">
               <Button 
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg w-full sm:w-auto"
               >
                 Get Started
               </Button>

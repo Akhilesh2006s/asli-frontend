@@ -127,10 +127,10 @@ const Register = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="relative z-10 w-full max-w-md"
+        className="relative z-10 w-full max-w-md sm:max-w-lg"
       >
         <Card className="backdrop-blur-sm bg-white/80 border-white/20 shadow-2xl">
-          <CardHeader className="text-center space-y-4">
+          <CardHeader className="text-center space-y-4 px-4 sm:px-6">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -147,7 +147,7 @@ const Register = () => {
             </p>
           </CardHeader>
           
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-5 sm:space-y-6 px-4 sm:px-6 pb-6 sm:pb-8">
             {error && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
@@ -273,7 +273,7 @@ const Register = () => {
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-1"
                   required
                 />
-                <Label htmlFor="terms" className="text-sm text-gray-600">
+                <Label htmlFor="terms" className="text-sm text-gray-600 leading-6">
                   I agree to the{' '}
                   <Link href="/terms" className="text-blue-600 hover:text-blue-700">
                     Terms of Service

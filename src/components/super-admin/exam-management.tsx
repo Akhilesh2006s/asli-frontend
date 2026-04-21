@@ -1313,16 +1313,16 @@ export default function ExamManagement() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Exam Management</h2>
+    <div className="p-3 sm:p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">Exam Management</h2>
           <p className="text-gray-600 mt-1">Create and manage exams</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Dialog open={isCsvDialogOpen} onOpenChange={setIsCsvDialogOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="border-green-500 text-green-600 hover:bg-green-50">
+              <Button variant="outline" className="border-green-500 text-green-600 hover:bg-green-50 w-full sm:w-auto">
                 <Upload className="mr-2 h-4 w-4" />
                 Upload CSV
               </Button>
@@ -1410,7 +1410,7 @@ export default function ExamManagement() {
           </Dialog>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={openCreateExamDialog} className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white">
+              <Button onClick={openCreateExamDialog} className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white w-full sm:w-auto">
                 <Plus className="mr-2 h-4 w-4" />
                 Create Exam
               </Button>

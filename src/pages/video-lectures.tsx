@@ -167,7 +167,7 @@ export default function VideoLectures() {
   return (
     <>
       <Navigation />
-      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8 ${isMobile ? 'pb-20' : ''}`}>
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-8 ${isMobile ? 'pb-20' : ''}`}>
         
         {/* Header */}
         <div className="mb-8">

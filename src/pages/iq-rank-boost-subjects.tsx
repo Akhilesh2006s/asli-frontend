@@ -186,10 +186,10 @@ export default function IQRankBoostSubjects() {
   return (
     <>
       <Navigation />
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8 bg-gray-50 min-h-screen">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-20 bg-gray-50 min-h-screen">
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4">
               <Link href="/dashboard">
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="w-4 h-4 mr-2" />
@@ -197,12 +197,12 @@ export default function IQRankBoostSubjects() {
                 </Button>
               </Link>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-pink-500 rounded-lg flex items-center justify-center">
                 <Zap className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">IQ/Rank Boost Practice</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">IQ/Rank Boost Practice</h1>
                 <p className="text-gray-600">
                   {studentClass ? `Practice questions for Class ${studentClass}` : 'Practice questions to boost your IQ and rank'}
                 </p>

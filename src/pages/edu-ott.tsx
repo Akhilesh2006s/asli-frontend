@@ -410,7 +410,7 @@ export default function EduOTT() {
   return (
     <>
       <Navigation />
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8 bg-sky-50 min-h-screen relative">
+      <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-8 bg-sky-50 min-h-screen ${isMobile ? 'pb-20' : ''} relative`}>
         {!isMobile && (
           <div
             className="fixed bottom-8 left-4 z-30 cursor-pointer"
@@ -590,7 +590,7 @@ export default function EduOTT() {
 
           <TabsContent value="live-sessions" className="space-y-6">
             <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end">
-              <div className="flex-1 min-w-[200px] relative">
+              <div className="flex-1 min-w-0 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
                   type="text"
@@ -657,7 +657,7 @@ export default function EduOTT() {
                 {filteredSessions.map((session) => (
                   <Card key={session._id} className="hover:shadow-lg transition-shadow">
                     <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="text-lg font-semibold text-gray-900">{session.title}</h3>

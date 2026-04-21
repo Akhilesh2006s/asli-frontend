@@ -19,8 +19,12 @@ import {
   Calendar,
   AlertTriangle,
   FolderTree,
+  Menu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useState } from "react";
 
 export type SuperAdminView =
   | 'dashboard'
@@ -50,6 +54,8 @@ interface SuperAdminSidebarProps {
 }
 
 export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdminSidebarProps) {
+  const isMobile = useIsMobile();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3Icon },
     { id: 'board', label: 'Board Management', icon: Users2 },
@@ -68,8 +74,8 @@ export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdmi
     { id: 'settings', label: 'Settings', icon: SettingsIcon },
   ];
 
-  return (
-    <div className="super-admin-sidebar w-64 bg-gradient-to-b from-orange-400 to-orange-500 shadow-sm border-r border-orange-300 h-screen fixed top-0 left-0 overflow-y-auto flex flex-col z-20">
+  const sidebarContent = (
+    <div className="h-full flex flex-col">
       <div className="p-6">
         <div className="flex items-center space-x-3 mb-8">
           <GraduationCapIcon className="h-8 w-8 text-white" />
@@ -78,21 +84,24 @@ export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdmi
             <p className="text-xs text-white/90">Super Admin</p>
           </div>
         </div>
-        
+
         <nav className="space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive =
               currentView === item.id ||
               (item.id === 'analytics' && currentView === 'ai-analytics');
-            
+
             return (
               <button
                 key={item.id}
-                onClick={() => onViewChange(item.id as SuperAdminView)}
+                onClick={() => {
+                  onViewChange(item.id as SuperAdminView);
+                  setMobileOpen(false);
+                }}
                 className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
-                  isActive 
-                    ? "bg-white text-orange-600 shadow-md" 
+                  isActive
+                    ? "bg-white text-orange-600 shadow-md"
                     : "text-white hover:bg-orange-600/50"
                 }`}
               >
@@ -103,7 +112,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdmi
           })}
         </nav>
       </div>
-      
+
       <div className="mt-auto p-6 border-t border-orange-300/50">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
@@ -115,6 +124,47 @@ export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdmi
           </div>
         </div>
       </div>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <>
+        <div className="fixed top-0 left-0 right-0 z-30 bg-gradient-to-r from-orange-400 to-orange-500 border-b border-orange-300/60 shadow-md">
+          <div className="h-14 px-4 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <GraduationCapIcon className="h-6 w-6 text-white" />
+              <div>
+                <h2 className="text-sm font-bold text-white leading-none">Aslilearn AI</h2>
+                <p className="text-[10px] text-white/90">Super Admin</p>
+              </div>
+            </div>
+            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-white hover:bg-orange-600/40"
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent
+                side="left"
+                className="w-80 max-w-[90vw] p-0 bg-gradient-to-b from-orange-400 to-orange-500 border-r border-orange-300"
+              >
+                {sidebarContent}
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <div className="super-admin-sidebar w-64 bg-gradient-to-b from-orange-400 to-orange-500 shadow-sm border-r border-orange-300 h-screen fixed top-0 left-0 overflow-y-auto flex flex-col z-20">
+      {sidebarContent}
     </div>
   );
 }

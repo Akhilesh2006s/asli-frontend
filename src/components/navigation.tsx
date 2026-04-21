@@ -132,21 +132,21 @@ export default function Navigation() {
       {/* Desktop Header - Modern Gradient Theme */}
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/80 border-b border-blue-200/40 shadow-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
+          <div className="flex justify-between items-center h-16 sm:h-20">
             {/* Logo Section - simplified, no border around logo */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <Link href="/dashboard">
                 <div className="flex items-center space-x-3 cursor-pointer group">
                   <img 
                     src="/logo.jpg" 
                     alt="ASLILEARN Logo" 
-                    className="w-14 h-14 rounded-2xl object-contain group-hover:scale-105 transition-transform duration-300"
+                    className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl object-contain group-hover:scale-105 transition-transform duration-300"
                   />
                   <div className="flex flex-col">
-                    <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
+                    <span className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
                       ASLILEARN AI
                     </span>
-                    <span className="text-xs text-gray-600 font-medium -mt-1">AI-Powered Learning</span>
+                    <span className="hidden sm:block text-xs text-gray-600 font-medium -mt-1">AI-Powered Learning</span>
                   </div>
                 </div>
               </Link>

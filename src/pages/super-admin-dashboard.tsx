@@ -39,9 +39,11 @@ import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
 import { cn } from "@/lib/utils";
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function SuperAdminDashboard() {
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [currentView, setCurrentView] = useState<SuperAdminView>('dashboard');
   const [user] = useState({ 
     fullName: 'Super Admin', 
@@ -333,11 +335,11 @@ export default function SuperAdminDashboard() {
     }
 
     return (
-    <div className="flex gap-6 min-h-screen relative z-10">
+    <div className="flex flex-col xl:flex-row gap-6 min-h-screen relative z-10">
       {/* Main Content Area */}
       <div className="flex-1 space-y-6">
         {/* Welcome Header */}
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back, Super Admin</h1>
             <p className="text-gray-600">Manage boards, schools, exams and AI analytic tau at one place.</p>
@@ -371,7 +373,7 @@ export default function SuperAdminDashboard() {
         </div>
 
         {/* Content Management & AI Analytics Boxes */}
-        <div className="grid grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           {/* Content Management - Light Blue (CBSE TS color) */}
           <Card 
             className="bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 cursor-pointer hover:from-sky-400 hover:to-sky-500 transition-all duration-300 shadow-lg"
@@ -407,7 +409,7 @@ export default function SuperAdminDashboard() {
       </div>
 
         {/* Widgets Row */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Total Students Widget */}
           <Card className="bg-white">
           <CardContent className="p-6">
@@ -745,7 +747,7 @@ export default function SuperAdminDashboard() {
       </div>
 
       {/* Right Sidebar */}
-      <div className="w-80 space-y-6">
+      <div className="w-full xl:w-80 space-y-6">
         {/* Icon Grid */}
         <Card className="bg-white">
           <CardContent className="p-4">
@@ -1090,7 +1092,7 @@ export default function SuperAdminDashboard() {
   };
 
   return (
-    <div className="bg-gray-50">
+    <div className="bg-gray-50 min-h-screen">
       {/* Fixed sidebar */}
       <SuperAdminSidebar
         currentView={currentView}
@@ -1099,11 +1101,15 @@ export default function SuperAdminDashboard() {
       />
 
       {/* Scrollable main content area */}
-      <div className="ml-64 h-screen overflow-y-auto flex flex-col">
+      <div className={cn("flex flex-col", isMobile ? "ml-0 min-h-screen pt-14" : "ml-64 h-screen overflow-y-auto")}>
         <div
           className={cn(
             "flex-1 min-h-0",
-            currentView === "ai-tool-generations" ? "p-0" : "p-6",
+            currentView === "ai-tool-generations"
+              ? "p-0"
+              : isMobile
+                ? "p-3 sm:p-4"
+                : "p-6",
           )}
         >
           {renderContent()}

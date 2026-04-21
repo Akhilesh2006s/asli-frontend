@@ -107,6 +107,14 @@
     overflow-x: hidden;
     overflow-y: auto;
   }
+
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
 }
 
 .instrument {
@@ -376,4 +384,17 @@
 
 .super-admin-sidebar::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Edge */
+}
+
+/* Cross-page mobile and tablet safeguards */
+@media (max-width: 1023px) {
+  .responsive-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .responsive-table-wrapper table {
+    min-width: 640px;
+  }
 }
