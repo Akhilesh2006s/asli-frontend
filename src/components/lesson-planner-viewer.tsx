@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen, Clock, Target, GraduationCap, Lightbulb, FileText, CheckCircle, Award } from 'lucide-react';
+import { renderMarkdown } from '@/lib/render-teacher-markdown';
 
 interface Lesson {
   lesson_name: string;
@@ -23,65 +24,126 @@ interface LessonPlannerViewerProps {
   rawContent?: any;
 }
 
+function lessonPlannerDisplayMarkdown(content: string, rawContent: any): string | null {
+  try {
+    const d = JSON.parse(content);
+    if (d.formatted != null && String(d.formatted).trim()) return String(d.formatted);
+  } catch {
+    /* plain text */
+  }
+  if (rawContent && typeof rawContent === 'object' && rawContent.markdown) {
+    const m = String(rawContent.markdown).trim();
+    if (m) return m;
+  }
+  const t = String(content || '').trim();
+  return t.length > 0 ? t : null;
+}
+
 export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewerProps) {
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [markdownFallback, setMarkdownFallback] = useState<string | null>(null);
   const [selectedLessonIndex, setSelectedLessonIndex] = useState<number | null>(null);
   const [bookName, setBookName] = useState<string>('');
   const [className, setClassName] = useState<string>('');
 
   useEffect(() => {
-    // Try to parse from raw JSON data first (more reliable)
     let parsedLessons: Lesson[] = [];
     let book = '';
     let classNum = '';
-    
+    let mdFallback: string | null = null;
+
     try {
       const contentData = JSON.parse(content);
       if (contentData.raw && contentData.raw.lessons) {
-        // Use raw JSON data if available
         parsedLessons = contentData.raw.lessons;
         book = contentData.raw.book || '';
         classNum = contentData.raw.class || '';
-      } else if (contentData.formatted) {
-        // Parse from formatted content
-        const parsed = parseLessons(contentData.formatted);
+        const formattedStr =
+          contentData.formatted != null ? String(contentData.formatted) : '';
+        if (formattedStr.trim() && parsedLessons.length > 0) {
+          const fromFormatted = parseLessons(formattedStr);
+          parsedLessons = parsedLessons.map((lesson, i) => {
+            const alt = fromFormatted.lessons[i];
+            if (!alt?.lesson_name || lesson.lesson_name) return lesson;
+            return { ...lesson, ...alt };
+          });
+        }
+        if (parsedLessons.length === 0 && formattedStr.trim()) {
+          const parsed = parseLessons(formattedStr);
+          parsedLessons = parsed.lessons;
+          book = parsed.book || book;
+          classNum = parsed.class || classNum;
+        }
+      } else if (contentData.formatted != null) {
+        const formatted = String(contentData.formatted);
+        const parsed = parseLessons(formatted);
+        parsedLessons = parsed.lessons;
+        book = parsed.book;
+        classNum = parsed.class;
+        if (parsedLessons.length === 0 && formatted.trim()) mdFallback = formatted;
+      } else {
+        const parsed = parseLessons(content);
         parsedLessons = parsed.lessons;
         book = parsed.book;
         classNum = parsed.class;
       }
-    } catch (e) {
-      // Not JSON, try parsing from rawContent prop
+    } catch {
       if (rawContent) {
         if (rawContent.lessons) {
           parsedLessons = rawContent.lessons;
           book = rawContent.book || '';
           classNum = rawContent.class || '';
         } else if (rawContent.lesson_plans) {
-          // Social Science format
           parsedLessons = rawContent.lesson_plans;
           book = rawContent.book || '';
           classNum = rawContent.class || '';
         }
-      } else {
-        // Fallback: parse from markdown/HTML content
+      }
+      if (parsedLessons.length === 0) {
         const parsed = parseLessons(content);
         parsedLessons = parsed.lessons;
         book = parsed.book;
         classNum = parsed.class;
       }
+      if (parsedLessons.length === 0) {
+        mdFallback = lessonPlannerDisplayMarkdown(content, rawContent);
+      }
     }
-    
+
+    if (parsedLessons.length === 0 && !mdFallback) {
+      mdFallback = lessonPlannerDisplayMarkdown(content, rawContent);
+    }
+
     setLessons(parsedLessons);
+    setMarkdownFallback(mdFallback);
     setBookName(book);
     setClassName(classNum);
     if (parsedLessons.length > 0) {
       setSelectedLessonIndex(0);
+    } else {
+      setSelectedLessonIndex(null);
     }
   }, [content, rawContent]);
 
   const selectedLesson = selectedLessonIndex !== null ? lessons[selectedLessonIndex] : null;
 
   if (lessons.length === 0) {
+    if (markdownFallback) {
+      return (
+        <div className="space-y-4 w-full max-w-4xl mx-auto">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <p className="font-medium m-0">Showing saved lesson as text</p>
+            <p className="mt-1 mb-0 text-amber-900/90">
+              Interactive lesson cards were not detected (e.g. plain Markdown from AI or database fallback). The full plan is below.
+            </p>
+          </div>
+          <div
+            className="prose prose-sm max-w-none max-h-[80vh] overflow-y-auto rounded-lg border border-gray-200 bg-white p-6 shadow-sm prose-headings:text-gray-900 prose-p:text-gray-700"
+            dangerouslySetInnerHTML={{ __html: renderMarkdown(markdownFallback) }}
+          />
+        </div>
+      );
+    }
     return (
       <div className="text-center py-12 text-gray-500">
         <p>No lesson plans found in the generated content.</p>

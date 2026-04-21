@@ -17,7 +17,8 @@ import {
   Shield,
   Users2,
   Calendar,
-  AlertTriangle
+  AlertTriangle,
+  FolderTree,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -36,6 +37,7 @@ export type SuperAdminView =
   | 'exams'
   | 'iq-rank-boost'
   | 'vidya-ai'
+  | 'ai-tool-generations'
   | 'courses'
   | 'add-admin'
   | 'calendar'
@@ -59,6 +61,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdmi
     { id: 'iq-rank-boost', label: 'IQ/Rank Boost Activities', icon: TrophyIcon },
     { id: 'calendar', label: 'School Calendar', icon: Calendar },
     { id: 'vidya-ai', label: 'Vidya AI', icon: Sparkles },
+    { id: 'ai-tool-generations', label: 'AI Tool Data', icon: FolderTree },
     { id: 'analytics', label: 'Analytics', icon: BarChartIcon },
     { id: 'ai-risk-analysis', label: 'AI Risk Analysis', icon: AlertTriangle },
     { id: 'subscriptions', label: 'Subscriptions', icon: CreditCardIcon },

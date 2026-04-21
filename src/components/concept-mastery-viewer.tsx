@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, BookOpen, Lightbulb, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { renderMarkdown } from '@/lib/render-teacher-markdown';
 
 interface Concept {
   concept_name: string;
@@ -17,18 +18,24 @@ interface ConceptMasteryViewerProps {
 
 export function ConceptMasteryViewer({ content }: ConceptMasteryViewerProps) {
   const [concepts, setConcepts] = useState<Concept[]>([]);
+  const [markdownFallback, setMarkdownFallback] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTurning, setIsTurning] = useState(false);
   const [direction, setDirection] = useState<'left' | 'right'>('right');
 
   useEffect(() => {
-    // Try to parse from raw JSON data first (more reliable)
     let parsedConcepts: Concept[] = [];
-    
+    let mdFallback: string | null = null;
+
+    const setFallbackIfNeeded = (text: string, afterParse: Concept[]) => {
+      if (afterParse.length === 0 && String(text || '').trim().length > 0) {
+        mdFallback = text;
+      }
+    };
+
     try {
       const contentData = JSON.parse(content);
       if (contentData.raw && contentData.raw.concepts) {
-        // Use raw JSON data if available
         parsedConcepts = contentData.raw.concepts.map((concept: any) => ({
           concept_name: concept.concept_name || '',
           difficulty: concept.difficulty,
@@ -36,16 +43,42 @@ export function ConceptMasteryViewer({ content }: ConceptMasteryViewerProps) {
           real_example: concept.real_example,
           key_points: concept.key_points
         }));
-      } else if (contentData.formatted) {
-        // Parse from formatted content
-        parsedConcepts = parseConcepts(contentData.formatted);
+        const formattedStr =
+          contentData.formatted != null ? String(contentData.formatted) : '';
+        if (formattedStr.trim()) {
+          const fromFormatted = parseConcepts(formattedStr);
+          parsedConcepts = parsedConcepts.map((c, i) => {
+            const alt =
+              fromFormatted.find(
+                (f) =>
+                  f.concept_name.trim().toLowerCase() === c.concept_name.trim().toLowerCase(),
+              ) || fromFormatted[i];
+            if (!alt) return c;
+            return {
+              ...c,
+              lesson: c.lesson || alt.lesson,
+              real_example: c.real_example || alt.real_example,
+              key_points:
+                c.key_points && c.key_points.length > 0 ? c.key_points : alt.key_points,
+              difficulty: c.difficulty || alt.difficulty,
+            };
+          });
+        }
+      } else if (contentData.formatted != null) {
+        const formatted = String(contentData.formatted);
+        parsedConcepts = parseConcepts(formatted);
+        setFallbackIfNeeded(formatted, parsedConcepts);
+      } else {
+        parsedConcepts = parseConcepts(content);
+        setFallbackIfNeeded(content, parsedConcepts);
       }
-    } catch (e) {
-      // Not JSON, parse from markdown/HTML content
+    } catch {
       parsedConcepts = parseConcepts(content);
+      setFallbackIfNeeded(content, parsedConcepts);
     }
-    
+
     setConcepts(parsedConcepts);
+    setMarkdownFallback(mdFallback);
     setCurrentIndex(0);
   }, [content]);
 
@@ -88,6 +121,22 @@ export function ConceptMasteryViewer({ content }: ConceptMasteryViewerProps) {
   }, [currentIndex, concepts.length, isTurning]);
 
   if (concepts.length === 0) {
+    if (markdownFallback) {
+      return (
+        <div className="space-y-4 w-full max-w-5xl mx-auto">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <p className="font-medium m-0">Showing saved content as text</p>
+            <p className="mt-1 mb-0 text-amber-800/90">
+              This copy does not use the interactive concept-card format (e.g. it came from the database fallback). The full text is below.
+            </p>
+          </div>
+          <div
+            className="prose prose-sm max-w-none max-h-[80vh] overflow-y-auto rounded-lg border border-gray-200 bg-white p-6 shadow-sm prose-headings:text-gray-900 prose-p:text-gray-700"
+            dangerouslySetInnerHTML={{ __html: renderMarkdown(markdownFallback) }}
+          />
+        </div>
+      );
+    }
     return (
       <div className="text-center py-12 text-gray-500">
         <p>No concepts found in the generated content.</p>
@@ -362,6 +411,94 @@ export function ConceptMasteryViewer({ content }: ConceptMasteryViewerProps) {
   );
 }
 
+/** Plain text from HTML fragments (lesson / example blocks may use multiple tags). */
+function stripHtmlBasic(html: string): string {
+  if (!html) return '';
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|h[1-6])>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/** Content under a ## heading until the next ## or end (Gemini / NCERT-style markdown). */
+function extractMarkdownH2Section(body: string, title: string): string | undefined {
+  const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`(?:^|\\n)##\\s*${escaped}\\s*\\n([\\s\\S]*?)(?=\\n##\\s|$)`, 'i');
+  const m = body.match(re);
+  return m ? m[1].trim() : undefined;
+}
+
+/** Fill lesson / example / bullets when the model used Gemini section headings instead of **Explanation:** */
+function enrichGeminiMarkdownConcept(
+  conceptContent: string,
+  conceptName: string,
+  difficulty: string | undefined,
+  lesson: string | undefined,
+  realExample: string | undefined,
+  keyPoints: string[] | undefined,
+): Concept {
+  let L = lesson;
+  let R = realExample;
+  let K = keyPoints?.length ? keyPoints : undefined;
+
+  if (!L) {
+    const overview = extractMarkdownH2Section(conceptContent, 'Concept Overview');
+    const steps = extractMarkdownH2Section(conceptContent, 'Step-by-Step Explanation');
+    const keyComp = extractMarkdownH2Section(conceptContent, 'Key Components Breakdown');
+    const parts = [overview, keyComp, steps].filter(Boolean);
+    if (parts.length > 0) L = parts.join('\n\n');
+  }
+  if (!L) {
+    const legacy = conceptContent.match(/\*\*Explanation:\*\*\s*\n([\s\S]*?)(?=\n\n\*\*|$)/s);
+    if (legacy) L = legacy[1].trim();
+  }
+  if (!L) {
+    const rest = conceptContent.replace(/^###[^\n]*\n+/, '').trim();
+    if (rest.length > 0) L = rest;
+  }
+
+  if (!R) {
+    R = extractMarkdownH2Section(conceptContent, 'Real-World Examples');
+    if (!R) R = extractMarkdownH2Section(conceptContent, 'Real-World Example');
+  }
+  if (!R) {
+    const legacy = conceptContent.match(/\*\*Real-world Example:\*\*\s*\n([\s\S]*?)(?=\n\n\*\*|$)/s);
+    if (legacy) R = legacy[1].trim();
+  }
+
+  if (!K || K.length === 0) {
+    const summary = extractMarkdownH2Section(conceptContent, 'Summary and Key Takeaways');
+    const misconceptions = extractMarkdownH2Section(conceptContent, 'Common Misconceptions');
+    const practice = extractMarkdownH2Section(conceptContent, 'Practice Exercises');
+    const blob = [summary, misconceptions, practice].filter(Boolean).join('\n\n');
+    if (blob) {
+      const bullets = blob
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => /^[-*]\s/.test(line))
+        .map((line) => line.replace(/^[-*]\s+/, '').trim())
+        .filter(Boolean);
+      if (bullets.length > 0) K = bullets;
+    }
+  }
+
+  return {
+    concept_name: conceptName,
+    difficulty,
+    lesson: L,
+    real_example: R,
+    key_points: K && K.length > 0 ? K : undefined,
+  };
+}
+
 function parseConcepts(content: string): Concept[] {
   const concepts: Concept[] = [];
   
@@ -372,43 +509,35 @@ function parseConcepts(content: string): Concept[] {
   for (const match of matches) {
     const cardContent = match[1];
     
-    // Extract concept name
-    const conceptMatch = cardContent.match(/<h2[^>]*>📚\s*(.*?)<\/h2>/);
-    let conceptName = conceptMatch ? conceptMatch[1].trim() : '';
+    // Title: formatter uses plain <h2>; older samples used 📚 inside the heading
+    const conceptMatch = cardContent.match(/<h2[^>]*>([\s\S]*?)<\/h2>/i);
+    let conceptName = conceptMatch
+      ? conceptMatch[1].replace(/📚\s*/g, '').replace(/<[^>]+>/g, '').trim()
+      : '';
     
-    // Extract difficulty
-    const difficultyMatch = cardContent.match(/<span[^>]*>([A-Z]+)<\/span>/);
+    // Extract difficulty (badge span after title)
+    const difficultyMatch = cardContent.match(/<span[^>]*>(EASY|MEDIUM|HARD)<\/span>/i);
     const difficulty = difficultyMatch ? difficultyMatch[1].toLowerCase() : undefined;
     
-    // Extract lesson
+    // Lesson: full block after h3 "Lesson Explanation" (multi-<p> safe)
     let lesson: string | undefined;
-    const lessonSection = cardContent.match(/<h3[^>]*>Lesson Explanation<\/h3>[\s\S]*?<p[^>]*>(.*?)<\/p>/);
-    if (lessonSection) {
-      lesson = lessonSection[1]
-        .replace(/<br\s*\/?>/g, '\n')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .trim();
+    const lessonBlock = cardContent.match(
+      /<h3[^>]*>Lesson Explanation<\/h3>([\s\S]*?)(?=<h3[^>]*>|$)/i,
+    );
+    if (lessonBlock) {
+      lesson = stripHtmlBasic(lessonBlock[1]);
     }
     
-    // Extract real example
     let realExample: string | undefined;
-    const exampleSection = cardContent.match(/<h3[^>]*>Real-world Example<\/h3>[\s\S]*?<p[^>]*>(.*?)<\/p>/);
-    if (exampleSection) {
-      realExample = exampleSection[1]
-        .replace(/<br\s*\/?>/g, '\n')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .trim();
+    const exampleBlock = cardContent.match(
+      /<h3[^>]*>Real-world Example<\/h3>([\s\S]*?)(?=<h3[^>]*>|$)/i,
+    );
+    if (exampleBlock) {
+      realExample = stripHtmlBasic(exampleBlock[1]);
     }
     
-    // Extract key points
     const keyPoints: string[] = [];
-    const pointsSection = cardContent.match(/<h3[^>]*>Key Points<\/h3>[\s\S]*?<ul[^>]*>([\s\S]*?)<\/ul>/);
+    const pointsSection = cardContent.match(/<h3[^>]*>Key Points<\/h3>[\s\S]*?<ul[^>]*>([\s\S]*?)<\/ul>/i);
     if (pointsSection) {
       const pointsContent = pointsSection[1];
       const pointMatches = pointsContent.matchAll(/<span[^>]*>(.*?)<\/span>/g);
@@ -421,6 +550,13 @@ function parseConcepts(content: string): Concept[] {
           .trim();
         if (point && !point.match(/^\d+$/)) {
           keyPoints.push(point);
+        }
+      }
+      if (keyPoints.length === 0) {
+        const liMatches = pointsContent.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi);
+        for (const li of liMatches) {
+          const text = stripHtmlBasic(li[1]);
+          if (text) keyPoints.push(text);
         }
       }
     }
@@ -436,43 +572,50 @@ function parseConcepts(content: string): Concept[] {
     }
   }
   
-  // Fallback: parse from markdown format
+  // Fallback: parse from markdown format (### 1. Title or ### Title)
   if (concepts.length === 0) {
-    const conceptRegex = /### \d+\.\s*(.*?)\n/g;
-    const conceptMatches = Array.from(content.matchAll(conceptRegex));
+    const conceptHeaderRegex = /(?:^|\n)###\s*(?:\d+\.\s*)?([^\n]+)\n/g;
+    const conceptMatches = Array.from(content.matchAll(conceptHeaderRegex));
     
     conceptMatches.forEach((match, index) => {
       const conceptName = match[1].trim();
-      const startIndex = match.index || 0;
+      const startIndex = match.index ?? 0;
       const nextMatch = conceptMatches[index + 1];
-      const endIndex = nextMatch ? nextMatch.index : content.length;
+      const endIndex = nextMatch ? nextMatch.index ?? content.length : content.length;
       const conceptContent = content.substring(startIndex, endIndex);
       
-      // Extract difficulty
       const difficultyMatch = conceptContent.match(/\*\*Difficulty:\*\*\s*(.*?)\n/);
       const difficulty = difficultyMatch ? difficultyMatch[1].trim().toLowerCase() : undefined;
       
-      // Extract explanation/lesson
-      const explanationMatch = conceptContent.match(/\*\*Explanation:\*\*\s*\n(.*?)(?=\n\n\*\*Real-world Example:|\n\n\*\*Key Points:|$)/s);
-      const lesson = explanationMatch ? explanationMatch[1].trim() : undefined;
+      let lesson: string | undefined;
+      const explanationMatch = conceptContent.match(
+        /\*\*Explanation:\*\*\s*\n([\s\S]*?)(?=\n\n\*\*Real-world Example:|\n\n\*\*Key Points:|$)/s,
+      );
+      if (explanationMatch) lesson = explanationMatch[1].trim();
       
-      // Extract real example
-      const exampleMatch = conceptContent.match(/\*\*Real-world Example:\*\*\s*\n(.*?)(?=\n\n\*\*Key Points:|$)/s);
-      const realExample = exampleMatch ? exampleMatch[1].trim() : undefined;
+      let realExample: string | undefined;
+      const exampleMatch = conceptContent.match(/\*\*Real-world Example:\*\*\s*\n([\s\S]*?)(?=\n\n\*\*Key Points:|$)/s);
+      if (exampleMatch) realExample = exampleMatch[1].trim();
       
-      // Extract key points
+      let keyPoints: string[] | undefined;
       const pointsMatch = conceptContent.match(/\*\*Key Points:\*\*\s*\n((?:- .+\n?)+)/);
-      const keyPoints = pointsMatch 
-        ? pointsMatch[1].split('\n').filter(line => line.trim().startsWith('-')).map(line => line.replace(/^-\s*/, '').trim())
-        : undefined;
+      if (pointsMatch) {
+        keyPoints = pointsMatch[1]
+          .split('\n')
+          .filter((line) => line.trim().startsWith('-'))
+          .map((line) => line.replace(/^-\s*/, '').trim());
+      }
       
-      concepts.push({
-        concept_name: conceptName,
-        difficulty,
-        lesson,
-        real_example: realExample,
-        key_points: keyPoints
-      });
+      concepts.push(
+        enrichGeminiMarkdownConcept(
+          conceptContent,
+          conceptName,
+          difficulty,
+          lesson,
+          realExample,
+          keyPoints,
+        ),
+      );
     });
   }
   

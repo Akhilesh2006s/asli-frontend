@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Sparkles, Download, Copy, Check, BookMarked, Brain, Calendar, HelpCircle, FileText, Key, ClipboardList, CheckCircle2, Layout, Target, FileSpreadsheet, FileDown } from 'lucide-react';
+import { ArrowLeft, Sparkles, Download, Copy, Check, BookMarked, Brain, Calendar, HelpCircle, FileText, Key, ClipboardList, CheckCircle2, Layout, Target, FileSpreadsheet, FileDown, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,6 +14,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { API_BASE_URL } from '@/lib/api-config';
+import {
+  useCurriculumCascade,
+  normalizeGradeForCurriculum,
+  isGradeWithScienceCurriculumDropdowns,
+} from '@/hooks/use-curriculum-cascade';
+import { getTopicsForClassAndSubject } from '@/data/ncert-topics';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import katex from 'katex';
@@ -244,20 +250,7 @@ const renderMarkdown = (text: string) => {
   return html;
 };
 
-const CLASS_SUBJECTS: Record<string, string[]> = {
-  'Class 6': ['Mathematics', 'Maths', 'Science', 'English', 'Hindi', 'Social Science', 'Social Studies', 'Computer Science', 'Physical Education', 'Art', 'Music'],
-  'Class-6-IIT': ['Physics', 'Chemistry', 'Maths', 'Biology'],
-  'Class 7': ['Mathematics', 'Maths', 'Science', 'English', 'Hindi', 'Social Science', 'Social Studies', 'Computer Science', 'Physical Education', 'Art', 'Music'],
-  'Class 8': ['Mathematics', 'Maths', 'Science', 'English', 'Hindi', 'Social Science', 'Social Studies', 'Computer Science', 'Physical Education', 'Art', 'Music'],
-  'Class 9': ['Mathematics', 'Maths', 'Science', 'Physics', 'Chemistry', 'Biology', 'English', 'Hindi', 'Social Science', 'Social Studies', 'History', 'Geography', 'Civics', 'Economics', 'Computer Science', 'Physical Education', 'Art', 'Music'],
-  'Class 10': ['Mathematics', 'Maths', 'Science', 'Physics', 'Chemistry', 'Biology', 'English', 'Hindi', 'Social Science', 'Social Studies', 'History', 'Geography', 'Civics', 'Economics', 'Computer Science', 'Physical Education', 'Art', 'Music'],
-  'Class 11': ['Mathematics', 'Maths', 'Physics', 'Chemistry', 'Biology', 'English', 'Hindi', 'Computer Science', 'Physical Education', 'Economics', 'Business Studies', 'Accountancy', 'History', 'Geography', 'Political Science', 'Psychology', 'Sociology', 'Philosophy', 'Fine Arts', 'Music'],
-  'Class 12': ['Mathematics', 'Maths', 'Physics', 'Chemistry', 'Biology', 'English', 'Hindi', 'Computer Science', 'Physical Education', 'Economics', 'Business Studies', 'Accountancy', 'History', 'Geography', 'Political Science', 'Psychology', 'Sociology', 'Philosophy', 'Fine Arts', 'Music'],
-  'Dropper Batch': ['Mathematics', 'Maths', 'Physics', 'Chemistry', 'Biology', 'English'],
-  'IIT-6': ['Physics', 'Chemistry', 'Maths', 'Biology']
-};
-
-const CLASS_OPTIONS = ['Class 6', 'Class-6-IIT', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'IIT-6'];
+const CLASS_OPTIONS = ['Class 6', 'Class 7', 'Class 8', 'Class 10'];
 
 interface ToolConfig {
   name: string;
@@ -273,6 +266,7 @@ interface ToolConfig {
     dependsOn?: string;
     getOptions?: (value: string) => string[];
     isNCERT?: boolean; // If true, topic field should be populated from API
+    isCascadeSubtopic?: boolean;
   }>;
 }
 
@@ -283,7 +277,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: BookMarked,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true }
     ]
   },
@@ -293,7 +287,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Brain,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'concept', label: 'Concept *', type: 'select', required: true, placeholder: 'Select concept', isNCERT: true }
     ]
   },
@@ -303,7 +297,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: HelpCircle,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'questionCount', label: 'Number of Questions', type: 'number', placeholder: '10' },
       { name: 'difficulty', label: 'Difficulty', type: 'select', options: ['easy', 'medium', 'hard'] }
@@ -315,7 +309,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: FileText,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'chapter', label: 'Chapter/Topic *', type: 'select', required: true, placeholder: 'Select chapter/topic', isNCERT: true }
     ]
   },
@@ -325,7 +319,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Key,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true }
     ]
   },
@@ -335,7 +329,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: ClipboardList,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true }
     ]
   },
@@ -345,7 +339,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: CheckCircle2,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'examType', label: 'Exam Type', type: 'select', options: ['Unit Test', 'Mid-Term', 'Final Exam', 'Board Exam', 'Competitive Exam'] },
       { name: 'examDate', label: 'Exam Date (Optional)', type: 'text', placeholder: 'e.g., 2025-03-15' }
     ]
@@ -356,7 +350,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Layout,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'projectTopic', label: 'Project Topic *', type: 'select', required: true, placeholder: 'Select project topic', isNCERT: true },
       { name: 'projectType', label: 'Project Type', type: 'select', options: ['Research', 'Science Experiment', 'Model', 'Presentation', 'Report'] }
     ]
@@ -379,9 +373,9 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'text', placeholder: 'Enter sub topic (optional)' },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
       { name: 'difficulty', label: 'Difficulty', type: 'select', options: ['easy', 'medium', 'hard'], placeholder: 'Select difficulty' }
     ]
   },
@@ -391,9 +385,9 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Brain,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'text', placeholder: 'Enter sub topic (optional)' }
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
   'flashcard-generator': {
@@ -402,9 +396,9 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: BookMarked,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'text', placeholder: 'Enter sub topic (optional)' }
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
   'short-notes-summaries-maker': {
@@ -413,9 +407,9 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: FileText,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'text', placeholder: 'Enter sub topic (optional)' }
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
   'homework-creator': {
@@ -424,9 +418,9 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: ClipboardList,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'text', placeholder: 'Enter sub topic (optional)' },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
       { name: 'duration', label: 'Expected Duration (minutes)', type: 'number', placeholder: '30' }
     ]
   },
@@ -436,9 +430,9 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: CheckCircle2,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'text', placeholder: 'Enter sub topic (optional)' },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
       { name: 'questionCount', label: 'Number of Questions', type: 'number', placeholder: '20' },
       { name: 'duration', label: 'Exam Duration (minutes)', type: 'number', placeholder: '90' },
       { name: 'difficulty', label: 'Difficulty Mix', type: 'select', options: ['easy', 'medium', 'hard', 'mixed'] }
@@ -450,9 +444,9 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Layout,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all projects if not selected)', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'text', placeholder: 'Enter sub topic (optional)' }
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
   'story-passage-creator': {
@@ -461,9 +455,9 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: FileText,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all passages if not selected)', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'text', placeholder: 'Enter sub topic (optional)' },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
       { name: 'length', label: 'Length', type: 'select', options: ['short', 'medium', 'long'] }
     ]
   },
@@ -473,9 +467,9 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     icon: Calendar,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel', getOptions: (classValue) => CLASS_SUBJECTS[classValue] || [] },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all lessons if not selected)', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'text', placeholder: 'Enter sub topic (optional)' }
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   }
 };
@@ -489,14 +483,30 @@ export default function StudentToolPage() {
   const [generatedContent, setGeneratedContent] = useState('');
   const [rawGeneratedContent, setRawGeneratedContent] = useState<any>(null);
   const [contentSource, setContentSource] = useState<string>('');
+  const [fallbackEmptyMessage, setFallbackEmptyMessage] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
-  const [availableSubjects, setAvailableSubjects] = useState<string[]>([]);
-  const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
   const [availableNCERTTopics, setAvailableNCERTTopics] = useState<string[]>([]);
-  const [isLoadingTopics, setIsLoadingTopics] = useState(false);
+
+  const cascade = useCurriculumCascade(
+    formParams.gradeLevel,
+    formParams.subject,
+    formParams.topic,
+  );
+
+  const classSelectOptions =
+    cascade.classOptions.length > 0 ? cascade.classOptions : CLASS_OPTIONS;
+
+  const availableSubjects = (() => {
+    const gv = formParams.gradeLevel;
+    if (!gv || !isGradeWithScienceCurriculumDropdowns(gv)) return [];
+    const raw = cascade.subjects;
+    if (cascade.loadingSubjects && raw.length === 0) return [];
+    if (raw.length > 0) return raw;
+    return [];
+  })();
 
   const toolType = params?.toolType || '';
   const config = TOOL_CONFIGS[toolType];
@@ -556,10 +566,9 @@ export default function StudentToolPage() {
                   gradeLevel: 'Dropper Batch'
                 }));
               } else if (classValue.toLowerCase().includes('iit') || classValue === 'IIT-6' || classValue === 'Class-6-IIT') {
-                // Handle "IIT-6" or "Class-6-IIT"
-                setFormParams(prev => ({
+                setFormParams((prev) => ({
                   ...prev,
-                  gradeLevel: classValue === 'Class-6-IIT' ? 'Class-6-IIT' : 'IIT-6'
+                  gradeLevel: 'Class 6',
                 }));
               }
             }
@@ -575,196 +584,33 @@ export default function StudentToolPage() {
     fetchUser();
   }, []);
 
-  // Fetch subjects dynamically for Class 6 and IIT-6
-  useEffect(() => {
-    const fetchSubjects = async () => {
-      const classValue = formParams.gradeLevel;
-      
-      if (!classValue) {
-        setAvailableSubjects([]);
-        return;
-      }
-
-      // Handle IIT-6 and Class-6-IIT specially
-      if (classValue === 'IIT-6' || classValue === 'Class-6-IIT') {
-        setIsLoadingSubjects(true);
-        try {
-          const token = localStorage.getItem('authToken');
-          // Use IIT-6 for API call even if user selected Class-6-IIT
-          const apiClassNumber = 'IIT-6';
-          const response = await fetch(`${API_BASE_URL}/api/teacher/ai/subjects?classNumber=${apiClassNumber}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data && Array.isArray(data.data)) {
-              // Keep subjects in proper case (not lowercase) to match backend expectations
-              const subjects = data.data.map((subj: any) => 
-                subj.name || subj.displayName || subj
-              );
-              setAvailableSubjects(subjects);
-            }
-          }
-        } catch (error) {
-          console.error('Failed to fetch subjects:', error);
-          setAvailableSubjects(CLASS_SUBJECTS[classValue] || []);
-        } finally {
-          setIsLoadingSubjects(false);
-        }
-        return;
-      }
-
-      // Extract class number (e.g., "Class 6" -> 6)
-      const classNumber = parseInt(classValue.replace('Class ', '').trim());
-      
-      // Fetch for classes 6-10 (hardcoded content available)
-      if (!isNaN(classNumber) && classNumber >= 6 && classNumber <= 10) {
-        setIsLoadingSubjects(true);
-        try {
-          const token = localStorage.getItem('authToken');
-          const response = await fetch(`${API_BASE_URL}/api/teacher/ai/subjects?classNumber=${classNumber}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data && Array.isArray(data.data)) {
-              // Keep subjects in proper case (not lowercase) to match backend expectations
-              const subjects = data.data.map((subj: any) => 
-                subj.name || subj.displayName || subj
-              );
-              setAvailableSubjects(subjects);
-            } else {
-              setAvailableSubjects(CLASS_SUBJECTS[classValue] || []);
-            }
-          } else {
-            setAvailableSubjects(CLASS_SUBJECTS[classValue] || []);
-          }
-        } catch (error) {
-          console.error('Failed to fetch subjects:', error);
-          setAvailableSubjects(CLASS_SUBJECTS[classValue] || []);
-        } finally {
-          setIsLoadingSubjects(false);
-        }
-      } else {
-        // For other classes, use predefined subjects
-        setAvailableSubjects(CLASS_SUBJECTS[classValue] || []);
-      }
-    };
-
-    fetchSubjects();
-  }, [formParams.gradeLevel]);
-
-  // Fetch topics when class and subject are selected
   useEffect(() => {
     const classValue = formParams.gradeLevel;
     const subjectValue = formParams.subject;
-
     if (!classValue || !subjectValue) {
       setAvailableNCERTTopics([]);
       return;
     }
-
-    // Handle IIT-6 and Class-6-IIT specially
-    if (classValue === 'IIT-6' || classValue === 'Class-6-IIT') {
-      const fetchTopics = async () => {
-        setIsLoadingTopics(true);
-        try {
-          const token = localStorage.getItem('authToken');
-          // Use IIT-6 for API call even if user selected Class-6-IIT
-          const apiClassNumber = 'IIT-6';
-          const response = await fetch(`${API_BASE_URL}/api/teacher/ai/topics?classNumber=${apiClassNumber}&subject=${encodeURIComponent(subjectValue)}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data && Array.isArray(data.data)) {
-              // Extract chapter names from the response
-              const topics = data.data.map((chapter: any) => 
-                chapter.chapterName || chapter.name || chapter
-              );
-              setAvailableNCERTTopics(topics);
-              console.log(`✅ Fetched ${topics.length} topics for ${classValue}/${subjectValue}:`, topics);
-            } else {
-              console.log(`⚠️ No topics found in response for ${classValue}/${subjectValue}. Response:`, data);
-              setAvailableNCERTTopics([]);
-            }
-          } else {
-            const errorText = await response.text();
-            console.error(`❌ Failed to fetch topics: ${response.status} ${response.statusText}`, errorText);
-            setAvailableNCERTTopics([]);
-          }
-        } catch (error) {
-          console.error('Failed to fetch topics:', error);
-          setAvailableNCERTTopics([]);
-        } finally {
-          setIsLoadingTopics(false);
-        }
-      };
-
-      fetchTopics();
+    if (cascade.loadingTopics && cascade.topics.length === 0) {
+      setAvailableNCERTTopics([]);
       return;
     }
-
-    // Extract class number (e.g., "Class 6" -> 6)
-    const classNumber = parseInt(classValue.replace('Class ', '').trim());
-    
-    // For classes 6-10, fetch topics from API (hardcoded content)
-    if (!isNaN(classNumber) && classNumber >= 6 && classNumber <= 10) {
-      const fetchTopics = async () => {
-        setIsLoadingTopics(true);
-        try {
-          const token = localStorage.getItem('authToken');
-          const response = await fetch(`${API_BASE_URL}/api/teacher/ai/topics?classNumber=${classNumber}&subject=${encodeURIComponent(subjectValue)}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            console.log(`📥 Topics API response for Class ${classNumber}/${subjectValue}:`, data);
-            if (data.success && data.data && Array.isArray(data.data)) {
-              // Extract chapter names from the response
-              const topics = data.data.map((chapter: any) => 
-                chapter.chapterName || chapter.name || chapter
-              );
-              setAvailableNCERTTopics(topics);
-              console.log(`✅ Fetched ${topics.length} topics for Class ${classNumber}/${subjectValue}:`, topics);
-            } else {
-              console.log(`⚠️ No topics found in response for Class ${classNumber}/${subjectValue}. Response:`, data);
-              setAvailableNCERTTopics([]);
-            }
-          } else {
-            const errorText = await response.text();
-            console.error(`❌ Failed to fetch topics: ${response.status} ${response.statusText}`, errorText);
-            setAvailableNCERTTopics([]);
-          }
-        } catch (error) {
-          console.error('Failed to fetch topics:', error);
-          setAvailableNCERTTopics([]);
-        } finally {
-          setIsLoadingTopics(false);
-        }
-      };
-
-      fetchTopics();
-    } else {
-      setAvailableNCERTTopics([]);
+    let topics = [...cascade.topics];
+    const gl = normalizeGradeForCurriculum(classValue) || classValue;
+    const isIit = gl === 'IIT-6';
+    const classNumber = isIit ? NaN : parseInt(String(gl).replace('Class ', '').trim(), 10);
+    if (
+      topics.length === 0 &&
+      !isNaN(classNumber) &&
+      (classNumber === 6 || classNumber === 7) &&
+      subjectValue &&
+      /science/i.test(String(subjectValue)) &&
+      !/social|computer/i.test(String(subjectValue))
+    ) {
+      topics = getTopicsForClassAndSubject(classNumber, subjectValue);
     }
-  }, [formParams.gradeLevel, formParams.subject]);
+    setAvailableNCERTTopics(topics);
+  }, [formParams.gradeLevel, formParams.subject, cascade.topics, cascade.loadingTopics]);
 
   if (!config) {
     return (
@@ -787,15 +633,20 @@ export default function StudentToolPage() {
       if (name === 'gradeLevel') {
         delete newParams.subject;
         delete newParams.topic;
+        delete newParams.subTopic;
         delete newParams.concept;
         delete newParams.chapter;
         delete newParams.projectTopic;
       }
       if (name === 'subject') {
         delete newParams.topic;
+        delete newParams.subTopic;
         delete newParams.concept;
         delete newParams.chapter;
         delete newParams.projectTopic;
+      }
+      if (name === 'topic') {
+        delete newParams.subTopic;
       }
       
       return newParams;
@@ -813,13 +664,13 @@ export default function StudentToolPage() {
       if (classValue && availableSubjects.length > 0) {
         return availableSubjects;
       }
-      // Fallback to CLASS_SUBJECTS
-      if (classValue && CLASS_SUBJECTS[classValue]) {
-        return CLASS_SUBJECTS[classValue];
-      }
       return [];
     }
     
+    if (field.isCascadeSubtopic && field.name === 'subTopic') {
+      return cascade.subtopics;
+    }
+
     // For topic/concept/chapter fields with isNCERT flag, use availableNCERTTopics
     if (field.isNCERT && (field.name === 'topic' || field.name === 'concept' || field.name === 'chapter' || field.name === 'projectTopic')) {
       return availableNCERTTopics;
@@ -854,11 +705,10 @@ export default function StudentToolPage() {
     setGeneratedContent('');
     setRawGeneratedContent(null);
     setContentSource('');
+    setFallbackEmptyMessage('');
     try {
       const token = localStorage.getItem('authToken');
-      
-      // Determine which API endpoint to use
-      // Teacher tools use /api/teacher/ai/tool, student tools use /api/student/ai/tool
+
       const teacherTools = [
         'worksheet-mcq-generator',
         'concept-mastery-helper',
@@ -868,147 +718,283 @@ export default function StudentToolPage() {
         'exam-question-paper-generator',
         'activity-project-generator',
         'story-passage-creator',
-        'lesson-planner'
+        'lesson-planner',
       ];
-      
+
       const isTeacherTool = teacherTools.includes(toolType);
-      const apiEndpoint = isTeacherTool 
-        ? `${API_BASE_URL}/api/teacher/ai/tool`
-        : `${API_BASE_URL}/api/student/ai/tool`;
-      
-      // Prepare request body - convert gradeLevel to classNumber for teacher tools
-      let requestBody: any = {
-        toolType,
-        ...formParams
-      };
-      
-      // Map concept/chapter/projectTopic to topic for API compatibility
-      if (requestBody.concept) {
-        requestBody.topic = requestBody.concept;
-        delete requestBody.concept;
-      }
-      if (requestBody.chapter) {
-        requestBody.topic = requestBody.chapter;
-        delete requestBody.chapter;
-      }
-      if (requestBody.projectTopic) {
-        requestBody.topic = requestBody.projectTopic;
-        delete requestBody.projectTopic;
-      }
-      
-      // For teacher tools, convert gradeLevel to classNumber format
-      if (isTeacherTool && formParams.gradeLevel) {
-        if (formParams.gradeLevel === 'IIT-6' || formParams.gradeLevel === 'Class-6-IIT') {
-          // Use IIT-6 for API call even if user selected Class-6-IIT
-          requestBody.classNumber = 'IIT-6';
-        } else {
-          const classNum = parseInt(formParams.gradeLevel.replace('Class ', '').trim());
-          if (!isNaN(classNum)) {
-            requestBody.classNumber = classNum;
-          }
-        }
-        // Remove gradeLevel as teacher API expects classNumber
-        delete requestBody.gradeLevel;
-      }
-      
-      // For student tools, also convert gradeLevel to classNumber
-      if (!isTeacherTool && formParams.gradeLevel) {
-        if (formParams.gradeLevel === 'IIT-6' || formParams.gradeLevel === 'Class-6-IIT') {
-          requestBody.classNumber = 'IIT-6';
-        } else {
-          const classNum = parseInt(formParams.gradeLevel.replace('Class ', '').trim());
-          if (!isNaN(classNum)) {
-            requestBody.classNumber = classNum;
-          }
-        }
-        // Keep gradeLevel for now, but also add classNumber
-        // The backend will use classNumber
-      }
-      
-      const response = await fetch(apiEndpoint, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody)
-      });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = `Server error: ${response.status}`;
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          errorMessage = errorText || errorMessage;
+      const applySuccessPayload = (data: {
+        success?: boolean;
+        message?: string;
+        data?: {
+          content?: string;
+          rawData?: unknown;
+          metadata?: { source?: string; sourceLabel?: string; aiUnavailable?: boolean };
+        };
+      }) => {
+        if (!data.success || !data?.data?.content || String(data.data.content).trim().length === 0) {
+          throw new Error(data.message || 'AI returned empty response');
         }
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
-      
-      if (data.success) {
-        const sourceLabel = data.data.metadata?.sourceLabel || (data.data.metadata?.source === 'pdf-extracted' ? 'Textbook (PDF)' : 'Question Bank (CSV)');
+        const sourceLabel =
+          data.data.metadata?.sourceLabel ||
+          (data.data.metadata?.source === 'pdf-extracted' ? 'Textbook (PDF)' : 'Question Bank (CSV)');
+        const fromAiFailure = !!data.data.metadata?.aiUnavailable;
         setContentSource(sourceLabel);
-        
-        // Store raw data if available (for special viewers and exam papers)
+        const okTitle = fromAiFailure ? 'Stored content (AI unavailable)' : 'Success';
+        const okDescription = fromAiFailure
+          ? `Showing ${sourceLabel}.`
+          : `Content generated successfully from ${sourceLabel}!`;
+
         if (data.data.rawData) {
           setRawGeneratedContent(data.data.rawData);
-          // For tools that need special viewers, use JSON format with formatted and raw data
-          if (toolType === 'flashcard-generator' || 
-              toolType === 'lesson-planner' ||
-              toolType === 'short-notes-summaries-maker' ||
-              toolType === 'concept-mastery-helper') {
+          if (
+            toolType === 'short-notes-summaries-maker' ||
+            toolType === 'concept-mastery-helper' ||
+            toolType === 'lesson-planner' ||
+            toolType === 'flashcard-generator'
+          ) {
             const contentWithData = JSON.stringify({
               formatted: data.data.content,
-              raw: data.data.rawData
+              raw: data.data.rawData,
             });
-            setTimeout(() => {
-              setGeneratedContent(contentWithData);
-              setIsGenerating(false);
-              toast({
-                title: 'Success',
-                description: `Content generated successfully from ${sourceLabel}!`
-              });
-            }, 3000);
+            setGeneratedContent(contentWithData);
+            toast({ title: okTitle, description: okDescription });
           } else {
-            // For other tools (including exam papers), use content directly but keep rawData
-            setTimeout(() => {
-        setGeneratedContent(data.data.content);
-              setIsGenerating(false);
-        toast({
-          title: 'Success',
-                description: `Content generated successfully from ${sourceLabel}!`
-              });
-            }, 3000);
+            setGeneratedContent(data.data.content);
+            toast({ title: okTitle, description: okDescription });
           }
         } else {
-          // Clear raw content if not available
           setRawGeneratedContent(null);
-          // Add 3-second delay before showing content with loading state
-          setTimeout(() => {
-            setGeneratedContent(data.data.content);
-            setIsGenerating(false);
-            toast({
-              title: 'Success',
-              description: `Content generated successfully from ${sourceLabel}!`
-            });
-          }, 3000);
+          setGeneratedContent(data.data.content);
+          toast({ title: okTitle, description: okDescription });
         }
+      };
+
+      if (isTeacherTool) {
+        const selectedClass = formParams.gradeLevel;
+        const selectedSubject = formParams.subject || formParams.subjects;
+        const selectedTopic = formParams.topic || '';
+        const selectedSubTopic = formParams.subTopic || '';
+        const selectedSection = formParams.section || formParams.className || '';
+
+        const requestBody = {
+          toolType,
+          classNumber: selectedClass
+            ? selectedClass === 'IIT-6' || selectedClass === 'Class-6-IIT'
+              ? 'IIT-6'
+              : parseInt(String(selectedClass).replace('Class ', ''), 10)
+            : undefined,
+          subject: selectedSubject,
+          topic: selectedTopic,
+          subTopic: selectedSubTopic,
+          section: selectedSection,
+          questionCount: formParams.questionCount ? parseInt(String(formParams.questionCount), 10) : undefined,
+          duration: formParams.duration ? parseInt(String(formParams.duration), 10) : undefined,
+          ...formParams,
+        };
+
+        const response = await fetch(`${API_BASE_URL}/api/teacher/ai/generate-content`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        const responseText = await response.text();
+        let data: {
+          success?: boolean;
+          data?: {
+            content?: string;
+            rawData?: unknown;
+            metadata?: { source?: string; sourceLabel?: string; aiUnavailable?: boolean };
+          };
+          message?: string;
+          code?: string;
+        } = {};
+        try {
+          data = responseText ? JSON.parse(responseText) : {};
+        } catch {
+          data = {};
+        }
+
+        if (!response.ok) {
+          if (response.status === 503 && data?.code === 'AI_UNAVAILABLE_NO_FALLBACK') {
+            setGeneratedContent('');
+            setRawGeneratedContent(null);
+            setContentSource('');
+            setFallbackEmptyMessage(
+              data.message ||
+                'AI service is unavailable and no previously generated content was found for this selection.',
+            );
+            toast({
+              title: 'AI unavailable',
+              description:
+                data.message ||
+                'No stored content matched. Ask your Super Admin to add content or fix the API quota.',
+              variant: 'destructive',
+            });
+            return;
+          }
+          const errorMessage =
+            data.message || responseText || `Server error: ${response.status}`;
+          throw new Error(errorMessage || 'AI generation failed');
+        }
+
+        applySuccessPayload(data);
       } else {
-        throw new Error(data.message || 'Failed to generate content');
+        const mappedTopic =
+          formParams.topic ||
+          formParams.concept ||
+          formParams.chapter ||
+          formParams.projectTopic ||
+          '';
+        const requestBody: Record<string, unknown> = {
+          toolType,
+          ...formParams,
+          gradeLevel: formParams.gradeLevel,
+          subject: formParams.subject || formParams.subjects,
+          topic: mappedTopic,
+        };
+
+        const response = await fetch(`${API_BASE_URL}/api/student/ai/tool`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        const responseText = await response.text();
+        let data: {
+          success?: boolean;
+          data?: {
+            content?: string;
+            rawData?: unknown;
+            metadata?: { source?: string; sourceLabel?: string; aiUnavailable?: boolean };
+          };
+          message?: string;
+          code?: string;
+        } = {};
+        try {
+          data = responseText ? JSON.parse(responseText) : {};
+        } catch {
+          data = {};
+        }
+
+        if (!response.ok) {
+          if (response.status === 503 && data?.code === 'AI_UNAVAILABLE_NO_FALLBACK') {
+            setGeneratedContent('');
+            setRawGeneratedContent(null);
+            setContentSource('');
+            setFallbackEmptyMessage(
+              data.message ||
+                'AI service is unavailable and no previously generated content was found for this selection.',
+            );
+            toast({
+              title: 'AI unavailable',
+              description:
+                data.message ||
+                'No stored content matched. Ask your Super Admin to add content or fix the API quota.',
+              variant: 'destructive',
+            });
+            return;
+          }
+          const errorMessage =
+            data.message || responseText || `Server error: ${response.status}`;
+          throw new Error(errorMessage || 'Content fetch failed');
+        }
+
+        applySuccessPayload(data);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Generate error:', error);
-      setGeneratedContent('');
-      setRawGeneratedContent(null);
-      setContentSource('');
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to generate content',
-        variant: 'destructive'
-      });
+      const errMsg = String((error as Error)?.message || '');
+      const isClientValidationError =
+        /invalid subject|topic is required|sub topic is required|class number and subject are required|only available for english and hindi/i.test(
+          errMsg,
+        );
+      if (isClientValidationError) {
+        setFallbackEmptyMessage(errMsg);
+        toast({
+          title: 'Cannot generate',
+          description: errMsg,
+          variant: 'destructive',
+        });
+      } else {
+        try {
+          const selectedClass = formParams.gradeLevel;
+          const selectedSubject = formParams.subject || formParams.subjects;
+          if (!selectedClass || !selectedSubject) {
+            throw new Error('Missing class or subject for fallback');
+          }
+          const mappedTopic =
+            formParams.topic ||
+            formParams.concept ||
+            formParams.chapter ||
+            formParams.projectTopic ||
+            '';
+          const params = new URLSearchParams({
+            class: String(selectedClass),
+            subject: String(selectedSubject),
+            topic: String(mappedTopic),
+            subTopic: String(formParams.subTopic || ''),
+            toolType: String(toolType || ''),
+          });
+          const token = localStorage.getItem('authToken');
+          const fallbackRes = await fetch(
+            `${API_BASE_URL}/api/teacher/ai/generated-content?${params.toString()}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            },
+          );
+          if (!fallbackRes.ok) throw new Error('Fallback lookup failed');
+          const fallbackJson = await fallbackRes.json();
+          const fallbackContent =
+            fallbackJson?.data?.generatedContent ?? fallbackJson?.data?.content ?? '';
+          if (fallbackJson?.success && String(fallbackContent).trim().length > 0) {
+            setGeneratedContent(String(fallbackContent));
+            setRawGeneratedContent(null);
+            setContentSource('Previously generated content');
+            toast({
+              title: 'Fallback loaded',
+              description: 'Source: Previously generated content',
+            });
+          } else {
+            setGeneratedContent('');
+            setRawGeneratedContent(null);
+            setContentSource('');
+            const savedPart =
+              fallbackJson?.message ||
+              'No saved copy matched this class, subject, topic, sub-topic, and tool.';
+            const combined = `${errMsg} ${savedPart}`;
+            setFallbackEmptyMessage(combined);
+            toast({
+              title: 'Generation failed',
+              description: combined,
+              variant: 'destructive',
+            });
+          }
+        } catch (fallbackError: unknown) {
+          console.error('Fallback error:', fallbackError);
+          setGeneratedContent('');
+          setRawGeneratedContent(null);
+          setContentSource('');
+          const fe = String((fallbackError as Error)?.message || 'Fallback lookup failed');
+          const combined = `${errMsg} ${fe}`;
+          setFallbackEmptyMessage(combined);
+          toast({
+            title: 'Error',
+            description: combined,
+            variant: 'destructive',
+          });
+        }
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -1654,36 +1640,94 @@ export default function StudentToolPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {config.fields.map((field) => {
-                  const fieldOptions = getFieldOptions(field);
-                  const isDisabled = field.dependsOn && !formParams[field.dependsOn];
-                  
-                  // Check if this is the gradeLevel field and should be disabled
+                  let fieldOptions = getFieldOptions(field);
+                  let isDisabled = !!(field.dependsOn && !formParams[field.dependsOn]);
+                  let loadingDropdown = false;
+
+                  if (field.name === 'gradeLevel') {
+                    fieldOptions = classSelectOptions;
+                    isDisabled = cascade.loadingClasses && classSelectOptions.length === 0;
+                    loadingDropdown = cascade.loadingClasses;
+                  } else if (field.name === 'subject' && field.dependsOn === 'gradeLevel') {
+                    fieldOptions = availableSubjects;
+                    loadingDropdown = cascade.loadingSubjects;
+                    isDisabled =
+                      !formParams.gradeLevel ||
+                      cascade.loadingSubjects ||
+                      isLoadingUser;
+                  } else if (field.isNCERT && (field.name === 'topic' || field.name === 'concept' || field.name === 'chapter' || field.name === 'projectTopic')) {
+                    loadingDropdown = cascade.loadingTopics;
+                    isDisabled =
+                      !formParams.gradeLevel ||
+                      !formParams.subject ||
+                      cascade.loadingTopics;
+                  } else if (field.isCascadeSubtopic && field.name === 'subTopic') {
+                    fieldOptions = cascade.subtopics;
+                    loadingDropdown = cascade.loadingSubtopics;
+                    isDisabled =
+                      !formParams.gradeLevel ||
+                      !formParams.subject ||
+                      !formParams.topic ||
+                      cascade.loadingSubtopics;
+                  }
+
                   const isClassField = field.name === 'gradeLevel';
                   const isClassFieldDisabled = isClassField && user?.classNumber;
-                  
+
+                  let placeholderText = field.placeholder || `Select ${field.label}`;
+                  if (isDisabled) {
+                    if (field.name === 'gradeLevel' && cascade.loadingClasses) {
+                      placeholderText = 'Loading classes...';
+                    } else if (field.name === 'subject') {
+                      placeholderText =
+                        !formParams.gradeLevel || cascade.loadingSubjects
+                          ? 'Select Class first'
+                          : availableSubjects.length === 0
+                            ? 'No data available'
+                            : field.placeholder || placeholderText;
+                    } else if (
+                      field.isNCERT &&
+                      (field.name === 'topic' ||
+                        field.name === 'concept' ||
+                        field.name === 'chapter' ||
+                        field.name === 'projectTopic')
+                    ) {
+                      placeholderText = !formParams.gradeLevel
+                        ? 'Select Class first'
+                        : !formParams.subject || cascade.loadingTopics
+                          ? 'Select Subject first'
+                          : cascade.loadingTopics
+                            ? 'Loading topics...'
+                            : fieldOptions.length === 0
+                              ? 'No data available'
+                              : field.placeholder || 'Select topic';
+                    } else if (field.isCascadeSubtopic) {
+                      placeholderText = !formParams.topic
+                        ? 'Select Topic first'
+                        : cascade.loadingSubtopics
+                          ? 'Loading subtopics...'
+                          : cascade.subtopics.length === 0
+                            ? 'No data available'
+                            : field.placeholder || 'Select subtopic';
+                    } else if (fieldOptions.length === 0 && field.dependsOn) {
+                      placeholderText = `Select ${config.fields.find((f) => f.name === field.dependsOn)?.label || 'Class'} first`;
+                    }
+                  }
+
                   return (
                     <div key={field.name}>
-                      <Label htmlFor={field.name}>{field.label}</Label>
-                      {(field.type === 'select' || field.isNCERT) ? (
+                      <Label htmlFor={field.name} className="flex items-center gap-2">
+                        {field.label}
+                        {loadingDropdown && <Loader2 className="h-4 w-4 animate-spin text-blue-600" aria-hidden />}
+                      </Label>
+                      {fieldUsesCurriculumSelect(field) ? (
                         <Select
                           value={formParams[field.name] || ''}
                           onValueChange={(value) => handleInputChange(field.name, value)}
-                          disabled={isDisabled || isClassFieldDisabled || isLoadingUser || (field.name === 'subject' && isLoadingSubjects) || (field.isNCERT && (field.name === 'topic' || field.name === 'concept' || field.name === 'chapter' || field.name === 'projectTopic') && isLoadingTopics)}
+                          disabled={isDisabled || isClassFieldDisabled}
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder={
-                              isLoadingSubjects && field.name === 'subject'
-                                ? 'Loading subjects...'
-                                : isLoadingTopics && field.isNCERT && (field.name === 'topic' || field.name === 'concept' || field.name === 'chapter' || field.name === 'projectTopic')
-                                  ? 'Loading topics...'
-                                : fieldOptions.length === 0 && field.dependsOn
-                                  ? `Select ${config.fields.find(f => f.name === field.dependsOn)?.label || 'Class'} first`
-                                : field.isNCERT && (field.name === 'topic' || field.name === 'concept' || field.name === 'chapter' || field.name === 'projectTopic')
-                                  ? !formParams.gradeLevel || !formParams.subject
-                                    ? 'Select Class and Subject first'
-                                    : 'No topics available for this class/subject'
-                                  : field.placeholder || `Select ${field.label}`
-                            } />
+                            <SelectValue placeholder={placeholderText} />
                           </SelectTrigger>
                           <SelectContent>
                             {fieldOptions.length > 0 ? (
@@ -1694,9 +1738,15 @@ export default function StudentToolPage() {
                               ))
                             ) : (
                               <div className="px-2 py-1.5 text-sm text-gray-500">
-                                {isLoadingSubjects && field.name === 'subject' ? 'Loading...' : 
-                                 isLoadingTopics && field.isNCERT && (field.name === 'topic' || field.name === 'concept' || field.name === 'chapter' || field.name === 'projectTopic') ? 'Loading...' : 
-                                 'No options available'}
+                                {field.isNCERT &&
+                                (field.name === 'topic' ||
+                                  field.name === 'concept' ||
+                                  field.name === 'chapter' ||
+                                  field.name === 'projectTopic')
+                                  ? 'No data available'
+                                  : field.isCascadeSubtopic
+                                    ? 'No data available'
+                                    : 'No options available'}
                               </div>
                             )}
                           </SelectContent>
@@ -1824,7 +1874,7 @@ export default function StudentToolPage() {
                 ) : (
                   <div className="text-center py-12 text-gray-500">
                     <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>Generated content will appear here</p>
+                    <p>{fallbackEmptyMessage || 'Generated content will appear here'}</p>
                   </div>
                 )}
               </CardContent>

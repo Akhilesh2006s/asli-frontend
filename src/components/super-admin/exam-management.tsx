@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -33,6 +33,7 @@ interface Exam {
   examType: 'weekend' | 'mains' | 'advanced' | 'practice';
   classNumber?: string;
   subject: 'maths' | 'physics' | 'chemistry' | 'biology';
+  subjects?: Array<'maths' | 'physics' | 'chemistry' | 'biology'>;
   maxAttempts: number;
   assignedClasses?: string[];
   board: string;
@@ -48,6 +49,7 @@ interface Exam {
   schoolId?: string;
   isSchoolSpecific?: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 const BOARDS = [
@@ -77,6 +79,60 @@ const normalizeDisplayText = (value?: string) =>
     .replace(/[._-]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+const toIsoFromDateTimeLocal = (value: string) => {
+  if (!value) return value;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString();
+};
+
+const toDateTimeLocalInput = (value?: string) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+
+const examDisplayDedupKey = (exam: Exam) => {
+  const classKey = getExamClassStrings(exam)
+    .map((c) => String(c).trim())
+    .filter(Boolean)
+    .sort()
+    .join('|');
+  const targetSchoolsKey = (exam.targetSchools || [])
+    .map((s: any) => (typeof s === 'string' ? s : s?._id))
+    .filter(Boolean)
+    .map((id: any) => String(id))
+    .sort()
+    .join('|');
+
+  return [
+    (exam.title || '').trim().toLowerCase(),
+    (exam.description || '').trim().toLowerCase(),
+    exam.examType || '',
+    classKey,
+    String(exam.duration || ''),
+    String(exam.totalQuestions || ''),
+    String(exam.totalMarks || ''),
+    exam.startDate || '',
+    exam.endDate || '',
+    exam.isSchoolSpecific ? 'school-specific' : 'all-schools',
+    targetSchoolsKey,
+  ].join('::');
+};
+
+const getExamSubjects = (exam: Partial<Exam>) => {
+  const fromArray = Array.isArray(exam.subjects) ? exam.subjects : [];
+  const merged = [...fromArray, exam.subject].filter(Boolean) as Array<'maths' | 'physics' | 'chemistry' | 'biology'>;
+  return Array.from(new Set(merged.map((s) => String(s).trim().toLowerCase() as any))).filter(Boolean) as Array<'maths' | 'physics' | 'chemistry' | 'biology'>;
+};
+
+const getExamTimestamp = (exam: Partial<Exam>) => {
+  const raw = exam.updatedAt || exam.createdAt || '';
+  const ts = new Date(raw).getTime();
+  return Number.isNaN(ts) ? 0 : ts;
+};
 
 export default function ExamManagement() {
   const { toast } = useToast();
@@ -116,13 +172,14 @@ export default function ExamManagement() {
     correctAnswers: [] as string[],
     integerAnswer: ''
   });
+  const [selectedQuestionSubjects, setSelectedQuestionSubjects] = useState<string[]>(['maths']);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     examType: 'mains' as 'mains' | 'advanced' | 'weekend' | 'practice',
     classNumber: '',
     assignedClasses: [] as string[],
-    subject: 'maths' as 'maths' | 'physics' | 'chemistry' | 'biology',
+    subjects: ['maths'] as Array<'maths' | 'physics' | 'chemistry' | 'biology'>,
     maxAttempts: '1',
     board: 'ASLI_EXCLUSIVE_SCHOOLS',
     filterType: 'all-schools' as FilterType,
@@ -373,6 +430,122 @@ export default function ExamManagement() {
     }
   };
 
+  const parseCSVLine = (line: string) => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim());
+    return result.map((v) => v.replace(/^"|"$/g, ''));
+  };
+
+  const prefillQuestionFormFromCsv = async (file: File) => {
+    try {
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).filter((line) => line.trim());
+      if (lines.length < 2) return;
+
+      const normalizeHeader = (header: string) =>
+        String(header || '')
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '');
+      const headers = parseCSVLine(lines[0]).map((h) => normalizeHeader(h));
+      const values = parseCSVLine(lines[1]);
+      if (values.length !== headers.length) return;
+
+      const row: Record<string, string> = {};
+      headers.forEach((h, idx) => {
+        row[h] = values[idx] || '';
+      });
+
+      const getRowValue = (...keys: string[]) => {
+        for (const key of keys) {
+          const normalizedKey = normalizeHeader(key);
+          if (row[normalizedKey] !== undefined && row[normalizedKey] !== '') {
+            return row[normalizedKey];
+          }
+        }
+        return '';
+      };
+
+      const questionTypeRaw = getRowValue('questionType', 'question_type', 'type').toLowerCase();
+      const questionType = (questionTypeRaw === 'multiple' || questionTypeRaw === 'integer' || questionTypeRaw === 'mcq'
+        ? questionTypeRaw
+        : 'mcq') as 'mcq' | 'multiple' | 'integer';
+
+      const optionValues = [
+        getRowValue('option1', 'option_1', 'option 1', 'optiona', 'option_a', 'a'),
+        getRowValue('option2', 'option_2', 'option 2', 'optionb', 'option_b', 'b'),
+        getRowValue('option3', 'option_3', 'option 3', 'optionc', 'option_c', 'c'),
+        getRowValue('option4', 'option_4', 'option 4', 'optiond', 'option_d', 'd'),
+      ];
+      const hasAnyOption = optionValues.some((opt) => String(opt || '').trim() !== '');
+
+      const csvSubject = getRowValue('subject').trim().toLowerCase();
+      const subject = availableQuestionSubjects.includes(csvSubject as any)
+        ? csvSubject
+        : (availableQuestionSubjects[0] || 'maths');
+
+      let correctAnswer = '';
+      let correctAnswers: string[] = [];
+      let integerAnswer = '';
+      if (questionType === 'multiple') {
+        correctAnswers = (getRowValue('correctAnswers', 'correct_answers', 'correctanswer', 'answer') || '')
+          .split(',')
+          .map((x) => x.trim())
+          .filter((x) => x !== '');
+      } else if (questionType === 'integer') {
+        integerAnswer = getRowValue('integerAnswer', 'integer_answer', 'correctanswer', 'answer');
+      } else {
+        correctAnswer = getRowValue('correctanswer', 'correct_answer', 'answer');
+      }
+
+      const resolvedQuestionType: 'mcq' | 'multiple' | 'integer' =
+        questionType === 'mcq' && !hasAnyOption && integerAnswer
+          ? 'integer'
+          : questionType;
+
+      setQuestionFormData((prev) => ({
+        ...prev,
+        questionText: getRowValue('questionText', 'question_text') || '',
+        questionImage: getRowValue('questionImage', 'question_image') || '',
+        questionType: resolvedQuestionType,
+        subject,
+        marks: getRowValue('marks') || '1',
+        negativeMarks: getRowValue('negativeMarks', 'negative_marks') || '0',
+        explanation: getRowValue('explanation') || '',
+        options: optionValues,
+        correctAnswer,
+        correctAnswers,
+        integerAnswer,
+      }));
+      setSelectedQuestionSubjects([subject]);
+      toast({
+        title: 'CSV Preview Loaded',
+        description: 'First CSV row auto-filled in question form',
+      });
+    } catch (error) {
+      console.error('Failed to prefill question form from CSV:', error);
+    }
+  };
+
   const handleAddQuestion = async () => {
     if (!selectedExam) return;
 
@@ -390,6 +563,23 @@ export default function ExamManagement() {
       toast({
         title: 'Validation Error',
         description: 'At least one option is required for MCQ questions',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    const normalizedSubjects = Array.from(
+      new Set(
+        selectedQuestionSubjects
+          .map((s) => String(s || '').trim().toLowerCase())
+          .filter(Boolean)
+      )
+    );
+
+    if (normalizedSubjects.length === 0) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please select at least one subject',
         variant: 'destructive'
       });
       return;
@@ -443,32 +633,46 @@ export default function ExamManagement() {
     setIsAddingQuestion(true);
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          questionText: questionFormData.questionText.trim(),
-          questionImage: questionFormData.questionImage.trim() || undefined,
-          questionType: questionFormData.questionType,
-          options: formattedOptions,
-          correctAnswer,
-          marks: parseInt(questionFormData.marks) || 1,
-          negativeMarks: parseFloat(questionFormData.negativeMarks) || 0,
-          explanation: questionFormData.explanation.trim() || undefined,
-          subject: questionFormData.subject,
-          board: selectedExam.board
-        })
-      });
+      let createdCount = 0;
+      const failedSubjects: string[] = [];
+      let lastErrorMessage = '';
 
-      const data = await response.json();
+      for (const subject of normalizedSubjects) {
+        const response = await fetch(`${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            questionText: questionFormData.questionText.trim(),
+            questionImage: questionFormData.questionImage.trim() || undefined,
+            questionType: questionFormData.questionType,
+            options: formattedOptions,
+            correctAnswer,
+            marks: parseInt(questionFormData.marks) || 1,
+            negativeMarks: parseFloat(questionFormData.negativeMarks) || 0,
+            explanation: questionFormData.explanation.trim() || undefined,
+            subject,
+            board: selectedExam.board
+          })
+        });
 
-      if (response.ok && data.success) {
+        const data = await response.json();
+        if (response.ok && data.success) {
+          createdCount += 1;
+        } else {
+          failedSubjects.push(subject);
+          lastErrorMessage = data.message || 'Failed to add question';
+        }
+      }
+
+      if (createdCount > 0 && failedSubjects.length === 0) {
         toast({
           title: 'Success',
-          description: 'Question added successfully'
+          description: createdCount > 1
+            ? `Question added for ${createdCount} subjects`
+            : 'Question added successfully'
         });
         setQuestionFormData({
           questionText: '',
@@ -483,12 +687,23 @@ export default function ExamManagement() {
           correctAnswers: [],
           integerAnswer: ''
         });
+        setSelectedQuestionSubjects((prev) => {
+          const next = prev.filter((s) => availableQuestionSubjects.includes(s as any));
+          return next.length > 0 ? [next[0]] : [availableQuestionSubjects[0] || 'maths'];
+        });
+        fetchQuestions(selectedExam._id);
+        fetchExams(); // Refresh exam list to update question count
+      } else if (createdCount > 0 && failedSubjects.length > 0) {
+        toast({
+          title: 'Partial Success',
+          description: `Added question for ${createdCount} subject(s), failed for: ${failedSubjects.join(', ')}`
+        });
         fetchQuestions(selectedExam._id);
         fetchExams(); // Refresh exam list to update question count
       } else {
         toast({
           title: 'Error',
-          description: data.message || 'Failed to add question',
+          description: lastErrorMessage || `Failed to add question for subjects: ${failedSubjects.join(', ')}`,
           variant: 'destructive'
         });
       }
@@ -518,12 +733,21 @@ export default function ExamManagement() {
       if (response.ok) {
         const data = await response.json();
         const adminsList = Array.isArray(data) ? data : (data.data || []);
-        setSchools(adminsList.map((admin: any) => ({
-          id: admin.id || admin._id,
-          name: admin.schoolName || admin.name,
-          email: admin.email,
-          board: admin.board
-        })));
+        const mappedSchools = adminsList
+          .map((admin: any) => ({
+            id: admin.id || admin._id,
+            name: admin.schoolName || admin.name,
+            email: admin.email,
+            board: admin.board
+          }))
+          .sort((a: any, b: any) =>
+            normalizeDisplayText(a.name).localeCompare(
+              normalizeDisplayText(b.name),
+              undefined,
+              { sensitivity: 'base' }
+            )
+          );
+        setSchools(mappedSchools);
       }
     } catch (error) {
       console.error('Failed to fetch schools:', error);
@@ -553,10 +777,13 @@ export default function ExamManagement() {
           const raw = (data.data || []) as Exam[];
           const fetchedExams = raw.map((ex) => {
             const labels = getExamClassStrings(ex);
+            const normalizedSubjects = getExamSubjects(ex);
             return {
               ...ex,
               assignedClasses: labels,
               classNumber: labels[0] ?? ex.classNumber ?? '',
+              subject: (normalizedSubjects[0] || ex.subject || 'maths') as 'maths' | 'physics' | 'chemistry' | 'biology',
+              subjects: normalizedSubjects.length > 0 ? normalizedSubjects : [(ex.subject || 'maths') as 'maths' | 'physics' | 'chemistry' | 'biology'],
             };
           });
 
@@ -613,7 +840,7 @@ export default function ExamManagement() {
   };
 
   const handleSaveExam = async () => {
-    if (!formData.title || formData.assignedClasses.length === 0 || !formData.subject || !formData.maxAttempts || !formData.duration || !formData.totalQuestions || !formData.totalMarks || !formData.startDate || !formData.endDate) {
+    if (!formData.title || formData.assignedClasses.length === 0 || formData.subjects.length === 0 || !formData.maxAttempts || !formData.duration || !formData.totalQuestions || !formData.totalMarks || !formData.startDate || !formData.endDate) {
       toast({
         title: 'Validation Error',
         description: 'Please fill in all required fields',
@@ -643,23 +870,31 @@ export default function ExamManagement() {
     setIsCreating(true);
     try {
       const token = localStorage.getItem('authToken');
-      
-      // Prepare payload based on filter type
+      const normalizedSubjects = Array.from(
+        new Set(
+          formData.subjects
+            .map((s) => String(s).trim().toLowerCase())
+            .filter(Boolean)
+        )
+      ) as Array<'maths' | 'physics' | 'chemistry' | 'biology'>;
+
+      // Prepare shared payload fields
       const payload: any = {
         title: formData.title,
         description: formData.description,
         examType: formData.examType,
         classNumber: formData.assignedClasses[0],
         assignedClasses: formData.assignedClasses,
-        subject: formData.subject,
+        subject: normalizedSubjects[0],
+        subjects: normalizedSubjects,
         maxAttempts: parseInt(formData.maxAttempts, 10),
         board: formData.board,
         duration: parseInt(formData.duration),
         totalQuestions: parseInt(formData.totalQuestions),
         totalMarks: parseInt(formData.totalMarks),
         instructions: formData.instructions,
-        startDate: formData.startDate,
-        endDate: formData.endDate
+        startDate: toIsoFromDateTimeLocal(formData.startDate),
+        endDate: toIsoFromDateTimeLocal(formData.endDate)
       };
       console.log('🧾 Exam save payload:', payload);
 
@@ -707,7 +942,7 @@ export default function ExamManagement() {
           examType: 'mains',
           classNumber: '',
           assignedClasses: [],
-          subject: 'maths',
+          subjects: ['maths'],
           maxAttempts: '1',
           board: 'ASLI_EXCLUSIVE_SCHOOLS',
           filterType: 'all-schools',
@@ -945,24 +1180,45 @@ export default function ExamManagement() {
 
     return schoolMatches && classMatches;
   });
-  const groupedExams = filteredExams.reduce((acc, exam) => {
+  const dedupedFilteredExams = (() => {
+    const byKey = new Map<string, Exam>();
+    filteredExams.forEach((exam) => {
+      const key = examDisplayDedupKey(exam);
+      const existing = byKey.get(key);
+      if (!existing) {
+        byKey.set(key, exam);
+        return;
+      }
+
+      const existingSubjectCount = getExamSubjects(existing).length;
+      const nextSubjectCount = getExamSubjects(exam).length;
+      if (nextSubjectCount > existingSubjectCount) {
+        byKey.set(key, exam);
+        return;
+      }
+
+      if (nextSubjectCount === existingSubjectCount && getExamTimestamp(exam) > getExamTimestamp(existing)) {
+        byKey.set(key, exam);
+      }
+    });
+    return Array.from(byKey.values());
+  })();
+  const groupedExams = dedupedFilteredExams.reduce((acc, exam) => {
     const examClassLabels = getExamClassStrings(exam);
     const classBuckets = examClassLabels.length > 0 ? examClassLabels : ['unassigned'];
-    const subjectKey = (exam.subject || 'unknown').toLowerCase();
-    const subjectLabel = EXAM_SUBJECTS.find((item) => item.value === subjectKey)?.label || normalizeDisplayText(subjectKey) || 'Unknown';
 
     classBuckets.forEach((classKey) => {
       if (!acc[classKey]) {
-        acc[classKey] = {};
+        acc[classKey] = [];
       }
-      if (!acc[classKey][subjectLabel]) {
-        acc[classKey][subjectLabel] = [];
-      }
-      acc[classKey][subjectLabel].push(exam);
+      acc[classKey].push(exam);
     });
 
     return acc;
-  }, {} as Record<string, Record<string, Exam[]>>);
+  }, {} as Record<string, Exam[]>);
+  Object.keys(groupedExams).forEach((classKey) => {
+    groupedExams[classKey].sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+  });
   const classSectionKeys = Object.keys(groupedExams).sort((a, b) => {
     if (a === 'unassigned') return 1;
     if (b === 'unassigned') return -1;
@@ -978,6 +1234,27 @@ export default function ExamManagement() {
       return { cls, count };
     })
     .filter((x) => x.count > 0);
+  const availableQuestionSubjects = useMemo(() => {
+    if (!selectedExam) {
+      return EXAM_SUBJECTS.map((s) => s.value);
+    }
+    const subjects = getExamSubjects(selectedExam);
+    return subjects.length > 0 ? subjects : EXAM_SUBJECTS.map((s) => s.value);
+  }, [selectedExam]);
+
+  useEffect(() => {
+    if (!selectedExam) return;
+    setSelectedQuestionSubjects((prev) => {
+      const next = prev.filter((s) => availableQuestionSubjects.includes(s as any));
+      return next.length > 0 ? next : [availableQuestionSubjects[0] || 'maths'];
+    });
+    if (!availableQuestionSubjects.includes(questionFormData.subject as any)) {
+      setQuestionFormData((prev) => ({
+        ...prev,
+        subject: availableQuestionSubjects[0] || 'maths',
+      }));
+    }
+  }, [selectedExam, availableQuestionSubjects, questionFormData.subject]);
 
   const openCreateExamDialog = () => {
     setIsEditing(false);
@@ -989,7 +1266,7 @@ export default function ExamManagement() {
       examType: 'mains',
       classNumber: '',
       assignedClasses: [],
-      subject: 'maths',
+      subjects: ['maths'],
       maxAttempts: '1',
       board: 'ASLI_EXCLUSIVE_SCHOOLS',
       filterType: 'all-schools',
@@ -1015,7 +1292,9 @@ export default function ExamManagement() {
       examType: exam.examType || 'mains',
       classNumber: assigned[0] || '',
       assignedClasses: assigned,
-      subject: (exam.subject || 'maths') as any,
+      subjects: getExamSubjects(exam).length > 0
+        ? getExamSubjects(exam)
+        : ['maths'],
       maxAttempts: String(exam.maxAttempts || 1),
       board: exam.board || 'ASLI_EXCLUSIVE_SCHOOLS',
       filterType: exam.isSchoolSpecific ? 'specific-schools' : 'all-schools',
@@ -1024,8 +1303,8 @@ export default function ExamManagement() {
       totalQuestions: String(exam.totalQuestions || ''),
       totalMarks: String(exam.totalMarks || ''),
       instructions: exam.instructions || '',
-      startDate: exam.startDate ? new Date(exam.startDate).toISOString().slice(0, 16) : '',
-      endDate: exam.endDate ? new Date(exam.endDate).toISOString().slice(0, 16) : ''
+      startDate: toDateTimeLocalInput(exam.startDate),
+      endDate: toDateTimeLocalInput(exam.endDate)
     });
     if (exam.isSchoolSpecific && schools.length === 0) {
       fetchSchools();
@@ -1295,22 +1574,42 @@ export default function ExamManagement() {
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="subject">Subject *</Label>
-                  <Select
-                    value={formData.subject}
-                    onValueChange={(value: any) => setFormData({ ...formData, subject: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {EXAM_SUBJECTS.map((subject) => (
-                        <SelectItem key={subject.value} value={subject.value}>
-                          {subject.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="subject">Subjects *</Label>
+                  <div className="mt-2 max-h-32 overflow-y-auto rounded-md border bg-white p-2 space-y-2">
+                    {EXAM_SUBJECTS.map((subject) => (
+                      <label key={subject.value} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={formData.subjects.includes(subject.value as any)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData({
+                                ...formData,
+                                subjects: formData.subjects.includes(subject.value as any)
+                                  ? formData.subjects
+                                  : [...formData.subjects, subject.value as any]
+                              });
+                            } else {
+                              setFormData({
+                                ...formData,
+                                subjects: formData.subjects.filter((s) => s !== subject.value)
+                              });
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        <span>{subject.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Multiple subjects are saved under a single exam.</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {formData.subjects.map((s) => (
+                      <Badge key={s} variant="outline" className="text-[10px] bg-gray-50">
+                        {EXAM_SUBJECTS.find((x) => x.value === s)?.label || normalizeDisplayText(s)}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="maxAttempts">No. of Attempts *</Label>
@@ -1413,11 +1712,11 @@ export default function ExamManagement() {
       <div className="rounded-lg border border-gray-200 bg-gray-50/80 p-3">
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 items-center">
           {/* Quick Add Questions Option */}
-          {filteredExams.length > 0 ? (
+          {dedupedFilteredExams.length > 0 ? (
             <Select
               value=""
               onValueChange={(examId) => {
-                const exam = filteredExams.find(e => e._id === examId);
+                const exam = dedupedFilteredExams.find(e => e._id === examId);
                 if (exam) {
                   setSelectedExam(exam);
                   setIsQuestionDialogOpen(true);
@@ -1429,7 +1728,7 @@ export default function ExamManagement() {
                 <SelectValue placeholder="Quick Add Questions" />
               </SelectTrigger>
               <SelectContent>
-                {filteredExams.map((exam) => (
+                {dedupedFilteredExams.map((exam) => (
                   <SelectItem key={exam._id} value={exam._id}>
                     <div className="flex items-center gap-2">
                       <FileQuestion className="h-3.5 w-3.5" />
@@ -1484,7 +1783,7 @@ export default function ExamManagement() {
 
           <div className="flex xl:justify-end">
             <Badge variant="outline" className="w-fit bg-white">
-              {filteredExams.length} {filteredExams.length === 1 ? 'Exam' : 'Exams'}
+              {dedupedFilteredExams.length} {dedupedFilteredExams.length === 1 ? 'Exam' : 'Exams'}
             </Badge>
           </div>
         </div>
@@ -1494,7 +1793,7 @@ export default function ExamManagement() {
         <div className="text-center py-12">
           <p className="text-gray-500">Loading exams...</p>
         </div>
-      ) : filteredExams.length === 0 ? (
+      ) : dedupedFilteredExams.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -1508,8 +1807,7 @@ export default function ExamManagement() {
         <div className="space-y-8">
           {classSectionKeys.map((classKey) => {
             const classLabel = classKey === 'unassigned' ? 'Unassigned Class' : `Class ${classKey}`;
-            const subjects = groupedExams[classKey];
-            const subjectKeys = Object.keys(subjects).sort((a, b) => a.localeCompare(b));
+            const classExams = groupedExams[classKey];
 
             return (
               <section key={classKey} className="space-y-5">
@@ -1517,12 +1815,10 @@ export default function ExamManagement() {
                   <h3 className="text-lg font-semibold text-gray-900">{classLabel}</h3>
                 </div>
 
-                {subjectKeys.map((subjectKey) => (
-                  <div key={`${classKey}-${subjectKey}`} className="space-y-3">
-                    <h4 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">{subjectKey}</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
-                      {subjects[subjectKey].map((exam) => {
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+                  {classExams.map((exam) => {
                         const examClassLabels = getExamClassStrings(exam);
+                        const examSubjects = getExamSubjects(exam);
 
                         return (
                           <Card key={exam._id} className="border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
@@ -1567,6 +1863,11 @@ export default function ExamManagement() {
                                 </div>
                               </div>
                               <div className="flex flex-wrap gap-1">
+                                {examSubjects.map((subj) => (
+                                  <Badge key={`${exam._id}-subject-${subj}`} variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
+                                    {EXAM_SUBJECTS.find((x) => x.value === subj)?.label || normalizeDisplayText(subj)}
+                                  </Badge>
+                                ))}
                                 {examClassLabels.length > 0 ? (
                                   examClassLabels.map((cls: string, idx: number) => (
                                     <Badge key={`${exam._id}-class-${idx}`} variant="outline" className="text-[10px] bg-gray-50">
@@ -1614,9 +1915,7 @@ export default function ExamManagement() {
                           </Card>
                         );
                       })}
-                    </div>
-                  </div>
-                ))}
+                </div>
               </section>
             );
           })}
@@ -1701,6 +2000,7 @@ export default function ExamManagement() {
                       if (file) {
                         setQuestionCsvFile(file);
                         setQuestionCsvUploadResults(null);
+                        prefillQuestionFormFromCsv(file);
                       }
                     }}
                     className="mt-1"
@@ -1876,19 +2176,30 @@ export default function ExamManagement() {
 
               <div>
                 <Label>Subject *</Label>
-                <Select
-                  value={questionFormData.subject}
-                  onValueChange={(value) => setQuestionFormData({ ...questionFormData, subject: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="maths">Mathematics</SelectItem>
-                    <SelectItem value="physics">Physics</SelectItem>
-                    <SelectItem value="chemistry">Chemistry</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="mt-2 rounded-md border bg-white p-2 space-y-2">
+                  {availableQuestionSubjects.map((subjectValue: string) => (
+                    <label key={subjectValue} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        className="rounded"
+                        checked={selectedQuestionSubjects.includes(subjectValue)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedQuestionSubjects((prev) =>
+                              prev.includes(subjectValue) ? prev : [...prev, subjectValue]
+                            );
+                          } else {
+                            setSelectedQuestionSubjects((prev) =>
+                              prev.filter((s) => s !== subjectValue)
+                            );
+                          }
+                        }}
+                      />
+                      <span>{EXAM_SUBJECTS.find((s) => s.value === subjectValue)?.label || normalizeDisplayText(subjectValue)}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Question will be created for each selected subject.</p>
               </div>
 
               <div>

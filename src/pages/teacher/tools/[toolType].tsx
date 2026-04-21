@@ -6,12 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Sparkles, Download, Copy, Check, FileText, FileSpreadsheet, FileDown } from 'lucide-react';
+import { ArrowLeft, Sparkles, Download, Copy, Check, FileText, FileSpreadsheet, FileDown, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
-import katex from 'katex';
-import 'katex/dist/katex.min.css';
+import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, ExternalHyperlink, InternalHyperlink } from 'docx';
 import { saveAs } from 'file-saver';
 import html2pdf from 'html2pdf.js';
@@ -27,198 +26,7 @@ import { ConceptMasteryViewer } from '@/components/concept-mastery-viewer';
 import { LessonPlannerViewer } from '@/components/lesson-planner-viewer';
 import { ActivityProjectViewer } from '@/components/activity-project-viewer';
 import { getTopicsForClassAndSubject } from '@/data/ncert-topics';
-
-// Enhanced markdown renderer with math support
-const renderMarkdown = (text: string) => {
-  if (!text) return '';
-  
-  // Handle JSON-wrapped content (for special viewers, but extract formatted content for display)
-  let processedText = text;
-  try {
-    // Check if content is a JSON string with formatted property
-    if (text.trim().startsWith('{') && text.includes('"formatted"')) {
-      const parsed = JSON.parse(text);
-      if (parsed.formatted) {
-        processedText = parsed.formatted;
-      }
-    }
-  } catch (e) {
-    // Not JSON, use as-is
-    processedText = text;
-  }
-  
-  // Clean up escaped LaTeX (convert \\ to \ for proper rendering)
-  // But be careful - only unescape within math expressions
-  
-  // First, process block math ($$...$$) across multiple lines
-  processedText = processedText.replace(/\$\$([\s\S]*?)\$\$/g, (match, mathContent) => {
-    try {
-      // Unescape LaTeX (convert \\ to \)
-      const cleanedMath = mathContent.trim().replace(/\\\\/g, '\\');
-      const rendered = katex.renderToString(cleanedMath, {
-        displayMode: true,
-        throwOnError: false
-      });
-      return `__MATH_BLOCK__${rendered}__MATH_BLOCK__`;
-    } catch (e) {
-      return `__MATH_ERROR__${mathContent}__MATH_ERROR__`;
-    }
-  });
-  
-  // Process HTML card markers for Short Notes (before line processing)
-  // Replace the markers and keep the HTML content as-is for direct rendering
-  processedText = processedText.replace(/__NOTE_CARD_START__\n([\s\S]*?)\n__NOTE_CARD_END__/g, (match, cardContent) => {
-    // Return HTML directly without escaping - it will be rendered as HTML
-    return `__HTML_CARD__${cardContent.trim()}__HTML_CARD__`;
-  });
-  
-  const lines = processedText.split('\n');
-  let html = '';
-  let inList = false;
-  let listType: 'ul' | 'ol' | null = null;
-  
-  for (let i = 0; i < lines.length; i++) {
-    let line = lines[i];
-    const trimmed = line.trim();
-    
-    // Check if this line contains a math block
-    const hasMathBlock = line.includes('__MATH_BLOCK__') || line.includes('__MATH_ERROR__');
-    
-    // Check if this line contains HTML card marker
-    const hasHTMLCard = line.includes('__HTML_CARD__');
-    
-    // Restore math blocks first
-    if (hasMathBlock) {
-      closeList();
-      line = line.replace(/__MATH_BLOCK__(.*?)__MATH_BLOCK__/g, '<div class="my-4 overflow-x-auto">$1</div>');
-      line = line.replace(/__MATH_ERROR__(.*?)__MATH_ERROR__/g, '<div class="my-4 p-2 bg-red-50 border border-red-200 rounded text-red-800 text-sm">Math Error: $1</div>');
-      html += line;
-      continue;
-    }
-    
-    // Process HTML cards - extract and render directly
-    if (hasHTMLCard) {
-      closeList();
-      line = line.replace(/__HTML_CARD__(.*?)__HTML_CARD__/g, '$1');
-      html += line + '\n';
-      continue;
-    }
-    
-    // Check if this line contains raw HTML (from note cards that span multiple lines)
-    const hasHTML = line.includes('<div') || line.includes('</div>') || line.includes('<h2') || line.includes('<h3') || line.includes('<ul') || line.includes('<li') || line.includes('<p') || line.includes('<span');
-    
-    // If line contains HTML, add it directly without escaping (for note cards)
-    if (hasHTML) {
-      closeList();
-      html += line + '\n';
-      continue;
-    }
-    
-    // Headers
-    if (trimmed.startsWith('#### ')) {
-      closeList();
-      html += `<h4 class="text-base font-bold text-gray-900 mt-4 mb-2">${formatInline(trimmed.substring(5))}</h4>`;
-    } else if (trimmed.startsWith('### ')) {
-      closeList();
-      html += `<h3 class="text-lg font-bold text-gray-900 mt-6 mb-3">${formatInline(trimmed.substring(4))}</h3>`;
-    } else if (trimmed.startsWith('## ')) {
-      closeList();
-      html += `<h2 class="text-xl font-bold text-gray-900 mt-8 mb-4 border-b border-gray-200 pb-2">${formatInline(trimmed.substring(3))}</h2>`;
-    } else if (trimmed.startsWith('# ')) {
-      closeList();
-      html += `<h1 class="text-2xl font-bold text-gray-900 mt-8 mb-4">${formatInline(trimmed.substring(2))}</h1>`;
-    }
-    // Numbered lists
-    else if (/^\d+\.\s+/.test(trimmed)) {
-      if (!inList || listType !== 'ol') {
-        closeList();
-        html += '<ol class="list-decimal ml-6 mb-4 space-y-1">';
-        inList = true;
-        listType = 'ol';
-      }
-      const content = trimmed.replace(/^\d+\.\s+/, '');
-      html += `<li class="mb-1">${formatInline(content)}</li>`;
-    }
-    // Bullet points
-    else if (/^[-*]\s+/.test(trimmed)) {
-      if (!inList || listType !== 'ul') {
-        closeList();
-        html += '<ul class="list-disc ml-6 mb-4 space-y-1">';
-        inList = true;
-        listType = 'ul';
-      }
-      const content = trimmed.replace(/^[-*]\s+/, '');
-      html += `<li class="mb-1">${formatInline(content)}</li>`;
-    }
-    // Empty line
-    else if (!trimmed) {
-      closeList();
-      if (html && !html.endsWith('</p>') && !html.endsWith('</h1>') && !html.endsWith('</h2>') && !html.endsWith('</h3>') && !html.endsWith('</h4>') && !html.endsWith('</div>')) {
-        html += '<br>';
-      }
-    }
-    // Regular paragraph
-    else {
-      closeList();
-      html += `<p class="mb-4 text-gray-700 leading-relaxed">${formatInline(line)}</p>`;
-    }
-  }
-  
-  closeList();
-  
-  function closeList() {
-    if (inList) {
-      html += listType === 'ul' ? '</ul>' : '</ol>';
-      inList = false;
-      listType = null;
-    }
-  }
-  
-  function formatInline(text: string): string {
-    // Don't process if it's already HTML (math blocks or note cards)
-    if (text.includes('__MATH_BLOCK__') || text.includes('__MATH_ERROR__') || text.includes('__NOTE_CARD')) {
-      return text;
-    }
-    
-    // Escape HTML first
-    let formatted = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    
-    // Inline math ($...$) - but not if it's part of block math ($$)
-    formatted = formatted.replace(/(?<!\$)\$(?!\$)([^$\n]+?)(?<!\$)\$(?!\$)/g, (match, mathContent) => {
-      try {
-        // Unescape LaTeX (convert \\ to \)
-        const cleanedMath = mathContent.trim().replace(/\\\\/g, '\\');
-        const rendered = katex.renderToString(cleanedMath, {
-          displayMode: false,
-          throwOnError: false
-        });
-        return rendered;
-      } catch (e) {
-        return `<span class="text-red-600 text-sm">Math Error: ${mathContent}</span>`;
-      }
-    });
-    
-    // Code blocks
-    formatted = formatted.replace(/```([\s\S]*?)```/g, '<pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto mb-2 text-sm font-mono"><code>$1</code></pre>');
-    
-    // Inline code (but not if it's part of math)
-    formatted = formatted.replace(/`([^`]+)`/g, (match, codeContent) => {
-      // Check if this is inside a math expression
-      if (match.includes('$')) return match;
-      return `<code class="bg-gray-100 px-2 py-1 rounded text-sm font-mono text-gray-800">${codeContent}</code>`;
-    });
-    
-    // Bold
-    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>');
-    
-    // Italic (but not if part of bold)
-    formatted = formatted.replace(/(?<!\*)\*(?!\*)([^*\n]+?)(?<!\*)\*(?!\*)/g, '<em class="italic">$1</em>');
-    
-    return formatted;
-  }
-  
-  return html;
-};
+import { useCurriculumCascade, isGradeWithScienceCurriculumDropdowns } from '@/hooks/use-curriculum-cascade';
 
 interface ToolConfig {
   name: string;
@@ -236,141 +44,11 @@ interface ToolConfig {
     getOptions?: (value?: string) => string[]; // Function to get options based on dependency
     isStudentSelect?: boolean; // If true, populate from assigned students
     isNCERT?: boolean; // If true, use NCERT topics for options
+    isCascadeSubtopic?: boolean; // Subtopic dropdown from /api/curriculum/subtopics
   }>;
 }
 
-// Class-wise subjects mapping
-const CLASS_SUBJECTS: Record<string, string[]> = {
-  'Class 6': [
-    'Mathematics',
-    'Science',
-    'English',
-    'Hindi',
-    'Social Studies',
-    'Computer Science',
-    'Physical Education',
-    'Art',
-    'Music'
-  ],
-  'Class 7': [
-    'Mathematics',
-    'Science',
-    'English',
-    'Hindi',
-    'Social Studies',
-    'Computer Science',
-    'Physical Education',
-    'Art',
-    'Music'
-  ],
-  'Class 8': [
-    'Mathematics',
-    'Science',
-    'English',
-    'Hindi',
-    'Social Studies',
-    'Computer Science',
-    'Physical Education',
-    'Art',
-    'Music'
-  ],
-  'Class 9': [
-    'Mathematics',
-    'Science',
-    'Physics',
-    'Chemistry',
-    'Biology',
-    'English',
-    'Hindi',
-    'Social Studies',
-    'History',
-    'Geography',
-    'Civics',
-    'Economics',
-    'Computer Science',
-    'Physical Education',
-    'Art',
-    'Music'
-  ],
-  'Class 10': [
-    'Mathematics',
-    'Science',
-    'Physics',
-    'Chemistry',
-    'Biology',
-    'English',
-    'Hindi',
-    'Social Studies',
-    'History',
-    'Geography',
-    'Civics',
-    'Economics',
-    'Computer Science',
-    'Physical Education',
-    'Art',
-    'Music'
-  ],
-  'Class 11': [
-    'Mathematics',
-    'Physics',
-    'Chemistry',
-    'Biology',
-    'English',
-    'Hindi',
-    'Computer Science',
-    'Physical Education',
-    'Economics',
-    'Business Studies',
-    'Accountancy',
-    'History',
-    'Geography',
-    'Political Science',
-    'Psychology',
-    'Sociology',
-    'Philosophy',
-    'Fine Arts',
-    'Music'
-  ],
-  'Class 12': [
-    'Mathematics',
-    'Physics',
-    'Chemistry',
-    'Biology',
-    'English',
-    'Hindi',
-    'Computer Science',
-    'Physical Education',
-    'Economics',
-    'Business Studies',
-    'Accountancy',
-    'History',
-    'Geography',
-    'Political Science',
-    'Psychology',
-    'Sociology',
-    'Philosophy',
-    'Fine Arts',
-    'Music'
-  ],
-  'Dropper Batch': [
-    'Mathematics',
-    'Physics',
-    'Chemistry',
-    'Biology',
-    'English'
-  ],
-  'IIT-6': [
-    'Physics',
-    'Chemistry',
-    'Maths',
-    'Biology'
-  ]
-};
-
-const CLASS_OPTIONS = ['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'IIT-6'];
-
-// Subject options - will be fetched from API for Class 6, fallback for other classes
-const DEFAULT_SUBJECT_OPTIONS = ['mathematics', 'maths', 'english', 'science', 'social science', 'social', 'evs', 'sst'];
+const CLASS_OPTIONS = ['Class 6', 'Class 7', 'Class 8', 'Class 10'];
 
 const TOOL_CONFIGS: Record<string, ToolConfig> = {
   'activity-project-generator': {
@@ -381,7 +59,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all projects if not selected)', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
       { name: 'className', label: 'Section (Optional)', type: 'text', placeholder: 'e.g., A, B, C' }
     ]
   },
@@ -393,7 +71,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
       { name: 'questionType', label: 'Question Type *', type: 'select', required: true, options: ['Single Option', 'Multiple Option', 'Integer Type', 'All Types'], placeholder: 'Select question type' },
       { name: 'questionCount', label: 'Number of Questions', type: 'number', placeholder: '10' },
       { name: 'difficulty', label: 'Difficulty', type: 'select', options: ['easy', 'medium', 'hard'] }
@@ -407,7 +85,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
   'lesson-planner': {
@@ -418,7 +96,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all lessons if not selected)', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
   'homework-creator': {
@@ -429,7 +107,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
       { name: 'duration', label: 'Expected Duration (minutes)', type: 'number', placeholder: '30' }
     ]
   },
@@ -444,7 +122,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'assignmentType', label: 'Assignment Type', type: 'text', required: false, placeholder: 'e.g., Project, Essay, Lab Report (for Rubrics)', showWhen: (values: any) => values.outputType === 'Rubrics & Evaluation' },
       { name: 'term', label: 'Term', type: 'text', placeholder: 'e.g., First Term (for Report Card)', showWhen: (values: any) => values.outputType === 'Report Card' },
-      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
+      { name: 'subTopic', label: 'Sub Topic *', type: 'text', required: true, placeholder: 'Enter sub topic' }
     ]
   },
   'story-passage-creator': {
@@ -455,7 +133,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all passages if not selected)', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
       { name: 'length', label: 'Length', type: 'select', options: ['short', 'medium', 'long'] }
     ]
   },
@@ -467,7 +145,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
   'flashcard-generator': {
@@ -478,7 +156,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' }
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
   'daily-class-plan-maker': {
@@ -489,7 +167,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'date', label: 'Date', type: 'text', placeholder: 'e.g., 2025-01-15' },
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subjects', label: 'Subjects *', type: 'select', required: true, dependsOn: 'gradeLevel' },
-      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'text', required: true, placeholder: 'Enter sub topic' },
       { name: 'timeSlots', label: 'Time Slots', type: 'text', placeholder: 'e.g., 9:00-10:00, 10:15-11:15' }
     ]
   },
@@ -501,7 +179,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic', type: 'text', required: false, placeholder: 'Enter sub topic (optional)' },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
       { name: 'questionCount', label: 'Number of Questions *', type: 'number', required: true, placeholder: '20' },
       { name: 'duration', label: 'Exam Duration (minutes)', type: 'number', placeholder: '90' },
       { name: 'difficulty', label: 'Difficulty Mix', type: 'select', options: ['easy', 'medium', 'hard', 'mixed'] }
@@ -613,20 +291,25 @@ export default function TeacherToolPage() {
   const [generatedContent, setGeneratedContent] = useState('');
   const [rawGeneratedContent, setRawGeneratedContent] = useState<any>(null);
   const [contentSource, setContentSource] = useState<string>('');
+  const [fallbackEmptyMessage, setFallbackEmptyMessage] = useState<string>('');
+  const [isFallbackContent, setIsFallbackContent] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [assignedStudents, setAssignedStudents] = useState<Array<{id: string, name: string, classNumber?: string}>>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [availableNCERTTopics, setAvailableNCERTTopics] = useState<string[]>([]);
-  const [availableSubjects, setAvailableSubjects] = useState<string[]>(DEFAULT_SUBJECT_OPTIONS);
   const [assignedSubjectNames, setAssignedSubjectNames] = useState<string[]>([]);
-  const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
 
   const normalizeSubjectName = (value: string) => {
-    const compact = value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    let compact = value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
     if (compact === 'maths') return 'mathematics';
     if (compact === 'socialscience' || compact === 'socialstudies' || compact === 'sst') return 'socialscience';
     if (compact === 'computerscience') return 'computerscience';
+    // IIT / codes like BIOLOGY_7, PHYSICS_6 → align with curriculum canonical names
+    if (compact.startsWith('biology')) return 'biology';
+    if (compact.startsWith('physics')) return 'physics';
+    if (compact.startsWith('chemistry')) return 'chemistry';
+    if (compact.startsWith('math')) return 'mathematics';
     return compact;
   };
 
@@ -646,9 +329,36 @@ export default function TeacherToolPage() {
     if (assignedSubjectNames.length === 0) return subjects;
     const allowed = new Set(assignedSubjectNames.map(normalizeSubjectName));
     return uniquePreserveOrder(
-      subjects.filter((subject) => allowed.has(normalizeSubjectName(subject)))
+      subjects.filter((subject) => allowed.has(normalizeSubjectName(subject))),
     );
   };
+
+  const cascade = useCurriculumCascade(
+    formParams.gradeLevel,
+    formParams.subject || formParams.subjects,
+    formParams.topic,
+  );
+
+  const availableSubjects = (() => {
+    if (!formParams.gradeLevel || !isGradeWithScienceCurriculumDropdowns(formParams.gradeLevel)) {
+      return [];
+    }
+    const raw = cascade.subjects;
+    if (cascade.loadingSubjects && raw.length === 0) {
+      return [];
+    }
+    if (raw.length === 0) {
+      return assignedSubjectNames.length > 0 ? assignedSubjectNames : [];
+    }
+    const restricted = restrictToAssignedSubjects(raw);
+    if (restricted.length > 0) return restricted;
+    if (raw.length > 0) return raw;
+    if (assignedSubjectNames.length > 0) return assignedSubjectNames;
+    return [];
+  })();
+
+  const classSelectOptions =
+    cascade.classOptions.length > 0 ? cascade.classOptions : CLASS_OPTIONS;
 
   // Get tool type from route params
   const toolType = params?.toolType || '';
@@ -676,9 +386,6 @@ export default function TeacherToolPage() {
           .filter(Boolean);
         const uniqueAssigned = uniquePreserveOrder(names);
         setAssignedSubjectNames(uniqueAssigned);
-        if (uniqueAssigned.length > 0) {
-          setAvailableSubjects(uniqueAssigned);
-        }
       } catch (error) {
         console.error('Failed to fetch teacher assigned subjects:', error);
       }
@@ -686,170 +393,16 @@ export default function TeacherToolPage() {
     fetchAssignedSubjects();
   }, []);
 
-  // Fetch subjects from API when a class is selected (classes 5-10)
+  // Keep subject aligned when class is chosen and list loads (only after a class is selected)
   useEffect(() => {
-    const fetchSubjects = async () => {
-      const classValue = formParams.gradeLevel;
-      
-      if (!classValue) {
-        setAvailableSubjects(
-          assignedSubjectNames.length > 0
-            ? assignedSubjectNames
-            : restrictToAssignedSubjects(DEFAULT_SUBJECT_OPTIONS)
-        );
-        return;
-      }
-
-      // Handle IIT-6 specially
-      if (classValue === 'IIT-6') {
-        setIsLoadingSubjects(true);
-        try {
-          const token = localStorage.getItem('authToken');
-          const response = await fetch(`${API_BASE_URL}/api/teacher/ai/subjects?classNumber=IIT-6`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data && Array.isArray(data.data)) {
-              // Extract subject names and keep their original casing
-              const subjects = data.data.map((subj: any) => 
-                (subj.name || subj.displayName || subj)
-              );
-              const restricted = restrictToAssignedSubjects(subjects);
-              setAvailableSubjects(
-                restricted.length > 0
-                  ? restricted
-                  : assignedSubjectNames.length > 0
-                    ? assignedSubjectNames
-                    : subjects
-              );
-              console.log(`✅ Fetched subjects for IIT-6:`, subjects);
-            }
-          }
-        } catch (error) {
-          console.error('Failed to fetch subjects:', error);
-          // Fallback to class-specific subjects
-          const classSubjects = CLASS_SUBJECTS[classValue];
-          if (classSubjects && classSubjects.length > 0) {
-            const restricted = restrictToAssignedSubjects(classSubjects);
-            setAvailableSubjects(
-              restricted.length > 0
-                ? restricted
-                : assignedSubjectNames.length > 0
-                  ? assignedSubjectNames
-                  : classSubjects
-            );
-          } else {
-            setAvailableSubjects(
-              assignedSubjectNames.length > 0
-                ? assignedSubjectNames
-                : restrictToAssignedSubjects(DEFAULT_SUBJECT_OPTIONS)
-            );
-          }
-        } finally {
-          setIsLoadingSubjects(false);
-        }
-        return;
-      }
-
-      // Extract class number (e.g., "Class 6" -> 6)
-      const classNumber = parseInt(classValue.replace('Class ', '').trim());
-      
-      // Fetch for classes 6-10 (hardcoded content available)
-      if (!isNaN(classNumber) && classNumber >= 6 && classNumber <= 10) {
-        setIsLoadingSubjects(true);
-        try {
-          const token = localStorage.getItem('authToken');
-          const response = await fetch(`${API_BASE_URL}/api/teacher/ai/subjects?classNumber=${classNumber}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data && Array.isArray(data.data)) {
-              // Extract subject names and keep their original casing
-              const subjects = data.data.map((subj: any) => 
-                (subj.name || subj.displayName || subj)
-              );
-              const restricted = restrictToAssignedSubjects(subjects);
-              setAvailableSubjects(
-                restricted.length > 0
-                  ? restricted
-                  : assignedSubjectNames.length > 0
-                    ? assignedSubjectNames
-                    : subjects
-              );
-              console.log(`✅ Fetched subjects for Class ${classNumber}:`, subjects);
-            }
-          }
-        } catch (error) {
-          console.error('Failed to fetch subjects:', error);
-          // Fallback to class-specific subjects or default
-          const classSubjects = CLASS_SUBJECTS[classValue];
-          if (classSubjects && classSubjects.length > 0) {
-            const restricted = restrictToAssignedSubjects(classSubjects);
-            setAvailableSubjects(
-              restricted.length > 0
-                ? restricted
-                : assignedSubjectNames.length > 0
-                  ? assignedSubjectNames
-                  : classSubjects
-            );
-          } else {
-            setAvailableSubjects(
-              assignedSubjectNames.length > 0
-                ? assignedSubjectNames
-                : restrictToAssignedSubjects(DEFAULT_SUBJECT_OPTIONS)
-            );
-          }
-        } finally {
-          setIsLoadingSubjects(false);
-        }
-      } else if (classValue) {
-        // For other classes, use class-specific subjects or default
-        const classSubjects = CLASS_SUBJECTS[classValue];
-        if (classSubjects && classSubjects.length > 0) {
-          const restricted = restrictToAssignedSubjects(classSubjects);
-          setAvailableSubjects(
-            restricted.length > 0
-              ? restricted
-              : assignedSubjectNames.length > 0
-                ? assignedSubjectNames
-                : classSubjects
-          );
-        } else {
-          setAvailableSubjects(
-            assignedSubjectNames.length > 0
-              ? assignedSubjectNames
-              : restrictToAssignedSubjects(DEFAULT_SUBJECT_OPTIONS)
-          );
-        }
-      } else {
-        // No class selected, use default
-        setAvailableSubjects(
-          assignedSubjectNames.length > 0
-            ? assignedSubjectNames
-            : restrictToAssignedSubjects(DEFAULT_SUBJECT_OPTIONS)
-        );
-      }
-    };
-
-    fetchSubjects();
-  }, [formParams.gradeLevel, assignedSubjectNames]);
-
-  // Keep subject defaults aligned with teacher-assigned/available subjects across tools
-  useEffect(() => {
-    if (availableSubjects.length === 0) return;
+    if (!formParams.gradeLevel || availableSubjects.length === 0) return;
     setFormParams((prev) => {
       const currentSubject = prev.subject || prev.subjects;
-      const hasCurrent = currentSubject && availableSubjects.some((s) => normalizeSubjectName(s) === normalizeSubjectName(String(currentSubject)));
+      const hasCurrent =
+        currentSubject &&
+        availableSubjects.some(
+          (s) => normalizeSubjectName(s) === normalizeSubjectName(String(currentSubject)),
+        );
       if (hasCurrent) return prev;
       const defaultSubject = availableSubjects[0];
       return {
@@ -859,7 +412,7 @@ export default function TeacherToolPage() {
         ...(prev.subject === undefined && prev.subjects === undefined ? { subject: defaultSubject } : {}),
       };
     });
-  }, [availableSubjects]);
+  }, [availableSubjects, formParams.gradeLevel]);
 
   // Fetch assigned students on component mount
   useEffect(() => {
@@ -898,144 +451,213 @@ export default function TeacherToolPage() {
     fetchStudents();
   }, [toolType]);
 
-  // Fetch topics when class and subject are selected
+  // Topics from curriculum API + optional hardcoded filtering; local NCERT fallback if empty
   useEffect(() => {
     const classValue = formParams.gradeLevel;
-    const subjectValue = formParams.subject;
+    const subjectValue = formParams.subject || formParams.subjects;
 
     if (!classValue || !subjectValue) {
       setAvailableNCERTTopics([]);
       return;
     }
 
-    // Handle IIT-6 specially
-    if (classValue === 'IIT-6') {
-      const fetchTopics = async () => {
-        try {
-          const token = localStorage.getItem('authToken');
-          const response = await fetch(`${API_BASE_URL}/api/teacher/ai/topics?classNumber=IIT-6&subject=${encodeURIComponent(subjectValue)}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data && Array.isArray(data.data)) {
-              // Extract chapter names from the response
-              const topics = data.data.map((chapter: any) => 
-                chapter.chapterName || chapter.name || chapter
-              );
-              setAvailableNCERTTopics(topics);
-              console.log(`✅ Fetched topics for IIT-6:`, topics);
-            }
-          }
-        } catch (error) {
-          console.error('Failed to fetch topics:', error);
-          setAvailableNCERTTopics([]);
-        }
-      };
-
-      fetchTopics();
-      return;
-    }
-
-    // Extract class number (e.g., "Class 9" -> 9)
-    const classNumber = parseInt(classValue.replace('Class ', '').trim());
-    
-    if (isNaN(classNumber) || classNumber < 1 || classNumber > 10) {
+    if (cascade.loadingTopics && cascade.topics.length === 0) {
       setAvailableNCERTTopics([]);
       return;
     }
 
-    // For classes 6-10, fetch topics from API (hardcoded content)
-    if (classNumber >= 6 && classNumber <= 10) {
-      const fetchTopics = async () => {
-        try {
-          const token = localStorage.getItem('authToken');
-          const response = await fetch(`${API_BASE_URL}/api/teacher/ai/topics?classNumber=${classNumber}&subject=${encodeURIComponent(subjectValue)}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
+    let topics = [...cascade.topics];
 
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.data && Array.isArray(data.data)) {
-              // Extract chapter names from the response
-              let topics = data.data.map((chapter: any) => 
-                chapter.chapterName || chapter.name || chapter
+    const classNumber =
+      classValue === 'IIT-6' ? NaN : parseInt(classValue.replace('Class ', '').trim());
+
+    if (
+      topics.length === 0 &&
+      !isNaN(classNumber) &&
+      (classNumber === 6 || classNumber === 7) &&
+      subjectValue &&
+      /science/i.test(String(subjectValue)) &&
+      !/social|computer/i.test(String(subjectValue))
+    ) {
+      topics = getTopicsForClassAndSubject(classNumber, subjectValue);
+    }
+
+    const isNcertScienceSyllabus =
+      !isNaN(classNumber) &&
+      (classNumber === 6 || classNumber === 7 || classNumber === 8 || classNumber === 10) &&
+      subjectValue &&
+      /science/i.test(String(subjectValue)) &&
+      !/social|computer/i.test(String(subjectValue));
+    const isClass7EnglishPoorvi =
+      !isNaN(classNumber) &&
+      classNumber === 7 &&
+      subjectValue &&
+      /english/i.test(String(subjectValue));
+    const isClass6EnglishPoorvi =
+      !isNaN(classNumber) &&
+      classNumber === 6 &&
+      subjectValue &&
+      /english/i.test(String(subjectValue));
+    const isClass6HindiMalhar =
+      !isNaN(classNumber) &&
+      classNumber === 6 &&
+      subjectValue &&
+      /(hindi|हिंदी|हिन्दी)/i.test(String(subjectValue));
+    const isClass6MathematicsSyllabus =
+      !isNaN(classNumber) &&
+      classNumber === 6 &&
+      subjectValue &&
+      /(mathematics|maths|math|ganita|गणित)/i.test(String(subjectValue));
+    const isClass6SocialScienceSyllabus =
+      !isNaN(classNumber) &&
+      classNumber === 6 &&
+      subjectValue &&
+      /(social\s*science|social\s*studies|sst|exploring\s*society)/i.test(String(subjectValue));
+    const isClass7HindiSyllabus =
+      !isNaN(classNumber) &&
+      classNumber === 7 &&
+      subjectValue &&
+      /(hindi|हिंदी|हिन्दी)/i.test(String(subjectValue));
+    const isClass7MathematicsSyllabus =
+      !isNaN(classNumber) &&
+      classNumber === 7 &&
+      subjectValue &&
+      /(mathematics|maths|math|ganita|गणित)/i.test(String(subjectValue));
+    const isClass7SocialScienceSyllabus =
+      !isNaN(classNumber) &&
+      classNumber === 7 &&
+      subjectValue &&
+      /(social\s*science|social\s*studies|sst|exploring\s*society)/i.test(String(subjectValue));
+    const isClass8EnglishPoorvi =
+      !isNaN(classNumber) &&
+      classNumber === 8 &&
+      subjectValue &&
+      /english/i.test(String(subjectValue));
+    const isClass8HindiMalhar =
+      !isNaN(classNumber) &&
+      classNumber === 8 &&
+      subjectValue &&
+      /(hindi|हिंदी|हिन्दी)/i.test(String(subjectValue));
+    const isClass8MathematicsSyllabus =
+      !isNaN(classNumber) &&
+      classNumber === 8 &&
+      subjectValue &&
+      /(mathematics|maths|math|ganita|गणित)/i.test(String(subjectValue));
+    const isClass8SocialScienceSyllabus =
+      !isNaN(classNumber) &&
+      classNumber === 8 &&
+      subjectValue &&
+      /(social\s*science|social\s*studies|sst|exploring\s*society)/i.test(String(subjectValue));
+    const isClass10EnglishSyllabus =
+      !isNaN(classNumber) &&
+      classNumber === 10 &&
+      subjectValue &&
+      /english/i.test(String(subjectValue));
+    const isClass10MathematicsSyllabus =
+      !isNaN(classNumber) &&
+      classNumber === 10 &&
+      subjectValue &&
+      /(mathematics|maths|math|गणित)/i.test(String(subjectValue));
+    const isClass10SocialScienceSyllabus =
+      !isNaN(classNumber) &&
+      classNumber === 10 &&
+      subjectValue &&
+      /(social\s*science|social\s*studies|sst|history|geography|economics|political\s*science|civics)/i.test(
+        String(subjectValue),
+      );
+    const isClass10HindiSyllabus =
+      !isNaN(classNumber) &&
+      classNumber === 10 &&
+      subjectValue &&
+      /(hindi|हिंदी|हिन्दी)/i.test(String(subjectValue));
+
+    // Keep full NCERT chapter list — do not hide topics missing hardcoded assets
+    if (
+      (isNcertScienceSyllabus ||
+        isClass6EnglishPoorvi ||
+        isClass6HindiMalhar ||
+        isClass6MathematicsSyllabus ||
+        isClass6SocialScienceSyllabus ||
+        isClass7EnglishPoorvi ||
+        isClass7HindiSyllabus ||
+        isClass7MathematicsSyllabus ||
+        isClass7SocialScienceSyllabus ||
+        isClass8EnglishPoorvi ||
+        isClass8HindiMalhar ||
+        isClass8MathematicsSyllabus ||
+        isClass8SocialScienceSyllabus ||
+        isClass10EnglishSyllabus ||
+        isClass10MathematicsSyllabus ||
+        isClass10SocialScienceSyllabus ||
+        isClass10HindiSyllabus) &&
+      topics.length > 0
+    ) {
+      setAvailableNCERTTopics(topics);
+      return;
+    }
+
+    if (
+      classValue !== 'IIT-6' &&
+      !isNaN(classNumber) &&
+      (classNumber === 6 || classNumber === 7) &&
+      topics.length > 0
+    ) {
+      const toolsNeedingFiltering = new Set([
+        'homework-creator',
+        'exam-question-paper-generator',
+        'short-notes-summaries-maker',
+        'worksheet-mcq-generator',
+        'concept-mastery-helper',
+        'lesson-planner',
+        'story-passage-creator',
+      ]);
+
+      if (toolsNeedingFiltering.has(toolType)) {
+        const token = localStorage.getItem('authToken');
+        const run = async () => {
+          const filtered: string[] = [];
+          for (const topic of topics) {
+            try {
+              const acResp = await fetch(
+                `${API_BASE_URL}/api/teacher/ai/available-content?classNumber=${classNumber}&subject=${encodeURIComponent(subjectValue)}&topic=${encodeURIComponent(topic)}`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                  },
+                },
               );
-
-              // Optional tool-specific filtering based on actually available
-              // hardcoded content. For selected tools, hide topics that do
-              // not have any content for the current toolType so the user
-              // doesn't hit "no pre-generated content" errors.
-              const toolsNeedingFiltering = new Set([
-                'homework-creator',
-                'exam-question-paper-generator',
-                'short-notes-summaries-maker',
-                'worksheet-mcq-generator',
-                'concept-mastery-helper',
-                'lesson-planner',
-                'story-passage-creator',
-              ]);
-
-              if (toolsNeedingFiltering.has(toolType)) {
-                const filtered: string[] = [];
-                for (const topic of topics) {
-                  try {
-                    const acResp = await fetch(
-                      `${API_BASE_URL}/api/teacher/ai/available-content?classNumber=${classNumber}&subject=${encodeURIComponent(subjectValue)}&topic=${encodeURIComponent(topic)}`,
-                      {
-                        headers: {
-                          'Authorization': `Bearer ${token}`,
-                          'Content-Type': 'application/json',
-                        },
-                      },
-                    );
-                    if (acResp.ok) {
-                      const acData = await acResp.json();
-                      if (acData.success && Array.isArray(acData.data)) {
-                        const hasTool = acData.data.some(
-                          (entry: any) => entry.toolType === toolType,
-                        );
-                        if (hasTool) filtered.push(topic);
-                      } else {
-                        // If the check fails for some reason, keep topic to avoid hiding too much
-                        filtered.push(topic);
-                      }
-                    } else {
-                      filtered.push(topic);
-                    }
-                  } catch {
-                    filtered.push(topic);
-                  }
+              if (acResp.ok) {
+                const acData = await acResp.json();
+                if (acData.success && Array.isArray(acData.data)) {
+                  const hasTool = acData.data.some((entry: any) => entry.toolType === toolType);
+                  if (hasTool) filtered.push(topic);
+                } else {
+                  filtered.push(topic);
                 }
-                topics = filtered;
+              } else {
+                filtered.push(topic);
               }
-
-              setAvailableNCERTTopics(topics);
-              console.log(`✅ Fetched topics for Class ${classNumber}:`, topics);
+            } catch {
+              filtered.push(topic);
             }
           }
-        } catch (error) {
-          console.error('Failed to fetch topics:', error);
-          // Fallback to hardcoded NCERT topics
-    const topics = getTopicsForClassAndSubject(classNumber, subjectValue);
-    setAvailableNCERTTopics(topics);
-        }
-      };
-
-      fetchTopics();
-    } else {
-      // For other classes, use hardcoded NCERT topics
-      const topics = getTopicsForClassAndSubject(classNumber, subjectValue);
-      setAvailableNCERTTopics(topics);
+          setAvailableNCERTTopics(filtered);
+        };
+        run();
+        return;
+      }
     }
-  }, [formParams.gradeLevel, formParams.subject, toolType]);
+
+    setAvailableNCERTTopics(topics);
+  }, [
+    formParams.gradeLevel,
+    formParams.subject,
+    formParams.subjects,
+    toolType,
+    cascade.topics,
+    cascade.loadingTopics,
+  ]);
 
   const handleInputChange = (fieldName: string, value: any) => {
     setFormParams(prev => {
@@ -1056,22 +678,22 @@ export default function TeacherToolPage() {
         }
       }
       
-      // If gradeLevel changes, clear dependent fields (like subject, topic)
       if (fieldName === 'gradeLevel') {
-        // Clear subject and other dependent fields
-        Object.keys(updated).forEach(key => {
-          const field = config?.fields.find(f => f.name === key);
-          if (field?.dependsOn === 'gradeLevel' || key === 'topic') {
-            delete updated[key];
-          }
-        });
-      }
-      
-      // If subject changes, clear topic
-      if (fieldName === 'subject') {
+        delete updated.subject;
+        delete updated.subjects;
         delete updated.topic;
+        delete updated.subTopic;
       }
-      
+
+      if (fieldName === 'subject' || fieldName === 'subjects') {
+        delete updated.topic;
+        delete updated.subTopic;
+      }
+
+      if (fieldName === 'topic') {
+        delete updated.subTopic;
+      }
+
       return updated;
     });
   };
@@ -1132,49 +754,85 @@ export default function TeacherToolPage() {
     setGeneratedContent('');
     setRawGeneratedContent(null);
     setContentSource('');
+    setFallbackEmptyMessage('');
+    setIsFallbackContent(false);
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/teacher/ai/tool`, {
+      const selectedClass = formParams.gradeLevel;
+      const selectedSubject = formParams.subject || formParams.subjects;
+      const selectedTopic = formParams.topic || '';
+      const selectedSubTopic = formParams.subTopic || '';
+      const selectedSection = formParams.section || formParams.className || '';
+
+      const requestBody = {
+        toolType,
+        classNumber: selectedClass
+          ? (selectedClass === 'IIT-6'
+              ? 'IIT-6'
+              : parseInt(String(selectedClass).replace('Class ', ''), 10))
+          : undefined,
+        subject: selectedSubject,
+        topic: selectedTopic,
+        subTopic: selectedSubTopic,
+        section: selectedSection,
+        questionCount: formParams.questionCount ? parseInt(formParams.questionCount) : undefined,
+        duration: formParams.duration ? parseInt(formParams.duration) : undefined,
+        ...formParams,
+      };
+
+      const response = await fetch(`${API_BASE_URL}/api/teacher/ai/generate-content`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          toolType,
-          // Handle IIT-6 as string, otherwise parse as number
-          classNumber: formParams.gradeLevel 
-            ? (formParams.gradeLevel === 'IIT-6' 
-                ? 'IIT-6' 
-                : parseInt(formParams.gradeLevel.replace('Class ', '')))
-            : undefined,
-          // Handle both 'subject' and 'subjects' field names
-          subject: formParams.subject || formParams.subjects,
-          topic: formParams.topic,
-          questionCount: formParams.questionCount ? parseInt(formParams.questionCount) : undefined,
-          duration: formParams.duration ? parseInt(formParams.duration) : undefined,
-          ...formParams
-        })
+        body: JSON.stringify(requestBody)
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = `Server error: ${response.status}`;
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.message || errorMessage;
-        } catch {
-          errorMessage = errorText || errorMessage;
-        }
-        throw new Error(errorMessage);
+      const responseText = await response.text();
+      let data: { success?: boolean; data?: { content?: string; rawData?: unknown; metadata?: { source?: string; sourceLabel?: string; aiUnavailable?: boolean } }; message?: string; code?: string } = {};
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch {
+        data = {};
       }
 
-      const data = await response.json();
-      
-      if (data.success) {
-        const sourceLabel = data.data.metadata?.sourceLabel || (data.data.metadata?.source === 'pdf-extracted' ? 'Textbook (PDF)' : 'Question Bank (CSV)');
+      if (!response.ok) {
+        if (response.status === 503 && data?.code === 'AI_UNAVAILABLE_NO_FALLBACK') {
+          setGeneratedContent('');
+          setRawGeneratedContent(null);
+          setContentSource('');
+          setIsFallbackContent(false);
+          setFallbackEmptyMessage(
+            data.message ||
+              'AI service is unavailable and no previously generated content was found for this selection.',
+          );
+          toast({
+            title: 'AI unavailable',
+            description:
+              data.message ||
+              'No stored content matched. Ask your Super Admin to add content or fix the API quota.',
+            variant: 'destructive',
+          });
+          return;
+        }
+        const errorMessage =
+          data.message || responseText || `Server error: ${response.status}`;
+        throw new Error(errorMessage || 'AI generation failed');
+      }
+
+      if (data.success && data?.data?.content && String(data.data.content).trim().length > 0) {
+        const sourceLabel =
+          data.data.metadata?.sourceLabel ||
+          (data.data.metadata?.source === 'pdf-extracted' ? 'Textbook (PDF)' : 'Question Bank (CSV)');
+        const fromAiFailure = !!data.data.metadata?.aiUnavailable;
         setContentSource(sourceLabel);
-        
+        setIsFallbackContent(fromAiFailure);
+        const okTitle = fromAiFailure ? 'Stored content (AI unavailable)' : 'Success';
+        const okDescription = fromAiFailure
+          ? `Showing ${sourceLabel}.`
+          : `Content generated successfully from ${sourceLabel}!`;
+
         // Store raw data if available (for Short Notes, Concept Mastery, Lesson Planner, Flashcards, etc.)
         if (data.data.rawData) {
           // Store raw data separately for viewer components
@@ -1191,44 +849,122 @@ export default function TeacherToolPage() {
               raw: data.data.rawData
             });
             setGeneratedContent(contentWithData);
-            setIsGenerating(false);
             toast({
-              title: 'Success',
-              description: `Content generated successfully from ${sourceLabel}!`
+              title: okTitle,
+              description: okDescription
             });
           } else {
             // For exam papers and other tools, use content directly
             setGeneratedContent(data.data.content);
-            setIsGenerating(false);
             toast({
-              title: 'Success',
-              description: `Content generated successfully from ${sourceLabel}!`
+              title: okTitle,
+              description: okDescription
             });
           }
         } else {
           // Clear raw content if not available
           setRawGeneratedContent(null);
           setGeneratedContent(data.data.content);
-          setIsGenerating(false);
           toast({
-            title: 'Success',
-            description: `Content generated successfully from ${sourceLabel}!`
+            title: okTitle,
+            description: okDescription
           });
         }
       } else {
-        setIsGenerating(false);
-        throw new Error(data.message || 'Failed to generate content');
+        throw new Error(data.message || 'AI returned empty response');
       }
     } catch (error: any) {
       console.error('Generate error:', error);
-      setGeneratedContent('');
-      setRawGeneratedContent(null);
-      setContentSource('');
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to generate content',
-        variant: 'destructive'
-      });
+      const errMsg = String(error?.message || '');
+      console.log('Fallback trigger reason:', errMsg || 'Unknown API failure');
+      // Do not treat DB fallback as a fix for request validation (wrong subject, missing topic, etc.)
+      const isClientValidationError =
+        /invalid subject|topic is required|sub topic is required|class number and subject are required|only available for english and hindi/i.test(
+          errMsg,
+        );
+      if (isClientValidationError) {
+        setFallbackEmptyMessage(errMsg);
+        toast({
+          title: 'Cannot generate',
+          description: errMsg,
+          variant: 'destructive',
+        });
+      } else {
+      try {
+        const selectedClass = formParams.gradeLevel;
+        const selectedSubject = formParams.subject || formParams.subjects;
+        if (!selectedClass || !selectedSubject) {
+          throw new Error('Missing class or subject for fallback');
+        }
+        const params = new URLSearchParams({
+          class: String(selectedClass),
+          subject: String(selectedSubject),
+          topic: String(formParams.topic || ''),
+          subTopic: String(formParams.subTopic || ''),
+          toolType: String(toolType || ''),
+        });
+        const token = localStorage.getItem('authToken');
+        const fallbackRes = await fetch(`${API_BASE_URL}/api/teacher/ai/generated-content?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!fallbackRes.ok) throw new Error('Fallback lookup failed');
+        const fallbackJson = await fallbackRes.json();
+        const fallbackContent =
+          fallbackJson?.data?.generatedContent ??
+          fallbackJson?.data?.content ??
+          '';
+        if (fallbackJson?.success && String(fallbackContent).trim().length > 0) {
+          console.log('Fallback query used:', {
+            class: selectedClass,
+            subject: selectedSubject,
+            topic: formParams.topic || '',
+            subTopic: formParams.subTopic || '',
+            toolType,
+          });
+          console.log('Fallback record id returned:', fallbackJson?.data?._id || 'N/A');
+          setGeneratedContent(String(fallbackContent));
+          setRawGeneratedContent(null);
+          setContentSource('Previously generated content');
+          setIsFallbackContent(true);
+          toast({
+            title: 'Fallback Loaded',
+            description: 'Source: Previously generated content',
+          });
+        } else {
+          setGeneratedContent('');
+          setRawGeneratedContent(null);
+          setContentSource('');
+          setIsFallbackContent(false);
+          const savedPart =
+            fallbackJson?.message ||
+            'No saved copy matched this class, subject, topic, sub-topic, and tool.';
+          const combined = `${errMsg} ${savedPart}`;
+          setFallbackEmptyMessage(combined);
+          toast({
+            title: 'Generation failed',
+            description: combined,
+            variant: 'destructive',
+          });
+        }
+      } catch (fallbackError: any) {
+        console.error('Fallback error:', fallbackError);
+        setGeneratedContent('');
+        setRawGeneratedContent(null);
+        setContentSource('');
+        setIsFallbackContent(false);
+        const fe = String(fallbackError?.message || 'Fallback lookup failed');
+        const combined = `${errMsg} ${fe}`;
+        setFallbackEmptyMessage(combined);
+        toast({
+          title: 'Error',
+          description: combined,
+          variant: 'destructive',
+        });
+      }
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -1890,51 +1626,97 @@ export default function TeacherToolPage() {
                 }
                 let fieldOptions: string[] = [];
                 let isDisabled = false;
-                
+                let loadingDropdown = false;
+                const subjectField = formParams.subject || formParams.subjects;
+
                 if (field.isStudentSelect) {
-                  // Use assigned students for student selection
-                  fieldOptions = assignedStudents.map(s => s.name);
+                  fieldOptions = assignedStudents.map((s) => s.name);
                   isDisabled = isLoadingStudents || assignedStudents.length === 0;
+                  loadingDropdown = isLoadingStudents;
+                } else if (field.name === 'gradeLevel') {
+                  fieldOptions = classSelectOptions;
+                  isDisabled = cascade.loadingClasses && classSelectOptions.length === 0;
+                  loadingDropdown = cascade.loadingClasses;
                 } else if (field.isNCERT && field.name === 'topic') {
-                  // Use NCERT topics based on selected class and subject
                   fieldOptions = availableNCERTTopics;
-                  isDisabled = !formParams.gradeLevel || !formParams.subject || availableNCERTTopics.length === 0;
+                  loadingDropdown = cascade.loadingTopics;
+                  isDisabled =
+                    !formParams.gradeLevel ||
+                    !subjectField ||
+                    cascade.loadingTopics;
+                } else if (field.isCascadeSubtopic && field.name === 'subTopic') {
+                  fieldOptions = cascade.subtopics;
+                  loadingDropdown = cascade.loadingSubtopics;
+                  isDisabled =
+                    !formParams.gradeLevel || !subjectField || !formParams.topic || cascade.loadingSubtopics;
                 } else if (field.name === 'subjects' && field.dependsOn === 'gradeLevel') {
-                  // For daily-class-plan-maker, use available subjects based on class
                   fieldOptions = availableSubjects;
-                  isDisabled = !formParams.gradeLevel || availableSubjects.length === 0;
-                } else if (field.name === 'subject' && field.dependsOn === 'gradeLevel') {
-                  // For subject field that depends on gradeLevel, use available subjects
+                  loadingDropdown = cascade.loadingSubjects;
+                  isDisabled =
+                    !formParams.gradeLevel ||
+                    cascade.loadingSubjects;
+                } else if (field.name === 'subject' && field.type === 'select' && !field.options) {
                   fieldOptions = availableSubjects;
-                  isDisabled = !formParams.gradeLevel || availableSubjects.length === 0;
+                  loadingDropdown = cascade.loadingSubjects;
+                  isDisabled =
+                    !formParams.gradeLevel ||
+                    cascade.loadingSubjects;
                 } else {
                   fieldOptions = getFieldOptions(field);
                   isDisabled = !!(field.dependsOn && !formParams[field.dependsOn]);
                 }
-                
+
                 return (
                   <div key={field.name}>
-                    <Label htmlFor={field.name}>{field.label}</Label>
-                    {(field.type === 'select' || field.isNCERT) ? (
+                    <Label htmlFor={field.name} className="flex items-center gap-2">
+                      {field.label}
+                      {loadingDropdown && <Loader2 className="h-4 w-4 animate-spin text-blue-600" aria-hidden />}
+                    </Label>
+                    {(field.type === 'select' || field.isNCERT || field.isCascadeSubtopic) ? (
                       <Select
                         value={formParams[field.name] || ''}
                         onValueChange={(value) => handleInputChange(field.name, value)}
                         disabled={isDisabled}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder={
-                            isDisabled 
-                              ? field.isStudentSelect
-                                ? isLoadingStudents 
-                                  ? 'Loading students...'
-                                  : 'No students assigned'
-                                : field.isNCERT && field.name === 'topic'
-                                  ? !formParams.gradeLevel || !formParams.subject
-                                    ? 'Select Class and Subject first'
-                                    : 'No topics available for this class/subject'
-                                  : `Select ${config.fields.find(f => f.name === field.dependsOn)?.label || 'Class'} first`
-                              : field.placeholder || `Select ${field.label}`
-                          } />
+                          <SelectValue
+                            placeholder={
+                              isDisabled
+                                ? field.isStudentSelect
+                                  ? isLoadingStudents
+                                    ? 'Loading students...'
+                                    : 'No students assigned'
+                                  : field.name === 'gradeLevel' && cascade.loadingClasses
+                                    ? 'Loading classes...'
+                                    : field.name === 'subject' ||
+                                        (field.name === 'subjects' && field.dependsOn === 'gradeLevel')
+                                      ? !formParams.gradeLevel || cascade.loadingSubjects
+                                        ? 'Select Class first'
+                                        : availableSubjects.length === 0
+                                          ? 'No data available'
+                                          : field.placeholder || `Select ${field.label}`
+                                      : field.isNCERT && field.name === 'topic'
+                                        ? !formParams.gradeLevel
+                                          ? 'Select Class first'
+                                          : !subjectField || cascade.loadingTopics
+                                            ? 'Select Subject first'
+                                            : cascade.loadingTopics
+                                              ? 'Loading topics...'
+                                              : availableNCERTTopics.length === 0
+                                                ? 'No data available'
+                                                : field.placeholder || 'Select topic'
+                                        : field.isCascadeSubtopic
+                                          ? !formParams.topic
+                                            ? 'Select Topic first'
+                                            : cascade.loadingSubtopics
+                                              ? 'Loading subtopics...'
+                                              : cascade.subtopics.length === 0
+                                                ? 'No data available'
+                                                : field.placeholder || 'Select subtopic'
+                                          : `Select ${config.fields.find((f) => f.name === field.dependsOn)?.label || 'Class'} first`
+                                : field.placeholder || `Select ${field.label}`
+                            }
+                          />
                         </SelectTrigger>
                         <SelectContent>
                           {fieldOptions.length > 0 ? (
@@ -1946,13 +1728,15 @@ export default function TeacherToolPage() {
                           ) : (
                             <div className="px-2 py-1.5 text-sm text-gray-500">
                               {field.isNCERT && field.name === 'topic'
-                                ? 'No topics available. Please select Class and Subject first.'
-                                : 'No options available'}
+                                ? 'No data available'
+                                : field.isCascadeSubtopic
+                                  ? 'No data available'
+                                  : 'No options available'}
                             </div>
                           )}
                         </SelectContent>
                       </Select>
-                    ) : field.type === 'textarea' ? (
+                      ) : field.type === 'textarea' ? (
                     <Textarea
                       id={field.name}
                       value={formParams[field.name] || ''}
@@ -2002,7 +1786,15 @@ export default function TeacherToolPage() {
                   {generatedContent && contentSource && (
                     <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                       <span>Source:</span>
-                      <span className={`font-medium ${contentSource.includes('PDF') ? 'text-blue-600' : 'text-purple-600'}`}>
+                      <span
+                        className={`font-medium ${
+                          isFallbackContent
+                            ? 'text-amber-600'
+                            : contentSource.includes('PDF')
+                              ? 'text-blue-600'
+                              : 'text-purple-600'
+                        }`}
+                      >
                         {contentSource}
                       </span>
                     </p>
@@ -2051,9 +1843,20 @@ export default function TeacherToolPage() {
                 ) : toolType === 'lesson-planner' ? (
                   <LessonPlannerViewer content={generatedContent} rawContent={rawGeneratedContent} />
                 ) : toolType === 'activity-project-generator' ? (
-                  <ActivityProjectViewer
-                    activities={rawGeneratedContent?.activities || []}
-                  />
+                  rawGeneratedContent?.activities?.length ? (
+                    <ActivityProjectViewer activities={rawGeneratedContent.activities} />
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-white border border-gray-200 rounded-lg p-6 max-h-[80vh] overflow-y-auto shadow-sm"
+                    >
+                      <div
+                        className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900"
+                        dangerouslySetInnerHTML={{ __html: renderMarkdown(generatedContent) }}
+                      />
+                    </motion.div>
+                  )
                 ) : toolType === 'story-passage-creator' ? (
                   <StoryPassageViewer content={generatedContent} />
                 ) : (
@@ -2071,7 +1874,7 @@ export default function TeacherToolPage() {
               ) : (
                 <div className="text-center py-12 text-gray-500">
                   <Icon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <p>Fill in the form and click Generate to create content</p>
+                  <p>{fallbackEmptyMessage || 'Fill in the form and click Generate to create content'}</p>
                 </div>
               )}
             </CardContent>

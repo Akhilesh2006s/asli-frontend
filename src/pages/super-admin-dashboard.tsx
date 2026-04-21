@@ -12,6 +12,7 @@ import IQRankBoostActivities from "@/components/super-admin/iq-rank-boost-activi
 import SuperAdminCalendar from "@/components/super-admin/super-admin-calendar";
 import AIChat from "@/components/ai-chat";
 import SuperAdminAIRiskAnalysis from "./super-admin-ai-risk-analysis";
+import AiToolGenerationsPanel from "@/components/super-admin/ai-tool-generations/AiToolGenerationsPanel";
 import SubscriptionManagement from "@/components/super-admin/subscription-management";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +37,7 @@ import { BellIcon, LogOutIcon, UsersIcon, TrendingUpIcon, BookIcon, UserPlusIcon
 import { LineChart, Line, PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
+import { cn } from "@/lib/utils";
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 
 export default function SuperAdminDashboard() {
@@ -1069,6 +1071,8 @@ export default function SuperAdminDashboard() {
         return renderAnalyticsContent();
       case 'ai-risk-analysis':
         return <SuperAdminAIRiskAnalysis />;
+      case 'ai-tool-generations':
+        return <AiToolGenerationsPanel />;
       case 'subscriptions':
         return renderSubscriptionsContent();
       case 'settings':
@@ -1095,8 +1099,13 @@ export default function SuperAdminDashboard() {
       />
 
       {/* Scrollable main content area */}
-      <div className="ml-64 h-screen overflow-y-auto">
-        <div className="p-6">
+      <div className="ml-64 h-screen overflow-y-auto flex flex-col">
+        <div
+          className={cn(
+            "flex-1 min-h-0",
+            currentView === "ai-tool-generations" ? "p-0" : "p-6",
+          )}
+        >
           {renderContent()}
         </div>
       </div>

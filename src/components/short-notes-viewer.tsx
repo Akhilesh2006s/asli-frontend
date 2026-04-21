@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { renderMarkdown } from '@/lib/render-teacher-markdown';
 
 interface Note {
   concept_name: string;
@@ -12,6 +13,37 @@ interface Note {
 
 interface ShortNotesViewerProps {
   content: string;
+}
+
+/**
+ * One generated note is often a single Markdown blob with several `##` sections.
+ * Split into multiple "pages" so Previous / Next match the book UI.
+ */
+function splitMarkdownIntoPages(mainTitle: string, markdown: string): Note[] {
+  const md = markdown.trim();
+  if (!md) {
+    return [{ concept_name: mainTitle || 'Short notes', summary: md }];
+  }
+
+  const parts = md
+    .split(/\n(?=## )/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (parts.length <= 1) {
+    return [{ concept_name: mainTitle || 'Short notes', summary: md }];
+  }
+
+  const out: Note[] = [];
+  parts.forEach((part, i) => {
+    const h2 = part.match(/^##\s+(.+)$/m);
+    const title = h2
+      ? h2[1].trim()
+      : i === 0
+        ? part.match(/^#\s+(.+)$/m)?.[1]?.trim() || mainTitle || 'Overview'
+        : `Section ${i + 1}`;
+    out.push({ concept_name: title, summary: part });
+  });
+  return out;
 }
 
 export function ShortNotesViewer({ content }: ShortNotesViewerProps) {
@@ -42,7 +74,15 @@ export function ShortNotesViewer({ content }: ShortNotesViewerProps) {
       // Not JSON, parse from markdown/HTML content
       parsedNotes = parseNotes(content);
     }
-    
+
+    // Turn one long note with multiple ## sections into several pages (enables Next / Previous).
+    if (parsedNotes.length === 1 && parsedNotes[0].summary && /\n##\s/.test(parsedNotes[0].summary)) {
+      parsedNotes = splitMarkdownIntoPages(
+        parsedNotes[0].concept_name || 'Short Notes & Summaries',
+        parsedNotes[0].summary,
+      );
+    }
+
     setNotes(parsedNotes);
     setCurrentIndex(0);
   }, [content]);
@@ -205,9 +245,13 @@ export function ShortNotesViewer({ content }: ShortNotesViewerProps) {
                         </div>
                         <h3 className="text-lg font-semibold m-0" style={{ color: '#667eea' }}>Summary</h3>
                       </div>
-                      <p className="text-gray-700 leading-relaxed m-0" style={{ fontSize: '0.95rem', lineHeight: '1.8' }}>
-                        {currentNote.summary}
-                      </p>
+                      <div
+                        className="short-notes-markdown prose prose-sm max-w-none text-gray-700 leading-relaxed m-0"
+                        style={{ fontSize: '0.95rem', lineHeight: '1.8' }}
+                        dangerouslySetInnerHTML={{
+                          __html: renderMarkdown(currentNote.summary || ''),
+                        }}
+                      />
                     </div>
                   )}
 
@@ -231,9 +275,13 @@ export function ShortNotesViewer({ content }: ShortNotesViewerProps) {
                         </div>
                         <h3 className="text-lg font-semibold m-0" style={{ color: '#f59e0b' }}>Importance</h3>
                       </div>
-                      <p className="text-gray-700 leading-relaxed m-0" style={{ fontSize: '0.95rem', lineHeight: '1.8' }}>
-                        {currentNote.importance}
-                      </p>
+                      <div
+                        className="short-notes-markdown prose prose-sm max-w-none text-gray-700 leading-relaxed m-0"
+                        style={{ fontSize: '0.95rem', lineHeight: '1.8' }}
+                        dangerouslySetInnerHTML={{
+                          __html: renderMarkdown(currentNote.importance || ''),
+                        }}
+                      />
                     </div>
                   )}
 
@@ -473,6 +521,28 @@ function parseNotes(content: string): Note[] {
       });
     });
   }
-  
+
+  // Gemini / flash-lite often returns plain Markdown without __NOTE_CARD__ or "## 🎯 Concept N:" — still show it.
+  if (notes.length === 0 && content.trim().length > 0) {
+    let text = content.trim();
+    try {
+      const parsed = JSON.parse(content) as { formatted?: string };
+      if (parsed && typeof parsed === 'object' && parsed.formatted) {
+        text = String(parsed.formatted).trim();
+      }
+    } catch {
+      /* use text as-is */
+    }
+    const heading = text.match(/^#{1,3}\s+(.+)$/m);
+    const title = heading ? heading[1].trim() : 'Short notes';
+    const body = heading
+      ? text.slice(text.indexOf(heading[0]) + heading[0].length).trim()
+      : text;
+    notes.push({
+      concept_name: title,
+      summary: body || text,
+    });
+  }
+
   return notes;
 }

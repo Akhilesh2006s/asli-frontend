@@ -66,6 +66,13 @@ function monthKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
+function normalizeSchoolLabel(value?: string) {
+  return (value || '')
+    .replace(/[._-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 /** Super-admin path is canonical; retry legacy `/api/calendar/events` only if the server returns 404 (old deploys / gateway rules). */
 async function fetchCalendarEventsGet(
   searchParams: URLSearchParams,
@@ -384,6 +391,13 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
 
   const selectedAdmin = admins.find((a) => (a.id || a._id) === selectedSchoolId);
   const selectedSchoolLabel = selectedAdmin?.schoolName || selectedAdmin?.name || selectedAdmin?.email || '';
+  const sortedAdmins = useMemo(() => {
+    return [...admins].sort((a, b) => {
+      const aLabel = normalizeSchoolLabel(a.schoolName || a.name || a.email);
+      const bLabel = normalizeSchoolLabel(b.schoolName || b.name || b.email);
+      return aLabel.localeCompare(bLabel, undefined, { sensitivity: 'base' });
+    });
+  }, [admins]);
   const getSchoolLabelById = (schoolId: string) => {
     const school = admins.find((a) => (a.id || a._id) === schoolId);
     return school?.schoolName || school?.name || school?.email || '';
@@ -522,7 +536,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Schools</SelectItem>
-                    {admins.map((admin) => {
+                    {sortedAdmins.map((admin) => {
                       const adminId = admin.id || admin._id || '';
                       return (
                         <SelectItem key={adminId} value={adminId}>

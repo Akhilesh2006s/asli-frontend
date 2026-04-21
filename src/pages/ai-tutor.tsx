@@ -39,7 +39,7 @@ export default function AITutor() {
   const isMobile = useIsMobile();
   const [, setLocation] = useLocation();
 
-  // Student AI Tools - All tools available for Class 6 (normal and IIT-6)
+  // Student AI Tools — Class 6–10
   const studentTools = [
     // Chat tool - first in the list
     {
