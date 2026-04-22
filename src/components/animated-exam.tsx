@@ -586,6 +586,12 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     // Fix common broken math symbols from imported question banks.
     text = text.replace(/\b(sin|cos|tan|cot|sec|cosec)\s*[�\uFFFD]/gi, '$1 theta');
     text = text.replace(/(\d)\s*[�\uFFFD]/g, '$1 degree');
+    // Sheet data sometimes uses literal "?" as theta placeholder (e.g. sin²? / ? is acute).
+    text = text.replace(/\b((?:sin|cos|tan|cot|sec|cosec)(?:\^?\d+|[²³])?)\s*\?/gi, '$1 theta');
+    text = text.replace(/\?\s+is\s+acute\b/gi, 'theta is acute');
+    text = text.replace(/\(\s*\?\s*\)/g, '(theta)');
+    // Many sheets use "v3/2" to mean root; render as sqrt.
+    text = text.replace(/\bv(?=\d)/gi, 'sqrt');
     text = text.replace(/\bp(?=\s*\/\s*\d)/gi, 'π');
     // Fallback for generic replacement character in math expressions.
     text = text.replace(/\s*[�\uFFFD]\s*/g, ' - ');
