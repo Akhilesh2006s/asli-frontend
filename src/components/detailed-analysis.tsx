@@ -125,6 +125,15 @@ interface AiExamAnalysis {
   motivation?: string;
 }
 
+type WeakArea = {
+  subject: string;
+  percentage: number;
+  correct: number;
+  total: number;
+  color: string;
+  bgColor: string;
+};
+
 export default function DetailedAnalysis({ result, examTitle, onBack }: DetailedAnalysisProps) {
   const [activeTab, setActiveTab] = useState('ai');
   const [mobileQuestionIndex, setMobileQuestionIndex] = useState(0);
@@ -307,6 +316,48 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     return JSON.stringify(userTexts) === JSON.stringify(correctTexts);
   };
 
+  const normalizeAnswerKey = (value: unknown): string => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string' || typeof value === 'number') return String(value).trim().toLowerCase();
+    if (typeof value === 'object') {
+      const obj = value as any;
+      if (obj.$oid) return String(obj.$oid).trim().toLowerCase();
+      if (obj._id) return String(obj._id).trim().toLowerCase();
+      if (obj.id) return String(obj.id).trim().toLowerCase();
+    }
+    return String(value).trim().toLowerCase();
+  };
+
+  const getUserAnswerForQuestion = (question: Question, questionIndex: number): any => {
+    const answerMap = (result.answers && typeof result.answers === 'object') ? result.answers : {};
+    const questionId = normalizeAnswerKey((question as any)?._id);
+    const candidateKeys = [
+      (question as any)?._id,
+      (question as any)?.id,
+      (question as any)?.questionId,
+      questionId,
+      String(questionIndex),
+      String(questionIndex + 1),
+    ]
+      .map((k) => normalizeAnswerKey(k))
+      .filter(Boolean);
+
+    for (const key of candidateKeys) {
+      const direct = (answerMap as any)[key];
+      if (direct !== undefined) return direct;
+    }
+
+    if (!questionId) return undefined;
+
+    for (const [rawKey, rawValue] of Object.entries(answerMap)) {
+      if (normalizeAnswerKey(rawKey) === questionId) {
+        return rawValue;
+      }
+    }
+
+    return undefined;
+  };
+
   // Animate values on mount
   useEffect(() => {
     const duration = 2000;
@@ -327,11 +378,29 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       }, stepDuration);
     };
 
+    const animateFloatValue = (start: number, end: number, callback: (value: number) => void) => {
+      let current = start;
+      const increment = (end - start) / steps;
+
+      const timer = setInterval(() => {
+        current += increment;
+        if ((increment >= 0 && current >= end) || (increment < 0 && current <= end)) {
+          current = end;
+          clearInterval(timer);
+        }
+        callback(Number(current.toFixed(1)));
+      }, stepDuration);
+    };
+
     // Add a small delay before starting animations
     setTimeout(() => {
       const attempted = (result.correctAnswers || 0) + (result.wrongAnswers || 0);
-      const derivedPercentage = attempted > 0 ? (result.correctAnswers / attempted) * 100 : 0;
-      animateValue(0, derivedPercentage, (value) => setAnimatedValues(prev => ({ ...prev, percentage: value })));
+      const totalQuestionCount = Number(result.totalQuestions || 0)
+        || (attempted + (result.unattempted || 0));
+      const derivedPercentage = totalQuestionCount > 0
+        ? (result.correctAnswers / totalQuestionCount) * 100
+        : 0;
+      animateFloatValue(0, derivedPercentage, (value) => setAnimatedValues(prev => ({ ...prev, percentage: value })));
       animateValue(0, result.correctAnswers, (value) => setAnimatedValues(prev => ({ ...prev, correctAnswers: value })));
       animateValue(0, result.wrongAnswers, (value) => setAnimatedValues(prev => ({ ...prev, wrongAnswers: value })));
       animateValue(0, result.unattempted, (value) => setAnimatedValues(prev => ({ ...prev, unattempted: value })));
@@ -397,11 +466,16 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
   };
 
   const attemptedCount = (result.correctAnswers || 0) + (result.wrongAnswers || 0);
-  const displayPercentage = attemptedCount > 0
+  const totalQuestionCount = Number(result.totalQuestions || 0)
+    || (attemptedCount + (result.unattempted || 0));
+  const displayPercentage = totalQuestionCount > 0
+    ? (result.correctAnswers / totalQuestionCount) * 100
+    : 0;
+  const accuracyRate = attemptedCount > 0
     ? (result.correctAnswers / attemptedCount) * 100
     : 0;
-  const completionRate = result.totalQuestions > 0
-    ? ((result.correctAnswers + result.wrongAnswers) / result.totalQuestions) * 100
+  const completionRate = totalQuestionCount > 0
+    ? ((result.correctAnswers + result.wrongAnswers) / totalQuestionCount) * 100
     : 0;
 
   const grade = getGrade(displayPercentage);
@@ -462,7 +536,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
   };
 
   const getWeakAreas = () => {
-    const weakAreas = [];
+    const weakAreas: WeakArea[] = [];
     const subjects = Object.entries(result.subjectWiseScore);
     
     subjects.forEach(([subject, score]) => {
@@ -678,11 +752,11 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                   <div className="flex justify-between text-sm mb-3">
                     <span className="font-semibold text-gray-700">Accuracy Rate</span>
                     <span className="font-bold text-green-600">
-                      {displayPercentage.toFixed(1)}%
+                      {accuracyRate.toFixed(1)}%
                     </span>
                   </div>
                   <Progress 
-                    value={displayPercentage} 
+                    value={accuracyRate} 
                     className="h-3 bg-gray-200"
                   />
                 </div>
@@ -740,9 +814,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                   <div className="p-3 rounded-lg border bg-purple-50 border-purple-200">
                     <div className="text-xs text-purple-800">Accuracy</div>
                     <div className="text-xl font-bold text-purple-700">
-                      {(result.correctAnswers + result.wrongAnswers) > 0
-                        ? ((result.correctAnswers / (result.correctAnswers + result.wrongAnswers)) * 100).toFixed(1)
-                        : '0.0'}%
+                      {accuracyRate.toFixed(1)}%
                     </div>
                   </div>
                 </div>
@@ -1130,7 +1202,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                       <div className="bg-gradient-to-br from-gray-50 to-purple-50/30 rounded-xl p-4 border border-gray-200">
                         <div className="grid grid-cols-5 gap-2.5">
                           {result.questions.map((question, index) => {
-                            const userAnswer = result.answers?.[question._id];
+                            const userAnswer = getUserAnswerForQuestion(question, index);
                             const isCorrect = compareAnswers(question, userAnswer, question.correctAnswer);
                             const isAttempted = userAnswer !== undefined && userAnswer !== null && userAnswer !== '';
                             const isCurrent = index === mobileQuestionIndex;
@@ -1255,7 +1327,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                               {result.questions[mobileQuestionIndex].options.map((option: any, index: number) => {
                                 const activeQuestion = result.questions![mobileQuestionIndex];
                                 const optionText = getOptionText(option);
-                                const userAnswer = result.answers?.[result.questions[mobileQuestionIndex]._id];
+                                const userAnswer = getUserAnswerForQuestion(activeQuestion, mobileQuestionIndex);
                                 const userAnswerTexts = resolveAnswerTexts(activeQuestion, userAnswer);
                                 const correctAnswerTexts = resolveAnswerTexts(activeQuestion, activeQuestion.correctAnswer);
                                 const isUser = userAnswerTexts.includes(optionText);
@@ -1293,7 +1365,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                               <div className="text-sm text-purple-900">
                                 {(() => {
                                   const activeQuestion = result.questions![mobileQuestionIndex];
-                                  const userAnswer = result.answers?.[result.questions[mobileQuestionIndex]._id];
+                                  const userAnswer = getUserAnswerForQuestion(activeQuestion, mobileQuestionIndex);
                                   const userAnswerTexts = resolveAnswerTexts(activeQuestion, userAnswer);
                                   const isAttempted = userAnswerTexts.length > 0;
                                   return isAttempted 
@@ -1325,6 +1397,11 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
 
                         {/* Navigation Buttons */}
                         <div className="flex items-center justify-between mt-6 pt-6 border-t">
+                          {(() => {
+                            const totalQuestions = result.questions?.length ?? 0;
+                            const lastQuestionIndex = Math.max(0, totalQuestions - 1);
+                            return (
+                              <>
                           <Button
                             variant="outline"
                             onClick={() => setMobileQuestionIndex(Math.max(0, mobileQuestionIndex - 1))}
@@ -1333,15 +1410,18 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                             Previous
                           </Button>
                           <span className="text-sm text-gray-600">
-                            Question {mobileQuestionIndex + 1} of {result.questions.length}
+                            Question {mobileQuestionIndex + 1} of {totalQuestions}
                           </span>
                           <Button
                             variant="outline"
-                            onClick={() => setMobileQuestionIndex(Math.min(result.questions.length - 1, mobileQuestionIndex + 1))}
-                            disabled={mobileQuestionIndex === result.questions.length - 1}
+                            onClick={() => setMobileQuestionIndex(Math.min(lastQuestionIndex, mobileQuestionIndex + 1))}
+                            disabled={mobileQuestionIndex === lastQuestionIndex}
                           >
                             Next
                           </Button>
+                              </>
+                            );
+                          })()}
                         </div>
                       </>
                     )}

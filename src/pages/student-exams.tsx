@@ -128,8 +128,9 @@ export default function StudentExams() {
     if (!result) return 0;
     const correct = Number(result.correctAnswers || 0);
     const wrong = Number(result.wrongAnswers || 0);
-    const attempted = correct + wrong;
-    return attempted > 0 ? (correct / attempted) * 100 : 0;
+    const unattempted = Number(result.unattempted || 0);
+    const total = Number(result.totalQuestions || 0) || (correct + wrong + unattempted);
+    return total > 0 ? (correct / total) * 100 : 0;
   };
 
   // Reset states when component mounts

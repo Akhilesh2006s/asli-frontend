@@ -90,9 +90,17 @@ export default function ExamResults({ result, examTitle, onRetake, onViewAnalysi
     return `${hours > 0 ? `${hours}h ` : ''}${minutes}m ${secs}s`;
   };
 
+  const totalQuestionCount = Number(result.totalQuestions || 0)
+    || ((result.correctAnswers || 0) + (result.wrongAnswers || 0) + (result.unattempted || 0));
   const attemptedCount = (result.correctAnswers || 0) + (result.wrongAnswers || 0);
-  const displayPercentage = attemptedCount > 0
+  const displayPercentage = totalQuestionCount > 0
+    ? (result.correctAnswers / totalQuestionCount) * 100
+    : 0;
+  const accuracyRate = attemptedCount > 0
     ? (result.correctAnswers / attemptedCount) * 100
+    : 0;
+  const completionRate = totalQuestionCount > 0
+    ? (attemptedCount / totalQuestionCount) * 100
     : 0;
 
   const grade = getGrade(displayPercentage);
@@ -178,20 +186,20 @@ export default function ExamResults({ result, examTitle, onRetake, onViewAnalysi
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span>Accuracy</span>
-                    <span>{((result.correctAnswers / (result.correctAnswers + result.wrongAnswers)) * 100).toFixed(1)}%</span>
+                    <span>{accuracyRate.toFixed(1)}%</span>
                   </div>
                   <Progress 
-                    value={(result.correctAnswers / (result.correctAnswers + result.wrongAnswers)) * 100} 
+                    value={accuracyRate} 
                     className="h-2"
                   />
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span>Completion</span>
-                    <span>{(((result.correctAnswers + result.wrongAnswers) / result.totalQuestions) * 100).toFixed(1)}%</span>
+                    <span>{completionRate.toFixed(1)}%</span>
                   </div>
                   <Progress 
-                    value={((result.correctAnswers + result.wrongAnswers) / result.totalQuestions) * 100} 
+                    value={completionRate} 
                     className="h-2"
                   />
                 </div>

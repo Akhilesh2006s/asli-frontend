@@ -447,9 +447,9 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
       const unattempted = exam.questions.length - correctAnswers - wrongAnswers;
       // Keep immediate UI aligned with server grading display metric:
-      // percentage = correct / attempted.
-      const attemptedCount = correctAnswers + wrongAnswers;
-      const percentage = attemptedCount > 0 ? (correctAnswers / attemptedCount) * 100 : 0;
+      // percentage = correct / total questions (including unattempted).
+      const totalQuestionCount = exam.questions.length;
+      const percentage = totalQuestionCount > 0 ? (correctAnswers / totalQuestionCount) * 100 : 0;
 
       const result: ExamResult = {
         examId: exam._id,
@@ -525,6 +525,17 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
         // authoritative scoring to avoid mismatch across screens.
         if (responseData?.data && typeof responseData.data === 'object') {
           const serverResult = responseData.data;
+          const localAnswerCount = result.answers ? Object.keys(result.answers).length : 0;
+          const serverAnswersRaw = serverResult.answers;
+          const normalizedServerAnswers =
+            serverAnswersRaw &&
+            typeof serverAnswersRaw === 'object' &&
+            !Array.isArray(serverAnswersRaw)
+              ? Object.fromEntries(
+                  Object.entries(serverAnswersRaw).map(([k, v]) => [String(k), v])
+                )
+              : {};
+          const serverAnswerCount = Object.keys(normalizedServerAnswers).length;
           const authoritativeResult: ExamResult = {
             examId: String(serverResult.examId || result.examId),
             examTitle: String(serverResult.examTitle || result.examTitle),
@@ -537,7 +548,11 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
             percentage: Number(serverResult.percentage ?? result.percentage),
             timeTaken: Number(serverResult.timeTaken ?? result.timeTaken),
             subjectWiseScore: serverResult.subjectWiseScore || result.subjectWiseScore,
-            answers: serverResult.answers || result.answers,
+            // If backend returns an empty/non-plain answers map immediately after save,
+            // keep local in-memory answers so question review does not show "Not attempted".
+            answers: serverAnswerCount > 0 || localAnswerCount === 0
+              ? normalizedServerAnswers
+              : result.answers,
             questions: Array.isArray(serverResult.questions) && serverResult.questions.length > 0
               ? serverResult.questions
               : result.questions
