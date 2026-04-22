@@ -529,12 +529,17 @@ export default function ExamViewOnly() {
             const colorScheme = colorSchemes[index % 3];
             
             return (
-              <Card key={exam._id} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
-                <CardHeader>
+              <Card
+                key={exam._id}
+                className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300 h-full flex flex-col`}
+              >
+                <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className={`text-lg mb-2 text-gray-900`}>{exam.title}</CardTitle>
-                      <div className="flex flex-wrap gap-2 mt-2">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-lg mb-2 text-gray-900 break-words leading-tight">
+                        {exam.title}
+                      </CardTitle>
+                      <div className="flex flex-wrap items-center gap-2 mt-2 min-h-[2.25rem]">
                         <Badge className={`${colorScheme.badge} border-0`}>
                           {exam.examType.toUpperCase()}
                         </Badge>
@@ -548,10 +553,7 @@ export default function ExamViewOnly() {
                           {status.status}
                         </Badge>
                         {classLabels.map((cl) => (
-                          <Badge
-                            key={cl}
-                            className="bg-white/90 text-gray-900 border-0 font-medium"
-                          >
+                          <Badge key={cl} className="bg-white/90 text-gray-900 border-0 font-medium whitespace-nowrap">
                             Class {cl}
                           </Badge>
                         ))}
@@ -562,8 +564,8 @@ export default function ExamViewOnly() {
                     <p className={`text-sm text-white/90 mt-2 line-clamp-2`}>{exam.description}</p>
                   )}
                 </CardHeader>
-                <CardContent>
-                  <div className={`space-y-2 text-sm text-white`}>
+                <CardContent className="pt-0 flex-1 flex flex-col">
+                  <div className="space-y-2 text-sm text-white">
                     <div className="flex items-center">
                       <Calendar className="h-4 w-4 mr-2 text-white" />
                       <span className="text-white">{exam.duration} minutes</span>
@@ -585,7 +587,7 @@ export default function ExamViewOnly() {
                     )}
                   </div>
                   <Button 
-                    className="w-full mt-4 bg-white/90 text-gray-900 border-white/30 hover:bg-white hover:text-gray-900" 
+                    className="w-full mt-auto pt-4 bg-white/90 text-gray-900 border-white/30 hover:bg-white hover:text-gray-900" 
                     onClick={() => handleViewExam(exam)}
                   >
                     <Eye className="h-4 w-4 mr-2" />

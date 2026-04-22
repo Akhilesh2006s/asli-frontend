@@ -496,6 +496,40 @@ export default function ExamManagement() {
         getRowValue('option4', 'option_4', 'option 4', 'optiond', 'option_d', 'd'),
       ];
       const hasAnyOption = optionValues.some((opt) => String(opt || '').trim() !== '');
+      const normalizedOptions = optionValues.map((opt) => String(opt || '').trim().toLowerCase());
+
+      const toOptionIndexString = (token: string) => {
+        const normalizedToken = String(token || '').trim().toLowerCase();
+        if (!normalizedToken) return '';
+
+        if (/^\d+$/.test(normalizedToken)) {
+          const numeric = parseInt(normalizedToken, 10);
+          if (numeric >= 0 && numeric < optionValues.length) return String(numeric);
+          if (numeric >= 1 && numeric <= optionValues.length) return String(numeric - 1);
+        }
+
+        if (/^[a-z]$/.test(normalizedToken)) {
+          const idx = normalizedToken.charCodeAt(0) - 97;
+          if (idx >= 0 && idx < optionValues.length) return String(idx);
+        }
+
+        const optionMatch = normalizedToken.match(/^option\s*([a-z0-9])$/);
+        if (optionMatch) {
+          const optionToken = optionMatch[1];
+          if (/^\d$/.test(optionToken)) {
+            const n = parseInt(optionToken, 10);
+            if (n >= 1 && n <= optionValues.length) return String(n - 1);
+            if (n >= 0 && n < optionValues.length) return String(n);
+          }
+          if (/^[a-z]$/.test(optionToken)) {
+            const idx = optionToken.charCodeAt(0) - 97;
+            if (idx >= 0 && idx < optionValues.length) return String(idx);
+          }
+        }
+
+        const textIndex = normalizedOptions.findIndex((opt) => opt !== '' && opt === normalizedToken);
+        return textIndex >= 0 ? String(textIndex) : '';
+      };
 
       const csvSubject = getRowValue('subject').trim().toLowerCase();
       const subject = availableQuestionSubjects.includes(csvSubject as any)
@@ -507,13 +541,14 @@ export default function ExamManagement() {
       let integerAnswer = '';
       if (questionType === 'multiple') {
         correctAnswers = (getRowValue('correctAnswers', 'correct_answers', 'correctanswer', 'answer') || '')
-          .split(',')
-          .map((x) => x.trim())
+          .split(/[;,]/)
+          .map((x) => toOptionIndexString(x))
           .filter((x) => x !== '');
+        correctAnswers = Array.from(new Set(correctAnswers));
       } else if (questionType === 'integer') {
         integerAnswer = getRowValue('integerAnswer', 'integer_answer', 'correctanswer', 'answer');
       } else {
-        correctAnswer = getRowValue('correctanswer', 'correct_answer', 'answer');
+        correctAnswer = toOptionIndexString(getRowValue('correctanswer', 'correct_answer', 'answer'));
       }
 
       const resolvedQuestionType: 'mcq' | 'multiple' | 'integer' =
@@ -611,27 +646,51 @@ export default function ExamManagement() {
           .filter(opt => opt.trim() !== '')
           .map(opt => ({ text: opt.trim(), isCorrect: false }));
 
+    const buildQuestionPayload = (replaceDuplicate = false) => ({
+      questionText: questionFormData.questionText.trim(),
+      questionImage: questionFormData.questionImage.trim() || undefined,
+      questionType: questionFormData.questionType,
+      options: formattedOptions,
+      correctAnswer,
+      marks: parseInt(questionFormData.marks) || 1,
+      negativeMarks: parseFloat(questionFormData.negativeMarks) || 0,
+      explanation: questionFormData.explanation.trim() || undefined,
+      subject: questionFormData.subject,
+      board: selectedExam.board,
+      replaceDuplicate,
+    });
+
+    const handleQuestionSaved = () => {
+      setQuestionFormData({
+        questionText: '',
+        questionImage: '',
+        questionType: 'mcq',
+        subject: 'maths',
+        marks: '1',
+        negativeMarks: '0',
+        explanation: '',
+        options: ['', '', '', ''],
+        correctAnswer: '',
+        correctAnswers: [],
+        integerAnswer: ''
+      });
+      fetchQuestions(selectedExam._id);
+      fetchExams(); // Refresh exam list to update question count
+    };
+
     setIsAddingQuestion(true);
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions`, {
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+      const endpoint = `${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions`;
+
+      const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          questionText: questionFormData.questionText.trim(),
-          questionImage: questionFormData.questionImage.trim() || undefined,
-          questionType: questionFormData.questionType,
-          options: formattedOptions,
-          correctAnswer,
-          marks: parseInt(questionFormData.marks) || 1,
-          negativeMarks: parseFloat(questionFormData.negativeMarks) || 0,
-          explanation: questionFormData.explanation.trim() || undefined,
-          subject: questionFormData.subject,
-          board: selectedExam.board
-        })
+        headers,
+        body: JSON.stringify(buildQuestionPayload(false))
       });
 
       const data = await response.json();
@@ -641,21 +700,36 @@ export default function ExamManagement() {
           title: 'Success',
           description: 'Question added successfully'
         });
-        setQuestionFormData({
-          questionText: '',
-          questionImage: '',
-          questionType: 'mcq',
-          subject: 'maths',
-          marks: '1',
-          negativeMarks: '0',
-          explanation: '',
-          options: ['', '', '', ''],
-          correctAnswer: '',
-          correctAnswers: [],
-          integerAnswer: ''
+        handleQuestionSaved();
+      } else if (response.status === 409 && String(data.message || '').toLowerCase().includes('duplicate')) {
+        const shouldReplace = window.confirm(
+          'This question already exists for the same exam and subject.\n\nDo you want to replace the existing duplicate with this one?'
+        );
+
+        if (!shouldReplace) {
+          return;
+        }
+
+        const replaceResponse = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(buildQuestionPayload(true))
         });
-        fetchQuestions(selectedExam._id);
-        fetchExams(); // Refresh exam list to update question count
+        const replaceData = await replaceResponse.json();
+
+        if (replaceResponse.ok && replaceData.success) {
+          toast({
+            title: 'Success',
+            description: 'Duplicate question replaced successfully'
+          });
+          handleQuestionSaved();
+        } else {
+          toast({
+            title: 'Error',
+            description: replaceData.message || 'Failed to replace duplicate question',
+            variant: 'destructive'
+          });
+        }
       } else {
         toast({
           title: 'Error',
@@ -2115,14 +2189,14 @@ export default function ExamManagement() {
               </div>
 
               <div>
-                <Label>Question Text *</Label>
+                <Label>Question Text (Optional)</Label>
                 <Textarea
                   value={questionFormData.questionText}
                   onChange={(e) => setQuestionFormData({ ...questionFormData, questionText: e.target.value })}
                   placeholder="Enter the question text..."
                   rows={4}
                 />
-                <p className="text-xs text-gray-500 mt-1">Or provide a question image URL below</p>
+                <p className="text-xs text-gray-500 mt-1">You can leave this empty and provide a question image URL below.</p>
               </div>
 
               <div>
@@ -2137,7 +2211,7 @@ export default function ExamManagement() {
               {/* Options for MCQ/Multiple */}
               {(questionFormData.questionType === 'mcq' || questionFormData.questionType === 'multiple') && (
                 <div className="space-y-3">
-                  <Label>Options *</Label>
+                  <Label>Options</Label>
                   {questionFormData.options.map((option, index) => (
                     <div key={index} className="flex items-center gap-2">
                       <Input

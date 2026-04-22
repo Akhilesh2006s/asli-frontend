@@ -84,6 +84,12 @@ export default function Navigation() {
     { path: "/ai-tutor", label: "Vidya AI", icon: MessageCircle },
   ];
 
+  const getCompactLabel = (label: string) => {
+    if (label === "Learning Paths") return "Learning";
+    if (label === "Vidya AI") return "Vidya";
+    return label;
+  };
+
   const NavContent = () => (
     <>
       {navItems.map((item) => {
@@ -131,22 +137,22 @@ export default function Navigation() {
     <>
       {/* Desktop Header - Modern Gradient Theme */}
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/80 border-b border-blue-200/40 shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-5 lg:px-8">
           <div className="flex justify-between items-center h-16 sm:h-20">
             {/* Logo Section - simplified, no border around logo */}
             <div className="flex items-center space-x-2 sm:space-x-4">
               <Link href="/dashboard">
-                <div className="flex items-center space-x-3 cursor-pointer group">
+                <div className="flex items-center space-x-2 sm:space-x-3 cursor-pointer group min-w-0">
                   <img 
                     src="/logo.jpg" 
                     alt="ASLILEARN Logo" 
-                    className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl object-contain group-hover:scale-105 transition-transform duration-300"
+                    className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl object-contain group-hover:scale-105 transition-transform duration-300 shrink-0"
                   />
-                  <div className="flex flex-col">
-                    <span className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-lg md:text-xl lg:text-2xl font-bold bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient truncate">
                       ASLILEARN AI
                     </span>
-                    <span className="hidden sm:block text-xs text-gray-600 font-medium -mt-1">AI-Powered Learning</span>
+                    <span className="hidden xl:block text-xs text-gray-600 font-medium -mt-1">AI-Powered Learning</span>
                   </div>
                 </div>
               </Link>
@@ -154,7 +160,7 @@ export default function Navigation() {
             
             {/* Navigation Links - Modern Design */}
             {!isMobile && (
-              <div className="hidden md:flex items-center space-x-1 bg-white/50 backdrop-blur-md rounded-full p-1.5 border border-blue-100/50 shadow-lg">
+              <div className="hidden md:flex items-center space-x-1 bg-white/50 backdrop-blur-md rounded-full p-1 md:p-1.5 border border-blue-100/50 shadow-lg">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location === item.path;
@@ -164,14 +170,14 @@ export default function Navigation() {
                       <button
                         key={item.path}
                         onClick={item.onClick}
-                        className={`relative px-5 py-2.5 rounded-full transition-all duration-300 flex items-center space-x-2 group ${
+                        className={`relative px-3 lg:px-5 py-2 lg:py-2.5 rounded-full transition-all duration-300 flex items-center space-x-1.5 lg:space-x-2 group ${
                           isActive 
                             ? "bg-gradient-to-r from-sky-300 to-teal-400 text-white shadow-lg scale-105" 
                             : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700"
                         }`}
                       >
                         <Icon className={`w-4 h-4 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
-                        <span className="font-medium text-sm">{item.label}</span>
+                        <span className="font-medium text-xs lg:text-sm">{getCompactLabel(item.label)}</span>
                         {isActive && (
                           <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full"></div>
                         )}
@@ -180,13 +186,13 @@ export default function Navigation() {
                   }
                   return (
                     <Link key={item.path} href={item.path}>
-                      <button className={`relative px-5 py-2.5 rounded-full transition-all duration-300 flex items-center space-x-2 group ${
+                      <button className={`relative px-3 lg:px-5 py-2 lg:py-2.5 rounded-full transition-all duration-300 flex items-center space-x-1.5 lg:space-x-2 group ${
                         isActive 
                           ? "bg-gradient-to-r from-sky-300 to-teal-400 text-white shadow-lg scale-105" 
                           : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700"
                       }`}>
                         <Icon className={`w-4 h-4 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
-                        <span className="font-medium text-sm">{item.label}</span>
+                        <span className="font-medium text-xs lg:text-sm">{getCompactLabel(item.label)}</span>
                         {isActive && (
                           <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full"></div>
                         )}
@@ -248,20 +254,20 @@ export default function Navigation() {
                   </SheetContent>
                 </Sheet>
               ) : (
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2 lg:space-x-3">
                   <Link href="/profile">
-                    <div className="w-11 h-11 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-full flex items-center justify-center cursor-pointer shadow-lg backdrop-blur-sm border-2 border-white hover:scale-110 transition-transform duration-300 hover:shadow-xl group">
-                      <span className="text-sm font-semibold text-white group-hover:scale-110 transition-transform">{userInitials}</span>
+                    <div className="w-10 h-10 lg:w-11 lg:h-11 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-full flex items-center justify-center cursor-pointer shadow-lg backdrop-blur-sm border-2 border-white hover:scale-110 transition-transform duration-300 hover:shadow-xl group">
+                      <span className="text-xs lg:text-sm font-semibold text-white group-hover:scale-110 transition-transform">{userInitials}</span>
                     </div>
                   </Link>
                   <Button 
                     onClick={handleLogout}
                     disabled={isLoggingOut}
                     variant="ghost"
-                    className="px-5 py-2.5 rounded-full bg-gradient-to-r from-red-500/10 to-red-600/10 hover:from-red-500/20 hover:to-red-600/20 text-red-600 backdrop-blur-sm border border-red-300/30 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 font-medium"
+                    className="px-3 lg:px-5 py-2 lg:py-2.5 rounded-full bg-gradient-to-r from-red-500/10 to-red-600/10 hover:from-red-500/20 hover:to-red-600/20 text-red-600 backdrop-blur-sm border border-red-300/30 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 font-medium"
                   >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    {isLoggingOut ? "Logging out..." : "Logout"}
+                    <LogOut className="w-4 h-4 lg:mr-2" />
+                    <span className="hidden lg:inline">{isLoggingOut ? "Logging out..." : "Logout"}</span>
                   </Button>
                 </div>
               )}

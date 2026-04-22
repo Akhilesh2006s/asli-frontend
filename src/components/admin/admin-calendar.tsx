@@ -352,8 +352,8 @@ export default function AdminCalendar() {
   };
 
   // Handle view event
-  const handleViewEvent = (event: Event, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleViewEvent = (event: Event, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     console.log('Viewing event:', {
       eventId: event._id || event.id,
       eventName: event.name,
@@ -409,109 +409,226 @@ export default function AdminCalendar() {
     return eventColors[index % eventColors.length];
   };
 
+  const monthlyEvents = useMemo(() => {
+    const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    const startMs = monthStart.getTime();
+    const endMs = monthEnd.getTime();
+
+    return events
+      .filter((event) => {
+        const eventStart = new Date(event.startDate || event.date).getTime();
+        const eventEnd = new Date(event.endDate || event.date).getTime();
+        return eventStart <= endMs && eventEnd >= startMs;
+      })
+      .sort((a, b) => {
+        const aTime = new Date(a.startDate || a.date).getTime();
+        const bTime = new Date(b.startDate || b.date).getTime();
+        return aTime - bTime;
+      });
+  }, [events, currentDate]);
+
+  const monthlyEventsByDate = useMemo(() => {
+    const grouped = monthlyEvents.reduce<Record<string, Event[]>>((acc, event) => {
+      const key = new Date(event.startDate || event.date).toDateString();
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(event);
+      return acc;
+    }, {});
+    return Object.entries(grouped).sort(
+      ([a], [b]) => new Date(a).getTime() - new Date(b).getTime()
+    );
+  }, [monthlyEvents]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">Calendar</h2>
-          <p className="text-gray-600 mt-1">Manage and view your events</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Calendar</h2>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Manage and view your events</p>
         </div>
-        <Button onClick={goToToday} variant="outline">
+        <Button onClick={goToToday} variant="outline" className="shrink-0">
           Today
         </Button>
       </div>
 
       {/* Calendar Navigation */}
       <Card>
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" size="icon" onClick={goToPreviousMonth}>
+        <CardContent className="p-3 sm:p-6">
+          <div className="flex items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-6">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <Button variant="outline" size="icon" onClick={goToPreviousMonth} className="h-8 w-8 sm:h-10 sm:w-10">
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <h3 className="text-2xl font-semibold text-gray-900">
+              <h3 className="text-lg sm:text-2xl font-semibold text-gray-900">
                 {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
               </h3>
-              <Button variant="outline" size="icon" onClick={goToNextMonth}>
+              <Button variant="outline" size="icon" onClick={goToNextMonth} className="h-8 w-8 sm:h-10 sm:w-10">
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           </div>
 
-          {/* Calendar Grid */}
-          <div className="grid grid-cols-7 gap-2">
-            {/* Day Headers */}
-            {dayNames.map(day => (
-              <div key={day} className="text-center text-sm font-semibold text-gray-600 py-2">
-                {day}
-              </div>
-            ))}
-
-            {/* Calendar Days */}
-            {calendarDays.map((date, index) => {
-              const dayEvents = getEventsForDate(date);
-              const isCurrentMonthDay = isCurrentMonth(date);
-              const isTodayDate = isToday(date);
-
-              return (
-                <motion.div
-                  key={index}
-                  className={`
-                    min-h-[100px] border border-gray-200 rounded-lg p-2 cursor-pointer
-                    transition-all hover:bg-gray-50 relative
-                    ${!isCurrentMonthDay ? 'bg-gray-50 opacity-50' : 'bg-white'}
-                    ${isTodayDate ? 'ring-2 ring-orange-500' : ''}
-                  `}
-                  onClick={() => handleDateClick(date)}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <div className={`
-                    text-sm font-medium mb-1
-                    ${isTodayDate ? 'text-orange-600 font-bold' : 'text-gray-700'}
-                    ${!isCurrentMonthDay ? 'text-gray-400' : ''}
-                  `}>
-                    {date.getDate()}
-                  </div>
-                  
-                  {/* Events */}
-                  <div className="space-y-1">
-                      {dayEvents.slice(0, 3).map((event, eventIndex) => {
-                        const eventId = event._id || event.id || `event-${eventIndex}`;
-                        return (
-                          <div
-                            key={eventId}
-                            className={`
-                              text-xs p-1 rounded truncate text-white cursor-pointer
-                              ${getEventColor(event, eventIndex)}
-                              hover:opacity-80
-                            `}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleViewEvent(event, e);
-                            }}
-                            title={event.name}
-                          >
-                            {event.type === 'exam' ? `Exam: ${event.name}` : event.name}
-                          </div>
-                        );
+          {/* Mobile agenda */}
+          <div className="sm:hidden mb-4">
+            <h4 className="text-sm font-semibold text-sky-900 mb-2">Upcoming This Month</h4>
+            {monthlyEventsByDate.length === 0 ? (
+              <p className="text-sm text-gray-500">No events or exams scheduled this month.</p>
+            ) : (
+              <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
+                {monthlyEventsByDate.map(([dateKey, dayEvents]) => (
+                  <div key={dateKey} className="rounded-lg border border-sky-100 bg-white p-2.5">
+                    <p className="text-xs font-semibold text-sky-700 mb-2">
+                      {new Date(dateKey).toLocaleDateString(undefined, {
+                        weekday: 'short',
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
                       })}
-                    {dayEvents.length > 3 && (
-                      <div className="text-xs text-gray-500 font-medium">
-                        +{dayEvents.length - 3} more
-                      </div>
-                    )}
-                    {dayEvents.length === 0 && (
-                      <div className="text-xs text-gray-400 text-center py-1">
-                        Click to add
-                      </div>
-                    )}
+                    </p>
+                    <div className="space-y-1.5">
+                      {dayEvents.map((event, idx) => (
+                        <button
+                          key={event._id || event.id || `${event.name}-${idx}`}
+                          type="button"
+                          onClick={() => handleViewEvent(event)}
+                          className="w-full rounded-md border border-sky-100 bg-sky-50 text-left px-2 py-2"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-medium text-sky-900 truncate">{event.name}</p>
+                            <Badge className={event.type === 'exam' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}>
+                              {event.type === 'exam' ? 'Exam' : 'Event'}
+                            </Badge>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </motion.div>
-              );
-            })}
+                ))}
+              </div>
+            )}
           </div>
+
+          {/* Calendar Grid (tablet/desktop) */}
+          <div className="hidden sm:block overflow-x-auto pb-1">
+            <div className="min-w-[700px]">
+              <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                {/* Day Headers */}
+                {dayNames.map((day) => (
+                  <div key={day} className="text-center text-[11px] sm:text-sm font-semibold text-gray-600 py-1.5 sm:py-2">
+                    <span className="sm:hidden">{day.slice(0, 2)}</span>
+                    <span className="hidden sm:inline">{day}</span>
+                  </div>
+                ))}
+
+                {/* Calendar Days */}
+                {calendarDays.map((date, index) => {
+                  const dayEvents = getEventsForDate(date);
+                  const isCurrentMonthDay = isCurrentMonth(date);
+                  const isTodayDate = isToday(date);
+
+                  return (
+                    <motion.div
+                      key={index}
+                      className={`
+                        min-h-[116px] sm:min-h-[100px] border border-gray-200 rounded-lg p-1.5 sm:p-2 cursor-pointer
+                        transition-all hover:bg-gray-50 relative
+                        ${!isCurrentMonthDay ? 'bg-gray-50 opacity-50' : 'bg-white'}
+                        ${isTodayDate ? 'ring-2 ring-orange-500' : ''}
+                      `}
+                      onClick={() => handleDateClick(date)}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <div
+                        className={`
+                          text-xs sm:text-sm font-medium mb-1
+                          ${isTodayDate ? 'text-orange-600 font-bold' : 'text-gray-700'}
+                          ${!isCurrentMonthDay ? 'text-gray-400' : ''}
+                        `}
+                      >
+                        {date.getDate()}
+                      </div>
+
+                      {/* Events */}
+                      <div className="space-y-1">
+                        {dayEvents.slice(0, 3).map((event, eventIndex) => {
+                          const eventId = event._id || event.id || `event-${eventIndex}`;
+                          return (
+                            <div
+                              key={eventId}
+                              className={`
+                                text-[10px] sm:text-xs px-1.5 py-1 rounded truncate text-white cursor-pointer
+                                ${getEventColor(event, eventIndex)}
+                                hover:opacity-80
+                              `}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewEvent(event, e);
+                              }}
+                              title={event.name}
+                            >
+                              {event.type === 'exam' ? `Exam: ${event.name}` : event.name}
+                            </div>
+                          );
+                        })}
+                        {dayEvents.length > 3 && (
+                          <div className="text-[10px] sm:text-xs text-gray-500 font-medium">
+                            +{dayEvents.length - 3} more
+                          </div>
+                        )}
+                        {dayEvents.length === 0 && (
+                          <div className="text-[10px] sm:text-xs text-gray-400 text-center py-1">
+                            Tap to add
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {!isLoading && (
+            <div className="mt-5 border-t border-sky-100 pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm sm:text-base font-semibold text-sky-900">This Month Events</h4>
+                <span className="text-xs text-sky-600">{monthlyEvents.length} scheduled</span>
+              </div>
+              {monthlyEvents.length === 0 ? (
+                <p className="text-sm text-gray-500">No events or exams scheduled this month.</p>
+              ) : (
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                  {monthlyEvents.map((event, idx) => {
+                    const start = new Date(event.startDate || event.date);
+                    const end = new Date(event.endDate || event.date);
+                    const isRange = start.toDateString() !== end.toDateString();
+                    return (
+                      <button
+                        type="button"
+                        key={event._id || event.id || `${event.name}-${idx}`}
+                        onClick={() => handleViewEvent(event)}
+                        className="w-full text-left rounded-lg border border-sky-100 bg-white hover:bg-sky-50 px-3 py-2 transition-colors"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-medium text-sky-900 truncate">{event.name}</p>
+                          <Badge className={event.type === 'exam' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}>
+                            {event.type === 'exam' ? 'Exam' : 'Event'}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-sky-700 mt-1">
+                          {start.toLocaleDateString()}
+                          {isRange ? ` - ${end.toLocaleDateString()}` : ''}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -668,11 +785,7 @@ export default function AdminCalendar() {
                     Delete
                   </Button>
                 </div>
-              ) : (
-                <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700">
-                  Exam entries are managed from Super Admin Exam Management.
-                </div>
-              )}
+              ) : null}
             </div>
           )}
         </DialogContent>

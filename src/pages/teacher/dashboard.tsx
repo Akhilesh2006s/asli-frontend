@@ -2042,7 +2042,10 @@ const TeacherDashboard = () => {
                       const Icon = getSubjectIcon(subject.name);
                       
                       return (
-                        <div key={subject._id || subject.id} className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-200 hover:scale-105">
+                        <div
+                          key={subject._id || subject.id}
+                          className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-200 hover:scale-105 h-full flex flex-col"
+                        >
                           <div className="flex items-center justify-between mb-4">
                             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                               <Icon className="w-6 h-6 text-white" />
@@ -2051,8 +2054,12 @@ const TeacherDashboard = () => {
                               {subject.totalContent || 0} items
                             </Badge>
                           </div>
-                          <h4 className="text-lg font-bold text-gray-900 mb-2">{subject.name}</h4>
-                          <p className="text-gray-600 text-sm mb-4">{subject.description || `Content for ${subject.name}`}</p>
+                          <h4 className="text-lg font-bold text-gray-900 mb-2 break-words leading-tight">
+                            {subject.name}
+                          </h4>
+                          <p className="text-gray-600 text-sm mb-4 min-h-[40px] line-clamp-2">
+                            {subject.description || `Content for ${subject.name}`}
+                          </p>
                           
                           {/* Content Stats */}
                           <div className="grid grid-cols-3 gap-2 text-center mb-4">
@@ -2074,9 +2081,9 @@ const TeacherDashboard = () => {
                           </div>
 
                           {/* Recent Content Preview */}
-                          {subject.videos?.length > 0 && (
-                            <div className="mb-4">
-                              <p className="text-xs font-semibold text-gray-700 mb-2">Recent Videos:</p>
+                          <div className="mb-4 min-h-[98px]">
+                            <p className="text-xs font-semibold text-gray-700 mb-2">Recent Videos:</p>
+                            {subject.videos?.length > 0 ? (
                               <div className="space-y-1">
                                 {subject.videos.slice(0, 2).map((video: any, idx: number) => (
                                   <div key={video._id || idx} className="bg-gray-50 rounded-lg p-2 text-xs">
@@ -2087,11 +2094,15 @@ const TeacherDashboard = () => {
                                   </div>
                                 ))}
                               </div>
-                            </div>
-                          )}
+                            ) : (
+                              <div className="bg-gray-50 rounded-lg p-2 text-xs text-gray-500">
+                                No recent videos
+                              </div>
+                            )}
+                          </div>
 
                           <Button 
-                            className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
+                            className="w-full mt-auto bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
                             onClick={() => setLocation(`/teacher/subject/${subject._id || subject.id}`)}
                           >
                             View Content

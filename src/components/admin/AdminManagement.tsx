@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UsersIcon, UserPlusIcon, EditIcon, TrashIcon, CrownIcon, GraduationCapIcon, BookOpenIcon, SearchIcon } from "lucide-react";
@@ -63,18 +63,19 @@ export default function AdminManagement() {
   const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null);
   const [isUpdatingAdmin, setIsUpdatingAdmin] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const SUPPORTED_BOARD = 'ASLI_EXCLUSIVE_SCHOOLS';
   const [newAdmin, setNewAdmin] = useState({
     name: '',
     email: '',
     password: '',
-    board: '',
+    board: SUPPORTED_BOARD,
     state: '',
     schoolName: ''
   });
   const [editAdmin, setEditAdmin] = useState({
     name: '',
     email: '',
-    board: '',
+    board: SUPPORTED_BOARD,
     state: '',
     schoolName: '',
     isActive: true
@@ -82,11 +83,7 @@ export default function AdminManagement() {
 
   // Board options
   const boardOptions = [
-    { value: 'CBSE', label: 'CBSE' },
-    { value: 'SSC', label: 'SSC' },
-    { value: 'ICSE', label: 'ICSE' },
-    { value: 'IB', label: 'IB' },
-    { value: 'Others', label: 'Others' }
+    { value: SUPPORTED_BOARD, label: 'ASLI_EXCLUSIVE_SCHOOLS' },
   ];
 
   // All 29 Indian States
@@ -198,7 +195,7 @@ export default function AdminManagement() {
       const payload = {
         name: newAdmin.name,
         email: newAdmin.email,
-        board: newAdmin.board,
+        board: SUPPORTED_BOARD,
         state: newAdmin.state,
         schoolName: newAdmin.schoolName,
         permissions: [] // Optional, defaults to empty array
@@ -219,7 +216,7 @@ export default function AdminManagement() {
       if (response.ok) {
         const result = await response.json();
         setAdmins([...(admins || []), result.data]);
-        setNewAdmin({ name: '', email: '', password: '', board: '', state: '', schoolName: '' });
+        setNewAdmin({ name: '', email: '', password: '', board: SUPPORTED_BOARD, state: '', schoolName: '' });
         setIsAddDialogOpen(false);
         toast({
           title: "Success",
@@ -264,7 +261,7 @@ export default function AdminManagement() {
     setEditAdmin({
       name: admin.name || '',
       email: admin.email || '',
-      board: admin.board || '',
+      board: SUPPORTED_BOARD,
       state: admin.state || '',
       schoolName: admin.schoolName || '',
       isActive: admin.status === 'active' || admin.status === 'Active'
@@ -303,7 +300,7 @@ export default function AdminManagement() {
         body: JSON.stringify({
           name: editAdmin.name,
           email: editAdmin.email,
-          board: editAdmin.board,
+          board: SUPPORTED_BOARD,
           state: editAdmin.state,
           schoolName: editAdmin.schoolName,
           isActive: editAdmin.isActive
@@ -338,7 +335,7 @@ export default function AdminManagement() {
         setEditAdmin({
           name: '',
           email: '',
-          board: '',
+          board: SUPPORTED_BOARD,
           state: '',
           schoolName: '',
           isActive: true
@@ -469,6 +466,9 @@ export default function AdminManagement() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add New School</DialogTitle>
+              <DialogDescription>
+                Create a school admin account. Board is fixed to ASLI_EXCLUSIVE_SCHOOLS.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -517,7 +517,7 @@ export default function AdminManagement() {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-gray-500 mt-1">Select the board for this admin</p>
+                <p className="text-xs text-gray-500 mt-1">Board is fixed as ASLI_EXCLUSIVE_SCHOOLS.</p>
               </div>
               <div>
                 <Label htmlFor="state">State *</Label>
@@ -564,6 +564,9 @@ export default function AdminManagement() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Edit School</DialogTitle>
+              <DialogDescription>
+                Update school details. Board is fixed to ASLI_EXCLUSIVE_SCHOOLS.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -749,35 +752,39 @@ export default function AdminManagement() {
                 {filteredAdmins.map((admin) => (
           <Card key={admin?.id || Math.random().toString()} className="hover:shadow-lg transition-shadow">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start space-x-3 min-w-0 flex-1">
                   <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
                     <CrownIcon className="h-5 w-5 text-orange-600" />
                   </div>
-                  <div>
-                    <CardTitle className="text-lg">{admin?.schoolName || admin?.name || 'Unknown School'}</CardTitle>
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="text-base sm:text-lg leading-tight break-words">
+                      {admin?.schoolName || admin?.name || 'Unknown School'}
+                    </CardTitle>
                     {admin?.name && admin?.schoolName && (
-                      <p className="text-sm text-gray-600">Contact: {admin.name}</p>
+                      <p className="text-sm text-gray-600 break-words leading-snug">Contact: {admin.name}</p>
                     )}
                     {!admin?.schoolName && (
-                    <p className="text-sm text-gray-600">{admin?.email || 'No email'}</p>
+                    <p className="text-sm text-gray-600 break-all leading-snug">{admin?.email || 'No email'}</p>
                     )}
                     {admin?.schoolName && (
-                      <p className="text-sm text-gray-500">{admin?.email || 'No email'}</p>
+                      <p className="text-sm text-gray-500 break-all leading-snug">{admin?.email || 'No email'}</p>
                     )}
-                    {admin?.board && (
-                      <Badge variant="outline" className="mt-1 text-xs mr-1">
-                        {admin.board}
-                      </Badge>
-                    )}
-                    {admin?.state && (
-                      <Badge variant="outline" className="mt-1 text-xs">
-                        {admin.state}
-                      </Badge>
-                    )}
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {admin?.board && (
+                        <Badge variant="outline" className="text-xs break-all max-w-full">
+                          {admin.board}
+                        </Badge>
+                      )}
+                      {admin?.state && (
+                        <Badge variant="outline" className="text-xs break-all max-w-full">
+                          {admin.state}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <Badge variant={(admin?.status || 'inactive') === 'active' ? 'default' : 'secondary'}>
+                <Badge className="shrink-0" variant={(admin?.status || 'inactive') === 'active' ? 'default' : 'secondary'}>
                   {admin?.status || 'inactive'}
                 </Badge>
               </div>

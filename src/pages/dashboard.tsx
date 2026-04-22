@@ -3786,14 +3786,34 @@ export default function Dashboard() {
                           }
                           
                           if (isPDF) {
-                            const pdfViewerUrl = `${fileUrl}#toolbar=0&navpanes=0&scrollbar=1`;
+                            const pdfViewerUrl = `${fileUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`;
+                            const googleViewerUrl = `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(fileUrl)}`;
                             return (
-                              <div className="w-full h-[60vh] bg-gray-100 rounded-lg overflow-hidden">
-                                <iframe
-                                  src={pdfViewerUrl}
-                                  className="w-full h-full border-0"
-                                  title={selectedScheduleItem.title}
-                                />
+                              <div className="space-y-3">
+                                <div className="w-full h-[60vh] bg-gray-100 rounded-lg overflow-hidden">
+                                  <object
+                                    data={pdfViewerUrl}
+                                    type="application/pdf"
+                                    className="w-full h-full"
+                                  >
+                                    <iframe
+                                      src={googleViewerUrl}
+                                      className="w-full h-full border-0"
+                                      title={selectedScheduleItem.title}
+                                    />
+                                  </object>
+                                </div>
+                                <div className="flex items-center justify-between gap-2 text-xs text-gray-600">
+                                  <span>If preview is blocked on this device, use Open Book.</span>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => window.open(fileUrl, '_blank', 'noopener,noreferrer')}
+                                  >
+                                    Open Book
+                                  </Button>
+                                </div>
                               </div>
                             );
                           }

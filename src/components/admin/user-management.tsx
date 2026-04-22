@@ -588,8 +588,8 @@ const UserManagement = () => {
       transition={{ delay: typeof indexKey === 'number' ? 0.03 * indexKey : 0 }}
       className="group relative bg-white/80 backdrop-blur-xl rounded-xl p-4 border border-sky-200 hover:border-sky-400 hover:shadow-lg transition-all duration-200"
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center space-x-3">
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <div className="flex items-center space-x-3 min-w-0 flex-1">
           <div className="relative">
             <div className="w-11 h-11 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md">
               {(student.name || 'U').charAt(0).toUpperCase()}
@@ -599,11 +599,13 @@ const UserManagement = () => {
             }`} />
           </div>
           <div className="min-w-0">
-            <h4 className="font-semibold text-sky-900 text-sm truncate">{student.name || 'Unknown Student'}</h4>
-            <p className="text-sky-700 text-xs truncate">{student.email || 'No email'}</p>
+            <h4 className="font-semibold text-sky-900 text-sm leading-tight break-words">
+              {student.name || 'Unknown Student'}
+            </h4>
+            <p className="text-sky-700 text-xs break-all">{student.email || 'No email'}</p>
           </div>
         </div>
-        <Badge className="bg-sky-100 text-sky-700 border border-sky-200 text-[10px]">
+        <Badge className="bg-sky-100 text-sky-700 border border-sky-200 text-[10px] shrink-0 max-w-[40%] truncate">
           {student.classNumber || 'N/A'}
         </Badge>
       </div>
@@ -1254,7 +1256,7 @@ const UserManagement = () => {
                                     </Badge>
                                   </button>
                                   {!isSectionCollapsed && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-3">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mt-3">
                                       {classSectionGroups[classKey][sectionKey].map((student, idx) => renderStudentCard(student, `${sectionScopeKey}-${idx}`))}
                                     </div>
                                   )}
@@ -1299,7 +1301,7 @@ const UserManagement = () => {
                                     {sectionClassGroups[sectionKey][classKey].length}
                                   </Badge>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                                   {sectionClassGroups[sectionKey][classKey].map((student, idx) =>
                                     renderStudentCard(student, `${sectionKey}-${classKey}-${idx}`)
                                   )}

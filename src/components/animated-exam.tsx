@@ -92,6 +92,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   const [exitAttempts, setExitAttempts] = useState(0);
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [showReenterPrompt, setShowReenterPrompt] = useState(false);
+  const [timerInitialized, setTimerInitialized] = useState(false);
   const MAX_EXIT_ATTEMPTS = 5;
 
   // Fetch exam data
@@ -145,7 +146,14 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   // Initialize timer
   useEffect(() => {
     if (exam) {
-      setTimeLeft(exam.duration * 60);
+      const rawDuration = Number(exam.duration);
+      const safeDurationMinutes =
+        Number.isFinite(rawDuration) && rawDuration > 0 ? rawDuration : 30;
+      setTimeLeft(Math.round(safeDurationMinutes * 60));
+      setTimerInitialized(true);
+    } else {
+      setTimeLeft(0);
+      setTimerInitialized(false);
     }
   }, [exam]);
 
@@ -244,13 +252,15 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
   // Timer countdown
   useEffect(() => {
-    if (timeLeft > 0 && !isSubmitted) {
+    if (!exam || !timerInitialized || isSubmitted) return;
+
+    if (timeLeft > 0) {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && !isSubmitted) {
+    } else if (timeLeft === 0) {
       handleSubmit();
     }
-  }, [timeLeft, isSubmitted]);
+  }, [timeLeft, isSubmitted, exam, timerInitialized]);
 
   const handleAnswerChange = (questionId: string, value: any) => {
     setAnswers(prev => ({
@@ -313,7 +323,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   };
 
   const handleSubmit = async () => {
-    if (!exam) return;
+    if (!exam || isSubmitted) return;
 
     setIsSubmitted(true);
     

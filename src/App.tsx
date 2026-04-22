@@ -1,28 +1,29 @@
+import { Suspense, lazy } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/not-found";
-import Homepage from "./pages/homepage";
-import Dashboard from "./pages/dashboard";
-import LearningPaths from "./pages/learning-paths";
-import PracticeTests from "./pages/practice-tests";
-import AITutor from "./pages/ai-tutor";
-import Profile from "./pages/profile";
-import Login from "./pages/auth/login";
-import Register from "./pages/auth/register";
-import AdminDashboard from "./pages/admin/dashboard";
-import AdminSubjectContent from "./pages/admin/subject-content";
-import SubjectManagement from "./pages/admin/subject-management";
-import TeacherDashboard from "./pages/teacher/dashboard";
-import TeacherSubjectContent from "./pages/teacher/subject-content";
-import TeacherToolPage from "./pages/teacher/tools/[toolType]";
-import StudentToolPage from "./pages/student/tools/[toolType]";
-import StudentExams from "./pages/student-exams";
-import AsliPrepContentPage from "./pages/asli-prep-content";
-import SubjectContent from "./pages/subject-content";
-import EduOTT from "./pages/edu-ott";
+const NotFound = lazy(() => import("@/pages/not-found"));
+const Homepage = lazy(() => import("./pages/homepage"));
+const Dashboard = lazy(() => import("./pages/dashboard"));
+const LearningPaths = lazy(() => import("./pages/learning-paths"));
+const PracticeTests = lazy(() => import("./pages/practice-tests"));
+const AITutor = lazy(() => import("./pages/ai-tutor"));
+const Profile = lazy(() => import("./pages/profile"));
+const Login = lazy(() => import("./pages/auth/login"));
+const Register = lazy(() => import("./pages/auth/register"));
+const AdminDashboard = lazy(() => import("./pages/admin/dashboard"));
+const AdminSubjectContent = lazy(() => import("./pages/admin/subject-content"));
+const SubjectManagement = lazy(() => import("./pages/admin/subject-management"));
+const TeacherDashboard = lazy(() => import("./pages/teacher/dashboard"));
+const TeacherSubjectContent = lazy(() => import("./pages/teacher/subject-content"));
+const TeacherToolPage = lazy(() => import("./pages/teacher/tools/[toolType]"));
+const StudentToolPage = lazy(() => import("./pages/student/tools/[toolType]"));
+const StudentExams = lazy(() => import("./pages/student-exams"));
+const AsliPrepContentPage = lazy(() => import("./pages/asli-prep-content"));
+const SubjectContent = lazy(() => import("./pages/subject-content"));
+const EduOTT = lazy(() => import("./pages/edu-ott"));
 import { EduOTTFilterProvider } from "@/contexts/edu-ott-filter-context";
 
 function EduOTTWithFilters() {
@@ -32,17 +33,17 @@ function EduOTTWithFilters() {
     </EduOTTFilterProvider>
   );
 }
-import IQRankBoostSubjects from "./pages/iq-rank-boost-subjects";
-import IQRankBoostQuiz from "./pages/iq-rank-boost-quiz";
-import QuizPage from "./pages/quiz";
-import SuperAdminLogin from "./pages/super-admin-login";
-import SuperAdminDashboard from "./pages/super-admin-dashboard";
-import SuperAdminTest from "./pages/super-admin-test";
-import Onboarding from "./pages/onboarding";
-import AIToolsDashboard from "./pages/ai-tools-dashboard";
-import Privacy from "./pages/privacy";
-import Terms from "./pages/terms";
-import Contact from "./pages/contact";
+const IQRankBoostSubjects = lazy(() => import("./pages/iq-rank-boost-subjects"));
+const IQRankBoostQuiz = lazy(() => import("./pages/iq-rank-boost-quiz"));
+const QuizPage = lazy(() => import("./pages/quiz"));
+const SuperAdminLogin = lazy(() => import("./pages/super-admin-login"));
+const SuperAdminDashboard = lazy(() => import("./pages/super-admin-dashboard"));
+const SuperAdminTest = lazy(() => import("./pages/super-admin-test"));
+const Onboarding = lazy(() => import("./pages/onboarding"));
+const AIToolsDashboard = lazy(() => import("./pages/ai-tools-dashboard"));
+const Privacy = lazy(() => import("./pages/privacy"));
+const Terms = lazy(() => import("./pages/terms"));
+const Contact = lazy(() => import("./pages/contact"));
 
 function Router() {
   return (
@@ -88,7 +89,18 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Router />
+        <Suspense
+          fallback={
+            <div className="min-h-screen bg-sky-50 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                <p className="text-sm text-gray-600">Loading page...</p>
+              </div>
+            </div>
+          }
+        >
+          <Router />
+        </Suspense>
       </TooltipProvider>
     </QueryClientProvider>
   );

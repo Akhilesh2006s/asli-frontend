@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Suspense, lazy, useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,17 +40,26 @@ import {
   Calendar as CalendarIcon
 } from 'lucide-react';
 import { useLocation } from 'wouter';
-import UserManagement from '@/components/admin/user-management';
-import ClassManagement from '@/components/admin/class-management';
-import ClassDashboard from '@/components/admin/class-dashboard';
-import TeacherManagement from '@/components/admin/teacher-management';
-import SubjectManagement from '@/components/admin/subject-management';
-import ExamViewOnly from '@/components/admin/exam-view-only';
-import AdminLearningPaths from '@/components/admin/learning-paths';
-import AdminEduOTT from '@/components/admin/admin-eduott';
-import AdminCalendar from '@/components/admin/admin-calendar';
-import { AdminTeacherDiaryFeed } from '@/components/admin/AdminTeacherDiaryFeed';
-import AIChat from '@/components/ai-chat';
+const UserManagement = lazy(() => import('@/components/admin/user-management'));
+const ClassDashboard = lazy(() => import('@/components/admin/class-dashboard'));
+const TeacherManagement = lazy(() => import('@/components/admin/teacher-management'));
+const SubjectManagement = lazy(() => import('@/components/admin/subject-management'));
+const ExamViewOnly = lazy(() => import('@/components/admin/exam-view-only'));
+const AdminLearningPaths = lazy(() => import('@/components/admin/learning-paths'));
+const AdminEduOTT = lazy(() => import('@/components/admin/admin-eduott'));
+const AdminCalendar = lazy(() => import('@/components/admin/admin-calendar'));
+const AdminTeacherDiaryFeed = lazy(() =>
+  import('@/components/admin/AdminTeacherDiaryFeed').then((module) => ({
+    default: module.AdminTeacherDiaryFeed,
+  }))
+);
+const AIChat = lazy(() => import('@/components/ai-chat'));
+
+const lazySectionFallback = (
+  <div className="rounded-xl border border-sky-100 bg-white p-6 text-sm text-slate-600 shadow-sm">
+    Loading section...
+  </div>
+);
 
 const AdminDashboard = () => {
   const [, setLocation] = useLocation();
@@ -878,7 +887,9 @@ const AdminDashboard = () => {
 
             </div>
 
-            <AdminTeacherDiaryFeed />
+            <Suspense fallback={lazySectionFallback}>
+              <AdminTeacherDiaryFeed />
+            </Suspense>
 
             {/* Detailed School Analysis Section */}
               <motion.div
@@ -1061,14 +1072,46 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {activeTab === 'students' && <UserManagement />}
-          {activeTab === 'classes' && <ClassDashboard />}
-          {activeTab === 'teachers' && <TeacherManagement />}
-          {activeTab === 'subjects' && <SubjectManagement />}
-          {activeTab === 'exams' && <ExamViewOnly />}
-          {activeTab === 'learning-paths' && <AdminLearningPaths />}
-          {activeTab === 'eduott' && <AdminEduOTT />}
-          {activeTab === 'calendar' && <AdminCalendar />}
+          {activeTab === 'students' && (
+            <Suspense fallback={lazySectionFallback}>
+              <UserManagement />
+            </Suspense>
+          )}
+          {activeTab === 'classes' && (
+            <Suspense fallback={lazySectionFallback}>
+              <ClassDashboard />
+            </Suspense>
+          )}
+          {activeTab === 'teachers' && (
+            <Suspense fallback={lazySectionFallback}>
+              <TeacherManagement />
+            </Suspense>
+          )}
+          {activeTab === 'subjects' && (
+            <Suspense fallback={lazySectionFallback}>
+              <SubjectManagement />
+            </Suspense>
+          )}
+          {activeTab === 'exams' && (
+            <Suspense fallback={lazySectionFallback}>
+              <ExamViewOnly />
+            </Suspense>
+          )}
+          {activeTab === 'learning-paths' && (
+            <Suspense fallback={lazySectionFallback}>
+              <AdminLearningPaths />
+            </Suspense>
+          )}
+          {activeTab === 'eduott' && (
+            <Suspense fallback={lazySectionFallback}>
+              <AdminEduOTT />
+            </Suspense>
+          )}
+          {activeTab === 'calendar' && (
+            <Suspense fallback={lazySectionFallback}>
+              <AdminCalendar />
+            </Suspense>
+          )}
           {activeTab === 'vidya-ai' && (
             <div className="space-y-6">
               <motion.div
@@ -1136,16 +1179,18 @@ const AdminDashboard = () => {
                 <div className="w-full max-w-5xl mx-auto rounded-2xl bg-gradient-to-b from-sky-50 via-cyan-50 to-teal-50 p-4 border border-white/70 shadow-xl">
                   <div className="bg-white/85 rounded-2xl border border-sky-100 shadow-md" style={{ minHeight: '600px' }}>
                     {adminId ? (
-                      <AIChat
-                        userId={adminId}
-                        className="flex-1 h-full"
-                        promptVariant="admin"
-                        context={{
-                          studentName: userData?.schoolName || userData?.fullName || userData?.email?.split('@')[0] || "Admin",
-                          currentSubject: "Administration",
-                          currentTopic: undefined
-                        }}
-                      />
+                      <Suspense fallback={lazySectionFallback}>
+                        <AIChat
+                          userId={adminId}
+                          className="flex-1 h-full"
+                          promptVariant="admin"
+                          context={{
+                            studentName: userData?.schoolName || userData?.fullName || userData?.email?.split('@')[0] || "Admin",
+                            currentSubject: "Administration",
+                            currentTopic: undefined
+                          }}
+                        />
+                      </Suspense>
                     ) : (
                       <div className="flex items-center justify-center h-full min-h-[600px]">
                         <div className="text-center">

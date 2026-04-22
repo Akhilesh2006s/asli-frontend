@@ -1,19 +1,19 @@
-import { useState, useEffect } from "react";
+import { Suspense, lazy, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { SuperAdminSidebar, type SuperAdminView } from "@/components/dashboard/SuperAdminSidebar";
-import AdminManagement from "@/components/admin/AdminManagement";
-import CombinedSuperAdminAnalytics from "./combined-super-admin-analytics";
-import BoardComparisonCharts from "@/components/admin/board-comparison-charts";
-import ContentManagement from "@/components/super-admin/content-management";
-import SubjectManagement from "@/components/super-admin/subject-management";
-import SubjectContentManagement from "@/components/super-admin/subject-content-management";
-import ExamManagement from "@/components/super-admin/exam-management";
-import IQRankBoostActivities from "@/components/super-admin/iq-rank-boost-activities";
-import SuperAdminCalendar from "@/components/super-admin/super-admin-calendar";
-import AIChat from "@/components/ai-chat";
-import SuperAdminAIRiskAnalysis from "./super-admin-ai-risk-analysis";
-import AiToolGenerationsPanel from "@/components/super-admin/ai-tool-generations/AiToolGenerationsPanel";
-import SubscriptionManagement from "@/components/super-admin/subscription-management";
+const AdminManagement = lazy(() => import("@/components/admin/AdminManagement"));
+const CombinedSuperAdminAnalytics = lazy(() => import("./combined-super-admin-analytics"));
+const BoardComparisonCharts = lazy(() => import("@/components/admin/board-comparison-charts"));
+const ContentManagement = lazy(() => import("@/components/super-admin/content-management"));
+const SubjectManagement = lazy(() => import("@/components/super-admin/subject-management"));
+const SubjectContentManagement = lazy(() => import("@/components/super-admin/subject-content-management"));
+const ExamManagement = lazy(() => import("@/components/super-admin/exam-management"));
+const IQRankBoostActivities = lazy(() => import("@/components/super-admin/iq-rank-boost-activities"));
+const SuperAdminCalendar = lazy(() => import("@/components/super-admin/super-admin-calendar"));
+const AIChat = lazy(() => import("@/components/ai-chat"));
+const SuperAdminAIRiskAnalysis = lazy(() => import("./super-admin-ai-risk-analysis"));
+const AiToolGenerationsPanel = lazy(() => import("@/components/super-admin/ai-tool-generations/AiToolGenerationsPanel"));
+const SubscriptionManagement = lazy(() => import("@/components/super-admin/subscription-management"));
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,12 @@ import { API_BASE_URL } from "@/lib/api-config";
 import { cn } from "@/lib/utils";
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+const lazySectionFallback = (
+  <div className="rounded-xl border border-orange-100 bg-white p-6 text-sm text-slate-600 shadow-sm">
+    Loading section...
+  </div>
+);
 
 export default function SuperAdminDashboard() {
   const { toast } = useToast();
@@ -74,7 +80,6 @@ export default function SuperAdminDashboard() {
   const [boardData, setBoardData] = useState<any>(null);
   const [isLoadingBoard, setIsLoadingBoard] = useState(false);
   const [boardError, setBoardError] = useState<string | null>(null);
-  const [adminSummary, setAdminSummary] = useState<any[]>([]);
   const [vidyaSettingsOpen, setVidyaSettingsOpen] = useState(false);
   const [systemSettingsOpen, setSystemSettingsOpen] = useState(false);
   const [vidyaExplainDepth, setVidyaExplainDepth] = useState<
@@ -119,20 +124,19 @@ export default function SuperAdminDashboard() {
     };
 
     fetchDashboardStats();
-    fetchRealtimeAnalytics();
-    fetchAdminSummary();
-    
-    // Listen for admin deletion events to refresh admin summary
-    const handleAdminDeleted = () => {
-      fetchAdminSummary();
-    };
-    
-    window.addEventListener('adminDeleted', handleAdminDeleted);
-    
-    return () => {
-      window.removeEventListener('adminDeleted', handleAdminDeleted);
-    };
   }, [toast]);
+
+  // Defer heavy analytics request so first paint is faster.
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      fetchRealtimeAnalytics();
+    }, 1200);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     try {
@@ -180,30 +184,6 @@ export default function SuperAdminDashboard() {
       console.error('Error fetching real-time analytics:', error);
     } finally {
       setIsLoadingAnalytics(false);
-    }
-  };
-
-  const fetchAdminSummary = async () => {
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/admins`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Admin summary data:', data); // Debug log
-        if (data.success && Array.isArray(data.data)) {
-          setAdminSummary(data.data);
-        } else if (Array.isArray(data)) {
-          setAdminSummary(data);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching admin summary:', error);
     }
   };
 
@@ -300,16 +280,6 @@ export default function SuperAdminDashboard() {
   // Chart data will be populated from real analytics when available
   const [coursesPerBoardData, setCoursesPerBoardData] = useState<Array<{name: string, value: number, color: string}>>([]);
   const [studentsPerAdminData, setStudentsPerAdminData] = useState<Array<{[key: string]: string | number}>>([]);
-
-  // Prefetch default board dashboard data so Board Management opens instantly
-  useEffect(() => {
-    const defaultBoard = 'ASLI_EXCLUSIVE_SCHOOLS';
-    // Only prefetch if we don't already have data for this board
-    if (!boardData && !isLoadingBoard) {
-      fetchBoardDashboard(defaultBoard, false, false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Icon grid using EXACT same icons as sidebar in same order
   const iconGridIcons = [
@@ -616,11 +586,11 @@ export default function SuperAdminDashboard() {
                       const colorScheme = colorSchemes[examIdx % 3];
                       
                       return (
-                        <div key={exam.examId} className={`border-2 ${colorScheme.border} rounded-lg p-4 bg-gradient-to-br ${colorScheme.bg} text-white`}>
+                        <div key={`${exam.examId || exam.examTitle || 'exam'}-${examIdx}`} className={`border-2 ${colorScheme.border} rounded-lg p-4 bg-gradient-to-br ${colorScheme.bg} text-white`}>
                           <h4 className="font-semibold text-white mb-3">{exam.examTitle}</h4>
                           <div className="space-y-2">
                             {exam.topScorers.slice(0, 5).map((scorer: any, idx: number) => (
-                              <div key={idx} className="flex items-center justify-between p-2 bg-white/90 backdrop-blur-sm rounded border border-white/50 shadow-sm">
+                              <div key={`${scorer.studentId || scorer.studentEmail || scorer.studentName || 'scorer'}-${idx}`} className="flex items-center justify-between p-2 bg-white/90 backdrop-blur-sm rounded border border-white/50 shadow-sm">
                                 <div>
                                   <p className="font-medium text-gray-900">{scorer.studentName}</p>
                                   <p className="text-xs text-gray-600">{scorer.studentEmail}</p>
@@ -651,8 +621,8 @@ export default function SuperAdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {realtimeAnalytics.lowPerformingAdmins.map((admin: any) => (
-                      <div key={admin.adminId} className="flex items-center justify-between p-3 bg-white rounded border border-red-200">
+                    {realtimeAnalytics.lowPerformingAdmins.map((admin: any, idx: number) => (
+                      <div key={`${admin.adminId || admin.adminEmail || admin.adminName || 'admin'}-${idx}`} className="flex items-center justify-between p-3 bg-white rounded border border-red-200">
                         <div>
                           <p className="font-semibold text-gray-900">{admin.adminName}</p>
                           <p className="text-sm text-gray-600">{admin.adminEmail}</p>
@@ -685,8 +655,8 @@ export default function SuperAdminDashboard() {
                 </CardHeader>
                 <CardContent className="relative z-10">
                   <div className="space-y-4">
-                    {realtimeAnalytics.adminAnalytics.slice(0, 5).map((admin: any) => (
-                      <div key={admin.adminId} className="p-4 bg-white/90 backdrop-blur-sm rounded-lg border border-white/50 shadow-md">
+                    {realtimeAnalytics.adminAnalytics.slice(0, 5).map((admin: any, idx: number) => (
+                      <div key={`${admin.adminId || admin.adminEmail || admin.adminName || 'admin'}-${idx}`} className="p-4 bg-white/90 backdrop-blur-sm rounded-lg border border-white/50 shadow-md">
                         <div className="flex items-center justify-between mb-3">
                           <div>
                             <h3 className="font-semibold text-lg text-gray-900">{admin.adminName}</h3>
@@ -723,7 +693,7 @@ export default function SuperAdminDashboard() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {realtimeAnalytics.insights.slice(0, 2).map((insight: any, index: number) => (
-              <Card key={index} className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
+              <Card key={`${insight.id || insight.title || insight.description || 'insight'}-${index}`} className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
                 <CardContent className="p-6">
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-gradient-to-br from-blue-300 to-blue-400 rounded-lg">
@@ -868,23 +838,37 @@ export default function SuperAdminDashboard() {
         {/* Board Comparison Section */}
         <div className="mt-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Board Performance Comparison</h2>
-          <BoardComparisonCharts />
+          <Suspense fallback={lazySectionFallback}>
+            <BoardComparisonCharts />
+          </Suspense>
         </div>
       </div>
     );
   };
 
   const renderAdminsContent = () => (
-    <AdminManagement />
+    <Suspense fallback={lazySectionFallback}>
+      <AdminManagement />
+    </Suspense>
   );
 
-  const renderAnalyticsContent = () => <CombinedSuperAdminAnalytics />;
+  const renderAnalyticsContent = () => (
+    <Suspense fallback={lazySectionFallback}>
+      <CombinedSuperAdminAnalytics />
+    </Suspense>
+  );
 
   const renderBoardComparisonContent = () => (
-    <BoardComparisonCharts />
+    <Suspense fallback={lazySectionFallback}>
+      <BoardComparisonCharts />
+    </Suspense>
   );
 
-  const renderSubscriptionsContent = () => <SubscriptionManagement />;
+  const renderSubscriptionsContent = () => (
+    <Suspense fallback={lazySectionFallback}>
+      <SubscriptionManagement />
+    </Suspense>
+  );
 
   const renderSettingsContent = () => (
     <div className="space-y-6">
@@ -982,12 +966,14 @@ export default function SuperAdminDashboard() {
 
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
           <div className="w-full rounded-2xl bg-[#F5F7FA] border border-slate-200 shadow-[0_20px_40px_-30px_rgba(15,23,42,0.8)] p-2">
-            <AIChat
-              userId="super-admin"
-              context={{}}
-              promptVariant="super-admin"
-              className="w-full h-[640px]"
-            />
+            <Suspense fallback={lazySectionFallback}>
+              <AIChat
+                userId="super-admin"
+                context={{}}
+                promptVariant="super-admin"
+                className="w-full h-[640px]"
+              />
+            </Suspense>
           </div>
 
           <Card className="border-slate-200 shadow-sm bg-white">
@@ -1045,23 +1031,45 @@ export default function SuperAdminDashboard() {
       case 'admins':
         return renderAdminsContent();
       case 'subjects-and-content':
-        return <SubjectContentManagement />;
+        return (
+          <Suspense fallback={lazySectionFallback}>
+            <SubjectContentManagement />
+          </Suspense>
+        );
       case 'content':
-        return <ContentManagement />;
+        return (
+          <Suspense fallback={lazySectionFallback}>
+            <ContentManagement />
+          </Suspense>
+        );
       case 'subjects':
-        return <SubjectManagement />;
+        return (
+          <Suspense fallback={lazySectionFallback}>
+            <SubjectManagement />
+          </Suspense>
+        );
       case 'exams':
-        return <ExamManagement />;
+        return (
+          <Suspense fallback={lazySectionFallback}>
+            <ExamManagement />
+          </Suspense>
+        );
       case 'iq-rank-boost':
-        return <IQRankBoostActivities />;
+        return (
+          <Suspense fallback={lazySectionFallback}>
+            <IQRankBoostActivities />
+          </Suspense>
+        );
       case 'calendar':
         return (
-          <SuperAdminCalendar
-            onNavigateToExams={(prefill) => {
-              sessionStorage.setItem('examCalendarPrefill', JSON.stringify(prefill));
-              setCurrentView('exams');
-            }}
-          />
+          <Suspense fallback={lazySectionFallback}>
+            <SuperAdminCalendar
+              onNavigateToExams={(prefill) => {
+                sessionStorage.setItem('examCalendarPrefill', JSON.stringify(prefill));
+                setCurrentView('exams');
+              }}
+            />
+          </Suspense>
         );
       case 'vidya-ai':
         return renderVidyaAIContent();
@@ -1072,9 +1080,17 @@ export default function SuperAdminDashboard() {
       case 'ai-analytics':
         return renderAnalyticsContent();
       case 'ai-risk-analysis':
-        return <SuperAdminAIRiskAnalysis />;
+        return (
+          <Suspense fallback={lazySectionFallback}>
+            <SuperAdminAIRiskAnalysis />
+          </Suspense>
+        );
       case 'ai-tool-generations':
-        return <AiToolGenerationsPanel />;
+        return (
+          <Suspense fallback={lazySectionFallback}>
+            <AiToolGenerationsPanel />
+          </Suspense>
+        );
       case 'subscriptions':
         return renderSubscriptionsContent();
       case 'settings':

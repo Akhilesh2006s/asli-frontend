@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -350,6 +351,33 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
     });
   };
 
+  const monthlyEvents = useMemo(() => {
+    const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    const startMs = monthStart.getTime();
+    const endMs = monthEnd.getTime();
+
+    return events
+      .filter((ev) => {
+        const evStart = new Date(ev.startDate).getTime();
+        const evEnd = new Date(ev.endDate).getTime();
+        return evStart <= endMs && evEnd >= startMs;
+      })
+      .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+  }, [events, currentDate]);
+
+  const monthlyEventsByDate = useMemo(() => {
+    const grouped = monthlyEvents.reduce<Record<string, CalendarEventRecord[]>>((acc, event) => {
+      const key = new Date(event.startDate).toDateString();
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(event);
+      return acc;
+    }, {});
+    return Object.entries(grouped).sort(
+      ([a], [b]) => new Date(a).getTime() - new Date(b).getTime()
+    );
+  }, [monthlyEvents]);
+
   const isToday = (date: Date) => {
     const today = new Date();
     return date.toDateString() === today.toDateString();
@@ -512,14 +540,14 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">School Calendar</h2>
-            <p className="text-gray-600 mt-1">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">School Calendar</h2>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
               Exams, holidays, and events by school. Exams sync from Exam Management.
             </p>
           </div>
-          <Button onClick={goToToday} variant="outline">
+          <Button onClick={goToToday} variant="outline" className="shrink-0">
             Today
           </Button>
         </div>
@@ -576,16 +604,16 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
         </Card>
 
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-4">
-                <Button variant="outline" size="icon" onClick={goToPreviousMonth}>
+          <CardContent className="p-3 sm:p-6">
+            <div className="flex items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-6">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <Button variant="outline" size="icon" onClick={goToPreviousMonth} className="h-8 w-8 sm:h-10 sm:w-10">
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <h3 className="text-2xl font-semibold text-gray-900">
+                <h3 className="text-lg sm:text-2xl font-semibold text-gray-900">
                   {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                 </h3>
-                <Button variant="outline" size="icon" onClick={goToNextMonth}>
+                <Button variant="outline" size="icon" onClick={goToNextMonth} className="h-8 w-8 sm:h-10 sm:w-10">
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -599,90 +627,173 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-7 gap-2">
-                {dayNames.map((day) => (
-                  <div key={day} className="text-center text-sm font-semibold text-gray-600 py-2">
-                    {day}
-                  </div>
-                ))}
-
-                {calendarDays.map((date, index) => {
-                  const dayEvents = getEventsForDate(date);
-                  const isCurrentMonthDay = isCurrentMonth(date);
-                  const isTodayDate = isToday(date);
-
-                  return (
-                    <motion.div
-                      key={index}
-                      className={`
-                        min-h-[112px] border border-gray-200 rounded-lg p-1.5 flex flex-col
-                        transition-all
-                        ${!isCurrentMonthDay ? 'bg-gray-50 opacity-50' : 'bg-white'}
-                        ${isTodayDate ? 'ring-2 ring-orange-500 ring-offset-1 shadow-sm' : ''}
-                      `}
-                      whileHover={{ scale: 1.01 }}
-                    >
-                      <div className="flex items-start justify-between gap-1 mb-1">
-                        <span
-                          className={`
-                          text-sm font-medium px-1
-                          ${isTodayDate ? 'text-orange-600 font-bold' : 'text-gray-700'}
-                          ${!isCurrentMonthDay ? 'text-gray-400' : ''}
-                        `}
-                        >
-                          {date.getDate()}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 shrink-0 text-gray-500 hover:text-sky-600"
-                          title="Add"
-                          onClick={() => openQuickAdd(date)}
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-
-                      <div className="space-y-0.5 flex-1 overflow-hidden">
-                        {dayEvents.slice(0, 4).map((ev) => {
-                          const st = TYPE_STYLES[ev.type] || TYPE_STYLES.custom;
-                          const tip = [
-                            ev.title,
-                            ev.description,
-                            ev.meta?.subject ? `Subject: ${ev.meta.subject}` : '',
-                            ev.type === 'exam' && ev.meta?.duration ? `${ev.meta.duration} min` : '',
-                          ]
-                            .filter(Boolean)
-                            .join('\n');
-                          return (
-                            <Tooltip key={ev.id}>
-                              <TooltipTrigger asChild>
+              <>
+                <div className="sm:hidden mb-4">
+                  <h4 className="text-sm font-semibold text-sky-900 mb-2">Upcoming This Month</h4>
+                  {monthlyEventsByDate.length === 0 ? (
+                    <p className="text-sm text-gray-500">No events or exams scheduled this month.</p>
+                  ) : (
+                    <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
+                      {monthlyEventsByDate.map(([dateKey, dayEvents]) => (
+                        <div key={dateKey} className="rounded-lg border border-sky-100 bg-white p-2.5">
+                          <p className="text-xs font-semibold text-sky-700 mb-2">
+                            {new Date(dateKey).toLocaleDateString(undefined, {
+                              weekday: 'short',
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </p>
+                          <div className="space-y-1.5">
+                            {dayEvents.map((event) => {
+                              const style = TYPE_STYLES[event.type] || TYPE_STYLES.custom;
+                              return (
                                 <button
+                                  key={event.id}
                                   type="button"
-                                  onClick={() => handleViewEvent(ev)}
-                                  className={`w-full text-left text-[10px] leading-tight px-1 py-0.5 rounded text-white truncate ${st.bar}`}
+                                  onClick={() => handleViewEvent(event)}
+                                  className="w-full rounded-md border border-sky-100 bg-sky-50 text-left px-2 py-2"
                                 >
-                                  <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1 align-middle ${st.dot}`} />
-                                  {ev.title}
+                                  <div className="flex items-center justify-between gap-2">
+                                    <p className="text-sm font-medium text-sky-900 truncate">{event.title}</p>
+                                    <Badge className={`${style.dot} text-white border-0`}>{style.label}</Badge>
+                                  </div>
                                 </button>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="max-w-xs whitespace-pre-wrap">
-                                {tip}
-                              </TooltipContent>
-                            </Tooltip>
-                          );
-                        })}
-                        {dayEvents.length > 4 && (
-                          <div className="text-[10px] text-gray-500 font-medium px-0.5">
-                            +{dayEvents.length - 4} more
+                              );
+                            })}
                           </div>
-                        )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="hidden sm:block overflow-x-auto pb-1">
+                <div className="min-w-[700px]">
+                  <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                    {dayNames.map((day) => (
+                      <div key={day} className="text-center text-[11px] sm:text-sm font-semibold text-gray-600 py-1.5 sm:py-2">
+                        <span className="sm:hidden">{day.slice(0, 2)}</span>
+                        <span className="hidden sm:inline">{day}</span>
                       </div>
-                    </motion.div>
-                  );
-                })}
+                    ))}
+
+                    {calendarDays.map((date, index) => {
+                      const dayEvents = getEventsForDate(date);
+                      const isCurrentMonthDay = isCurrentMonth(date);
+                      const isTodayDate = isToday(date);
+
+                      return (
+                        <motion.div
+                          key={index}
+                          className={`
+                            min-h-[116px] sm:min-h-[112px] border border-gray-200 rounded-lg p-1.5 flex flex-col
+                            transition-all
+                            ${!isCurrentMonthDay ? 'bg-gray-50 opacity-50' : 'bg-white'}
+                            ${isTodayDate ? 'ring-2 ring-orange-500 ring-offset-1 shadow-sm' : ''}
+                          `}
+                          whileHover={{ scale: 1.01 }}
+                        >
+                          <div className="flex items-start justify-between gap-1 mb-1">
+                            <span
+                              className={`
+                              text-xs sm:text-sm font-medium px-1
+                              ${isTodayDate ? 'text-orange-600 font-bold' : 'text-gray-700'}
+                              ${!isCurrentMonthDay ? 'text-gray-400' : ''}
+                            `}
+                            >
+                              {date.getDate()}
+                            </span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 shrink-0 text-gray-500 hover:text-sky-600"
+                              title="Add"
+                              onClick={() => openQuickAdd(date)}
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+
+                          <div className="space-y-0.5 flex-1 overflow-hidden">
+                            {dayEvents.slice(0, 4).map((ev) => {
+                              const st = TYPE_STYLES[ev.type] || TYPE_STYLES.custom;
+                              const tip = [
+                                ev.title,
+                                ev.description,
+                                ev.meta?.subject ? `Subject: ${ev.meta.subject}` : '',
+                                ev.type === 'exam' && ev.meta?.duration ? `${ev.meta.duration} min` : '',
+                              ]
+                                .filter(Boolean)
+                                .join('\n');
+                              return (
+                                <Tooltip key={ev.id}>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleViewEvent(ev)}
+                                      className={`w-full text-left text-[10px] sm:text-[11px] leading-tight px-1.5 py-0.5 rounded text-white truncate ${st.bar}`}
+                                    >
+                                      <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1 align-middle ${st.dot}`} />
+                                      {ev.title}
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-xs whitespace-pre-wrap">
+                                    {tip}
+                                  </TooltipContent>
+                                </Tooltip>
+                              );
+                            })}
+                            {dayEvents.length > 4 && (
+                              <div className="text-[10px] sm:text-xs text-gray-500 font-medium px-0.5">
+                                +{dayEvents.length - 4} more
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
+
+              <div className="mt-5 border-t border-sky-100 pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm sm:text-base font-semibold text-sky-900">This Month Events</h4>
+                  <span className="text-xs text-sky-600">{monthlyEvents.length} scheduled</span>
+                </div>
+                {monthlyEvents.length === 0 ? (
+                  <p className="text-sm text-gray-500">No events or exams scheduled this month.</p>
+                ) : (
+                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                    {monthlyEvents.map((event) => {
+                      const start = new Date(event.startDate);
+                      const end = new Date(event.endDate);
+                      const isRange = start.toDateString() !== end.toDateString();
+                      const style = TYPE_STYLES[event.type] || TYPE_STYLES.custom;
+                      return (
+                        <button
+                          type="button"
+                          key={event.id}
+                          onClick={() => handleViewEvent(event)}
+                          className="w-full text-left rounded-lg border border-sky-100 bg-white hover:bg-sky-50 px-3 py-2 transition-colors"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-medium text-sky-900 truncate">{event.title}</p>
+                            <Badge className={`${style.dot} text-white border-0`}>{style.label}</Badge>
+                          </div>
+                          <p className="text-xs text-sky-700 mt-1">
+                            {start.toLocaleDateString()}
+                            {isRange ? ` - ${end.toLocaleDateString()}` : ''}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              </>
             )}
           </CardContent>
         </Card>
