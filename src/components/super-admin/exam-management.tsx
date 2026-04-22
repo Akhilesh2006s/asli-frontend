@@ -155,7 +155,8 @@ export default function ExamManagement() {
   const [questionCsvFile, setQuestionCsvFile] = useState<File | null>(null);
   const [isUploadingQuestionCsv, setIsUploadingQuestionCsv] = useState(false);
   const [questionCsvUploadResults, setQuestionCsvUploadResults] = useState<{ success: number; errors: string[] } | null>(null);
-  const [allowDuplicateQuestionsInCsv, setAllowDuplicateQuestionsInCsv] = useState(false);
+  // Default ON: duplicate rows are uploaded instead of skipped.
+  const [allowDuplicateQuestionsInCsv, setAllowDuplicateQuestionsInCsv] = useState(true);
   const [questionImageFile, setQuestionImageFile] = useState<File | null>(null);
   const [isUploadingQuestionImage, setIsUploadingQuestionImage] = useState(false);
   const [isCsvDialogOpen, setIsCsvDialogOpen] = useState(false);

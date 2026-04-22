@@ -29,7 +29,7 @@ interface Question {
   marks: number;
   negativeMarks: number;
   explanation?: string;
-  subject: 'maths' | 'physics' | 'chemistry';
+  subject: 'maths' | 'physics' | 'chemistry' | 'biology';
 }
 
 interface ExamResult {
@@ -47,6 +47,7 @@ interface ExamResult {
     maths: { correct: number; total: number; marks: number };
     physics: { correct: number; total: number; marks: number };
     chemistry: { correct: number; total: number; marks: number };
+    biology?: { correct: number; total: number; marks: number };
   };
   answers?: Record<string, any>;
   questions?: Question[];
@@ -206,12 +207,13 @@ export default function ExamResults({ result, examTitle, onRetake, onViewAnalysi
                 const subjectColors = {
                   maths: 'bg-blue-100 text-blue-600',
                   physics: 'bg-green-100 text-green-600',
-                  chemistry: 'bg-purple-100 text-purple-600'
+                  chemistry: 'bg-purple-100 text-purple-600',
+                  biology: 'bg-emerald-100 text-emerald-600'
                 };
                 
                 return (
                   <div key={subject} className="text-center">
-                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 ${subjectColors[subject as keyof typeof subjectColors]}`}>
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 ${subjectColors[subject as keyof typeof subjectColors] || 'bg-gray-100 text-gray-600'}`}>
                       <BookOpen className="w-8 h-8" />
                     </div>
                     <h3 className="font-semibold text-gray-900 capitalize mb-2">{subject}</h3>

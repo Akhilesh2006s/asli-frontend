@@ -543,7 +543,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Clean up common mojibake/encoding artifacts in exam text display.
+  // Conservative cleanup for display text. Preserve original math symbols.
   const normalizeExamText = (value: unknown): string => {
     if (value === undefined || value === null) return '';
     let text = String(value);
@@ -555,17 +555,12 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       text = parser.value || text;
     }
 
-    // Common UTF-8 mojibake replacements.
+    // Target only known mojibake sequences; do not rewrite normal question text.
     const replacements: Record<string, string> = {
       'âˆš': '√',
-      'â‰¥': '>=',
-      'â‰¤': '<=',
-      'â‰ ': '!=',
-      'ï¿½': '-',
-      '�': '-',
-      '≥': '>=',
-      '≤': '<=',
-      '≠': '!=',
+      'â‰¥': '≥',
+      'â‰¤': '≤',
+      'â‰ ': '≠',
       'âˆž': '∞',
       'âˆ†': '∆',
       'â€²': "'",
@@ -583,18 +578,8 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       text = text.split(from).join(to);
     });
 
-    // Fix common broken math symbols from imported question banks.
-    text = text.replace(/\b(sin|cos|tan|cot|sec|cosec)\s*[�\uFFFD]/gi, '$1 theta');
-    text = text.replace(/(\d)\s*[�\uFFFD]/g, '$1 degree');
-    // Sheet data sometimes uses literal "?" as theta placeholder (e.g. sin²? / ? is acute).
-    text = text.replace(/\b((?:sin|cos|tan|cot|sec|cosec)(?:\^?\d+|[²³])?)\s*\?/gi, '$1 theta');
-    text = text.replace(/\?\s+is\s+acute\b/gi, 'theta is acute');
-    text = text.replace(/\(\s*\?\s*\)/g, '(theta)');
-    // Many sheets use "v3/2" to mean root; render as sqrt.
-    text = text.replace(/\bv(?=\d)/gi, 'sqrt');
-    text = text.replace(/\bp(?=\s*\/\s*\d)/gi, 'π');
-    // Fallback for generic replacement character in math expressions.
-    text = text.replace(/\s*[�\uFFFD]\s*/g, ' - ');
+    // If replacement characters are present, show '?' rather than forcing '-'.
+    text = text.replace(/[\uFFFD]/g, '?');
     text = text.replace(/\s{2,}/g, ' ').trim();
 
     return text;

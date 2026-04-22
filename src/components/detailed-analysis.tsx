@@ -43,7 +43,7 @@ interface Question {
   marks: number;
   negativeMarks: number;
   explanation?: string;
-  subject: 'maths' | 'physics' | 'chemistry';
+  subject: 'maths' | 'physics' | 'chemistry' | 'biology';
 }
 
 interface ExamResult {
@@ -61,6 +61,7 @@ interface ExamResult {
     maths: { correct: number; total: number; marks: number };
     physics: { correct: number; total: number; marks: number };
     chemistry: { correct: number; total: number; marks: number };
+    biology?: { correct: number; total: number; marks: number };
   };
   answers?: Record<string, any>;
   questions?: Question[];
@@ -72,11 +73,43 @@ interface DetailedAnalysisProps {
   onBack: () => void;
 }
 
+interface AiExamAnalysis {
+  summary?: string;
+  strengths?: string[];
+  focusAreas?: Array<{
+    subject: string;
+    issue: string;
+    whatToDo: string;
+    priority: 'high' | 'medium' | 'low' | string;
+  }>;
+  actionPlan?: {
+    today?: string[];
+    thisWeek?: string[];
+    beforeNextExam?: string[];
+  };
+  recommendedAiTools?: Array<{
+    toolType: string;
+    why: string;
+    howToUse: string;
+  }>;
+  videoRecommendations?: Array<{
+    title: string;
+    subject?: string;
+    topic?: string;
+    url: string;
+    why?: string;
+  }>;
+  motivation?: string;
+}
+
 export default function DetailedAnalysis({ result, examTitle, onBack }: DetailedAnalysisProps) {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('ai');
   const [mobileQuestionIndex, setMobileQuestionIndex] = useState(0);
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const [animDirection, setAnimDirection] = useState<'up' | 'down'>('up');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
+  const [aiAnalysis, setAiAnalysis] = useState<AiExamAnalysis | null>(null);
   const [animatedValues, setAnimatedValues] = useState({
     percentage: 0,
     correctAnswers: 0,
@@ -205,6 +238,45 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       animateValue(0, result.obtainedMarks, (value) => setAnimatedValues(prev => ({ ...prev, obtainedMarks: value })));
     }, 300);
   }, [result]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchAiReport = async () => {
+      setAiLoading(true);
+      setAiError('');
+      try {
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`${API_BASE_URL}/api/student/exam-results/ai-analysis`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ result, examTitle }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload?.success) {
+          throw new Error(payload?.message || 'Failed to generate AI report');
+        }
+        if (!cancelled) {
+          setAiAnalysis(payload?.data?.analysis || null);
+        }
+      } catch (error: any) {
+        if (!cancelled) {
+          setAiError(error?.message || 'AI report unavailable');
+        }
+      } finally {
+        if (!cancelled) {
+          setAiLoading(false);
+        }
+      }
+    };
+
+    fetchAiReport();
+    return () => {
+      cancelled = true;
+    };
+  }, [result, examTitle]);
 
   const getGrade = (percentage: number) => {
     if (percentage >= 95) return { grade: 'A+', color: 'text-purple-600', bgColor: 'bg-gradient-to-r from-purple-100 to-pink-100', icon: Crown };
@@ -339,6 +411,16 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       {/* Navigation Tabs */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex space-x-8">
+          <button 
+            onClick={() => setActiveTab('ai')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === 'ai' 
+                ? 'text-purple-600 border-b-2 border-purple-600' 
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            AI Report
+          </button>
           <button 
             onClick={() => setActiveTab('overview')}
             className={`px-4 py-2 text-sm font-medium transition-colors ${
@@ -529,6 +611,145 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
         </Card>
 
         {/* Tab Content */}
+
+        {/* AI Report Tab */}
+        {activeTab === 'ai' && (
+          <div className="space-y-6">
+            <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-indigo-50">
+              <CardHeader>
+                <CardTitle className="flex items-center text-xl">
+                  <Brain className="w-6 h-6 mr-2 text-indigo-600" />
+                  Gemini Performance Report
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {aiLoading && (
+                  <div className="text-sm text-indigo-700">Generating AI report...</div>
+                )}
+                {!aiLoading && aiError && (
+                  <div className="text-sm text-red-600">{aiError}</div>
+                )}
+                {!aiLoading && !aiError && aiAnalysis?.summary && (
+                  <p className="text-gray-800 whitespace-pre-line">{aiAnalysis.summary}</p>
+                )}
+                {!aiLoading && !aiError && aiAnalysis?.motivation && (
+                  <div className="p-3 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-900">
+                    {aiAnalysis.motivation}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-green-50">
+                <CardHeader>
+                  <CardTitle className="text-lg">Strengths</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-sm text-gray-800">
+                    {(aiAnalysis?.strengths || []).map((item, idx) => (
+                      <li key={idx} className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                    {(!aiAnalysis?.strengths || aiAnalysis.strengths.length === 0) && (
+                      <li className="text-gray-500">No AI strengths available yet.</li>
+                    )}
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-amber-50">
+                <CardHeader>
+                  <CardTitle className="text-lg">Focus Areas</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {(aiAnalysis?.focusAreas || []).map((item, idx) => (
+                    <div key={idx} className="p-3 rounded-lg border border-amber-200 bg-amber-50">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-semibold capitalize">{item.subject}</span>
+                        <Badge variant="outline" className="uppercase">{item.priority}</Badge>
+                      </div>
+                      <p className="text-sm text-gray-700">{item.issue}</p>
+                      <p className="text-sm text-gray-900 mt-1"><strong>Do:</strong> {item.whatToDo}</p>
+                    </div>
+                  ))}
+                  {(!aiAnalysis?.focusAreas || aiAnalysis.focusAreas.length === 0) && (
+                    <p className="text-gray-500 text-sm">No AI focus areas available yet.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-purple-50">
+                <CardHeader>
+                  <CardTitle className="text-lg">AI Action Plan</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2">Today</h4>
+                    <ul className="list-disc list-inside text-sm text-gray-800 space-y-1">
+                      {(aiAnalysis?.actionPlan?.today || []).map((x, idx) => <li key={idx}>{x}</li>)}
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2">This Week</h4>
+                    <ul className="list-disc list-inside text-sm text-gray-800 space-y-1">
+                      {(aiAnalysis?.actionPlan?.thisWeek || []).map((x, idx) => <li key={idx}>{x}</li>)}
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2">Before Next Exam</h4>
+                    <ul className="list-disc list-inside text-sm text-gray-800 space-y-1">
+                      {(aiAnalysis?.actionPlan?.beforeNextExam || []).map((x, idx) => <li key={idx}>{x}</li>)}
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-blue-50">
+                <CardHeader>
+                  <CardTitle className="text-lg">Recommended Videos & AI Tools</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2">Subject-wise Videos</h4>
+                    <div className="space-y-2">
+                      {(aiAnalysis?.videoRecommendations || []).slice(0, 5).map((v, idx) => (
+                        <a
+                          key={idx}
+                          href={v.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block p-2 rounded border border-blue-200 bg-blue-50 hover:bg-blue-100"
+                        >
+                          <div className="text-sm font-medium text-blue-900">{v.title}</div>
+                          <div className="text-xs text-blue-700 capitalize">{v.subject || 'subject'} {v.topic ? `• ${v.topic}` : ''}</div>
+                        </a>
+                      ))}
+                      {(!aiAnalysis?.videoRecommendations || aiAnalysis.videoRecommendations.length === 0) && (
+                        <p className="text-gray-500 text-sm">No video recommendations available.</p>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-sm mb-2">AsliLearn AI Tools</h4>
+                    <div className="space-y-2">
+                      {(aiAnalysis?.recommendedAiTools || []).map((t, idx) => (
+                        <div key={idx} className="p-2 rounded border border-indigo-200 bg-indigo-50">
+                          <div className="text-sm font-medium text-indigo-900">{t.toolType}</div>
+                          <div className="text-xs text-indigo-800">{t.why}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
 
         {/* Overview Tab */}
         {activeTab === 'overview' && (
@@ -881,10 +1102,16 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                 const subjectColors = {
                   maths: { bg: 'from-blue-50 to-cyan-50', border: 'border-blue-200', text: 'text-blue-600', icon: 'text-blue-500' },
                   physics: { bg: 'from-green-50 to-emerald-50', border: 'border-green-200', text: 'text-green-600', icon: 'text-green-500' },
-                  chemistry: { bg: 'from-purple-50 to-pink-50', border: 'border-purple-200', text: 'text-purple-600', icon: 'text-purple-500' }
+                  chemistry: { bg: 'from-purple-50 to-pink-50', border: 'border-purple-200', text: 'text-purple-600', icon: 'text-purple-500' },
+                  biology: { bg: 'from-emerald-50 to-lime-50', border: 'border-emerald-200', text: 'text-emerald-600', icon: 'text-emerald-500' }
                 };
                 
-                const colors = subjectColors[subject as keyof typeof subjectColors];
+                const colors = subjectColors[subject as keyof typeof subjectColors] || {
+                  bg: 'from-gray-50 to-slate-50',
+                  border: 'border-gray-200',
+                  text: 'text-gray-600',
+                  icon: 'text-gray-500'
+                };
                 
                 return (
                   <Card key={subject} className={`border-0 shadow-xl bg-gradient-to-br ${colors.bg} ${colors.border}`}>

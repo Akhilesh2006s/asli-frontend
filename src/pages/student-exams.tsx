@@ -49,7 +49,7 @@ interface Question {
   marks: number;
   negativeMarks: number;
   explanation?: string;
-  subject: 'maths' | 'physics' | 'chemistry';
+  subject: 'maths' | 'physics' | 'chemistry' | 'biology';
 }
 
 interface Exam {
@@ -67,6 +67,8 @@ interface Exam {
   endDate: string;
   isActive: boolean;
   questions: Question[];
+  subject?: 'maths' | 'physics' | 'chemistry' | 'biology';
+  subjects?: Array<'maths' | 'physics' | 'chemistry' | 'biology'>;
 }
 
 interface ExamResult {
@@ -100,6 +102,7 @@ export default function StudentExams() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<string>('available');
   const [examClassFilter, setExamClassFilter] = useState<string>('all');
+  const [examSubjectFilter, setExamSubjectFilter] = useState<string>('all');
   const didInitClassFilter = useRef(false);
 
   useEffect(() => {
@@ -243,6 +246,39 @@ export default function StudentExams() {
     [exams, examClassFilter, user?.classNumber]
   );
 
+  const getExamSubjects = (exam: Exam): string[] => {
+    const qSubjects = Array.isArray(exam.questions)
+      ? exam.questions
+          .map((q) => String(q?.subject || '').trim().toLowerCase())
+          .filter(Boolean)
+      : [];
+    const merged = [
+      ...qSubjects,
+      ...(Array.isArray(exam.subjects) ? exam.subjects : []),
+      exam.subject,
+    ]
+      .map((s) => String(s || '').trim().toLowerCase())
+      .filter(Boolean);
+    return Array.from(new Set(merged));
+  };
+
+  const availableSubjectOptions = useMemo(() => {
+    const set = new Set<string>();
+    classFilteredExams.forEach((exam: Exam) => {
+      getExamSubjects(exam).forEach((s) => set.add(s));
+    });
+    return Array.from(set.values()).sort();
+  }, [classFilteredExams]);
+
+  const subjectFilteredExams = useMemo(
+    () =>
+      classFilteredExams.filter((exam: Exam) => {
+        if (examSubjectFilter === 'all') return true;
+        return getExamSubjects(exam).includes(String(examSubjectFilter).toLowerCase());
+      }),
+    [classFilteredExams, examSubjectFilter]
+  );
+
   // Fetch assessments
   const { data: assessments, isLoading: isLoadingAssessments, error: assessmentsError } = useQuery({
     queryKey: ['/api/assessments'],
@@ -320,7 +356,7 @@ export default function StudentExams() {
 
   const availableActiveExams = useMemo(
     () =>
-      classFilteredExams.filter((exam: Exam) => {
+      subjectFilteredExams.filter((exam: Exam) => {
         const examId = String(exam._id || '');
         if (!examId || attemptedExamIds.has(examId)) return false;
         // Show only currently attemptable exams (inline to avoid init-order issues)
@@ -330,7 +366,7 @@ export default function StudentExams() {
         const isActiveByDate = now >= startDate && now <= endDate;
         return exam.isActive !== false && isActiveByDate;
       }),
-    [classFilteredExams, attemptedExamIds]
+    [subjectFilteredExams, attemptedExamIds]
   );
 
   const handleStartExam = (exam: Exam) => {
@@ -566,6 +602,22 @@ export default function StudentExams() {
                 ))}
               </SelectContent>
             </Select>
+            <Label htmlFor="exam-subject-filter" className="text-sm text-gray-600 whitespace-nowrap sm:ml-2">
+              Subject
+            </Label>
+            <Select value={examSubjectFilter} onValueChange={setExamSubjectFilter}>
+              <SelectTrigger id="exam-subject-filter" className="w-full sm:w-[220px] bg-white">
+                <SelectValue placeholder="All subjects" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All subjects</SelectItem>
+                {availableSubjectOptions.map((subject) => (
+                  <SelectItem key={subject} value={subject}>
+                    {subject.charAt(0).toUpperCase() + subject.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -670,7 +722,7 @@ export default function StudentExams() {
           {/* Attempted Exams */}
           <TabsContent value="attempted" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {classFilteredExams.filter((exam: Exam) => {
+              {subjectFilteredExams.filter((exam: Exam) => {
                 // Show exams that have been attempted
                 return results?.data?.some((result: any) => {
                   const resultExamId = getExamIdFromResult(result);
@@ -837,7 +889,7 @@ export default function StudentExams() {
               })}
             </div>
 
-            {classFilteredExams.filter((exam: Exam) => {
+            {subjectFilteredExams.filter((exam: Exam) => {
               return results?.data?.some((result: any) => {
                 const resultExamId = getExamIdFromResult(result);
                 const examId = exam._id?.toString();
@@ -862,7 +914,7 @@ export default function StudentExams() {
           {/* Upcoming Exams */}
           <TabsContent value="upcoming" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {classFilteredExams.filter((exam: Exam) => getExamStatus(exam).status === 'upcoming').map((exam: Exam, index: number) => {
+              {subjectFilteredExams.filter((exam: Exam) => getExamStatus(exam).status === 'upcoming').map((exam: Exam, index: number) => {
                 // Randomly assign one of the three dashboard colors
                 const colorSchemes = [
                   { bg: 'from-orange-300 to-orange-400', text: 'text-white', badge: 'bg-orange-500/20 text-orange-100' },
@@ -938,7 +990,7 @@ export default function StudentExams() {
               })}
             </div>
 
-            {classFilteredExams.filter((exam: Exam) => getExamStatus(exam).status === 'upcoming').length === 0 && (
+            {subjectFilteredExams.filter((exam: Exam) => getExamStatus(exam).status === 'upcoming').length === 0 && (
               <div className="text-center py-12">
                 <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Upcoming Exams</h3>
