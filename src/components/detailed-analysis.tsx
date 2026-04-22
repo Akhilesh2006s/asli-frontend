@@ -621,6 +621,36 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
         {/* AI Report Tab */}
         {activeTab === 'ai' && (
           <div className="space-y-6">
+            <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-violet-50">
+              <CardHeader>
+                <CardTitle className="text-lg">AI Performance Snapshot</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="p-3 rounded-lg border bg-emerald-50 border-emerald-200">
+                    <div className="text-xs text-emerald-800">Attempted</div>
+                    <div className="text-xl font-bold text-emerald-700">{result.correctAnswers + result.wrongAnswers}</div>
+                  </div>
+                  <div className="p-3 rounded-lg border bg-blue-50 border-blue-200">
+                    <div className="text-xs text-blue-800">Unattempted</div>
+                    <div className="text-xl font-bold text-blue-700">{result.unattempted}</div>
+                  </div>
+                  <div className="p-3 rounded-lg border bg-red-50 border-red-200">
+                    <div className="text-xs text-red-800">Wrong</div>
+                    <div className="text-xl font-bold text-red-700">{result.wrongAnswers}</div>
+                  </div>
+                  <div className="p-3 rounded-lg border bg-purple-50 border-purple-200">
+                    <div className="text-xs text-purple-800">Accuracy</div>
+                    <div className="text-xl font-bold text-purple-700">
+                      {(result.correctAnswers + result.wrongAnswers) > 0
+                        ? ((result.correctAnswers / (result.correctAnswers + result.wrongAnswers)) * 100).toFixed(1)
+                        : '0.0'}%
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-indigo-50">
               <CardHeader>
                 <CardTitle className="flex items-center text-xl">
@@ -736,7 +766,12 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                         </a>
                       ))}
                       {(!aiAnalysis?.videoRecommendations || aiAnalysis.videoRecommendations.length === 0) && (
-                        <p className="text-gray-500 text-sm">No video recommendations available.</p>
+                        <div className="space-y-1">
+                          <p className="text-gray-500 text-sm">No direct video recommendation found yet.</p>
+                          <p className="text-xs text-gray-500">
+                            Open Learning Path and choose weak subject + topic to get targeted videos.
+                          </p>
+                        </div>
                       )}
                     </div>
                   </div>
