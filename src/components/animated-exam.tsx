@@ -100,19 +100,22 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   const autoSubmitTimeoutRef = useRef<number | null>(null);
 
   // Fetch exam data
-  const { data: exam, isLoading } = useQuery({
+  const { data: exam, isLoading, isError, error } = useQuery({
     queryKey: ['/api/student/exams', examId],
     queryFn: async () => {
+      const headers = {
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        'Content-Type': 'application/json'
+      };
+
       const response = await fetch(`${API_BASE_URL}/api/student/exams/${examId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-          'Content-Type': 'application/json'
-        },
+        headers,
         credentials: 'include'
       });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch exam');
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.message || 'Failed to fetch exam');
       }
       
       const examData = await response.json();
@@ -127,7 +130,36 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       if (examData.success === false) {
         throw new Error(examData.message || 'Failed to fetch exam');
       }
-      
+
+      // Safety fallback: if direct exam endpoint returns empty questions, re-check
+      // using exams list payload (which may already have hydrated questions).
+      const hasQuestions = Array.isArray(actualExamData.questions) && actualExamData.questions.length > 0;
+      if (!hasQuestions) {
+        const listResponse = await fetch(`${API_BASE_URL}/api/student/exams`, {
+          headers,
+          credentials: 'include'
+        });
+
+        if (listResponse.ok) {
+          const listPayload = await listResponse.json().catch(() => ({}));
+          const listExams = Array.isArray(listPayload)
+            ? listPayload
+            : Array.isArray(listPayload?.data)
+            ? listPayload.data
+            : [];
+          const matchedExam = listExams.find((e: any) => String(e?._id) === String(examId));
+          const matchedQuestions = Array.isArray(matchedExam?.questions) ? matchedExam.questions : [];
+          if (matchedQuestions.length > 0) {
+            return {
+              ...actualExamData,
+              ...matchedExam,
+              questions: matchedQuestions,
+              totalQuestions: matchedQuestions.length,
+            };
+          }
+        }
+      }
+
       if (actualExamData.questions && actualExamData.questions.length > 0) {
         console.log('First question details:', {
           id: actualExamData.questions[0]._id,
@@ -144,7 +176,8 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       }
       
       return actualExamData;
-    }
+    },
+    retry: 1
   });
 
   // Initialize timer
@@ -711,6 +744,19 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-gray-600">Loading exam...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    const errorMessage = (error as any)?.message || 'Exam not available';
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <p className="text-gray-600">{errorMessage}</p>
+          <Button onClick={onExit} className="mt-4">Go Back</Button>
         </div>
       </div>
     );
