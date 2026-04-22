@@ -155,6 +155,7 @@ export default function ExamManagement() {
   const [questionCsvFile, setQuestionCsvFile] = useState<File | null>(null);
   const [isUploadingQuestionCsv, setIsUploadingQuestionCsv] = useState(false);
   const [questionCsvUploadResults, setQuestionCsvUploadResults] = useState<{ success: number; errors: string[] } | null>(null);
+  const [allowDuplicateQuestionsInCsv, setAllowDuplicateQuestionsInCsv] = useState(false);
   const [questionImageFile, setQuestionImageFile] = useState<File | null>(null);
   const [isUploadingQuestionImage, setIsUploadingQuestionImage] = useState(false);
   const [isCsvDialogOpen, setIsCsvDialogOpen] = useState(false);
@@ -374,6 +375,7 @@ export default function ExamManagement() {
       const token = localStorage.getItem('authToken');
       const formData = new FormData();
       formData.append('file', questionCsvFile);
+      formData.append('allowDuplicates', allowDuplicateQuestionsInCsv ? 'true' : 'false');
 
       const response = await fetch(`${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/bulk-upload`, {
         method: 'POST',
@@ -2063,6 +2065,14 @@ export default function ExamManagement() {
                     Tip: upload the original .xlsx to preserve x², x³, θ, π, √, Δ, ≤, ≥. A plain Excel CSV export silently replaces these with "?".
                   </p>
                 </div>
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={allowDuplicateQuestionsInCsv}
+                    onChange={(e) => setAllowDuplicateQuestionsInCsv(e.target.checked)}
+                  />
+                  Allow duplicate questions in this upload
+                </label>
                 {questionCsvUploadResults && (
                   <div className={`p-3 rounded-lg ${questionCsvUploadResults.errors.length > 0 ? 'bg-yellow-50 border border-yellow-200' : 'bg-green-50 border border-green-200'}`}>
                     <p className="font-semibold text-sm mb-2">
