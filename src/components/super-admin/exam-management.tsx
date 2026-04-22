@@ -155,6 +155,8 @@ export default function ExamManagement() {
   const [questionCsvFile, setQuestionCsvFile] = useState<File | null>(null);
   const [isUploadingQuestionCsv, setIsUploadingQuestionCsv] = useState(false);
   const [questionCsvUploadResults, setQuestionCsvUploadResults] = useState<{ success: number; errors: string[] } | null>(null);
+  const [questionImageFile, setQuestionImageFile] = useState<File | null>(null);
+  const [isUploadingQuestionImage, setIsUploadingQuestionImage] = useState(false);
   const [isCsvDialogOpen, setIsCsvDialogOpen] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [isUploadingCsv, setIsUploadingCsv] = useState(false);
@@ -679,6 +681,7 @@ export default function ExamManagement() {
         correctAnswers: [],
         integerAnswer: ''
       });
+      setQuestionImageFile(null);
       fetchQuestions(selectedExam._id);
       fetchExams(); // Refresh exam list to update question count
     };
@@ -751,6 +754,51 @@ export default function ExamManagement() {
       });
     } finally {
       setIsAddingQuestion(false);
+    }
+  };
+
+  const handleQuestionImageUpload = async (file: File) => {
+    if (!file) return;
+
+    setQuestionImageFile(file);
+    setIsUploadingQuestionImage(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/upload-question-image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to upload image');
+      }
+
+      setQuestionFormData((prev) => ({
+        ...prev,
+        questionImage: data.imageUrl || ''
+      }));
+
+      toast({
+        title: 'Image uploaded',
+        description: 'Question image saved successfully.'
+      });
+    } catch (error: any) {
+      setQuestionImageFile(null);
+      setQuestionFormData((prev) => ({ ...prev, questionImage: '' }));
+      toast({
+        title: 'Upload Error',
+        description: error?.message || 'Failed to upload question image',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsUploadingQuestionImage(false);
     }
   };
 
@@ -2207,16 +2255,52 @@ export default function ExamManagement() {
                   placeholder="Enter the question text..."
                   rows={4}
                 />
-                <p className="text-xs text-gray-500 mt-1">You can leave this empty and provide a question image URL below.</p>
+                <p className="text-xs text-gray-500 mt-1">You can leave this empty and upload a question image below.</p>
               </div>
 
               <div>
-                <Label>Question Image URL (Optional)</Label>
+                <Label>Question Image File (Optional)</Label>
                 <Input
-                  value={questionFormData.questionImage}
-                  onChange={(e) => setQuestionFormData({ ...questionFormData, questionImage: e.target.value })}
-                  placeholder="https://example.com/question-image.png"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleQuestionImageUpload(file);
+                    }
+                  }}
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Choose an image file. It will be uploaded and stored on your server.
+                </p>
+                {isUploadingQuestionImage && (
+                  <p className="text-xs text-blue-600 mt-1">Uploading image...</p>
+                )}
+                {questionFormData.questionImage && (
+                  <div className="mt-3 space-y-2">
+                    <img
+                      src={questionFormData.questionImage}
+                      alt="Uploaded question preview"
+                      className="max-h-40 rounded border"
+                    />
+                    <div className="flex items-center gap-2">
+                      {questionImageFile?.name && (
+                        <span className="text-xs text-gray-600">{questionImageFile.name}</span>
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setQuestionImageFile(null);
+                          setQuestionFormData((prev) => ({ ...prev, questionImage: '' }));
+                        }}
+                      >
+                        Remove Image
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Options for MCQ/Multiple */}
