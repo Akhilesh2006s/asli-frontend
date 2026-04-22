@@ -457,6 +457,11 @@ export default function ExamManagement() {
 
   const prefillQuestionFormFromCsv = async (file: File) => {
     try {
+      // Prefill only works for plain-text CSV. .xlsx / .xls are binary zip
+      // archives, so skip prefill for those — the server handles them fine.
+      const nameLower = (file.name || '').toLowerCase();
+      if (nameLower.endsWith('.xlsx') || nameLower.endsWith('.xls')) return;
+
       const text = await file.text();
       const lines = text.split(/\r?\n/).filter((line) => line.trim());
       if (lines.length < 2) return;
@@ -1379,11 +1384,11 @@ export default function ExamManagement() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="csvFile">Select CSV File *</Label>
+                  <Label htmlFor="csvFile">Select Excel (.xlsx) or CSV File *</Label>
                   <Input
                     id="csvFile"
                     type="file"
-                    accept=".csv"
+                    accept=".csv,.xlsx,.xls"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
@@ -1394,7 +1399,10 @@ export default function ExamManagement() {
                     className="mt-1"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    CSV file should contain: title, description, examType, classNumber, subject, maxAttempts, board, duration, totalQuestions, totalMarks, instructions, startDate, endDate, filterType, targetSchools
+                    File should contain: title, description, examType, classNumber, subject, maxAttempts, board, duration, totalQuestions, totalMarks, instructions, startDate, endDate, filterType, targetSchools
+                  </p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    Tip: upload the original .xlsx file to keep characters like °, ², ³, θ, π, √, Δ, ≤, ≥. Plain CSV exports from Excel drop these.
                   </p>
                 </div>
 
@@ -1985,11 +1993,11 @@ export default function ExamManagement() {
               </div>
               <div className="p-4 bg-blue-50 rounded-lg space-y-3">
                 <div>
-                  <Label htmlFor="questionCsvFile">Select CSV File *</Label>
+                  <Label htmlFor="questionCsvFile">Select Excel (.xlsx) or CSV File *</Label>
                   <Input
                     id="questionCsvFile"
                     type="file"
-                    accept=".csv"
+                    accept=".csv,.xlsx,.xls"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
@@ -2001,7 +2009,10 @@ export default function ExamManagement() {
                     className="mt-1"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    CSV should contain: questionText, questionType, subject, marks, options (option1-option4), correctAnswer/correctAnswers/integerAnswer
+                    File should contain: questionText, questionType, subject, marks, options (option1-option4), correctAnswer/correctAnswers/integerAnswer
+                  </p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    Tip: upload the original .xlsx to preserve x², x³, θ, π, √, Δ, ≤, ≥. A plain Excel CSV export silently replaces these with "?".
                   </p>
                 </div>
                 {questionCsvUploadResults && (

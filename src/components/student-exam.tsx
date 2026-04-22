@@ -219,9 +219,13 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
     });
 
     const unattempted = exam.questions.length - correctAnswers - wrongAnswers;
-    const percentage = (obtainedMarks / totalMarks) * 100;
+    const percentage = totalMarks > 0 ? (obtainedMarks / totalMarks) * 100 : 0;
 
-    const result: ExamResult = {
+    // Local estimate — real grading happens on the server and overrides this.
+    // The backend hides correctAnswer from the exam payload, so `checkAnswer`
+    // here can't actually tell right from wrong; we keep the local compute
+    // only as a fallback in case the network request fails.
+    const localResult: ExamResult = {
       examId: exam._id,
       totalQuestions: exam.questions.length,
       correctAnswers,
@@ -236,17 +240,44 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
       questions: exam.questions || []
     };
 
-    // Save result to backend
+    let result: ExamResult = localResult;
+
+    // Save result to backend — the server re-grades using the stored answer
+    // key and returns the authoritative numbers. Prefer those over the local
+    // estimate so students see the correct score in the review screen.
     try {
-      await fetch(`${API_BASE_URL}/api/student/exam-results`, {
+      const response = await fetch(`${API_BASE_URL}/api/student/exam-results`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         },
         credentials: 'include',
-        body: JSON.stringify(result)
+        body: JSON.stringify(localResult)
       });
+
+      if (response.ok) {
+        const payload = await response.json().catch(() => null);
+        const graded = payload?.data;
+        if (graded && typeof graded === 'object') {
+          result = {
+            ...localResult,
+            totalQuestions: graded.totalQuestions ?? localResult.totalQuestions,
+            correctAnswers: graded.correctAnswers ?? localResult.correctAnswers,
+            wrongAnswers: graded.wrongAnswers ?? localResult.wrongAnswers,
+            unattempted: graded.unattempted ?? localResult.unattempted,
+            totalMarks: graded.totalMarks ?? localResult.totalMarks,
+            obtainedMarks: graded.obtainedMarks ?? localResult.obtainedMarks,
+            percentage: graded.percentage ?? localResult.percentage,
+            subjectWiseScore: graded.subjectWiseScore ?? localResult.subjectWiseScore,
+            // Server returns the full questions with correctAnswer for the
+            // post-submit review screen.
+            questions: Array.isArray(graded.questions) && graded.questions.length > 0
+              ? graded.questions
+              : localResult.questions,
+          };
+        }
+      }
     } catch (error) {
       console.error('Failed to save result:', error);
     }
