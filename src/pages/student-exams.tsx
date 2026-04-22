@@ -359,32 +359,23 @@ export default function StudentExams() {
   const handleExamComplete = async (result: ExamResult) => {
     setExamResult(result);
     setIsTakingExam(false);
+    setActiveTab('attempted');
     
     // Invalidate and refetch exam results to update the UI
     console.log('🔄 Invalidating exam results query after exam completion');
     console.log('📋 Exam result data:', result);
-    
-    // Wait a bit for the backend to save
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Invalidate and refetch exam results
-    await queryClient.invalidateQueries({ queryKey: ['/api/student/exam-results'] });
-    
-    // Also refetch exams to ensure the list is updated
-    await queryClient.invalidateQueries({ queryKey: ['/api/student/exams'] });
-    
-    // Force refetch manually as well
-    await refetchResults();
-    await queryClient.refetchQueries({ queryKey: ['/api/student/exams'] });
+
+    // Refresh data in background so result UI appears immediately.
+    await Promise.allSettled([
+      queryClient.invalidateQueries({ queryKey: ['/api/student/exam-results'] }),
+      queryClient.invalidateQueries({ queryKey: ['/api/student/exams'] }),
+      refetchResults(),
+      queryClient.refetchQueries({ queryKey: ['/api/student/exams'] })
+    ]);
     
     console.log('✅ Exam results query invalidated and refetched - attempted exams should update');
     console.log('📋 Current results after refetch:', results?.data?.length || 0);
-    
-    // Switch to attempted exams tab after a brief delay to show the completed exam
-    setTimeout(() => {
-      setActiveTab('attempted');
-      console.log('🔄 Switched to attempted exams tab');
-    }, 1000);
+    console.log('🔄 Switched to attempted exams tab');
   };
 
   const handleExitExam = () => {

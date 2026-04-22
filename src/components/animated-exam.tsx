@@ -33,7 +33,7 @@ interface Question {
   marks: number;
   negativeMarks: number;
   explanation?: string;
-  subject: 'maths' | 'physics' | 'chemistry';
+  subject: string;
 }
 
 interface Exam {
@@ -96,6 +96,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   const [timerInitialized, setTimerInitialized] = useState(false);
   const MAX_EXIT_ATTEMPTS = 5;
   const submissionInProgressRef = useRef(false);
+  const autoSubmitTriggeredRef = useRef(false);
 
   // Fetch exam data
   const { data: exam, isLoading } = useQuery({
@@ -201,22 +202,9 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       
       // If exited fullscreen and not submitted, show warning and prompt
       if (!isCurrentlyFullscreen && !isSubmitted) {
-        setExitAttempts(prev => {
-          const newAttempts = prev + 1;
-          if (newAttempts >= MAX_EXIT_ATTEMPTS) {
-            // Auto submit immediately after 5 attempts
-            console.log('⚠️ Maximum exit attempts reached. Auto-submitting exam...');
-            setShowExitWarning(true);
-            // Submit immediately without delay
-            setTimeout(() => {
-              handleSubmit();
-            }, 500);
-            return newAttempts;
-          }
-          setShowExitWarning(true);
-          setShowReenterPrompt(true);
-          return newAttempts;
-        });
+        setExitAttempts(prev => Math.min(prev + 1, MAX_EXIT_ATTEMPTS));
+        setShowExitWarning(true);
+        setShowReenterPrompt(true);
       } else if (isCurrentlyFullscreen) {
         // If back in fullscreen, hide warnings
         setShowExitWarning(false);
@@ -251,6 +239,20 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       document.removeEventListener('contextmenu', preventDefaults);
     };
   }, [isSubmitted]);
+
+  // Trigger auto-submit once when max fullscreen exits are reached.
+  useEffect(() => {
+    if (isSubmitted || exitAttempts < MAX_EXIT_ATTEMPTS) return;
+
+    console.log('⚠️ Maximum exit attempts reached. Auto-submitting exam...');
+    setShowExitWarning(true);
+    setShowReenterPrompt(false);
+
+    if (!autoSubmitTriggeredRef.current) {
+      autoSubmitTriggeredRef.current = true;
+      void handleSubmit();
+    }
+  }, [exitAttempts, isSubmitted]);
 
   // Timer countdown
   useEffect(() => {
@@ -329,127 +331,144 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
     submissionInProgressRef.current = true;
 
-    setIsSubmitted(true);
-    setShowWarning(false);
-    setShowExitWarning(false);
-    setShowReenterPrompt(false);
-    
-    let correctAnswers = 0;
-    let wrongAnswers = 0;
-    let totalMarks = 0;
-    let obtainedMarks = 0;
-    const subjectWiseScore = {
-      maths: { correct: 0, total: 0, marks: 0 },
-      physics: { correct: 0, total: 0, marks: 0 },
-      chemistry: { correct: 0, total: 0, marks: 0 }
-    };
-
-    if (!exam.questions || !Array.isArray(exam.questions)) {
-      console.error('Exam questions are not available:', exam.questions);
-      setIsSubmitted(false);
-      submissionInProgressRef.current = false;
-      alert('No questions found in this exam. Please try again.');
-      return;
-    }
-
-    exam.questions.forEach((question: Question) => {
-      const userAnswer = answers[question._id];
-      const isCorrect = checkAnswer(question, userAnswer);
-      
-      subjectWiseScore[question.subject].total++;
-      totalMarks += question.marks;
-
-      if (isCorrect) {
-        correctAnswers++;
-        obtainedMarks += question.marks;
-        subjectWiseScore[question.subject].correct++;
-        subjectWiseScore[question.subject].marks += question.marks;
-      } else if (userAnswer !== undefined && userAnswer !== null && userAnswer !== '') {
-        wrongAnswers++;
-        obtainedMarks -= question.negativeMarks;
-      }
-    });
-
-    const unattempted = exam.questions.length - correctAnswers - wrongAnswers;
-    const percentage = (obtainedMarks / totalMarks) * 100;
-
-    const result: ExamResult = {
-      examId: exam._id,
-      examTitle: exam.title,
-      totalQuestions: exam.questions.length,
-      correctAnswers,
-      wrongAnswers,
-      unattempted,
-      totalMarks,
-      obtainedMarks,
-      percentage,
-      timeTaken: (exam.duration * 60) - timeLeft,
-      subjectWiseScore,
-      answers: answers, // Include the answers object
-      questions: exam.questions // Include the questions data
-    };
-
-    let saveFailed = false;
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-
     try {
-
-      console.log('📤 Saving exam result:', {
-        examId: result.examId,
-        examTitle: result.examTitle,
-        percentage: result.percentage
-      });
+      setIsSubmitted(true);
+      setShowWarning(false);
+      setShowExitWarning(false);
+      setShowReenterPrompt(false);
       
-      const response = await fetch(`${API_BASE_URL}/api/student/exam-results`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        credentials: 'include',
-        body: JSON.stringify(result),
-        signal: controller.signal
-      });
-      if (!response.ok) {
-        let errorData: any = null;
-        try {
-          errorData = await response.json();
-        } catch (parseError) {
-          console.warn('Failed to parse error response JSON:', parseError);
+      let correctAnswers = 0;
+      let wrongAnswers = 0;
+      let totalMarks = 0;
+      let obtainedMarks = 0;
+      const subjectWiseScore = {
+        maths: { correct: 0, total: 0, marks: 0 },
+        physics: { correct: 0, total: 0, marks: 0 },
+        chemistry: { correct: 0, total: 0, marks: 0 }
+      };
+
+      if (!exam.questions || !Array.isArray(exam.questions)) {
+        console.error('Exam questions are not available:', exam.questions);
+        setIsSubmitted(false);
+        submissionInProgressRef.current = false;
+        alert('No questions found in this exam. Please try again.');
+        return;
+      }
+
+      exam.questions.forEach((question: Question) => {
+        const userAnswer = answers[question._id];
+        const isCorrect = checkAnswer(question, userAnswer);
+        const normalizedSubject = String(question.subject || '').toLowerCase();
+        const hasTrackedSubject =
+          normalizedSubject === 'maths' ||
+          normalizedSubject === 'physics' ||
+          normalizedSubject === 'chemistry';
+
+        if (hasTrackedSubject) {
+          const subjectKey = normalizedSubject as keyof typeof subjectWiseScore;
+          subjectWiseScore[subjectKey].total++;
         }
 
-        console.error('❌ Exam result submission failed:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorData
-        });
-        throw new Error(`Failed to save result: ${errorData.message || response.statusText}`);
-      }
+        totalMarks += Number(question.marks) || 0;
 
-      let responseData: any = null;
+        if (isCorrect) {
+          correctAnswers++;
+          obtainedMarks += Number(question.marks) || 0;
+          if (hasTrackedSubject) {
+            const subjectKey = normalizedSubject as keyof typeof subjectWiseScore;
+            subjectWiseScore[subjectKey].correct++;
+            subjectWiseScore[subjectKey].marks += Number(question.marks) || 0;
+          }
+        } else if (userAnswer !== undefined && userAnswer !== null && userAnswer !== '') {
+          wrongAnswers++;
+          obtainedMarks -= Number(question.negativeMarks) || 0;
+        }
+      });
+
+      const unattempted = exam.questions.length - correctAnswers - wrongAnswers;
+      const percentage = totalMarks > 0 ? (obtainedMarks / totalMarks) * 100 : 0;
+
+      const result: ExamResult = {
+        examId: exam._id,
+        examTitle: exam.title,
+        totalQuestions: exam.questions.length,
+        correctAnswers,
+        wrongAnswers,
+        unattempted,
+        totalMarks,
+        obtainedMarks,
+        percentage,
+        timeTaken: (exam.duration * 60) - timeLeft,
+        subjectWiseScore,
+        answers: answers,
+        questions: exam.questions
+      };
+
+      // Move to completion view immediately so the fullscreen warning cannot block UI.
+      onComplete(result);
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+
       try {
-        responseData = await response.json();
-      } catch (parseError) {
-        console.warn('Response was not JSON, continuing exam completion:', parseError);
+
+        console.log('📤 Saving exam result:', {
+          examId: result.examId,
+          examTitle: result.examTitle,
+          percentage: result.percentage
+        });
+        
+        const response = await fetch(`${API_BASE_URL}/api/student/exam-results`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            ...result,
+            // Avoid sending full question bank back to server; answers are sufficient.
+            questions: undefined
+          }),
+          signal: controller.signal
+        });
+        if (!response.ok) {
+          let errorData: any = null;
+          try {
+            errorData = await response.json();
+          } catch (parseError) {
+            console.warn('Failed to parse error response JSON:', parseError);
+          }
+
+          console.error('❌ Exam result submission failed:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorData
+          });
+          throw new Error(`Failed to save result: ${errorData.message || response.statusText}`);
+        }
+
+        let responseData: any = null;
+        try {
+          responseData = await response.json();
+        } catch (parseError) {
+          console.warn('Response was not JSON, continuing exam completion:', parseError);
+        }
+
+        console.log('✅ Exam result saved successfully:', responseData);
+        console.log('📋 Saved examId:', responseData.data?.examId || result.examId);
+      } catch (error) {
+        console.error('❌ Failed to save result:', error);
+      } finally {
+        clearTimeout(timeout);
       }
-
-      console.log('✅ Exam result saved successfully:', responseData);
-      console.log('📋 Saved examId:', responseData.data?.examId || result.examId);
     } catch (error) {
-      saveFailed = true;
-      console.error('❌ Failed to save result:', error);
-    } finally {
-      clearTimeout(timeout);
+      console.error('❌ Submit crashed before completion:', error);
+      setIsSubmitted(false);
+      submissionInProgressRef.current = false;
+      autoSubmitTriggeredRef.current = false;
+      alert('Something went wrong while submitting. Please try once again.');
     }
-
-    if (saveFailed) {
-      alert('Warning: Exam result may not have been saved. The exam will still be completed.');
-    }
-
-    // Complete exam flow even if save fails/times out
-    onComplete(result);
   };
 
   const checkAnswer = (question: Question, userAnswer: any): boolean => {
@@ -458,6 +477,9 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     }
 
     if (question.questionType === 'integer') {
+      if (question.correctAnswer === undefined || question.correctAnswer === null) {
+        return false;
+      }
       return userAnswer.toString() === question.correctAnswer.toString();
     }
 
@@ -496,6 +518,57 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Clean up common mojibake/encoding artifacts in exam text display.
+  const normalizeExamText = (value: unknown): string => {
+    if (value === undefined || value === null) return '';
+    let text = String(value);
+
+    // Decode HTML entities if backend sends encoded content.
+    if (typeof window !== 'undefined' && text.includes('&')) {
+      const parser = document.createElement('textarea');
+      parser.innerHTML = text;
+      text = parser.value || text;
+    }
+
+    // Common UTF-8 mojibake replacements.
+    const replacements: Record<string, string> = {
+      'âˆš': '√',
+      'â‰¥': '>=',
+      'â‰¤': '<=',
+      'â‰ ': '!=',
+      'ï¿½': '-',
+      '�': '-',
+      '≥': '>=',
+      '≤': '<=',
+      '≠': '!=',
+      'âˆž': '∞',
+      'âˆ†': '∆',
+      'â€²': "'",
+      'â€³': '"',
+      'â€“': '-',
+      'â€”': '-',
+      'â€˜': "'",
+      'â€™': "'",
+      'â€œ': '"',
+      'â€�': '"',
+      'Â°': '°'
+    };
+
+    Object.entries(replacements).forEach(([from, to]) => {
+      text = text.split(from).join(to);
+    });
+
+    // Fix common broken math symbols from imported question banks.
+    text = text.replace(/\b(sin|cos|tan|cot|sec|cosec)\s*[�\uFFFD]/gi, '$1 theta');
+    text = text.replace(/(\d)\s*[�\uFFFD]/g, '$1 degree');
+    text = text.replace(/\bp(?=\s*\/\s*\d)/gi, 'π');
+    // Fallback for generic replacement character in math expressions.
+    text = text.replace(/\s*[�\uFFFD]\s*/g, ' - ');
+    text = text.replace(/\s{2,}/g, ' ').trim();
+
+    return text;
   };
 
   if (isLoading) {
@@ -851,7 +924,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                     <div className="flex-1">
                       {currentQuestion.questionText && (
                         <p className="text-base text-gray-900 mb-4 leading-relaxed">
-                          {currentQuestion.questionText}
+                          {normalizeExamText(currentQuestion.questionText)}
                         </p>
                       )}
                       
@@ -880,7 +953,8 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                       className="space-y-3 mt-4"
                     >
                       {currentQuestion.options.map((option: string | { text: string; isCorrect?: boolean; _id?: string }, index: number) => {
-                        const optionText = typeof option === 'string' ? option : option.text || option._id || JSON.stringify(option);
+                        const optionTextRaw = typeof option === 'string' ? option : option.text || option._id || JSON.stringify(option);
+                        const optionText = normalizeExamText(optionTextRaw);
                         const optionValue = typeof option === 'string' ? option : option.text || option._id || '';
                         
                         return (
@@ -916,7 +990,8 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                   {currentQuestion.questionType === 'multiple' && currentQuestion.options && (
                     <div className="space-y-3 mt-4">
                       {currentQuestion.options.map((option: string | { text: string; isCorrect?: boolean; _id?: string }, index: number) => {
-                        const optionText = typeof option === 'string' ? option : option.text || option._id || JSON.stringify(option);
+                        const optionTextRaw = typeof option === 'string' ? option : option.text || option._id || JSON.stringify(option);
+                        const optionText = normalizeExamText(optionTextRaw);
                         const optionValue = typeof option === 'string' ? option : option.text || option._id || '';
                         const userAnswers = answers[currentQuestion._id] || [];
                         const isChecked = Array.isArray(userAnswers) && userAnswers.includes(optionValue);
