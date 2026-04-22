@@ -72,8 +72,22 @@ interface DetailedAnalysisProps {
 }
 
 interface AiExamAnalysis {
+  riskLevel?: 'high' | 'medium' | 'low' | string;
+  riskScore?: number;
   summary?: string;
   strengths?: string[];
+  rootCauses?: string[];
+  predictions?: {
+    nextExamPrediction?: number;
+    confidence?: number;
+    trend?: 'declining' | 'stable' | 'improving' | string;
+  };
+  interventions?: Array<{
+    priority?: 'high' | 'medium' | 'low' | string;
+    action?: string;
+    reasoning?: string;
+    expectedImpact?: string;
+  }>;
   focusAreas?: Array<{
     subject: string;
     issue: string;
@@ -96,6 +110,17 @@ interface AiExamAnalysis {
     topic?: string;
     url: string;
     why?: string;
+  }>;
+  questionInsights?: Array<{
+    index?: number;
+    questionId?: string;
+    subject?: string;
+    questionType?: string;
+    status?: 'correct' | 'wrong' | 'unattempted' | string;
+    conceptGap?: string;
+    fixStrategy?: string;
+    practiceTask?: string;
+    priority?: 'high' | 'medium' | 'low' | string;
   }>;
   motivation?: string;
 }
@@ -314,6 +339,14 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
 
   const grade = getGrade(result.percentage);
   const GradeIcon = grade.icon;
+
+  const normalizedRiskLevel = String(aiAnalysis?.riskLevel || '').toLowerCase();
+  const riskBadgeClass =
+    normalizedRiskLevel === 'high'
+      ? 'bg-red-100 text-red-800 border-red-200'
+      : normalizedRiskLevel === 'medium'
+      ? 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      : 'bg-green-100 text-green-800 border-green-200';
 
   const getPerformanceInsights = () => {
     const insights = [];
@@ -676,6 +709,72 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
               </CardContent>
             </Card>
 
+            {!aiLoading && !aiError && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-rose-50">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Risk Assessment</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-700">Risk Level</span>
+                      <Badge variant="outline" className={`uppercase ${riskBadgeClass}`}>
+                        {(aiAnalysis?.riskLevel || 'low').toString()}
+                      </Badge>
+                    </div>
+                    <div>
+                      <div className="flex items-center justify-between text-sm mb-1">
+                        <span className="text-gray-700">Risk Score</span>
+                        <span className="font-semibold text-gray-900">
+                          {Math.round((Number(aiAnalysis?.riskScore || 0) || 0) * 100)}%
+                        </span>
+                      </div>
+                      <Progress value={(Number(aiAnalysis?.riskScore || 0) || 0) * 100} className="h-2 bg-gray-200" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="p-2 rounded border bg-blue-50 border-blue-200">
+                        <div className="text-[11px] text-blue-800">Next Score</div>
+                        <div className="font-semibold text-blue-700">
+                          {Math.round(Number(aiAnalysis?.predictions?.nextExamPrediction || 0))}%
+                        </div>
+                      </div>
+                      <div className="p-2 rounded border bg-purple-50 border-purple-200">
+                        <div className="text-[11px] text-purple-800">Confidence</div>
+                        <div className="font-semibold text-purple-700">
+                          {Math.round((Number(aiAnalysis?.predictions?.confidence || 0) || 0) * 100)}%
+                        </div>
+                      </div>
+                      <div className="p-2 rounded border bg-gray-50 border-gray-200">
+                        <div className="text-[11px] text-gray-700">Trend</div>
+                        <div className="font-semibold capitalize text-gray-800">
+                          {String(aiAnalysis?.predictions?.trend || 'stable')}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-orange-50">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Root Causes</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2 text-sm text-gray-800">
+                      {(aiAnalysis?.rootCauses || []).map((cause, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-orange-600 mt-0.5" />
+                          <span>{cause}</span>
+                        </li>
+                      ))}
+                      {(!aiAnalysis?.rootCauses || aiAnalysis.rootCauses.length === 0) && (
+                        <li className="text-gray-500">No root causes available yet.</li>
+                      )}
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-green-50">
                 <CardHeader>
@@ -789,6 +888,58 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                 </CardContent>
               </Card>
             </div>
+
+            <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-pink-50">
+              <CardHeader>
+                <CardTitle className="text-lg">Recommended Interventions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {(aiAnalysis?.interventions || []).map((intervention, idx) => (
+                  <div key={idx} className="p-3 rounded-lg border border-pink-200 bg-pink-50">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-semibold text-gray-900">{intervention.action || 'Intervention'}</span>
+                      <Badge variant="outline" className="uppercase">{String(intervention.priority || 'medium')}</Badge>
+                    </div>
+                    {intervention.reasoning && (
+                      <p className="text-sm text-gray-700"><strong>Reason:</strong> {intervention.reasoning}</p>
+                    )}
+                    {intervention.expectedImpact && (
+                      <p className="text-sm text-gray-900 mt-1"><strong>Impact:</strong> {intervention.expectedImpact}</p>
+                    )}
+                  </div>
+                ))}
+                {(!aiAnalysis?.interventions || aiAnalysis.interventions.length === 0) && (
+                  <p className="text-gray-500 text-sm">No interventions available yet.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-slate-50">
+              <CardHeader>
+                <CardTitle className="text-lg">Question-by-Question AI Diagnosis</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {(aiAnalysis?.questionInsights || []).map((item, idx) => (
+                  <div key={idx} className="p-3 rounded-lg border border-slate-200 bg-white">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="text-sm font-semibold text-gray-900">
+                        Q{item.index || idx + 1} • {(item.subject || 'general').toString()}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="uppercase">{String(item.status || 'unattempted')}</Badge>
+                        <Badge variant="outline" className="uppercase">{String(item.priority || 'medium')}</Badge>
+                      </div>
+                    </div>
+                    {item.conceptGap && <p className="text-sm text-gray-700"><strong>Gap:</strong> {item.conceptGap}</p>}
+                    {item.fixStrategy && <p className="text-sm text-gray-800 mt-1"><strong>Fix:</strong> {item.fixStrategy}</p>}
+                    {item.practiceTask && <p className="text-sm text-indigo-800 mt-1"><strong>Practice:</strong> {item.practiceTask}</p>}
+                  </div>
+                ))}
+                {(!aiAnalysis?.questionInsights || aiAnalysis.questionInsights.length === 0) && (
+                  <p className="text-gray-500 text-sm">Question-level diagnosis will appear after AI analysis is generated.</p>
+                )}
+              </CardContent>
+            </Card>
           </div>
         )}
 
