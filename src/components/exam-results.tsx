@@ -90,7 +90,12 @@ export default function ExamResults({ result, examTitle, onRetake, onViewAnalysi
     return `${hours > 0 ? `${hours}h ` : ''}${minutes}m ${secs}s`;
   };
 
-  const grade = getGrade(result.percentage);
+  const attemptedCount = (result.correctAnswers || 0) + (result.wrongAnswers || 0);
+  const displayPercentage = attemptedCount > 0
+    ? (result.correctAnswers / attemptedCount) * 100
+    : 0;
+
+  const grade = getGrade(displayPercentage);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -129,17 +134,17 @@ export default function ExamResults({ result, examTitle, onRetake, onViewAnalysi
                       cx="50"
                       cy="50"
                       r="40"
-                      stroke={result.percentage >= 70 ? "#10b981" : result.percentage >= 50 ? "#f59e0b" : "#ef4444"}
+                      stroke={displayPercentage >= 70 ? "#10b981" : displayPercentage >= 50 ? "#f59e0b" : "#ef4444"}
                       strokeWidth="8"
                       fill="none"
                       strokeDasharray={`${2 * Math.PI * 40}`}
-                      strokeDashoffset={`${2 * Math.PI * 40 * (1 - result.percentage / 100)}`}
+                      strokeDashoffset={`${2 * Math.PI * 40 * (1 - displayPercentage / 100)}`}
                       className="transition-all duration-1000"
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-gray-900">{result.percentage.toFixed(1)}%</div>
+                      <div className="text-2xl font-bold text-gray-900">{displayPercentage.toFixed(1)}%</div>
                       <div className={`text-sm font-medium ${grade.color}`}>{grade.grade}</div>
                     </div>
                   </div>
@@ -300,7 +305,7 @@ export default function ExamResults({ result, examTitle, onRetake, onViewAnalysi
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {result.percentage < 50 && (
+              {displayPercentage < 50 && (
                 <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
                   <div className="flex items-start space-x-3">
                     <AlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
@@ -314,7 +319,7 @@ export default function ExamResults({ result, examTitle, onRetake, onViewAnalysi
                 </div>
               )}
               
-              {result.percentage >= 50 && result.percentage < 70 && (
+              {displayPercentage >= 50 && displayPercentage < 70 && (
                 <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <div className="flex items-start space-x-3">
                     <TrendingUp className="w-5 h-5 text-yellow-500 mt-0.5" />
@@ -328,7 +333,7 @@ export default function ExamResults({ result, examTitle, onRetake, onViewAnalysi
                 </div>
               )}
               
-              {result.percentage >= 70 && (
+              {displayPercentage >= 70 && (
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                   <div className="flex items-start space-x-3">
                     <Trophy className="w-5 h-5 text-green-500 mt-0.5" />
@@ -371,9 +376,6 @@ export default function ExamResults({ result, examTitle, onRetake, onViewAnalysi
           >
             <Eye className="w-4 h-4 mr-2" />
             View Detailed Analysis
-          </Button>
-          <Button onClick={() => alert('Exams can only be attempted once. Check the "Attempted Exams" tab to view your results.')} variant="outline" className="border-gray-300">
-            Exam Completed
           </Button>
         </div>
       </div>

@@ -413,7 +413,10 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       });
 
       const unattempted = exam.questions.length - correctAnswers - wrongAnswers;
-      const percentage = totalMarks > 0 ? (obtainedMarks / totalMarks) * 100 : 0;
+      // Keep immediate UI aligned with server grading display metric:
+      // percentage = correct / attempted.
+      const attemptedCount = correctAnswers + wrongAnswers;
+      const percentage = attemptedCount > 0 ? (correctAnswers / attemptedCount) * 100 : 0;
 
       const result: ExamResult = {
         examId: exam._id,
@@ -484,6 +487,30 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
         console.log('✅ Exam result saved successfully:', responseData);
         console.log('📋 Saved examId:', responseData.data?.examId || result.examId);
+
+        // Server is the source of truth for grading. Re-sync UI with
+        // authoritative scoring to avoid mismatch across screens.
+        if (responseData?.data && typeof responseData.data === 'object') {
+          const serverResult = responseData.data;
+          const authoritativeResult: ExamResult = {
+            examId: String(serverResult.examId || result.examId),
+            examTitle: String(serverResult.examTitle || result.examTitle),
+            totalQuestions: Number(serverResult.totalQuestions ?? result.totalQuestions),
+            correctAnswers: Number(serverResult.correctAnswers ?? result.correctAnswers),
+            wrongAnswers: Number(serverResult.wrongAnswers ?? result.wrongAnswers),
+            unattempted: Number(serverResult.unattempted ?? result.unattempted),
+            totalMarks: Number(serverResult.totalMarks ?? result.totalMarks),
+            obtainedMarks: Number(serverResult.obtainedMarks ?? result.obtainedMarks),
+            percentage: Number(serverResult.percentage ?? result.percentage),
+            timeTaken: Number(serverResult.timeTaken ?? result.timeTaken),
+            subjectWiseScore: serverResult.subjectWiseScore || result.subjectWiseScore,
+            answers: serverResult.answers || result.answers,
+            questions: Array.isArray(serverResult.questions) && serverResult.questions.length > 0
+              ? serverResult.questions
+              : result.questions
+          };
+          onComplete(authoritativeResult);
+        }
       } catch (error) {
         console.error('❌ Failed to save result:', error);
       } finally {
@@ -514,6 +541,66 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       return String(value);
     };
 
+    const options = Array.isArray(question.options) ? question.options : [];
+    const optionMeta = options.map((opt, index) => {
+      const text = extractAnswerText(opt).trim();
+      return {
+        index,
+        letter: String.fromCharCode(65 + index),
+        text,
+        textNorm: text.toLowerCase(),
+        id: String((typeof opt === 'object' && opt !== null ? (opt as any)._id : '') || '').trim(),
+      };
+    });
+
+    const resolveAnswerToken = (value: any): string => {
+      const raw = extractAnswerText(value).trim();
+      if (!raw) return '';
+      const rawNorm = raw.toLowerCase();
+
+      if (question.questionType === 'integer' || optionMeta.length === 0) {
+        return rawNorm;
+      }
+
+      if (/^-?\d+$/.test(rawNorm)) {
+        const n = parseInt(rawNorm, 10);
+        if (n >= 0 && n < optionMeta.length) return optionMeta[n].textNorm;
+        if (n >= 1 && n <= optionMeta.length) return optionMeta[n - 1].textNorm;
+      }
+
+      if (/^[a-z]$/i.test(rawNorm)) {
+        const byLetter = optionMeta.find((o) => o.letter.toLowerCase() === rawNorm);
+        if (byLetter) return byLetter.textNorm;
+      }
+
+      const optionMatch = rawNorm.match(/^option\s*([a-z0-9])$/);
+      if (optionMatch) {
+        const token = optionMatch[1];
+        if (/^\d$/.test(token)) {
+          const n = parseInt(token, 10);
+          if (n >= 1 && n <= optionMeta.length) return optionMeta[n - 1].textNorm;
+          if (n >= 0 && n < optionMeta.length) return optionMeta[n].textNorm;
+        }
+        if (/^[a-z]$/.test(token)) {
+          const byLetter = optionMeta.find((o) => o.letter.toLowerCase() === token);
+          if (byLetter) return byLetter.textNorm;
+        }
+      }
+
+      const byId = optionMeta.find((o) => o.id && o.id === raw);
+      if (byId) return byId.textNorm;
+
+      const byText = optionMeta.find((o) => o.textNorm && o.textNorm === rawNorm);
+      if (byText) return byText.textNorm;
+
+      return rawNorm;
+    };
+
+    const resolveAnswerList = (value: any): string[] => {
+      const list = Array.isArray(value) ? value : [value];
+      return list.map((v) => resolveAnswerToken(v)).filter(Boolean);
+    };
+
     if (userAnswer === undefined || userAnswer === null || userAnswer === '') {
       return false;
     }
@@ -522,22 +609,26 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       if (question.correctAnswer === undefined || question.correctAnswer === null) {
         return false;
       }
-      return userAnswer.toString() === question.correctAnswer.toString();
+      const userResolved = resolveAnswerToken(userAnswer);
+      const correctResolved = resolveAnswerToken(question.correctAnswer);
+      const userNum = Number(userResolved);
+      const correctNum = Number(correctResolved);
+      if (Number.isFinite(userNum) && Number.isFinite(correctNum)) {
+        return userNum === correctNum;
+      }
+      return userResolved === correctResolved;
     }
 
     if (question.questionType === 'mcq') {
       const correctAnswer = Array.isArray(question.correctAnswer)
-        ? extractAnswerText(question.correctAnswer[0])
-        : extractAnswerText(question.correctAnswer);
-      return extractAnswerText(userAnswer) === correctAnswer;
+        ? resolveAnswerToken(question.correctAnswer[0])
+        : resolveAnswerToken(question.correctAnswer);
+      return resolveAnswerToken(userAnswer) === correctAnswer;
     }
 
     if (question.questionType === 'multiple') {
-      const correctAnswers = Array.isArray(question.correctAnswer) ? question.correctAnswer : [question.correctAnswer];
-      const userAnswers = Array.isArray(userAnswer) ? userAnswer : [userAnswer];
-      
-      const correctAnswerStrings = correctAnswers.map((answer) => extractAnswerText(answer));
-      const userAnswerStrings = userAnswers.map((answer) => extractAnswerText(answer));
+      const correctAnswerStrings = resolveAnswerList(question.correctAnswer);
+      const userAnswerStrings = resolveAnswerList(userAnswer);
       
       if (userAnswerStrings.length !== correctAnswerStrings.length) {
         return false;

@@ -52,6 +52,18 @@ interface Exam {
   updatedAt?: string;
 }
 
+interface ExtractedPdfQuestion {
+  questionText: string;
+  questionType: 'MCQ';
+  subject: string;
+  marks: number;
+  option1: string;
+  option2: string;
+  option3: string;
+  option4: string;
+  correctAnswer: string;
+}
+
 const BOARDS = [
   { value: 'ASLI_EXCLUSIVE_SCHOOLS', label: 'Asli Exclusive Schools' }
 ];
@@ -155,6 +167,16 @@ export default function ExamManagement() {
   const [questionCsvFile, setQuestionCsvFile] = useState<File | null>(null);
   const [isUploadingQuestionCsv, setIsUploadingQuestionCsv] = useState(false);
   const [questionCsvUploadResults, setQuestionCsvUploadResults] = useState<{ success: number; errors: string[] } | null>(null);
+  const [questionPdfFile, setQuestionPdfFile] = useState<File | null>(null);
+  const [isConvertingQuestionPdf, setIsConvertingQuestionPdf] = useState(false);
+  const [pdfConversionMessage, setPdfConversionMessage] = useState('');
+  const [pdfExtractedQuestions, setPdfExtractedQuestions] = useState<ExtractedPdfQuestion[]>([]);
+  const [pdfDownloadUrls, setPdfDownloadUrls] = useState<{ csv: string | null; excel: string | null }>({ csv: null, excel: null });
+  const [pdfExtractionMode, setPdfExtractionMode] = useState<'text' | 'ocr' | ''>('');
+  const [pdfSubject, setPdfSubject] = useState('maths');
+  const [pdfMarks, setPdfMarks] = useState('4');
+  const [savePdfToDatabase, setSavePdfToDatabase] = useState(true);
+  const [preventPdfDuplicates, setPreventPdfDuplicates] = useState(true);
   // Default ON: duplicate rows are uploaded instead of skipped.
   const [allowDuplicateQuestionsInCsv, setAllowDuplicateQuestionsInCsv] = useState(true);
   const [questionImageFile, setQuestionImageFile] = useState<File | null>(null);
@@ -227,6 +249,40 @@ export default function ExamManagement() {
     fetchSchools();
   }, []);
 
+  const syncExamStatsFromQuestions = (examId: string, examQuestions: any[]) => {
+    const totalQuestions = Array.isArray(examQuestions) ? examQuestions.length : 0;
+    const computedMarks = Array.isArray(examQuestions)
+      ? examQuestions.reduce((sum: number, q: any) => {
+          const marks = Number(q?.marks);
+          return sum + (Number.isFinite(marks) ? marks : 0);
+        }, 0)
+      : 0;
+
+    setExams((prev) =>
+      prev.map((exam) =>
+        exam._id === examId
+          ? {
+              ...exam,
+              questions: Array.isArray(examQuestions) ? examQuestions : exam.questions,
+              totalQuestions,
+              totalMarks: totalQuestions > 0 ? computedMarks : exam.totalMarks,
+            }
+          : exam
+      )
+    );
+
+    setSelectedExam((prev) =>
+      prev && prev._id === examId
+        ? {
+            ...prev,
+            questions: Array.isArray(examQuestions) ? examQuestions : prev.questions,
+            totalQuestions,
+            totalMarks: totalQuestions > 0 ? computedMarks : prev.totalMarks,
+          }
+        : prev
+    );
+  };
+
   const fetchQuestions = async (examId: string) => {
     setIsLoadingQuestions(true);
     try {
@@ -241,7 +297,9 @@ export default function ExamManagement() {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          setQuestions(data.data || []);
+          const fetchedQuestions = data.data || [];
+          setQuestions(fetchedQuestions);
+          syncExamStatsFromQuestions(examId, fetchedQuestions);
         }
       } else {
         // If endpoint doesn't exist, fetch exam and get questions from there
@@ -254,7 +312,9 @@ export default function ExamManagement() {
         if (examResponse.ok) {
           const examData = await examResponse.json();
           if (examData.success && examData.data.questions) {
-            setQuestions(examData.data.questions);
+            const fetchedQuestions = examData.data.questions;
+            setQuestions(fetchedQuestions);
+            syncExamStatsFromQuestions(examId, fetchedQuestions);
           }
         }
       }
@@ -431,6 +491,112 @@ export default function ExamManagement() {
       });
     } finally {
       setIsUploadingQuestionCsv(false);
+    }
+  };
+
+  const handleConvertQuestionPdf = async () => {
+    if (!selectedExam || !questionPdfFile) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please select a PDF file',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsConvertingQuestionPdf(true);
+    setPdfConversionMessage('');
+    setPdfExtractedQuestions([]);
+    setPdfDownloadUrls({ csv: null, excel: null });
+    setPdfExtractionMode('');
+
+    try {
+      const token = localStorage.getItem('authToken');
+      const payload = new FormData();
+      payload.append('file', questionPdfFile);
+      payload.append('subject', pdfSubject);
+      payload.append('marks', pdfMarks || '4');
+      payload.append('saveToDatabase', savePdfToDatabase ? 'true' : 'false');
+      payload.append('preventDuplicates', preventPdfDuplicates ? 'true' : 'false');
+
+      const endpoint = `${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/pdf-convert`;
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: payload,
+      });
+
+      const responseText = await response.text();
+      let data: any = null;
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch {
+        data = null;
+      }
+
+      if (!data) {
+        const nonJsonMessage = `Unable to extract properly (HTTP ${response.status}). Endpoint may be missing: ${endpoint}`;
+        setPdfConversionMessage(nonJsonMessage);
+        toast({
+          title: 'Extraction Error',
+          description: nonJsonMessage,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (!response.ok || !data.success) {
+        const fallbackMessage = data.userMessage || data.message || 'Unable to extract properly';
+        setPdfConversionMessage(fallbackMessage);
+        toast({
+          title: 'Extraction Error',
+          description: fallbackMessage,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const preview = Array.isArray(data.previewQuestions) ? data.previewQuestions : [];
+      setPdfExtractedQuestions(preview);
+      setPdfDownloadUrls({
+        csv: data.downloadUrls?.csv || null,
+        excel: data.downloadUrls?.excel || null,
+      });
+      setPdfExtractionMode(data.extractionMode || '');
+      setPdfConversionMessage(
+        preview.length > 0
+          ? `Extracted ${preview.length} question(s)${savePdfToDatabase ? `, saved ${data.createdCount || 0}` : ''}${(data.skippedDuplicates || 0) > 0 ? `, skipped ${data.skippedDuplicates} duplicate(s)` : ''}.`
+          : 'No questions found'
+      );
+
+      if (preview.length === 0) {
+        toast({
+          title: 'No Questions Found',
+          description: 'Unable to extract properly',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'PDF Converted',
+          description: `Extracted ${preview.length} question(s) successfully`,
+        });
+        if (savePdfToDatabase) {
+          fetchQuestions(selectedExam._id);
+          fetchExams();
+        }
+      }
+    } catch (error) {
+      console.error('Failed to convert PDF:', error);
+      setPdfConversionMessage('Unable to extract properly');
+      toast({
+        title: 'Error',
+        description: 'Unable to extract properly',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsConvertingQuestionPdf(false);
     }
   };
 
@@ -1338,6 +1504,13 @@ export default function ExamManagement() {
     }
   }, [selectedExam, availableQuestionSubjects, questionFormData.subject]);
 
+  useEffect(() => {
+    if (!selectedExam) return;
+    if (!availableQuestionSubjects.includes(pdfSubject as any)) {
+      setPdfSubject(availableQuestionSubjects[0] || 'maths');
+    }
+  }, [selectedExam, availableQuestionSubjects, pdfSubject]);
+
   const openCreateExamDialog = () => {
     setIsEditing(false);
     setEditingExamId(null);
@@ -1934,7 +2107,12 @@ export default function ExamManagement() {
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                   <BookOpen className="h-3.5 w-3.5 text-gray-500" />
-                                  <span>{exam.totalQuestions} questions · {exam.totalMarks} marks</span>
+                                  <span>
+                                    {(Array.isArray(exam.questions) && exam.questions.length > 0
+                                      ? exam.questions.length
+                                      : exam.totalQuestions) || 0}{' '}
+                                    questions · {exam.totalMarks} marks
+                                  </span>
                                 </div>
                                 <div className="flex items-center gap-1.5">
                                   <Eye className="h-3.5 w-3.5 text-gray-500" />
@@ -2014,6 +2192,11 @@ export default function ExamManagement() {
           // Reset CSV upload state when dialog closes
           setQuestionCsvFile(null);
           setQuestionCsvUploadResults(null);
+          setQuestionPdfFile(null);
+          setPdfConversionMessage('');
+          setPdfExtractedQuestions([]);
+          setPdfDownloadUrls({ csv: null, excel: null });
+          setPdfExtractionMode('');
         }
       }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -2025,6 +2208,160 @@ export default function ExamManagement() {
           </DialogHeader>
 
           <div className="space-y-6">
+            {/* PDF Conversion Section */}
+            <div className="border-t pt-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">Convert PDF to MCQ CSV</h3>
+              </div>
+              <div className="p-4 bg-emerald-50 rounded-lg space-y-3">
+                <div>
+                  <Label htmlFor="questionPdfFile">Upload PDF File *</Label>
+                  <Input
+                    id="questionPdfFile"
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      setQuestionPdfFile(file || null);
+                      setPdfConversionMessage('');
+                      setPdfExtractedQuestions([]);
+                      setPdfDownloadUrls({ csv: null, excel: null });
+                      setPdfExtractionMode('');
+                    }}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-gray-600 mt-1">
+                    Supports both text PDFs and scanned PDFs (OCR fallback).
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <Label>Subject</Label>
+                    <Select value={pdfSubject} onValueChange={setPdfSubject}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableQuestionSubjects.map((subjectValue: string) => (
+                          <SelectItem key={`pdf-subject-${subjectValue}`} value={subjectValue}>
+                            {EXAM_SUBJECTS.find((s) => s.value === subjectValue)?.label || normalizeDisplayText(subjectValue)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Marks (default 4)</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={pdfMarks}
+                      onChange={(e) => setPdfMarks(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex flex-col justify-end gap-2">
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={savePdfToDatabase}
+                        onChange={(e) => setSavePdfToDatabase(e.target.checked)}
+                      />
+                      Save to database
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={preventPdfDuplicates}
+                        onChange={(e) => setPreventPdfDuplicates(e.target.checked)}
+                      />
+                      Prevent duplicates
+                    </label>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  onClick={handleConvertQuestionPdf}
+                  disabled={isConvertingQuestionPdf || !questionPdfFile}
+                  className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white"
+                >
+                  {isConvertingQuestionPdf ? 'Converting...' : 'Convert to CSV'}
+                </Button>
+
+                {pdfConversionMessage && (
+                  <div className={`p-3 rounded border ${pdfExtractedQuestions.length > 0 ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
+                    <p className="text-sm font-medium">{pdfConversionMessage}</p>
+                    {pdfExtractionMode && (
+                      <p className="text-xs text-gray-600 mt-1">
+                        Extraction mode: {pdfExtractionMode === 'ocr' ? 'OCR (scanned PDF)' : 'Text extraction'}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {(pdfDownloadUrls.csv || pdfDownloadUrls.excel) && (
+                  <div className="flex flex-wrap gap-2">
+                    {pdfDownloadUrls.csv && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => window.open(`${API_BASE_URL}${pdfDownloadUrls.csv}`, '_blank')}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Download CSV
+                      </Button>
+                    )}
+                    {pdfDownloadUrls.excel && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => window.open(`${API_BASE_URL}${pdfDownloadUrls.excel}`, '_blank')}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Download Excel
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {pdfExtractedQuestions.length > 0 && (
+                  <div className="space-y-3 max-h-80 overflow-y-auto">
+                    <h4 className="text-sm font-semibold">Preview ({pdfExtractedQuestions.length} questions)</h4>
+                    {pdfExtractedQuestions.map((q, idx) => {
+                      const options = [q.option1, q.option2, q.option3, q.option4];
+                      return (
+                        <Card key={`pdf-preview-${idx}`} className="p-3 border-l-4 border-l-emerald-500">
+                          <div className="space-y-2">
+                            <p className="text-sm font-semibold">Q{idx + 1}. {q.questionText}</p>
+                            <div className="space-y-1">
+                              {options.map((opt, optIdx) => {
+                                const isCorrect = String(opt || '').trim() === String(q.correctAnswer || '').trim();
+                                return (
+                                  <div
+                                    key={`pdf-option-${idx}-${optIdx}`}
+                                    className={`p-2 rounded text-sm ${
+                                      isCorrect
+                                        ? 'bg-green-50 border border-green-300 text-green-900'
+                                        : 'bg-gray-50 border border-gray-200 text-gray-700'
+                                    }`}
+                                  >
+                                    <span className="font-semibold mr-2">{String.fromCharCode(65 + optIdx)}.</span>
+                                    {opt}
+                                    {isCorrect && <Badge className="ml-2 bg-green-600 text-white text-xs">Correct</Badge>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* CSV Upload Section */}
             <div className="border-t pt-6 space-y-4">
               <div className="flex items-center justify-between">

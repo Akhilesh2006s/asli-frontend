@@ -103,6 +103,7 @@ export default function StudentExams() {
   const [activeTab, setActiveTab] = useState<string>('available');
   const [examClassFilter, setExamClassFilter] = useState<string>('all');
   const [examSubjectFilter, setExamSubjectFilter] = useState<string>('all');
+  const [startingExamId, setStartingExamId] = useState<string | null>(null);
   const didInitClassFilter = useRef(false);
 
   useEffect(() => {
@@ -121,6 +122,14 @@ export default function StudentExams() {
     }
     // If examId is just the ObjectId, convert to string
     return result.examId.toString();
+  };
+
+  const getDisplayPercentage = (result: any): number => {
+    if (!result) return 0;
+    const correct = Number(result.correctAnswers || 0);
+    const wrong = Number(result.wrongAnswers || 0);
+    const attempted = correct + wrong;
+    return attempted > 0 ? (correct / attempted) * 100 : 0;
   };
 
   // Reset states when component mounts
@@ -359,6 +368,8 @@ export default function StudentExams() {
       subjectFilteredExams.filter((exam: Exam) => {
         const examId = String(exam._id || '');
         if (!examId || attemptedExamIds.has(examId)) return false;
+        const hydratedQuestionCount = Array.isArray(exam.questions) ? exam.questions.length : 0;
+        if (hydratedQuestionCount <= 0) return false;
         // Show only currently attemptable exams (inline to avoid init-order issues)
         const now = new Date();
         const startDate = new Date(exam.startDate);
@@ -369,7 +380,7 @@ export default function StudentExams() {
     [subjectFilteredExams, attemptedExamIds]
   );
 
-  const handleStartExam = (exam: Exam) => {
+  const handleStartExam = async (exam: Exam) => {
     console.log('Starting exam:', exam);
     console.log('Current exam result state:', examResult);
     console.log('Current taking exam state:', isTakingExam);
@@ -384,6 +395,41 @@ export default function StudentExams() {
     if (hasAttempted) {
       alert('You have already attempted this exam. Please check the "Attempted Exams" tab to view your results.');
       return;
+    }
+
+    try {
+      setStartingExamId(exam._id);
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/student/exams/${exam._id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        const message = payload?.message || 'This exam is not available yet. Questions are not uploaded.';
+        alert(message);
+        await queryClient.invalidateQueries({ queryKey: ['/api/student/exams'] });
+        await queryClient.refetchQueries({ queryKey: ['/api/student/exams'] });
+        return;
+      }
+
+      const payload = await response.json().catch(() => ({}));
+      const hydratedQuestions = Array.isArray(payload?.data?.questions) ? payload.data.questions : [];
+      if (hydratedQuestions.length === 0) {
+        alert('This exam is not available yet. Questions are not uploaded.');
+        await queryClient.invalidateQueries({ queryKey: ['/api/student/exams'] });
+        await queryClient.refetchQueries({ queryKey: ['/api/student/exams'] });
+        return;
+      }
+    } catch (error) {
+      console.error('Failed to validate exam before start:', error);
+      alert('Unable to start exam right now. Please try again.');
+      return;
+    } finally {
+      setStartingExamId(null);
     }
     
     // Reset all states when starting a new exam
@@ -642,6 +688,7 @@ export default function StudentExams() {
                 ];
                 const colorScheme = colorSchemes[index % 3];
                 const classLabels = getExamClassStrings(exam);
+                const hydratedQuestionCount = Array.isArray(exam.questions) ? exam.questions.length : Number(exam.totalQuestions || 0);
                 
                 return (
                   <Card key={exam._id} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
@@ -683,7 +730,7 @@ export default function StudentExams() {
                         </div>
                         <div className="flex items-center">
                           <BookOpen className="h-4 w-4 mr-2" />
-                          <span>{exam.totalQuestions} questions • {exam.totalMarks} marks</span>
+                          <span>{hydratedQuestionCount} questions • {exam.totalMarks} marks</span>
                         </div>
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 mr-2" />
@@ -697,10 +744,16 @@ export default function StudentExams() {
                       <Button 
                         onClick={() => handleStartExam(exam)}
                         className="w-full bg-white/90 text-gray-900 border-white/30 hover:bg-white hover:text-gray-900 shadow-lg"
-                        disabled={status.status === 'ended'}
+                        disabled={status.status === 'ended' || startingExamId === exam._id}
                       >
                         <Play className="w-4 h-4 mr-2" />
-                        {status.status === 'active' ? 'Start Exam' : status.status === 'upcoming' ? 'Start Exam (Upcoming)' : 'Start Exam'}
+                        {startingExamId === exam._id
+                          ? 'Checking...'
+                          : status.status === 'active'
+                          ? 'Start Exam'
+                          : status.status === 'upcoming'
+                          ? 'Start Exam (Upcoming)'
+                          : 'Start Exam'}
                       </Button>
                     </CardContent>
                   </Card>
@@ -745,6 +798,7 @@ export default function StudentExams() {
                 ];
                 const colorScheme = colorSchemes[index % 3];
                 const classLabelsAttempted = getExamClassStrings(exam);
+                const displayPercentage = getDisplayPercentage(result);
                 
                 return (
                   <Card key={exam._id} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
@@ -779,7 +833,7 @@ export default function StudentExams() {
                         {/* Score Display */}
                         <div className="text-center p-4 bg-white/90 rounded-lg">
                           <div className="text-3xl font-bold text-gray-900 mb-1">
-                            {result.percentage?.toFixed(1) || '0'}%
+                            {displayPercentage.toFixed(1)}%
                           </div>
                           <div className={`text-sm ${colorScheme.text}/90`}>
                             {result.obtainedMarks || 0}/{result.totalMarks || exam.totalMarks} marks
@@ -811,12 +865,12 @@ export default function StudentExams() {
                         {/* Grade Badge */}
                         <div className="text-center">
                           <Badge className={
-                            (result.percentage || 0) >= 70 ? 'bg-green-600 text-white border-2 border-white/50 shadow-lg font-semibold' :
-                            (result.percentage || 0) >= 50 ? 'bg-yellow-600 text-white border-2 border-white/50 shadow-lg font-semibold' :
+                            displayPercentage >= 70 ? 'bg-green-600 text-white border-2 border-white/50 shadow-lg font-semibold' :
+                            displayPercentage >= 50 ? 'bg-yellow-600 text-white border-2 border-white/50 shadow-lg font-semibold' :
                             'bg-red-600 text-white border-2 border-white/50 shadow-lg font-semibold'
                           }>
-                            {(result.percentage || 0) >= 70 ? 'Excellent' :
-                             (result.percentage || 0) >= 50 ? 'Good' : 'Needs Improvement'}
+                            {displayPercentage >= 70 ? 'Excellent' :
+                             displayPercentage >= 50 ? 'Good' : 'Needs Improvement'}
                           </Badge>
                         </div>
 
@@ -828,11 +882,32 @@ export default function StudentExams() {
                             console.log('📋 Viewing details for exam:', exam.title);
                             console.log('📋 Exam result:', result);
                             
-                            // Ensure exam has questions loaded
+                            // Load review payload with correct answers for attempted exams.
                             let examWithQuestions = exam;
-                            if (!exam.questions || exam.questions.length === 0) {
-                              try {
-                                const token = localStorage.getItem('authToken');
+                            let reviewResult = result;
+                            let reviewedQuestions: any[] = [];
+                            try {
+                              const token = localStorage.getItem('authToken');
+                              const reviewResponse = await fetch(`${API_BASE_URL}/api/student/exam-results/${exam._id}/review`, {
+                                headers: {
+                                  'Authorization': `Bearer ${token}`,
+                                  'Content-Type': 'application/json',
+                                }
+                              });
+                              if (reviewResponse.ok) {
+                                const reviewJson = await reviewResponse.json();
+                                reviewResult = reviewJson?.data?.result || result;
+                                reviewedQuestions = reviewJson?.data?.questions || [];
+                                examWithQuestions = {
+                                  ...examWithQuestions,
+                                  questions: reviewedQuestions,
+                                  totalQuestions: reviewJson?.data?.exam?.totalQuestions || examWithQuestions.totalQuestions,
+                                  totalMarks: reviewJson?.data?.exam?.totalMarks || examWithQuestions.totalMarks,
+                                  title: reviewJson?.data?.exam?.title || examWithQuestions.title,
+                                };
+                                console.log('✅ Loaded review payload with questions:', reviewedQuestions.length);
+                              } else {
+                                // Fallback to student exam endpoint (answer key hidden there).
                                 const response = await fetch(`${API_BASE_URL}/api/student/exams/${exam._id}`, {
                                   headers: {
                                     'Authorization': `Bearer ${token}`,
@@ -842,31 +917,33 @@ export default function StudentExams() {
                                 if (response.ok) {
                                   const data = await response.json();
                                   examWithQuestions = data.data || exam;
-                                  console.log('✅ Loaded exam with questions:', examWithQuestions.questions?.length || 0);
+                                  console.log('✅ Fallback loaded exam questions:', examWithQuestions.questions?.length || 0);
                                 }
-                              } catch (error) {
-                                console.error('❌ Failed to load exam questions:', error);
                               }
+                            } catch (error) {
+                              console.error('❌ Failed to load exam review/questions:', error);
                             }
                             
                             // Format the result to match ExamResult interface
                             const formattedResult: ExamResult = {
-                              examId: getExamIdFromResult(result) || exam._id,
-                              examTitle: result.examTitle || exam.title,
-                              totalQuestions: result.totalQuestions || exam.totalQuestions || 0,
-                              correctAnswers: result.correctAnswers || 0,
-                              wrongAnswers: result.wrongAnswers || 0,
-                              unattempted: result.unattempted || 0,
-                              totalMarks: result.totalMarks || exam.totalMarks || 0,
-                              obtainedMarks: result.obtainedMarks || 0,
-                              percentage: result.percentage || 0,
-                              timeTaken: result.timeTaken || 0,
-                              subjectWiseScore: result.subjectWiseScore || {
+                              examId: getExamIdFromResult(reviewResult) || exam._id,
+                              examTitle: reviewResult.examTitle || examWithQuestions.title || exam.title,
+                              totalQuestions: reviewResult.totalQuestions || examWithQuestions.totalQuestions || exam.totalQuestions || 0,
+                              correctAnswers: reviewResult.correctAnswers || 0,
+                              wrongAnswers: reviewResult.wrongAnswers || 0,
+                              unattempted: reviewResult.unattempted || 0,
+                              totalMarks: reviewResult.totalMarks || examWithQuestions.totalMarks || exam.totalMarks || 0,
+                              obtainedMarks: reviewResult.obtainedMarks || 0,
+                              percentage: Number.isFinite(Number(reviewResult.percentage))
+                                ? Number(reviewResult.percentage)
+                                : getDisplayPercentage(reviewResult),
+                              timeTaken: reviewResult.timeTaken || 0,
+                              subjectWiseScore: reviewResult.subjectWiseScore || {
                                 maths: { correct: 0, total: 0, marks: 0 },
                                 physics: { correct: 0, total: 0, marks: 0 },
                                 chemistry: { correct: 0, total: 0, marks: 0 }
                               },
-                              answers: result.answers || {},
+                              answers: reviewResult.answers || {},
                               questions: examWithQuestions.questions || []
                             };
                             

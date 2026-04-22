@@ -151,6 +151,8 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       .replace(/\uFFFD/g, '?');
     return text;
   };
+  // Backward-compatible alias used by answer/solution render helpers.
+  const normalizeExamText = (value: unknown): string => normalizeLegacyExamText(value);
   const [animatedValues, setAnimatedValues] = useState({
     percentage: 0,
     correctAnswers: 0,
@@ -232,22 +234,77 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
   };
 
   // Helper function to compare answers properly
-  const compareAnswers = (userAnswer: any, correctAnswer: any): boolean => {
-    if (!userAnswer) return false;
-    
-    // Extract text values for comparison
-    const userText = getOptionText(userAnswer);
-    const correctText = getOptionText(correctAnswer);
-    
-    // Handle array comparisons
-    if (Array.isArray(correctAnswer) && Array.isArray(userAnswer)) {
-      const userTexts = userAnswer.map(getOptionText).sort();
-      const correctTexts = correctAnswer.map(getOptionText).sort();
-      return JSON.stringify(userTexts) === JSON.stringify(correctTexts);
+  const getQuestionOptions = (question?: Question) => {
+    if (!question?.options || !Array.isArray(question.options)) return [];
+    return question.options.map((option, index) => {
+      if (typeof option === 'string') {
+        return {
+          text: normalizeExamText(option),
+          rawText: String(option),
+          id: '',
+          index,
+          letter: String.fromCharCode(65 + index),
+        };
+      }
+      return {
+        text: normalizeExamText(option?.text || option?._id || ''),
+        rawText: String(option?.text || ''),
+        id: String(option?._id || ''),
+        index,
+        letter: String.fromCharCode(65 + index),
+      };
+    });
+  };
+
+  const resolveSingleAnswerText = (question: Question, rawAnswer: any): string => {
+    if (rawAnswer === undefined || rawAnswer === null || rawAnswer === '') return '';
+
+    const options = getQuestionOptions(question);
+    const rawText = String(rawAnswer).trim();
+    const normalizedRaw = normalizeExamText(rawText);
+
+    if (!options.length || question.questionType === 'integer') {
+      return normalizedRaw;
     }
-    
-    // Handle single value comparisons
-    return userText === correctText;
+
+    // Numeric index (supports 0-based and 1-based legacy data).
+    if (/^-?\d+$/.test(rawText)) {
+      const idx = Number(rawText);
+      if (idx >= 0 && idx < options.length) return options[idx].text;
+      if (idx >= 1 && idx <= options.length) return options[idx - 1].text;
+    }
+
+    // Letter option (A/B/C/D style).
+    if (/^[a-z]$/i.test(rawText)) {
+      const letter = rawText.toUpperCase();
+      const byLetter = options.find((o) => o.letter === letter);
+      if (byLetter) return byLetter.text;
+    }
+
+    // ObjectId/text matching fallback.
+    const byId = options.find((o) => o.id && o.id === rawText);
+    if (byId) return byId.text;
+    const byRaw = options.find((o) => o.rawText && o.rawText === rawText);
+    if (byRaw) return byRaw.text;
+    const byNormalized = options.find((o) => o.text === normalizedRaw);
+    if (byNormalized) return byNormalized.text;
+
+    return normalizedRaw;
+  };
+
+  const resolveAnswerTexts = (question: Question, rawAnswer: any): string[] => {
+    const list = Array.isArray(rawAnswer) ? rawAnswer : [rawAnswer];
+    return list
+      .map((item) => resolveSingleAnswerText(question, item))
+      .filter((text) => !!text);
+  };
+
+  const compareAnswers = (question: Question, userAnswer: any, correctAnswer: any): boolean => {
+    const userTexts = resolveAnswerTexts(question, userAnswer).sort();
+    const correctTexts = resolveAnswerTexts(question, correctAnswer).sort();
+    if (userTexts.length === 0 || correctTexts.length === 0) return false;
+    if (userTexts.length !== correctTexts.length) return false;
+    return JSON.stringify(userTexts) === JSON.stringify(correctTexts);
   };
 
   // Animate values on mount
@@ -272,7 +329,9 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
 
     // Add a small delay before starting animations
     setTimeout(() => {
-      animateValue(0, result.percentage, (value) => setAnimatedValues(prev => ({ ...prev, percentage: value })));
+      const attempted = (result.correctAnswers || 0) + (result.wrongAnswers || 0);
+      const derivedPercentage = attempted > 0 ? (result.correctAnswers / attempted) * 100 : 0;
+      animateValue(0, derivedPercentage, (value) => setAnimatedValues(prev => ({ ...prev, percentage: value })));
       animateValue(0, result.correctAnswers, (value) => setAnimatedValues(prev => ({ ...prev, correctAnswers: value })));
       animateValue(0, result.wrongAnswers, (value) => setAnimatedValues(prev => ({ ...prev, wrongAnswers: value })));
       animateValue(0, result.unattempted, (value) => setAnimatedValues(prev => ({ ...prev, unattempted: value })));
@@ -337,7 +396,15 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     return `${hours > 0 ? `${hours}h ` : ''}${minutes}m ${secs}s`;
   };
 
-  const grade = getGrade(result.percentage);
+  const attemptedCount = (result.correctAnswers || 0) + (result.wrongAnswers || 0);
+  const displayPercentage = attemptedCount > 0
+    ? (result.correctAnswers / attemptedCount) * 100
+    : 0;
+  const completionRate = result.totalQuestions > 0
+    ? ((result.correctAnswers + result.wrongAnswers) / result.totalQuestions) * 100
+    : 0;
+
+  const grade = getGrade(displayPercentage);
   const GradeIcon = grade.icon;
 
   const normalizedRiskLevel = String(aiAnalysis?.riskLevel || '').toLowerCase();
@@ -351,7 +418,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
   const getPerformanceInsights = () => {
     const insights = [];
     
-    if (result.percentage >= 90) {
+    if (displayPercentage >= 90) {
       insights.push({
         icon: Crown,
         title: "Outstanding Performance!",
@@ -549,7 +616,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                       cx="50"
                       cy="50"
                       r="40"
-                      stroke={result.percentage >= 70 ? "#10b981" : result.percentage >= 50 ? "#f59e0b" : "#ef4444"}
+                      stroke={displayPercentage >= 70 ? "#10b981" : displayPercentage >= 50 ? "#f59e0b" : "#ef4444"}
                       strokeWidth="8"
                       fill="none"
                       strokeDasharray={`${2 * Math.PI * 40}`}
@@ -611,13 +678,11 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                   <div className="flex justify-between text-sm mb-3">
                     <span className="font-semibold text-gray-700">Accuracy Rate</span>
                     <span className="font-bold text-green-600">
-                      {result.correctAnswers + result.wrongAnswers > 0 
-                        ? ((result.correctAnswers / (result.correctAnswers + result.wrongAnswers)) * 100).toFixed(1)
-                        : 0}%
+                      {displayPercentage.toFixed(1)}%
                     </span>
                   </div>
                   <Progress 
-                    value={(result.correctAnswers / (result.correctAnswers + result.wrongAnswers)) * 100} 
+                    value={displayPercentage} 
                     className="h-3 bg-gray-200"
                   />
                 </div>
@@ -626,11 +691,11 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                   <div className="flex justify-between text-sm mb-3">
                     <span className="font-semibold text-gray-700">Completion Rate</span>
                     <span className="font-bold text-blue-600">
-                      {(((result.correctAnswers + result.wrongAnswers) / result.totalQuestions) * 100).toFixed(1)}%
+                      {completionRate.toFixed(1)}%
                     </span>
                   </div>
                   <Progress 
-                    value={((result.correctAnswers + result.wrongAnswers) / result.totalQuestions) * 100} 
+                    value={completionRate} 
                     className="h-3 bg-gray-200"
                   />
                 </div>
@@ -1066,7 +1131,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                         <div className="grid grid-cols-5 gap-2.5">
                           {result.questions.map((question, index) => {
                             const userAnswer = result.answers?.[question._id];
-                            const isCorrect = compareAnswers(userAnswer, question.correctAnswer);
+                            const isCorrect = compareAnswers(question, userAnswer, question.correctAnswer);
                             const isAttempted = userAnswer !== undefined && userAnswer !== null && userAnswer !== '';
                             const isCurrent = index === mobileQuestionIndex;
                             
@@ -1188,12 +1253,13 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                           {result.questions[mobileQuestionIndex]?.questionType === 'mcq' && result.questions[mobileQuestionIndex]?.options && (
                             <div className="space-y-3">
                               {result.questions[mobileQuestionIndex].options.map((option: any, index: number) => {
+                                const activeQuestion = result.questions![mobileQuestionIndex];
                                 const optionText = getOptionText(option);
                                 const userAnswer = result.answers?.[result.questions[mobileQuestionIndex]._id];
-                                const isUser = Array.isArray(userAnswer) ? userAnswer.some((a: any) => getOptionText(a) === optionText) : getOptionText(userAnswer) === optionText;
-                                const isRight = Array.isArray(result.questions[mobileQuestionIndex].correctAnswer) 
-                                  ? result.questions[mobileQuestionIndex].correctAnswer.some((a: any) => getOptionText(a) === optionText) 
-                                  : getOptionText(result.questions[mobileQuestionIndex].correctAnswer) === optionText;
+                                const userAnswerTexts = resolveAnswerTexts(activeQuestion, userAnswer);
+                                const correctAnswerTexts = resolveAnswerTexts(activeQuestion, activeQuestion.correctAnswer);
+                                const isUser = userAnswerTexts.includes(optionText);
+                                const isRight = correctAnswerTexts.includes(optionText);
                                 
                                 return (
                                   <div 
@@ -1226,10 +1292,12 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                               <div className="text-xs font-semibold text-purple-800 mb-2">Your Answer</div>
                               <div className="text-sm text-purple-900">
                                 {(() => {
+                                  const activeQuestion = result.questions![mobileQuestionIndex];
                                   const userAnswer = result.answers?.[result.questions[mobileQuestionIndex]._id];
-                                  const isAttempted = userAnswer !== undefined && userAnswer !== null && userAnswer !== '';
+                                  const userAnswerTexts = resolveAnswerTexts(activeQuestion, userAnswer);
+                                  const isAttempted = userAnswerTexts.length > 0;
                                   return isAttempted 
-                                    ? String(Array.isArray(userAnswer) ? userAnswer.map(getOptionText).join(', ') : getOptionText(userAnswer))
+                                    ? userAnswerTexts.join(', ')
                                     : 'Not attempted';
                                 })()}
                               </div>
@@ -1237,10 +1305,20 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                             <div className="rounded-lg border border-green-200 bg-green-50 p-4">
                               <div className="text-xs font-semibold text-green-800 mb-2">Correct Answer</div>
                               <div className="text-sm text-green-900">
-                                {String(Array.isArray(result.questions[mobileQuestionIndex].correctAnswer) 
-                                  ? result.questions[mobileQuestionIndex].correctAnswer.map(getOptionText).join(', ') 
-                                  : getOptionText(result.questions[mobileQuestionIndex].correctAnswer))}
+                                {(() => {
+                                  const activeQuestion = result.questions![mobileQuestionIndex];
+                                  const correctAnswerTexts = resolveAnswerTexts(activeQuestion, activeQuestion.correctAnswer);
+                                  return correctAnswerTexts.length > 0 ? correctAnswerTexts.join(', ') : 'N/A';
+                                })()}
                               </div>
+                            </div>
+                          </div>
+
+                          {/* Full Solution */}
+                          <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                            <div className="text-xs font-semibold text-blue-800 mb-2">Solution</div>
+                            <div className="text-sm text-blue-900 whitespace-pre-wrap">
+                              {normalizeExamText(result.questions[mobileQuestionIndex]?.explanation) || 'Solution not provided for this question.'}
                             </div>
                           </div>
                         </div>
