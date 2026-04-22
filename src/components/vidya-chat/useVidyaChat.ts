@@ -123,7 +123,18 @@ export function useVidyaChat({
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to send message");
+      if (!response.ok) {
+        let errorMessage = "Failed to send message";
+        try {
+          const errorJson = await response.json();
+          if (errorJson?.message) {
+            errorMessage = String(errorJson.message);
+          }
+        } catch (_) {
+          // Keep default message when response is not JSON.
+        }
+        throw new Error(errorMessage);
+      }
       const result = await response.json();
 
       if (result.session?.messages) {
@@ -171,7 +182,18 @@ export function useVidyaChat({
         },
         body: JSON.stringify(data),
       });
-      if (!response.ok) throw new Error("Failed to analyze image");
+      if (!response.ok) {
+        let errorMessage = "Failed to analyze image";
+        try {
+          const errorJson = await response.json();
+          if (errorJson?.message) {
+            errorMessage = String(errorJson.message);
+          }
+        } catch (_) {
+          // Keep default message when response is not JSON.
+        }
+        throw new Error(errorMessage);
+      }
       return response.json();
     },
     onSuccess: (data) => {
