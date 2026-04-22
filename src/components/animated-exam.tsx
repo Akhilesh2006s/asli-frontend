@@ -375,32 +375,40 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       }
 
       exam.questions.forEach((question: Question) => {
-        const userAnswer = answers[question._id];
-        const isCorrect = checkAnswer(question, userAnswer);
-        const normalizedSubject = String(question.subject || '').toLowerCase();
-        const hasTrackedSubject =
-          normalizedSubject === 'maths' ||
-          normalizedSubject === 'physics' ||
-          normalizedSubject === 'chemistry';
+        try {
+          const userAnswer = answers[question._id];
+          const isCorrect = checkAnswer(question, userAnswer);
+          const normalizedSubject = String(question.subject || '').toLowerCase();
+          const hasTrackedSubject =
+            normalizedSubject === 'maths' ||
+            normalizedSubject === 'physics' ||
+            normalizedSubject === 'chemistry';
 
-        if (hasTrackedSubject) {
-          const subjectKey = normalizedSubject as keyof typeof subjectWiseScore;
-          subjectWiseScore[subjectKey].total++;
-        }
-
-        totalMarks += Number(question.marks) || 0;
-
-        if (isCorrect) {
-          correctAnswers++;
-          obtainedMarks += Number(question.marks) || 0;
           if (hasTrackedSubject) {
             const subjectKey = normalizedSubject as keyof typeof subjectWiseScore;
-            subjectWiseScore[subjectKey].correct++;
-            subjectWiseScore[subjectKey].marks += Number(question.marks) || 0;
+            subjectWiseScore[subjectKey].total++;
           }
-        } else if (userAnswer !== undefined && userAnswer !== null && userAnswer !== '') {
-          wrongAnswers++;
-          obtainedMarks -= Number(question.negativeMarks) || 0;
+
+          totalMarks += Number(question.marks) || 0;
+
+          if (isCorrect) {
+            correctAnswers++;
+            obtainedMarks += Number(question.marks) || 0;
+            if (hasTrackedSubject) {
+              const subjectKey = normalizedSubject as keyof typeof subjectWiseScore;
+              subjectWiseScore[subjectKey].correct++;
+              subjectWiseScore[subjectKey].marks += Number(question.marks) || 0;
+            }
+          } else if (userAnswer !== undefined && userAnswer !== null && userAnswer !== '') {
+            wrongAnswers++;
+            obtainedMarks -= Number(question.negativeMarks) || 0;
+          }
+        } catch (questionError) {
+          console.warn('Question grading failed; marking as unattempted-safe fallback:', {
+            questionId: question?._id,
+            error: questionError,
+          });
+          totalMarks += Number(question?.marks) || 0;
         }
       });
 
@@ -495,6 +503,17 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   };
 
   const checkAnswer = (question: Question, userAnswer: any): boolean => {
+    const extractAnswerText = (value: any): string => {
+      if (value === null || value === undefined) return '';
+      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        return String(value);
+      }
+      if (typeof value === 'object') {
+        return String(value.text ?? value.label ?? value.value ?? value._id ?? '');
+      }
+      return String(value);
+    };
+
     if (userAnswer === undefined || userAnswer === null || userAnswer === '') {
       return false;
     }
@@ -507,30 +526,24 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     }
 
     if (question.questionType === 'mcq') {
-      const correctAnswer =
-        typeof question.correctAnswer === 'string'
-          ? question.correctAnswer
-          : Array.isArray(question.correctAnswer)
-          ? (typeof question.correctAnswer[0] === 'string'
-              ? question.correctAnswer[0]
-              : question.correctAnswer[0]?.text || question.correctAnswer[0]?._id || '')
-          : question.correctAnswer.text || question.correctAnswer._id || '';      
-      return userAnswer === correctAnswer;
+      const correctAnswer = Array.isArray(question.correctAnswer)
+        ? extractAnswerText(question.correctAnswer[0])
+        : extractAnswerText(question.correctAnswer);
+      return extractAnswerText(userAnswer) === correctAnswer;
     }
 
     if (question.questionType === 'multiple') {
       const correctAnswers = Array.isArray(question.correctAnswer) ? question.correctAnswer : [question.correctAnswer];
       const userAnswers = Array.isArray(userAnswer) ? userAnswer : [userAnswer];
       
-      const correctAnswerStrings = correctAnswers.map(answer =>
-        typeof answer === 'string' ? answer : answer.text || answer._id || ''
-      );
+      const correctAnswerStrings = correctAnswers.map((answer) => extractAnswerText(answer));
+      const userAnswerStrings = userAnswers.map((answer) => extractAnswerText(answer));
       
-      if (userAnswers.length !== correctAnswerStrings.length) {
+      if (userAnswerStrings.length !== correctAnswerStrings.length) {
         return false;
       }
       
-      return correctAnswerStrings.every(answer => userAnswers.includes(answer));
+      return correctAnswerStrings.every((answer) => userAnswerStrings.includes(answer));
     }
 
     return false;
@@ -577,6 +590,22 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     Object.entries(replacements).forEach(([from, to]) => {
       text = text.split(from).join(to);
     });
+
+    // Display fallback for legacy rows where Excel auto-converted numeric
+    // tokens to month strings (e.g. "05-Jun" instead of "05-6").
+    const monthToNumber: Record<string, string> = {
+      jan: '1', feb: '2', mar: '3', apr: '4', may: '5', jun: '6',
+      jul: '7', aug: '8', sep: '9', oct: '10', nov: '11', dec: '12',
+    };
+    text = text.replace(
+      /^(\d{1,2})\s*-\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)$/i,
+      (_m, day, mon) => `${String(day)}-${monthToNumber[String(mon).toLowerCase()] || mon}`
+    );
+
+    // Legacy fallback for lost minus sign shown as "?5" or "�5".
+    text = text
+      .replace(/(^|[\s,(=])\?(?=\d)/g, '$1-')
+      .replace(/(^|[\s,(=])\uFFFD(?=\d)/g, '$1-');
 
     // If replacement characters are present, show '?' rather than forcing '-'.
     text = text.replace(/[\uFFFD]/g, '?');

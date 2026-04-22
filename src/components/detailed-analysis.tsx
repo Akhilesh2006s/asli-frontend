@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { API_BASE_URL } from '@/lib/api-config';
 import { 
   Trophy, 
@@ -30,7 +29,6 @@ import {
   Crown,
   Sparkles,
   Eye,
-  RefreshCw
 } from 'lucide-react';
 
 interface Question {
@@ -110,6 +108,24 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState('');
   const [aiAnalysis, setAiAnalysis] = useState<AiExamAnalysis | null>(null);
+
+  const normalizeLegacyExamText = (value: unknown): string => {
+    if (value === undefined || value === null) return '';
+    let text = String(value);
+    const monthToNumber: Record<string, string> = {
+      jan: '1', feb: '2', mar: '3', apr: '4', may: '5', jun: '6',
+      jul: '7', aug: '8', sep: '9', oct: '10', nov: '11', dec: '12',
+    };
+    text = text.replace(
+      /^(\d{1,2})\s*-\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)$/i,
+      (_m, day, mon) => `${String(day)}-${monthToNumber[String(mon).toLowerCase()] || mon}`
+    );
+    text = text
+      .replace(/(^|[\s,(=])\?(?=\d)/g, '$1-')
+      .replace(/(^|[\s,(=])\uFFFD(?=\d)/g, '$1-')
+      .replace(/\uFFFD/g, '?');
+    return text;
+  };
   const [animatedValues, setAnimatedValues] = useState({
     percentage: 0,
     correctAnswers: 0,
@@ -129,17 +145,17 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     
     if (typeof option === 'string') {
       console.log('Option is string:', option);
-      return option;
+      return normalizeLegacyExamText(option);
     }
     
     if (typeof option === 'number') {
       console.log('Option is number:', option);
-      return String(option);
+      return normalizeLegacyExamText(String(option));
     }
     
     if (typeof option === 'boolean') {
       console.log('Option is boolean:', option);
-      return String(option);
+      return normalizeLegacyExamText(String(option));
     }
     
     if (typeof option === 'object' && option !== null) {
@@ -148,23 +164,23 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       // Try different possible text properties
       if (option.text !== undefined && option.text !== null) {
         console.log('Found text property:', option.text);
-        return String(option.text);
+        return normalizeLegacyExamText(String(option.text));
       }
       if (option.label !== undefined && option.label !== null) {
         console.log('Found label property:', option.label);
-        return String(option.label);
+        return normalizeLegacyExamText(String(option.label));
       }
       if (option.value !== undefined && option.value !== null) {
         console.log('Found value property:', option.value);
-        return String(option.value);
+        return normalizeLegacyExamText(String(option.value));
       }
       if (option.answer !== undefined && option.answer !== null) {
         console.log('Found answer property:', option.answer);
-        return String(option.answer);
+        return normalizeLegacyExamText(String(option.answer));
       }
       if (option._id !== undefined && option._id !== null) {
         console.log('Found _id property:', option._id);
-        return String(option._id);
+        return normalizeLegacyExamText(String(option._id));
       }
       
       // If it's an array, join the elements
@@ -175,11 +191,11 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       
       // Last resort: stringify the object
       console.log('Using JSON.stringify as last resort:', JSON.stringify(option));
-      return JSON.stringify(option);
+      return normalizeLegacyExamText(JSON.stringify(option));
     }
     
     console.log('Fallback to String():', String(option));
-    return String(option);
+    return normalizeLegacyExamText(String(option));
   };
 
   // Helper function to check if an option is correct
@@ -460,16 +476,6 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
             }`}
           >
             Insights
-          </button>
-          <button 
-            onClick={() => setActiveTab('action')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === 'action' 
-                ? 'text-purple-600 border-b-2 border-purple-600' 
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Action Plan
           </button>
         </div>
       </div>
@@ -1217,126 +1223,6 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                         <p>Excellent! No weak areas identified.</p>
                       </div>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
-
-        {/* Action Plan Tab */}
-        {activeTab === 'action' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              
-              {/* Study Recommendations */}
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-orange-50">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-xl">
-                    <BookOpen className="w-6 h-6 mr-2 text-orange-600" />
-                    Study Recommendations
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {result.percentage < 50 && (
-                      <div className="p-4 bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-xl">
-                        <div className="flex items-start space-x-3">
-                          <AlertCircle className="w-6 h-6 text-red-500 mt-0.5" />
-                          <div>
-                            <h4 className="font-semibold text-red-800">Focus on Fundamentals</h4>
-                            <p className="text-red-700 text-sm mt-1">
-                              Review basic concepts and practice foundational problems before moving to advanced topics.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {result.percentage >= 50 && result.percentage < 70 && (
-                      <div className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl">
-                        <div className="flex items-start space-x-3">
-                          <TrendingUp className="w-6 h-6 text-yellow-500 mt-0.5" />
-                          <div>
-                            <h4 className="font-semibold text-yellow-800">Improve Accuracy</h4>
-                            <p className="text-yellow-700 text-sm mt-1">
-                              Focus on reducing careless mistakes and improving problem-solving techniques.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {result.percentage >= 70 && (
-                      <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl">
-                        <div className="flex items-start space-x-3">
-                          <Trophy className="w-6 h-6 text-green-500 mt-0.5" />
-                          <div>
-                            <h4 className="font-semibold text-green-800">Maintain Excellence</h4>
-                            <p className="text-green-700 text-sm mt-1">
-                              Keep practicing advanced problems and aim for perfection in your strong areas.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    
-                    {result.unattempted > 0 && (
-                      <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
-                        <div className="flex items-start space-x-3">
-                          <Clock className="w-6 h-6 text-blue-500 mt-0.5" />
-                          <div>
-                            <h4 className="font-semibold text-blue-800">Time Management</h4>
-                            <p className="text-blue-700 text-sm mt-1">
-                              Practice with time constraints to improve speed and ensure you attempt all questions.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Action Plan */}
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-purple-50">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-xl">
-                    <Target className="w-6 h-6 mr-2 text-purple-600" />
-                    Next Steps
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <RefreshCw className="w-5 h-5 text-purple-600" />
-                        <h4 className="font-semibold text-purple-800">Retake Practice</h4>
-                      </div>
-                      <p className="text-purple-700 text-sm">
-                        Retake this exam to improve your score and track your progress.
-                      </p>
-                    </div>
-                    
-                    <div className="p-4 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <BookOpen className="w-5 h-5 text-indigo-600" />
-                        <h4 className="font-semibold text-indigo-800">Study Materials</h4>
-                      </div>
-                      <p className="text-indigo-700 text-sm">
-                        Review video lectures and practice questions in your weak subject areas.
-                      </p>
-                    </div>
-                    
-                    <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <TrendingUp className="w-5 h-5 text-green-600" />
-                        <h4 className="font-semibold text-green-800">Track Progress</h4>
-                      </div>
-                      <p className="text-green-700 text-sm">
-                        Monitor your improvement over time with regular practice tests.
-                      </p>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
