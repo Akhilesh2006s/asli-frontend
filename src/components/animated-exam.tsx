@@ -97,6 +97,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   const MAX_EXIT_ATTEMPTS = 5;
   const submissionInProgressRef = useRef(false);
   const autoSubmitTriggeredRef = useRef(false);
+  const autoSubmitTimeoutRef = useRef<number | null>(null);
 
   // Fetch exam data
   const { data: exam, isLoading } = useQuery({
@@ -191,6 +192,10 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
     // Listen for fullscreen changes
     const handleFullscreenChange = () => {
+      if (submissionInProgressRef.current) {
+        return;
+      }
+
       const isCurrentlyFullscreen = !!(
         document.fullscreenElement ||
         (document as any).webkitFullscreenElement ||
@@ -242,17 +247,29 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
   // Trigger auto-submit once when max fullscreen exits are reached.
   useEffect(() => {
-    if (isSubmitted || exitAttempts < MAX_EXIT_ATTEMPTS) return;
+    if (isSubmitted || exitAttempts < MAX_EXIT_ATTEMPTS || autoSubmitTriggeredRef.current) return;
 
     console.log('⚠️ Maximum exit attempts reached. Auto-submitting exam...');
     setShowExitWarning(true);
     setShowReenterPrompt(false);
 
-    if (!autoSubmitTriggeredRef.current) {
-      autoSubmitTriggeredRef.current = true;
-      void handleSubmit();
+    autoSubmitTriggeredRef.current = true;
+    if (autoSubmitTimeoutRef.current !== null) {
+      window.clearTimeout(autoSubmitTimeoutRef.current);
     }
+    // Keep warning visible briefly, then force submit once.
+    autoSubmitTimeoutRef.current = window.setTimeout(() => {
+      void handleSubmit();
+    }, 1200);
   }, [exitAttempts, isSubmitted]);
+
+  useEffect(() => {
+    return () => {
+      if (autoSubmitTimeoutRef.current !== null) {
+        window.clearTimeout(autoSubmitTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Timer countdown
   useEffect(() => {
@@ -334,7 +351,9 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     try {
       setIsSubmitted(true);
       setShowWarning(false);
-      setShowExitWarning(false);
+      if (exitAttempts < MAX_EXIT_ATTEMPTS) {
+        setShowExitWarning(false);
+      }
       setShowReenterPrompt(false);
       
       let correctAnswers = 0;
@@ -467,6 +486,10 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       setIsSubmitted(false);
       submissionInProgressRef.current = false;
       autoSubmitTriggeredRef.current = false;
+      if (autoSubmitTimeoutRef.current !== null) {
+        window.clearTimeout(autoSubmitTimeoutRef.current);
+        autoSubmitTimeoutRef.current = null;
+      }
       alert('Something went wrong while submitting. Please try once again.');
     }
   };
