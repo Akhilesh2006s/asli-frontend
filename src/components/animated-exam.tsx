@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -68,6 +68,7 @@ interface ExamResult {
     chemistry: { correct: number; total: number; marks: number };
   };
   answers: Record<string, any>;
+  questions?: Question[];
 }
 
 interface AnimatedExamProps {
@@ -94,6 +95,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   const [showReenterPrompt, setShowReenterPrompt] = useState(false);
   const [timerInitialized, setTimerInitialized] = useState(false);
   const MAX_EXIT_ATTEMPTS = 5;
+  const submissionInProgressRef = useRef(false);
 
   // Fetch exam data
   const { data: exam, isLoading } = useQuery({
@@ -323,9 +325,14 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   };
 
   const handleSubmit = async () => {
-    if (!exam || isSubmitted) return;
+    if (!exam || isSubmitted || submissionInProgressRef.current) return;
+
+    submissionInProgressRef.current = true;
 
     setIsSubmitted(true);
+    setShowWarning(false);
+    setShowExitWarning(false);
+    setShowReenterPrompt(false);
     
     let correctAnswers = 0;
     let wrongAnswers = 0;
@@ -340,6 +347,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     if (!exam.questions || !Array.isArray(exam.questions)) {
       console.error('Exam questions are not available:', exam.questions);
       setIsSubmitted(false);
+      submissionInProgressRef.current = false;
       alert('No questions found in this exam. Please try again.');
       return;
     }
@@ -381,7 +389,13 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       questions: exam.questions // Include the questions data
     };
 
+    let saveFailed = false;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
     try {
+
       console.log('📤 Saving exam result:', {
         examId: result.examId,
         examTitle: result.examTitle,
@@ -395,11 +409,17 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         },
         credentials: 'include',
-        body: JSON.stringify(result)
+        body: JSON.stringify(result),
+        signal: controller.signal
       });
-
       if (!response.ok) {
-        const errorData = await response.json();
+        let errorData: any = null;
+        try {
+          errorData = await response.json();
+        } catch (parseError) {
+          console.warn('Failed to parse error response JSON:', parseError);
+        }
+
         console.error('❌ Exam result submission failed:', {
           status: response.status,
           statusText: response.statusText,
@@ -408,17 +428,27 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
         throw new Error(`Failed to save result: ${errorData.message || response.statusText}`);
       }
 
-      const responseData = await response.json();
+      let responseData: any = null;
+      try {
+        responseData = await response.json();
+      } catch (parseError) {
+        console.warn('Response was not JSON, continuing exam completion:', parseError);
+      }
+
       console.log('✅ Exam result saved successfully:', responseData);
       console.log('📋 Saved examId:', responseData.data?.examId || result.examId);
     } catch (error) {
+      saveFailed = true;
       console.error('❌ Failed to save result:', error);
-      // Don't prevent exam completion even if saving fails
-      // But alert the user
-      alert('Warning: Exam result may not have been saved. Please check your connection and try again.');
+    } finally {
+      clearTimeout(timeout);
     }
 
-    // Call onComplete after saving (this will trigger UI refresh)
+    if (saveFailed) {
+      alert('Warning: Exam result may not have been saved. The exam will still be completed.');
+    }
+
+    // Complete exam flow even if save fails/times out
     onComplete(result);
   };
 
@@ -432,10 +462,14 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     }
 
     if (question.questionType === 'mcq') {
-      const correctAnswer = typeof question.correctAnswer === 'string' 
-        ? question.correctAnswer 
-        : question.correctAnswer.text || question.correctAnswer.label || question.correctAnswer._id;
-      
+      const correctAnswer =
+        typeof question.correctAnswer === 'string'
+          ? question.correctAnswer
+          : Array.isArray(question.correctAnswer)
+          ? (typeof question.correctAnswer[0] === 'string'
+              ? question.correctAnswer[0]
+              : question.correctAnswer[0]?.text || question.correctAnswer[0]?._id || '')
+          : question.correctAnswer.text || question.correctAnswer._id || '';      
       return userAnswer === correctAnswer;
     }
 
@@ -443,8 +477,8 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       const correctAnswers = Array.isArray(question.correctAnswer) ? question.correctAnswer : [question.correctAnswer];
       const userAnswers = Array.isArray(userAnswer) ? userAnswer : [userAnswer];
       
-      const correctAnswerStrings = correctAnswers.map(answer => 
-        typeof answer === 'string' ? answer : answer.text || answer.label || answer._id
+      const correctAnswerStrings = correctAnswers.map(answer =>
+        typeof answer === 'string' ? answer : answer.text || answer._id || ''
       );
       
       if (userAnswers.length !== correctAnswerStrings.length) {
@@ -685,7 +719,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                 {/* Question Numbers Grid - 5 columns, 5-6 rows */}
                 <div className="bg-gradient-to-br from-gray-50 to-purple-50/30 rounded-xl p-4 border border-gray-200">
                   <div className="grid grid-cols-5 gap-2.5">
-                    {exam.questions.map((_, index) => {
+                    {exam.questions.map((_: Question, index: number) => {
                       const questionId = exam.questions[index]._id;
                       const isAnswered = answers[questionId] !== undefined;
                       const isFlagged = flaggedQuestions.has(index);
@@ -845,9 +879,9 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                       onValueChange={(value) => handleAnswerChange(currentQuestion._id, value)}
                       className="space-y-3 mt-4"
                     >
-                      {currentQuestion.options.map((option, index) => {
-                        const optionText = typeof option === 'string' ? option : option.text || option.label || JSON.stringify(option);
-                        const optionValue = typeof option === 'string' ? option : option.text || option.label || option._id;
+                      {currentQuestion.options.map((option: string | { text: string; isCorrect?: boolean; _id?: string }, index: number) => {
+                        const optionText = typeof option === 'string' ? option : option.text || option._id || JSON.stringify(option);
+                        const optionValue = typeof option === 'string' ? option : option.text || option._id || '';
                         
                         return (
                           <div 
@@ -881,9 +915,9 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
                   {currentQuestion.questionType === 'multiple' && currentQuestion.options && (
                     <div className="space-y-3 mt-4">
-                      {currentQuestion.options.map((option, index) => {
-                        const optionText = typeof option === 'string' ? option : option.text || option.label || JSON.stringify(option);
-                        const optionValue = typeof option === 'string' ? option : option.text || option.label || option._id;
+                      {currentQuestion.options.map((option: string | { text: string; isCorrect?: boolean; _id?: string }, index: number) => {
+                        const optionText = typeof option === 'string' ? option : option.text || option._id || JSON.stringify(option);
+                        const optionValue = typeof option === 'string' ? option : option.text || option._id || '';
                         const userAnswers = answers[currentQuestion._id] || [];
                         const isChecked = Array.isArray(userAnswers) && userAnswers.includes(optionValue);
                         
