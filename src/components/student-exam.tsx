@@ -304,9 +304,10 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
 
     if (question.questionType === 'mcq') {
       // Handle both string and object-based correct answers
-      const correctAnswer = typeof question.correctAnswer === 'string' 
-        ? question.correctAnswer 
-        : question.correctAnswer.text || question.correctAnswer.label || question.correctAnswer._id;
+      const answerValue = question.correctAnswer as any;
+      const correctAnswer = typeof answerValue === 'string'
+        ? answerValue
+        : (answerValue?.text || answerValue?._id || '');
       
       console.log('MCQ correct answer:', correctAnswer);
       console.log('MCQ user answer:', userAnswer);
@@ -320,8 +321,8 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
       const userAnswers = Array.isArray(userAnswer) ? userAnswer : [userAnswer];
       
       // Convert correct answers to strings for comparison
-      const correctAnswerStrings = correctAnswers.map(answer => 
-        typeof answer === 'string' ? answer : answer.text || answer.label || answer._id
+      const correctAnswerStrings = correctAnswers.map((answer: any) =>
+        typeof answer === 'string' ? answer : (answer?.text || answer?._id || '')
       );
       
       console.log('Multiple correct answers:', correctAnswerStrings);
@@ -353,7 +354,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
     if (!exam || !exam.questions || !Array.isArray(exam.questions)) return;
     
     console.log('=== CORRECT ANSWERS FOR DEBUGGING ===');
-    exam.questions.forEach((question, index) => {
+    exam.questions.forEach((question: Question, index: number) => {
       console.log(`Question ${index + 1}:`, {
         questionText: question.questionText,
         questionType: question.questionType,
@@ -488,7 +489,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                 {/* Question Numbers Grid - 5 columns, 5-6 rows */}
                 <div className="bg-gradient-to-br from-gray-50 to-purple-50/30 rounded-xl p-4 border border-gray-200">
                   <div className="grid grid-cols-5 gap-2.5">
-                    {exam.questions.map((_, index) => {
+                    {exam.questions.map((_: Question, index: number) => {
                       const questionId = exam.questions[index]._id;
                       const isAnswered = answers[questionId] !== undefined;
                       const isFlagged = flaggedQuestions.has(index);
@@ -616,11 +617,11 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                               : `${API_BASE_URL}${currentQuestion.questionImage}`;
                             console.log('Question image URL:', imageUrl);
                             return (
-                              <div className="relative">
+                              <div className="relative rounded-lg border border-gray-200 bg-gray-50 p-2">
                                 <img 
                                   src={imageUrl}
                                   alt="Question" 
-                                  className="max-w-full h-auto rounded-lg border border-gray-200"
+                                  className="mx-auto max-h-[420px] w-auto max-w-full object-contain rounded-lg"
                                   onError={(e) => {
                                     console.error('Image failed to load:', imageUrl);
                                     e.currentTarget.style.display = 'none';
@@ -636,7 +637,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                                         <p class="text-sm">${imageUrl}</p>
                                       </div>
                                     `;
-                                    e.currentTarget.parentNode.appendChild(placeholder);
+                                    e.currentTarget.parentNode?.appendChild(placeholder);
                                   }}
                                   onLoad={() => {
                                     console.log('Image loaded successfully:', imageUrl);
@@ -668,10 +669,10 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                       onValueChange={(value) => handleAnswerChange(currentQuestion._id, value)}
                       className="space-y-3"
                     >
-                      {currentQuestion.options.map((option, index) => {
+                      {currentQuestion.options.map((option: string | { text?: string; label?: string; value?: string; isCorrect?: boolean; _id?: string }, index: number) => {
                         // Handle both string options and object options
                         const optionText = typeof option === 'string' ? option : option.text || option.label || JSON.stringify(option);
-                        const optionValue = typeof option === 'string' ? option : option.text || option.label || option._id;
+                        const optionValue = typeof option === 'string' ? option : option.text || option.label || option._id || '';
                         
                         return (
                           <div key={index} className="flex items-center space-x-3">
@@ -687,10 +688,10 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
 
                   {currentQuestion.questionType === 'multiple' && currentQuestion.options && (
                     <div className="space-y-3">
-                      {currentQuestion.options.map((option, index) => {
+                      {currentQuestion.options.map((option: string | { text?: string; label?: string; value?: string; isCorrect?: boolean; _id?: string }, index: number) => {
                         // Handle both string options and object options
                         const optionText = typeof option === 'string' ? option : option.text || option.label || JSON.stringify(option);
-                        const optionValue = typeof option === 'string' ? option : option.text || option.label || option._id;
+                        const optionValue = typeof option === 'string' ? option : option.text || option.label || option._id || '';
                         
                         return (
                           <div key={index} className="flex items-center space-x-3">

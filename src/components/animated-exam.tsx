@@ -1124,13 +1124,13 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                       )}
                       
                       {currentQuestion.questionImage && (
-                        <div className="mb-4">
+                        <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-2">
                           <img 
                             src={currentQuestion.questionImage.startsWith('http') 
                               ? currentQuestion.questionImage 
                               : `${API_BASE_URL}${currentQuestion.questionImage}`}
                             alt="Question" 
-                            className="w-full h-auto rounded-lg border border-gray-200"
+                            className="mx-auto max-h-[420px] w-auto max-w-full object-contain rounded-lg"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';
                             }}
