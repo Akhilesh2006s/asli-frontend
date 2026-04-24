@@ -474,6 +474,38 @@ const UserManagement = () => {
     }
   };
 
+  const handleExportStudents = () => {
+    const rows = filteredStudents.map((student) => ({
+      name: student.name || '',
+      email: student.email || '',
+      classNumber: student.classNumber || '',
+      phone: student.phone || '',
+      status: student.status || '',
+      lastLogin: student.lastLogin ? new Date(student.lastLogin).toISOString() : '',
+      createdAt: student.createdAt ? new Date(student.createdAt).toISOString() : '',
+    }));
+
+    const headers = ['name', 'email', 'classNumber', 'phone', 'status', 'lastLogin', 'createdAt'];
+    const csv = [
+      headers.join(','),
+      ...rows.map((row) =>
+        headers
+          .map((h) => `"${String((row as any)[h] ?? '').replace(/"/g, '""')}"`)
+          .join(',')
+      ),
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `students_export_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const resetDeleteAllDialog = () => {
     setDeleteAllConfirmStep(1);
     setIsDeleteAllDialogOpen(false);
@@ -881,6 +913,7 @@ const UserManagement = () => {
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <Button
                   className="rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 px-4 text-white shadow-lg hover:from-orange-600 hover:to-orange-500 sm:px-6"
+                  onClick={handleExportStudents}
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Export
@@ -1199,6 +1232,7 @@ const UserManagement = () => {
               <div className="flex items-center space-x-3">
                 <Button 
                   className="rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 px-4 text-white backdrop-blur-sm hover:from-sky-600 hover:to-blue-700 sm:px-6"
+                  onClick={handleExportStudents}
                 >
                 <Download className="w-4 h-4 mr-2" />
                   Export Data

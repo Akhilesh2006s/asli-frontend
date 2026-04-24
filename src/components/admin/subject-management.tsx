@@ -57,6 +57,8 @@ const SubjectManagement = () => {
   const [filterByStatus, setFilterByStatus] = useState<string>('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [viewingSubject, setViewingSubject] = useState<Subject | null>(null);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [newSubject, setNewSubject] = useState({
     name: '',
@@ -87,9 +89,28 @@ const SubjectManagement = () => {
       }
       
       const data = await response.json();
-      // Handle different API response structures
+      // Normalize backend payloads: {_id, fullName, ...} -> UI shape.
       const subjectsData = data.data || data.subjects || data || [];
-      setSubjects(Array.isArray(subjectsData) ? subjectsData : []);
+      const normalized = Array.isArray(subjectsData)
+        ? subjectsData.map((s: any) => ({
+            id: String(s.id || s._id || ''),
+            name: s.name || '',
+            code: s.code || '',
+            description: s.description || '',
+            teacher: s.teacher
+              ? {
+                  id: String(s.teacher.id || s.teacher._id || ''),
+                  fullName: s.teacher.fullName || s.teacher.name || '',
+                  email: s.teacher.email || '',
+                }
+              : undefined,
+            grade: s.grade || '',
+            department: s.department || '',
+            isActive: s.isActive !== false,
+            createdAt: s.createdAt || new Date().toISOString(),
+          }))
+        : [];
+      setSubjects(normalized);
     } catch (error) {
       console.error('Failed to fetch subjects:', error);
       // Set mock data for development
@@ -143,9 +164,15 @@ const SubjectManagement = () => {
       }
       
       const data = await response.json();
-      // Handle different API response structures
       const teachersData = data.data || data.teachers || data || [];
-      setTeachers(Array.isArray(teachersData) ? teachersData : []);
+      const normalizedTeachers = Array.isArray(teachersData)
+        ? teachersData.map((t: any) => ({
+            id: String(t.id || t._id || ''),
+            fullName: t.fullName || t.name || '',
+            email: t.email || '',
+          }))
+        : [];
+      setTeachers(normalizedTeachers);
     } catch (error) {
       console.error('Failed to fetch teachers:', error);
       setTeachers([
@@ -234,6 +261,11 @@ const SubjectManagement = () => {
         alert('Failed to delete subject. Please try again.');
       }
     }
+  };
+
+  const handleViewSubject = (subject: Subject) => {
+    setViewingSubject(subject);
+    setIsViewDialogOpen(true);
   };
 
   // Get unique values for filters
@@ -405,6 +437,50 @@ const SubjectManagement = () => {
         {/* Action Bar with Filters */}
         <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-sky-200">
           <div className="flex flex-col gap-4">
+            <div className="flex justify-end">
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Subject
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>Create New Subject</DialogTitle>
+                    <DialogDescription>Add a new subject for your school.</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleAddSubject} className="space-y-3">
+                    <div>
+                      <Label>Subject Name</Label>
+                      <Input value={newSubject.name} onChange={(e) => setNewSubject({ ...newSubject, name: e.target.value })} required />
+                    </div>
+                    <div>
+                      <Label>Subject Code</Label>
+                      <Input value={newSubject.code} onChange={(e) => setNewSubject({ ...newSubject, code: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label>Description</Label>
+                      <Textarea value={newSubject.description} onChange={(e) => setNewSubject({ ...newSubject, description: e.target.value })} rows={3} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label>Department</Label>
+                        <Input value={newSubject.department} onChange={(e) => setNewSubject({ ...newSubject, department: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label>Grade</Label>
+                        <Input value={newSubject.grade} onChange={(e) => setNewSubject({ ...newSubject, grade: e.target.value })} />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
+                      <Button type="submit">Create Subject</Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
             {/* Search Bar */}
           <div className="flex flex-col sm:flex-row gap-4 items-center">
               <div className="relative flex-1 max-w-md">
@@ -570,7 +646,7 @@ const SubjectManagement = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      <Button size="sm" variant="outline" className="border-sky-200 text-sky-700 hover:bg-sky-50">
+                      <Button size="sm" variant="outline" className="border-sky-200 text-sky-700 hover:bg-sky-50" onClick={() => handleViewSubject(subject)}>
                         <Eye className="w-3 h-3" />
                       </Button>
                       <Button 
@@ -609,6 +685,64 @@ const SubjectManagement = () => {
           </div>
         )}
       </div>
+
+      {/* Edit Subject Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Subject</DialogTitle>
+            <DialogDescription>Update subject details.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditSubject} className="space-y-3">
+            <div>
+              <Label>Subject Name</Label>
+              <Input value={editingSubject?.name || ''} onChange={(e) => setEditingSubject((prev) => prev ? { ...prev, name: e.target.value } : prev)} required />
+            </div>
+            <div>
+              <Label>Subject Code</Label>
+              <Input value={editingSubject?.code || ''} onChange={(e) => setEditingSubject((prev) => prev ? { ...prev, code: e.target.value } : prev)} />
+            </div>
+            <div>
+              <Label>Description</Label>
+              <Textarea value={editingSubject?.description || ''} onChange={(e) => setEditingSubject((prev) => prev ? { ...prev, description: e.target.value } : prev)} rows={3} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Department</Label>
+                <Input value={editingSubject?.department || ''} onChange={(e) => setEditingSubject((prev) => prev ? { ...prev, department: e.target.value } : prev)} />
+              </div>
+              <div>
+                <Label>Grade</Label>
+                <Input value={editingSubject?.grade || ''} onChange={(e) => setEditingSubject((prev) => prev ? { ...prev, grade: e.target.value } : prev)} />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
+              <Button type="submit">Update Subject</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Subject Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Subject Details</DialogTitle>
+            <DialogDescription>Read-only subject information.</DialogDescription>
+          </DialogHeader>
+          {viewingSubject && (
+            <div className="space-y-2 text-sm">
+              <p><span className="font-semibold">Name:</span> {viewingSubject.name || '-'}</p>
+              <p><span className="font-semibold">Code:</span> {viewingSubject.code || '-'}</p>
+              <p><span className="font-semibold">Department:</span> {viewingSubject.department || '-'}</p>
+              <p><span className="font-semibold">Grade:</span> {viewingSubject.grade || '-'}</p>
+              <p><span className="font-semibold">Teacher:</span> {viewingSubject.teacher?.fullName || 'Unassigned'}</p>
+              <p><span className="font-semibold">Description:</span> {viewingSubject.description || '-'}</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

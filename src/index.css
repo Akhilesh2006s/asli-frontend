@@ -115,6 +115,13 @@
     max-width: 100%;
     height: auto;
   }
+
+  /* Improve checkbox visibility across the platform (native + custom forms). */
+  input[type='checkbox'] {
+    accent-color: #2563eb;
+    border: 1px solid #94a3b8;
+    border-radius: 0.25rem;
+  }
 }
 
 .instrument {

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UsersIcon, UserPlusIcon, EditIcon, TrashIcon, CrownIcon, GraduationCapIcon, BookOpenIcon, SearchIcon } from "lucide-react";
+import { UsersIcon, UserPlusIcon, EditIcon, TrashIcon, CrownIcon, GraduationCapIcon, BookOpenIcon, SearchIcon, UploadIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
 
@@ -17,6 +17,7 @@ interface Admin {
   board?: string;
   state?: string;
   schoolName?: string;
+  schoolLogo?: string;
   permissions: string[];
   status: string;
   joinDate: string;
@@ -70,7 +71,8 @@ export default function AdminManagement() {
     password: '',
     board: SUPPORTED_BOARD,
     state: '',
-    schoolName: ''
+    schoolName: '',
+    schoolLogo: ''
   });
   const [editAdmin, setEditAdmin] = useState({
     name: '',
@@ -78,8 +80,11 @@ export default function AdminManagement() {
     board: SUPPORTED_BOARD,
     state: '',
     schoolName: '',
+    schoolLogo: '',
     isActive: true
   });
+  const [isUploadingAddLogo, setIsUploadingAddLogo] = useState(false);
+  const [isUploadingEditLogo, setIsUploadingEditLogo] = useState(false);
 
   // Board options
   const boardOptions = [
@@ -119,6 +124,27 @@ export default function AdminManagement() {
     { value: 'Delhi', label: 'Delhi' }
   ];
   const { toast } = useToast();
+
+  const uploadSchoolLogo = async (file: File): Promise<string | null> => {
+    const token = localStorage.getItem('authToken');
+    const formData = new FormData();
+    formData.append('logo', file);
+
+    const response = await fetch(`${API_BASE_URL}/api/super-admin/admins/upload-logo`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData
+    });
+
+    const result = await response.json();
+    if (!response.ok || !result?.success || !result?.logoUrl) {
+      throw new Error(result?.message || 'Failed to upload school logo');
+    }
+
+    return result.logoUrl;
+  };
 
   // Fetch admins from API
   useEffect(() => {
@@ -198,6 +224,7 @@ export default function AdminManagement() {
         board: SUPPORTED_BOARD,
         state: newAdmin.state,
         schoolName: newAdmin.schoolName,
+        schoolLogo: newAdmin.schoolLogo,
         permissions: [] // Optional, defaults to empty array
       };
       
@@ -216,7 +243,7 @@ export default function AdminManagement() {
       if (response.ok) {
         const result = await response.json();
         setAdmins([...(admins || []), result.data]);
-        setNewAdmin({ name: '', email: '', password: '', board: SUPPORTED_BOARD, state: '', schoolName: '' });
+        setNewAdmin({ name: '', email: '', password: '', board: SUPPORTED_BOARD, state: '', schoolName: '', schoolLogo: '' });
         setIsAddDialogOpen(false);
         toast({
           title: "Success",
@@ -264,6 +291,7 @@ export default function AdminManagement() {
       board: SUPPORTED_BOARD,
       state: admin.state || '',
       schoolName: admin.schoolName || '',
+      schoolLogo: admin.schoolLogo || '',
       isActive: admin.status === 'active' || admin.status === 'Active'
     });
     setIsEditDialogOpen(true);
@@ -303,6 +331,7 @@ export default function AdminManagement() {
           board: SUPPORTED_BOARD,
           state: editAdmin.state,
           schoolName: editAdmin.schoolName,
+          schoolLogo: editAdmin.schoolLogo,
           isActive: editAdmin.isActive
         }),
       });
@@ -338,6 +367,7 @@ export default function AdminManagement() {
           board: SUPPORTED_BOARD,
           state: '',
           schoolName: '',
+          schoolLogo: '',
           isActive: true
         });
         toast({
@@ -547,6 +577,45 @@ export default function AdminManagement() {
                   placeholder="Enter school name"
                 />
               </div>
+              <div>
+                <Label htmlFor="schoolLogo">School Logo</Label>
+                <div className="space-y-2">
+                  <Input
+                    id="schoolLogo"
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsUploadingAddLogo(true);
+                      try {
+                        const logoUrl = await uploadSchoolLogo(file);
+                        if (logoUrl) {
+                          setNewAdmin({ ...newAdmin, schoolLogo: logoUrl });
+                        }
+                      } catch (error) {
+                        toast({
+                          title: "Logo upload failed",
+                          description: error instanceof Error ? error.message : "Unable to upload school logo",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setIsUploadingAddLogo(false);
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+                  {isUploadingAddLogo && (
+                    <p className="text-xs text-gray-500">Uploading logo...</p>
+                  )}
+                  {newAdmin.schoolLogo && (
+                    <div className="flex items-center gap-3 p-2 rounded-md border">
+                      <img src={newAdmin.schoolLogo} alt="School logo preview" className="h-10 w-10 rounded object-cover border" />
+                      <p className="text-xs text-gray-600 truncate">{newAdmin.schoolLogo}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   Cancel
@@ -632,6 +701,45 @@ export default function AdminManagement() {
                   onChange={(e) => setEditAdmin({ ...editAdmin, schoolName: e.target.value })}
                   placeholder="Enter school name"
                 />
+              </div>
+              <div>
+                <Label htmlFor="edit-schoolLogo">School Logo</Label>
+                <div className="space-y-2">
+                  <Input
+                    id="edit-schoolLogo"
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsUploadingEditLogo(true);
+                      try {
+                        const logoUrl = await uploadSchoolLogo(file);
+                        if (logoUrl) {
+                          setEditAdmin({ ...editAdmin, schoolLogo: logoUrl });
+                        }
+                      } catch (error) {
+                        toast({
+                          title: "Logo upload failed",
+                          description: error instanceof Error ? error.message : "Unable to upload school logo",
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setIsUploadingEditLogo(false);
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+                  {isUploadingEditLogo && (
+                    <p className="text-xs text-gray-500">Uploading logo...</p>
+                  )}
+                  {editAdmin.schoolLogo && (
+                    <div className="flex items-center gap-3 p-2 rounded-md border">
+                      <img src={editAdmin.schoolLogo} alt="School logo preview" className="h-10 w-10 rounded object-cover border" />
+                      <p className="text-xs text-gray-600 truncate">{editAdmin.schoolLogo}</p>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex items-center space-x-2">
                 <input
@@ -754,8 +862,12 @@ export default function AdminManagement() {
             <CardHeader>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-start space-x-3 min-w-0 flex-1">
-                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                    <CrownIcon className="h-5 w-5 text-orange-600" />
+                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center overflow-hidden">
+                    {admin?.schoolLogo ? (
+                      <img src={admin.schoolLogo} alt={`${admin?.schoolName || 'School'} logo`} className="h-full w-full object-cover" />
+                    ) : (
+                      <CrownIcon className="h-5 w-5 text-orange-600" />
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <CardTitle className="text-base sm:text-lg leading-tight break-words">

@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Image as ImageIcon, Loader2, Mic, Send } from "lucide-react";
+import { BookOpen, CircleHelp, ClipboardCheck, Image as ImageIcon, Loader2, Mic, Send } from "lucide-react";
 import { useState } from "react";
 import type { UseVidyaChatResult } from "./types";
 
@@ -11,8 +11,75 @@ interface TeacherChatUIProps {
 
 type TeachingTab = "lesson" | "quiz" | "help";
 
+const MODE_UI: Record<
+  TeachingTab,
+  {
+    title: string;
+    subtitle: string;
+    header: string;
+    activeTab: string;
+    quickA: { label: string; prompt: string; className: string };
+    quickB: { label: string; prompt: string; className: string };
+    Icon: typeof BookOpen;
+  }
+> = {
+  lesson: {
+    title: "Lesson Planner AI",
+    subtitle: "Design structured class flow, outcomes, and activities.",
+    header: "bg-gradient-to-r from-sky-100 to-blue-100",
+    activeTab: "bg-sky-600 text-white",
+    quickA: {
+      label: "Plan Lesson",
+      prompt: "Create a 45-minute lesson plan with learning outcomes and activities.",
+      className: "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100",
+    },
+    quickB: {
+      label: "Explain Topic",
+      prompt: "Explain this topic with examples and misconceptions to avoid.",
+      className: "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100",
+    },
+    Icon: BookOpen,
+  },
+  quiz: {
+    title: "Assessment Builder AI",
+    subtitle: "Generate quizzes, MCQs, and rubric-ready assessment sets.",
+    header: "bg-gradient-to-r from-emerald-100 to-teal-100",
+    activeTab: "bg-emerald-600 text-white",
+    quickA: {
+      label: "Create Quiz",
+      prompt: "Generate 10 MCQs with answers, bloom level, and difficulty tags.",
+      className: "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+    },
+    quickB: {
+      label: "Worksheet Ideas",
+      prompt: "Create a worksheet with 3 easy, 3 medium, and 2 challenge questions.",
+      className: "border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100",
+    },
+    Icon: ClipboardCheck,
+  },
+  help: {
+    title: "Classroom Mentor AI",
+    subtitle: "Get support for classroom management and teaching decisions.",
+    header: "bg-gradient-to-r from-orange-100 to-amber-100",
+    activeTab: "bg-orange-600 text-white",
+    quickA: {
+      label: "Classroom Help",
+      prompt: "Suggest practical strategies to improve classroom engagement.",
+      className: "border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100",
+    },
+    quickB: {
+      label: "Student Support",
+      prompt: "How should I support mixed-ability learners in this lesson?",
+      className: "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100",
+    },
+    Icon: CircleHelp,
+  },
+};
+
 export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
   const [teachingTab, setTeachingTab] = useState<TeachingTab>("lesson");
+  const modeUi = MODE_UI[teachingTab];
+  const ModeIcon = modeUi.Icon;
 
   if (model.isLoading) {
     return (
@@ -24,9 +91,12 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
 
   return (
     <div className={`${className ?? ""} mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col rounded-2xl border border-slate-200 bg-white shadow-sm`}>
-      <div className="border-b border-slate-200 px-4 py-3">
-        <h3 className="text-base font-semibold text-slate-900">Teaching Assistant AI</h3>
-        <p className="text-xs text-slate-600">Compact workspace for fast lesson support</p>
+      <div className={`border-b border-slate-200 px-4 py-3 ${modeUi.header}`}>
+        <div className="flex items-center gap-2">
+          <ModeIcon className="h-4 w-4 text-slate-700" />
+          <h3 className="text-base font-semibold text-slate-900">{modeUi.title}</h3>
+        </div>
+        <p className="text-xs text-slate-600">{modeUi.subtitle}</p>
       </div>
 
       <div className="px-4 pt-3">
@@ -34,7 +104,7 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
           <button
             onClick={() => setTeachingTab("lesson")}
             className={`rounded-lg px-3 py-1.5 text-sm transition ${
-              teachingTab === "lesson" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
+              teachingTab === "lesson" ? modeUi.activeTab : "bg-slate-100 text-slate-700"
             }`}
           >
             Lesson
@@ -42,7 +112,7 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
           <button
             onClick={() => setTeachingTab("quiz")}
             className={`rounded-lg px-3 py-1.5 text-sm transition ${
-              teachingTab === "quiz" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
+              teachingTab === "quiz" ? modeUi.activeTab : "bg-slate-100 text-slate-700"
             }`}
           >
             Quiz
@@ -50,7 +120,7 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
           <button
             onClick={() => setTeachingTab("help")}
             className={`rounded-lg px-3 py-1.5 text-sm transition ${
-              teachingTab === "help" ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
+              teachingTab === "help" ? modeUi.activeTab : "bg-slate-100 text-slate-700"
             }`}
           >
             Help
@@ -64,17 +134,17 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
           <div className="flex flex-wrap gap-2">
             <Badge
               variant="outline"
-              className="cursor-pointer border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100"
-              onClick={() => model.onPromptClick("Generate quiz questions")}
+              className={`cursor-pointer ${modeUi.quickA.className}`}
+              onClick={() => model.onPromptClick(modeUi.quickA.prompt)}
             >
-              Create Quiz
+              {modeUi.quickA.label}
             </Badge>
             <Badge
               variant="outline"
-              className="cursor-pointer border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100"
-              onClick={() => model.onPromptClick("Explain topic in simple terms")}
+              className={`cursor-pointer ${modeUi.quickB.className}`}
+              onClick={() => model.onPromptClick(modeUi.quickB.prompt)}
             >
-              Explain Topic
+              {modeUi.quickB.label}
             </Badge>
           </div>
         </div>

@@ -69,6 +69,7 @@ interface ExamResult {
   };
   answers: Record<string, any>;
   questions?: Question[];
+  questionTimings?: Record<string, number>;
 }
 
 interface AnimatedExamProps {
@@ -94,10 +95,14 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [showReenterPrompt, setShowReenterPrompt] = useState(false);
   const [timerInitialized, setTimerInitialized] = useState(false);
+  const [questionTimings, setQuestionTimings] = useState<Record<string, number>>({});
   const MAX_EXIT_ATTEMPTS = 5;
   const submissionInProgressRef = useRef(false);
   const autoSubmitTriggeredRef = useRef(false);
   const autoSubmitTimeoutRef = useRef<number | null>(null);
+  const questionEnterTimestampRef = useRef<number>(Date.now());
+  const lastTrackedQuestionIdRef = useRef<string | null>(null);
+  const initializedExamIdRef = useRef<string | null>(null);
 
   // Fetch exam data
   const { data: exam, isLoading, isError, error } = useQuery({
@@ -177,22 +182,33 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       
       return actualExamData;
     },
-    retry: 1
+    retry: 1,
+    // During an active exam, refetch on focus can re-run exam data and
+    // accidentally reset timer state while switching fullscreen.
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   // Initialize timer
   useEffect(() => {
     if (exam) {
+      const incomingExamId = String(exam._id || examId || '');
+      const alreadyInitializedForSameExam = initializedExamIdRef.current === incomingExamId;
+      if (alreadyInitializedForSameExam && timerInitialized) {
+        return;
+      }
       const rawDuration = Number(exam.duration);
       const safeDurationMinutes =
         Number.isFinite(rawDuration) && rawDuration > 0 ? rawDuration : 30;
       setTimeLeft(Math.round(safeDurationMinutes * 60));
       setTimerInitialized(true);
+      initializedExamIdRef.current = incomingExamId;
     } else {
       setTimeLeft(0);
       setTimerInitialized(false);
+      initializedExamIdRef.current = null;
     }
-  }, [exam]);
+  }, [exam, examId, timerInitialized]);
 
   // Function to enter/re-enter fullscreen
   const enterFullscreen = async () => {
@@ -280,7 +296,14 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
   // Trigger auto-submit once when max fullscreen exits are reached.
   useEffect(() => {
-    if (isSubmitted || exitAttempts < MAX_EXIT_ATTEMPTS || autoSubmitTriggeredRef.current) return;
+    if (
+      isSubmitted ||
+      exitAttempts < MAX_EXIT_ATTEMPTS ||
+      autoSubmitTriggeredRef.current ||
+      submissionInProgressRef.current
+    ) {
+      return;
+    }
 
     console.log('⚠️ Maximum exit attempts reached. Auto-submitting exam...');
     setShowExitWarning(true);
@@ -316,6 +339,43 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     }
   }, [timeLeft, isSubmitted, exam, timerInitialized]);
 
+  useEffect(() => {
+    if (!exam?.questions?.length) return;
+    if (lastTrackedQuestionIdRef.current) return;
+    const currentQuestion = exam.questions[currentQuestionIndex];
+    if (!currentQuestion?._id) return;
+    lastTrackedQuestionIdRef.current = String(currentQuestion._id);
+    questionEnterTimestampRef.current = Date.now();
+  }, [exam, currentQuestionIndex]);
+
+  const recordCurrentQuestionDuration = (baseTimings: Record<string, number> = questionTimings) => {
+    if (!exam?.questions?.length) return;
+    const now = Date.now();
+    const current = exam.questions[currentQuestionIndex];
+    const currentId = current?._id ? String(current._id) : null;
+    if (!currentId) return;
+
+    if (!lastTrackedQuestionIdRef.current) {
+      lastTrackedQuestionIdRef.current = currentId;
+      questionEnterTimestampRef.current = now;
+      return;
+    }
+
+    const elapsedSec = Math.max(0, Math.round((now - questionEnterTimestampRef.current) / 1000));
+    const trackedId = lastTrackedQuestionIdRef.current;
+    let updatedTimings = baseTimings;
+    if (elapsedSec > 0) {
+      updatedTimings = {
+        ...baseTimings,
+        [trackedId]: (baseTimings[trackedId] || 0) + elapsedSec,
+      };
+      setQuestionTimings(updatedTimings);
+    }
+    lastTrackedQuestionIdRef.current = currentId;
+    questionEnterTimestampRef.current = now;
+    return updatedTimings;
+  };
+
   const handleAnswerChange = (questionId: string, value: any) => {
     setAnswers(prev => ({
       ...prev,
@@ -347,6 +407,11 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
   const animateToQuestion = (newIndex: number) => {
     if (isAnimating || newIndex === currentQuestionIndex) return;
+    try {
+      recordCurrentQuestionDuration(questionTimings);
+    } catch (timingError) {
+      console.warn('Failed to record final question timing:', timingError);
+    }
     
     setIsAnimating(true);
     setAnimationDirection(newIndex > currentQuestionIndex ? 'up' : 'down');
@@ -380,6 +445,13 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     if (!exam || isSubmitted || submissionInProgressRef.current) return;
 
     submissionInProgressRef.current = true;
+    let finalQuestionTimings = questionTimings;
+    let fallbackResult: ExamResult | null = null;
+    try {
+      finalQuestionTimings = recordCurrentQuestionDuration(questionTimings) || questionTimings;
+    } catch (timingError) {
+      console.warn('Failed to record final question timing during submit:', timingError);
+    }
 
     try {
       setIsSubmitted(true);
@@ -464,11 +536,17 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
         timeTaken: (exam.duration * 60) - timeLeft,
         subjectWiseScore,
         answers: answers,
-        questions: exam.questions
+        questions: exam.questions,
+        questionTimings: finalQuestionTimings
       };
+      fallbackResult = result;
 
       // Move to completion view immediately so the fullscreen warning cannot block UI.
-      onComplete(result);
+      try {
+        onComplete(result);
+      } catch (completeError) {
+        console.error('Immediate completion transition failed, continuing submit:', completeError);
+      }
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
@@ -553,19 +631,42 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
             answers: serverAnswerCount > 0 || localAnswerCount === 0
               ? normalizedServerAnswers
               : result.answers,
+            questionTimings: result.questionTimings,
             questions: Array.isArray(serverResult.questions) && serverResult.questions.length > 0
               ? serverResult.questions
               : result.questions
           };
-          onComplete(authoritativeResult);
+          try {
+            onComplete(authoritativeResult);
+          } catch (completeError) {
+            console.error('Authoritative completion transition failed:', completeError);
+          }
         }
       } catch (error) {
         console.error('❌ Failed to save result:', error);
       } finally {
         clearTimeout(timeout);
       }
+      // Allow graceful manual retry path if user stays on this screen.
+      submissionInProgressRef.current = false;
     } catch (error) {
       console.error('❌ Submit crashed before completion:', error);
+      const errorText =
+        error instanceof Error
+          ? `${error.name}: ${error.message}`
+          : String(error || 'Unknown error');
+
+      if (fallbackResult) {
+        console.warn('⚠️ Recovering submit with fallback result:', errorText);
+        try {
+          onComplete(fallbackResult);
+          submissionInProgressRef.current = false;
+          return;
+        } catch (fallbackError) {
+          console.error('❌ Fallback completion failed:', fallbackError);
+        }
+      }
+
       setIsSubmitted(false);
       submissionInProgressRef.current = false;
       autoSubmitTriggeredRef.current = false;
@@ -573,7 +674,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
         window.clearTimeout(autoSubmitTimeoutRef.current);
         autoSubmitTimeoutRef.current = null;
       }
-      alert('Something went wrong while submitting. Please try once again.');
+      alert(`Unable to finish submit right now. ${errorText}`);
     }
   };
 

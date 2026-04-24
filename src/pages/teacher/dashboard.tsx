@@ -2470,9 +2470,27 @@ const TeacherDashboard = () => {
                 {/* Chat Content */}
                 {vidyaAiTab === 'chat' && (
                   <div className="space-y-4 max-w-4xl mx-auto">
-                    <div className="rounded-2xl bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 p-5 shadow-md border border-white/40">
-                      <h2 className="text-2xl font-bold text-white">Teaching Assistant AI</h2>
-                      <p className="text-white/90 mt-1">Plan lessons, assessments, and classroom activities</p>
+                    <div className={`rounded-2xl p-5 shadow-md border border-white/40 ${
+                      teacherChatFocusTab === 'lesson-planning'
+                        ? 'bg-gradient-to-r from-sky-300 via-sky-400 to-blue-400'
+                        : teacherChatFocusTab === 'assessments'
+                          ? 'bg-gradient-to-r from-emerald-300 via-teal-400 to-green-400'
+                          : 'bg-gradient-to-r from-orange-300 via-amber-400 to-orange-400'
+                    }`}>
+                      <h2 className="text-2xl font-bold text-white">
+                        {teacherChatFocusTab === 'lesson-planning'
+                          ? 'Lesson Planning Assistant'
+                          : teacherChatFocusTab === 'assessments'
+                            ? 'Assessment Assistant'
+                            : 'Classroom Help Assistant'}
+                      </h2>
+                      <p className="text-white/90 mt-1">
+                        {teacherChatFocusTab === 'lesson-planning'
+                          ? 'Build structured lesson plans and in-class activities.'
+                          : teacherChatFocusTab === 'assessments'
+                            ? 'Design quizzes, worksheets, and evaluation tasks.'
+                            : 'Get practical support for classroom management and teaching decisions.'}
+                      </p>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
@@ -2480,7 +2498,7 @@ const TeacherDashboard = () => {
                         onClick={() => setTeacherChatFocusTab('lesson-planning')}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                           teacherChatFocusTab === 'lesson-planning'
-                            ? 'bg-sky-600 text-white shadow-sm'
+                            ? 'bg-sky-600 text-white shadow-sm ring-2 ring-sky-200'
                             : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
                         }`}
                       >
@@ -2490,7 +2508,7 @@ const TeacherDashboard = () => {
                         onClick={() => setTeacherChatFocusTab('assessments')}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                           teacherChatFocusTab === 'assessments'
-                            ? 'bg-sky-600 text-white shadow-sm'
+                            ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-200'
                             : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
                         }`}
                       >
@@ -2500,7 +2518,7 @@ const TeacherDashboard = () => {
                         onClick={() => setTeacherChatFocusTab('classroom-help')}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                           teacherChatFocusTab === 'classroom-help'
-                            ? 'bg-sky-600 text-white shadow-sm'
+                            ? 'bg-orange-600 text-white shadow-sm ring-2 ring-orange-200'
                             : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
                         }`}
                       >
@@ -2511,6 +2529,21 @@ const TeacherDashboard = () => {
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <Badge className="bg-sky-100 text-sky-700 hover:bg-sky-100 border border-sky-200">
                         {(teacherSubjects?.[0]?.name || 'General') + ' - ' + (availableClasses?.[0]?.classNumber || assignedClasses?.[0]?.classNumber || 'Grade 7')}
+                      </Badge>
+                      <Badge
+                        className={
+                          teacherChatFocusTab === 'lesson-planning'
+                            ? 'bg-sky-100 text-sky-700 border border-sky-200'
+                            : teacherChatFocusTab === 'assessments'
+                              ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                              : 'bg-orange-100 text-orange-700 border border-orange-200'
+                        }
+                      >
+                        {teacherChatFocusTab === 'lesson-planning'
+                          ? 'Mode: Lesson Planning'
+                          : teacherChatFocusTab === 'assessments'
+                            ? 'Mode: Assessments'
+                            : 'Mode: Classroom Help'}
                       </Badge>
                       <div className="flex flex-wrap gap-2">
                         <Button
@@ -2549,7 +2582,8 @@ const TeacherDashboard = () => {
                           context={{
                             studentName: teacherUser?.fullName || teacherUser?.email?.split('@')[0] || "Teacher",
                             currentSubject: teacherSubjects.length > 0 ? teacherSubjects[0].name : "General",
-                            currentTopic: undefined
+                            currentTopic: undefined,
+                            teacherMode: teacherChatFocusTab
                           }}
                         />
                       ) : (

@@ -33,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BellIcon, LogOutIcon, UsersIcon, TrendingUpIcon, BookIcon, UserPlusIcon, BookPlusIcon, SettingsIcon, DownloadIcon, HomeIcon, CrownIcon, BarChart3Icon, CreditCardIcon, ArrowUpRightIcon, ArrowDownRightIcon, StarIcon, TargetIcon, BrainIcon, ZapIcon, AlertTriangleIcon, TrendingDownIcon, RefreshCw, Sparkles, MessageSquare, Clock, Plus, Monitor, Grid3x3, FileText, FileTextIcon, Shield, Search, Camera, PieChart, User, Download, Circle, Square, Bot, Users2, UploadIcon, TrophyIcon, BarChartIcon, BrainCircuitIcon } from "lucide-react";
+import { BellIcon, LogOutIcon, UsersIcon, TrendingUpIcon, BookIcon, UserPlusIcon, BookPlusIcon, SettingsIcon, DownloadIcon, HomeIcon, CrownIcon, BarChart3Icon, CreditCardIcon, ArrowUpRightIcon, ArrowDownRightIcon, StarIcon, TargetIcon, BrainIcon, ZapIcon, AlertTriangleIcon, TrendingDownIcon, RefreshCw, Sparkles, MessageSquare, Clock, Plus, Monitor, Grid3x3, FileText, FileTextIcon, Shield, Search, Camera, PieChart, User, Download, Circle, Square, Bot, Users2, UploadIcon, TrophyIcon, BarChartIcon, BrainCircuitIcon, LayoutList, Calendar, FolderTree, AlertTriangle } from "lucide-react";
 import { LineChart, Line, PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
@@ -281,22 +281,21 @@ export default function SuperAdminDashboard() {
   const [coursesPerBoardData, setCoursesPerBoardData] = useState<Array<{name: string, value: number, color: string}>>([]);
   const [studentsPerAdminData, setStudentsPerAdminData] = useState<Array<{[key: string]: string | number}>>([]);
 
-  // Icon grid using EXACT same icons as sidebar in same order
+  // Icon grid aligned with sidebar entities and order.
   const iconGridIcons = [
     { Icon: BarChart3Icon, view: 'dashboard', label: 'Dashboard' },
     { Icon: Users2, view: 'board', label: 'Board Management' },
     { Icon: Shield, view: 'admins', label: 'School Management' },
-    { Icon: FileTextIcon, view: 'subjects', label: 'Subject Management' },
-    { Icon: UploadIcon, view: 'content', label: 'Content Management' },
+    { Icon: LayoutList, view: 'subjects-and-content', label: 'Subject & Content' },
     { Icon: FileTextIcon, view: 'exams', label: 'Exam Management' },
     { Icon: TrophyIcon, view: 'iq-rank-boost', label: 'IQ/Rank Boost Activities' },
+    { Icon: Calendar, view: 'calendar', label: 'School Calendar' },
     { Icon: Sparkles, view: 'vidya-ai', label: 'Vidya AI' },
+    { Icon: FolderTree, view: 'ai-tool-generations', label: 'AI Tool Data' },
     { Icon: BarChartIcon, view: 'analytics', label: 'Analytics' },
-    { Icon: BarChart3Icon, view: 'board-comparison', label: 'Board Comparison' },
+    { Icon: AlertTriangle, view: 'ai-risk-analysis', label: 'AI Risk Analysis' },
     { Icon: CreditCardIcon, view: 'subscriptions', label: 'Subscriptions' },
-    { Icon: SettingsIcon, view: 'settings', label: 'Settings' },
-    { Icon: Shield, view: 'admins', label: 'School Management' },
-    { Icon: Sparkles, view: 'vidya-ai', label: 'Vidya AI' }
+    { Icon: SettingsIcon, view: 'settings', label: 'Settings' }
   ];
 
   const renderDashboardContent = () => {

@@ -94,6 +94,21 @@ const toDateTimeLocalInput = (value?: string) => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
+const sanitizeMarksInput = (value: string) => {
+  if (value.trim() === '') return '';
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return '';
+  return String(Math.max(0, parsed));
+};
+
+// Keep negative-marking as positive magnitude in UI/backend; deduction logic applies it as negative.
+const sanitizeNegativeMarksInput = (value: string) => {
+  if (value.trim() === '') return '';
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return '';
+  return String(Math.max(0, Math.abs(parsed)));
+};
+
 const examDisplayDedupKey = (exam: Exam) => {
   const classKey = getExamClassStrings(exam)
     .map((c) => String(c).trim())
@@ -662,8 +677,8 @@ export default function ExamManagement() {
       questionType: questionFormData.questionType,
       options: formattedOptions,
       correctAnswer,
-      marks: parseInt(questionFormData.marks) || 1,
-      negativeMarks: parseFloat(questionFormData.negativeMarks) || 0,
+      marks: Math.max(0, Number(questionFormData.marks) || 1),
+      negativeMarks: Math.max(0, Math.abs(Number(questionFormData.negativeMarks) || 0)),
       explanation: questionFormData.explanation.trim() || undefined,
       subject: questionFormData.subject,
       board: selectedExam.board,
@@ -1447,8 +1462,11 @@ export default function ExamManagement() {
                         setCsvUploadResults(null);
                       }
                     }}
-                    className="mt-1"
+                    className="mt-1 cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-200"
                   />
+                  <p className={`text-xs mt-1 ${csvFile ? 'text-blue-700 font-medium' : 'text-gray-500'}`}>
+                    {csvFile ? `Selected file: ${csvFile.name}` : 'No file selected yet'}
+                  </p>
                   <p className="text-xs text-gray-500 mt-1">
                     File should contain: title, description, examType, classNumber, subject, maxAttempts, board, duration, totalQuestions, totalMarks, instructions, startDate, endDate, filterType, targetSchools
                   </p>
@@ -2057,8 +2075,11 @@ export default function ExamManagement() {
                         prefillQuestionFormFromCsv(file);
                       }
                     }}
-                    className="mt-1"
+                    className="mt-1 cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-200"
                   />
+                  <p className={`text-xs mt-1 ${questionCsvFile ? 'text-blue-700 font-medium' : 'text-gray-500'}`}>
+                    {questionCsvFile ? `Selected file: ${questionCsvFile.name}` : 'No file selected yet'}
+                  </p>
                   <p className="text-xs text-gray-500 mt-1">
                     File should contain: questionText, questionType, subject, marks, options (option1-option4), correctAnswer/correctAnswers/integerAnswer
                   </p>
@@ -2395,8 +2416,15 @@ export default function ExamManagement() {
                   <Label>Marks *</Label>
                   <Input
                     type="number"
+                    min="0"
+                    step="0.25"
                     value={questionFormData.marks}
-                    onChange={(e) => setQuestionFormData({ ...questionFormData, marks: e.target.value })}
+                    onChange={(e) =>
+                      setQuestionFormData({
+                        ...questionFormData,
+                        marks: sanitizeMarksInput(e.target.value),
+                      })
+                    }
                     placeholder="1"
                   />
                 </div>
@@ -2404,11 +2432,20 @@ export default function ExamManagement() {
                   <Label>Negative Marks</Label>
                   <Input
                     type="number"
+                    min="0"
                     step="0.25"
                     value={questionFormData.negativeMarks}
-                    onChange={(e) => setQuestionFormData({ ...questionFormData, negativeMarks: e.target.value })}
+                    onChange={(e) =>
+                      setQuestionFormData({
+                        ...questionFormData,
+                        negativeMarks: sanitizeNegativeMarksInput(e.target.value),
+                      })
+                    }
                     placeholder="0"
                   />
+                  <p className="text-[11px] text-gray-500 mt-1">
+                    Enter positive value only. System applies it as deduction.
+                  </p>
                 </div>
               </div>
 
