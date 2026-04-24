@@ -124,16 +124,33 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
   };
 
   const handleShare = () => {
+    const shareUrl = isYouTube && youtubeUrl ? youtubeUrl : (video.videoUrl || window.location.href);
     if (navigator.share) {
       navigator.share({
         title: video.title,
         text: video.description,
-        url: window.location.href
+        url: shareUrl
       });
     } else {
-      navigator.clipboard.writeText(window.location.href);
+      navigator.clipboard.writeText(shareUrl);
       // You could add a toast notification here
     }
+  };
+
+  const handleDownload = () => {
+    const sourceUrl = isYouTube && youtubeUrl ? youtubeUrl : video.videoUrl;
+    if (!sourceUrl) return;
+    if (isYouTube) {
+      window.open(sourceUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    const link = document.createElement('a');
+    link.href = sourceUrl;
+    link.download = `${video.title || 'video'}.mp4`;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.click();
   };
 
   return (
@@ -330,13 +347,15 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                       <Button
                         variant="outline"
                         className="border-gray-300 text-gray-900 hover:bg-gray-100 backdrop-blur-sm"
+                        onClick={handleDownload}
                       >
                         <Download className="w-4 h-4 mr-2" />
-                        Download
+                        {isYouTube ? 'Open Video' : 'Download'}
                       </Button>
                       <Button
                         variant="outline"
                         className="border-gray-300 text-gray-900 hover:bg-gray-100 backdrop-blur-sm"
+                        onClick={handleShare}
                       >
                         <Share2 className="w-4 h-4 mr-2" />
                         Share

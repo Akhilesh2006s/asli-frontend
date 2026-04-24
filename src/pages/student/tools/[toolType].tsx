@@ -270,6 +270,15 @@ interface ToolConfig {
   }>;
 }
 
+type CitationItem = {
+  index: number;
+  subject: string;
+  classLabel: string;
+  chapter: string;
+  score: string;
+  preview: string;
+};
+
 const TOOL_CONFIGS: Record<string, ToolConfig> = {
   'smart-study-guide-generator': {
     name: 'Smart Study Guide Generator',
@@ -483,6 +492,7 @@ export default function StudentToolPage() {
   const [generatedContent, setGeneratedContent] = useState('');
   const [rawGeneratedContent, setRawGeneratedContent] = useState<any>(null);
   const [contentSource, setContentSource] = useState<string>('');
+  const [responseMeta, setResponseMeta] = useState<any>(null);
   const [fallbackEmptyMessage, setFallbackEmptyMessage] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -705,6 +715,7 @@ export default function StudentToolPage() {
     setGeneratedContent('');
     setRawGeneratedContent(null);
     setContentSource('');
+    setResponseMeta(null);
     setFallbackEmptyMessage('');
     try {
       const token = localStorage.getItem('authToken');
@@ -729,7 +740,7 @@ export default function StudentToolPage() {
         data?: {
           content?: string;
           rawData?: unknown;
-          metadata?: { source?: string; sourceLabel?: string; aiUnavailable?: boolean };
+          metadata?: { source?: string; sourceLabel?: string; aiUnavailable?: boolean; chunksUsed?: number; citations?: CitationItem[] };
         };
       }) => {
         if (!data.success || !data?.data?.content || String(data.data.content).trim().length === 0) {
@@ -740,6 +751,7 @@ export default function StudentToolPage() {
           (data.data.metadata?.source === 'pdf-extracted' ? 'Textbook (PDF)' : 'Question Bank (CSV)');
         const fromAiFailure = !!data.data.metadata?.aiUnavailable;
         setContentSource(sourceLabel);
+        setResponseMeta(data.data.metadata || null);
         const okTitle = fromAiFailure ? 'Stored content (AI unavailable)' : 'Success';
         const okDescription = fromAiFailure
           ? `Showing ${sourceLabel}.`
@@ -808,7 +820,7 @@ export default function StudentToolPage() {
           data?: {
             content?: string;
             rawData?: unknown;
-            metadata?: { source?: string; sourceLabel?: string; aiUnavailable?: boolean };
+            metadata?: { source?: string; sourceLabel?: string; aiUnavailable?: boolean; citations?: CitationItem[] };
           };
           message?: string;
           code?: string;
@@ -824,6 +836,7 @@ export default function StudentToolPage() {
             setGeneratedContent('');
             setRawGeneratedContent(null);
             setContentSource('');
+            setResponseMeta(null);
             setFallbackEmptyMessage(
               data.message ||
                 'AI service is unavailable and no previously generated content was found for this selection.',
@@ -873,7 +886,7 @@ export default function StudentToolPage() {
           data?: {
             content?: string;
             rawData?: unknown;
-            metadata?: { source?: string; sourceLabel?: string; aiUnavailable?: boolean };
+            metadata?: { source?: string; sourceLabel?: string; aiUnavailable?: boolean; citations?: CitationItem[] };
           };
           message?: string;
           code?: string;
@@ -889,6 +902,7 @@ export default function StudentToolPage() {
             setGeneratedContent('');
             setRawGeneratedContent(null);
             setContentSource('');
+            setResponseMeta(null);
             setFallbackEmptyMessage(
               data.message ||
                 'AI service is unavailable and no previously generated content was found for this selection.',
@@ -961,6 +975,7 @@ export default function StudentToolPage() {
             setGeneratedContent(String(fallbackContent));
             setRawGeneratedContent(null);
             setContentSource('Previously generated content');
+            setResponseMeta({ source: 'cache', sourceLabel: 'Previously generated content', chunksUsed: 0 });
             toast({
               title: 'Fallback loaded',
               description: 'Source: Previously generated content',
@@ -969,6 +984,7 @@ export default function StudentToolPage() {
             setGeneratedContent('');
             setRawGeneratedContent(null);
             setContentSource('');
+            setResponseMeta(null);
             const savedPart =
               fallbackJson?.message ||
               'No saved copy matched this class, subject, topic, sub-topic, and tool.';
@@ -985,6 +1001,7 @@ export default function StudentToolPage() {
           setGeneratedContent('');
           setRawGeneratedContent(null);
           setContentSource('');
+          setResponseMeta(null);
           const fe = String((fallbackError as Error)?.message || 'Fallback lookup failed');
           const combined = `${errMsg} ${fe}`;
           setFallbackEmptyMessage(combined);
@@ -1814,6 +1831,24 @@ export default function StudentToolPage() {
                         </span>
                       </p>
                     )}
+                    {generatedContent && responseMeta && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Mode: <span className="font-medium">{responseMeta.source || 'unknown'}</span>
+                        {typeof responseMeta.chunksUsed === 'number' ? ` | Chunks: ${responseMeta.chunksUsed}` : ''}
+                      </p>
+                    )}
+                  {generatedContent && Array.isArray(responseMeta?.citations) && responseMeta.citations.length > 0 && (
+                    <div className="mt-2 rounded-md border bg-blue-50/40 p-2 max-h-32 overflow-y-auto">
+                      <p className="text-[11px] font-semibold text-blue-700 mb-1">Top Citations</p>
+                      <div className="space-y-1">
+                        {responseMeta.citations.slice(0, 3).map((c: CitationItem) => (
+                          <p key={`${c.index}-${c.chapter}`} className="text-[11px] text-gray-600">
+                            [{c.index}] {c.subject} / {c.chapter} ({c.score})
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   </div>
                   {generatedContent && (
                     <div className="flex space-x-2">

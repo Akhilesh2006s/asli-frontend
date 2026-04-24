@@ -48,6 +48,15 @@ interface ToolConfig {
   }>;
 }
 
+type CitationItem = {
+  index: number;
+  subject: string;
+  classLabel: string;
+  chapter: string;
+  score: string;
+  preview: string;
+};
+
 const CLASS_OPTIONS = ['Class 6', 'Class 7', 'Class 8', 'Class 10'];
 
 const TOOL_CONFIGS: Record<string, ToolConfig> = {
@@ -291,6 +300,7 @@ export default function TeacherToolPage() {
   const [generatedContent, setGeneratedContent] = useState('');
   const [rawGeneratedContent, setRawGeneratedContent] = useState<any>(null);
   const [contentSource, setContentSource] = useState<string>('');
+  const [responseMeta, setResponseMeta] = useState<any>(null);
   const [fallbackEmptyMessage, setFallbackEmptyMessage] = useState<string>('');
   const [isFallbackContent, setIsFallbackContent] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -754,6 +764,7 @@ export default function TeacherToolPage() {
     setGeneratedContent('');
     setRawGeneratedContent(null);
     setContentSource('');
+    setResponseMeta(null);
     setFallbackEmptyMessage('');
     setIsFallbackContent(false);
     try {
@@ -790,7 +801,7 @@ export default function TeacherToolPage() {
       });
 
       const responseText = await response.text();
-      let data: { success?: boolean; data?: { content?: string; rawData?: unknown; metadata?: { source?: string; sourceLabel?: string; aiUnavailable?: boolean } }; message?: string; code?: string } = {};
+      let data: { success?: boolean; data?: { content?: string; rawData?: unknown; metadata?: { source?: string; sourceLabel?: string; aiUnavailable?: boolean; chunksUsed?: number; citations?: CitationItem[] } }; message?: string; code?: string } = {};
       try {
         data = responseText ? JSON.parse(responseText) : {};
       } catch {
@@ -802,6 +813,7 @@ export default function TeacherToolPage() {
           setGeneratedContent('');
           setRawGeneratedContent(null);
           setContentSource('');
+          setResponseMeta(null);
           setIsFallbackContent(false);
           setFallbackEmptyMessage(
             data.message ||
@@ -827,6 +839,7 @@ export default function TeacherToolPage() {
           (data.data.metadata?.source === 'pdf-extracted' ? 'Textbook (PDF)' : 'Question Bank (CSV)');
         const fromAiFailure = !!data.data.metadata?.aiUnavailable;
         setContentSource(sourceLabel);
+        setResponseMeta(data.data.metadata || null);
         setIsFallbackContent(fromAiFailure);
         const okTitle = fromAiFailure ? 'Stored content (AI unavailable)' : 'Success';
         const okDescription = fromAiFailure
@@ -928,6 +941,7 @@ export default function TeacherToolPage() {
           setGeneratedContent(String(fallbackContent));
           setRawGeneratedContent(null);
           setContentSource('Previously generated content');
+          setResponseMeta({ source: 'cache', sourceLabel: 'Previously generated content', chunksUsed: 0 });
           setIsFallbackContent(true);
           toast({
             title: 'Fallback Loaded',
@@ -937,6 +951,7 @@ export default function TeacherToolPage() {
           setGeneratedContent('');
           setRawGeneratedContent(null);
           setContentSource('');
+          setResponseMeta(null);
           setIsFallbackContent(false);
           const savedPart =
             fallbackJson?.message ||
@@ -954,6 +969,7 @@ export default function TeacherToolPage() {
         setGeneratedContent('');
         setRawGeneratedContent(null);
         setContentSource('');
+        setResponseMeta(null);
         setIsFallbackContent(false);
         const fe = String(fallbackError?.message || 'Fallback lookup failed');
         const combined = `${errMsg} ${fe}`;
@@ -1798,6 +1814,24 @@ export default function TeacherToolPage() {
                         {contentSource}
                       </span>
                     </p>
+                  )}
+                  {generatedContent && responseMeta && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Mode: <span className="font-medium">{responseMeta.source || 'unknown'}</span>
+                      {typeof responseMeta.chunksUsed === 'number' ? ` | Chunks: ${responseMeta.chunksUsed}` : ''}
+                    </p>
+                  )}
+                  {generatedContent && Array.isArray(responseMeta?.citations) && responseMeta.citations.length > 0 && (
+                    <div className="mt-2 rounded-md border bg-blue-50/40 p-2 max-h-32 overflow-y-auto">
+                      <p className="text-[11px] font-semibold text-blue-700 mb-1">Top Citations</p>
+                      <div className="space-y-1">
+                        {responseMeta.citations.slice(0, 3).map((c: CitationItem) => (
+                          <p key={`${c.index}-${c.chapter}`} className="text-[11px] text-gray-600">
+                            [{c.index}] {c.subject} / {c.chapter} ({c.score})
+                          </p>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
                 {generatedContent && (

@@ -370,6 +370,13 @@ export default function Dashboard() {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date>(new Date());
+  const [calendarJumpDate, setCalendarJumpDate] = useState<string>(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  });
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -1665,6 +1672,19 @@ export default function Dashboard() {
     return `${year}-${month}-${day}`;
   };
 
+  const handleJumpToDate = () => {
+    if (!calendarJumpDate) return;
+    const [yearStr, monthStr, dayStr] = calendarJumpDate.split("-");
+    const year = Number(yearStr);
+    const month = Number(monthStr);
+    const day = Number(dayStr);
+    if (!year || !month || !day) return;
+
+    const targetDate = new Date(year, month - 1, day);
+    setSelectedCalendarDate(targetDate);
+    setCalendarMonth(new Date(targetDate.getFullYear(), targetDate.getMonth(), 1));
+  };
+
   const parseDate = (value: any): Date | null => {
     if (!value) return null;
     const date = new Date(value);
@@ -1761,7 +1781,11 @@ export default function Dashboard() {
     return cells;
   }, [calendarMonth]);
 
-  if (isLoadingUser || isLoadingContent || isLoadingDashboard) {
+  useEffect(() => {
+    setCalendarJumpDate(formatDateKey(selectedCalendarDate));
+  }, [selectedCalendarDate]);
+
+  if (isLoadingUser) {
     return (
       <>
         <Navigation />
@@ -1826,13 +1850,13 @@ export default function Dashboard() {
               </div>
               
               {/* Right side - Robot image */}
-              <div className="flex-shrink-0">
-                <div className="w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 relative">
-                  <div className="absolute inset-0 bg-white/20 rounded-xl backdrop-blur-sm p-1.5">
+              <div className="flex-shrink-0 w-full sm:w-auto flex justify-center sm:justify-end">
+                <div className="w-36 h-24 sm:w-40 sm:h-28 lg:w-44 lg:h-32 relative">
+                  <div className="absolute inset-0 bg-white/15 rounded-2xl backdrop-blur-sm p-1.5 border border-white/30 shadow-lg">
                     <img 
                       src="/Vidya-ai.jpg" 
                       alt="Vidya AI" 
-                      className="w-full h-full object-contain rounded-lg"
+                      className="w-full h-full object-cover object-center rounded-xl"
                     />
                   </div>
                 </div>
@@ -1939,32 +1963,45 @@ export default function Dashboard() {
                     <CardTitle className="text-xl font-bold text-gray-900">Study Calendar</CardTitle>
                     <p className="text-sm text-gray-600 mt-1">Plan content, quizzes, and exams in one place</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setCalendarMonth(
-                          prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
-                        )
-                      }
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    <p className="text-sm font-semibold text-gray-800 min-w-[120px] text-center">
-                      {calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setCalendarMonth(
-                          prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
-                        )
-                      }
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setCalendarMonth(
+                            prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
+                          )
+                        }
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <p className="text-sm font-semibold text-gray-800 min-w-[120px] text-center">
+                        {calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setCalendarMonth(
+                            prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
+                          )
+                        }
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="date"
+                        value={calendarJumpDate}
+                        onChange={(e) => setCalendarJumpDate(e.target.value)}
+                        className="h-9 rounded-md border border-gray-200 px-2 text-xs sm:text-sm text-gray-700 bg-white"
+                      />
+                      <Button size="sm" className="whitespace-nowrap" onClick={handleJumpToDate}>
+                        Go
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardHeader>
@@ -2116,13 +2153,25 @@ export default function Dashboard() {
                         }`}
                         onClick={() => handleOpenPreview(quiz, true)}
                       >
-                        {isCompleted ? (
-                          <div className="w-7 h-7 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
-                            <CheckCircle className="w-4 h-4 text-white" />
-                          </div>
-                        ) : (
-                          <div className="w-7 h-7 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
-                        )}
+                        <button
+                          type="button"
+                          aria-label={isCompleted ? "Task completed" : "Mark task as completed"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isCompleted) {
+                              handleMarkAsComplete(quiz, true);
+                            }
+                          }}
+                          className="flex-shrink-0"
+                        >
+                          {isCompleted ? (
+                            <div className="w-7 h-7 bg-emerald-500 rounded-full flex items-center justify-center">
+                              <CheckCircle className="w-4 h-4 text-white" />
+                            </div>
+                          ) : (
+                            <div className="w-7 h-7 border-2 border-gray-300 rounded-full"></div>
+                          )}
+                        </button>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <h4 className={`font-semibold text-gray-900 truncate ${isCompleted ? 'line-through text-gray-400' : ''}`}>
@@ -2187,13 +2236,25 @@ export default function Dashboard() {
                         } ${isOverdue ? 'bg-red-50' : ''}`}
                         onClick={() => handleOpenPreview(content, false)}
                       >
-                        {isCompleted ? (
-                          <div className="w-7 h-7 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
-                            <CheckCircle className="w-4 h-4 text-white" />
-                          </div>
-                        ) : (
-                          <div className="w-7 h-7 border-2 border-gray-300 rounded-full flex-shrink-0"></div>
-                        )}
+                        <button
+                          type="button"
+                          aria-label={isCompleted ? "Task completed" : "Mark task as completed"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isCompleted) {
+                              handleMarkAsComplete(content, false);
+                            }
+                          }}
+                          className="flex-shrink-0"
+                        >
+                          {isCompleted ? (
+                            <div className="w-7 h-7 bg-emerald-500 rounded-full flex items-center justify-center">
+                              <CheckCircle className="w-4 h-4 text-white" />
+                            </div>
+                          ) : (
+                            <div className="w-7 h-7 border-2 border-gray-300 rounded-full"></div>
+                          )}
+                        </button>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <h4 className={`font-semibold text-gray-900 truncate ${isCompleted ? 'line-through text-gray-400' : ''}`}>
