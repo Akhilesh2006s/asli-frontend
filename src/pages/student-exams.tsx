@@ -440,9 +440,15 @@ export default function StudentExams() {
   };
 
   const handleExamComplete = async (result: ExamResult) => {
-    setExamResult(result);
+    // Auto-exit to attempted exams list after submit.
+    // Keep this false by default to avoid trapping users on full-page result view.
+    const showFullScreenResultAfterSubmit = false;
+    setExamResult(showFullScreenResultAfterSubmit ? result : null);
     setIsTakingExam(false);
     setActiveTab('attempted');
+    if (!showFullScreenResultAfterSubmit) {
+      setCurrentExam(null);
+    }
     
     // Invalidate and refetch exam results to update the UI
     console.log('🔄 Invalidating exam results query after exam completion');

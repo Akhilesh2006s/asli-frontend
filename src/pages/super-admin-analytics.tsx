@@ -29,6 +29,7 @@ type SuperAdminAnalyticsDashboardProps = {
 export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAdminAnalyticsDashboardProps) {
   const { toast } = useToast();
   const [analytics, setAnalytics] = useState(null);
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -49,16 +50,29 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
   const fetchAnalytics = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/admins`, {
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const [adminsResponse, statsResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/super-admin/admins`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }),
+        fetch(`${API_BASE_URL}/api/super-admin/dashboard/stats`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+      ]);
 
-      if (response.ok) {
-        const data = await response.json();
+      if (adminsResponse.ok) {
+        const data = await adminsResponse.json();
         setAnalytics(data.data);
+      }
+
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        setDashboardStats(statsData?.data || null);
       }
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
@@ -66,6 +80,18 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
       setIsLoading(false);
     }
   };
+
+  const totalContentFromAdmins =
+    analytics?.reduce(
+      (sum, admin) =>
+        sum + (admin.stats?.videos || 0) + (admin.stats?.assessments || 0) + (admin.stats?.exams || 0),
+      0
+    ) || 0;
+  const totalContentFromStats =
+    (dashboardStats?.courses || 0) +
+    (dashboardStats?.assessments || 0) +
+    (dashboardStats?.exams || 0);
+  const totalContentDisplay = totalContentFromStats || totalContentFromAdmins;
 
   if (isLoading) {
     return (
@@ -146,8 +172,7 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
               <div>
                 <p className="text-sm font-medium text-white/90">Total Content</p>
                 <p className="text-3xl font-bold text-white">
-                  {analytics?.reduce((sum, admin) => 
-                    sum + (admin.stats?.videos || 0) + (admin.stats?.assessments || 0) + (admin.stats?.exams || 0), 0) || 0}
+                  {totalContentDisplay}
                 </p>
                 <p className="text-sm text-white/90">Videos, assessments, exams</p>
               </div>

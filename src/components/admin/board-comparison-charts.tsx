@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart3, TrendingUp, Users, Award, Download } from 'lucide-react';
@@ -16,6 +16,8 @@ interface BoardAnalytics {
 export default function BoardComparisonCharts() {
   const [analytics, setAnalytics] = useState<BoardAnalytics[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [exportingKey, setExportingKey] = useState<string | null>(null);
+  const exportCacheRef = useRef<Record<string, any[]>>({});
 
   // Format board name to title case
   const formatBoardName = (name: string): string => {
@@ -141,9 +143,14 @@ export default function BoardComparisonCharts() {
               <BarChart3 className="h-5 w-5 mr-2" />
               {title}
             </span>
-            <Button variant="outline" size="sm" onClick={() => exportChartData(title, dataKey)}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={exportingKey === dataKey}
+              onClick={() => exportChartData(title, dataKey)}
+            >
               <Download className="h-4 w-4 mr-2" />
-              Export
+              {exportingKey === dataKey ? 'Exporting...' : 'Export'}
             </Button>
           </CardTitle>
         </CardHeader>
@@ -184,10 +191,79 @@ export default function BoardComparisonCharts() {
     );
   };
 
+  const downloadCsv = (filename: string, csvContent: string) => {
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const toCsvValue = (value: unknown) => {
+    if (value === null || value === undefined) return '""';
+    return `"${String(value).replace(/"/g, '""')}"`;
+  };
+
+  const exportFromAnalytics = (title: string, dataKey: keyof BoardAnalytics) => {
+    const headers = ['Board', title];
+    const rows = analytics.map(item => [item.board, item[dataKey]]);
+    const csvContent = [
+      headers.map(h => `"${h}"`).join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
+    ].join('\n');
+
+    downloadCsv(
+      `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`,
+      csvContent
+    );
+  };
+
+  const prefetchExportData = async () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    const dataTypes = ['students', 'attempts', 'scores', 'participation'];
+    await Promise.all(
+      dataTypes.map(async (dataType) => {
+        if (exportCacheRef.current[dataType]) return;
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/super-admin/boards/export?dataType=${dataType}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (!response.ok) return;
+          const result = await response.json();
+          if (result?.success && Array.isArray(result.data) && result.data.length > 0) {
+            exportCacheRef.current[dataType] = result.data;
+          }
+        } catch {
+          // Keep UI responsive; fallback export is always available from current analytics.
+        }
+      })
+    );
+  };
+
+  useEffect(() => {
+    if (isLoading || analytics.length === 0) return;
+
+    const timer = window.setTimeout(() => {
+      prefetchExportData();
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+  }, [isLoading, analytics.length]);
+
   const exportChartData = async (title: string, dataKey: keyof BoardAnalytics) => {
+    setExportingKey(dataKey);
     try {
-      const token = localStorage.getItem('authToken');
-      
       // Map dataKey to export data type
       let dataType = 'attempts'; // default
       if (dataKey === 'students') {
@@ -200,91 +276,27 @@ export default function BoardComparisonCharts() {
         dataType = 'participation';
       }
 
-      // Fetch detailed export data from backend
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/boards/export?dataType=${dataType}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success && result.data && result.data.length > 0) {
-          // Convert array of objects to CSV
-          const headers = Object.keys(result.data[0]);
-          const rows = result.data.map((row: any) => 
-            headers.map(header => {
-              const value = row[header];
-              // Handle values that might contain commas or quotes
-              if (value === null || value === undefined) return '""';
-              return `"${String(value).replace(/"/g, '""')}"`;
-            })
-          );
-
-          const csvContent = [
-            headers.map(h => `"${h}"`).join(','),
-            ...rows.map((row: string[]) => row.join(','))
-          ].join('\n');
-
-          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-          const link = document.createElement('a');
-          const url = URL.createObjectURL(blob);
-          link.setAttribute('href', url);
-          link.setAttribute('download', `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
-          link.style.visibility = 'hidden';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          return;
-        }
+      const cachedData = exportCacheRef.current[dataType];
+      if (cachedData && cachedData.length > 0) {
+        const headers = Object.keys(cachedData[0]);
+        const csvContent = [
+          headers.map(h => `"${h}"`).join(','),
+          ...cachedData.map((row: any) => headers.map((header) => toCsvValue(row[header])).join(',')),
+        ].join('\n');
+        downloadCsv(
+          `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`,
+          csvContent
+        );
+        return;
       }
 
-      // Fallback to simple export if backend fails
-      console.warn('Failed to fetch detailed export data, using simple export');
-      const headers = ['Board', title];
-      const rows = analytics.map(item => [
-        item.board,
-        item[dataKey]
-      ]);
-
-      const csvContent = [
-        headers.map(h => `"${h}"`).join(','),
-        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-      ].join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Fast fallback: export from already loaded analytics so click feels instant.
+      exportFromAnalytics(title, dataKey);
     } catch (error) {
       console.error('Export error:', error);
-      // Fallback to simple export
-      const headers = ['Board', title];
-      const rows = analytics.map(item => [
-        item.board,
-        item[dataKey]
-      ]);
-
-      const csvContent = [
-        headers.map(h => `"${h}"`).join(','),
-        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-      ].join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      exportFromAnalytics(title, dataKey);
+    } finally {
+      setExportingKey(null);
     }
   };
 

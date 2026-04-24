@@ -163,6 +163,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+  const [jumpDate, setJumpDate] = useState('');
 
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickAddDate, setQuickAddDate] = useState<Date | null>(null);
@@ -181,67 +182,6 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
     fetchAdmins();
   }, []);
 
-  const fetchExamCalendarEvents = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/exams`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) return [] as CalendarEventRecord[];
-      const data = await response.json();
-      const exams = (data.data || []) as any[];
-      const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-
-      return exams
-        .filter((exam) => {
-          const start = new Date(exam.startDate);
-          const end = new Date(exam.endDate);
-          const overlapsMonth = start <= monthEnd && end >= monthStart;
-          if (!overlapsMonth) return false;
-
-          if (selectedSchoolId === 'all') return true;
-          if (!exam.isSchoolSpecific) return true;
-          const targets = exam.targetSchools || [];
-          return targets.some((s: any) => {
-            const id = typeof s === 'string' ? s : s._id;
-            return id === selectedSchoolId;
-          });
-        })
-        .map((exam) => {
-          const schoolTargets = exam.targetSchools || [];
-          const schoolIds = schoolTargets.map((s: any) => (typeof s === 'string' ? s : s._id)).filter(Boolean);
-          const schoolNames = schoolTargets
-            .map((s: any) => (typeof s === 'string' ? getSchoolLabelById(s) : (s.schoolName || s.name || s.email || getSchoolLabelById(s._id))))
-            .filter(Boolean);
-          return {
-            id: `exam-${exam._id}`,
-            title: exam.title,
-            startDate: exam.startDate,
-            endDate: exam.endDate,
-            type: 'exam' as const,
-            examId: exam._id,
-            description: exam.description,
-            meta: {
-              examType: exam.examType,
-              subject: exam.subject,
-              duration: exam.duration,
-              schoolIds,
-              schoolNames,
-              isSchoolSpecific: !!exam.isSchoolSpecific,
-            },
-          };
-        });
-    } catch (error) {
-      console.error('Failed to fetch exam calendar events:', error);
-      return [] as CalendarEventRecord[];
-    }
-  }, [currentDate, selectedSchoolId]);
-
   const fetchCalendarEvents = useCallback(async () => {
     const month = monthKey(currentDate);
     try {
@@ -256,19 +196,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
       if (response.ok) {
         const data = await response.json();
         const list = (data.data || data || []) as CalendarEventRecord[];
-        const syncedEvents = Array.isArray(list) ? list : [];
-        const examEvents = await fetchExamCalendarEvents();
-        const merged = [...syncedEvents];
-        const seenExamIds = new Set(
-          syncedEvents
-            .filter((ev) => ev.type === 'exam')
-            .map((ev) => ev.examId || ev.id)
-        );
-        examEvents.forEach((ev) => {
-          const key = ev.examId || ev.id;
-          if (!seenExamIds.has(key)) merged.push(ev);
-        });
-        setEvents(merged);
+        setEvents(Array.isArray(list) ? list : []);
       } else {
         const err = await response.json().catch(() => ({}));
         toast({
@@ -285,7 +213,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
     } finally {
       setIsLoadingEvents(false);
     }
-  }, [currentDate, selectedSchoolId, toast, fetchExamCalendarEvents]);
+  }, [currentDate, selectedSchoolId, toast]);
 
   useEffect(() => {
     fetchCalendarEvents();
@@ -342,14 +270,25 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
     return days;
   }, [currentDate]);
 
-  const getEventsForDate = (date: Date) => {
-    const t = stripTime(date);
-    return events.filter((ev) => {
-      const s = stripTime(new Date(ev.startDate));
-      const e = stripTime(new Date(ev.endDate));
-      return t >= s && t <= e;
+  const eventsByDateKey = useMemo(() => {
+    const map: Record<string, CalendarEventRecord[]> = {};
+    // Build only for visible grid range (42 days) to keep work bounded.
+    const visibleStart = stripTime(calendarDays[0]);
+    const visibleEnd = stripTime(calendarDays[calendarDays.length - 1]);
+    events.forEach((ev) => {
+      const start = stripTime(new Date(ev.startDate));
+      const end = stripTime(new Date(ev.endDate));
+      const boundedStart = Math.max(start, visibleStart);
+      const boundedEnd = Math.min(end, visibleEnd);
+      if (boundedEnd < boundedStart) return;
+      for (let t = boundedStart; t <= boundedEnd; t += 24 * 60 * 60 * 1000) {
+        const key = new Date(t).toDateString();
+        if (!map[key]) map[key] = [];
+        map[key].push(ev);
+      }
     });
-  };
+    return map;
+  }, [events, calendarDays]);
 
   const monthlyEvents = useMemo(() => {
     const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
@@ -395,6 +334,13 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
   };
 
   const goToToday = () => setCurrentDate(new Date());
+  const goToDate = () => {
+    if (!jumpDate) return;
+    const [y, m, d] = jumpDate.split('-').map(Number);
+    if (!y || !m || !d) return;
+    const target = new Date(y, m - 1, d);
+    setCurrentDate(target);
+  };
 
   const handleViewEvent = (event: CalendarEventRecord) => {
     setSelectedEvent(event);
@@ -606,7 +552,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
         <Card>
           <CardContent className="p-3 sm:p-6">
             <div className="flex items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-6">
-              <div className="flex items-center gap-2 sm:gap-4">
+              <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
                 <Button variant="outline" size="icon" onClick={goToPreviousMonth} className="h-8 w-8 sm:h-10 sm:w-10">
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -615,6 +561,17 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                 </h3>
                 <Button variant="outline" size="icon" onClick={goToNextMonth} className="h-8 w-8 sm:h-10 sm:w-10">
                   <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="date"
+                  value={jumpDate}
+                  onChange={(e) => setJumpDate(e.target.value)}
+                  className="h-9 w-[160px]"
+                />
+                <Button type="button" variant="outline" onClick={goToDate}>
+                  Go
                 </Button>
               </div>
             </div>
@@ -679,7 +636,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                     ))}
 
                     {calendarDays.map((date, index) => {
-                      const dayEvents = getEventsForDate(date);
+                      const dayEvents = eventsByDateKey[date.toDateString()] || [];
                       const isCurrentMonthDay = isCurrentMonth(date);
                       const isTodayDate = isToday(date);
 

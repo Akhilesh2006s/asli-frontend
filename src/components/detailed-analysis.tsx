@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { API_BASE_URL } from '@/lib/api-config';
+import AdvancedPerformanceDashboard from '@/components/analytics/AdvancedPerformanceDashboard';
 import { 
   Trophy, 
   Target, 
@@ -558,6 +559,10 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
 
   const insights = getPerformanceInsights();
   const weakAreas = getWeakAreas();
+  const advancedExamId =
+    typeof (result as any)?.examId === 'object'
+      ? String((result as any)?.examId?._id || '')
+      : String((result as any)?.examId || '');
 
   const goToPrev = () => {
     if (!result.questions || result.questions.length === 0) return;
@@ -630,6 +635,16 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
             }`}
           >
             Questions
+          </button>
+          <button
+            onClick={() => setActiveTab('advanced')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              activeTab === 'advanced'
+                ? 'text-purple-600 border-b-2 border-purple-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Advanced
           </button>
           <button 
             onClick={() => setActiveTab('subjects')}
@@ -1441,6 +1456,10 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                 </Card>
               )}
           </div>
+        )}
+
+        {activeTab === 'advanced' && (
+          <AdvancedPerformanceDashboard examId={advancedExamId} />
         )}
 
         {/* Subjects Tab */}

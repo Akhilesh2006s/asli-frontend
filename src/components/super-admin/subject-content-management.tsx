@@ -148,6 +148,14 @@ const isServerHostedFileUrl = (url: string): boolean => {
   );
 };
 
+const normalizeMediaUrl = (value?: string | null): string | null => {
+  const trimmed = (value || '').trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+  if (trimmed.startsWith('/uploads/')) return `${API_BASE_URL}${trimmed}`;
+  return trimmed;
+};
+
 export default function SubjectContentManagement() {
   const { toast } = useToast();
 
@@ -161,8 +169,12 @@ export default function SubjectContentManagement() {
 
   const [isAddSubjectOpen, setIsAddSubjectOpen] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState('');
+  const [editingSubject, setEditingSubject] = useState<SubjectItem | null>(null);
+  const [isEditSubjectOpen, setIsEditSubjectOpen] = useState(false);
+  const [editSubjectName, setEditSubjectName] = useState('');
 
   const [isAddContentOpen, setIsAddContentOpen] = useState(false);
+  const [editingContentId, setEditingContentId] = useState<string | null>(null);
   const [contentForm, setContentForm] = useState({
     title: '',
     description: '',
@@ -177,6 +189,7 @@ export default function SubjectContentManagement() {
   const [isSavingContent, setIsSavingContent] = useState(false);
   const [deletingSubjectId, setDeletingSubjectId] = useState<string | null>(null);
   const [deletingContentId, setDeletingContentId] = useState<string | null>(null);
+  const [failedThumbnailIds, setFailedThumbnailIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // Load subjects and content as soon as the page mounts
@@ -424,6 +437,70 @@ export default function SubjectContentManagement() {
     }
   };
 
+  const handleOpenEditSubject = (subject: SubjectItem) => {
+    const classNum = subject.classNumber || extractClassNumberFromSubjectName(subject.name);
+    if (classNum) {
+      setSelectedClassLabel(`Class ${classNum}`);
+    }
+    setEditingSubject(subject);
+    setEditSubjectName(extractPlainSubjectName(subject.name));
+    setIsEditSubjectOpen(true);
+  };
+
+  const handleUpdateSubject = async () => {
+    if (!editingSubject || !editSubjectName.trim() || !selectedClassNumber) {
+      toast({
+        title: 'Validation error',
+        description: 'Subject name is required.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSavingSubject(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const storedName = `${editSubjectName.trim()}_${selectedClassNumber}`;
+      const response = await fetch(
+        `${API_BASE_URL}/api/super-admin/subjects/${editingSubject._id}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: storedName,
+            classNumber: selectedClassNumber,
+          }),
+        }
+      );
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok && data.success) {
+        toast({ title: 'Subject updated', description: 'Subject updated successfully.' });
+        setIsEditSubjectOpen(false);
+        setEditingSubject(null);
+        await fetchSubjects();
+      } else {
+        toast({
+          title: 'Error',
+          description: data.message || 'Failed to update subject',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update subject:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update subject',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingSubject(false);
+    }
+  };
+
   const handleDeleteSubject = async (subjectId: string) => {
     if (!window.confirm('Delete this subject and all its content?')) return;
     setDeletingSubjectId(subjectId);
@@ -485,6 +562,20 @@ export default function SubjectContentManagement() {
       date: new Date().toISOString().slice(0, 10),
       fileUrl: '',
     });
+    setEditingContentId(null);
+    setIsAddContentOpen(true);
+  };
+
+  const handleOpenEditContent = (content: ContentItem) => {
+    setEditingContentId(content._id);
+    setContentForm({
+      title: content.title || '',
+      description: content.description || '',
+      type: content.type,
+      date: new Date(content.date || content.createdAt).toISOString().slice(0, 10),
+      fileUrl: content.fileUrl || '',
+    });
+    setSelectedUploadFile(null);
     setIsAddContentOpen(true);
   };
 
@@ -521,16 +612,22 @@ export default function SubjectContentManagement() {
       const body: any = {
         title: contentForm.title.trim(),
         description: contentForm.description?.trim() || undefined,
-        type: contentForm.type,
-        board: BOARD_CODE,
-        subject: selectedSubjectId,
         date: contentForm.date,
         fileUrl: contentForm.fileUrl.trim(),
         classNumber: selectedClassNumber,
       };
+      if (!editingContentId) {
+        body.type = contentForm.type;
+        body.board = BOARD_CODE;
+        body.subject = selectedSubjectId;
+      }
 
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/content`, {
-        method: 'POST',
+      const response = await fetch(
+        editingContentId
+          ? `${API_BASE_URL}/api/super-admin/content/${editingContentId}`
+          : `${API_BASE_URL}/api/super-admin/content`,
+        {
+        method: editingContentId ? 'PUT' : 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -542,23 +639,26 @@ export default function SubjectContentManagement() {
 
       if (response.ok && data.success) {
         toast({
-          title: 'Content added',
-          description: 'Content added successfully under the selected subject.',
+          title: editingContentId ? 'Content updated' : 'Content added',
+          description: editingContentId
+            ? 'Content updated successfully.'
+            : 'Content added successfully under the selected subject.',
         });
         setIsAddContentOpen(false);
+        setEditingContentId(null);
         await fetchContents();
       } else {
         toast({
           title: 'Error',
-          description: data.message || 'Failed to add content',
+          description: data.message || `Failed to ${editingContentId ? 'update' : 'add'} content`,
           variant: 'destructive',
         });
       }
     } catch (error) {
-      console.error('Failed to add content:', error);
+      console.error('Failed to save content:', error);
       toast({
         title: 'Error',
-        description: 'Failed to add content',
+        description: `Failed to ${editingContentId ? 'update' : 'add'} content`,
         variant: 'destructive',
       });
     } finally {
@@ -792,9 +892,9 @@ export default function SubjectContentManagement() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          disabled
-                          className="text-gray-400 hover:text-gray-500"
-                          title="Edit subject (not available yet)"
+                          onClick={() => handleOpenEditSubject(subj)}
+                          className="text-sky-600 hover:text-sky-700 hover:bg-sky-50"
+                          title="Edit subject"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -872,22 +972,21 @@ export default function SubjectContentManagement() {
                             ? `${content.duration} mins`
                             : '0 mins';
 
-                        const thumbnailSrc =
+                        const thumbnailSrcRaw =
                           content.thumbnailUrl ||
                           content.thumbnail ||
                           content.videoThumbnail ||
                           content.previewImage ||
                           content.image ||
                           null;
+                        const thumbnailSrc = normalizeMediaUrl(thumbnailSrcRaw);
+                        const hasBrokenThumbnail = failedThumbnailIds.has(content._id);
 
-                        const fileUrl = content.fileUrl.startsWith('http')
-                          ? content.fileUrl
-                          : `${API_BASE_URL}${content.fileUrl}`;
+                        const fileUrl =
+                          normalizeMediaUrl(content.fileUrl) || content.fileUrl;
 
-                        const showPdfPreview = !thumbnailSrc && isPdfUrl(fileUrl);
-                        const pdfPreviewUrl = showPdfPreview
-                          ? `${fileUrl}#page=1&view=FitH&toolbar=0&navpanes=0&scrollbar=0`
-                          : null;
+                        const showPdfPreview =
+                          (!thumbnailSrc || hasBrokenThumbnail) && isPdfUrl(fileUrl);
 
                         return (
                           <div
@@ -895,19 +994,23 @@ export default function SubjectContentManagement() {
                             className="group rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col"
                           >
                             <div className="relative h-40 overflow-hidden bg-gradient-to-br from-sky-300 to-teal-400 flex items-center justify-center">
-                              {thumbnailSrc ? (
+                              {thumbnailSrc && !hasBrokenThumbnail ? (
                                 <img
                                   src={thumbnailSrc}
                                   alt={content.title}
                                   className="w-full h-full object-cover"
+                                  onError={() => {
+                                    setFailedThumbnailIds((prev) => {
+                                      const next = new Set(prev);
+                                      next.add(content._id);
+                                      return next;
+                                    });
+                                  }}
                                 />
-                              ) : showPdfPreview && pdfPreviewUrl ? (
-                                <iframe
-                                  src={pdfPreviewUrl}
-                                  title={`${content.title} preview`}
-                                  className="w-full h-full"
-                                  style={{ border: 0 }}
-                                />
+                              ) : showPdfPreview ? (
+                                <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                                  <FileText className="w-8 h-8 text-sky-500" />
+                                </div>
                               ) : content.type === 'Video' ? (
                                 <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
                                   <Video className="w-8 h-8 text-sky-500" />
@@ -979,9 +1082,9 @@ export default function SubjectContentManagement() {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    disabled
-                                    className="text-gray-400 hover:text-gray-500"
-                                    title="Edit content (coming soon)"
+                                    onClick={() => handleOpenEditContent(content)}
+                                    className="text-sky-600 hover:text-sky-700 hover:bg-sky-50"
+                                    title="Edit content"
                                   >
                                     <Edit className="w-4 h-4" />
                                   </Button>
@@ -1059,13 +1162,62 @@ export default function SubjectContentManagement() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isEditSubjectOpen} onOpenChange={setIsEditSubjectOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Subject</DialogTitle>
+            <DialogDescription>
+              Update subject name for the selected class.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Class</Label>
+              <Input value={selectedClassLabel ?? ''} disabled />
+            </div>
+            <div>
+              <Label>Subject Name</Label>
+              <Input
+                placeholder="e.g., Mathematics"
+                value={editSubjectName}
+                onChange={(e) => setEditSubjectName(e.target.value)}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsEditSubjectOpen(false);
+                  setEditingSubject(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleUpdateSubject}
+                disabled={isSavingSubject}
+                className="bg-gradient-to-r from-orange-400 to-sky-400 hover:from-orange-500 hover:to-sky-500 text-white"
+              >
+                {isSavingSubject && (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                )}
+                Update
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isAddContentOpen} onOpenChange={setIsAddContentOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Add Content</DialogTitle>
+            <DialogTitle>{editingContentId ? 'Edit Content' : 'Add Content'}</DialogTitle>
             <DialogDescription>
-              Upload or link learning content for the selected subject. Class and
-              subject are auto selected.
+              {editingContentId
+                ? 'Update content details for the selected subject.'
+                : 'Upload or link learning content for the selected subject. Class and subject are auto selected.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -1161,6 +1313,7 @@ export default function SubjectContentManagement() {
                       const file = e.target.files?.[0] || null;
                       setSelectedUploadFile(file);
                     }}
+                    className="cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-orange-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-orange-700 hover:file:bg-orange-200"
                   />
                   <Button
                     type="button"
@@ -1178,6 +1331,9 @@ export default function SubjectContentManagement() {
                     )}
                   </Button>
                 </div>
+                <p className={`text-xs ${selectedUploadFile ? 'text-orange-700 font-medium' : 'text-gray-500'}`}>
+                  {selectedUploadFile ? `Selected file: ${selectedUploadFile.name}` : 'No file selected yet'}
+                </p>
                 <Input
                   value={contentForm.fileUrl}
                   readOnly
@@ -1189,7 +1345,10 @@ export default function SubjectContentManagement() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsAddContentOpen(false)}
+                onClick={() => {
+                  setIsAddContentOpen(false);
+                  setEditingContentId(null);
+                }}
               >
                 Cancel
               </Button>
@@ -1202,7 +1361,7 @@ export default function SubjectContentManagement() {
                 {isSavingContent && (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                 )}
-                Save
+                {editingContentId ? 'Update' : 'Save'}
               </Button>
             </div>
           </div>
