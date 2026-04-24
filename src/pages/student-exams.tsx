@@ -101,10 +101,18 @@ export default function StudentExams() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<string>('available');
-  const [examClassFilter, setExamClassFilter] = useState<string>('all');
+  const [examClassFilter, setExamClassFilter] = useState<string>('my');
   const [examSubjectFilter, setExamSubjectFilter] = useState<string>('all');
   const [startingExamId, setStartingExamId] = useState<string | null>(null);
   const didInitClassFilter = useRef(false);
+
+  const preserveScrollOnFilterChange = (setter: (value: string) => void, value: string) => {
+    const currentY = window.scrollY;
+    setter(value);
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: currentY, behavior: 'auto' });
+    });
+  };
 
   useEffect(() => {
     if (didInitClassFilter.current || !user?.classNumber) return;
@@ -248,13 +256,39 @@ export default function StudentExams() {
   // Ensure exams is always an array
   const exams = Array.isArray(examsData) ? examsData : [];
 
+  const allowedClassFilterOptions = useMemo(() => {
+    const normalizedUserClass = normalizeClassNumber(user?.classNumber);
+    const userClassNumber = Number(normalizedUserClass);
+    if (!normalizedUserClass || Number.isNaN(userClassNumber)) {
+      return [...CLASS_FILTER_OPTIONS];
+    }
+    return CLASS_FILTER_OPTIONS.filter((c) => Number(c) <= userClassNumber);
+  }, [user?.classNumber]);
+
+  const examMatchesEligibleStudentClass = (exam: Exam) => {
+    const normalizedUserClass = normalizeClassNumber(user?.classNumber);
+    const userClassNumber = Number(normalizedUserClass);
+    if (!normalizedUserClass || Number.isNaN(userClassNumber)) return true;
+    const examClasses = getExamClassStrings(exam);
+    if (examClasses.length === 0) return true;
+    return examClasses.some((c) => Number(c) <= userClassNumber);
+  };
+
   const classFilteredExams = useMemo(
     () =>
-      exams.filter((e: Exam) =>
-        examMatchesStudentClassFilter(e, examClassFilter, user?.classNumber)
-      ),
+      exams.filter((e: Exam) => {
+        if (!examMatchesEligibleStudentClass(e)) return false;
+        return examMatchesStudentClassFilter(e, examClassFilter, user?.classNumber);
+      }),
     [exams, examClassFilter, user?.classNumber]
   );
+
+  useEffect(() => {
+    if (examClassFilter === 'all' || examClassFilter === 'my') return;
+    if (!allowedClassFilterOptions.includes(examClassFilter as any)) {
+      setExamClassFilter('my');
+    }
+  }, [allowedClassFilterOptions, examClassFilter]);
 
   const getExamSubjects = (exam: Exam): string[] => {
     const qSubjects = Array.isArray(exam.questions)
@@ -639,16 +673,19 @@ export default function StudentExams() {
             <Label htmlFor="exam-class-filter" className="text-sm text-gray-600 whitespace-nowrap">
               Class
             </Label>
-            <Select value={examClassFilter} onValueChange={setExamClassFilter}>
+            <Select
+              value={examClassFilter}
+              onValueChange={(value) => preserveScrollOnFilterChange(setExamClassFilter, value)}
+            >
               <SelectTrigger id="exam-class-filter" className="w-full sm:w-[220px] bg-white">
                 <SelectValue placeholder="All classes" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All classes</SelectItem>
+                <SelectItem value="all">All eligible classes</SelectItem>
                 {user?.classNumber ? (
                   <SelectItem value="my">My class ({normalizeClassNumber(user.classNumber) || String(user.classNumber)})</SelectItem>
                 ) : null}
-                {CLASS_FILTER_OPTIONS.map((c) => (
+                {allowedClassFilterOptions.map((c) => (
                   <SelectItem key={c} value={c}>
                     Class {c}
                   </SelectItem>
@@ -658,7 +695,10 @@ export default function StudentExams() {
             <Label htmlFor="exam-subject-filter" className="text-sm text-gray-600 whitespace-nowrap sm:ml-2">
               Subject
             </Label>
-            <Select value={examSubjectFilter} onValueChange={setExamSubjectFilter}>
+            <Select
+              value={examSubjectFilter}
+              onValueChange={(value) => preserveScrollOnFilterChange(setExamSubjectFilter, value)}
+            >
               <SelectTrigger id="exam-subject-filter" className="w-full sm:w-[220px] bg-white">
                 <SelectValue placeholder="All subjects" />
               </SelectTrigger>

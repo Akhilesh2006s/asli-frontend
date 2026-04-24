@@ -208,6 +208,14 @@ const TeacherDashboard = () => {
   const [expandedHomework, setExpandedHomework] = useState<Set<string>>(new Set());
   const [expandedStudent, setExpandedStudent] = useState<Set<string>>(new Set());
 
+  const preserveScrollOnFilterChange = (setter: (value: string) => void, value: string) => {
+    const currentY = window.scrollY;
+    setter(value);
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: currentY, behavior: 'auto' });
+    });
+  };
+
   // Modal states
   const [isAddVideoModalOpen, setIsAddVideoModalOpen] = useState(false);
   const [isVideoViewerOpen, setIsVideoViewerOpen] = useState(false);
@@ -4143,7 +4151,10 @@ const TeacherDashboard = () => {
                       </div>
                       <div className="space-y-1.5 w-full sm:w-auto">
                         <Label className="text-xs text-gray-500">Class</Label>
-                        <Select value={eduottClassFilter} onValueChange={setEduottClassFilter}>
+                        <Select
+                          value={eduottClassFilter}
+                          onValueChange={(value) => preserveScrollOnFilterChange(setEduottClassFilter, value)}
+                        >
                           <SelectTrigger className="w-full md:w-[180px] bg-white">
                             <SelectValue placeholder="All classes" />
                           </SelectTrigger>
@@ -4159,7 +4170,10 @@ const TeacherDashboard = () => {
                       </div>
                       <div className="space-y-1.5 w-full sm:w-auto">
                         <Label className="text-xs text-gray-500">Subject</Label>
-                        <Select value={eduottSubjectFilter} onValueChange={setEduottSubjectFilter}>
+                        <Select
+                          value={eduottSubjectFilter}
+                          onValueChange={(value) => preserveScrollOnFilterChange(setEduottSubjectFilter, value)}
+                        >
                           <SelectTrigger className="w-full md:w-[200px] bg-white">
                             <Filter className="w-4 h-4 mr-2 shrink-0" />
                             <SelectValue placeholder="All subjects" />
@@ -4331,7 +4345,10 @@ const TeacherDashboard = () => {
                           </div>
                           <div className="space-y-1.5 w-full sm:w-auto">
                             <Label className="text-xs text-gray-500">Class</Label>
-                            <Select value={sessionClassFilter} onValueChange={setSessionClassFilter}>
+                            <Select
+                              value={sessionClassFilter}
+                              onValueChange={(value) => preserveScrollOnFilterChange(setSessionClassFilter, value)}
+                            >
                               <SelectTrigger className="w-full md:w-[180px] bg-white">
                                 <SelectValue placeholder="All classes" />
                               </SelectTrigger>
@@ -4347,7 +4364,10 @@ const TeacherDashboard = () => {
                           </div>
                           <div className="space-y-1.5 w-full sm:w-auto">
                             <Label className="text-xs text-gray-500">Subject</Label>
-                            <Select value={sessionSubjectFilter} onValueChange={setSessionSubjectFilter}>
+                            <Select
+                              value={sessionSubjectFilter}
+                              onValueChange={(value) => preserveScrollOnFilterChange(setSessionSubjectFilter, value)}
+                            >
                               <SelectTrigger className="w-full md:w-[200px] bg-white">
                                 <SelectValue placeholder="All subjects" />
                               </SelectTrigger>
@@ -4363,7 +4383,10 @@ const TeacherDashboard = () => {
                           </div>
                           <div className="space-y-1.5 w-full sm:w-auto">
                             <Label className="text-xs text-gray-500">Status</Label>
-                            <Select value={filterStatus} onValueChange={setFilterStatus}>
+                            <Select
+                              value={filterStatus}
+                              onValueChange={(value) => preserveScrollOnFilterChange(setFilterStatus, value)}
+                            >
                               <SelectTrigger className="w-full md:w-[160px] bg-white">
                                 <Filter className="w-4 h-4 mr-2 shrink-0" />
                                 <SelectValue placeholder="Filter by status" />

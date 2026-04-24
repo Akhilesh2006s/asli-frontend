@@ -31,8 +31,10 @@ import {
   FileText as FileTextIcon,
   X,
   Download,
+  Eye,
   ClipboardList,
-  Headphones
+  Headphones,
+  ExternalLink
 } from "lucide-react";
 import { Link } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -60,6 +62,13 @@ export default function LearningPaths() {
   const [selectedContentType, setSelectedContentType] = useState<'TextBook' | 'Workbook' | 'Material' | 'Video' | 'Audio' | 'Homework' | null>(null);
   const [filteredContent, setFilteredContent] = useState<any[]>([]);
   const [isLoadingFilteredContent, setIsLoadingFilteredContent] = useState(false);
+  const [allLibraryContent, setAllLibraryContent] = useState<any[]>([]);
+
+  const isYouTubeUrl = (url?: string) => {
+    if (!url) return false;
+    const lower = url.toLowerCase();
+    return lower.includes("youtube.com") || lower.includes("youtu.be");
+  };
 
   // Fetch user data
   useEffect(() => {
@@ -175,6 +184,21 @@ export default function LearningPaths() {
               setIsLoadingSubjects(false);
               return;
             }
+
+            // Show subjects immediately to avoid UI blank while enrichment calls run.
+            const baseSubjects = subjectsArray.map((subject: any) => ({
+              ...subject,
+              videos: [],
+              quizzes: [],
+              assessments: [],
+              totalContent: 0
+            }));
+            const uniqueBaseSubjects = baseSubjects.filter((subject, index, self) => {
+              const subjectId = subject._id || subject.id;
+              return index === self.findIndex((s: any) => (s._id || s.id) === subjectId);
+            });
+            setSubjects(uniqueBaseSubjects);
+            setIsLoadingSubjects(false);
             
             // Fetch content for each subject - use Promise.allSettled to ensure all subjects are included
             const subjectsWithContentResults = await Promise.allSettled(
@@ -352,11 +376,12 @@ export default function LearningPaths() {
           ]);
         }
       } catch (error) {
+        const err = error as Error;
         console.error('❌ ERROR fetching subjects:', error);
         console.error('Error details:', {
-          message: error.message,
-          stack: error.stack,
-          name: error.name
+          message: err?.message || 'Unknown error',
+          stack: err?.stack,
+          name: err?.name || 'UnknownError'
         });
         
         // Try to show subjects even if there's an error - maybe API is down but cache works?
@@ -458,6 +483,7 @@ export default function LearningPaths() {
         if (response.ok) {
           const data = await response.json();
           const allContent = data.data || data || [];
+          setAllLibraryContent(Array.isArray(allContent) ? allContent : []);
           
           // Count by type
           const counts = {
@@ -477,9 +503,12 @@ export default function LearningPaths() {
           });
           
           setContentTypeCounts(counts);
+        } else {
+          setAllLibraryContent([]);
         }
       } catch (error) {
         console.error('Failed to fetch content counts:', error);
+        setAllLibraryContent([]);
       } finally {
         setIsLoadingContentCounts(false);
       }
@@ -488,121 +517,24 @@ export default function LearningPaths() {
     fetchContentCounts();
   }, []);
 
-  // Fetch filtered content when type is selected
+  // Update filtered content from already-fetched library content
   useEffect(() => {
-    const fetchFilteredContent = async () => {
-      if (!selectedContentType) {
-        setFilteredContent([]);
-        return;
-      }
+    if (!selectedContentType) {
+      setFilteredContent([]);
+      setIsLoadingFilteredContent(false);
+      return;
+    }
 
+    if (isLoadingContentCounts) {
       setIsLoadingFilteredContent(true);
-      try {
-        const token = localStorage.getItem('authToken');
-        
-        // Fetch all content
-        const response = await fetch(`${API_BASE_URL}/api/student/asli-prep-content`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          let allContent = data.data || data || [];
-          
-          // Filter by the selected content type
-          allContent = allContent.filter((c: any) => c.type === selectedContentType);
-          
-          // Populate subject names if needed
-          const contentWithSubjects = allContent.map((content: any) => {
-            // Subject should already be populated from the API
-            return content;
-          });
-          
-          setFilteredContent(contentWithSubjects);
-        }
-      } catch (error) {
-        console.error('Failed to fetch filtered content:', error);
-        setFilteredContent([]);
-      } finally {
-        setIsLoadingFilteredContent(false);
-      }
-    };
+      return;
+    }
 
-    fetchFilteredContent();
-  }, [selectedContentType]);
-
-  const [learningPaths, setLearningPaths] = useState<any[]>([]);
-  const [isLoadingPaths, setIsLoadingPaths] = useState(true);
-
-  // Fetch learning paths from API
-  useEffect(() => {
-    const fetchLearningPaths = async () => {
-      try {
-        const token = localStorage.getItem('authToken');
-        const response = await fetch(`${API_BASE_URL}/api/student/subjects`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        const data = await response.json();
-        if (data.success) {
-          setLearningPaths(data.subjects || data.data || []);
-        }
-      } catch (error) {
-        console.error('Error fetching learning paths:', error);
-        // Fallback to mock data
-        setLearningPaths([
-          {
-            _id: "1",
-            name: "JEE Main 2024 Complete Preparation",
-            description: "Comprehensive preparation for JEE Main with all subjects covered",
-            duration: "12 months",
-            students: 1250,
-            rating: 4.8,
-            progress: 68,
-            subjects: ["Physics", "Chemistry", "Mathematics"],
-            difficulty: "Advanced",
-            color: "bg-blue-100 text-blue-600",
-            icon: "BookOpen"
-          },
-          {
-            _id: "2", 
-            name: "NEET 2024 Biology Mastery",
-            description: "Complete biology preparation for NEET with detailed explanations",
-            duration: "10 months",
-            students: 890,
-            rating: 4.9,
-            progress: 45,
-            subjects: ["Biology", "Physics", "Chemistry"],
-            difficulty: "Intermediate",
-            color: "bg-green-100 text-green-600",
-            icon: "Target"
-          },
-          {
-            _id: "3",
-            name: "UPSC Civil Services Foundation",
-            description: "Foundation course for UPSC preparation with current affairs",
-            duration: "18 months", 
-            students: 2100,
-            rating: 4.7,
-            progress: 25,
-            subjects: ["History", "Geography", "Polity", "Economics"],
-            difficulty: "Expert",
-            color: "bg-blue-100 text-blue-600",
-            icon: "Award"
-          }
-        ]);
-      } finally {
-        setIsLoadingPaths(false);
-      }
-    };
-
-    fetchLearningPaths();
-  }, []);
+    setIsLoadingFilteredContent(true);
+    const filtered = allLibraryContent.filter((content: any) => content.type === selectedContentType);
+    setFilteredContent(filtered);
+    setIsLoadingFilteredContent(false);
+  }, [selectedContentType, allLibraryContent, isLoadingContentCounts]);
 
   const recommendedPaths = [
     {
@@ -1059,24 +991,38 @@ export default function LearningPaths() {
                             variant="outline"
                             size="sm"
                             className="flex-1"
-                            onClick={() => window.open(content.fileUrl, '_blank')}
+                            onClick={() => window.open(content.fileUrl, '_blank', 'noopener,noreferrer')}
                           >
-                            <Download className="w-4 h-4 mr-2" />
+                            <Eye className="w-4 h-4 mr-2" />
                             View
                         </Button>
                           {content.fileUrl && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const link = document.createElement('a');
-                                link.href = content.fileUrl;
-                                link.download = content.title;
-                                link.click();
-                              }}
-                            >
-                              <Download className="w-4 h-4" />
-                            </Button>
+                            isYouTubeUrl(content.fileUrl) ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(content.fileUrl, '_blank', 'noopener,noreferrer')}
+                                title="Open YouTube in new tab"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  const link = document.createElement('a');
+                                  link.href = content.fileUrl;
+                                  link.download = content.title || 'download';
+                                  link.target = '_blank';
+                                  link.rel = 'noopener noreferrer';
+                                  link.click();
+                                }}
+                                title="Download file"
+                              >
+                                <Download className="w-4 h-4" />
+                              </Button>
+                            )
                           )}
                         </div>
                     </CardContent>

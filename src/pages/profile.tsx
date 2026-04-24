@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ChangeEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,8 @@ import {
   Flame,
   Edit,
   Save,
-  X
+  X,
+  Camera
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getAgeGroup } from "@/lib/constants";
@@ -43,6 +44,7 @@ export default function Profile() {
   // Fetch user data
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   // Exam results (used as "test attempts" for achievements / quick stats)
   const [examResults, setExamResults] = useState<any[]>([]);
 
@@ -157,6 +159,8 @@ export default function Profile() {
       age: user?.age || 18,
       educationStream: user?.educationStream || "",
       targetExam: user?.targetExam || "",
+      phone: user?.phone || "",
+      profilePhoto: user?.profilePhoto || "",
     });
   };
 
@@ -167,6 +171,50 @@ export default function Profile() {
   const handleCancel = () => {
     setIsEditing(false);
     setEditedProfile({});
+  };
+
+  const handlePhotoUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file",
+        description: "Please upload an image file.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload an image up to 2MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsUploadingPhoto(true);
+    try {
+      const reader = new FileReader();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(String(reader.result || ""));
+        reader.onerror = () => reject(new Error("Failed to read image"));
+        reader.readAsDataURL(file);
+      });
+      updateProfileMutation.mutate({ profilePhoto: dataUrl });
+    } catch {
+      toast({
+        title: "Upload failed",
+        description: "Could not process image file.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingPhoto(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    updateProfileMutation.mutate({ profilePhoto: "" });
   };
 
   // Calculate achievements
@@ -272,11 +320,17 @@ export default function Profile() {
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center space-x-4 min-w-0 flex-1">
-                  <div className="w-20 h-20 flex-shrink-0 gradient-accent rounded-full flex items-center justify-center">
-                    <span className="text-2xl font-bold text-white">
-                      {user.fullName?.split(' ').map(
-                        (n: string) => n[0]).join('').toUpperCase() || 'U'}
-                    </span>
+                  <div className="w-20 h-20 flex-shrink-0 rounded-full overflow-hidden bg-gray-100 border border-gray-200 flex items-center justify-center">
+                    {user.profilePhoto ? (
+                      <img src={user.profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full gradient-accent flex items-center justify-center">
+                        <span className="text-2xl font-bold text-white">
+                          {user.fullName?.split(' ').map(
+                            (n: string) => n[0]).join('').toUpperCase() || 'U'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="min-w-0">
                     {isEditing ? (
@@ -309,6 +363,28 @@ export default function Profile() {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2 flex-shrink-0 w-full sm:w-auto sm:flex-none justify-end sm:justify-start">
+                  {isEditing && (
+                    <div className="flex items-center gap-2 mr-2">
+                      <Label htmlFor="profile-photo-upload" className="cursor-pointer">
+                        <span className="inline-flex items-center rounded-md border px-3 py-2 text-sm bg-white hover:bg-gray-50">
+                          <Camera className="w-4 h-4 mr-2" />
+                          {isUploadingPhoto ? "Uploading..." : "Upload Photo"}
+                        </span>
+                      </Label>
+                      <Input
+                        id="profile-photo-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                      />
+                      {user.profilePhoto && (
+                        <Button variant="outline" size="sm" onClick={handleRemovePhoto} disabled={updateProfileMutation.isPending}>
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                  )}
                   {isEditing ? (
                     <>
                       <Button 
@@ -537,6 +613,23 @@ export default function Profile() {
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
+                            <Label htmlFor="fullName">Full Name</Label>
+                            <Input
+                              id="fullName"
+                              value={editedProfile.fullName}
+                              onChange={(e) => setEditedProfile({...editedProfile, fullName: e.target.value})}
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="email">Email</Label>
+                            <Input
+                              id="email"
+                              type="email"
+                              value={editedProfile.email}
+                              onChange={(e) => setEditedProfile({...editedProfile, email: e.target.value})}
+                            />
+                          </div>
+                          <div>
                             <Label htmlFor="age">Age</Label>
                             <Input
                               id="age"
@@ -550,12 +643,19 @@ export default function Profile() {
                             <Label htmlFor="stream">Education Stream</Label>
                             <Input
                               id="stream"
-                              value={editedProfile.educationStream || user.educationStream || ""}
-                              disabled
-                              readOnly
-                              className="bg-gray-100 text-gray-600 cursor-not-allowed"
+                              value={editedProfile.educationStream || ""}
+                              onChange={(e) => setEditedProfile({...editedProfile, educationStream: e.target.value})}
                             />
                           </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="phone">Phone</Label>
+                          <Input
+                            id="phone"
+                            value={editedProfile.phone || ""}
+                            onChange={(e) => setEditedProfile({...editedProfile, phone: e.target.value})}
+                            placeholder="Enter phone number"
+                          />
                         </div>
                         
                         <div>
@@ -572,6 +672,14 @@ export default function Profile() {
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
+                            <Label className="text-sm font-medium text-gray-600">Full Name</Label>
+                            <p className="text-lg font-medium text-gray-900">{user.fullName || "N/A"}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-gray-600">Email</Label>
+                            <p className="text-lg font-medium text-gray-900 break-all">{user.email || "N/A"}</p>
+                          </div>
+                          <div>
                             <Label className="text-sm font-medium text-gray-600">Age</Label>
                             <p className="text-lg font-medium text-gray-900">{user.age} years</p>
                           </div>
@@ -579,6 +687,22 @@ export default function Profile() {
                           <div>
                             <Label className="text-sm font-medium text-gray-600">Education Stream</Label>
                             <p className="text-lg font-medium text-gray-900">{user.educationStream}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-gray-600">Class</Label>
+                            <p className="text-lg font-medium text-gray-900">{user.classNumber || "N/A"}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-gray-600">Phone</Label>
+                            <p className="text-lg font-medium text-gray-900">{user.phone || "N/A"}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-gray-600">School</Label>
+                            <p className="text-lg font-medium text-gray-900">{user.schoolName || "N/A"}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-gray-600">Board</Label>
+                            <p className="text-lg font-medium text-gray-900">{user.board || "N/A"}</p>
                           </div>
                         </div>
                         
