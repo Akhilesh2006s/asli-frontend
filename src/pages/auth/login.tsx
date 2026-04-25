@@ -263,7 +263,7 @@ const Login = () => {
                     <div className="relative group">
                       <div className="absolute inset-0 bg-gradient-to-r from-sky-300/20 to-blue-300/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-indigo-400 group-hover:text-indigo-600 transition-colors" />
+                        <Mail className="absolute left-4 top-1/2 z-10 -translate-y-1/2 w-5 h-5 text-indigo-500 group-hover:text-indigo-600 transition-colors pointer-events-none" />
                         <Input
                           id="email"
                           name="email"
@@ -291,7 +291,7 @@ const Login = () => {
                     <div className="relative group">
                       <div className="absolute inset-0 bg-gradient-to-r from-sky-300/20 to-blue-300/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <div className="relative">
-                        <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-indigo-400 group-hover:text-indigo-600 transition-colors" />
+                        <Lock className="absolute left-4 top-1/2 z-10 -translate-y-1/2 w-5 h-5 text-indigo-500 group-hover:text-indigo-600 transition-colors pointer-events-none" />
                         <Input
                           id="password"
                           name="password"
@@ -305,7 +305,7 @@ const Login = () => {
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition-colors"
+                          className="absolute right-4 top-1/2 z-10 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition-colors"
                         >
                           {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                         </button>

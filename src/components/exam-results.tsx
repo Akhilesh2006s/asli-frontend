@@ -59,10 +59,18 @@ interface ExamResultsProps {
   onRetake: () => void;
   onViewAnalysis: () => void;
   onBack: () => void;
+  openDetailedByDefault?: boolean;
 }
 
-export default function ExamResults({ result, examTitle, onRetake, onViewAnalysis, onBack }: ExamResultsProps) {
-  const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
+export default function ExamResults({
+  result,
+  examTitle,
+  onRetake,
+  onViewAnalysis,
+  onBack,
+  openDetailedByDefault = false,
+}: ExamResultsProps) {
+  const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(openDetailedByDefault);
 
   if (showDetailedAnalysis) {
     return (

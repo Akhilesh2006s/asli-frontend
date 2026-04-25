@@ -473,16 +473,29 @@ export default function StudentExams() {
     setIsTakingExam(true);
   };
 
+  const exitFullscreenIfActive = async () => {
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        await document.exitFullscreen();
+        return;
+      }
+      const doc = document as Document & {
+        webkitExitFullscreen?: () => Promise<void> | void;
+      };
+      if (doc.webkitExitFullscreen) {
+        await doc.webkitExitFullscreen();
+      }
+    } catch (error) {
+      console.warn('Failed to exit fullscreen mode:', error);
+    }
+  };
+
   const handleExamComplete = async (result: ExamResult) => {
-    // Auto-exit to attempted exams list after submit.
-    // Keep this false by default to avoid trapping users on full-page result view.
-    const showFullScreenResultAfterSubmit = false;
-    setExamResult(showFullScreenResultAfterSubmit ? result : null);
+    await exitFullscreenIfActive();
+    // Show full results + analytics screen immediately after submission.
+    setExamResult(result);
     setIsTakingExam(false);
     setActiveTab('attempted');
-    if (!showFullScreenResultAfterSubmit) {
-      setCurrentExam(null);
-    }
     
     // Invalidate and refetch exam results to update the UI
     console.log('🔄 Invalidating exam results query after exam completion');
@@ -496,12 +509,13 @@ export default function StudentExams() {
       queryClient.refetchQueries({ queryKey: ['/api/student/exams'] })
     ]);
     
-    console.log('✅ Exam results query invalidated and refetched - attempted exams should update');
+    console.log('✅ Exam results query invalidated and refetched');
     console.log('📋 Current results after refetch:', results?.data?.length || 0);
-    console.log('🔄 Switched to attempted exams tab');
+    console.log('🔄 Showing full exam results screen');
   };
 
   const handleExitExam = () => {
+    exitFullscreenIfActive();
     setCurrentExam(null);
     setIsTakingExam(false);
   };
@@ -570,6 +584,7 @@ export default function StudentExams() {
         onRetake={handleRetakeExam}
         onViewAnalysis={() => {}}
         onBack={handleBackToExams}
+        openDetailedByDefault
       />
     );
   }
@@ -882,7 +897,7 @@ export default function StudentExams() {
                           <div className="text-3xl font-bold text-gray-900 mb-1">
                             {displayPercentage.toFixed(1)}%
                           </div>
-                          <div className={`text-sm ${colorScheme.text}/90`}>
+                          <div className="text-sm text-gray-700 font-medium">
                             {result.obtainedMarks || 0}/{result.totalMarks || exam.totalMarks} marks
                           </div>
                         </div>
