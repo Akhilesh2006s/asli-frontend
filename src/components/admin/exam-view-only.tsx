@@ -51,6 +51,45 @@ interface ExamResult {
   completedAt: string;
 }
 
+const normalizeClassNumberForDisplay = (value: unknown): string => {
+  const raw = String(value ?? '').trim();
+  if (!raw) return 'N/A';
+  return raw
+    .replace(/^class\s*-\s*(\d+)/i, 'Class $1')
+    .replace(/^-([0-9]+)([A-Za-z]?)$/, '$1$2');
+};
+
+const derivePercentageFromMarks = (obtainedMarks: unknown, totalMarks: unknown): number | null => {
+  const obtained = Number(obtainedMarks);
+  const total = Number(totalMarks);
+  if (!Number.isFinite(obtained) || !Number.isFinite(total) || total <= 0) return null;
+  return Math.round((obtained / total) * 10000) / 100;
+};
+
+const getResultPercentage = (result: ExamResult): number => {
+  const fromMarks = derivePercentageFromMarks(result.obtainedMarks, result.totalMarks);
+  if (fromMarks !== null) return fromMarks;
+  const stored = Number(result.percentage);
+  return Number.isFinite(stored) ? stored : 0;
+};
+
+const parsePerformerMarks = (marks: unknown): { obtained: number; total: number } | null => {
+  const text = String(marks ?? '').trim();
+  const match = text.match(/^(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);
+  if (!match) return null;
+  return { obtained: Number(match[1]), total: Number(match[2]) };
+};
+
+const getPerformerPercentage = (performer: any): number => {
+  const parsedMarks = parsePerformerMarks(performer?.marks);
+  if (parsedMarks) {
+    const fromMarks = derivePercentageFromMarks(parsedMarks.obtained, parsedMarks.total);
+    if (fromMarks !== null) return fromMarks;
+  }
+  const stored = Number(performer?.percentage);
+  return Number.isFinite(stored) ? stored : 0;
+};
+
 export default function ExamViewOnly() {
   const [exams, setExams] = useState<Exam[]>([]);
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
@@ -206,7 +245,7 @@ export default function ExamViewOnly() {
     const headers = ['Rank', 'Student Name', 'Email', 'Class', 'Marks Obtained', 'Total Marks', 'Percentage', 'Completed At'];
     
     // Sort results by percentage (descending) for ranking
-    const sortedResults = [...examResults].sort((a, b) => b.percentage - a.percentage);
+    const sortedResults = [...examResults].sort((a, b) => getResultPercentage(b) - getResultPercentage(a));
     
     // CSV Data rows
     const rows = sortedResults
@@ -216,10 +255,10 @@ export default function ExamViewOnly() {
           rank,
           result.userId.fullName,
           result.userId.email,
-          result.userId.classNumber,
+          normalizeClassNumberForDisplay(result.userId.classNumber),
           result.obtainedMarks,
           result.totalMarks,
-          `${result.percentage.toFixed(2)}%`,
+          `${getResultPercentage(result).toFixed(2)}%`,
           new Date(result.completedAt).toLocaleString()
         ];
       })
@@ -389,11 +428,13 @@ export default function ExamViewOnly() {
                       </div>
                       <div>
                         <p className="font-medium">{performer.studentName}</p>
-                        <p className="text-sm text-gray-600">{performer.studentEmail} • Class {performer.classNumber}</p>
+                        <p className="text-sm text-gray-600">
+                          {performer.studentEmail} • Class {normalizeClassNumberForDisplay(performer.classNumber)}
+                        </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-green-600">{performer.percentage}%</p>
+                      <p className="font-bold text-green-600">{getPerformerPercentage(performer)}%</p>
                       <p className="text-sm text-gray-600">{performer.marks}</p>
                     </div>
                   </div>
@@ -442,18 +483,23 @@ export default function ExamViewOnly() {
                             <p className="text-sm text-gray-600">{result.userId.email}</p>
                           </div>
                         </td>
-                        <td className="py-3 px-4">{result.userId.classNumber}</td>
+                        <td className="py-3 px-4">{normalizeClassNumberForDisplay(result.userId.classNumber)}</td>
                         <td className="py-3 px-4">
                           <span className="font-medium">{result.obtainedMarks}/{result.totalMarks}</span>
                         </td>
                         <td className="py-3 px-4">
+                          {(() => {
+                            const pct = getResultPercentage(result);
+                            return (
                           <Badge className={
-                            result.percentage >= 70 ? 'bg-green-100 text-green-800' :
-                            result.percentage >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                            pct >= 70 ? 'bg-green-100 text-green-800' :
+                            pct >= 50 ? 'bg-yellow-100 text-yellow-800' :
                             'bg-red-100 text-red-800'
                           }>
-                            {result.percentage}%
+                            {pct}%
                           </Badge>
+                            );
+                          })()}
                         </td>
                         <td className="py-3 px-4 text-sm text-gray-600">
                           {new Date(result.completedAt).toLocaleString()}

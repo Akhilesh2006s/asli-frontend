@@ -17,7 +17,6 @@ import {
   Shield,
   Users2,
   Calendar,
-  AlertTriangle,
   FolderTree,
   Menu,
 } from "lucide-react";
@@ -45,7 +44,6 @@ export type SuperAdminView =
   | 'courses'
   | 'add-admin'
   | 'calendar'
-  | 'ai-risk-analysis'
   | 'ai-content-engine';
 
 interface SuperAdminSidebarProps {
@@ -71,7 +69,6 @@ export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdmi
     { id: 'ai-tool-generations', label: 'AI Tool Data', icon: FolderTree },
     { id: 'ai-content-engine', label: 'AI Content Engine', icon: UploadIcon },
     { id: 'analytics', label: 'Analytics', icon: BarChartIcon },
-    { id: 'ai-risk-analysis', label: 'AI Risk Analysis', icon: AlertTriangle },
     { id: 'subscriptions', label: 'Subscriptions', icon: CreditCardIcon },
     { id: 'settings', label: 'Settings', icon: SettingsIcon },
   ];

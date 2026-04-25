@@ -91,37 +91,44 @@ export default function AdminManagement() {
     { value: SUPPORTED_BOARD, label: 'ASLI_EXCLUSIVE_SCHOOLS' },
   ];
 
-  // All 29 Indian States
+  // Indian states/UT labels with short codes
   const stateOptions = [
     { value: 'Andhra Pradesh', label: 'Andhra Pradesh (AP)' },
-    { value: 'Arunachal Pradesh', label: 'Arunachal Pradesh' },
-    { value: 'Assam', label: 'Assam' },
-    { value: 'Bihar', label: 'Bihar' },
-    { value: 'Chhattisgarh', label: 'Chhattisgarh' },
-    { value: 'Goa', label: 'Goa' },
-    { value: 'Gujarat', label: 'Gujarat' },
-    { value: 'Haryana', label: 'Haryana' },
-    { value: 'Himachal Pradesh', label: 'Himachal Pradesh' },
-    { value: 'Jharkhand', label: 'Jharkhand' },
-    { value: 'Karnataka', label: 'Karnataka' },
-    { value: 'Kerala', label: 'Kerala' },
-    { value: 'Madhya Pradesh', label: 'Madhya Pradesh' },
-    { value: 'Maharashtra', label: 'Maharashtra' },
-    { value: 'Manipur', label: 'Manipur' },
-    { value: 'Meghalaya', label: 'Meghalaya' },
-    { value: 'Mizoram', label: 'Mizoram' },
-    { value: 'Nagaland', label: 'Nagaland' },
-    { value: 'Odisha', label: 'Odisha' },
-    { value: 'Punjab', label: 'Punjab' },
-    { value: 'Rajasthan', label: 'Rajasthan' },
-    { value: 'Sikkim', label: 'Sikkim' },
-    { value: 'Tamil Nadu', label: 'Tamil Nadu' },
+    { value: 'Arunachal Pradesh', label: 'Arunachal Pradesh (AR)' },
+    { value: 'Assam', label: 'Assam (AS)' },
+    { value: 'Bihar', label: 'Bihar (BR)' },
+    { value: 'Chhattisgarh', label: 'Chhattisgarh (CG)' },
+    { value: 'Goa', label: 'Goa (GA)' },
+    { value: 'Gujarat', label: 'Gujarat (GJ)' },
+    { value: 'Haryana', label: 'Haryana (HR)' },
+    { value: 'Himachal Pradesh', label: 'Himachal Pradesh (HP)' },
+    { value: 'Jharkhand', label: 'Jharkhand (JH)' },
+    { value: 'Karnataka', label: 'Karnataka (KA)' },
+    { value: 'Kerala', label: 'Kerala (KL)' },
+    { value: 'Madhya Pradesh', label: 'Madhya Pradesh (MP)' },
+    { value: 'Maharashtra', label: 'Maharashtra (MH)' },
+    { value: 'Manipur', label: 'Manipur (MN)' },
+    { value: 'Meghalaya', label: 'Meghalaya (ML)' },
+    { value: 'Mizoram', label: 'Mizoram (MZ)' },
+    { value: 'Nagaland', label: 'Nagaland (NL)' },
+    { value: 'Odisha', label: 'Odisha (OD)' },
+    { value: 'Punjab', label: 'Punjab (PB)' },
+    { value: 'Rajasthan', label: 'Rajasthan (RJ)' },
+    { value: 'Sikkim', label: 'Sikkim (SK)' },
+    { value: 'Tamil Nadu', label: 'Tamil Nadu (TN)' },
     { value: 'Telangana', label: 'Telangana (TS)' },
-    { value: 'Tripura', label: 'Tripura' },
-    { value: 'Uttar Pradesh', label: 'Uttar Pradesh' },
-    { value: 'Uttarakhand', label: 'Uttarakhand' },
-    { value: 'West Bengal', label: 'West Bengal' },
-    { value: 'Delhi', label: 'Delhi' }
+    { value: 'Tripura', label: 'Tripura (TR)' },
+    { value: 'Uttar Pradesh', label: 'Uttar Pradesh (UP)' },
+    { value: 'Uttarakhand', label: 'Uttarakhand (UK)' },
+    { value: 'West Bengal', label: 'West Bengal (WB)' },
+    { value: 'Andaman and Nicobar Islands', label: 'Andaman and Nicobar Islands (AN)' },
+    { value: 'Chandigarh', label: 'Chandigarh (CH)' },
+    { value: 'Dadra and Nagar Haveli and Daman and Diu', label: 'Dadra and Nagar Haveli and Daman and Diu (DN)' },
+    { value: 'Delhi', label: 'Delhi (DL)' },
+    { value: 'Jammu and Kashmir', label: 'Jammu and Kashmir (JK)' },
+    { value: 'Ladakh', label: 'Ladakh (LA)' },
+    { value: 'Lakshadweep', label: 'Lakshadweep (LD)' },
+    { value: 'Puducherry', label: 'Puducherry (PY)' }
   ];
   const { toast } = useToast();
 
@@ -584,6 +591,7 @@ export default function AdminManagement() {
                     id="schoolLogo"
                     type="file"
                     accept="image/*"
+                    className="cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-orange-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-orange-700 hover:file:bg-orange-100"
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
@@ -709,6 +717,7 @@ export default function AdminManagement() {
                     id="edit-schoolLogo"
                     type="file"
                     accept="image/*"
+                    className="cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-orange-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-orange-700 hover:file:bg-orange-100"
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
@@ -856,15 +865,21 @@ export default function AdminManagement() {
         return (
           <>
             {filteredAdmins && filteredAdmins.length > 0 ? (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
                 {filteredAdmins.map((admin) => (
           <Card key={admin?.id || Math.random().toString()} className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-start space-x-3 min-w-0 flex-1">
-                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center overflow-hidden">
+                  <div className="h-12 w-12 shrink-0 rounded-xl border border-orange-200 bg-white p-1.5 shadow-sm flex items-center justify-center overflow-hidden">
                     {admin?.schoolLogo ? (
-                      <img src={admin.schoolLogo} alt={`${admin?.schoolName || 'School'} logo`} className="h-full w-full object-cover" />
+                      <img
+                        src={admin.schoolLogo}
+                        alt={`${admin?.schoolName || 'School'} logo`}
+                        className="h-full w-full object-contain"
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                      />
                     ) : (
                       <CrownIcon className="h-5 w-5 text-orange-600" />
                     )}

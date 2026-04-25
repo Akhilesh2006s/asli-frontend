@@ -88,7 +88,7 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
       0
     ) || 0;
   const totalContentFromStats =
-    (dashboardStats?.courses || 0) +
+    (dashboardStats?.totalContent || dashboardStats?.courses || 0) +
     (dashboardStats?.assessments || 0) +
     (dashboardStats?.exams || 0);
   const totalContentDisplay = totalContentFromStats || totalContentFromAdmins;
