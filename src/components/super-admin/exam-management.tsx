@@ -80,6 +80,33 @@ const normalizeDisplayText = (value?: string) =>
     .replace(/\s+/g, ' ')
     .trim();
 
+const SUBSCRIPT_DIGITS: Record<string, string> = {
+  '0': '₀',
+  '1': '₁',
+  '2': '₂',
+  '3': '₃',
+  '4': '₄',
+  '5': '₅',
+  '6': '₆',
+  '7': '₇',
+  '8': '₈',
+  '9': '₉',
+};
+
+const formatChemistryText = (value: unknown, subject?: string) => {
+  const text = value === null || value === undefined ? '' : String(value);
+  if (String(subject || '').toLowerCase() !== 'chemistry') return text;
+
+  // Display helper: render formula-style digits as subscripts (e.g. H2O -> H₂O).
+  return text.replace(/([A-Za-z\)])(\d+)/g, (_match, prefix: string, digits: string) => {
+    const subscript = digits
+      .split('')
+      .map((digit) => SUBSCRIPT_DIGITS[digit] ?? digit)
+      .join('');
+    return `${prefix}${subscript}`;
+  });
+};
+
 const toIsoFromDateTimeLocal = (value: string) => {
   if (!value) return value;
   const parsed = new Date(value);
@@ -2181,7 +2208,7 @@ export default function ExamManagement() {
                                 </div>
                               ) : null}
                               <p className="text-sm font-medium text-gray-900 mb-2">
-                                {q.questionText || 'Image question'}
+                                {formatChemistryText(q.questionText || 'Image question', q.subject)}
                               </p>
                               {(q.questionType === 'mcq' || q.questionType === 'multiple') && q.options && q.options.length > 0 && (
                                 <div className="space-y-1 mt-3">
@@ -2200,7 +2227,7 @@ export default function ExamManagement() {
                                         }`}
                                       >
                                         <span className="font-semibold mr-2">{String.fromCharCode(65 + optIdx)}.</span>
-                                        {option.text || option}
+                                        {formatChemistryText(option.text || option, q.subject)}
                                         {isCorrect && (
                                           <Badge className="ml-2 bg-green-600 text-white text-xs">Correct</Badge>
                                         )}
@@ -2212,7 +2239,7 @@ export default function ExamManagement() {
                               {q.questionType === 'integer' && (
                                 <div className="mt-3 p-2 bg-green-50 border border-green-300 rounded">
                                   <p className="text-xs font-semibold text-gray-600 mb-1">Correct Answer:</p>
-                                  <p className="text-sm font-bold text-green-900">{q.correctAnswer}</p>
+                                  <p className="text-sm font-bold text-green-900">{formatChemistryText(q.correctAnswer, q.subject)}</p>
                                 </div>
                               )}
                               {q.explanation && (
