@@ -47,6 +47,15 @@ interface Student {
   assignedClass?: string;
 }
 
+const normalizeClassNumberForDisplay = (value: unknown): string => {
+  const raw = String(value ?? '').trim();
+  if (!raw) return 'N/A';
+  // Repair corrupted values like "-7", "Class -7", "-7A" that should be positive.
+  return raw
+    .replace(/^class\s*-\s*(\d+)/i, 'Class $1')
+    .replace(/^-([0-9]+)([A-Za-z]?)$/, '$1$2');
+};
+
 const UserManagement = () => {
   const { toast } = useToast();
   const [students, setStudents] = useState<Student[]>([]);
@@ -138,7 +147,7 @@ const UserManagement = () => {
         id: user._id || user.id,
         name: user.fullName || user.name || 'Unknown Student',
         email: user.email || '',
-        classNumber: user.classNumber || 'N/A',
+        classNumber: normalizeClassNumberForDisplay(user.classNumber),
         phone: user.phone || '',
         status: (user.isActive ? 'active' : 'inactive') as 'active' | 'inactive',
         createdAt: user.createdAt || new Date().toISOString(),

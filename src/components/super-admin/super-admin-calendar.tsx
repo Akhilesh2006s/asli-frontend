@@ -505,7 +505,10 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
               <div className="flex-1 space-y-2">
                 <Label htmlFor="school-select">School filter</Label>
                 <Select value={selectedSchoolId} onValueChange={setSelectedSchoolId}>
-                  <SelectTrigger id="school-select" className="w-full max-w-md">
+                  <SelectTrigger
+                    id="school-select"
+                    className="w-full max-w-md border border-orange-200 bg-white shadow-sm transition-colors hover:border-orange-400 focus:ring-2 focus:ring-orange-400/40"
+                  >
                     <SelectValue placeholder="Select scope" />
                   </SelectTrigger>
                   <SelectContent>

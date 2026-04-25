@@ -11,7 +11,6 @@ const ExamManagement = lazy(() => import("@/components/super-admin/exam-manageme
 const IQRankBoostActivities = lazy(() => import("@/components/super-admin/iq-rank-boost-activities"));
 const SuperAdminCalendar = lazy(() => import("@/components/super-admin/super-admin-calendar"));
 const AIChat = lazy(() => import("@/components/ai-chat"));
-const SuperAdminAIRiskAnalysis = lazy(() => import("./super-admin-ai-risk-analysis"));
 const AiToolGenerationsPanel = lazy(() => import("@/components/super-admin/ai-tool-generations/AiToolGenerationsPanel"));
 const AIContentEngine = lazy(() => import("@/components/super-admin/ai-content-engine"));
 const SubscriptionManagement = lazy(() => import("@/components/super-admin/subscription-management"));
@@ -43,8 +42,11 @@ import { InteractiveBackground, FloatingParticles } from "@/components/backgroun
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const lazySectionFallback = (
-  <div className="rounded-xl border border-orange-100 bg-white p-6 text-sm text-slate-600 shadow-sm">
-    Loading section...
+  <div className="rounded-xl border border-orange-100 bg-white p-8 shadow-sm">
+    <div className="flex flex-col items-center justify-center gap-3 text-slate-600">
+      <RefreshCw className="h-5 w-5 animate-spin text-orange-500" />
+      <p className="text-sm font-medium">Loading section...</p>
+    </div>
   </div>
 );
 
@@ -294,7 +296,6 @@ export default function SuperAdminDashboard() {
     { Icon: Sparkles, view: 'vidya-ai', label: 'Vidya AI' },
     { Icon: FolderTree, view: 'ai-tool-generations', label: 'AI Tool Data' },
     { Icon: BarChartIcon, view: 'analytics', label: 'Analytics' },
-    { Icon: AlertTriangle, view: 'ai-risk-analysis', label: 'AI Risk Analysis' },
     { Icon: CreditCardIcon, view: 'subscriptions', label: 'Subscriptions' },
     { Icon: SettingsIcon, view: 'settings', label: 'Settings' }
   ];
@@ -1079,12 +1080,6 @@ export default function SuperAdminDashboard() {
         return renderBoardComparisonContent();
       case 'ai-analytics':
         return renderAnalyticsContent();
-      case 'ai-risk-analysis':
-        return (
-          <Suspense fallback={lazySectionFallback}>
-            <SuperAdminAIRiskAnalysis />
-          </Suspense>
-        );
       case 'ai-tool-generations':
         return (
           <Suspense fallback={lazySectionFallback}>
@@ -1263,6 +1258,39 @@ export default function SuperAdminDashboard() {
                   }}
                 >
                   School Management
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => {
+                    setSystemSettingsOpen(false);
+                    setCurrentView("subjects-and-content");
+                  }}
+                >
+                  Subject &amp; Content
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => {
+                    setSystemSettingsOpen(false);
+                    setCurrentView("analytics");
+                  }}
+                >
+                  Analytics
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => {
+                    setSystemSettingsOpen(false);
+                    setCurrentView("subscriptions");
+                  }}
+                >
+                  Subscriptions
                 </Button>
               </div>
             </div>

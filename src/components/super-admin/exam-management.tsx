@@ -24,7 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { API_BASE_URL } from '@/lib/api-config';
 import { getExamClassStrings } from '@/lib/exam-classes';
-import { Plus, Trash2, Edit, Eye, Calendar, Clock, BookOpen, FileQuestion, X, Upload, Download, School, GraduationCap } from 'lucide-react';
+import { Plus, Trash2, Edit, Eye, Calendar, Clock, BookOpen, FileQuestion, X, Upload, Download, School, GraduationCap, Loader2 } from 'lucide-react';
 
 interface Exam {
   _id: string;
@@ -1601,7 +1601,10 @@ export default function ExamManagement() {
                 <div>
                   <Label htmlFor="schools">Select Schools *</Label>
                   {isLoadingSchools ? (
-                    <p className="text-sm text-gray-500">Loading schools...</p>
+                    <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                      <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                      <span>Loading schools...</span>
+                    </div>
                   ) : (
                     <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
                       {schools.length === 0 ? (
@@ -1626,7 +1629,7 @@ export default function ExamManagement() {
                                   });
                                 }
                               }}
-                              className="rounded"
+                              className="h-4 w-4 rounded border border-gray-400 accent-orange-500"
                             />
                             <Label htmlFor={`school-${school.id}`} className="text-sm cursor-pointer">
                               {school.name} (Asli Exclusive Schools)
@@ -1685,7 +1688,7 @@ export default function ExamManagement() {
                               setFormData({ ...formData, assignedClasses: next, classNumber: next[0] || '' });
                             }
                           }}
-                          className="rounded"
+                          className="h-4 w-4 rounded border border-gray-400 accent-orange-500"
                         />
                         <span>{`Class ${cls}`}</span>
                       </label>
@@ -1726,7 +1729,7 @@ export default function ExamManagement() {
                               });
                             }
                           }}
-                          className="rounded"
+                          className="h-4 w-4 rounded border border-gray-400 accent-orange-500"
                         />
                         <span>{subject.label}</span>
                       </label>
@@ -1920,9 +1923,14 @@ export default function ExamManagement() {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500">Loading exams...</p>
-        </div>
+        <Card>
+          <CardContent className="py-12">
+            <div className="flex flex-col items-center justify-center gap-3 text-gray-600">
+              <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
+              <p className="text-sm font-medium">Loading exams...</p>
+            </div>
+          </CardContent>
+        </Card>
       ) : dedupedFilteredExams.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
@@ -2119,6 +2127,7 @@ export default function ExamManagement() {
                     type="checkbox"
                     checked={allowDuplicateQuestionsInCsv}
                     onChange={(e) => setAllowDuplicateQuestionsInCsv(e.target.checked)}
+                    className="h-4 w-4 rounded border border-gray-400 accent-orange-500"
                   />
                   Allow duplicate questions in this upload
                 </label>
@@ -2383,6 +2392,7 @@ export default function ExamManagement() {
                           name="correctAnswer"
                           checked={questionFormData.correctAnswer === String(index)}
                           onChange={() => setQuestionFormData({ ...questionFormData, correctAnswer: String(index) })}
+                          className="h-4 w-4 border border-gray-400 accent-orange-500"
                         />
                       )}
                       {questionFormData.questionType === 'multiple' && (
@@ -2395,6 +2405,7 @@ export default function ExamManagement() {
                               : questionFormData.correctAnswers.filter((ans: string) => ans !== String(index));
                             setQuestionFormData({ ...questionFormData, correctAnswers: answers });
                           }}
+                          className="h-4 w-4 rounded border border-gray-400 accent-orange-500"
                         />
                       )}
                       <Button

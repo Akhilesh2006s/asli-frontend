@@ -967,10 +967,12 @@ export default function SubjectContentManagement() {
                         const subjectLabel = content.subject?.name
                           ? extractPlainSubjectName(content.subject.name)
                           : '';
+                        const isTimedMedia =
+                          content.type === 'Video' || content.type === 'Audio';
                         const durationLabel =
-                          content.duration && content.duration > 0
+                          isTimedMedia && content.duration && content.duration > 0
                             ? `${content.duration} mins`
-                            : '0 mins';
+                            : null;
 
                         const thumbnailSrcRaw =
                           content.thumbnailUrl ||
@@ -1024,9 +1026,11 @@ export default function SubjectContentManagement() {
                                   <Icon className="w-7 h-7 text-sky-500" />
                                 </div>
                               )}
-                              <div className="absolute bottom-2 right-2 px-2 py-1 rounded-full bg-black/70 text-white text-xs">
-                                {durationLabel}
-                              </div>
+                              {durationLabel && (
+                                <div className="absolute bottom-2 right-2 px-2 py-1 rounded-full bg-black/70 text-white text-xs">
+                                  {durationLabel}
+                                </div>
+                              )}
                             </div>
 
                             <div className="p-4 flex-1 flex flex-col space-y-2">
@@ -1313,7 +1317,7 @@ export default function SubjectContentManagement() {
                       const file = e.target.files?.[0] || null;
                       setSelectedUploadFile(file);
                     }}
-                    className="cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-orange-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-orange-700 hover:file:bg-orange-200"
+                    className="cursor-pointer text-sm"
                   />
                   <Button
                     type="button"

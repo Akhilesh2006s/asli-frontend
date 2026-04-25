@@ -120,7 +120,7 @@ export default function AIToolsDashboard() {
                     It links to the existing pages like{" "}
                     <span className="font-medium">AI Tutor</span>,{" "}
                     <span className="font-medium">AI Analytics Dashboard</span>,
-                    detailed analytics, and super-admin AI risk views.
+                    and detailed analytics views.
                   </p>
                 </CardContent>
               </Card>
@@ -150,14 +150,6 @@ export default function AIToolsDashboard() {
                 icon={LineChart}
                 href="/detailed-ai-analytics"
                 gradient="from-violet-500 to-fuchsia-500"
-              />
-              <ToolCard
-                title="Super Admin AI Risk Analysis"
-                description="System-level AI risk and safety analysis for super admins."
-                badge="Super Admin"
-                icon={Shield}
-                href="/super-admin/ai-risk-analysis"
-                gradient="from-amber-500 to-rose-500"
               />
             </div>
           </section>

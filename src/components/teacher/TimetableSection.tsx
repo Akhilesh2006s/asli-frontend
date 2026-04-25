@@ -69,7 +69,7 @@ export function TimetableSection({
           onClick={onAddSlot}
         >
           <Plus className="mr-1.5 h-4 w-4" aria-hidden />
-          + Add Slot
+          Add Slot
         </Button>
       </div>
 
