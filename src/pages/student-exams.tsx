@@ -30,6 +30,7 @@ import { useLocation } from 'wouter';
 import AnimatedExam from '@/components/animated-exam';
 import ExamResults from '@/components/exam-results';
 import StudentRanking from '@/components/student/student-ranking';
+import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
 import { API_BASE_URL } from '@/lib/api-config';
 import {
   CLASS_FILTER_OPTIONS,
@@ -666,19 +667,7 @@ export default function StudentExams() {
       <Navigation />
       <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-8 ${isMobile ? 'pb-20' : ''} relative`}>
         
-        {/* Robot GIF - Fixed at Bottom Left */}
-        {!isMobile && (
-          <div 
-            className="fixed bottom-8 left-4 z-30 cursor-pointer"
-            onClick={() => setLocation('/ai-tutor')}
-          >
-            <img 
-              src="/Vidya-ai.jpg" 
-              alt="Vidya AI - Click to chat" 
-              className="w-32 h-auto rounded-xl shadow-xl opacity-80 hover:opacity-100 hover:scale-105 transition-all duration-300"
-            />
-          </div>
-        )}
+        {!isMobile && <VidyaAIFloatingAssistant />}
         
         {/* Header */}
         <div className="mb-8">

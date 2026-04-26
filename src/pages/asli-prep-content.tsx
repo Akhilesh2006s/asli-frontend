@@ -4,6 +4,7 @@ import Navigation from '@/components/navigation';
 import AsliPrepContent from '@/components/student/asli-prep-content';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useIsMobile } from '@/hooks/use-mobile';
+import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
 
 export default function AsliPrepContentPage() {
   const isMobile = useIsMobile();
@@ -14,18 +15,7 @@ export default function AsliPrepContentPage() {
       <div className="min-h-screen bg-sky-50 pt-20 pb-12 px-2 sm:px-4 lg:px-6 relative">
         <div className="w-full">
           
-          {/* Robot GIF - Fixed at Bottom Left */}
-          {!isMobile && (
-            <Link href="/ai-tutor">
-              <div className="fixed bottom-8 left-4 z-30 cursor-pointer">
-                <img 
-                  src="/Vidya-ai.jpg" 
-                  alt="Vidya AI - Click to chat" 
-                  className="w-32 h-auto rounded-xl shadow-xl opacity-80 hover:opacity-100 hover:scale-105 transition-all duration-300"
-                />
-              </div>
-            </Link>
-          )}
+          {!isMobile && <VidyaAIFloatingAssistant />}
           <div className="mb-8">
             <div className="flex items-center space-x-3 mb-2">
               <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">

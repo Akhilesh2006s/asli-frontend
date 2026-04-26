@@ -40,6 +40,7 @@ import { Link } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect } from "react";
 import { API_BASE_URL } from "@/lib/api-config";
+import VidyaAIFloatingAssistant from "@/components/student/VidyaAIFloatingAssistant";
 
 export default function LearningPaths() {
   const isMobile = useIsMobile();
@@ -587,18 +588,7 @@ export default function LearningPaths() {
       <Navigation />
       <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-8 bg-sky-50 min-h-screen ${isMobile ? 'pb-20' : ''} relative`}>
         
-        {/* Robot GIF - Fixed at Bottom Left */}
-        {!isMobile && (
-          <Link href="/ai-tutor">
-            <div className="fixed bottom-8 left-4 z-30 cursor-pointer">
-              <img 
-                src="/Vidya-ai.jpg" 
-                alt="Vidya AI - Click to chat" 
-                className="w-32 h-auto rounded-xl shadow-xl opacity-80 hover:opacity-100 hover:scale-105 transition-all duration-300"
-              />
-            </div>
-          </Link>
-        )}
+        {!isMobile && <VidyaAIFloatingAssistant />}
         
         {/* Header Section */}
         <div className="mb-8">

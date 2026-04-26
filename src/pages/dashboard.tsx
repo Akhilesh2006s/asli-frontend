@@ -88,59 +88,10 @@ import '@/utils/debugStudyTime'; // Load debug helper
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import AdaptiveRecommendations from "@/components/dashboard/AdaptiveRecommendations";
 import AIChat from "@/components/ai-chat.tsx";
+import VidyaAIFloatingAssistant from "@/components/student/VidyaAIFloatingAssistant";
 
 // Mock user ID - in a real app, this would come from authentication
 const MOCK_USER_ID = "user-1";
-
-// Vidya AI Corner Button Component with Rotating Messages
-function VidyaAICornerButton() {
-  const [, setLocation] = useLocation();
-  const messages = [
-    "Need some help with your homework?",
-    "Need some help with maths?",
-    "Need some help with physics?",
-    "Need some help with chemistry?"
-  ];
-  const [currentMessage, setCurrentMessage] = useState(0);
-  
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentMessage((prev) => (prev + 1) % messages.length);
-    }, 3000); // Change message every 3 seconds
-    return () => clearInterval(interval);
-  }, [messages.length]);
-  
-  return (
-    <div className="fixed bottom-8 left-4 z-30">
-      {/* Message Popup */}
-      <div className="relative mb-2 animate-fade-in">
-        <div className="bg-white rounded-lg shadow-xl p-3 border-2 border-blue-200 relative">
-          <p className="text-sm font-medium text-gray-800 whitespace-nowrap">
-            {messages[currentMessage]}
-          </p>
-          {/* Speech bubble tail */}
-          <div className="absolute bottom-0 left-8 transform translate-y-full">
-            <div className="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-blue-200"></div>
-            <div className="absolute top-0 left-0 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white" style={{ marginTop: '-1px' }}></div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Vidya AI Image */}
-      <div 
-        className="cursor-pointer"
-        onClick={() => setLocation('/ai-tutor')}
-      >
-        <img 
-          src="/Vidya-ai.jpg" 
-          alt="Vidya AI - Click to chat" 
-          draggable={false}
-          className="w-32 h-auto rounded-xl shadow-xl opacity-80 hover:opacity-100 hover:scale-105 transition-all duration-300"
-        />
-      </div>
-    </div>
-  );
-}
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
@@ -1817,7 +1768,7 @@ export default function Dashboard() {
         </div>
         
         {/* Vidya AI - Fixed at Bottom Left with Message Popup */}
-        {!isMobile && <VidyaAICornerButton />}
+        {!isMobile && <VidyaAIFloatingAssistant />}
         
         {/* Welcome Section */}
         <div className="mt-6 sm:mt-8 mb-6 relative z-10">

@@ -28,6 +28,7 @@ import {
 import { normalizeVideoLike, normalizeSessionLike } from '@/lib/eduott-normalize';
 import { useEduOTTFilters } from '@/contexts/edu-ott-filter-context';
 import { EduOTTGlobalFilterBar } from '@/components/eduott/EduOTTGlobalFilterBar';
+import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
 
 interface Video {
   _id: string;
@@ -411,18 +412,7 @@ export default function EduOTT() {
     <>
       <Navigation />
       <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-8 bg-sky-50 min-h-screen ${isMobile ? 'pb-20' : ''} relative`}>
-        {!isMobile && (
-          <div
-            className="fixed bottom-8 left-4 z-30 cursor-pointer"
-            onClick={() => (window.location.href = '/ai-tutor')}
-          >
-            <img
-              src="/Vidya-ai.jpg"
-              alt="Vidya AI - Click to chat"
-              className="w-32 h-auto rounded-xl shadow-xl opacity-80 hover:opacity-100 hover:scale-105 transition-all duration-300"
-            />
-          </div>
-        )}
+        {!isMobile && <VidyaAIFloatingAssistant />}
 
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-4">
