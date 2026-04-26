@@ -1328,12 +1328,19 @@ export default function Dashboard() {
     return () => clearInterval(dateCheckInterval);
   }, []);
 
-  // Handle mark as complete
-  const handleMarkAsComplete = (item: any, isQuiz: boolean = false) => {
+  // Handle completion toggle (mark done / undo)
+  const handleToggleScheduleComplete = (item: any, isQuiz: boolean = false) => {
     const TODAY_KEY = new Date().toDateString();
     const itemId = item._id || item.id;
     const newCompleted = new Set(completedScheduleIds);
-    newCompleted.add(itemId);
+    const isCurrentlyCompleted = newCompleted.has(itemId);
+
+    if (isCurrentlyCompleted) {
+      newCompleted.delete(itemId);
+    } else {
+      newCompleted.add(itemId);
+    }
+
     setCompletedScheduleIds(newCompleted);
     
     // Save to localStorage with today's date
@@ -1342,13 +1349,17 @@ export default function Dashboard() {
       completedIds: Array.from(newCompleted)
     }));
     
-    // If it's content, also mark it in the subject's completed content
+    // If it's content, keep subject progress storage in sync as well.
     if (!isQuiz && item.subjectId) {
       const subjectId = typeof item.subjectId === 'object' ? item.subjectId._id : item.subjectId;
       const subjectKey = `completed_content_${subjectId}`;
       const stored = localStorage.getItem(subjectKey);
       let completed = stored ? JSON.parse(stored) : [];
-      if (!completed.includes(itemId)) {
+
+      if (isCurrentlyCompleted) {
+        completed = completed.filter((id: string) => id !== itemId);
+        localStorage.setItem(subjectKey, JSON.stringify(completed));
+      } else if (!completed.includes(itemId)) {
         completed.push(itemId);
         localStorage.setItem(subjectKey, JSON.stringify(completed));
       }
@@ -2108,12 +2119,10 @@ export default function Dashboard() {
                       >
                         <button
                           type="button"
-                          aria-label={isCompleted ? "Task completed" : "Mark task as completed"}
+                          aria-label={isCompleted ? "Undo completed task" : "Mark task as completed"}
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (!isCompleted) {
-                              handleMarkAsComplete(quiz, true);
-                            }
+                            handleToggleScheduleComplete(quiz, true);
                           }}
                           className="flex-shrink-0"
                         >
@@ -2191,12 +2200,10 @@ export default function Dashboard() {
                       >
                         <button
                           type="button"
-                          aria-label={isCompleted ? "Task completed" : "Mark task as completed"}
+                          aria-label={isCompleted ? "Undo completed task" : "Mark task as completed"}
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (!isCompleted) {
-                              handleMarkAsComplete(content, false);
-                            }
+                            handleToggleScheduleComplete(content, false);
                           }}
                           className="flex-shrink-0"
                         >
@@ -3912,15 +3919,15 @@ export default function Dashboard() {
                 >
                   Close
                 </Button>
-                {!completedScheduleIds.has(selectedScheduleItem._id || selectedScheduleItem.id) && (
-                  <Button
-                    className="bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white"
-                    onClick={() => handleMarkAsComplete(selectedScheduleItem, selectedScheduleItem.isQuiz)}
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Mark as Complete
-                  </Button>
-                )}
+                <Button
+                  className="bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white"
+                  onClick={() => handleToggleScheduleComplete(selectedScheduleItem, selectedScheduleItem.isQuiz)}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  {completedScheduleIds.has(selectedScheduleItem._id || selectedScheduleItem.id)
+                    ? 'Undo Complete'
+                    : 'Mark as Complete'}
+                </Button>
                 {selectedScheduleItem.isQuiz && (
                   <Button
                     className="bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white"

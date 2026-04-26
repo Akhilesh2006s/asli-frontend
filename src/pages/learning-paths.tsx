@@ -981,7 +981,11 @@ export default function LearningPaths() {
                             variant="outline"
                             size="sm"
                             className="flex-1"
-                            onClick={() => window.open(content.fileUrl, '_blank', 'noopener,noreferrer')}
+                            onClick={() => {
+                              if (!content.fileUrl) return;
+                              window.open(content.fileUrl, '_blank', 'noopener,noreferrer');
+                            }}
+                            disabled={!content.fileUrl}
                           >
                             <Eye className="w-4 h-4 mr-2" />
                             View
@@ -1000,13 +1004,36 @@ export default function LearningPaths() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => {
-                                  const link = document.createElement('a');
-                                  link.href = content.fileUrl;
-                                  link.download = content.title || 'download';
-                                  link.target = '_blank';
-                                  link.rel = 'noopener noreferrer';
-                                  link.click();
+                                onClick={async () => {
+                                  const fileUrl = content.fileUrl;
+                                  if (!fileUrl) return;
+
+                                  try {
+                                    const token = localStorage.getItem('authToken');
+                                    const fileName = content.title || 'download';
+                                    const response = await fetch(
+                                      `${API_BASE_URL}/api/student/content-download?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(fileName)}`,
+                                      {
+                                        headers: {
+                                          ...(token ? { Authorization: `Bearer ${token}` } : {})
+                                        }
+                                      }
+                                    );
+                                    if (!response.ok) {
+                                      throw new Error(`Download request failed: ${response.status}`);
+                                    }
+                                    const blob = await response.blob();
+                                    const blobUrl = window.URL.createObjectURL(blob);
+                                    const link = document.createElement('a');
+                                    link.href = blobUrl;
+                                    link.download = content.title || 'download';
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                    window.URL.revokeObjectURL(blobUrl);
+                                  } catch (error) {
+                                    console.error('Download failed:', error);
+                                  }
                                 }}
                                 title="Download file"
                               >
