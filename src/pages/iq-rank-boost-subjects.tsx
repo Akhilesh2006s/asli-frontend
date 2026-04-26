@@ -12,7 +12,7 @@ interface Quiz {
   _id: string;
   title: string;
   description?: string;
-  subject: {
+  subject: string | {
     _id: string;
     name: string;
   };
@@ -103,8 +103,8 @@ export default function IQRankBoostSubjects() {
         const subjectMap = new Map<string, { name: string; quizzes: Quiz[]; difficulties: Set<string> }>();
 
         quizzes.forEach((quiz: Quiz) => {
-          const subjectId = quiz.subject?._id || quiz.subject;
-          const subjectName = quiz.subject?.name || 'Unknown Subject';
+          const subjectId = typeof quiz.subject === 'string' ? quiz.subject : quiz.subject?._id;
+          const subjectName = typeof quiz.subject === 'string' ? 'Unknown Subject' : (quiz.subject?.name || 'Unknown Subject');
 
           if (!subjectId) return; // Skip quizzes without subject
 
