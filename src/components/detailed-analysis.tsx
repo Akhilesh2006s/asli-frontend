@@ -48,6 +48,7 @@ interface Question {
 interface ExamResult {
   examId: string;
   examTitle?: string;
+  attemptNumber?: number;
   totalQuestions: number;
   correctAnswers: number;
   wrongAnswers: number;
@@ -677,6 +678,11 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
             <div>
               <h1 className="text-3xl font-bold mb-2">Question Analysis</h1>
               <p className="text-purple-100">Review each question and understand your performance</p>
+              {Number(result.attemptNumber) >= 1 && (
+                <p className="text-sm font-semibold text-white/95 mt-2">
+                  Attempt {Number(result.attemptNumber)}
+                </p>
+              )}
             </div>
             <div className="bg-white/20 rounded-lg px-4 py-2">
               <span className="text-sm font-medium">{result.questions?.length || 0} Total Questions</span>

@@ -70,10 +70,13 @@ interface Exam {
   questions: Question[];
   subject?: 'maths' | 'physics' | 'chemistry' | 'biology';
   subjects?: Array<'maths' | 'physics' | 'chemistry' | 'biology'>;
+  maxAttempts?: number;
 }
 
 interface ExamResult {
+  _id?: string;
   examId: string;
+  attemptNumber?: number;
   totalQuestions: number;
   correctAnswers: number;
   wrongAnswers: number;
@@ -117,16 +120,50 @@ export default function StudentExams() {
     setExamClassFilter('my');
   }, [user?.classNumber]);
 
-  // Helper function to extract examId from result (handles both populated object and ObjectId)
+  // Helper function to extract examId from result (handles populated doc, string, ObjectId)
   const getExamIdFromResult = (result: any): string | null => {
-    if (!result || !result.examId) return null;
-    
-    // If examId is populated, it's an object, use _id
-    if (typeof result.examId === 'object' && result.examId._id) {
-      return result.examId._id.toString();
+    if (!result) return null;
+    const eid = result.examId;
+    if (eid == null || eid === '') return null;
+    if (typeof eid === 'string') return eid;
+    if (typeof eid === 'object') {
+      const nested = (eid as any)._id ?? (eid as any).$oid;
+      if (nested != null) return String(nested);
+      try {
+        const s = String(eid);
+        if (s && s !== '[object Object]') return s;
+      } catch {
+        return null;
+      }
+      return null;
     }
-    // If examId is just the ObjectId, convert to string
-    return result.examId.toString();
+    try {
+      return String(eid);
+    } catch {
+      return null;
+    }
+  };
+
+  const buildFallbackExamFromResult = (examIdStr: string, result: any): Exam => {
+    const title =
+      (result?.examTitle && String(result.examTitle).trim()) ||
+      (typeof result?.examId === 'object' && result.examId?.title && String(result.examId.title).trim()) ||
+      'Exam';
+    return {
+      _id: examIdStr,
+      title,
+      description: '',
+      examType: 'practice',
+      duration: 0,
+      totalQuestions: Number(result?.totalQuestions) || 0,
+      totalMarks: Number(result?.totalMarks) || 0,
+      instructions: '',
+      startDate: new Date(0).toISOString(),
+      endDate: new Date().toISOString(),
+      isActive: true,
+      questions: [],
+      maxAttempts: 1,
+    };
   };
 
   const getDisplayPercentage = (result: any): number => {
@@ -137,6 +174,9 @@ export default function StudentExams() {
     const total = Number(result.totalQuestions || 0) || (correct + wrong + unattempted);
     return total > 0 ? (correct / total) * 100 : 0;
   };
+
+  const getMaxAttemptsForExam = (exam: Exam): number =>
+    Math.max(1, Number(exam.maxAttempts) || 1);
 
   // Reset states when component mounts
   useEffect(() => {
@@ -369,63 +409,84 @@ export default function StudentExams() {
         throw new Error('Failed to fetch results');
       }
       const data = await response.json();
+      const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+      const payload = Array.isArray(data?.data) ? data : { success: data?.success ?? true, data: list };
       console.log('✅ Student Exams: Fetched exam results:', {
-        count: data.data?.length || 0,
-        results: data.data?.map((r: any) => ({
+        count: list.length,
+        results: list.slice(0, 5).map((r: any) => ({
           examId: getExamIdFromResult(r),
           examTitle: r.examTitle || r.examId?.title,
           percentage: r.percentage
-        })) || []
+        }))
       });
-      return data;
+      return payload;
     },
     enabled: isAuthenticated, // Only run when authenticated
     refetchOnWindowFocus: true,
     refetchOnMount: true
   });
 
-  const attemptedExamIds = useMemo(() => {
-    const ids = new Set<string>();
+  const attemptCountByExamId = useMemo(() => {
+    const m = new Map<string, number>();
     if (Array.isArray(results?.data)) {
       for (const result of results.data) {
         const id = getExamIdFromResult(result);
-        if (id) ids.add(String(id));
+        if (!id) continue;
+        const k = String(id);
+        m.set(k, (m.get(k) || 0) + 1);
       }
     }
-    return ids;
+    return m;
   }, [results?.data]);
 
   const availableActiveExams = useMemo(
     () =>
       subjectFilteredExams.filter((exam: Exam) => {
         const examId = String(exam._id || '');
-        if (!examId || attemptedExamIds.has(examId)) return false;
+        if (!examId) return false;
+        const used = attemptCountByExamId.get(examId) || 0;
+        if (used >= getMaxAttemptsForExam(exam)) return false;
         const hydratedQuestionCount = Array.isArray(exam.questions) ? exam.questions.length : 0;
         if (hydratedQuestionCount <= 0) return false;
-        // Show only currently attemptable exams (inline to avoid init-order issues)
         const now = new Date();
         const startDate = new Date(exam.startDate);
         const endDate = new Date(exam.endDate);
         const isActiveByDate = now >= startDate && now <= endDate;
         return exam.isActive !== false && isActiveByDate;
       }),
-    [subjectFilteredExams, attemptedExamIds]
+    [subjectFilteredExams, attemptCountByExamId]
   );
+
+  // Show all saved attempts with a resolvable exam id. Do not require the exam to still appear
+  // in the current filtered catalog (ended / unlisted exams still have valid history).
+  const attemptedResultRows = useMemo(() => {
+    const raw = Array.isArray(results?.data) ? [...results.data] : [];
+    return raw
+      .filter((result: any) => {
+        const examIdStr = getExamIdFromResult(result);
+        if (!examIdStr) return false;
+        if (examSubjectFilter === 'all') return true;
+        const catalogExam = exams.find((e: Exam) => String(e._id) === String(examIdStr));
+        if (!catalogExam) return true;
+        return getExamSubjects(catalogExam).includes(String(examSubjectFilter).toLowerCase());
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime()
+      );
+  }, [results?.data, exams, examSubjectFilter]);
 
   const handleStartExam = async (exam: Exam) => {
     console.log('Starting exam:', exam);
     console.log('Current exam result state:', examResult);
     console.log('Current taking exam state:', isTakingExam);
     
-    // Check if student has already attempted this exam
-    const hasAttempted = results?.data?.some((result: any) => {
-      const resultExamId = getExamIdFromResult(result);
-      const examId = exam._id?.toString();
-      return resultExamId === examId;
-    });
-    
-    if (hasAttempted) {
-      alert('You have already attempted this exam. Please check the "Attempted Exams" tab to view your results.');
+    const maxA = getMaxAttemptsForExam(exam);
+    const used = attemptCountByExamId.get(String(exam._id)) || 0;
+    if (used >= maxA) {
+      alert(
+        `You have used all ${maxA} attempt(s) for this exam. Open "Attempted Exams" to review your results.`
+      );
       return;
     }
 
@@ -518,8 +579,27 @@ export default function StudentExams() {
   };
 
   const handleRetakeExam = () => {
-    // Retaking is now disabled - exams can only be taken once
-    alert('Exams can only be attempted once. Please check your results in the "Attempted Exams" tab.');
+    if (!currentExam) return;
+    const maxA = getMaxAttemptsForExam(currentExam);
+    const counted = attemptCountByExamId.get(String(currentExam._id)) || 0;
+    const fromResult =
+      examResult &&
+      String(getExamIdFromResult(examResult as any) || '') === String(currentExam._id) &&
+      Number((examResult as ExamResult).attemptNumber) >= 1
+        ? Number((examResult as ExamResult).attemptNumber)
+        : 0;
+    const used = Math.max(counted, fromResult);
+    if (used >= maxA) {
+      alert('No attempts remaining for this exam.');
+      return;
+    }
+    const status = getExamStatus(currentExam);
+    if (status.status === 'ended') {
+      alert('This exam window has ended. Retakes are not available.');
+      return;
+    }
+    setExamResult(null);
+    setIsTakingExam(true);
   };
 
   const handleBackToExams = () => {
@@ -574,6 +654,11 @@ export default function StudentExams() {
 
   if (examResult && currentExam) {
     console.log('Rendering ExamResults component');
+    const maxA = getMaxAttemptsForExam(currentExam);
+    const counted = attemptCountByExamId.get(String(currentExam._id)) || 0;
+    const fromThisResult = Number(examResult.attemptNumber) >= 1 ? Number(examResult.attemptNumber) : 0;
+    const used = Math.max(counted, fromThisResult);
+    const attemptsRemaining = Math.max(0, maxA - used);
     return (
       <ExamResults
         result={examResult}
@@ -582,6 +667,7 @@ export default function StudentExams() {
         onViewAnalysis={() => {}}
         onBack={handleBackToExams}
         openDetailedByDefault
+        attemptsRemaining={attemptsRemaining}
       />
     );
   }
@@ -785,6 +871,13 @@ export default function StudentExams() {
                             {new Date(exam.startDate).toLocaleDateString()} - {new Date(exam.endDate).toLocaleDateString()}
                           </span>
                         </div>
+                        <div className="flex items-center text-xs font-medium">
+                          <Target className="h-4 w-4 mr-2" />
+                          <span>
+                            Attempts: {attemptCountByExamId.get(String(exam._id)) || 0} /{' '}
+                            {getMaxAttemptsForExam(exam)}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Action Button */}
@@ -822,22 +915,16 @@ export default function StudentExams() {
           {/* Attempted Exams */}
           <TabsContent value="attempted" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {subjectFilteredExams.filter((exam: Exam) => {
-                // Show exams that have been attempted
-                return results?.data?.some((result: any) => {
-                  const resultExamId = getExamIdFromResult(result);
-                  const examId = exam._id?.toString();
-                  return resultExamId === examId;
-                });
-              }).map((exam: Exam, index: number) => {
-                const result = results?.data?.find((r: any) => {
-                  const resultExamId = getExamIdFromResult(r);
-                  const examId = exam._id?.toString();
-                  return resultExamId === examId;
-                });
-                if (!result) return null;
-                
-                // Randomly assign one of the three dashboard colors
+              {attemptedResultRows.map((result: any, index: number) => {
+                const examIdStr = getExamIdFromResult(result);
+                if (!examIdStr) return null;
+
+                const catalogExam =
+                  exams.find((e: Exam) => String(e._id) === String(examIdStr)) ||
+                  classFilteredExams.find((e) => String(e._id) === String(examIdStr)) ||
+                  subjectFilteredExams.find((e) => String(e._id) === String(examIdStr));
+                const exam = catalogExam || buildFallbackExamFromResult(examIdStr, result);
+
                 const colorSchemes = [
                   { bg: 'from-orange-300 to-orange-400', text: 'text-white', badge: 'bg-orange-500/20 text-orange-100' },
                   { bg: 'from-sky-300 to-sky-400', text: 'text-white', badge: 'bg-sky-500/20 text-sky-100' },
@@ -846,9 +933,18 @@ export default function StudentExams() {
                 const colorScheme = colorSchemes[index % 3];
                 const classLabelsAttempted = getExamClassStrings(exam);
                 const displayPercentage = getDisplayPercentage(result);
-                
+                const attemptNum = Number(result.attemptNumber) >= 1 ? Number(result.attemptNumber) : 1;
+                const rid = (result as any)._id ?? (result as any).id;
+                const resultKey = [
+                  rid != null ? String(rid) : '',
+                  examIdStr,
+                  attemptNum,
+                  result.completedAt != null ? String(result.completedAt) : '',
+                  index,
+                ].join('|');
+
                 return (
-                  <Card key={exam._id} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
+                  <Card key={resultKey} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -868,8 +964,8 @@ export default function StudentExams() {
                                 Class {cl}
                               </Badge>
                             ))}
-                            <Badge className="bg-teal-600 text-white border-2 border-white/50 shadow-lg font-semibold">
-                              Attempted
+                            <Badge className="bg-indigo-600 text-white border-2 border-white/50 shadow-lg font-semibold">
+                              Attempt {attemptNum}
                             </Badge>
                           </div>
                         </div>
@@ -935,12 +1031,19 @@ export default function StudentExams() {
                             let reviewedQuestions: any[] = [];
                             try {
                               const token = localStorage.getItem('authToken');
-                              const reviewResponse = await fetch(`${API_BASE_URL}/api/student/exam-results/${exam._id}/review`, {
-                                headers: {
-                                  'Authorization': `Bearer ${token}`,
-                                  'Content-Type': 'application/json',
+                              const reviewQs =
+                                result._id != null && String(result._id).trim() !== ''
+                                  ? `?resultId=${encodeURIComponent(String(result._id))}`
+                                  : '';
+                              const reviewResponse = await fetch(
+                                `${API_BASE_URL}/api/student/exam-results/${exam._id}/review${reviewQs}`,
+                                {
+                                  headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json',
+                                  },
                                 }
-                              });
+                              );
                               if (reviewResponse.ok) {
                                 const reviewJson = await reviewResponse.json();
                                 reviewResult = reviewJson?.data?.result || result;
@@ -973,6 +1076,11 @@ export default function StudentExams() {
                             
                             // Format the result to match ExamResult interface
                             const formattedResult: ExamResult = {
+                              _id: reviewResult._id ? String(reviewResult._id) : result._id ? String(result._id) : undefined,
+                              attemptNumber:
+                                Number(reviewResult.attemptNumber) >= 1
+                                  ? Number(reviewResult.attemptNumber)
+                                  : attemptNum,
                               examId: getExamIdFromResult(reviewResult) || exam._id,
                               examTitle: reviewResult.examTitle || examWithQuestions.title || exam.title,
                               totalQuestions: reviewResult.totalQuestions || examWithQuestions.totalQuestions || exam.totalQuestions || 0,
@@ -1013,13 +1121,7 @@ export default function StudentExams() {
               })}
             </div>
 
-            {subjectFilteredExams.filter((exam: Exam) => {
-              return results?.data?.some((result: any) => {
-                const resultExamId = getExamIdFromResult(result);
-                const examId = exam._id?.toString();
-                return resultExamId === examId;
-              });
-            }).length === 0 && (
+            {attemptedResultRows.length === 0 && (
               <div className="text-center py-12">
                 <CheckCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Attempted Exams</h3>

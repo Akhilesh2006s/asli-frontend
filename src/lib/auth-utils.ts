@@ -17,6 +17,12 @@ export const clearAuthData = () => {
   localStorage.removeItem('userRole');
   localStorage.removeItem('userEmail');
   localStorage.removeItem('superAdminUser');
+
+  try {
+    sessionStorage.removeItem('aslilearn_nav_initials');
+  } catch {
+    /* ignore */
+  }
   
   // Temporary data (teacher assignments - can be cleared on logout)
   localStorage.removeItem('teacherClassAssignments');

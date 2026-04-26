@@ -5,8 +5,10 @@ import { Trophy, Award, TrendingUp, BarChart3, Medal, Crown } from 'lucide-react
 import { API_BASE_URL } from '@/lib/api-config';
 
 interface StudentRanking {
+  resultId?: string;
   examId: string;
   examTitle: string;
+  attemptNumber?: number;
   rank: number;
   totalStudents: number;
   percentile: number;
@@ -57,6 +59,9 @@ export default function StudentRanking() {
     return { color: 'bg-gray-100 text-gray-800', label: 'Below 50%' };
   };
 
+  const rankingRowKey = (r: StudentRanking, idx: number) =>
+    [r.resultId, r.examId, r.completedAt, idx].map((x) => String(x ?? '')).join('|');
+
   const sortedRankings = useMemo(
     () =>
       [...rankings].sort((a, b) => {
@@ -99,15 +104,18 @@ export default function StudentRanking() {
               const percentileBadge = getPercentileBadge(ranking.percentile);
               const Icon = idx === 0 ? Crown : idx === 1 ? Medal : Award;
               const iconColor = idx === 0 ? 'text-amber-500' : idx === 1 ? 'text-slate-500' : 'text-orange-500';
+              const att = Number(ranking.attemptNumber) >= 1 ? Number(ranking.attemptNumber) : null;
               return (
-                <Card key={ranking.examId || idx} className="border-0 bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-lg">
+                <Card key={rankingRowKey(ranking, idx)} className="border-0 bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-lg">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <CardTitle className="text-base font-semibold leading-snug truncate">
                           {ranking.examTitle || 'Exam'}
                         </CardTitle>
-                        <p className="text-xs text-white/80 mt-1">Top attempt #{idx + 1}</p>
+                        <p className="text-xs text-white/80 mt-1">
+                          {att != null ? `Attempt ${att}` : `Result #${idx + 1}`}
+                        </p>
                       </div>
                       <Icon className={`h-5 w-5 ${iconColor} bg-white rounded-full p-0.5`} />
                     </div>
@@ -140,14 +148,16 @@ export default function StudentRanking() {
             <CardContent className="space-y-3">
               {sortedRankings.map((ranking, idx) => {
                 const badge = getPercentileBadge(ranking.percentile);
+                const att = Number(ranking.attemptNumber) >= 1 ? Number(ranking.attemptNumber) : null;
                 return (
                   <div
-                    key={`${ranking.examId}-${idx}`}
+                    key={rankingRowKey(ranking, idx)}
                     className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-100 bg-white p-3 hover:bg-gray-50 transition-colors"
                   >
                     <div className="min-w-0">
                       <p className="font-semibold text-gray-900 truncate">{ranking.examTitle || 'Exam'}</p>
                       <p className="text-xs text-gray-500">
+                        {att != null ? `Attempt ${att} • ` : ''}
                         {ranking.obtainedMarks}/{ranking.totalMarks} marks • {new Date(ranking.completedAt).toLocaleDateString()}
                       </p>
                     </div>

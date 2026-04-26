@@ -35,6 +35,7 @@ interface Question {
 interface ExamResult {
   examId: string;
   examTitle?: string;
+  attemptNumber?: number;
   totalQuestions: number;
   correctAnswers: number;
   wrongAnswers: number;
@@ -60,6 +61,8 @@ interface ExamResultsProps {
   onViewAnalysis: () => void;
   onBack: () => void;
   openDetailedByDefault?: boolean;
+  /** If > 0, shows Retake exam. */
+  attemptsRemaining?: number;
 }
 
 export default function ExamResults({
@@ -69,6 +72,7 @@ export default function ExamResults({
   onViewAnalysis,
   onBack,
   openDetailedByDefault = false,
+  attemptsRemaining = 0,
 }: ExamResultsProps) {
   const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(openDetailedByDefault);
 
@@ -124,6 +128,11 @@ export default function ExamResults({
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Exam Completed!</h1>
           <p className="text-lg text-gray-600">{examTitle}</p>
+          {Number(result.attemptNumber) >= 1 && (
+            <p className="text-sm font-medium text-indigo-600 mt-2">
+              Attempt {Number(result.attemptNumber)}
+            </p>
+          )}
         </div>
 
         {/* Overall Score Card */}
@@ -381,10 +390,19 @@ export default function ExamResults({
         </Card>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-center space-x-4">
+        <div className="flex flex-wrap items-center justify-center gap-3">
           <Button variant="outline" onClick={onBack}>
             Back to Dashboard
           </Button>
+          {attemptsRemaining > 0 && (
+            <Button
+              variant="outline"
+              onClick={onRetake}
+              className="border-indigo-300 text-indigo-700 hover:bg-indigo-50"
+            >
+              Retake ({attemptsRemaining} left)
+            </Button>
+          )}
           <Button 
             variant="outline" 
             onClick={() => setShowDetailedAnalysis(true)}

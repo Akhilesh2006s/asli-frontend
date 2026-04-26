@@ -52,6 +52,7 @@ interface Exam {
 }
 
 interface ExamResult {
+  attemptNumber?: number;
   examId: string;
   examTitle: string;
   totalQuestions: number;
@@ -78,6 +79,29 @@ interface AnimatedExamProps {
   onExit: () => void;
 }
 
+/** Normalize question id so answer map keys always match (fixes clear / submit with mixed id shapes). */
+function answerKey(questionOrId: Question | string | null | undefined): string {
+  if (questionOrId == null) return '';
+  if (typeof questionOrId === 'string') return questionOrId;
+  return String(questionOrId._id ?? (questionOrId as any).id ?? '');
+}
+
+/** True only when the student has a non-empty response for this question type. */
+function isAnswerProvidedForQuestion(question: Question, raw: any): boolean {
+  if (raw === undefined || raw === null) return false;
+  const t = question.questionType;
+  if (t === 'mcq') {
+    return String(raw).trim() !== '';
+  }
+  if (t === 'multiple') {
+    return Array.isArray(raw) && raw.length > 0;
+  }
+  if (t === 'integer') {
+    return String(raw).trim() !== '';
+  }
+  return false;
+}
+
 export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExamProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
@@ -89,6 +113,8 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   const [animationDirection, setAnimationDirection] = useState<'up' | 'down'>('up');
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showAnswerFeedback, setShowAnswerFeedback] = useState(false);
+  /** Bumps when MCQ is cleared so Radix RadioGroup remounts and truly deselects. */
+  const [mcqRadioNonce, setMcqRadioNonce] = useState(0);
   const [isAnswerCorrect, setIsAnswerCorrect] = useState<boolean | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [exitAttempts, setExitAttempts] = useState(0);
@@ -377,9 +403,11 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   };
 
   const handleAnswerChange = (questionId: string, value: any) => {
+    const k = answerKey(questionId);
+    if (!k) return;
     setAnswers(prev => ({
       ...prev,
-      [questionId]: value
+      [k]: value
     }));
     
     // Add interactive feedback
@@ -403,6 +431,23 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       }
       return newSet;
     });
+  };
+
+  const handleClearCurrentAnswer = () => {
+    if (!exam?.questions?.[currentQuestionIndex]) return;
+    const q = exam.questions[currentQuestionIndex];
+    const k = answerKey(q);
+    if (!k) return;
+    setAnswers((prev) => {
+      const next = { ...prev };
+      delete next[k];
+      return next;
+    });
+    setSelectedAnswer(null);
+    setShowAnswerFeedback(false);
+    if (q.questionType === 'mcq') {
+      setMcqRadioNonce((n) => n + 1);
+    }
   };
 
   const animateToQuestion = (newIndex: number) => {
@@ -481,7 +526,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
       exam.questions.forEach((question: Question) => {
         try {
-          const userAnswer = answers[question._id];
+          const userAnswer = answers[answerKey(question)];
           const isCorrect = checkAnswer(question, userAnswer);
           const normalizedSubject = String(question.subject || '').toLowerCase();
           const hasTrackedSubject =
@@ -586,7 +631,11 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
             statusText: response.statusText,
             error: errorData
           });
-          throw new Error(`Failed to save result: ${errorData.message || response.statusText}`);
+          const msg = errorData?.message || response.statusText;
+          if (response.status === 403) {
+            alert(msg || 'You cannot submit more attempts for this exam.');
+          }
+          throw new Error(`Failed to save result: ${msg}`);
         }
 
         let responseData: any = null;
@@ -615,6 +664,10 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
               : {};
           const serverAnswerCount = Object.keys(normalizedServerAnswers).length;
           const authoritativeResult: ExamResult = {
+            attemptNumber:
+              Number(serverResult.attemptNumber) >= 1
+                ? Number(serverResult.attemptNumber)
+                : undefined,
             examId: String(serverResult.examId || result.examId),
             examTitle: String(serverResult.examTitle || result.examTitle),
             totalQuestions: Number(serverResult.totalQuestions ?? result.totalQuestions),
@@ -921,6 +974,12 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
   const currentQuestion = exam.questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / exam.questions.length) * 100;
+  const currentQid = answerKey(currentQuestion);
+  const currentAnswerRaw = answers[currentQid];
+  const currentQuestionHasAnswer = isAnswerProvidedForQuestion(currentQuestion, currentAnswerRaw);
+  const answeredQuestionCount = exam.questions.filter((q: Question) =>
+    isAnswerProvidedForQuestion(q, answers[answerKey(q)])
+  ).length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1081,7 +1140,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                   Questions
                 </CardTitle>
                 <p className="text-xs text-gray-500 mt-1">
-                  {Object.keys(answers).length} of {exam.questions.length} answered
+                  {answeredQuestionCount} of {exam.questions.length} answered
                 </p>
               </CardHeader>
               <CardContent className="pt-0">
@@ -1089,8 +1148,8 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                 <div className="bg-gradient-to-br from-gray-50 to-purple-50/30 rounded-xl p-4 border border-gray-200">
                   <div className="grid grid-cols-5 gap-2.5">
                     {exam.questions.map((_: Question, index: number) => {
-                      const questionId = exam.questions[index]._id;
-                      const isAnswered = answers[questionId] !== undefined;
+                      const q = exam.questions[index];
+                      const isAnswered = isAnswerProvidedForQuestion(q, answers[answerKey(q)]);
                       const isFlagged = flaggedQuestions.has(index);
                       const isCurrent = index === currentQuestionIndex;
                       
@@ -1244,33 +1303,39 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                   {/* Answer Options */}
                   {currentQuestion.questionType === 'mcq' && currentQuestion.options && (
                     <RadioGroup
-                      value={answers[currentQuestion._id] || ''}
-                      onValueChange={(value) => handleAnswerChange(currentQuestion._id, value)}
+                      key={`mcq-${currentQid}-${mcqRadioNonce}`}
+                      value={
+                        currentAnswerRaw !== undefined && String(currentAnswerRaw).trim() !== ''
+                          ? String(currentAnswerRaw)
+                          : undefined
+                      }
+                      onValueChange={(value) => handleAnswerChange(currentQid, value)}
                       className="space-y-3 mt-4"
                     >
                       {currentQuestion.options.map((option: string | { text: string; isCorrect?: boolean; _id?: string }, index: number) => {
                         const optionTextRaw = typeof option === 'string' ? option : option.text || option._id || JSON.stringify(option);
                         const optionText = normalizeExamText(optionTextRaw);
                         const optionValue = typeof option === 'string' ? option : option.text || option._id || '';
+                        const optionValueStr = String(optionValue ?? '');
                         
                         return (
                           <div 
                             key={index} 
                             className={`flex items-center space-x-3 p-3 rounded-lg border transition-all duration-300 transform hover:scale-[1.02] hover:shadow-md ${
-                              selectedAnswer === optionValue && showAnswerFeedback
+                              selectedAnswer === optionValueStr && showAnswerFeedback
                                 ? 'border-blue-400 bg-blue-50 ring-2 ring-blue-200'
                                 : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'
                             }`}
                           >
                             <RadioGroupItem 
-                              value={optionValue} 
-                              id={`option-${index}`}
+                              value={optionValueStr} 
+                              id={`mcq-${currentQid}-opt-${index}`}
                               className="transition-all duration-200 hover:scale-110"
                             />
                             <Label 
-                              htmlFor={`option-${index}`} 
+                              htmlFor={`mcq-${currentQid}-opt-${index}`} 
                               className={`text-sm cursor-pointer flex-1 transition-all duration-200 ${
-                                selectedAnswer === optionValue && showAnswerFeedback
+                                selectedAnswer === optionValueStr && showAnswerFeedback
                                   ? 'text-blue-700 font-medium'
                                   : 'text-gray-700 hover:text-gray-900'
                               }`}
@@ -1289,7 +1354,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                         const optionTextRaw = typeof option === 'string' ? option : option.text || option._id || JSON.stringify(option);
                         const optionText = normalizeExamText(optionTextRaw);
                         const optionValue = typeof option === 'string' ? option : option.text || option._id || '';
-                        const userAnswers = answers[currentQuestion._id] || [];
+                        const userAnswers = answers[currentQid] || [];
                         const isChecked = Array.isArray(userAnswers) && userAnswers.includes(optionValue);
                         
                         return (
@@ -1305,11 +1370,19 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                               id={`option-${index}`}
                               checked={isChecked}
                               onCheckedChange={(checked) => {
-                                const currentAnswers = answers[currentQuestion._id] || [];
+                                const currentAnswers = answers[currentQid] || [];
                                 const newAnswers = checked
                                   ? [...currentAnswers, optionValue]
                                   : currentAnswers.filter((ans: any) => ans !== optionValue);
-                                handleAnswerChange(currentQuestion._id, newAnswers);
+                                if (newAnswers.length === 0) {
+                                  setAnswers((prev) => {
+                                    const next = { ...prev };
+                                    delete next[currentQid];
+                                    return next;
+                                  });
+                                } else {
+                                  handleAnswerChange(currentQid, newAnswers);
+                                }
                               }}
                               className="transition-all duration-200 hover:scale-110"
                             />
@@ -1337,8 +1410,25 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                       <Input
                         id="integer-answer"
                         type="number"
-                        value={answers[currentQuestion._id] || ''}
-                        onChange={(e) => handleAnswerChange(currentQuestion._id, e.target.value)}
+                        value={
+                          answers[currentQid] !== undefined &&
+                          answers[currentQid] !== null &&
+                          String(answers[currentQid]).trim() !== ''
+                            ? String(answers[currentQid])
+                            : ''
+                        }
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (v === '' || String(v).trim() === '') {
+                            setAnswers((prev) => {
+                              const next = { ...prev };
+                              delete next[currentQid];
+                              return next;
+                            });
+                            return;
+                          }
+                          handleAnswerChange(currentQid, v);
+                        }}
                         placeholder="Enter numerical answer"
                         className="w-full"
                       />
@@ -1351,26 +1441,38 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
         </div>
 
         {/* Navigation Buttons */}
-        <div className="flex items-center justify-between mt-6">
+        <div className="mt-6 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          <div className="justify-self-start">
+            <Button
+              variant="outline"
+              onClick={handlePrevious}
+              disabled={currentQuestionIndex === 0 || isAnimating}
+              className="flex items-center space-x-2 transition-all duration-300 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1" />
+              <span>Previous</span>
+            </Button>
+          </div>
           <Button
+            type="button"
             variant="outline"
-            onClick={handlePrevious}
-            disabled={currentQuestionIndex === 0 || isAnimating}
-            className="flex items-center space-x-2 transition-all duration-300 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleClearCurrentAnswer}
+            disabled={!currentQuestionHasAnswer || isAnimating}
+            className="justify-self-center text-gray-700 disabled:opacity-50"
           >
-            <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1" />
-            <span>Previous</span>
+            Clear
           </Button>
-
-          <Button
-            variant="outline"
-            onClick={handleNext}
-            disabled={currentQuestionIndex === exam.questions.length - 1 || isAnimating}
-            className="flex items-center space-x-2 transition-all duration-300 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <span>Next</span>
-            <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
-          </Button>
+          <div className="justify-self-end">
+            <Button
+              variant="outline"
+              onClick={handleNext}
+              disabled={currentQuestionIndex === exam.questions.length - 1 || isAnimating}
+              className="flex items-center space-x-2 transition-all duration-300 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span>Next</span>
+              <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
+            </Button>
+          </div>
         </div>
           </div>
         </div>

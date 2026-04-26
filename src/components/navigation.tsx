@@ -1,24 +1,68 @@
 import { Link, useLocation } from "wouter";
 import { BookOpen, FileText, MessageCircle, User, Menu, LogOut, Sparkles, Video } from "lucide-react";
 import { API_BASE_URL } from '@/lib/api-config';
-import { clearAuthData, getAuthToken } from '@/lib/auth-utils';
+import { clearAuthData, getAuthToken, getUser, setUser } from '@/lib/auth-utils';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect } from "react";
 
+const NAV_INITIALS_KEY = 'aslilearn_nav_initials';
+
+function initialsFromName(name: string | undefined | null): string {
+  if (!name || !String(name).trim()) return '';
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '';
+  return parts.map((n) => n[0]).join('').toUpperCase().slice(0, 3);
+}
+
+function initialsFromUser(user: any): string {
+  if (!user) return '';
+  return initialsFromName(user.fullName || user.name);
+}
+
+function initialsFromEmail(email: string | undefined | null): string {
+  if (!email || !email.includes('@')) return '';
+  const local = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
+  if (local.length >= 2) return local.slice(0, 2).toUpperCase();
+  if (local.length === 1) return local.toUpperCase();
+  return '';
+}
+
+/** Sync read so avatar does not flash "U" when Navigation remounts on route change. */
+function readInitialsForNav(): string {
+  try {
+    const cached = sessionStorage.getItem(NAV_INITIALS_KEY);
+    if (cached && cached.trim()) return cached.trim().slice(0, 3);
+  } catch {
+    /* ignore */
+  }
+  const fromStoredUser = initialsFromUser(getUser());
+  if (fromStoredUser) return fromStoredUser;
+  try {
+    return initialsFromEmail(localStorage.getItem('userEmail'));
+  } catch {
+    return '';
+  }
+}
+
 export default function Navigation() {
   const [location, setLocation] = useLocation();
   const isMobile = useIsMobile();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [userInitials, setUserInitials] = useState<string>('U');
+  const [userInitials, setUserInitials] = useState<string>(() => readInitialsForNav());
 
   useEffect(() => {
     const fetchUser = async () => {
       const token = getAuthToken();
       if (!token) {
-        setUserInitials('U');
+        setUserInitials('');
+        try {
+          sessionStorage.removeItem(NAV_INITIALS_KEY);
+        } catch {
+          /* ignore */
+        }
         return;
       }
       try {
@@ -30,14 +74,29 @@ export default function Navigation() {
         });
         if (response.ok) {
           const data = await response.json();
-          const name = data?.user?.fullName;
-          const initials = name
-            ? name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 3)
-            : 'U';
-          setUserInitials(initials || 'U');
+          const user = data?.user;
+          if (user && typeof user === 'object') {
+            try {
+              setUser(user);
+            } catch {
+              /* ignore */
+            }
+          }
+          const next =
+            initialsFromName(user?.fullName || user?.name) ||
+            initialsFromEmail(user?.email) ||
+            readInitialsForNav();
+          setUserInitials(next);
+          if (next) {
+            try {
+              sessionStorage.setItem(NAV_INITIALS_KEY, next);
+            } catch {
+              /* ignore */
+            }
+          }
         }
       } catch {
-        setUserInitials('U');
+        setUserInitials(readInitialsForNav());
       }
     };
     fetchUser();
@@ -257,7 +316,13 @@ export default function Navigation() {
                 <div className="flex items-center space-x-2 lg:space-x-3">
                   <Link href="/profile">
                     <div className="w-10 h-10 lg:w-11 lg:h-11 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-full flex items-center justify-center cursor-pointer shadow-lg backdrop-blur-sm border-2 border-white hover:scale-110 transition-transform duration-300 hover:shadow-xl group">
-                      <span className="text-xs lg:text-sm font-semibold text-white group-hover:scale-110 transition-transform">{userInitials}</span>
+                      {userInitials ? (
+                        <span className="text-xs lg:text-sm font-semibold text-white group-hover:scale-110 transition-transform">
+                          {userInitials}
+                        </span>
+                      ) : (
+                        <User className="w-5 h-5 lg:w-6 lg:h-6 text-white opacity-95" aria-hidden />
+                      )}
                     </div>
                   </Link>
                   <Button 
