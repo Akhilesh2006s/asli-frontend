@@ -1419,7 +1419,7 @@ export default function Dashboard() {
 
   const handleSubmitHomeworkFromDashboard = async () => {
     if (!selectedHomeworkForSubmit) return;
-    if (!homeworkSubmissionFile && !homeworkSubmissionLink.trim()) {
+    if (!homeworkSubmissionFile) {
       setHomeworkSubmitError('Please upload a submission file.');
       return;
     }
@@ -1433,26 +1433,23 @@ export default function Dashboard() {
         return;
       }
 
-      let submissionLinkToSave = homeworkSubmissionLink.trim();
-      if (homeworkSubmissionFile) {
-        const formData = new FormData();
-        formData.append('file', homeworkSubmissionFile);
+      const formData = new FormData();
+      formData.append('file', homeworkSubmissionFile);
 
-        const uploadResponse = await fetch(`${API_BASE_URL}/api/upload`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
-          body: formData
-        });
+      const uploadResponse = await fetch(`${API_BASE_URL}/api/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
 
-        const uploadData = await uploadResponse.json().catch(() => ({}));
-        if (!uploadResponse.ok || !uploadData?.url) {
-          setHomeworkSubmitError(uploadData?.message || 'Failed to upload file.');
-          return;
-        }
-        submissionLinkToSave = uploadData.url;
+      const uploadData = await uploadResponse.json().catch(() => ({}));
+      if (!uploadResponse.ok || !uploadData?.url) {
+        setHomeworkSubmitError(uploadData?.message || 'Failed to upload file.');
+        return;
       }
+      const submissionLinkToSave = uploadData.url;
 
       const response = await fetch(`${API_BASE_URL}/api/student/homework-submission`, {
         method: 'POST',
@@ -2548,7 +2545,7 @@ export default function Dashboard() {
                   <FileText className="w-5 h-5 text-white" />
                 </div>
                 <CardTitle className="text-xl font-bold text-gray-900">
-                  My Homework Submissions
+                  My Homework
                 </CardTitle>
               </div>
             </CardHeader>
@@ -2561,13 +2558,7 @@ export default function Dashboard() {
                   <div className="space-y-2">
                     {assignedHomework.slice(0, 10).map((homework: any) => {
                       const homeworkId = String(homework._id || homework.id || '');
-                      const submitted = homeworkSubmissions.some((submission: any) => {
-                        const submissionHomeworkId =
-                          typeof submission.homeworkId === 'object'
-                            ? submission.homeworkId?._id
-                            : submission.homeworkId;
-                        return String(submissionHomeworkId || '') === homeworkId;
-                      });
+                      const submitted = homeworkSubmissionByHomeworkId.has(homeworkId);
 
                       return (
                         <div
@@ -2608,94 +2599,10 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {isLoadingSubmissions ? (
+              {isLoadingSubmissions && assignedHomework.length === 0 && (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
-                  <p className="text-gray-600 text-sm">Loading submissions...</p>
-                </div>
-              ) : homeworkSubmissions.length === 0 ? (
-                <div className="py-1" />
-              ) : (
-                <div className="space-y-4">
-                  {homeworkSubmissions.map((submission: any) => (
-                    <div
-                      key={submission._id}
-                      className="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <h5 className="font-semibold text-gray-900 mb-1">
-                            {submission.homeworkId?.title || 'Untitled Homework'}
-                          </h5>
-                          <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
-                            <span>
-                              Subject: {submission.subjectId?.name || submission.subjectId || 'N/A'}
-                            </span>
-                            {submission.homeworkId?.deadline && (
-                              <span>
-                                Deadline: {new Date(submission.homeworkId.deadline).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </span>
-                            )}
-                          </div>
-                          {submission.description && (
-                            <p className="text-sm text-gray-700 mb-2">{submission.description}</p>
-                          )}
-                          <div className="flex items-center gap-4">
-                            {submission.submissionLink && (
-                              <a
-                                href={submission.submissionLink}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
-                              >
-                                <ExternalLink className="w-4 h-4" />
-                                View Submission
-                              </a>
-                            )}
-                            <span className="text-xs text-gray-500">
-                              Submitted: {new Date(submission.submittedAt).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </span>
-                          </div>
-                          {submission.grade !== undefined && submission.grade !== null && (
-                            <div className="mt-2">
-                              <Badge className={`${
-                                submission.grade >= 80 ? 'bg-green-100 text-green-700' :
-                                submission.grade >= 60 ? 'bg-yellow-100 text-yellow-700' :
-                                'bg-red-100 text-red-700'
-                              }`}>
-                                Grade: {submission.grade}%
-                              </Badge>
-                            </div>
-                          )}
-                          {submission.feedback && (
-                            <div className="mt-2 p-2 bg-orange-50 rounded border-l-4 border-blue-500">
-                              <p className="text-sm text-gray-700">
-                                <span className="font-medium">Feedback: </span>
-                                {submission.feedback}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="text-center pt-2">
-                    <p className="text-sm text-gray-600">
-                      Total: {homeworkSubmissions.length} {homeworkSubmissions.length === 1 ? 'submission' : 'submissions'}
-                    </p>
-                  </div>
+                  <p className="text-gray-600 text-sm">Loading homework...</p>
                 </div>
               )}
             </CardContent>

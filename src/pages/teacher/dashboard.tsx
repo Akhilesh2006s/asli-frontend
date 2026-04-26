@@ -3896,16 +3896,6 @@ const TeacherDashboard = () => {
                                                   </Button>
                                                 </div>
                                               )}
-                                              <div className="flex items-center gap-3 mt-2">
-                                                <Badge className={`${submissions.length > 0 ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-600'}`}>
-                                                  {submissions.length} submission{submissions.length !== 1 ? 's' : ''}
-                                                </Badge>
-                                                {submissions.length > 0 && (
-                                                  <span className="text-xs text-gray-500">
-                                                    {students.length - submissions.length} pending
-                                                  </span>
-                                                )}
-                                              </div>
                                             </div>
                                             <ChevronDown
                                               className={`w-5 h-5 text-gray-500 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}

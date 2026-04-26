@@ -21,7 +21,6 @@ import {
   Video,
   BookOpen,
   Download,
-  Link as LinkIcon,
   Upload,
   CheckCircle2
 } from 'lucide-react';
@@ -60,6 +59,7 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
   const [isSubmissionOpen, setIsSubmissionOpen] = useState(false);
   const [selectedHomework, setSelectedHomework] = useState<ContentItem | null>(null);
   const [submissionLink, setSubmissionLink] = useState('');
+  const [submissionFile, setSubmissionFile] = useState<File | null>(null);
   const [submissionDescription, setSubmissionDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [existingSubmission, setExistingSubmission] = useState<any>(null);
@@ -222,6 +222,7 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
         if (data.data) {
           setExistingSubmission(data.data);
           setSubmissionLink(data.data.submissionLink);
+          setSubmissionFile(null);
           setSubmissionDescription(data.data.description || '');
           // Mark as done if submission exists
           if (onMarkAsDone) {
@@ -231,6 +232,7 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
         } else {
           setExistingSubmission(null);
           setSubmissionLink('');
+          setSubmissionFile(null);
           setSubmissionDescription('');
         }
       }
@@ -240,22 +242,10 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
   };
 
   const handleSubmitHomework = async () => {
-    if (!selectedHomework || !submissionLink.trim()) {
+    if (!selectedHomework || !submissionFile) {
       toast({
         title: 'Validation Error',
-        description: 'Please provide a submission link',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    // Validate URL
-    try {
-      new URL(submissionLink.trim());
-    } catch (error) {
-      toast({
-        title: 'Invalid URL',
-        description: 'Please provide a valid URL for the submission link',
+        description: 'Please upload a submission file',
         variant: 'destructive'
       });
       return;
@@ -264,6 +254,25 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
     setIsSubmitting(true);
     try {
       const token = localStorage.getItem('authToken');
+      const formData = new FormData();
+      formData.append('file', submissionFile);
+      const uploadResponse = await fetch(`${API_BASE_URL}/api/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+      const uploadData = await uploadResponse.json().catch(() => ({}));
+      if (!uploadResponse.ok || !uploadData?.url) {
+        toast({
+          title: 'Upload Error',
+          description: uploadData?.message || 'Failed to upload submission file',
+          variant: 'destructive'
+        });
+        return;
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/student/homework-submission`, {
         method: 'POST',
         headers: {
@@ -272,7 +281,7 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
         },
         body: JSON.stringify({
           homeworkId: selectedHomework._id,
-          submissionLink: submissionLink.trim(),
+          submissionLink: uploadData.url,
           description: submissionDescription.trim()
         })
       });
@@ -718,23 +727,18 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
               {/* Submission Form */}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="submissionLink" className="text-sm font-semibold text-gray-700">
-                    Submission Link <span className="text-red-500">*</span>
+                  <Label htmlFor="submissionFile" className="text-sm font-semibold text-gray-700">
+                    Upload Homework File <span className="text-red-500">*</span>
                   </Label>
-                  <div className="relative">
-                    <LinkIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <Input
-                      id="submissionLink"
-                      type="url"
-                      placeholder="https://drive.google.com/file/..."
-                      value={submissionLink}
-                      onChange={(e) => setSubmissionLink(e.target.value)}
-                      className="pl-10"
-                      disabled={!!existingSubmission}
-                    />
-                  </div>
+                  <Input
+                    id="submissionFile"
+                    type="file"
+                    accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.gif"
+                    onChange={(e) => setSubmissionFile(e.target.files?.[0] || null)}
+                    disabled={!!existingSubmission}
+                  />
                   <p className="text-xs text-gray-500">
-                    Enter a link to your completed homework (Google Drive, Dropbox, etc.)
+                    Upload your completed homework file (PDF, DOC, images, etc.)
                   </p>
                 </div>
 
@@ -787,7 +791,7 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
                   {!existingSubmission && (
                     <Button
                       onClick={handleSubmitHomework}
-                      disabled={isSubmitting || !submissionLink.trim()}
+                      disabled={isSubmitting || !submissionFile}
                       className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
                       {isSubmitting ? (
