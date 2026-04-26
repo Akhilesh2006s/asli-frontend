@@ -697,6 +697,8 @@ export default function StudentToolPage() {
     return [];
   };
 
+  const fieldUsesCurriculumSelect = (field: ToolConfig['fields'][0]) => field.type === 'select';
+
   const handleGenerate = async () => {
     const requiredFields = config.fields.filter(f => f.required);
     const missingFields = requiredFields.filter(f => !formParams[f.name]);

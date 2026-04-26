@@ -2804,7 +2804,7 @@ export default function Dashboard() {
                       <Card 
                         key={subject._id || subject.id} 
                         className="hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200"
-                        onClick={() => window.location.href = `/subject/${subject._id || subject.id}`}
+                        onClick={() => setLocation(`/subject/${subject._id || subject.id}`)}
                       >
                         <CardContent className="p-6 flex flex-col items-center text-center">
                           <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
@@ -2880,7 +2880,7 @@ export default function Dashboard() {
                             
                             <Button
                               className="w-full bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white"
-                              onClick={() => window.location.href = `/quiz/${quiz._id}`}
+                              onClick={() => setLocation(`/quiz/${quiz._id}`)}
                             >
                               {quiz.hasAttempted ? 'Review Quiz' : 'Start Quiz'}
                             </Button>
@@ -3933,7 +3933,7 @@ export default function Dashboard() {
                     className="bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white"
                     onClick={() => {
                       setIsPreviewOpen(false);
-                      window.location.href = '/learning-paths';
+                      setLocation('/learning-paths');
                     }}
                   >
                     Start Quiz

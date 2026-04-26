@@ -36,13 +36,14 @@ import {
   Headphones,
   ExternalLink
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect } from "react";
 import { API_BASE_URL } from "@/lib/api-config";
 import VidyaAIFloatingAssistant from "@/components/student/VidyaAIFloatingAssistant";
 
 export default function LearningPaths() {
+  const [, setLocation] = useLocation();
   const isMobile = useIsMobile();
   const [user, setUser] = useState<any>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
@@ -678,7 +679,7 @@ export default function LearningPaths() {
                   <Card 
                     key={subject._id || subject.id} 
                     className="hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200"
-                    onClick={() => window.location.href = `/subject/${subject._id || subject.id}`}
+                        onClick={() => setLocation(`/subject/${subject._id || subject.id}`)}
                   >
                     <CardContent className="p-6 flex flex-col items-center text-center">
                       <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md mb-4">
