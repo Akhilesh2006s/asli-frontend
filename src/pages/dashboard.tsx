@@ -134,6 +134,7 @@ function VidyaAICornerButton() {
         <img 
           src="/Vidya-ai.jpg" 
           alt="Vidya AI - Click to chat" 
+          draggable={false}
           className="w-32 h-auto rounded-xl shadow-xl opacity-80 hover:opacity-100 hover:scale-105 transition-all duration-300"
         />
       </div>
@@ -1856,6 +1857,7 @@ export default function Dashboard() {
                     <img 
                       src="/Vidya-ai.jpg" 
                       alt="Vidya AI" 
+                      draggable={false}
                       className="w-full h-full object-cover object-center rounded-xl"
                     />
                   </div>
@@ -3166,6 +3168,7 @@ export default function Dashboard() {
                   <img 
                     src="/Vidya-ai.jpg" 
                     alt="Vidya AI" 
+                    draggable={false}
                     className="w-full h-full object-cover"
                   />
                   </div>
@@ -3543,6 +3546,7 @@ export default function Dashboard() {
                             <img
                               src="/Vidya-ai.jpg"
                               alt="Vidya AI Avatar"
+                              draggable={false}
                               className="w-full h-full object-cover"
                             />
                           </div>
@@ -3904,6 +3908,7 @@ export default function Dashboard() {
                                 <img
                                   src={fileUrl}
                                   alt={selectedScheduleItem.title || 'Content preview'}
+                                  draggable={false}
                                   className="w-full h-auto max-h-[60vh] object-contain mx-auto"
                                   onError={(e) => {
                                     console.error('Image load error:', e);
