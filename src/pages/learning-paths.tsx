@@ -678,7 +678,7 @@ export default function LearningPaths() {
                 return (
                   <Card 
                     key={subject._id || subject.id} 
-                    className="hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200"
+                    className="hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200"
                         onClick={() => setLocation(`/subject/${subject._id || subject.id}`)}
                   >
                     <CardContent className="p-6 flex flex-col items-center text-center">
@@ -714,7 +714,7 @@ export default function LearningPaths() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {quizzes.map((quiz: any) => (
-                <Card key={quiz._id} className="hover:shadow-lg transition-all duration-200 hover:scale-105">
+                        <Card key={quiz._id} className="hover:shadow-lg transition-shadow duration-200">
                     <CardHeader>
                       <div className="flex items-center justify-between mb-2">
                       <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg">
@@ -792,7 +792,7 @@ export default function LearningPaths() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {/* TextBook Card */}
             <Card 
-              className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
+              className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
                 selectedContentType === 'TextBook' ? 'ring-2 ring-blue-500' : ''
               }`}
               onClick={() => setSelectedContentType(selectedContentType === 'TextBook' ? null : 'TextBook')}
@@ -810,7 +810,7 @@ export default function LearningPaths() {
 
             {/* Workbook Card */}
             <Card 
-              className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
+              className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
                 selectedContentType === 'Workbook' ? 'ring-2 ring-blue-500' : ''
               }`}
               onClick={() => setSelectedContentType(selectedContentType === 'Workbook' ? null : 'Workbook')}
@@ -828,7 +828,7 @@ export default function LearningPaths() {
 
             {/* Material Card */}
             <Card 
-              className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
+              className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
                 selectedContentType === 'Material' ? 'ring-2 ring-blue-500' : ''
               }`}
               onClick={() => setSelectedContentType(selectedContentType === 'Material' ? null : 'Material')}
@@ -846,7 +846,7 @@ export default function LearningPaths() {
 
             {/* Video Card */}
             <Card 
-              className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
+              className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
                 selectedContentType === 'Video' ? 'ring-2 ring-blue-500' : ''
               }`}
               onClick={() => setSelectedContentType(selectedContentType === 'Video' ? null : 'Video')}
@@ -864,7 +864,7 @@ export default function LearningPaths() {
 
             {/* Audio Card */}
             <Card 
-              className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
+              className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
                 selectedContentType === 'Audio' ? 'ring-2 ring-blue-500' : ''
               }`}
               onClick={() => setSelectedContentType(selectedContentType === 'Audio' ? null : 'Audio')}
@@ -882,7 +882,7 @@ export default function LearningPaths() {
 
             {/* Homework Card */}
             <Card 
-              className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
+              className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
                 selectedContentType === 'Homework' ? 'ring-2 ring-blue-500' : ''
               }`}
               onClick={() => setSelectedContentType(selectedContentType === 'Homework' ? null : 'Homework')}
@@ -931,7 +931,7 @@ export default function LearningPaths() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredContent.map((content: any) => (
-                    <Card key={content._id} className="hover:shadow-lg transition-all duration-200 hover:scale-105">
+                    <Card key={content._id} className="hover:shadow-lg transition-shadow duration-200">
                       <CardHeader>
                         <div className="flex items-center justify-between mb-2">
                           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg">

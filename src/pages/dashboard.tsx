@@ -106,6 +106,13 @@ export default function Dashboard() {
   const [isLoadingRemarks, setIsLoadingRemarks] = useState(false);
   const [homeworkSubmissions, setHomeworkSubmissions] = useState<any[]>([]);
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
+  const [isHomeworkSubmitOpen, setIsHomeworkSubmitOpen] = useState(false);
+  const [selectedHomeworkForSubmit, setSelectedHomeworkForSubmit] = useState<any | null>(null);
+  const [homeworkSubmissionLink, setHomeworkSubmissionLink] = useState('');
+  const [homeworkSubmissionFile, setHomeworkSubmissionFile] = useState<File | null>(null);
+  const [homeworkSubmissionDescription, setHomeworkSubmissionDescription] = useState('');
+  const [isSubmittingHomework, setIsSubmittingHomework] = useState(false);
+  const [homeworkSubmitError, setHomeworkSubmitError] = useState<string>('');
   const [riskAnalysisReports, setRiskAnalysisReports] = useState<any[]>([]);
   const [isLoadingReports, setIsLoadingReports] = useState(false);
 
@@ -308,6 +315,28 @@ export default function Dashboard() {
     () => subjects.flatMap((s: any) => s.videos || []),
     [subjects]
   );
+  const assignedHomework = useMemo(() => {
+    return allContent
+      .filter((content: any) => String(content.type || '').toLowerCase() === 'homework')
+      .sort((a: any, b: any) => {
+        const aTime = a.deadline ? new Date(a.deadline).getTime() : 0;
+        const bTime = b.deadline ? new Date(b.deadline).getTime() : 0;
+        return aTime - bTime;
+      });
+  }, [allContent]);
+  const homeworkSubmissionByHomeworkId = useMemo(() => {
+    const map = new Map<string, any>();
+    homeworkSubmissions.forEach((submission: any) => {
+      const homeworkId =
+        typeof submission.homeworkId === 'object'
+          ? submission.homeworkId?._id
+          : submission.homeworkId;
+      if (homeworkId) {
+        map.set(String(homeworkId), submission);
+      }
+    });
+    return map;
+  }, [homeworkSubmissions]);
   const [studyTimeToday, setStudyTimeToday] = useState<number>(0); // in minutes
   const [studyTimeThisWeek, setStudyTimeThisWeek] = useState<number>(0); // in minutes
   const [weeklyStudyData, setWeeklyStudyData] = useState<{ [key: string]: number }>({}); // Daily study time in minutes
@@ -1219,7 +1248,8 @@ export default function Dashboard() {
         // Filter incomplete content
         const incomplete = allContent.filter((content: any) => {
           const contentId = content._id || content.id;
-          return !completedContentIds.has(contentId);
+          const isHomework = String(content.type || '').toLowerCase() === 'homework';
+          return !isHomework && !completedContentIds.has(contentId);
         });
 
         // Filter incomplete quizzes (not attempted or not completed)
@@ -1374,6 +1404,102 @@ export default function Dashboard() {
   const handleOpenPreview = (item: any, isQuiz: boolean = false) => {
     setSelectedScheduleItem({ ...item, isQuiz });
     setIsPreviewOpen(true);
+  };
+
+  const handleOpenHomeworkSubmit = (homework: any) => {
+    const homeworkId = String(homework?._id || homework?.id || '');
+    const existingSubmission = homeworkSubmissionByHomeworkId.get(homeworkId);
+    setSelectedHomeworkForSubmit(homework);
+    setHomeworkSubmissionLink(existingSubmission?.submissionLink || '');
+    setHomeworkSubmissionFile(null);
+    setHomeworkSubmissionDescription(existingSubmission?.description || '');
+    setHomeworkSubmitError('');
+    setIsHomeworkSubmitOpen(true);
+  };
+
+  const handleSubmitHomeworkFromDashboard = async () => {
+    if (!selectedHomeworkForSubmit) return;
+    if (!homeworkSubmissionFile && !homeworkSubmissionLink.trim()) {
+      setHomeworkSubmitError('Please upload a submission file.');
+      return;
+    }
+
+    try {
+      setIsSubmittingHomework(true);
+      setHomeworkSubmitError('');
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setHomeworkSubmitError('Please login again and retry.');
+        return;
+      }
+
+      let submissionLinkToSave = homeworkSubmissionLink.trim();
+      if (homeworkSubmissionFile) {
+        const formData = new FormData();
+        formData.append('file', homeworkSubmissionFile);
+
+        const uploadResponse = await fetch(`${API_BASE_URL}/api/upload`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        const uploadData = await uploadResponse.json().catch(() => ({}));
+        if (!uploadResponse.ok || !uploadData?.url) {
+          setHomeworkSubmitError(uploadData?.message || 'Failed to upload file.');
+          return;
+        }
+        submissionLinkToSave = uploadData.url;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/student/homework-submission`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          homeworkId: selectedHomeworkForSubmit._id || selectedHomeworkForSubmit.id,
+          submissionLink: submissionLinkToSave,
+          description: homeworkSubmissionDescription.trim()
+        })
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data?.success) {
+        setHomeworkSubmitError(data?.message || 'Failed to submit homework.');
+        return;
+      }
+
+      const savedSubmission = data.data;
+      setHomeworkSubmissionLink(savedSubmission?.submissionLink || submissionLinkToSave);
+      setHomeworkSubmissionFile(null);
+      setHomeworkSubmissions((prev) => {
+        const savedHomeworkId =
+          typeof savedSubmission?.homeworkId === 'object'
+            ? savedSubmission.homeworkId?._id
+            : savedSubmission?.homeworkId;
+        const savedHomeworkIdStr = String(savedHomeworkId || '');
+        const next = prev.filter((submission: any) => {
+          const currentId =
+            typeof submission.homeworkId === 'object'
+              ? submission.homeworkId?._id
+              : submission.homeworkId;
+          return String(currentId || '') !== savedHomeworkIdStr;
+        });
+        return [savedSubmission, ...next];
+      });
+
+      setIsHomeworkSubmitOpen(false);
+      setSelectedHomeworkForSubmit(null);
+    } catch (error) {
+      console.error('Homework submit failed:', error);
+      setHomeworkSubmitError('An unexpected error occurred while submitting.');
+    } finally {
+      setIsSubmittingHomework(false);
+    }
   };
 
   // Helper function for content type label (used in modal)
@@ -2427,17 +2553,68 @@ export default function Dashboard() {
               </div>
             </CardHeader>
             <CardContent>
+              {assignedHomework.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                    Assigned Homework ({assignedHomework.length})
+                  </h4>
+                  <div className="space-y-2">
+                    {assignedHomework.slice(0, 10).map((homework: any) => {
+                      const homeworkId = String(homework._id || homework.id || '');
+                      const submitted = homeworkSubmissions.some((submission: any) => {
+                        const submissionHomeworkId =
+                          typeof submission.homeworkId === 'object'
+                            ? submission.homeworkId?._id
+                            : submission.homeworkId;
+                        return String(submissionHomeworkId || '') === homeworkId;
+                      });
+
+                      return (
+                        <div
+                          key={homeworkId}
+                          className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
+                            submitted ? 'bg-emerald-50 border-emerald-200' : 'bg-orange-50 border-orange-200'
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{homework.title || 'Untitled Homework'}</p>
+                            <p className="text-xs text-gray-600 truncate">
+                              {getSubjectName(homework)}
+                              {homework.deadline
+                                ? ` • Due ${new Date(homework.deadline).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  })}`
+                                : ''}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <Badge className={submitted ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}>
+                              {submitted ? 'Submitted' : 'Pending'}
+                            </Badge>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleOpenHomeworkSubmit(homework)}
+                            >
+                              {submitted ? 'Update' : 'Submit'}
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {isLoadingSubmissions ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
                   <p className="text-gray-600 text-sm">Loading submissions...</p>
                 </div>
               ) : homeworkSubmissions.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-600 font-medium">No homework submissions yet</p>
-                  <p className="text-gray-500 text-sm mt-1">Submit your homework assignments to see them here</p>
-                </div>
+                <div className="py-1" />
               ) : (
                 <div className="space-y-4">
                   {homeworkSubmissions.map((submission: any) => (
@@ -2803,7 +2980,7 @@ export default function Dashboard() {
                     return (
                       <Card 
                         key={subject._id || subject.id} 
-                        className="hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200"
+                        className="hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200"
                         onClick={() => setLocation(`/subject/${subject._id || subject.id}`)}
                       >
                         <CardContent className="p-6 flex flex-col items-center text-center">
@@ -2839,7 +3016,7 @@ export default function Dashboard() {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                       {quizzes.map((quiz: any) => (
-                        <Card key={quiz._id} className="hover:shadow-lg transition-all duration-200 hover:scale-105">
+                        <Card key={quiz._id} className="hover:shadow-lg transition-shadow duration-200">
                           <CardHeader>
                             <div className="flex items-center justify-between mb-2">
                               <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-teal-500 rounded-lg flex items-center justify-center shadow-lg">
@@ -2900,7 +3077,7 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                 {/* TextBook Card */}
                 <Card 
-                  className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
+                  className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
                     selectedBrowseType === 'TextBook' ? 'ring-2 ring-orange-500' : ''
                   }`}
                   onClick={() => {
@@ -2921,7 +3098,7 @@ export default function Dashboard() {
 
                 {/* Workbook Card */}
                 <Card 
-                  className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
+                  className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
                     selectedBrowseType === 'Workbook' ? 'ring-2 ring-orange-500' : ''
                   }`}
                   onClick={() => {
@@ -2942,7 +3119,7 @@ export default function Dashboard() {
 
                 {/* Material Card */}
                 <Card 
-                  className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
+                  className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
                     selectedBrowseType === 'Material' ? 'ring-2 ring-orange-500' : ''
                   }`}
                   onClick={() => {
@@ -2963,7 +3140,7 @@ export default function Dashboard() {
 
                 {/* Video Card */}
                 <Card 
-                  className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
+                  className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
                     selectedBrowseType === 'Video' ? 'ring-2 ring-orange-500' : ''
                   }`}
                   onClick={() => {
@@ -2984,7 +3161,7 @@ export default function Dashboard() {
 
                 {/* Audio Card */}
                 <Card 
-                  className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
+                  className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
                     selectedBrowseType === 'Audio' ? 'ring-2 ring-orange-500' : ''
                   }`}
                   onClick={() => {
@@ -3005,7 +3182,7 @@ export default function Dashboard() {
 
                 {/* Homework Card */}
                 <Card 
-                  className={`hover:shadow-lg transition-all duration-200 hover:scale-105 cursor-pointer bg-white border border-gray-200 ${
+                  className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
                     selectedBrowseType === 'Homework' ? 'ring-2 ring-orange-500' : ''
                   }`}
                   onClick={() => {
@@ -3939,9 +4116,108 @@ export default function Dashboard() {
                     Start Quiz
                   </Button>
                 )}
+                {!selectedScheduleItem.isQuiz && selectedScheduleItem.type === 'Homework' && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsPreviewOpen(false);
+                      handleOpenHomeworkSubmit(selectedScheduleItem);
+                    }}
+                  >
+                    Submit Homework
+                  </Button>
+                )}
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isHomeworkSubmitOpen} onOpenChange={setIsHomeworkSubmitOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Submit Homework</DialogTitle>
+            <DialogDescription>
+              Review the assigned homework and submit your solution link.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedHomeworkForSubmit && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <p className="text-sm font-semibold text-gray-900">
+                  {selectedHomeworkForSubmit.title || 'Untitled Homework'}
+                </p>
+                <p className="text-xs text-gray-600 mt-1">
+                  Subject: {getSubjectName(selectedHomeworkForSubmit)}
+                  {selectedHomeworkForSubmit.deadline
+                    ? ` • Due ${new Date(selectedHomeworkForSubmit.deadline).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}`
+                    : ''}
+                </p>
+                {selectedHomeworkForSubmit.fileUrl && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => window.open(selectedHomeworkForSubmit.fileUrl, '_blank', 'noopener,noreferrer')}
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    View Teacher Homework
+                  </Button>
+                )}
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Upload Submission File</label>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.gif"
+                  onChange={(e) => setHomeworkSubmissionFile(e.target.files?.[0] || null)}
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-orange-100 file:px-3 file:py-1 file:text-orange-700"
+                />
+                {homeworkSubmissionFile && (
+                  <p className="mt-1 text-xs text-gray-600">Selected: {homeworkSubmissionFile.name}</p>
+                )}
+                {!homeworkSubmissionFile && homeworkSubmissionLink && (
+                  <p className="mt-1 text-xs text-gray-600">
+                    Current file already submitted. Upload a new file to replace it.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700">Description (optional)</label>
+                <textarea
+                  value={homeworkSubmissionDescription}
+                  onChange={(e) => setHomeworkSubmissionDescription(e.target.value)}
+                  rows={3}
+                  placeholder="Add short notes about your submission..."
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                />
+              </div>
+
+              {homeworkSubmitError && (
+                <p className="text-sm text-red-600">{homeworkSubmitError}</p>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsHomeworkSubmitOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white"
+              onClick={handleSubmitHomeworkFromDashboard}
+              disabled={isSubmittingHomework}
+            >
+              {isSubmittingHomework ? 'Submitting...' : 'Submit Homework'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

@@ -108,11 +108,7 @@ export default function StudentExams() {
   const didInitClassFilter = useRef(false);
 
   const preserveScrollOnFilterChange = (setter: (value: string) => void, value: string) => {
-    const currentY = window.scrollY;
     setter(value);
-    requestAnimationFrame(() => {
-      window.scrollTo({ top: currentY, behavior: 'auto' });
-    });
   };
 
   useEffect(() => {
