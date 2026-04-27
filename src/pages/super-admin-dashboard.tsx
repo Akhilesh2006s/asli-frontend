@@ -40,6 +40,7 @@ import { API_BASE_URL } from "@/lib/api-config";
 import { cn } from "@/lib/utils";
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSearch } from "wouter";
 
 const lazySectionFallback = (
   <div className="rounded-xl border border-orange-100 bg-white p-8 shadow-sm">
@@ -53,7 +54,12 @@ const lazySectionFallback = (
 export default function SuperAdminDashboard() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  const [currentView, setCurrentView] = useState<SuperAdminView>('dashboard');
+  const search = useSearch();
+  const [currentView, setCurrentView] = useState<SuperAdminView>(() => {
+    if (typeof window === "undefined") return "dashboard";
+    const v = new URLSearchParams(window.location.search).get("view");
+    return v === "admins" ? "admins" : "dashboard";
+  });
   const [user] = useState({ 
     fullName: 'Super Admin', 
     role: 'super-admin',
@@ -90,6 +96,13 @@ export default function SuperAdminDashboard() {
   >("balanced");
 
   const VIDYA_PREFS_KEY = "superAdminVidyaPrefs";
+
+  useEffect(() => {
+    const view = new URLSearchParams(search).get("view");
+    if (view === "admins") {
+      setCurrentView("admins");
+    }
+  }, [search]);
 
   // Fetch real dashboard stats
   useEffect(() => {

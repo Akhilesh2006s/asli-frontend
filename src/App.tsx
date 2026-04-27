@@ -38,6 +38,7 @@ const IQRankBoostQuiz = lazy(() => import("./pages/iq-rank-boost-quiz"));
 const QuizPage = lazy(() => import("./pages/quiz"));
 const SuperAdminLogin = lazy(() => import("./pages/super-admin-login"));
 const SuperAdminDashboard = lazy(() => import("./pages/super-admin-dashboard"));
+const SuperAdminSchoolDetail = lazy(() => import("./pages/super-admin-school-detail"));
 const SuperAdminTest = lazy(() => import("./pages/super-admin-test"));
 const Onboarding = lazy(() => import("./pages/onboarding"));
 const AIToolsDashboard = lazy(() => import("./pages/ai-tools-dashboard"));
@@ -74,6 +75,7 @@ function Router() {
       <Route path="/student/tools/:toolType" component={StudentToolPage} />
       <Route path="/super-admin/login" component={SuperAdminLogin} />
       <Route path="/super-admin/dashboard" component={SuperAdminDashboard} />
+      <Route path="/super-admin/schools/:id" component={SuperAdminSchoolDetail} />
       <Route path="/super-admin/test" component={SuperAdminTest} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/privacy" component={Privacy} />

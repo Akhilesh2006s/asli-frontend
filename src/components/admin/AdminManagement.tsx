@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UsersIcon, UserPlusIcon, EditIcon, TrashIcon, CrownIcon, GraduationCapIcon, BookOpenIcon, SearchIcon, Loader2, XIcon } from "lucide-react";
+import { UsersIcon, UserPlusIcon, EditIcon, TrashIcon, CrownIcon, GraduationCapIcon, BookOpenIcon, SearchIcon, Loader2, XIcon, EyeIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
 import { cn } from "@/lib/utils";
@@ -87,6 +88,7 @@ const resolveLogoUrl = (logoUrl?: string): string => {
 };
 
 export default function AdminManagement() {
+  const [, setLocation] = useLocation();
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingAdmin, setIsAddingAdmin] = useState(false);
@@ -1580,12 +1582,21 @@ export default function AdminManagement() {
                   <span className="text-sm text-gray-500">
                     Added: {admin?.joinDate ? new Date(admin.joinDate).toLocaleDateString() : 'Unknown'}
                   </span>
-                  <div className="flex space-x-2">
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => admin?.id && setLocation(`/super-admin/schools/${admin.id}`)}
+                      className="hover:bg-orange-50 hover:text-orange-900"
+                      title="View full details"
+                    >
+                      <EyeIcon className="h-4 w-4" />
+                    </Button>
                     <Button 
                       size="sm" 
                       variant="outline"
                       onClick={() => handleEditClick(admin)}
-                      className="hover:bg-blue-50"
+                      className="hover:bg-orange-50 hover:text-orange-900"
                     >
                       <EditIcon className="h-4 w-4" />
                     </Button>
