@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +39,8 @@ import {
   normalizeClassNumber,
 } from '@/lib/exam-classes';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { dedupeStudentExamResults } from '@/lib/dedupe-exam-results';
+import { getUserIdFromAuthToken } from '@/lib/auth-utils';
 
 interface Question {
   _id: string;
@@ -120,29 +122,48 @@ export default function StudentExams() {
     setExamClassFilter('my');
   }, [user?.classNumber]);
 
+  /** Stable id for React Query keys so another user's cached exam/results never flash after login switch. */
+  const studentId =
+    user?._id != null
+      ? String(user._id)
+      : user?.id != null
+        ? String(user.id)
+        : null;
+
+  /** Prefer /me id; fall back to JWT so queries run even if `user` omits `_id` */
+  const effectiveStudentId = studentId ?? getUserIdFromAuthToken() ?? null;
+
   // Helper function to extract examId from result (handles populated doc, string, ObjectId)
-  const getExamIdFromResult = (result: any): string | null => {
+  const getExamIdFromResult = useCallback((result: any): string | null => {
     if (!result) return null;
-    const eid = result.examId;
-    if (eid == null || eid === '') return null;
-    if (typeof eid === 'string') return eid;
-    if (typeof eid === 'object') {
-      const nested = (eid as any)._id ?? (eid as any).$oid;
-      if (nested != null) return String(nested);
+    const resolveRef = (raw: any): string | null => {
+      if (raw == null || raw === '') return null;
+      if (typeof raw === 'string') return raw;
+      if (typeof raw === 'object') {
+        const nested = raw._id ?? raw.$oid;
+        if (nested != null) return String(nested);
+        try {
+          const s = String(raw);
+          if (s && s !== '[object Object]') return s;
+        } catch {
+          return null;
+        }
+        return null;
+      }
       try {
-        const s = String(eid);
-        if (s && s !== '[object Object]') return s;
+        return String(raw);
       } catch {
         return null;
       }
-      return null;
+    };
+    const fromExamId = resolveRef(result.examId);
+    if (fromExamId) return fromExamId;
+    if (result.exam != null) {
+      const ex = result.exam;
+      if (typeof ex === 'object') return resolveRef(ex._id ?? ex);
     }
-    try {
-      return String(eid);
-    } catch {
-      return null;
-    }
-  };
+    return null;
+  }, []);
 
   const buildFallbackExamFromResult = (examIdStr: string, result: any): Exam => {
     const title =
@@ -237,8 +258,7 @@ export default function StudentExams() {
         }
       } catch (error) {
         console.error('Auth check failed:', error);
-        // Allow access with fallback authentication
-        setIsAuthenticated(true);
+        setIsAuthenticated(false);
       } finally {
         setIsLoadingAuth(false);
       }
@@ -247,9 +267,9 @@ export default function StudentExams() {
     checkAuth();
   }, [setLocation]);
 
-  // Fetch available exams
+  // Fetch available exams (query key includes student id to avoid showing another user's cached list)
   const { data: examsData, isLoading, error } = useQuery({
-    queryKey: ['/api/student/exams'],
+    queryKey: ['/api/student/exams', effectiveStudentId],
     queryFn: async () => {
       console.log('🔍 Student Exams: Fetching student exams...');
       const token = localStorage.getItem('authToken');
@@ -287,7 +307,7 @@ export default function StudentExams() {
         return [];
       }
     },
-    enabled: isAuthenticated // Only run when authenticated
+    enabled: isAuthenticated && !!effectiveStudentId,
   });
 
   // Ensure exams is always an array
@@ -362,7 +382,7 @@ export default function StudentExams() {
 
   // Fetch assessments
   const { data: assessments, isLoading: isLoadingAssessments, error: assessmentsError } = useQuery({
-    queryKey: ['/api/assessments'],
+    queryKey: ['/api/assessments', effectiveStudentId],
     queryFn: async () => {
       console.log('🔍 Student Exams: Fetching assessments...');
       const token = localStorage.getItem('authToken');
@@ -387,12 +407,13 @@ export default function StudentExams() {
         console.warn('Assessments response is not JSON, using fallback data');
         return { assessments: [] };
       }
-    }
+    },
+    enabled: isAuthenticated && !!effectiveStudentId,
   });
 
-  // Fetch exam results
+  // Fetch exam results (must be keyed by student — shared key caused other users' attempts to appear)
   const { data: results, refetch: refetchResults } = useQuery({
-    queryKey: ['/api/student/exam-results'],
+    queryKey: ['/api/student/exam-results', effectiveStudentId],
     queryFn: async () => {
       console.log('🔍 Student Exams: Fetching exam results...');
       const token = localStorage.getItem('authToken');
@@ -421,23 +442,31 @@ export default function StudentExams() {
       });
       return payload;
     },
-    enabled: isAuthenticated, // Only run when authenticated
+    enabled: isAuthenticated && !!effectiveStudentId,
     refetchOnWindowFocus: true,
-    refetchOnMount: true
+    refetchOnMount: true,
   });
+
+  /** One row per real attempt — API/DB can return duplicate ExamResult docs */
+  const dedupedExamResults = useMemo(
+    () =>
+      dedupeStudentExamResults(
+        Array.isArray(results?.data) ? results.data : [],
+        getExamIdFromResult
+      ),
+    [results?.data, getExamIdFromResult]
+  );
 
   const attemptCountByExamId = useMemo(() => {
     const m = new Map<string, number>();
-    if (Array.isArray(results?.data)) {
-      for (const result of results.data) {
-        const id = getExamIdFromResult(result);
-        if (!id) continue;
-        const k = String(id);
-        m.set(k, (m.get(k) || 0) + 1);
-      }
+    for (const result of dedupedExamResults) {
+      const id = getExamIdFromResult(result);
+      if (!id) continue;
+      const k = String(id);
+      m.set(k, (m.get(k) || 0) + 1);
     }
     return m;
-  }, [results?.data]);
+  }, [dedupedExamResults, getExamIdFromResult]);
 
   const availableActiveExams = useMemo(
     () =>
@@ -460,8 +489,7 @@ export default function StudentExams() {
   // Show all saved attempts with a resolvable exam id. Do not require the exam to still appear
   // in the current filtered catalog (ended / unlisted exams still have valid history).
   const attemptedResultRows = useMemo(() => {
-    const raw = Array.isArray(results?.data) ? [...results.data] : [];
-    return raw
+    return dedupedExamResults
       .filter((result: any) => {
         const examIdStr = getExamIdFromResult(result);
         if (!examIdStr) return false;
@@ -474,7 +502,7 @@ export default function StudentExams() {
         (a, b) =>
           new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime()
       );
-  }, [results?.data, exams, examSubjectFilter]);
+  }, [dedupedExamResults, exams, examSubjectFilter, getExamIdFromResult]);
 
   const handleStartExam = async (exam: Exam) => {
     console.log('Starting exam:', exam);
@@ -505,7 +533,7 @@ export default function StudentExams() {
         const message = payload?.message || 'This exam is not available yet. Questions are not uploaded.';
         alert(message);
         await queryClient.invalidateQueries({ queryKey: ['/api/student/exams'] });
-        await queryClient.refetchQueries({ queryKey: ['/api/student/exams'] });
+        await queryClient.refetchQueries({ queryKey: ['/api/student/exams', effectiveStudentId] });
         return;
       }
 
@@ -514,7 +542,7 @@ export default function StudentExams() {
       if (hydratedQuestions.length === 0) {
         alert('This exam is not available yet. Questions are not uploaded.');
         await queryClient.invalidateQueries({ queryKey: ['/api/student/exams'] });
-        await queryClient.refetchQueries({ queryKey: ['/api/student/exams'] });
+        await queryClient.refetchQueries({ queryKey: ['/api/student/exams', effectiveStudentId] });
         return;
       }
     } catch (error) {
@@ -564,7 +592,7 @@ export default function StudentExams() {
       queryClient.invalidateQueries({ queryKey: ['/api/student/exam-results'] }),
       queryClient.invalidateQueries({ queryKey: ['/api/student/exams'] }),
       refetchResults(),
-      queryClient.refetchQueries({ queryKey: ['/api/student/exams'] })
+      queryClient.refetchQueries({ queryKey: ['/api/student/exams', effectiveStudentId] }),
     ]);
     
     console.log('✅ Exam results query invalidated and refetched');
@@ -609,7 +637,7 @@ export default function StudentExams() {
     
     // Refresh exam results to show the newly completed exam
     queryClient.invalidateQueries({ queryKey: ['/api/student/exam-results'] });
-    queryClient.refetchQueries({ queryKey: ['/api/student/exam-results'] });
+    queryClient.refetchQueries({ queryKey: ['/api/student/exam-results', effectiveStudentId] });
   };
 
   const getExamTypeColor = (type: string) => {

@@ -29,6 +29,7 @@ interface SubjectItem {
   code?: string;
   board: string;
   classNumber?: string;
+  stateName?: string;
   isActive?: boolean;
 }
 
@@ -46,6 +47,7 @@ interface ContentItem {
   description?: string;
   type: ContentType;
   board: string;
+  stateName?: string;
   subject: {
     _id: string;
     name: string;
@@ -65,6 +67,58 @@ interface ContentItem {
 }
 
 const BOARD_CODE = 'ASLI_EXCLUSIVE_SCHOOLS';
+
+type SyllabusBoard = 'ASLI_EXCLUSIVE_SCHOOLS' | 'CBSE' | 'STATE';
+
+const SYLLABUS_OPTIONS: { value: SyllabusBoard; label: string }[] = [
+  { value: 'ASLI_EXCLUSIVE_SCHOOLS', label: 'ASLI Exclusive Schools' },
+  { value: 'CBSE', label: 'CBSE' },
+  { value: 'STATE', label: 'State' },
+];
+
+const INDIAN_STATE_OPTIONS = [
+  'Andhra Pradesh',
+  'Arunachal Pradesh',
+  'Assam',
+  'Bihar',
+  'Chhattisgarh',
+  'Goa',
+  'Gujarat',
+  'Haryana',
+  'Himachal Pradesh',
+  'Jharkhand',
+  'Karnataka',
+  'Kerala',
+  'Madhya Pradesh',
+  'Maharashtra',
+  'Manipur',
+  'Meghalaya',
+  'Mizoram',
+  'Nagaland',
+  'Odisha',
+  'Punjab',
+  'Rajasthan',
+  'Sikkim',
+  'Tamil Nadu',
+  'Telangana',
+  'Tripura',
+  'Uttar Pradesh',
+  'Uttarakhand',
+  'West Bengal',
+  'Andaman and Nicobar Islands',
+  'Chandigarh',
+  'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi',
+  'Jammu and Kashmir',
+  'Ladakh',
+  'Lakshadweep',
+  'Puducherry',
+] as const;
+
+function syllabusLabel(board: string): string {
+  const o = SYLLABUS_OPTIONS.find((x) => x.value === board);
+  return o?.label ?? board;
+}
 
 const PRIMARY_CONTENT_TYPES: ContentType[] = [
   'TextBook',
@@ -169,9 +223,13 @@ export default function SubjectContentManagement() {
 
   const [isAddSubjectOpen, setIsAddSubjectOpen] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState('');
+  const [newSubjectSyllabus, setNewSubjectSyllabus] = useState<SyllabusBoard>('ASLI_EXCLUSIVE_SCHOOLS');
+  const [newSubjectStateName, setNewSubjectStateName] = useState('');
   const [editingSubject, setEditingSubject] = useState<SubjectItem | null>(null);
   const [isEditSubjectOpen, setIsEditSubjectOpen] = useState(false);
   const [editSubjectName, setEditSubjectName] = useState('');
+  const [editSubjectSyllabus, setEditSubjectSyllabus] = useState<SyllabusBoard>('ASLI_EXCLUSIVE_SCHOOLS');
+  const [editSubjectStateName, setEditSubjectStateName] = useState('');
 
   const [isAddContentOpen, setIsAddContentOpen] = useState(false);
   const [editingContentId, setEditingContentId] = useState<string | null>(null);
@@ -264,6 +322,19 @@ export default function SubjectContentManagement() {
     });
   }, [contents, selectedSubjectId, selectedClassNumber, subjects]);
 
+  /** Subject that owns the content in Add/Edit Content dialog (syllabus/state always follow this). */
+  const linkedSubjectForContent = useMemo((): SubjectItem | null => {
+    if (!isAddContentOpen) return null;
+    if (editingContentId) {
+      const c = contents.find((x) => x._id === editingContentId);
+      const sid = c?.subject?._id;
+      if (!sid) return null;
+      return subjects.find((s) => String(s._id) === String(sid)) ?? null;
+    }
+    if (!selectedSubjectId) return null;
+    return subjects.find((s) => String(s._id) === String(selectedSubjectId)) ?? null;
+  }, [isAddContentOpen, editingContentId, contents, subjects, selectedSubjectId]);
+
   const contentSections = useMemo(() => {
     const sections: { title: string; items: ContentItem[] }[] = [
       {
@@ -296,15 +367,12 @@ export default function SubjectContentManagement() {
     setIsLoadingSubjects(true);
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(
-        `${API_BASE_URL}/api/super-admin/boards/${BOARD_CODE}/subjects`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/subjects`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
       if (response.ok) {
         const data = await response.json();
@@ -378,6 +446,8 @@ export default function SubjectContentManagement() {
       return;
     }
     setNewSubjectName('');
+    setNewSubjectSyllabus('ASLI_EXCLUSIVE_SCHOOLS');
+    setNewSubjectStateName('');
     setIsAddSubjectOpen(true);
   };
 
@@ -391,14 +461,26 @@ export default function SubjectContentManagement() {
       return;
     }
 
+    if (newSubjectSyllabus === 'STATE' && !newSubjectStateName.trim()) {
+      toast({
+        title: 'Validation error',
+        description: 'Select a state for State syllabus.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSavingSubject(true);
     try {
       const token = localStorage.getItem('authToken');
       const storedName = `${newSubjectName.trim()}_${selectedClassNumber}`;
-      const body = {
+      const body: Record<string, string> = {
         name: storedName,
-        board: BOARD_CODE,
+        board: newSubjectSyllabus,
       };
+      if (newSubjectSyllabus === 'STATE') {
+        body.stateName = newSubjectStateName.trim();
+      }
 
       const response = await fetch(`${API_BASE_URL}/api/super-admin/subjects`, {
         method: 'POST',
@@ -444,6 +526,11 @@ export default function SubjectContentManagement() {
     }
     setEditingSubject(subject);
     setEditSubjectName(extractPlainSubjectName(subject.name));
+    const b = (subject.board || BOARD_CODE).toUpperCase() as SyllabusBoard;
+    setEditSubjectSyllabus(
+      b === 'CBSE' || b === 'STATE' || b === 'ASLI_EXCLUSIVE_SCHOOLS' ? b : 'ASLI_EXCLUSIVE_SCHOOLS'
+    );
+    setEditSubjectStateName(subject.stateName?.trim() || '');
     setIsEditSubjectOpen(true);
   };
 
@@ -452,6 +539,15 @@ export default function SubjectContentManagement() {
       toast({
         title: 'Validation error',
         description: 'Subject name is required.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (editSubjectSyllabus === 'STATE' && !editSubjectStateName.trim()) {
+      toast({
+        title: 'Validation error',
+        description: 'Select a state for State syllabus.',
         variant: 'destructive',
       });
       return;
@@ -472,6 +568,10 @@ export default function SubjectContentManagement() {
           body: JSON.stringify({
             name: storedName,
             classNumber: selectedClassNumber,
+            board: editSubjectSyllabus,
+            ...(editSubjectSyllabus === 'STATE'
+              ? { stateName: editSubjectStateName.trim() }
+              : { stateName: '' }),
           }),
         }
       );
@@ -580,17 +680,34 @@ export default function SubjectContentManagement() {
   };
 
   const handleSaveContent = async () => {
+    const editingItem = editingContentId
+      ? contents.find((c) => c._id === editingContentId)
+      : null;
+    const subjectIdForValidation =
+      editingItem?.subject?._id != null
+        ? String(editingItem.subject._id)
+        : selectedSubjectId;
+
     if (
-      !selectedSubjectId ||
-      !selectedClassNumber ||
+      !subjectIdForValidation ||
       !contentForm.title.trim() ||
       !contentForm.date ||
       !contentForm.fileUrl.trim()
     ) {
       toast({
         title: 'Validation error',
-        description:
-          'Title, date, file/video URL, class and subject are required.',
+        description: editingContentId
+          ? 'Title, date, and file/video URL are required.'
+          : 'Title, date, file/video URL, class and subject are required.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!editingContentId && !selectedClassNumber) {
+      toast({
+        title: 'Validation error',
+        description: 'Select a class before adding content.',
         variant: 'destructive',
       });
       return;
@@ -606,20 +723,68 @@ export default function SubjectContentManagement() {
       return;
     }
 
+    const subj = subjects.find((s) => String(s._id) === String(subjectIdForValidation));
+    if (!subj) {
+      toast({
+        title: 'Validation error',
+        description: 'Subject not found. Please select a subject again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const subBoard = (subj.board || BOARD_CODE).toUpperCase() as SyllabusBoard;
+    const normalizedSubBoard: SyllabusBoard =
+      subBoard === 'CBSE' || subBoard === 'STATE' || subBoard === 'ASLI_EXCLUSIVE_SCHOOLS'
+        ? subBoard
+        : 'ASLI_EXCLUSIVE_SCHOOLS';
+    if (normalizedSubBoard === 'STATE' && !(subj.stateName || '').trim()) {
+      toast({
+        title: 'Subject incomplete',
+        description:
+          'This subject uses State syllabus but has no state set. Edit the subject and choose a state first.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSavingContent(true);
     try {
       const token = localStorage.getItem('authToken');
-      const body: any = {
+      const classForPayload =
+        selectedClassNumber ||
+        (editingItem
+          ? String(
+              editingItem.classNumber ||
+                effectiveContentClass(editingItem, subjects) ||
+                ''
+            )
+          : '');
+      if (!classForPayload) {
+        toast({
+          title: 'Validation error',
+          description: 'Could not determine class for this content.',
+          variant: 'destructive',
+        });
+        setIsSavingContent(false);
+        return;
+      }
+      const body: Record<string, unknown> = {
         title: contentForm.title.trim(),
         description: contentForm.description?.trim() || undefined,
         date: contentForm.date,
         fileUrl: contentForm.fileUrl.trim(),
-        classNumber: selectedClassNumber,
+        classNumber: classForPayload,
       };
       if (!editingContentId) {
         body.type = contentForm.type;
-        body.board = BOARD_CODE;
+        body.board = normalizedSubBoard;
         body.subject = selectedSubjectId;
+        body.stateName =
+          normalizedSubBoard === 'STATE' ? String(subj.stateName || '').trim() : '';
+      } else {
+        body.board = normalizedSubBoard;
+        body.stateName =
+          normalizedSubBoard === 'STATE' ? String(subj.stateName || '').trim() : '';
       }
 
       const response = await fetch(
@@ -881,6 +1046,16 @@ export default function SubjectContentManagement() {
                           <div className="font-medium text-gray-900">
                             {extractPlainSubjectName(subj.name)}
                           </div>
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            <Badge variant="outline" className="text-[10px] font-normal">
+                              {syllabusLabel(subj.board)}
+                            </Badge>
+                            {subj.board === 'STATE' && subj.stateName && (
+                              <Badge variant="secondary" className="text-[10px] font-normal">
+                                {subj.stateName}
+                              </Badge>
+                            )}
+                          </div>
                           {subj.description && (
                             <div className="text-xs text-gray-500 line-clamp-1">
                               {subj.description}
@@ -1048,6 +1223,14 @@ export default function SubjectContentManagement() {
                                     {subjectLabel}
                                   </Badge>
                                 )}
+                                <Badge variant="outline" className="text-[10px] font-normal">
+                                  {syllabusLabel(content.board)}
+                                </Badge>
+                                {content.board === 'STATE' && content.stateName && (
+                                  <Badge variant="secondary" className="text-[10px] font-normal">
+                                    {content.stateName}
+                                  </Badge>
+                                )}
                                 <Badge
                                   variant="outline"
                                   className="border-gray-200 bg-gray-50 text-gray-700"
@@ -1121,7 +1304,7 @@ export default function SubjectContentManagement() {
       </div>
 
       <Dialog open={isAddSubjectOpen} onOpenChange={setIsAddSubjectOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Add Subject</DialogTitle>
             <DialogDescription>
@@ -1134,6 +1317,48 @@ export default function SubjectContentManagement() {
               <Label>Class</Label>
               <Input value={selectedClassLabel ?? ''} disabled />
             </div>
+            <div>
+              <Label>Syllabus</Label>
+              <Select
+                value={newSubjectSyllabus}
+                onValueChange={(v) => {
+                  const next = v as SyllabusBoard;
+                  setNewSubjectSyllabus(next);
+                  if (next !== 'STATE') setNewSubjectStateName('');
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select syllabus" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SYLLABUS_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {newSubjectSyllabus === 'STATE' && (
+              <div>
+                <Label>State name</Label>
+                <Select
+                  value={newSubjectStateName || undefined}
+                  onValueChange={(v) => setNewSubjectStateName(v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select state" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {INDIAN_STATE_OPTIONS.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label>Subject Name</Label>
               <Input
@@ -1167,11 +1392,11 @@ export default function SubjectContentManagement() {
       </Dialog>
 
       <Dialog open={isEditSubjectOpen} onOpenChange={setIsEditSubjectOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit Subject</DialogTitle>
             <DialogDescription>
-              Update subject name for the selected class.
+              Update syllabus, state (if applicable), and subject name.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -1179,6 +1404,48 @@ export default function SubjectContentManagement() {
               <Label>Class</Label>
               <Input value={selectedClassLabel ?? ''} disabled />
             </div>
+            <div>
+              <Label>Syllabus</Label>
+              <Select
+                value={editSubjectSyllabus}
+                onValueChange={(v) => {
+                  const next = v as SyllabusBoard;
+                  setEditSubjectSyllabus(next);
+                  if (next !== 'STATE') setEditSubjectStateName('');
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select syllabus" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SYLLABUS_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {editSubjectSyllabus === 'STATE' && (
+              <div>
+                <Label>State name</Label>
+                <Select
+                  value={editSubjectStateName || undefined}
+                  onValueChange={(v) => setEditSubjectStateName(v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select state" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {INDIAN_STATE_OPTIONS.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label>Subject Name</Label>
               <Input
@@ -1215,7 +1482,7 @@ export default function SubjectContentManagement() {
       </Dialog>
 
       <Dialog open={isAddContentOpen} onOpenChange={setIsAddContentOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingContentId ? 'Edit Content' : 'Add Content'}</DialogTitle>
             <DialogDescription>
@@ -1234,17 +1501,40 @@ export default function SubjectContentManagement() {
                 <Label>Subject</Label>
                 <Input
                   value={
-                    selectedSubjectId
-                      ? extractPlainSubjectName(
-                          filteredSubjects.find((s) => s._id === selectedSubjectId)
-                            ?.name || ''
-                        )
+                    linkedSubjectForContent
+                      ? extractPlainSubjectName(linkedSubjectForContent.name)
                       : ''
                   }
                   disabled
+                  className="bg-muted/50"
                 />
               </div>
             </div>
+            <div>
+              <Label>Syllabus</Label>
+              <Input
+                value={
+                  linkedSubjectForContent
+                    ? syllabusLabel(linkedSubjectForContent.board)
+                    : '—'
+                }
+                disabled
+                className="bg-muted/50"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Matches this subject&apos;s syllabus (set when you created or edited the subject).
+              </p>
+            </div>
+            {linkedSubjectForContent?.board === 'STATE' && (
+              <div>
+                <Label>State name</Label>
+                <Input
+                  value={linkedSubjectForContent.stateName?.trim() || '—'}
+                  disabled
+                  className="bg-muted/50"
+                />
+              </div>
+            )}
             <div>
               <Label>Content Title</Label>
               <Input

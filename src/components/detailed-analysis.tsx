@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { API_BASE_URL } from '@/lib/api-config';
+import { normalizeAndFormatExamDisplayText } from '@/lib/exam-text-normalize';
 import AdvancedPerformanceDashboard from '@/components/analytics/AdvancedPerformanceDashboard';
 import { 
   Trophy, 
@@ -145,25 +146,10 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
   const [aiError, setAiError] = useState('');
   const [aiAnalysis, setAiAnalysis] = useState<AiExamAnalysis | null>(null);
 
-  const normalizeLegacyExamText = (value: unknown): string => {
-    if (value === undefined || value === null) return '';
-    let text = String(value);
-    const monthToNumber: Record<string, string> = {
-      jan: '1', feb: '2', mar: '3', apr: '4', may: '5', jun: '6',
-      jul: '7', aug: '8', sep: '9', oct: '10', nov: '11', dec: '12',
-    };
-    text = text.replace(
-      /^(\d{1,2})\s*-\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)$/i,
-      (_m, day, mon) => `${String(day)}-${monthToNumber[String(mon).toLowerCase()] || mon}`
-    );
-    text = text
-      .replace(/(^|[\s,(=])\?(?=\d)/g, '$1-')
-      .replace(/(^|[\s,(=])\uFFFD(?=\d)/g, '$1-')
-      .replace(/\uFFFD/g, '?');
-    return text;
-  };
-  // Backward-compatible alias used by answer/solution render helpers.
-  const normalizeExamText = (value: unknown): string => normalizeLegacyExamText(value);
+  const normalizeLegacyExamText = (value: unknown, subject?: string): string =>
+    normalizeAndFormatExamDisplayText(value, subject);
+  const normalizeExamText = (value: unknown, subject?: string): string =>
+    normalizeLegacyExamText(value, subject);
   const [animatedValues, setAnimatedValues] = useState({
     percentage: 0,
     correctAnswers: 0,
@@ -173,7 +159,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
   });
 
   // Helper function to extract text from option objects
-  const getOptionText = (option: any): string => {
+  const getOptionText = (option: any, subject?: string): string => {
     console.log('getOptionText called with:', option, 'type:', typeof option);
     
     if (option === null || option === undefined) {
@@ -183,17 +169,17 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     
     if (typeof option === 'string') {
       console.log('Option is string:', option);
-      return normalizeLegacyExamText(option);
+      return normalizeLegacyExamText(option, subject);
     }
     
     if (typeof option === 'number') {
       console.log('Option is number:', option);
-      return normalizeLegacyExamText(String(option));
+      return normalizeLegacyExamText(String(option), subject);
     }
     
     if (typeof option === 'boolean') {
       console.log('Option is boolean:', option);
-      return normalizeLegacyExamText(String(option));
+      return normalizeLegacyExamText(String(option), subject);
     }
     
     if (typeof option === 'object' && option !== null) {
@@ -202,38 +188,38 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       // Try different possible text properties
       if (option.text !== undefined && option.text !== null) {
         console.log('Found text property:', option.text);
-        return normalizeLegacyExamText(String(option.text));
+        return normalizeLegacyExamText(String(option.text), subject);
       }
       if (option.label !== undefined && option.label !== null) {
         console.log('Found label property:', option.label);
-        return normalizeLegacyExamText(String(option.label));
+        return normalizeLegacyExamText(String(option.label), subject);
       }
       if (option.value !== undefined && option.value !== null) {
         console.log('Found value property:', option.value);
-        return normalizeLegacyExamText(String(option.value));
+        return normalizeLegacyExamText(String(option.value), subject);
       }
       if (option.answer !== undefined && option.answer !== null) {
         console.log('Found answer property:', option.answer);
-        return normalizeLegacyExamText(String(option.answer));
+        return normalizeLegacyExamText(String(option.answer), subject);
       }
       if (option._id !== undefined && option._id !== null) {
         console.log('Found _id property:', option._id);
-        return normalizeLegacyExamText(String(option._id));
+        return normalizeLegacyExamText(String(option._id), subject);
       }
       
       // If it's an array, join the elements
       if (Array.isArray(option)) {
         console.log('Option is array:', option);
-        return option.map(getOptionText).join(', ');
+        return option.map((o) => getOptionText(o, subject)).join(', ');
       }
       
       // Last resort: stringify the object
       console.log('Using JSON.stringify as last resort:', JSON.stringify(option));
-      return normalizeLegacyExamText(JSON.stringify(option));
+      return normalizeLegacyExamText(JSON.stringify(option), subject);
     }
     
     console.log('Fallback to String():', String(option));
-    return normalizeLegacyExamText(String(option));
+    return normalizeLegacyExamText(String(option), subject);
   };
 
   // Helper function to check if an option is correct
@@ -247,10 +233,11 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
   // Helper function to compare answers properly
   const getQuestionOptions = (question?: Question) => {
     if (!question?.options || !Array.isArray(question.options)) return [];
+    const subj = question?.subject;
     return question.options.map((option, index) => {
       if (typeof option === 'string') {
         return {
-          text: normalizeExamText(option),
+          text: normalizeExamText(option, subj),
           rawText: String(option),
           id: '',
           index,
@@ -258,7 +245,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
         };
       }
       return {
-        text: normalizeExamText(option?.text || option?._id || ''),
+        text: normalizeExamText(option?.text || option?._id || '', subj),
         rawText: String(option?.text || ''),
         id: String(option?._id || ''),
         index,
@@ -272,7 +259,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
 
     const options = getQuestionOptions(question);
     const rawText = String(rawAnswer).trim();
-    const normalizedRaw = normalizeExamText(rawText);
+    const normalizedRaw = normalizeExamText(rawText, question.subject);
 
     if (!options.length || question.questionType === 'integer') {
       return normalizedRaw;
@@ -1324,7 +1311,10 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                             <div className="flex-1">
                               {result.questions[mobileQuestionIndex]?.questionText && (
                                 <p className="text-lg text-gray-900 mb-4">
-                                  {result.questions[mobileQuestionIndex].questionText}
+                                  {normalizeExamText(
+                                    result.questions[mobileQuestionIndex].questionText,
+                                    result.questions[mobileQuestionIndex]?.subject
+                                  )}
                                 </p>
                               )}
                               
@@ -1347,7 +1337,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                             <div className="space-y-3">
                               {result.questions[mobileQuestionIndex].options.map((option: any, index: number) => {
                                 const activeQuestion = result.questions![mobileQuestionIndex];
-                                const optionText = getOptionText(option);
+                                const optionText = getOptionText(option, activeQuestion.subject);
                                 const userAnswer = getUserAnswerForQuestion(activeQuestion, mobileQuestionIndex);
                                 const userAnswerTexts = resolveAnswerTexts(activeQuestion, userAnswer);
                                 const correctAnswerTexts = resolveAnswerTexts(activeQuestion, activeQuestion.correctAnswer);
@@ -1411,7 +1401,10 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                           <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
                             <div className="text-xs font-semibold text-blue-800 mb-2">Solution</div>
                             <div className="text-sm text-blue-900 whitespace-pre-wrap">
-                              {normalizeExamText(result.questions[mobileQuestionIndex]?.explanation) || 'Solution not provided for this question.'}
+                              {normalizeExamText(
+                                result.questions[mobileQuestionIndex]?.explanation,
+                                result.questions[mobileQuestionIndex]?.subject
+                              ) || 'Solution not provided for this question.'}
                             </div>
                           </div>
                         </div>

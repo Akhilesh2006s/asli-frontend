@@ -19,6 +19,7 @@ import {
   Calendar,
   FolderTree,
   Menu,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -50,9 +51,10 @@ interface SuperAdminSidebarProps {
   currentView: SuperAdminView;
   onViewChange: (view: SuperAdminView) => void;
   user: any;
+  onLogout: () => void;
 }
 
-export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdminSidebarProps) {
+export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }: SuperAdminSidebarProps) {
   const isMobile = useIsMobile();
   const [mobileOpen, setMobileOpen] = useState(false);
   const menuItems = [
@@ -112,7 +114,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdmi
         </nav>
       </div>
 
-      <div className="mt-auto p-6 border-t border-orange-300/50">
+      <div className="mt-auto p-6 border-t border-orange-300/50 space-y-3">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
             <CrownIcon className="h-4 w-4 text-white" />
@@ -122,6 +124,17 @@ export function SuperAdminSidebar({ currentView, onViewChange, user }: SuperAdmi
             <p className="text-xs text-white/90">Super Administrator</p>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            onLogout();
+            setMobileOpen(false);
+          }}
+          className="w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors text-white border border-white/35 hover:bg-red-600/45 hover:border-red-200/50"
+        >
+          <LogOut className="mr-3 h-5 w-5 flex-shrink-0" />
+          <span>Logout</span>
+        </button>
       </div>
     </div>
   );

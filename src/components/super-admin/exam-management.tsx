@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { API_BASE_URL } from '@/lib/api-config';
 import { getExamClassStrings } from '@/lib/exam-classes';
+import { normalizeAndFormatExamDisplayText } from '@/lib/exam-text-normalize';
 import { Plus, Trash2, Edit, Eye, Calendar, Clock, BookOpen, FileQuestion, X, Upload, Download, School, GraduationCap, Loader2 } from 'lucide-react';
 
 interface Exam {
@@ -80,32 +81,8 @@ const normalizeDisplayText = (value?: string) =>
     .replace(/\s+/g, ' ')
     .trim();
 
-const SUBSCRIPT_DIGITS: Record<string, string> = {
-  '0': '₀',
-  '1': '₁',
-  '2': '₂',
-  '3': '₃',
-  '4': '₄',
-  '5': '₅',
-  '6': '₆',
-  '7': '₇',
-  '8': '₈',
-  '9': '₉',
-};
-
-const formatChemistryText = (value: unknown, subject?: string) => {
-  const text = value === null || value === undefined ? '' : String(value);
-  if (String(subject || '').toLowerCase() !== 'chemistry') return text;
-
-  // Display helper: render formula-style digits as subscripts (e.g. H2O -> H₂O).
-  return text.replace(/([A-Za-z\)])(\d+)/g, (_match, prefix: string, digits: string) => {
-    const subscript = digits
-      .split('')
-      .map((digit) => SUBSCRIPT_DIGITS[digit] ?? digit)
-      .join('');
-    return `${prefix}${subscript}`;
-  });
-};
+const formatChemistryText = (value: unknown, subject?: string) =>
+  normalizeAndFormatExamDisplayText(value, subject);
 
 const toIsoFromDateTimeLocal = (value: string) => {
   if (!value) return value;

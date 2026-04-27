@@ -15,6 +15,20 @@ const resolveLogoUrl = (logoUrl?: string): string => {
   return `${API_BASE_URL}${logoUrl.startsWith("/") ? logoUrl : `/${logoUrl}`}`;
 };
 
+const PORTAL_FEATURE_LABELS = [
+  "User Management",
+  "Content Management",
+  "Analytics",
+  "Subscriptions",
+  "Settings",
+] as const;
+
+function isFullPortalAccess(perms: string[] | undefined): boolean {
+  if (!perms?.length) return true;
+  const set = new Set(perms);
+  return PORTAL_FEATURE_LABELS.every((f) => set.has(f));
+}
+
 type SchoolDetails = {
   doorNo?: string;
   street?: string;
@@ -44,6 +58,7 @@ type Profile = {
   schoolDetails?: SchoolDetails;
   status?: string;
   joinDate?: string;
+  permissions?: string[];
 };
 
 type BillingPayment = {
@@ -243,6 +258,35 @@ export default function SuperAdminSchoolDetail() {
             </CardContent>
           </Card>
         </div>
+
+        <Card className="mt-6 border-slate-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg">Admin portal access</CardTitle>
+            <p className="text-sm text-slate-500">
+              Modules enabled for this school&apos;s admin dashboard. Edit the school in School Management to change
+              access.
+            </p>
+          </CardHeader>
+          <CardContent className="text-sm">
+            {isFullPortalAccess(profile.permissions) ? (
+              <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-900">
+                <span className="font-medium">Full portal access</span> — all modules are enabled.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-950">
+                  <span className="font-medium">Limited access</span> — only the modules below are stored for this
+                  school.
+                </p>
+                <ul className="list-inside list-disc text-slate-700">
+                  {(profile.permissions || []).map((p) => (
+                    <li key={p}>{p}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Card className="mt-6 border-slate-200 shadow-sm">
           <CardHeader>

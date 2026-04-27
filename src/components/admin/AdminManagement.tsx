@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { UsersIcon, UserPlusIcon, EditIcon, TrashIcon, CrownIcon, GraduationCapIcon, BookOpenIcon, SearchIcon, Loader2, XIcon, EyeIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
@@ -87,6 +89,29 @@ const resolveLogoUrl = (logoUrl?: string): string => {
   return `${API_BASE_URL}${logoUrl.startsWith("/") ? logoUrl : `/${logoUrl}`}`;
 };
 
+/** Admin portal modules (must match backend `validatePermissions` in superAdminValidator). */
+const SCHOOL_PORTAL_FEATURES = [
+  "User Management",
+  "Content Management",
+  "Analytics",
+  "Subscriptions",
+  "Settings",
+] as const;
+
+function isUnlimitedPortalAccess(perms: string[] | undefined): boolean {
+  if (!perms || perms.length === 0) return true;
+  const set = new Set(perms);
+  return SCHOOL_PORTAL_FEATURES.every((f) => set.has(f));
+}
+
+function resolvePortalPermissions(
+  mode: "unlimited" | "limited",
+  selected: string[]
+): string[] {
+  if (mode === "unlimited") return [...SCHOOL_PORTAL_FEATURES];
+  return SCHOOL_PORTAL_FEATURES.filter((f) => selected.includes(f));
+}
+
 export default function AdminManagement() {
   const [, setLocation] = useLocation();
   const [admins, setAdmins] = useState<Admin[]>([]);
@@ -125,7 +150,9 @@ export default function AdminManagement() {
     phone: '',
     pin: '',
     contactPerson: '',
-    schoolDetails: emptySchoolDetails()
+    schoolDetails: emptySchoolDetails(),
+    accessMode: 'unlimited' as 'unlimited' | 'limited',
+    limitedFeatures: [...SCHOOL_PORTAL_FEATURES] as string[],
   });
   const [editAdmin, setEditAdmin] = useState({
     name: '',
@@ -138,7 +165,9 @@ export default function AdminManagement() {
     pin: '',
     contactPerson: '',
     schoolDetails: emptySchoolDetails(),
-    isActive: true
+    isActive: true,
+    accessMode: 'unlimited' as 'unlimited' | 'limited',
+    limitedFeatures: [...SCHOOL_PORTAL_FEATURES] as string[],
   });
   const [isUploadingAddLogo, setIsUploadingAddLogo] = useState(false);
   const [isUploadingEditLogo, setIsUploadingEditLogo] = useState(false);
@@ -146,6 +175,7 @@ export default function AdminManagement() {
     const sd = admin?.schoolDetails || {};
     return {
       ...admin,
+      permissions: Array.isArray(admin.permissions) ? admin.permissions : [],
       state: admin?.state || sd?.state || admin?.place || '',
       schoolDetails: {
         doorNo: sd.doorNo || '',
@@ -365,6 +395,18 @@ export default function AdminManagement() {
       return;
     }
 
+    if (
+      newAdmin.accessMode === "limited" &&
+      resolvePortalPermissions("limited", newAdmin.limitedFeatures).length === 0
+    ) {
+      toast({
+        title: "Portal access",
+        description: "Select at least one module for limited access, or choose unlimited access.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsAddingAdmin(true);
     try {
       const token = localStorage.getItem('authToken');
@@ -382,7 +424,7 @@ export default function AdminManagement() {
         contactPerson: newAdmin.contactPerson?.trim() || '',
         phone: newAdmin.phone?.trim() || '',
         pin: newAdmin.pin?.trim() || '',
-        permissions: [],
+        permissions: resolvePortalPermissions(newAdmin.accessMode, newAdmin.limitedFeatures),
         schoolDetails: {
           ...sd,
           state: newAdmin.state
@@ -427,7 +469,9 @@ export default function AdminManagement() {
           phone: '',
           pin: '',
           contactPerson: '',
-          schoolDetails: emptySchoolDetails()
+          schoolDetails: emptySchoolDetails(),
+          accessMode: "unlimited",
+          limitedFeatures: [...SCHOOL_PORTAL_FEATURES],
         });
         setIsAddDialogOpen(false);
         toast({
@@ -471,6 +515,8 @@ export default function AdminManagement() {
   const handleEditClick = (admin: Admin) => {
     setEditingAdmin(admin);
     const sd = admin.schoolDetails || emptySchoolDetails();
+    const perms = admin.permissions || [];
+    const unlimited = isUnlimitedPortalAccess(perms);
     setEditAdmin({
       name: admin.name || '',
       email: admin.email || '',
@@ -482,7 +528,11 @@ export default function AdminManagement() {
       pin: admin.pin || '',
       contactPerson: admin.contactPerson || '',
       schoolDetails: { ...emptySchoolDetails(), ...sd },
-      isActive: admin.status === 'active' || admin.status === 'Active'
+      isActive: admin.status === 'active' || admin.status === 'Active',
+      accessMode: unlimited ? "unlimited" : "limited",
+      limitedFeatures: unlimited
+        ? [...SCHOOL_PORTAL_FEATURES]
+        : SCHOOL_PORTAL_FEATURES.filter((f) => perms.includes(f)),
     });
     setIsEditDialogOpen(true);
   };
@@ -517,6 +567,18 @@ export default function AdminManagement() {
       return;
     }
 
+    if (
+      editAdmin.accessMode === "limited" &&
+      resolvePortalPermissions("limited", editAdmin.limitedFeatures).length === 0
+    ) {
+      toast({
+        title: "Portal access",
+        description: "Select at least one module for limited access, or choose unlimited access.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsUpdatingAdmin(true);
     try {
       const token = localStorage.getItem('authToken');
@@ -541,7 +603,8 @@ export default function AdminManagement() {
             ...esd,
             state: editAdmin.state
           },
-          isActive: editAdmin.isActive
+          isActive: editAdmin.isActive,
+          permissions: resolvePortalPermissions(editAdmin.accessMode, editAdmin.limitedFeatures),
         }),
       });
 
@@ -581,7 +644,9 @@ export default function AdminManagement() {
           pin: '',
           contactPerson: '',
           schoolDetails: emptySchoolDetails(),
-          isActive: true
+          isActive: true,
+          accessMode: "unlimited",
+          limitedFeatures: [...SCHOOL_PORTAL_FEATURES],
         });
         toast({
           title: "Success",
@@ -1055,6 +1120,79 @@ export default function AdminManagement() {
                   )}
                 </div>
               </div>
+
+              <p className="mb-3 mt-8 text-sm font-semibold text-gray-900">Admin portal access</p>
+              <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-800">Limited vs unlimited</p>
+                    <p className="text-xs text-gray-600">
+                      Unlimited turns on every admin portal module. Limited lets you choose which modules this school can use.
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <span
+                      className={cn(
+                        "text-sm",
+                        newAdmin.accessMode === "limited" ? "font-semibold text-gray-900" : "text-gray-500"
+                      )}
+                    >
+                      Limited
+                    </span>
+                    <Switch
+                      checked={newAdmin.accessMode === "unlimited"}
+                      onCheckedChange={(checked) =>
+                        setNewAdmin({
+                          ...newAdmin,
+                          accessMode: checked ? "unlimited" : "limited",
+                          limitedFeatures: checked
+                            ? [...SCHOOL_PORTAL_FEATURES]
+                            : newAdmin.limitedFeatures.length > 0
+                              ? newAdmin.limitedFeatures
+                              : [...SCHOOL_PORTAL_FEATURES],
+                        })
+                      }
+                      aria-label="Toggle unlimited portal access"
+                    />
+                    <span
+                      className={cn(
+                        "text-sm",
+                        newAdmin.accessMode === "unlimited" ? "font-semibold text-orange-800" : "text-gray-500"
+                      )}
+                    >
+                      Unlimited
+                    </span>
+                  </div>
+                </div>
+                {newAdmin.accessMode === "limited" && (
+                  <div className="mt-4 border-t border-slate-200/80 pt-4">
+                    <p className="mb-2 text-xs font-medium text-gray-700">Modules for this school</p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {SCHOOL_PORTAL_FEATURES.map((feature) => (
+                        <div key={feature} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`add-portal-${feature}`}
+                            checked={newAdmin.limitedFeatures.includes(feature)}
+                            onCheckedChange={(c) => {
+                              const on = c === true;
+                              const next = new Set(newAdmin.limitedFeatures);
+                              if (on) next.add(feature);
+                              else next.delete(feature);
+                              setNewAdmin({
+                                ...newAdmin,
+                                limitedFeatures: Array.from(next),
+                              });
+                            }}
+                          />
+                          <Label htmlFor={`add-portal-${feature}`} className="cursor-pointer text-sm font-normal">
+                            {feature}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex shrink-0 justify-end gap-2 border-t px-6 py-4">
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -1404,6 +1542,79 @@ export default function AdminManagement() {
                   )}
                 </div>
               </div>
+
+              <p className="mb-3 mt-8 text-sm font-semibold text-gray-900">Admin portal access</p>
+              <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-800">Limited vs unlimited</p>
+                    <p className="text-xs text-gray-600">
+                      Unlimited turns on every admin portal module. Limited lets you choose which modules this school can use.
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <span
+                      className={cn(
+                        "text-sm",
+                        editAdmin.accessMode === "limited" ? "font-semibold text-gray-900" : "text-gray-500"
+                      )}
+                    >
+                      Limited
+                    </span>
+                    <Switch
+                      checked={editAdmin.accessMode === "unlimited"}
+                      onCheckedChange={(checked) =>
+                        setEditAdmin({
+                          ...editAdmin,
+                          accessMode: checked ? "unlimited" : "limited",
+                          limitedFeatures: checked
+                            ? [...SCHOOL_PORTAL_FEATURES]
+                            : editAdmin.limitedFeatures.length > 0
+                              ? editAdmin.limitedFeatures
+                              : [...SCHOOL_PORTAL_FEATURES],
+                        })
+                      }
+                      aria-label="Toggle unlimited portal access"
+                    />
+                    <span
+                      className={cn(
+                        "text-sm",
+                        editAdmin.accessMode === "unlimited" ? "font-semibold text-orange-800" : "text-gray-500"
+                      )}
+                    >
+                      Unlimited
+                    </span>
+                  </div>
+                </div>
+                {editAdmin.accessMode === "limited" && (
+                  <div className="mt-4 border-t border-slate-200/80 pt-4">
+                    <p className="mb-2 text-xs font-medium text-gray-700">Modules for this school</p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {SCHOOL_PORTAL_FEATURES.map((feature) => (
+                        <div key={feature} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`edit-portal-${feature}`}
+                            checked={editAdmin.limitedFeatures.includes(feature)}
+                            onCheckedChange={(c) => {
+                              const on = c === true;
+                              const next = new Set(editAdmin.limitedFeatures);
+                              if (on) next.add(feature);
+                              else next.delete(feature);
+                              setEditAdmin({
+                                ...editAdmin,
+                                limitedFeatures: Array.from(next),
+                              });
+                            }}
+                          />
+                          <Label htmlFor={`edit-portal-${feature}`} className="cursor-pointer text-sm font-normal">
+                            {feature}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex shrink-0 justify-end gap-2 border-t px-6 py-4">
               <Button
@@ -1543,6 +1754,21 @@ export default function AdminManagement() {
                       <p className="text-sm text-gray-500 break-all leading-snug">{admin?.email || 'No email'}</p>
                     )}
                     <div className="mt-1 flex flex-wrap gap-1">
+                      {isUnlimitedPortalAccess(admin.permissions) ? (
+                        <Badge
+                          variant="outline"
+                          className="border-emerald-200 bg-emerald-50 text-xs text-emerald-900 break-all max-w-full"
+                        >
+                          Full portal access
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className="border-amber-200 bg-amber-50 text-xs text-amber-950 break-all max-w-full"
+                        >
+                          Limited access
+                        </Badge>
+                      )}
                       {admin?.board && (
                         <Badge variant="outline" className="text-xs break-all max-w-full">
                           {admin.board}

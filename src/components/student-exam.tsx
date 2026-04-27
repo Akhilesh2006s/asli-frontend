@@ -20,6 +20,7 @@ import {
   Calculator
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { normalizeAndFormatExamDisplayText } from '@/lib/exam-text-normalize';
 
 interface Question {
   _id: string;
@@ -31,7 +32,7 @@ interface Question {
   marks: number;
   negativeMarks: number;
   explanation?: string;
-  subject: 'maths' | 'physics' | 'chemistry';
+  subject: 'maths' | 'physics' | 'chemistry' | 'biology';
 }
 
 interface Exam {
@@ -605,7 +606,10 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                     <div className="flex-1">
                       {currentQuestion.questionText && (
                         <p className="text-lg text-gray-900 mb-4">
-                          {currentQuestion.questionText}
+                          {normalizeAndFormatExamDisplayText(
+                            currentQuestion.questionText,
+                            currentQuestion.subject
+                          )}
                         </p>
                       )}
                       
@@ -671,8 +675,10 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                     >
                       {currentQuestion.options.map((option: string | { text?: string; label?: string; value?: string; isCorrect?: boolean; _id?: string }, index: number) => {
                         // Handle both string options and object options
-                        const optionText = typeof option === 'string' ? option : option.text || option.label || JSON.stringify(option);
+                        const optionTextRaw =
+                          typeof option === 'string' ? option : option.text || option.label || JSON.stringify(option);
                         const optionValue = typeof option === 'string' ? option : option.text || option.label || option._id || '';
+                        const optionText = normalizeAndFormatExamDisplayText(optionTextRaw, currentQuestion.subject);
                         
                         return (
                           <div key={index} className="flex items-center space-x-3">
@@ -690,8 +696,10 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                     <div className="space-y-3">
                       {currentQuestion.options.map((option: string | { text?: string; label?: string; value?: string; isCorrect?: boolean; _id?: string }, index: number) => {
                         // Handle both string options and object options
-                        const optionText = typeof option === 'string' ? option : option.text || option.label || JSON.stringify(option);
+                        const optionTextRaw =
+                          typeof option === 'string' ? option : option.text || option.label || JSON.stringify(option);
                         const optionValue = typeof option === 'string' ? option : option.text || option.label || option._id || '';
+                        const optionText = normalizeAndFormatExamDisplayText(optionTextRaw, currentQuestion.subject);
                         
                         return (
                           <div key={index} className="flex items-center space-x-3">

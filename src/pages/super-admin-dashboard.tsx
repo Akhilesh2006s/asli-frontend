@@ -33,7 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BellIcon, LogOutIcon, UsersIcon, TrendingUpIcon, BookIcon, UserPlusIcon, BookPlusIcon, SettingsIcon, DownloadIcon, HomeIcon, CrownIcon, BarChart3Icon, CreditCardIcon, ArrowUpRightIcon, ArrowDownRightIcon, StarIcon, TargetIcon, BrainIcon, ZapIcon, AlertTriangleIcon, TrendingDownIcon, RefreshCw, Sparkles, MessageSquare, Clock, Plus, Monitor, Grid3x3, FileText, FileTextIcon, Shield, Search, Camera, PieChart, User, Download, Circle, Square, Bot, Users2, UploadIcon, TrophyIcon, BarChartIcon, BrainCircuitIcon, LayoutList, Calendar, FolderTree, AlertTriangle } from "lucide-react";
+import { BellIcon, UsersIcon, TrendingUpIcon, BookIcon, UserPlusIcon, BookPlusIcon, SettingsIcon, DownloadIcon, HomeIcon, CrownIcon, BarChart3Icon, ArrowUpRightIcon, ArrowDownRightIcon, StarIcon, TargetIcon, BrainIcon, ZapIcon, AlertTriangleIcon, TrendingDownIcon, RefreshCw, Sparkles, MessageSquare, Clock, Plus, Monitor, Grid3x3, Shield, Search, Camera, PieChart, User, Download, Circle, Square, Bot, Users2, UploadIcon, BrainCircuitIcon, AlertTriangle } from "lucide-react";
 import { LineChart, Line, PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
@@ -297,45 +297,18 @@ export default function SuperAdminDashboard() {
   const [coursesPerBoardData, setCoursesPerBoardData] = useState<Array<{name: string, value: number, color: string}>>([]);
   const [studentsPerAdminData, setStudentsPerAdminData] = useState<Array<{[key: string]: string | number}>>([]);
 
-  // Icon grid aligned with sidebar entities and order.
-  const iconGridIcons = [
-    { Icon: BarChart3Icon, view: 'dashboard', label: 'Dashboard' },
-    { Icon: Users2, view: 'board', label: 'Board Management' },
-    { Icon: Shield, view: 'admins', label: 'School Management' },
-    { Icon: LayoutList, view: 'subjects-and-content', label: 'Subject & Content' },
-    { Icon: FileTextIcon, view: 'exams', label: 'Exam Management' },
-    { Icon: TrophyIcon, view: 'iq-rank-boost', label: 'IQ/Rank Boost Activities' },
-    { Icon: Calendar, view: 'calendar', label: 'School Calendar' },
-    { Icon: Sparkles, view: 'vidya-ai', label: 'Vidya AI' },
-    { Icon: FolderTree, view: 'ai-tool-generations', label: 'AI Tool Data' },
-    { Icon: BarChartIcon, view: 'analytics', label: 'Analytics' },
-    { Icon: CreditCardIcon, view: 'subscriptions', label: 'Subscriptions' },
-    { Icon: SettingsIcon, view: 'settings', label: 'Settings' }
-  ];
-
   const renderDashboardContent = () => {
     if (selectedBoard && currentView === 'board') {
       return renderBoardDashboard();
     }
 
     return (
-    <div className="flex flex-col xl:flex-row gap-6 min-h-screen relative z-10">
-      {/* Main Content Area */}
-      <div className="flex-1 space-y-6">
+    <div className="min-h-screen relative z-10">
+      <div className="space-y-6">
         {/* Welcome Header */}
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back, Super Admin</h1>
-            <p className="text-gray-600">Manage boards, schools, exams and AI analytic tau at one place.</p>
-          </div>
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className="flex items-center gap-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-          >
-            <LogOutIcon className="w-4 h-4" />
-            Logout
-          </Button>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back, Super Admin</h1>
+          <p className="text-gray-600">Manage boards, schools, exams and AI analytic tau at one place.</p>
         </div>
 
         {/* Board Management Section */}
@@ -729,36 +702,6 @@ export default function SuperAdminDashboard() {
         </div>
       )}
       </div>
-
-      {/* Right Sidebar */}
-      <div className="w-full xl:w-80 space-y-6">
-        {/* Icon Grid */}
-        <Card className="bg-white">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-3 gap-3">
-              {iconGridIcons.map((item, index) => {
-                const Icon = item.Icon;
-                const isActive = currentView === item.view;
-                return (
-                  <div
-                    key={index}
-                    onClick={() => setCurrentView(item.view as SuperAdminView)}
-                    className={`w-12 h-12 flex items-center justify-center border rounded transition-all cursor-pointer ${
-                      isActive
-                        ? "border-orange-400 bg-orange-50"
-                        : "border-gray-200 hover:bg-gray-50 hover:border-gray-300"
-                    }`}
-                    title={item.label}
-                  >
-                    <Icon className={`h-6 w-6 ${isActive ? "text-orange-400" : "text-gray-700"}`} />
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-      </div>
     </div>
     );
   };
@@ -1128,6 +1071,7 @@ export default function SuperAdminDashboard() {
         currentView={currentView}
         onViewChange={setCurrentView}
         user={user}
+        onLogout={handleLogout}
       />
 
       {/* Scrollable main content area */}

@@ -22,6 +22,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { normalizeAndFormatExamDisplayText } from '@/lib/exam-text-normalize';
 
 interface Question {
   _id: string;
@@ -849,63 +850,8 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Conservative cleanup for display text. Preserve original math symbols.
-  const normalizeExamText = (value: unknown): string => {
-    if (value === undefined || value === null) return '';
-    let text = String(value);
-
-    // Decode HTML entities if backend sends encoded content.
-    if (typeof window !== 'undefined' && text.includes('&')) {
-      const parser = document.createElement('textarea');
-      parser.innerHTML = text;
-      text = parser.value || text;
-    }
-
-    // Target only known mojibake sequences; do not rewrite normal question text.
-    const replacements: Record<string, string> = {
-      'âˆš': '√',
-      'â‰¥': '≥',
-      'â‰¤': '≤',
-      'â‰ ': '≠',
-      'âˆž': '∞',
-      'âˆ†': '∆',
-      'â€²': "'",
-      'â€³': '"',
-      'â€“': '-',
-      'â€”': '-',
-      'â€˜': "'",
-      'â€™': "'",
-      'â€œ': '"',
-      'â€�': '"',
-      'Â°': '°'
-    };
-
-    Object.entries(replacements).forEach(([from, to]) => {
-      text = text.split(from).join(to);
-    });
-
-    // Display fallback for legacy rows where Excel auto-converted numeric
-    // tokens to month strings (e.g. "05-Jun" instead of "05-6").
-    const monthToNumber: Record<string, string> = {
-      jan: '1', feb: '2', mar: '3', apr: '4', may: '5', jun: '6',
-      jul: '7', aug: '8', sep: '9', oct: '10', nov: '11', dec: '12',
-    };
-    text = text.replace(
-      /^(\d{1,2})\s*-\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)$/i,
-      (_m, day, mon) => `${String(day)}-${monthToNumber[String(mon).toLowerCase()] || mon}`
-    );
-
-    // Legacy fallback for lost minus sign shown as "?5" or "�5".
-    text = text
-      .replace(/(^|[\s,(=])\?(?=\d)/g, '$1-')
-      .replace(/(^|[\s,(=])\uFFFD(?=\d)/g, '$1-');
-
-    // If replacement characters are present, show '?' rather than forcing '-'.
-    text = text.replace(/[\uFFFD]/g, '?');
-    text = text.replace(/\s{2,}/g, ' ').trim();
-
-    return text;
-  };
+  const normalizeExamText = (value: unknown, subject?: string): string =>
+    normalizeAndFormatExamDisplayText(value, subject);
 
   if (isLoading) {
     return (
@@ -1279,7 +1225,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                     <div className="flex-1">
                       {currentQuestion.questionText && (
                         <p className="text-base text-gray-900 mb-4 leading-relaxed">
-                          {normalizeExamText(currentQuestion.questionText)}
+                          {normalizeExamText(currentQuestion.questionText, currentQuestion.subject)}
                         </p>
                       )}
                       
@@ -1314,7 +1260,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                     >
                       {currentQuestion.options.map((option: string | { text: string; isCorrect?: boolean; _id?: string }, index: number) => {
                         const optionTextRaw = typeof option === 'string' ? option : option.text || option._id || JSON.stringify(option);
-                        const optionText = normalizeExamText(optionTextRaw);
+                        const optionText = normalizeExamText(optionTextRaw, currentQuestion.subject);
                         const optionValue = typeof option === 'string' ? option : option.text || option._id || '';
                         const optionValueStr = String(optionValue ?? '');
                         
@@ -1352,7 +1298,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                     <div className="space-y-3 mt-4">
                       {currentQuestion.options.map((option: string | { text: string; isCorrect?: boolean; _id?: string }, index: number) => {
                         const optionTextRaw = typeof option === 'string' ? option : option.text || option._id || JSON.stringify(option);
-                        const optionText = normalizeExamText(optionTextRaw);
+                        const optionText = normalizeExamText(optionTextRaw, currentQuestion.subject);
                         const optionValue = typeof option === 'string' ? option : option.text || option._id || '';
                         const userAnswers = answers[currentQid] || [];
                         const isChecked = Array.isArray(userAnswers) && userAnswers.includes(optionValue);

@@ -39,6 +39,32 @@ export const getAuthToken = (): string | null => {
 };
 
 /**
+ * Read `userId` / `id` from the JWT payload (no signature verify).
+ * Used for React Query keys when `/api/auth/me` has not populated `user._id` yet.
+ */
+export const getUserIdFromAuthToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  const token = getAuthToken();
+  if (!token) return null;
+  try {
+    const body = token.split('.')[1];
+    if (!body) return null;
+    const base64 = body.replace(/-/g, '+').replace(/_/g, '/');
+    const json = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const payload = JSON.parse(json) as { userId?: string; id?: string; sub?: string };
+    const id = payload.userId ?? payload.id ?? payload.sub;
+    return id != null && String(id).trim() !== '' ? String(id) : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
  * Sets the authentication token in localStorage
  */
 export const setAuthToken = (token: string): void => {
