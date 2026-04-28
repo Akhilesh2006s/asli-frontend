@@ -86,6 +86,31 @@ export async function fetchDocument(id: string) {
   return res.json() as Promise<{ success: boolean; data: PdfRecord & { content: string } }>;
 }
 
+export async function updateDocument(id: string, content: string) {
+  const res = await fetch(
+    `${API_BASE_URL}/api/super-admin/ai-tool-generations/document/${id}`,
+    {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ content }),
+    },
+  );
+  if (!res.ok) throw new Error(`Document update failed: ${res.status}`);
+  return res.json() as Promise<{ success: boolean; data: PdfRecord & { content: string } }>;
+}
+
+export async function deleteDocument(id: string) {
+  const res = await fetch(
+    `${API_BASE_URL}/api/super-admin/ai-tool-generations/document/${id}`,
+    {
+      method: "DELETE",
+      headers: authHeaders(),
+    },
+  );
+  if (!res.ok) throw new Error(`Document delete failed: ${res.status}`);
+  return res.json() as Promise<{ success: boolean; message?: string }>;
+}
+
 export async function fetchExportBundle(
   params: Record<string, string>,
   maxDocs = 2000,

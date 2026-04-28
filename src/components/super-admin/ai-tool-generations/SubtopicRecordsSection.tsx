@@ -2,14 +2,30 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Loader2, FileDown, Calendar, Eye, FileStack } from "lucide-react";
-import { fetchRecords, fetchDocument, fetchExportBundle } from "./api";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, FileDown, Calendar, Eye, FileStack, Pencil, Trash2 } from "lucide-react";
+import { fetchRecords, fetchDocument, fetchExportBundle, updateDocument, deleteDocument } from "./api";
 import type { RecordRow } from "./api";
 import { downloadGenerationsPdf } from "./pdf-utils";
 import { renderMarkdown } from "@/lib/render-teacher-markdown";
+import { useToast } from "@/hooks/use-toast";
 
 function labelEmpty(v: string) {
   return v === "" || v == null ? "(None)" : v;
+}
+
+function toEditablePlainText(content: string) {
+  return String(content || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/`{1,3}/g, "")
+    .replace(/^[-*_]{3,}\s*$/gm, "")
+    .replace(/\[(.*?)\]\((.*?)\)/g, "$1")
+    .replace(/!\[(.*?)\]\((.*?)\)/g, "$1")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 export function SubtopicRecordsSection({
@@ -17,12 +33,17 @@ export function SubtopicRecordsSection({
 }: {
   parents: Record<string, string>;
 }) {
+  const { toast } = useToast();
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [items, setItems] = useState<RecordRow[]>([]);
   const [view, setView] = useState<RecordRow | null>(null);
   const [fullText, setFullText] = useState<string | null>(null);
+  const [editRow, setEditRow] = useState<RecordRow | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -47,6 +68,75 @@ export function SubtopicRecordsSection({
       setFullText(r.data.content || "");
     } catch {
       setFullText("(Failed to load content)");
+    }
+  };
+
+  const openEdit = async (row: RecordRow) => {
+    setEditRow(row);
+    setEditContent("");
+    try {
+      const r = await fetchDocument(row._id);
+      setEditContent(toEditablePlainText(r.data.content || ""));
+    } catch {
+      setEditContent("");
+      toast({
+        title: "Failed",
+        description: "Could not load content for editing.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const saveEdit = async () => {
+    if (!editRow) return;
+    if (!editContent.trim()) {
+      toast({
+        title: "Missing content",
+        description: "Content cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      await updateDocument(editRow._id, editContent);
+      toast({ title: "Updated", description: "Record updated successfully." });
+      setEditRow(null);
+      await load();
+      if (view && view._id === editRow._id) {
+        setFullText(editContent);
+      }
+    } catch {
+      toast({
+        title: "Update failed",
+        description: "Could not update record.",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const removeRow = async (row: RecordRow) => {
+    const ok = window.confirm("Delete this record permanently?");
+    if (!ok) return;
+    setDeletingId(row._id);
+    try {
+      await deleteDocument(row._id);
+      toast({ title: "Deleted", description: "Record deleted successfully." });
+      if (view && view._id === row._id) {
+        setView(null);
+        setFullText(null);
+      }
+      await load();
+    } catch {
+      toast({
+        title: "Delete failed",
+        description: "Could not delete record.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -116,15 +206,36 @@ export function SubtopicRecordsSection({
                     <Calendar className="h-3.5 w-3.5 text-slate-400" />
                     {row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"}
                   </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 text-xs rounded-lg text-orange-700 hover:text-orange-800 hover:bg-orange-50"
-                    onClick={() => openDoc(row)}
-                  >
-                    <Eye className="h-3.5 w-3.5 mr-1.5" />
-                    View full
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-xs rounded-lg text-orange-700 hover:text-orange-800 hover:bg-orange-50"
+                      onClick={() => openDoc(row)}
+                    >
+                      <Eye className="h-3.5 w-3.5 mr-1.5" />
+                      View full
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-xs rounded-lg text-blue-700 hover:text-blue-800 hover:bg-blue-50"
+                      onClick={() => openEdit(row)}
+                    >
+                      <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={deletingId === row._id}
+                      className="h-8 text-xs rounded-lg text-red-700 hover:text-red-800 hover:bg-red-50"
+                      onClick={() => removeRow(row)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                      {deletingId === row._id ? "Deleting..." : "Delete"}
+                    </Button>
+                  </div>
                 </div>
                 <p className="text-sm text-slate-700 line-clamp-4 leading-relaxed border-l-2 border-orange-200 pl-3">
                   {row.preview}
@@ -177,6 +288,30 @@ export function SubtopicRecordsSection({
                 />
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={!!editRow} onOpenChange={() => setEditRow(null)}>
+          <DialogContent className="max-w-3xl rounded-2xl border-slate-200">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-semibold text-slate-900">Edit content</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <Textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="min-h-[320px]"
+                placeholder="Update content..."
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setEditRow(null)}>
+                  Cancel
+                </Button>
+                <Button onClick={saveEdit} disabled={savingEdit}>
+                  {savingEdit ? "Saving..." : "Save"}
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

@@ -303,7 +303,7 @@ export default function SuperAdminDashboard() {
     }
 
     return (
-    <div className="min-h-screen relative z-10">
+    <div className="min-h-screen relative z-10 overflow-x-hidden">
       <div className="space-y-6">
         {/* Welcome Header */}
         <div>
@@ -1075,7 +1075,7 @@ export default function SuperAdminDashboard() {
       />
 
       {/* Scrollable main content area */}
-      <div className={cn("flex flex-col", isMobile ? "ml-0 min-h-screen pt-14" : "ml-64 h-screen overflow-y-auto")}>
+      <div className={cn("flex flex-col overflow-x-hidden", isMobile ? "ml-0 min-h-screen pt-14" : "ml-64 min-h-screen")}>
         <div
           className={cn(
             "flex-1 min-h-0",
