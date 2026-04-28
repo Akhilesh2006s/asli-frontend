@@ -926,6 +926,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   const answeredQuestionCount = exam.questions.filter((q: Question) =>
     isAnswerProvidedForQuestion(q, answers[answerKey(q)])
   ).length;
+  const isLastQuestion = currentQuestionIndex === exam.questions.length - 1;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1409,15 +1410,26 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
             Clear
           </Button>
           <div className="justify-self-end">
-            <Button
-              variant="outline"
-              onClick={handleNext}
-              disabled={currentQuestionIndex === exam.questions.length - 1 || isAnimating}
-              className="flex items-center space-x-2 transition-all duration-300 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <span>Next</span>
-              <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
-            </Button>
+            {isLastQuestion ? (
+              <Button
+                onClick={() => setShowWarning(true)}
+                disabled={isAnimating}
+                className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white transition-all duration-300 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span>Submit</span>
+                <CheckCircle className="w-4 h-4" />
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={handleNext}
+                disabled={isAnimating}
+                className="flex items-center space-x-2 transition-all duration-300 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span>Next</span>
+                <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
+              </Button>
+            )}
           </div>
         </div>
           </div>

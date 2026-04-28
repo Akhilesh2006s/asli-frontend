@@ -187,6 +187,10 @@ export default function EduOTT() {
   const [sessionCatalog, setSessionCatalog] = useState<LiveSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingSessions, setLoadingSessions] = useState(true);
+  const [isRefreshingVideos, setIsRefreshingVideos] = useState(false);
+  const [isRefreshingSessions, setIsRefreshingSessions] = useState(false);
+  const [hasLoadedVideos, setHasLoadedVideos] = useState(false);
+  const [hasLoadedSessions, setHasLoadedSessions] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sessionSearchTerm, setSessionSearchTerm] = useState('');
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
@@ -247,7 +251,11 @@ export default function EduOTT() {
 
     async function fetchVideos() {
       try {
-        setLoading(true);
+        if (!hasLoadedVideos) {
+          setLoading(true);
+        } else {
+          setIsRefreshingVideos(true);
+        }
         const token = localStorage.getItem('authToken');
         if (!token) {
           setLoading(false);
@@ -272,7 +280,11 @@ export default function EduOTT() {
         console.error('Failed to fetch videos:', error);
         if (!cancelled) setVideos([]);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+          setIsRefreshingVideos(false);
+          setHasLoadedVideos(true);
+        }
       }
     }
 
@@ -291,7 +303,11 @@ export default function EduOTT() {
 
     async function fetchLiveSessions() {
       try {
-        setLoadingSessions(true);
+        if (!hasLoadedSessions) {
+          setLoadingSessions(true);
+        } else {
+          setIsRefreshingSessions(true);
+        }
         const token = localStorage.getItem('authToken');
         if (!token) {
           setLoadingSessions(false);
@@ -316,7 +332,11 @@ export default function EduOTT() {
         console.error('Failed to fetch live sessions:', error);
         if (!cancelled) setLiveSessions([]);
       } finally {
-        if (!cancelled) setLoadingSessions(false);
+        if (!cancelled) {
+          setLoadingSessions(false);
+          setIsRefreshingSessions(false);
+          setHasLoadedSessions(true);
+        }
       }
     }
 
@@ -451,12 +471,16 @@ export default function EduOTT() {
               />
             </div>
 
-            <div className="mb-2">
+            <div className="mb-2 flex items-center justify-between gap-3">
               <p className="text-sm text-gray-600">
                 Showing {filteredVideos.length} of {videos.length} videos
               </p>
+              {isRefreshingVideos ? (
+                <p className="text-xs font-medium text-sky-700">Updating list...</p>
+              ) : null}
             </div>
 
+            <div className="min-h-[420px]">
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -576,6 +600,7 @@ export default function EduOTT() {
                 ))}
               </div>
             )}
+            </div>
           </TabsContent>
 
           <TabsContent value="live-sessions" className="space-y-6">
@@ -618,6 +643,7 @@ export default function EduOTT() {
               </div>
             </div>
 
+            <div className="min-h-[320px]">
             {loadingSessions ? (
               <div className="space-y-4">
                 {Array.from({ length: 3 }).map((_, i) => (
@@ -710,6 +736,7 @@ export default function EduOTT() {
                 ))}
               </div>
             )}
+            </div>
           </TabsContent>
         </Tabs>
       </div>

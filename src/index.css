@@ -99,13 +99,16 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: scroll;
+    min-height: 100vh;
   }
   
   html {
     @apply bg-white;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: scroll;
+    /* Reserve scrollbar space to prevent full-page horizontal jump on filter/list updates. */
+    scrollbar-gutter: stable;
   }
 
   img,

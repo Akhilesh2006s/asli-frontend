@@ -48,7 +48,7 @@ export function EduOTTGlobalFilterBar({
             value={eduottClassToSelectValue(selectedClass)}
             onValueChange={(v) => setSelectedClass(eduottSelectValueToClass(v))}
           >
-            <SelectTrigger className="w-full md:w-[200px] bg-white">
+            <SelectTrigger className="w-full md:w-[200px] bg-white border-2 border-sky-200 hover:border-sky-300 focus:border-sky-400 focus:ring-sky-200 shadow-sm">
               <SelectValue placeholder="All classes" />
             </SelectTrigger>
             <SelectContent>
@@ -69,7 +69,7 @@ export function EduOTTGlobalFilterBar({
               setSelectedSubject(v === SUBJECT_ALL ? null : v)
             }
           >
-            <SelectTrigger className="w-full md:w-[220px] bg-white">
+            <SelectTrigger className="w-full md:w-[220px] bg-white border-2 border-sky-200 hover:border-sky-300 focus:border-sky-400 focus:ring-sky-200 shadow-sm">
               <Filter className="w-4 h-4 mr-2 shrink-0 text-gray-500" />
               <SelectValue placeholder="All subjects" />
             </SelectTrigger>
@@ -97,31 +97,29 @@ export function EduOTTGlobalFilterBar({
         </div>
       </div>
 
-      {hasActive ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium text-gray-500">Active:</span>
-          {selectedClass != null ? (
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-900 hover:bg-sky-100"
-              onClick={clearClass}
-            >
-              Class: {selectedClass}
-              <X className="h-3.5 w-3.5" aria-hidden />
-            </button>
-          ) : null}
-          {selectedSubject != null ? (
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-900 hover:bg-violet-100"
-              onClick={clearSubject}
-            >
-              Subject: {selectedSubject}
-              <X className="h-3.5 w-3.5" aria-hidden />
-            </button>
-          ) : null}
-        </div>
-      ) : null}
+      <div className={`flex min-h-[28px] flex-wrap items-center gap-2 ${hasActive ? '' : 'invisible'}`}>
+        <span className="text-xs font-medium text-gray-500">Active:</span>
+        {selectedClass != null ? (
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-900 hover:bg-sky-100"
+            onClick={clearClass}
+          >
+            Class: {selectedClass}
+            <X className="h-3.5 w-3.5" aria-hidden />
+          </button>
+        ) : null}
+        {selectedSubject != null ? (
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-900 hover:bg-violet-100"
+            onClick={clearSubject}
+          >
+            Subject: {selectedSubject}
+            <X className="h-3.5 w-3.5" aria-hidden />
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }

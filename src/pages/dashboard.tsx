@@ -76,6 +76,7 @@ import YouTubePlayer from '@/components/youtube-player';
 import DriveViewer from '@/components/drive-viewer';
 import VideoModal from '@/components/video-modal';
 import { API_BASE_URL } from '@/lib/api-config';
+import { getUser as getStoredUser } from '@/lib/auth-utils';
 import {
   getTodayStudyTime,
   getWeeklyStudyTime,
@@ -92,12 +93,13 @@ import VidyaAIFloatingAssistant from "@/components/student/VidyaAIFloatingAssist
 
 // Mock user ID - in a real app, this would come from authentication
 const MOCK_USER_ID = "user-1";
+const initialStoredUser = getStoredUser();
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const isMobile = useIsMobile();
-  const [user, setUser] = useState<any>(null);
-  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [user, setUser] = useState<any>(() => initialStoredUser || null);
+  const [isLoadingUser, setIsLoadingUser] = useState(() => !initialStoredUser);
   const [videos, setVideos] = useState<any[]>([]);
   const [isLoadingContent, setIsLoadingContent] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState<any>(null);

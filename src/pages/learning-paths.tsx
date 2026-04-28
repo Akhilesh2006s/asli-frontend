@@ -65,11 +65,62 @@ export default function LearningPaths() {
   const [filteredContent, setFilteredContent] = useState<any[]>([]);
   const [isLoadingFilteredContent, setIsLoadingFilteredContent] = useState(false);
   const [allLibraryContent, setAllLibraryContent] = useState<any[]>([]);
+  const [downloadingContentId, setDownloadingContentId] = useState<string | null>(null);
 
   const isYouTubeUrl = (url?: string) => {
     if (!url) return false;
     const lower = url.toLowerCase();
     return lower.includes("youtube.com") || lower.includes("youtu.be");
+  };
+
+  const handleContentDownload = async (content: any) => {
+    const fileUrl = content?.fileUrl;
+    if (!fileUrl) return;
+
+    const contentId = content?._id || content?.id || content?.title || "";
+    setDownloadingContentId(String(contentId));
+
+    try {
+      // Direct browser download is generally faster and avoids proxy hop.
+      const directLink = document.createElement("a");
+      directLink.href = fileUrl;
+      directLink.download = content.title || "download";
+      directLink.rel = "noopener noreferrer";
+      directLink.target = "_blank";
+      document.body.appendChild(directLink);
+      directLink.click();
+      document.body.removeChild(directLink);
+    } catch (directError) {
+      try {
+        // Fallback to authenticated backend proxy when direct download is blocked.
+        const token = localStorage.getItem("authToken");
+        const fileName = content.title || "download";
+        const response = await fetch(
+          `${API_BASE_URL}/api/student/content-download?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(fileName)}`,
+          {
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {})
+            }
+          }
+        );
+        if (!response.ok) {
+          throw new Error(`Download request failed: ${response.status}`);
+        }
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = content.title || "download";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+      } catch (proxyError) {
+        console.error("Download failed:", proxyError);
+      }
+    } finally {
+      setDownloadingContentId(null);
+    }
   };
 
   // Fetch user data
@@ -929,9 +980,9 @@ export default function LearningPaths() {
                   <p className="text-gray-500">No {selectedContentType} available at the moment.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
                   {filteredContent.map((content: any) => (
-                    <Card key={content._id} className="hover:shadow-lg transition-shadow duration-200">
+                    <Card key={content._id} className="hover:shadow-lg transition-shadow duration-200 h-full flex flex-col">
                       <CardHeader>
                         <div className="flex items-center justify-between mb-2">
                           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg">
@@ -960,7 +1011,8 @@ export default function LearningPaths() {
                           <p className="text-gray-600 text-sm mt-2">{content.description}</p>
                         )}
                       </CardHeader>
-                      <CardContent className="space-y-3">
+                      <CardContent className="space-y-3 flex-1 flex flex-col">
+                        <div className="space-y-3 flex-1">
                         {content.subject && (
                           <div className="flex items-center space-x-2">
                             <BookOpen className="w-4 h-4 text-gray-500" />
@@ -977,6 +1029,7 @@ export default function LearningPaths() {
                             </span>
                           </div>
                         )}
+                        </div>
                         <div className="flex space-x-2">
                           <Button
                             variant="outline"
@@ -1005,38 +1058,9 @@ export default function LearningPaths() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={async () => {
-                                  const fileUrl = content.fileUrl;
-                                  if (!fileUrl) return;
-
-                                  try {
-                                    const token = localStorage.getItem('authToken');
-                                    const fileName = content.title || 'download';
-                                    const response = await fetch(
-                                      `${API_BASE_URL}/api/student/content-download?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(fileName)}`,
-                                      {
-                                        headers: {
-                                          ...(token ? { Authorization: `Bearer ${token}` } : {})
-                                        }
-                                      }
-                                    );
-                                    if (!response.ok) {
-                                      throw new Error(`Download request failed: ${response.status}`);
-                                    }
-                                    const blob = await response.blob();
-                                    const blobUrl = window.URL.createObjectURL(blob);
-                                    const link = document.createElement('a');
-                                    link.href = blobUrl;
-                                    link.download = content.title || 'download';
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                    window.URL.revokeObjectURL(blobUrl);
-                                  } catch (error) {
-                                    console.error('Download failed:', error);
-                                  }
-                                }}
+                                onClick={() => handleContentDownload(content)}
                                 title="Download file"
+                                disabled={downloadingContentId === String(content._id || content.id || content.title || "")}
                               >
                                 <Download className="w-4 h-4" />
                               </Button>
