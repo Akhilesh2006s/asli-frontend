@@ -13,6 +13,7 @@ const SuperAdminCalendar = lazy(() => import("@/components/super-admin/super-adm
 const AIChat = lazy(() => import("@/components/ai-chat"));
 const AiToolGenerationsPanel = lazy(() => import("@/components/super-admin/ai-tool-generations/AiToolGenerationsPanel"));
 const AIContentEngine = lazy(() => import("@/components/super-admin/ai-content-engine"));
+const SuperAdminAiGenerator = lazy(() => import("@/components/super-admin/ai-generator"));
 const SubscriptionManagement = lazy(() => import("@/components/super-admin/subscription-management"));
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1046,6 +1047,12 @@ export default function SuperAdminDashboard() {
         return (
           <Suspense fallback={lazySectionFallback}>
             <AIContentEngine />
+          </Suspense>
+        );
+      case 'ai-generator':
+        return (
+          <Suspense fallback={lazySectionFallback}>
+            <SuperAdminAiGenerator />
           </Suspense>
         );
       case 'subscriptions':

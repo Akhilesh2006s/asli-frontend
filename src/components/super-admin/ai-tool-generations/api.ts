@@ -53,6 +53,9 @@ export type RecordRow = {
   subtopic?: string;
   createdAt?: string;
   preview: string;
+  /** Full stored text / markdown (needed to parse fallback MCQ blobs in the list). */
+  content?: string;
+  metadata?: Record<string, unknown>;
 };
 
 export async function fetchRecords(
@@ -97,6 +100,20 @@ export async function updateDocument(id: string, content: string) {
   );
   if (!res.ok) throw new Error(`Document update failed: ${res.status}`);
   return res.json() as Promise<{ success: boolean; data: PdfRecord & { content: string } }>;
+}
+
+/** Update worksheet / MCQ structured payload (e.g. delete one question) without replacing full text. */
+export async function patchDocumentStructured(id: string, structuredContent: Record<string, unknown>) {
+  const res = await fetch(
+    `${API_BASE_URL}/api/super-admin/ai-tool-generations/document/${id}`,
+    {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ structuredContent }),
+    },
+  );
+  if (!res.ok) throw new Error(`Structured update failed: ${res.status}`);
+  return res.json() as Promise<{ success: boolean; data: Record<string, unknown> }>;
 }
 
 export async function deleteDocument(id: string) {

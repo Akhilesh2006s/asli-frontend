@@ -20,6 +20,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { API_BASE_URL } from '@/lib/api-config';
@@ -74,6 +84,40 @@ const EXAM_SUBJECTS = [
 const CLASS_OPTIONS = ['6', '7', '8', '9', '10', '11', '12'];
 
 type FilterType = 'all-schools' | 'specific-schools';
+type BulkQuestionUploadMode = 'csv' | 'pdf';
+type PdfQuestionRow = {
+  row: number;
+  questionText: string;
+  questionType: 'mcq' | 'multiple' | 'integer';
+  subject: string;
+  marks: number;
+  option1: string;
+  option2: string;
+  option3: string;
+  option4: string;
+  correctAnswer: string;
+  explanation: string;
+};
+
+/** Canonical subject for PDF rows / upload (no exam default). */
+function normalizePdfRowSubjectSlug(
+  raw: string,
+): '' | 'maths' | 'physics' | 'chemistry' | 'biology' {
+  const t = String(raw || '').trim().toLowerCase();
+  if (!t) return '';
+  const map: Record<string, 'maths' | 'physics' | 'chemistry' | 'biology'> = {
+    maths: 'maths',
+    mathematics: 'maths',
+    math: 'maths',
+    physics: 'physics',
+    chemistry: 'chemistry',
+    biology: 'biology',
+    biological: 'biology',
+  };
+  if (map[t]) return map[t];
+  if (t === 'maths' || t === 'physics' || t === 'chemistry' || t === 'biology') return t;
+  return '';
+}
 
 const normalizeDisplayText = (value?: string) =>
   (value || '')
@@ -172,10 +216,26 @@ export default function ExamManagement() {
   const [questions, setQuestions] = useState<any[]>([]);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [questionCsvFile, setQuestionCsvFile] = useState<File | null>(null);
+  const [questionPdfFile, setQuestionPdfFile] = useState<File | null>(null);
+  const [bulkQuestionUploadMode, setBulkQuestionUploadMode] = useState<BulkQuestionUploadMode>('csv');
   const [isUploadingQuestionCsv, setIsUploadingQuestionCsv] = useState(false);
+  const [isExtractingPdfQuestions, setIsExtractingPdfQuestions] = useState(false);
+  const [isUploadingExtractedQuestions, setIsUploadingExtractedQuestions] = useState(false);
+  const [isDeletingAllQuestions, setIsDeletingAllQuestions] = useState(false);
   const [questionCsvUploadResults, setQuestionCsvUploadResults] = useState<{ success: number; errors: string[] } | null>(null);
+  const [pdfQuestionRows, setPdfQuestionRows] = useState<PdfQuestionRow[]>([]);
+  const [pdfPreviewPage, setPdfPreviewPage] = useState(1);
+  const [pendingDeleteQuestion, setPendingDeleteQuestion] = useState<{ id: string; index: number } | null>(null);
   // Default ON: duplicate rows are uploaded instead of skipped.
   const [allowDuplicateQuestionsInCsv, setAllowDuplicateQuestionsInCsv] = useState(true);
+  const pdfRowsMissingSubject = useMemo(
+    () => pdfQuestionRows.length > 0 && pdfQuestionRows.some((r) => !String(r.subject || '').trim()),
+    [pdfQuestionRows],
+  );
+  const pdfSubjectInvalidForUpload = useMemo(
+    () => pdfQuestionRows.length > 0 && pdfQuestionRows.some((r) => !normalizePdfRowSubjectSlug(r.subject)),
+    [pdfQuestionRows],
+  );
   const [questionImageFile, setQuestionImageFile] = useState<File | null>(null);
   const [isUploadingQuestionImage, setIsUploadingQuestionImage] = useState(false);
   const [isCsvDialogOpen, setIsCsvDialogOpen] = useState(false);
@@ -453,6 +513,394 @@ export default function ExamManagement() {
     }
   };
 
+  const mapPdfRowToQuestionPayload = (row: PdfQuestionRow) => {
+    const optionTexts = [row.option1, row.option2, row.option3, row.option4]
+      .map((x) => String(x || '').trim())
+      .filter(Boolean);
+    const options = optionTexts.map((text) => ({ text, isCorrect: false }));
+    const type = row.questionType;
+    const base = {
+      questionText: String(row.questionText || '').trim(),
+      questionType: type,
+      subject: String(row.subject || availableQuestionSubjects[0] || 'maths').trim().toLowerCase(),
+      marks: Number(row.marks || 1) || 1,
+      negativeMarks: 0,
+      explanation: String(row.explanation || '').trim() || undefined,
+      board: selectedExam?.board,
+    } as any;
+
+    if (type === 'integer') {
+      const n = Number(String(row.correctAnswer || '').trim());
+      return {
+        ...base,
+        options: [],
+        correctAnswer: Number.isFinite(n) ? n : String(row.correctAnswer || '').trim(),
+      };
+    }
+
+    const answerText = String(row.correctAnswer || '').trim();
+    if (type === 'multiple') {
+      const answerSet = new Set(
+        answerText
+          .split(',')
+          .map((x) => x.trim().toLowerCase())
+          .filter(Boolean),
+      );
+      options.forEach((opt) => {
+        if (answerSet.has(String(opt.text || '').trim().toLowerCase())) opt.isCorrect = true;
+      });
+      return {
+        ...base,
+        options,
+        correctAnswer: options.filter((o) => o.isCorrect).map((o) => o.text),
+      };
+    }
+
+    // mcq
+    const idx = options.findIndex((o) => String(o.text || '').trim().toLowerCase() === answerText.toLowerCase());
+    if (idx >= 0) options[idx].isCorrect = true;
+    return {
+      ...base,
+      options,
+      correctAnswer: idx >= 0 ? options[idx].text : answerText,
+    };
+  };
+
+  const handleExtractQuestionsFromPdf = async () => {
+    if (!selectedExam || !questionPdfFile) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please select a PDF file and exam.',
+        variant: 'destructive'
+      });
+      return;
+    }
+    setIsExtractingPdfQuestions(true);
+    setPdfQuestionRows([]);
+    setPdfPreviewPage(1);
+    try {
+      const token = localStorage.getItem('authToken');
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 120000);
+      const form = new FormData();
+      form.append('file', questionPdfFile);
+      let res: Response;
+      try {
+        res = await fetch(`${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/pdf-convert`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+          signal: controller.signal,
+        });
+        // Some deployments expose super-admin routes only under /protected.
+        if (res.status === 404) {
+          res = await fetch(`${API_BASE_URL}/api/super-admin/protected/exams/${selectedExam._id}/questions/pdf-convert`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: form,
+            signal: controller.signal,
+          });
+        }
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+      const raw = await res.text();
+      let data: any = null;
+      try {
+        data = raw ? JSON.parse(raw) : null;
+      } catch {
+        data = { success: false, message: raw || `Request failed (${res.status})` };
+      }
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.message || `Failed to extract questions from PDF (${res.status})`);
+      }
+      const rows = Array.isArray(data?.data) ? data.data : [];
+      if (rows.length === 0) {
+        throw new Error('No extractable questions found in this PDF. Please try a clearer PDF or different pages.');
+      }
+      setPdfQuestionRows(rows);
+      toast({
+        title: 'Extraction complete',
+        description: `Extracted ${rows.length} question(s) from PDF. Not saved yet - click "Upload These Questions" to save.`,
+      });
+    } catch (error: any) {
+      const message = error?.name === 'AbortError'
+        ? 'Extraction timed out. Please try again with a smaller PDF.'
+        : error?.message || 'Gemini failed to extract questions.';
+      toast({
+        title: 'Extraction failed',
+        description: message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExtractingPdfQuestions(false);
+    }
+  };
+
+  const handleDownloadExtractedCsv = () => {
+    if (pdfQuestionRows.length === 0) return;
+    const headers = ['questionText', 'questionType', 'subject', 'marks', 'option1', 'option2', 'option3', 'option4', 'correctAnswer', 'explanation'];
+    const sanitizeCsvCell = (v: unknown) =>
+      String(v ?? '')
+        .replace(/\r\n/g, ' ')
+        .replace(/\n/g, ' ')
+        .replace(/\r/g, ' ')
+        .replace(/\t/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    const escapeCsv = (v: unknown) => `"${sanitizeCsvCell(v).replace(/"/g, '""')}"`;
+    const body = pdfQuestionRows.map((r) => [
+      r.questionText, r.questionType, r.subject, r.marks, r.option1, r.option2, r.option3, r.option4, r.correctAnswer, r.explanation
+    ].map(escapeCsv).join(','));
+    const csv = [headers.join(','), ...body].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `pdf-extracted-questions-${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleUploadExtractedQuestions = async () => {
+    if (!selectedExam || pdfQuestionRows.length === 0) return;
+    if (pdfSubjectInvalidForUpload) {
+      toast({
+        title: 'Subject required',
+        description:
+          'Each question must have a valid subject: maths, physics, chemistry, or biology. Fill empty cells in the preview table.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const shouldUpload = window.confirm(
+      `Upload ${pdfQuestionRows.length} extracted question(s) to this exam now?\n\nThis will immediately save them to the database.`
+    );
+    if (!shouldUpload) return;
+    setIsUploadingExtractedQuestions(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const headers = ['questionText', 'questionType', 'subject', 'marks', 'option1', 'option2', 'option3', 'option4', 'correctAnswer', 'explanation'];
+      const sanitizeCsvCell = (v: unknown) =>
+        String(v ?? '')
+          .replace(/\r\n/g, ' ')
+          .replace(/\n/g, ' ')
+          .replace(/\r/g, ' ')
+          .replace(/\t/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      const escapeCsv = (v: unknown) => `"${sanitizeCsvCell(v).replace(/"/g, '""')}"`;
+
+      const normalizeType = (raw: unknown): 'mcq' | 'multiple' | 'integer' => {
+        const value = String(raw || '')
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z]/g, '');
+        if (['msq', 'multiple', 'multipleselect', 'multiselect', 'multiplechoice'].includes(value)) return 'multiple';
+        if (['integer', 'numeric', 'number'].includes(value)) return 'integer';
+        return 'mcq';
+      };
+
+      const preValidationErrors: string[] = [];
+      const normalizedRows = pdfQuestionRows
+        .map((r, idx) => {
+          const questionText = sanitizeCsvCell(r.questionText);
+          if (!questionText) {
+            preValidationErrors.push(`Row ${idx + 1}: questionText is required`);
+            return null;
+          }
+
+          let questionType = normalizeType(r.questionType);
+          const optionValues = [r.option1, r.option2, r.option3, r.option4].map((x) => sanitizeCsvCell(x));
+          const nonEmptyOptions = optionValues.filter(Boolean);
+          const correctAnswer = sanitizeCsvCell(r.correctAnswer);
+          const correctAnswerNumber = Number(correctAnswer);
+
+          if ((questionType === 'mcq' || questionType === 'multiple') && nonEmptyOptions.length === 0) {
+            if (correctAnswer && Number.isFinite(correctAnswerNumber)) {
+              questionType = 'integer';
+            } else {
+              preValidationErrors.push(`Row ${idx + 1}: At least one option is required for ${questionType} questions`);
+              return null;
+            }
+          }
+
+          return {
+            questionText,
+            questionType,
+            subject: sanitizeCsvCell(normalizePdfRowSubjectSlug(r.subject)),
+            marks: Number(r.marks || 1) > 0 ? Number(r.marks) : 1,
+            option1: questionType === 'integer' ? '' : optionValues[0],
+            option2: questionType === 'integer' ? '' : optionValues[1],
+            option3: questionType === 'integer' ? '' : optionValues[2],
+            option4: questionType === 'integer' ? '' : optionValues[3],
+            correctAnswer,
+            explanation: sanitizeCsvCell(r.explanation),
+          };
+        })
+        .filter((r): r is NonNullable<typeof r> => Boolean(r));
+
+      if (normalizedRows.length === 0) {
+        setQuestionCsvUploadResults({ success: 0, errors: preValidationErrors.length > 0 ? preValidationErrors : ['No valid extracted rows to upload'] });
+        throw new Error('No valid extracted rows to upload');
+      }
+
+      const csvRows = normalizedRows.map((r) => [
+        r.questionText,
+        r.questionType,
+        r.subject,
+        r.marks,
+        r.option1,
+        r.option2,
+        r.option3,
+        r.option4,
+        r.correctAnswer,
+        r.explanation,
+      ].map(escapeCsv).join(','));
+      const csv = [headers.join(','), ...csvRows].join('\n');
+      const csvBlob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const file = new File([csvBlob], `pdf-extracted-${Date.now()}.csv`, { type: 'text/csv' });
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('allowDuplicates', allowDuplicateQuestionsInCsv ? 'true' : 'false');
+
+      let res = await fetch(`${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/bulk-upload`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (res.status === 404) {
+        res = await fetch(`${API_BASE_URL}/api/super-admin/protected/exams/${selectedExam._id}/questions/bulk-upload`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+      }
+      const data = await res.json().catch(() => null);
+      const created = Number(data?.created || data?.data?.length || 0);
+      const errors: string[] = [
+        ...preValidationErrors,
+        ...(Array.isArray(data?.errors) ? data.errors : []),
+      ];
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.message || `Bulk upload failed (${res.status})`);
+      }
+      setQuestionCsvUploadResults({ success: created, errors });
+      toast({
+        title: created > 0 ? 'Upload complete' : 'Upload failed',
+        description: `Created ${created} question(s)${errors.length ? `, ${errors.length} error(s)` : ''}.`,
+        variant: created > 0 ? 'default' : 'destructive',
+      });
+      await fetchQuestions(selectedExam._id);
+      await fetchExams();
+    } catch (error: any) {
+      toast({
+        title: 'Upload failed',
+        description: error?.message || 'Could not upload extracted questions.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploadingExtractedQuestions(false);
+    }
+  };
+
+  const handleDeleteQuestion = async () => {
+    if (!selectedExam || !pendingDeleteQuestion) return;
+    try {
+      const token = localStorage.getItem('authToken');
+      let res = await fetch(
+        `${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/${pendingDeleteQuestion.id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+      if (res.status === 404) {
+        res = await fetch(
+          `${API_BASE_URL}/api/super-admin/protected/exams/${selectedExam._id}/questions/${pendingDeleteQuestion.id}`,
+          {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        );
+      }
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) throw new Error(data?.message || 'Delete failed');
+      setQuestions((prev) => prev.filter((q) => String(q._id) !== String(pendingDeleteQuestion.id)));
+      setPendingDeleteQuestion(null);
+      toast({
+        title: 'Question deleted',
+        description: 'Question deleted. Questions renumbered.',
+      });
+      await fetchExams();
+    } catch (error: any) {
+      toast({
+        title: 'Delete failed',
+        description: error?.message || 'Could not delete question.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleDeleteAllQuestions = async () => {
+    if (!selectedExam) return;
+    if (questions.length === 0) {
+      toast({
+        title: 'No questions to delete',
+        description: 'This exam does not have any questions yet.',
+      });
+      return;
+    }
+
+    const shouldDelete = window.confirm(
+      `Are you sure you want to delete all ${questions.length} question(s)? This cannot be undone.`
+    );
+    if (!shouldDelete) return;
+
+    setIsDeletingAllQuestions(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      let res = await fetch(`${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.status === 404) {
+        res = await fetch(`${API_BASE_URL}/api/super-admin/protected/exams/${selectedExam._id}/questions`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.message || 'Failed to delete all questions');
+      }
+
+      setQuestions([]);
+      setPendingDeleteQuestion(null);
+      toast({
+        title: 'All questions deleted',
+        description: data?.message || 'All questions removed successfully.',
+      });
+      await fetchExams();
+    } catch (error: any) {
+      toast({
+        title: 'Delete failed',
+        description: error?.message || 'Could not delete all questions.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeletingAllQuestions(false);
+    }
+  };
+
   const parseCSVLine = (line: string) => {
     const result: string[] = [];
     let current = '';
@@ -610,6 +1058,13 @@ export default function ExamManagement() {
 
   const handleAddQuestion = async () => {
     if (!selectedExam) return;
+
+    // In PDF upload mode, treat "Add Question" as final save action
+    // for extracted rows so users can confirm before persistence.
+    if (bulkQuestionUploadMode === 'pdf' && pdfQuestionRows.length > 0) {
+      await handleUploadExtractedQuestions();
+      return;
+    }
 
     if (!questionFormData.questionText.trim() && !questionFormData.questionImage) {
       toast({
@@ -2043,7 +2498,12 @@ export default function ExamManagement() {
         if (!open) {
           // Reset CSV upload state when dialog closes
           setQuestionCsvFile(null);
+          setQuestionPdfFile(null);
           setQuestionCsvUploadResults(null);
+          setPdfQuestionRows([]);
+          setPdfPreviewPage(1);
+          setBulkQuestionUploadMode('csv');
+          setPendingDeleteQuestion(null);
         }
       }}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -2072,6 +2532,25 @@ export default function ExamManagement() {
                   </Button>
                 </div>
               </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={bulkQuestionUploadMode === 'csv' ? 'default' : 'outline'}
+                  onClick={() => setBulkQuestionUploadMode('csv')}
+                >
+                  Upload CSV/XLSX
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={bulkQuestionUploadMode === 'pdf' ? 'default' : 'outline'}
+                  onClick={() => setBulkQuestionUploadMode('pdf')}
+                >
+                  Upload from PDF
+                </Button>
+              </div>
+              {bulkQuestionUploadMode === 'csv' ? (
               <div className="p-4 bg-blue-50 rounded-lg space-y-3">
                 <div>
                   <Label htmlFor="questionCsvFile">Select Excel (.xlsx) or CSV File *</Label>
@@ -2134,11 +2613,187 @@ export default function ExamManagement() {
                   {isUploadingQuestionCsv ? 'Uploading...' : 'Upload Questions CSV'}
                 </Button>
               </div>
+              ) : (
+                <div className="p-4 bg-blue-50 rounded-lg space-y-3">
+                  <div>
+                    <Label htmlFor="questionPdfFile">Select PDF File *</Label>
+                    <Input
+                      id="questionPdfFile"
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setQuestionPdfFile(file);
+                        setPdfQuestionRows([]);
+                        setPdfPreviewPage(1);
+                      }}
+                      className="mt-1 cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-200"
+                    />
+                    <p className={`text-xs mt-1 ${questionPdfFile ? 'text-blue-700 font-medium' : 'text-gray-500'}`}>
+                      {questionPdfFile ? `Selected file: ${questionPdfFile.name}` : 'No PDF selected yet'}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={handleExtractQuestionsFromPdf}
+                    disabled={isExtractingPdfQuestions || !questionPdfFile}
+                    className="w-full bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white"
+                  >
+                    {isExtractingPdfQuestions ? (
+                      <span className="inline-flex items-center justify-center gap-2">
+                        <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                        <span>Extracting questions from PDF...</span>
+                      </span>
+                    ) : (
+                      'Extract Questions from PDF'
+                    )}
+                  </Button>
+                  <p className="text-xs text-slate-500">
+                    Tip: multi-page papers often need 1–3 minutes. Very large PDFs may take longer; the button shows a
+                    spinner while extraction runs.
+                  </p>
+
+                  {pdfQuestionRows.length > 0 && (
+                    <div className="space-y-3 rounded-md border border-blue-200 bg-white p-3">
+                      <p className="text-xs text-blue-700">
+                        Preview only: extracted questions are not saved until you click <span className="font-semibold">Upload These Questions</span>.
+                      </p>
+                      {pdfRowsMissingSubject && (
+                        <div
+                          role="status"
+                          className="rounded-md border border-yellow-300 bg-yellow-50 px-3 py-2 text-xs text-yellow-900"
+                        >
+                          Some questions have no subject detected. Please review and fill in the subject before
+                          uploading.
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-slate-800">
+                          Preview ({pdfQuestionRows.length} question{pdfQuestionRows.length === 1 ? '' : 's'})
+                        </p>
+                        <div className="flex gap-2">
+                          <Button type="button" size="sm" variant="outline" onClick={handleDownloadExtractedCsv}>
+                            <Download className="mr-1 h-3.5 w-3.5" />
+                            Download as CSV
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={handleUploadExtractedQuestions}
+                            disabled={isUploadingExtractedQuestions || pdfSubjectInvalidForUpload}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            {isUploadingExtractedQuestions ? 'Uploading...' : 'Upload These Questions'}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="overflow-x-auto border rounded-md">
+                        <table className="w-full text-xs">
+                          <thead className="bg-slate-50">
+                            <tr>
+                              <th className="text-left p-2">#</th>
+                              <th className="text-left p-2">Question</th>
+                              <th className="text-left p-2">Type</th>
+                              <th className="text-left p-2">Subject</th>
+                              <th className="text-left p-2">Marks</th>
+                              <th className="text-left p-2">Answer</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {pdfQuestionRows.slice((pdfPreviewPage - 1) * 10, pdfPreviewPage * 10).map((row, i) => {
+                              const globalIdx = (pdfPreviewPage - 1) * 10 + i;
+                              return (
+                              <tr key={`${row.row}-${globalIdx}`} className="border-t">
+                                <td className="p-2">{(pdfPreviewPage - 1) * 10 + i + 1}</td>
+                                <td className="p-2 max-w-[420px] truncate" title={row.questionText}>{row.questionText}</td>
+                                <td className="p-2">{String(row.questionType || '').toUpperCase()}</td>
+                                <td className="p-1 align-middle min-w-[120px]">
+                                  <Input
+                                    type="text"
+                                    className="h-8 text-xs"
+                                    value={row.subject}
+                                    placeholder="e.g. maths"
+                                    title="Click to edit subject (maths, physics, chemistry, biology)"
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      setPdfQuestionRows((prev) =>
+                                        prev.map((x, j) => (j === globalIdx ? { ...x, subject: v } : x)),
+                                      );
+                                    }}
+                                  />
+                                </td>
+                                <td className="p-2">{row.marks}</td>
+                                <td className="p-2 max-w-[200px] truncate" title={row.correctAnswer}>{row.correctAnswer}</td>
+                              </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                      {pdfQuestionRows.length > 10 && (
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={pdfPreviewPage <= 1}
+                            onClick={() => setPdfPreviewPage((p) => Math.max(1, p - 1))}
+                          >
+                            Prev
+                          </Button>
+                          <span className="text-xs text-slate-600">
+                            Page {pdfPreviewPage} / {Math.ceil(pdfQuestionRows.length / 10)}
+                          </span>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={pdfPreviewPage >= Math.ceil(pdfQuestionRows.length / 10)}
+                            onClick={() => setPdfPreviewPage((p) => p + 1)}
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {questionCsvUploadResults && (
+                    <div className={`p-3 rounded-lg ${questionCsvUploadResults.errors.length > 0 ? 'bg-yellow-50 border border-yellow-200' : 'bg-green-50 border border-green-200'}`}>
+                      <p className="font-semibold text-sm mb-2">
+                        {questionCsvUploadResults.success > 0 ? `✅ Successfully created ${questionCsvUploadResults.success} question(s)` : '❌ No questions created'}
+                      </p>
+                      {questionCsvUploadResults.errors.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-xs font-semibold text-yellow-800 mb-1">Row issues:</p>
+                          <ul className="text-xs text-yellow-700 list-disc list-inside space-y-1 max-h-36 overflow-y-auto">
+                            {questionCsvUploadResults.errors.map((error, idx) => (
+                              <li key={idx}>{error}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* View All Questions Section */}
             <div className="border-t pt-6 space-y-4">
-              <h3 className="font-semibold">All Questions ({questions.length})</h3>
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="font-semibold">All Questions ({questions.length})</h3>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                  onClick={handleDeleteAllQuestions}
+                  disabled={isDeletingAllQuestions || questions.length === 0}
+                >
+                  <Trash2 className="mr-1 h-4 w-4" />
+                  {isDeletingAllQuestions ? 'Deleting...' : 'Delete All Questions'}
+                </Button>
+              </div>
               {isLoadingQuestions ? (
                 <div className="text-center py-8">
                   <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
@@ -2236,6 +2891,16 @@ export default function ExamManagement() {
                               )}
                             </div>
                           </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-400 hover:text-red-600"
+                            onClick={() => setPendingDeleteQuestion({ id: String(q._id), index: idx })}
+                            aria-label={`Delete question ${idx + 1}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     </Card>
@@ -2486,6 +3151,29 @@ export default function ExamManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!pendingDeleteQuestion} onOpenChange={(open) => !open && setPendingDeleteQuestion(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Question</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete Q{(pendingDeleteQuestion?.index ?? 0) + 1}? This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteQuestion();
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
