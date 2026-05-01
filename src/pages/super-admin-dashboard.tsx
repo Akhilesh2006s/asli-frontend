@@ -40,7 +40,7 @@ import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
 import { cn } from "@/lib/utils";
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useSuperAdminDrawerNav } from "@/hooks/use-mobile";
 import { useSearch } from "wouter";
 
 const lazySectionFallback = (
@@ -54,7 +54,7 @@ const lazySectionFallback = (
 
 export default function SuperAdminDashboard() {
   const { toast } = useToast();
-  const isMobile = useIsMobile();
+  const superAdminDrawerNav = useSuperAdminDrawerNav();
   const search = useSearch();
   const [currentView, setCurrentView] = useState<SuperAdminView>(() => {
     if (typeof window === "undefined") return "dashboard";
@@ -1082,13 +1082,18 @@ export default function SuperAdminDashboard() {
       />
 
       {/* Scrollable main content area */}
-      <div className={cn("flex flex-col overflow-x-hidden", isMobile ? "ml-0 min-h-screen pt-14" : "ml-64 min-h-screen")}>
+      <div
+        className={cn(
+          "flex flex-col overflow-x-hidden",
+          superAdminDrawerNav ? "ml-0 min-h-screen pt-14" : "ml-64 min-h-screen",
+        )}
+      >
         <div
           className={cn(
             "flex-1 min-h-0",
             currentView === "ai-tool-generations"
               ? "p-0"
-              : isMobile
+              : superAdminDrawerNav
                 ? "p-3 sm:p-4"
                 : "p-6",
           )}

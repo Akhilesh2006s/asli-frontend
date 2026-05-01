@@ -51,6 +51,26 @@ export function useIsDesktop() {
   return !!isDesktop
 }
 
+/**
+ * Super Admin: use top bar + slide-out sheet below `lg` (1024px) so tablets
+ * get full-width content and no truncated sidebar labels.
+ */
+export function useSuperAdminDrawerNav() {
+  const [drawer, setDrawer] = React.useState<boolean>(() =>
+    typeof window !== "undefined" ? window.innerWidth < TABLET_BREAKPOINT : false
+  )
+
+  React.useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${TABLET_BREAKPOINT - 1}px)`)
+    const onChange = () => setDrawer(mql.matches)
+    mql.addEventListener("change", onChange)
+    setDrawer(mql.matches)
+    return () => mql.removeEventListener("change", onChange)
+  }, [])
+
+  return drawer
+}
+
 export function useScreenSize() {
   const [screenSize, setScreenSize] = React.useState<'mobile' | 'tablet' | 'desktop' | undefined>(undefined)
 

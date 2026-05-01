@@ -31,7 +31,7 @@ You MUST restart your frontend dev server for the change to take effect:
    🔌 API Base URL: http://localhost:5000 (LOCAL)
    ```
    
-   If you see `(RAILWAY)` instead, the restart didn't work or there's another issue.
+   If you still see a remote/production URL label instead of `(LOCAL)`, the restart didn't work or there's another issue.
 
 ## Verify It's Working
 
@@ -45,7 +45,7 @@ Should see:
 1. Send a message
 2. Check Network tab in DevTools
 3. Look for request to: `http://localhost:5000/api/ai-chat`
-4. NOT: `https://asli-stud-back-production.up.railway.app/api/ai-chat`
+4. NOT a remote host you did not configure in `.env`
 
 ### Check Backend Console:
 When you send a message, you should see:
@@ -54,7 +54,7 @@ When you send a message, you should see:
 📤 Calling Ollama API...
 ```
 
-## If Still Using Railway
+## If the frontend still hits a remote API
 
 1. **Hard refresh browser:** `Ctrl+Shift+R` or `Ctrl+F5`
 2. **Clear browser cache**
@@ -63,7 +63,7 @@ When you send a message, you should see:
 
 ## Troubleshooting
 
-### Problem: Still shows Railway after restart
+### Problem: Still shows a remote API URL after restart
 
 **Check:**
 1. Is `.env` file in `asli-frontend/` folder? (not in parent folder)

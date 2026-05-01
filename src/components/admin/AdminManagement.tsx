@@ -38,6 +38,9 @@ interface Admin {
   name: string;
   email: string;
   board?: string;
+  /** CBSE / STATE — curriculum (API); distinct from stored `board` for legacy rows */
+  curriculumBoard?: string;
+  isAsliPrepExclusive?: boolean;
   state?: string;
   place?: string;
   schoolName?: string;
@@ -45,6 +48,8 @@ interface Admin {
   phone?: string;
   pin?: string;
   contactPerson?: string;
+  secondaryContactPerson?: string;
+  secondaryContactPhone?: string;
   schoolDetails?: SchoolDetailsForm;
   permissions: string[];
   status: string;
@@ -89,27 +94,117 @@ const resolveLogoUrl = (logoUrl?: string): string => {
   return `${API_BASE_URL}${logoUrl.startsWith("/") ? logoUrl : `/${logoUrl}`}`;
 };
 
-/** Admin portal modules (must match backend `validatePermissions` in superAdminValidator). */
-const SCHOOL_PORTAL_FEATURES = [
-  "User Management",
-  "Content Management",
-  "Analytics",
-  "Subscriptions",
-  "Settings",
-] as const;
+/** Admin portal modules — `id` must match backend `ALLOWED_SCHOOL_PORTAL_PERMISSIONS` in superAdminValidator.js */
+const SCHOOL_PORTAL_MODULE_GROUPS: {
+  category: string;
+  modules: { id: string; title: string; description: string }[];
+}[] = [
+  {
+    category: "Core",
+    modules: [
+      {
+        id: "User Management",
+        title: "User management",
+        description: "Students, teachers, classes, and class dashboards.",
+      },
+      {
+        id: "Content Management",
+        title: "Content management",
+        description: "Subjects, curriculum content, uploads, and learning materials.",
+      },
+      {
+        id: "Analytics",
+        title: "Analytics",
+        description: "Overview stats, performance metrics, and reports.",
+      },
+    ],
+  },
+  {
+    category: "Teaching & learning",
+    modules: [
+      {
+        id: "Exam Management",
+        title: "Exam management",
+        description: "Exam visibility, scheduling, and exam-related tools.",
+      },
+      {
+        id: "Learning Paths",
+        title: "Learning paths",
+        description: "Structured learning paths and progression.",
+      },
+      {
+        id: "School Calendar",
+        title: "School calendar",
+        description: "Calendar events and school schedule.",
+      },
+      {
+        id: "Vidya AI",
+        title: "Vidya AI",
+        description: "AI tutor / assistant for the school portal.",
+      },
+      {
+        id: "Edu OTT",
+        title: "Edu OTT & video",
+        description: "Video library and Edu OTT content.",
+      },
+    ],
+  },
+  {
+    category: "Account & billing",
+    modules: [
+      {
+        id: "Subscriptions",
+        title: "Subscriptions",
+        description: "Plans, billing, and subscription management.",
+      },
+      {
+        id: "Settings",
+        title: "Settings",
+        description: "School profile and portal configuration.",
+      },
+    ],
+  },
+];
+
+const SCHOOL_PORTAL_FEATURE_IDS = SCHOOL_PORTAL_MODULE_GROUPS.flatMap((g) => g.modules.map((m) => m.id));
 
 function isUnlimitedPortalAccess(perms: string[] | undefined): boolean {
   if (!perms || perms.length === 0) return true;
   const set = new Set(perms);
-  return SCHOOL_PORTAL_FEATURES.every((f) => set.has(f));
+  return SCHOOL_PORTAL_FEATURE_IDS.every((f) => set.has(f));
 }
 
 function resolvePortalPermissions(
   mode: "unlimited" | "limited",
   selected: string[]
 ): string[] {
-  if (mode === "unlimited") return [...SCHOOL_PORTAL_FEATURES];
-  return SCHOOL_PORTAL_FEATURES.filter((f) => selected.includes(f));
+  if (mode === "unlimited") return [...SCHOOL_PORTAL_FEATURE_IDS];
+  return SCHOOL_PORTAL_FEATURE_IDS.filter((f) => selected.includes(f));
+}
+
+function portalCheckboxId(prefix: string, moduleId: string) {
+  return `${prefix}-${moduleId.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+}
+
+/** Values stored as `curriculumBoard` / non–Asli Prep `board` (must match backend CURRICULUM_BOARDS). */
+const CURRICULUM_BOARD_CODES = ["CBSE", "STATE", "SSC", "ICSE", "IB", "CAMBRIDGE"] as const;
+
+function isCurriculumBoardCode(b?: string): boolean {
+  const u = String(b || "").toUpperCase().trim();
+  return (CURRICULUM_BOARD_CODES as readonly string[]).includes(u);
+}
+
+function curriculumDisplayLabel(code?: string): string {
+  const u = (code || "").toUpperCase();
+  const labels: Record<string, string> = {
+    CBSE: "CBSE",
+    STATE: "State Board",
+    SSC: "SSC / State Board",
+    ICSE: "ICSE",
+    IB: "IB",
+    CAMBRIDGE: "Cambridge (CAIE)",
+  };
+  return labels[u] || code || "";
 }
 
 export default function AdminManagement() {
@@ -124,7 +219,7 @@ export default function AdminManagement() {
   const [isDeletingAdmin, setIsDeletingAdmin] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const isMutationBusy = isAddingAdmin || isUpdatingAdmin || isDeletingAdmin;
-  const DEFAULT_BOARD = 'ASLI_EXCLUSIVE_SCHOOLS';
+  const DEFAULT_CURRICULUM_BOARD = "CBSE";
 
   const emptySchoolDetails = (): SchoolDetailsForm => ({
     doorNo: '',
@@ -143,31 +238,37 @@ export default function AdminManagement() {
     name: '',
     email: '',
     password: '',
-    board: DEFAULT_BOARD,
+    board: DEFAULT_CURRICULUM_BOARD,
+    isAsliPrepExclusive: false,
     state: '',
     schoolName: '',
     schoolLogo: '',
     phone: '',
     pin: '',
     contactPerson: '',
+    secondaryContactPerson: '',
+    secondaryContactPhone: '',
     schoolDetails: emptySchoolDetails(),
     accessMode: 'unlimited' as 'unlimited' | 'limited',
-    limitedFeatures: [...SCHOOL_PORTAL_FEATURES] as string[],
+    limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS] as string[],
   });
   const [editAdmin, setEditAdmin] = useState({
     name: '',
     email: '',
-    board: DEFAULT_BOARD,
+    board: DEFAULT_CURRICULUM_BOARD,
+    isAsliPrepExclusive: false,
     state: '',
     schoolName: '',
     schoolLogo: '',
     phone: '',
     pin: '',
     contactPerson: '',
+    secondaryContactPerson: '',
+    secondaryContactPhone: '',
     schoolDetails: emptySchoolDetails(),
     isActive: true,
     accessMode: 'unlimited' as 'unlimited' | 'limited',
-    limitedFeatures: [...SCHOOL_PORTAL_FEATURES] as string[],
+    limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS] as string[],
   });
   const [isUploadingAddLogo, setIsUploadingAddLogo] = useState(false);
   const [isUploadingEditLogo, setIsUploadingEditLogo] = useState(false);
@@ -192,16 +293,21 @@ export default function AdminManagement() {
     };
   };
 
-  // Board options (codes must match backend VALID_SCHOOL_BOARDS)
+  /**
+   * Curriculum the school aligns to. Asli Prep vs normal usage is the toggle below (not a board value).
+   */
   const boardOptions = [
-    { value: 'ASLI_EXCLUSIVE_SCHOOLS', label: 'ASLI Exclusive Schools' },
-    { value: 'CBSE', label: 'CBSE' },
-    { value: 'STATE', label: 'State Board' },
+    { value: "CBSE", label: "CBSE — Central Board of Secondary Education" },
+    { value: "SSC", label: "SSC — State Board / Secondary School Certificate" },
+    { value: "STATE", label: "State Board (generic)" },
+    { value: "ICSE", label: "ICSE — Indian Certificate of Secondary Education" },
+    { value: "IB", label: "IB — International Baccalaureate" },
+    { value: "CAMBRIDGE", label: "Cambridge — CAIE / Cambridge International" },
   ];
 
-  const normalizeAdminBoard = (b?: string): string => {
-    const code = (b || '').toUpperCase();
-    return boardOptions.some((o) => o.value === code) ? code : DEFAULT_BOARD;
+  const normalizeCurriculumBoard = (b?: string): string => {
+    const code = (b || "").toUpperCase().trim();
+    return boardOptions.some((o) => o.value === code) ? code : DEFAULT_CURRICULUM_BOARD;
   };
 
   const mediumOptions = [
@@ -417,12 +523,15 @@ export default function AdminManagement() {
         name: newAdmin.name,
         email: newAdmin.email,
         board: newAdmin.board,
+        isAsliPrepExclusive: newAdmin.isAsliPrepExclusive,
         state: newAdmin.state,
         place: newAdmin.state,
         schoolName: newAdmin.schoolName,
         schoolLogo: newAdmin.schoolLogo,
         contactPerson: newAdmin.contactPerson?.trim() || '',
         phone: newAdmin.phone?.trim() || '',
+        secondaryContactPerson: newAdmin.secondaryContactPerson?.trim() || '',
+        secondaryContactPhone: newAdmin.secondaryContactPhone?.trim() || '',
         pin: newAdmin.pin?.trim() || '',
         permissions: resolvePortalPermissions(newAdmin.accessMode, newAdmin.limitedFeatures),
         schoolDetails: {
@@ -462,16 +571,19 @@ export default function AdminManagement() {
           name: '',
           email: '',
           password: '',
-          board: DEFAULT_BOARD,
+          board: DEFAULT_CURRICULUM_BOARD,
+          isAsliPrepExclusive: false,
           state: '',
           schoolName: '',
           schoolLogo: '',
           phone: '',
           pin: '',
           contactPerson: '',
+          secondaryContactPerson: '',
+          secondaryContactPhone: '',
           schoolDetails: emptySchoolDetails(),
           accessMode: "unlimited",
-          limitedFeatures: [...SCHOOL_PORTAL_FEATURES],
+          limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS],
         });
         setIsAddDialogOpen(false);
         toast({
@@ -517,22 +629,31 @@ export default function AdminManagement() {
     const sd = admin.schoolDetails || emptySchoolDetails();
     const perms = admin.permissions || [];
     const unlimited = isUnlimitedPortalAccess(perms);
+    const rawCurriculum =
+      admin.curriculumBoard ||
+      (isCurriculumBoardCode(admin.board) ? String(admin.board).toUpperCase().trim() : "");
+    const exclusive =
+      admin.isAsliPrepExclusive === true ||
+      String(admin.board || "").toUpperCase() === "ASLI_EXCLUSIVE_SCHOOLS";
     setEditAdmin({
       name: admin.name || '',
       email: admin.email || '',
-      board: normalizeAdminBoard(admin.board),
+      board: normalizeCurriculumBoard(rawCurriculum),
+      isAsliPrepExclusive: exclusive,
       state: normalizeStateValue(admin.state || admin.place || sd.state),
       schoolName: admin.schoolName || '',
       schoolLogo: admin.schoolLogo || '',
       phone: admin.phone || '',
       pin: admin.pin || '',
       contactPerson: admin.contactPerson || '',
+      secondaryContactPerson: admin.secondaryContactPerson || '',
+      secondaryContactPhone: admin.secondaryContactPhone || '',
       schoolDetails: { ...emptySchoolDetails(), ...sd },
       isActive: admin.status === 'active' || admin.status === 'Active',
       accessMode: unlimited ? "unlimited" : "limited",
       limitedFeatures: unlimited
-        ? [...SCHOOL_PORTAL_FEATURES]
-        : SCHOOL_PORTAL_FEATURES.filter((f) => perms.includes(f)),
+        ? [...SCHOOL_PORTAL_FEATURE_IDS]
+        : SCHOOL_PORTAL_FEATURE_IDS.filter((f) => perms.includes(f)),
     });
     setIsEditDialogOpen(true);
   };
@@ -592,12 +713,15 @@ export default function AdminManagement() {
           name: editAdmin.name,
           email: editAdmin.email,
           board: editAdmin.board,
+          isAsliPrepExclusive: editAdmin.isAsliPrepExclusive,
           state: editAdmin.state,
           place: editAdmin.state,
           schoolName: editAdmin.schoolName,
           schoolLogo: editAdmin.schoolLogo,
           contactPerson: editAdmin.contactPerson?.trim() || '',
           phone: editAdmin.phone?.trim() || '',
+          secondaryContactPerson: editAdmin.secondaryContactPerson?.trim() || '',
+          secondaryContactPhone: editAdmin.secondaryContactPhone?.trim() || '',
           pin: editAdmin.pin?.trim() || '',
           schoolDetails: {
             ...esd,
@@ -636,17 +760,20 @@ export default function AdminManagement() {
         setEditAdmin({
           name: '',
           email: '',
-          board: DEFAULT_BOARD,
+          board: DEFAULT_CURRICULUM_BOARD,
+          isAsliPrepExclusive: false,
           state: '',
           schoolName: '',
           schoolLogo: '',
           phone: '',
           pin: '',
           contactPerson: '',
+          secondaryContactPerson: '',
+          secondaryContactPhone: '',
           schoolDetails: emptySchoolDetails(),
           isActive: true,
           accessMode: "unlimited",
-          limitedFeatures: [...SCHOOL_PORTAL_FEATURES],
+          limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS],
         });
         toast({
           title: "Success",
@@ -776,14 +903,17 @@ export default function AdminManagement() {
               Add New School
             </Button>
           </DialogTrigger>
-          <DialogContent className="flex h-auto max-h-[94vh] w-[min(96vw,80rem)] max-w-none translate-x-[-50%] translate-y-[-50%] flex-col gap-0 overflow-hidden p-0 sm:max-w-none">
+          <DialogContent
+            className="flex max-h-[min(100dvh,100svh)] w-[min(96vw,80rem)] max-w-none translate-x-[-50%] translate-y-[-50%] flex-col gap-0 overflow-hidden p-0 sm:max-h-[94vh] sm:max-w-none"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+          >
             <DialogHeader className="shrink-0 space-y-1 border-b px-6 py-4 text-left">
               <DialogTitle>Add New School</DialogTitle>
               <DialogDescription>
-                Three-column layout on large screens. Choose ASLI Exclusive Schools, CBSE, or State Board.
+                Scroll on small screens to see all fields. Three columns on large screens. Pick the curriculum board the school follows, then use the toggle for normal usage vs Asli Prep (like Limited vs Unlimited below).
               </DialogDescription>
             </DialogHeader>
-            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-6 py-4">
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-6 py-4 pb-8 [-webkit-overflow-scrolling:touch]">
               <p className="mb-3 text-sm font-semibold text-gray-900">Administrator</p>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-1.5">
@@ -819,12 +949,47 @@ export default function AdminManagement() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="contactPerson">Contact person</Label>
+                  <Label htmlFor="contactPerson">Primary contact name</Label>
                   <Input
                     id="contactPerson"
                     value={newAdmin.contactPerson}
                     onChange={(e) => setNewAdmin({ ...newAdmin, contactPerson: e.target.value })}
                     placeholder="Primary contact name"
+                    className={SCHOOL_FORM_FIELD_CLASS}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="phone">Primary contact number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    value={newAdmin.phone}
+                    onChange={(e) => setNewAdmin({ ...newAdmin, phone: e.target.value })}
+                    placeholder="Phone / WhatsApp"
+                    className={SCHOOL_FORM_FIELD_CLASS}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="secondaryContactPerson">Secondary contact name</Label>
+                  <Input
+                    id="secondaryContactPerson"
+                    value={newAdmin.secondaryContactPerson}
+                    onChange={(e) => setNewAdmin({ ...newAdmin, secondaryContactPerson: e.target.value })}
+                    placeholder="Alternate contact person"
+                    className={SCHOOL_FORM_FIELD_CLASS}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="secondaryContactPhone">Secondary contact number</Label>
+                  <Input
+                    id="secondaryContactPhone"
+                    type="tel"
+                    inputMode="tel"
+                    value={newAdmin.secondaryContactPhone}
+                    onChange={(e) => setNewAdmin({ ...newAdmin, secondaryContactPhone: e.target.value })}
+                    placeholder="Alternate phone"
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
@@ -946,7 +1111,7 @@ export default function AdminManagement() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="board">Board *</Label>
+                  <Label htmlFor="board">Curriculum board *</Label>
                   <Select
                     value={newAdmin.board}
                     onValueChange={(value) => setNewAdmin({ ...newAdmin, board: value })}
@@ -962,6 +1127,43 @@ export default function AdminManagement() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-800">School program</p>
+                        <p className="text-xs text-gray-600">
+                          Normal schools use the curriculum board only. Turn on Asli Prep for schools on the Asli Prep track (same pattern as Limited vs Unlimited below).
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-3">
+                        <span
+                          className={cn(
+                            "text-sm",
+                            !newAdmin.isAsliPrepExclusive ? "font-semibold text-gray-900" : "text-gray-500"
+                          )}
+                        >
+                          Normal usage
+                        </span>
+                        <Switch
+                          checked={newAdmin.isAsliPrepExclusive}
+                          onCheckedChange={(checked) =>
+                            setNewAdmin({ ...newAdmin, isAsliPrepExclusive: checked })
+                          }
+                          aria-label="Toggle Asli Prep school program"
+                        />
+                        <span
+                          className={cn(
+                            "text-sm",
+                            newAdmin.isAsliPrepExclusive ? "font-semibold text-orange-800" : "text-gray-500"
+                          )}
+                        >
+                          Asli Prep
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="medium">Medium</Label>
@@ -1054,16 +1256,6 @@ export default function AdminManagement() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    value={newAdmin.phone}
-                    onChange={(e) => setNewAdmin({ ...newAdmin, phone: e.target.value })}
-                    placeholder="School / office phone"
-                    className={SCHOOL_FORM_FIELD_CLASS}
-                  />
-                </div>
                 <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
                   <Label htmlFor="schoolLogo">School Logo</Label>
                   <Input
@@ -1146,10 +1338,10 @@ export default function AdminManagement() {
                           ...newAdmin,
                           accessMode: checked ? "unlimited" : "limited",
                           limitedFeatures: checked
-                            ? [...SCHOOL_PORTAL_FEATURES]
+                            ? [...SCHOOL_PORTAL_FEATURE_IDS]
                             : newAdmin.limitedFeatures.length > 0
                               ? newAdmin.limitedFeatures
-                              : [...SCHOOL_PORTAL_FEATURES],
+                              : [...SCHOOL_PORTAL_FEATURE_IDS],
                         })
                       }
                       aria-label="Toggle unlimited portal access"
@@ -1165,28 +1357,71 @@ export default function AdminManagement() {
                   </div>
                 </div>
                 {newAdmin.accessMode === "limited" && (
-                  <div className="mt-4 border-t border-slate-200/80 pt-4">
-                    <p className="mb-2 text-xs font-medium text-gray-700">Modules for this school</p>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {SCHOOL_PORTAL_FEATURES.map((feature) => (
-                        <div key={feature} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`add-portal-${feature}`}
-                            checked={newAdmin.limitedFeatures.includes(feature)}
-                            onCheckedChange={(c) => {
-                              const on = c === true;
-                              const next = new Set(newAdmin.limitedFeatures);
-                              if (on) next.add(feature);
-                              else next.delete(feature);
-                              setNewAdmin({
-                                ...newAdmin,
-                                limitedFeatures: Array.from(next),
-                              });
-                            }}
-                          />
-                          <Label htmlFor={`add-portal-${feature}`} className="cursor-pointer text-sm font-normal">
-                            {feature}
-                          </Label>
+                  <div className="mt-4 border-t border-slate-200/80 pt-4 space-y-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-xs font-medium text-gray-700">Modules for this school</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={() =>
+                            setNewAdmin({ ...newAdmin, limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS] })
+                          }
+                        >
+                          Select all
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={() => setNewAdmin({ ...newAdmin, limitedFeatures: [] })}
+                        >
+                          Clear all
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-5">
+                      {SCHOOL_PORTAL_MODULE_GROUPS.map((group) => (
+                        <div key={group.category}>
+                          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                            {group.category}
+                          </p>
+                          <div className="grid gap-2 grid-cols-1 lg:grid-cols-2">
+                            {group.modules.map((mod) => {
+                              const cid = portalCheckboxId("add-portal", mod.id);
+                              return (
+                                <div
+                                  key={mod.id}
+                                  className="flex gap-3 rounded-lg border border-slate-200/90 bg-white p-3 shadow-sm"
+                                >
+                                  <Checkbox
+                                    id={cid}
+                                    className="mt-0.5 shrink-0"
+                                    checked={newAdmin.limitedFeatures.includes(mod.id)}
+                                    onCheckedChange={(c) => {
+                                      const on = c === true;
+                                      const next = new Set(newAdmin.limitedFeatures);
+                                      if (on) next.add(mod.id);
+                                      else next.delete(mod.id);
+                                      setNewAdmin({
+                                        ...newAdmin,
+                                        limitedFeatures: Array.from(next),
+                                      });
+                                    }}
+                                  />
+                                  <div className="min-w-0 flex-1 space-y-0.5">
+                                    <Label htmlFor={cid} className="cursor-pointer text-sm font-medium text-slate-900">
+                                      {mod.title}
+                                    </Label>
+                                    <p className="text-xs leading-snug text-slate-600">{mod.description}</p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1194,7 +1429,7 @@ export default function AdminManagement() {
                 )}
               </div>
             </div>
-            <div className="flex shrink-0 justify-end gap-2 border-t px-6 py-4">
+            <div className="flex shrink-0 justify-end gap-2 border-t bg-background px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                 Cancel
               </Button>
@@ -1207,14 +1442,17 @@ export default function AdminManagement() {
 
         {/* Edit Admin Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="flex h-auto max-h-[94vh] w-[min(96vw,80rem)] max-w-none translate-x-[-50%] translate-y-[-50%] flex-col gap-0 overflow-hidden p-0 sm:max-w-none">
+          <DialogContent
+            className="flex max-h-[min(100dvh,100svh)] w-[min(96vw,80rem)] max-w-none translate-x-[-50%] translate-y-[-50%] flex-col gap-0 overflow-hidden p-0 sm:max-h-[94vh] sm:max-w-none"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+          >
             <DialogHeader className="shrink-0 space-y-1 border-b px-6 py-4 text-left">
               <DialogTitle>Edit School</DialogTitle>
               <DialogDescription>
-                Three-column layout on large screens. Choose ASLI Exclusive Schools, CBSE, or State Board.
+                Scroll on small screens to see all fields. Three columns on large screens. Pick the curriculum board the school follows, then use the toggle for normal usage vs Asli Prep (like Limited vs Unlimited below).
               </DialogDescription>
             </DialogHeader>
-            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-6 py-4">
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-6 py-4 pb-8 [-webkit-overflow-scrolling:touch]">
               <p className="mb-3 text-sm font-semibold text-gray-900">Administrator</p>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-1.5">
@@ -1239,12 +1477,47 @@ export default function AdminManagement() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="edit-contactPerson">Contact person</Label>
+                  <Label htmlFor="edit-contactPerson">Primary contact name</Label>
                   <Input
                     id="edit-contactPerson"
                     value={editAdmin.contactPerson}
                     onChange={(e) => setEditAdmin({ ...editAdmin, contactPerson: e.target.value })}
                     placeholder="Primary contact name"
+                    className={SCHOOL_FORM_FIELD_CLASS}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-phone">Primary contact number</Label>
+                  <Input
+                    id="edit-phone"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    value={editAdmin.phone}
+                    onChange={(e) => setEditAdmin({ ...editAdmin, phone: e.target.value })}
+                    placeholder="Phone / WhatsApp"
+                    className={SCHOOL_FORM_FIELD_CLASS}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-secondaryContactPerson">Secondary contact name</Label>
+                  <Input
+                    id="edit-secondaryContactPerson"
+                    value={editAdmin.secondaryContactPerson}
+                    onChange={(e) => setEditAdmin({ ...editAdmin, secondaryContactPerson: e.target.value })}
+                    placeholder="Alternate contact person"
+                    className={SCHOOL_FORM_FIELD_CLASS}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-secondaryContactPhone">Secondary contact number</Label>
+                  <Input
+                    id="edit-secondaryContactPhone"
+                    type="tel"
+                    inputMode="tel"
+                    value={editAdmin.secondaryContactPhone}
+                    onChange={(e) => setEditAdmin({ ...editAdmin, secondaryContactPhone: e.target.value })}
+                    placeholder="Alternate phone"
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
@@ -1372,7 +1645,7 @@ export default function AdminManagement() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="edit-board">Board *</Label>
+                  <Label htmlFor="edit-board">Curriculum board *</Label>
                   <Select
                     value={editAdmin.board}
                     onValueChange={(value) => setEditAdmin({ ...editAdmin, board: value })}
@@ -1388,6 +1661,43 @@ export default function AdminManagement() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="space-y-1">
+                        <p className="text-sm text-gray-800">School program</p>
+                        <p className="text-xs text-gray-600">
+                          Normal schools use the curriculum board only. Turn on Asli Prep for the Asli Prep track.
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-3">
+                        <span
+                          className={cn(
+                            "text-sm",
+                            !editAdmin.isAsliPrepExclusive ? "font-semibold text-gray-900" : "text-gray-500"
+                          )}
+                        >
+                          Normal usage
+                        </span>
+                        <Switch
+                          checked={editAdmin.isAsliPrepExclusive}
+                          onCheckedChange={(checked) =>
+                            setEditAdmin({ ...editAdmin, isAsliPrepExclusive: checked })
+                          }
+                          aria-label="Toggle Asli Prep school program"
+                        />
+                        <span
+                          className={cn(
+                            "text-sm",
+                            editAdmin.isAsliPrepExclusive ? "font-semibold text-orange-800" : "text-gray-500"
+                          )}
+                        >
+                          Asli Prep
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="edit-medium">Medium</Label>
@@ -1477,15 +1787,6 @@ export default function AdminManagement() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="edit-phone">Phone Number</Label>
-                  <Input
-                    id="edit-phone"
-                    value={editAdmin.phone}
-                    onChange={(e) => setEditAdmin({ ...editAdmin, phone: e.target.value })}
-                    className={SCHOOL_FORM_FIELD_CLASS}
-                  />
-                </div>
                 <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
                   <Label htmlFor="edit-schoolLogo">School Logo</Label>
                   <Input
@@ -1568,10 +1869,10 @@ export default function AdminManagement() {
                           ...editAdmin,
                           accessMode: checked ? "unlimited" : "limited",
                           limitedFeatures: checked
-                            ? [...SCHOOL_PORTAL_FEATURES]
+                            ? [...SCHOOL_PORTAL_FEATURE_IDS]
                             : editAdmin.limitedFeatures.length > 0
                               ? editAdmin.limitedFeatures
-                              : [...SCHOOL_PORTAL_FEATURES],
+                              : [...SCHOOL_PORTAL_FEATURE_IDS],
                         })
                       }
                       aria-label="Toggle unlimited portal access"
@@ -1587,28 +1888,71 @@ export default function AdminManagement() {
                   </div>
                 </div>
                 {editAdmin.accessMode === "limited" && (
-                  <div className="mt-4 border-t border-slate-200/80 pt-4">
-                    <p className="mb-2 text-xs font-medium text-gray-700">Modules for this school</p>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {SCHOOL_PORTAL_FEATURES.map((feature) => (
-                        <div key={feature} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`edit-portal-${feature}`}
-                            checked={editAdmin.limitedFeatures.includes(feature)}
-                            onCheckedChange={(c) => {
-                              const on = c === true;
-                              const next = new Set(editAdmin.limitedFeatures);
-                              if (on) next.add(feature);
-                              else next.delete(feature);
-                              setEditAdmin({
-                                ...editAdmin,
-                                limitedFeatures: Array.from(next),
-                              });
-                            }}
-                          />
-                          <Label htmlFor={`edit-portal-${feature}`} className="cursor-pointer text-sm font-normal">
-                            {feature}
-                          </Label>
+                  <div className="mt-4 border-t border-slate-200/80 pt-4 space-y-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-xs font-medium text-gray-700">Modules for this school</p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={() =>
+                            setEditAdmin({ ...editAdmin, limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS] })
+                          }
+                        >
+                          Select all
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={() => setEditAdmin({ ...editAdmin, limitedFeatures: [] })}
+                        >
+                          Clear all
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-5">
+                      {SCHOOL_PORTAL_MODULE_GROUPS.map((group) => (
+                        <div key={group.category}>
+                          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                            {group.category}
+                          </p>
+                          <div className="grid gap-2 grid-cols-1 lg:grid-cols-2">
+                            {group.modules.map((mod) => {
+                              const cid = portalCheckboxId("edit-portal", mod.id);
+                              return (
+                                <div
+                                  key={mod.id}
+                                  className="flex gap-3 rounded-lg border border-slate-200/90 bg-white p-3 shadow-sm"
+                                >
+                                  <Checkbox
+                                    id={cid}
+                                    className="mt-0.5 shrink-0"
+                                    checked={editAdmin.limitedFeatures.includes(mod.id)}
+                                    onCheckedChange={(c) => {
+                                      const on = c === true;
+                                      const next = new Set(editAdmin.limitedFeatures);
+                                      if (on) next.add(mod.id);
+                                      else next.delete(mod.id);
+                                      setEditAdmin({
+                                        ...editAdmin,
+                                        limitedFeatures: Array.from(next),
+                                      });
+                                    }}
+                                  />
+                                  <div className="min-w-0 flex-1 space-y-0.5">
+                                    <Label htmlFor={cid} className="cursor-pointer text-sm font-medium text-slate-900">
+                                      {mod.title}
+                                    </Label>
+                                    <p className="text-xs leading-snug text-slate-600">{mod.description}</p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1616,7 +1960,7 @@ export default function AdminManagement() {
                 )}
               </div>
             </div>
-            <div className="flex shrink-0 justify-end gap-2 border-t px-6 py-4">
+            <div className="flex shrink-0 justify-end gap-2 border-t bg-background px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -1640,7 +1984,7 @@ export default function AdminManagement() {
           <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
           <Input
             type="text"
-            placeholder="Search by school name, contact person, email, or board..."
+            placeholder="Search by school, contact, email, state, board, or Asli Prep…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -1709,13 +2053,20 @@ export default function AdminManagement() {
         const filteredAdmins = admins?.filter((admin) => {
           if (!searchQuery) return true;
           const query = searchQuery.toLowerCase();
-          return (
-            (admin.schoolName?.toLowerCase().includes(query)) ||
-            (admin.name?.toLowerCase().includes(query)) ||
-            (admin.email?.toLowerCase().includes(query)) ||
-            (admin.board?.toLowerCase().includes(query)) ||
-            (admin.state?.toLowerCase().includes(query))
-          );
+          const searchBlob = [
+            admin.schoolName,
+            admin.name,
+            admin.email,
+            admin.state,
+            admin.board,
+            admin.curriculumBoard,
+            curriculumDisplayLabel(admin.curriculumBoard),
+            admin.isAsliPrepExclusive ? "asli prep exclusive" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          return searchBlob.includes(query);
         });
 
         return (
@@ -1769,9 +2120,20 @@ export default function AdminManagement() {
                           Limited access
                         </Badge>
                       )}
-                      {admin?.board && (
-                        <Badge variant="outline" className="text-xs break-all max-w-full">
-                          {admin.board}
+                      <Badge variant="outline" className="text-xs break-all max-w-full">
+                        {curriculumDisplayLabel(
+                          normalizeCurriculumBoard(
+                            admin.curriculumBoard ||
+                              (isCurriculumBoardCode(admin.board) ? String(admin.board) : "")
+                          )
+                        )}
+                      </Badge>
+                      {admin.isAsliPrepExclusive && (
+                        <Badge
+                          variant="outline"
+                          className="border-orange-200 bg-orange-50 text-xs text-orange-950 break-all max-w-full"
+                        >
+                          Asli Prep
                         </Badge>
                       )}
                       {admin?.state && (

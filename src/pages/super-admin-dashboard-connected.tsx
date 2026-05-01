@@ -1256,7 +1256,18 @@ export default function SuperAdminDashboard() {
                   <div>
                     <Label>Permissions</Label>
                     <div className="space-y-2">
-                      {['User Management', 'Content Management', 'Analytics', 'Subscriptions', 'Settings'].map((permission) => (
+                      {[
+                        'User Management',
+                        'Content Management',
+                        'Analytics',
+                        'Subscriptions',
+                        'Settings',
+                        'Exam Management',
+                        'Learning Paths',
+                        'School Calendar',
+                        'Vidya AI',
+                        'Edu OTT',
+                      ].map((permission) => (
                         <div key={permission} className="flex items-center space-x-2">
                           <input 
                             type="checkbox" 

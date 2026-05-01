@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useSuperAdminDrawerNav } from "@/hooks/use-mobile";
 import { useState } from "react";
 
 export type SuperAdminView =
@@ -56,7 +56,7 @@ interface SuperAdminSidebarProps {
 }
 
 export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }: SuperAdminSidebarProps) {
-  const isMobile = useIsMobile();
+  const useDrawerNav = useSuperAdminDrawerNav();
   const [mobileOpen, setMobileOpen] = useState(false);
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3Icon },
@@ -102,14 +102,14 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
                   onViewChange(item.id as SuperAdminView);
                   setMobileOpen(false);
                 }}
-                className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                className={`w-full flex items-start gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors text-left ${
                   isActive
                     ? "bg-white text-orange-600 shadow-md"
                     : "text-white hover:bg-orange-600/50"
                 }`}
               >
-                <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                <span className="truncate">{item.label}</span>
+                <Icon className="mt-0.5 h-5 w-5 flex-shrink-0" />
+                <span className="min-w-0 flex-1 leading-snug break-words">{item.label}</span>
               </button>
             );
           })}
@@ -141,15 +141,15 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
     </div>
   );
 
-  if (isMobile) {
+  if (useDrawerNav) {
     return (
       <>
-        <div className="fixed top-0 left-0 right-0 z-30 bg-gradient-to-r from-orange-400 to-orange-500 border-b border-orange-300/60 shadow-md">
-          <div className="h-14 px-4 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <GraduationCapIcon className="h-6 w-6 text-white" />
-              <div>
-                <h2 className="text-sm font-bold text-white leading-none">Aslilearn AI</h2>
+        <div className="fixed top-0 left-0 right-0 z-30 bg-gradient-to-r from-orange-400 to-orange-500 border-b border-orange-300/60 shadow-md pt-[env(safe-area-inset-top,0px)]">
+          <div className="h-14 px-4 flex items-center justify-between min-h-[3.5rem]">
+            <div className="flex items-center space-x-2 min-w-0">
+              <GraduationCapIcon className="h-6 w-6 text-white shrink-0" />
+              <div className="min-w-0">
+                <h2 className="text-sm font-bold text-white leading-none truncate">Aslilearn AI</h2>
                 <p className="text-[10px] text-white/90">Super Admin</p>
               </div>
             </div>
@@ -158,14 +158,15 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white hover:bg-orange-600/40"
+                  className="text-white hover:bg-orange-600/40 shrink-0"
+                  aria-label="Open menu"
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
               <SheetContent
                 side="left"
-                className="w-80 max-w-[90vw] p-0 bg-gradient-to-b from-orange-400 to-orange-500 border-r border-orange-300"
+                className="w-[min(20rem,92vw)] sm:w-80 p-0 bg-gradient-to-b from-orange-400 to-orange-500 border-r border-orange-300 overflow-y-auto"
               >
                 {sidebarContent}
               </SheetContent>
@@ -177,7 +178,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
   }
 
   return (
-    <div className="super-admin-sidebar w-64 bg-gradient-to-b from-orange-400 to-orange-500 shadow-sm border-r border-orange-300 h-screen fixed top-0 left-0 overflow-y-auto flex flex-col z-20">
+    <div className="super-admin-sidebar w-64 min-w-[16rem] max-w-[16rem] bg-gradient-to-b from-orange-400 to-orange-500 shadow-sm border-r border-orange-300 h-screen fixed top-0 left-0 overflow-y-auto flex flex-col z-20">
       {sidebarContent}
     </div>
   );

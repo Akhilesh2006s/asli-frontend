@@ -95,6 +95,7 @@ export default function AIContentEngine() {
   const fileFieldClassName =
     "h-11 border-slate-200 bg-blue-50/40 text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-200";
   const labelClassName = "text-slate-700";
+  const reqStar = <span className="text-red-600">*</span>;
   const getToolLabel = (toolValue?: string) =>
     toolOptions.find((tool) => tool.value === String(toolValue || "").trim())?.label || toolValue || "-";
   const parseQuestionBlob = (blob: string) => {
@@ -595,9 +596,9 @@ export default function AIContentEngine() {
   }, [classLabel, subject, topic]);
 
   const handleUpload = async () => {
-    if (!file || !subject || !classLabel || !topic || !subTopic || !toolType) {
-      setUploadError("File, class, subject, topic, sub topic and tool are required.");
-      toast({ title: "Missing fields", description: "File, class, subject, topic, sub topic and tool are required." });
+    if (!file || !subject || !classLabel || !topic || !toolType) {
+      setUploadError("File, class, subject, topic, and tool are required.");
+      toast({ title: "Missing fields", description: "File, class, subject, topic, and tool are required." });
       return;
     }
     setIsUploading(true);
@@ -609,7 +610,7 @@ export default function AIContentEngine() {
       form.append("class", classLabel);
       form.append("chapter", topic);
       form.append("topic", topic);
-      form.append("subTopic", subTopic);
+      form.append("subTopic", String(subTopic || "").trim());
       form.append("toolType", toolType);
       const res = await fetch(`${API_BASE_URL}/api/pdf/upload`, {
         method: "POST",
@@ -662,7 +663,9 @@ export default function AIContentEngine() {
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
-            <Label className={labelClassName}>PDF</Label>
+            <Label className={labelClassName}>
+              PDF {reqStar}
+            </Label>
             <Input
               className={fileFieldClassName}
               type="file"
@@ -671,7 +674,9 @@ export default function AIContentEngine() {
             />
           </div>
           <div>
-            <Label className={labelClassName}>Class</Label>
+            <Label className={labelClassName}>
+              Class {reqStar}
+            </Label>
             <Select
               value={classLabel}
               onValueChange={(value) => {
@@ -695,7 +700,9 @@ export default function AIContentEngine() {
             </Select>
           </div>
           <div>
-            <Label className={labelClassName}>Subject</Label>
+            <Label className={labelClassName}>
+              Subject {reqStar}
+            </Label>
             <Select
               value={subject}
               onValueChange={(value) => {
@@ -722,7 +729,9 @@ export default function AIContentEngine() {
             </Select>
           </div>
           <div>
-            <Label className={labelClassName}>Topic</Label>
+            <Label className={labelClassName}>
+              Topic {reqStar}
+            </Label>
             <Select
               value={topic}
               onValueChange={(value) => {
@@ -761,7 +770,11 @@ export default function AIContentEngine() {
               <SelectTrigger className={fieldClassName}>
                 <SelectValue
                   placeholder={
-                    !topic ? "Select topic first" : loadingSubtopics ? "Loading sub topics..." : "Select sub topic"
+                    !topic
+                      ? "Select topic first"
+                      : loadingSubtopics
+                        ? "Loading sub topics..."
+                        : "Optional — select sub topic"
                   }
                 />
               </SelectTrigger>
@@ -775,7 +788,9 @@ export default function AIContentEngine() {
             </Select>
           </div>
           <div>
-            <Label className={labelClassName}>Tool</Label>
+            <Label className={labelClassName}>
+              Tool {reqStar}
+            </Label>
             <Select value={toolType} onValueChange={setToolType}>
               <SelectTrigger className={fieldClassName}>
                 <SelectValue placeholder="Select tool" />

@@ -64,7 +64,13 @@ interface Exam {
 }
 
 const BOARDS = [
-  { value: 'ASLI_EXCLUSIVE_SCHOOLS', label: 'Asli Exclusive Schools' }
+  { value: 'ASLI_EXCLUSIVE_SCHOOLS', label: 'Asli Prep (exclusive)' },
+  { value: 'CBSE', label: 'CBSE' },
+  { value: 'SSC', label: 'SSC / State Board' },
+  { value: 'STATE', label: 'State Board (generic)' },
+  { value: 'ICSE', label: 'ICSE' },
+  { value: 'IB', label: 'IB' },
+  { value: 'CAMBRIDGE', label: 'Cambridge (CAIE)' },
 ];
 
 const EXAM_TYPES = [
@@ -1883,7 +1889,10 @@ export default function ExamManagement() {
                 Upload CSV
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent
+              className="max-w-2xl"
+              onOpenAutoFocus={(e) => e.preventDefault()}
+            >
               <DialogHeader>
                 <DialogTitle>Bulk Upload Exams via CSV</DialogTitle>
                 <DialogDescription>
@@ -1977,7 +1986,10 @@ export default function ExamManagement() {
                 Create Exam
               </Button>
             </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent
+            className="max-w-2xl max-h-[90vh] overflow-y-auto"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+          >
             <DialogHeader>
               <DialogTitle>{isEditing ? 'Edit Exam' : 'Create New Exam'}</DialogTitle>
               <DialogDescription>
@@ -2385,13 +2397,13 @@ export default function ExamManagement() {
                   <h3 className="text-lg font-semibold text-gray-900">{classLabel}</h3>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 items-stretch md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
                   {classExams.map((exam) => {
                         const examClassLabels = getExamClassStrings(exam);
                         const examSubjects = getExamSubjects(exam);
 
                         return (
-                          <Card key={exam._id} className="border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+                          <Card className="flex h-full flex-col border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
                             <CardHeader className="px-4 pb-2 pt-4">
                               <div className="space-y-2">
                                 <CardTitle className="text-base font-bold text-gray-900 leading-tight line-clamp-2">{exam.title}</CardTitle>
@@ -2408,77 +2420,82 @@ export default function ExamManagement() {
                                 </div>
                               </div>
                             </CardHeader>
-                            <CardContent className="px-4 pb-4 pt-1 space-y-3">
-                              {exam.description && (
-                                <p className="text-xs text-gray-600 line-clamp-2">{exam.description}</p>
-                              )}
-                              <div className="space-y-1.5 text-xs text-gray-600">
-                                <div className="flex items-center gap-1.5">
-                                  <Clock className="h-3.5 w-3.5 text-gray-500" />
-                                  <span>{exam.duration} min</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <BookOpen className="h-3.5 w-3.5 text-gray-500" />
-                                  <span>{exam.totalQuestions} questions · {exam.totalMarks} marks</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <Eye className="h-3.5 w-3.5 text-gray-500" />
-                                  <span>{exam.maxAttempts || 1} attempt(s)</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <Calendar className="h-3.5 w-3.5 text-gray-500" />
-                                  <span>
-                                    {new Date(exam.startDate).toLocaleDateString()} - {new Date(exam.endDate).toLocaleDateString()}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="flex flex-wrap gap-1">
-                                {examSubjects.map((subj) => (
-                                  <Badge key={`${exam._id}-subject-${subj}`} variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
-                                    {EXAM_SUBJECTS.find((x) => x.value === subj)?.label || normalizeDisplayText(subj)}
-                                  </Badge>
-                                ))}
-                                {examClassLabels.length > 0 ? (
-                                  examClassLabels.map((cls: string, idx: number) => (
-                                    <Badge key={`${exam._id}-class-${idx}`} variant="outline" className="text-[10px] bg-gray-50">
-                                      {`Class ${cls}`}
-                                    </Badge>
-                                  ))
-                                ) : (
-                                  <Badge variant="outline" className="text-[10px] bg-gray-50">No Class Assigned</Badge>
+                            <CardContent className="flex flex-1 flex-col px-4 pb-4 pt-1">
+                              <div className="min-h-0 flex-1 space-y-3">
+                                {exam.description && (
+                                  <p className="text-xs text-gray-600 line-clamp-2">{exam.description}</p>
                                 )}
+                                <div className="space-y-1.5 text-xs text-gray-600">
+                                  <div className="flex items-center gap-1.5">
+                                    <Clock className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                                    <span>{exam.duration} min</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <BookOpen className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                                    <span>{exam.totalQuestions} questions · {exam.totalMarks} marks</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <Eye className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                                    <span>{exam.maxAttempts || 1} attempt(s)</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <Calendar className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+                                    <span>
+                                      {new Date(exam.startDate).toLocaleDateString()} - {new Date(exam.endDate).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  {examSubjects.map((subj) => (
+                                    <Badge key={`${exam._id}-subject-${subj}`} variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
+                                      {EXAM_SUBJECTS.find((x) => x.value === subj)?.label || normalizeDisplayText(subj)}
+                                    </Badge>
+                                  ))}
+                                  {examClassLabels.length > 0 ? (
+                                    examClassLabels.map((cls: string, idx: number) => (
+                                      <Badge key={`${exam._id}-class-${idx}`} variant="outline" className="text-[10px] bg-gray-50">
+                                        {`Class ${cls}`}
+                                      </Badge>
+                                    ))
+                                  ) : (
+                                    <Badge variant="outline" className="text-[10px] bg-gray-50">No Class Assigned</Badge>
+                                  )}
+                                </div>
                               </div>
-                              <div className="grid grid-cols-[auto,1fr,auto] items-center gap-2 pt-1">
+                              <div className="mt-auto grid grid-cols-2 gap-2 border-t border-gray-100 pt-3 select-none">
                                 <Button
+                                  type="button"
                                   variant="outline"
                                   size="sm"
-                                  className="h-8 px-2 text-xs shrink-0"
+                                  className="h-8 justify-center px-2 text-xs select-none"
                                   onClick={() => openEditExamDialog(exam)}
                                 >
-                                  <Edit className="h-3.5 w-3.5 mr-1" />
-                                  Edit
+                                  <Edit className="mr-1 h-3.5 w-3.5 shrink-0" />
+                                  <span className="whitespace-nowrap">Edit</span>
                                 </Button>
                                 <Button
+                                  type="button"
                                   variant="outline"
                                   size="sm"
-                                  className="h-8 px-2 text-xs min-w-0"
+                                  className="h-8 justify-center px-2 text-xs select-none"
                                   onClick={() => {
                                     setSelectedExam(exam);
                                     setIsQuestionDialogOpen(true);
                                     fetchQuestions(exam._id);
                                   }}
                                 >
-                                  <FileQuestion className="h-3.5 w-3.5 mr-1" />
-                                  <span className="truncate">Add Questions</span>
+                                  <FileQuestion className="mr-1 h-3.5 w-3.5 shrink-0" />
+                                  <span className="whitespace-nowrap">Add Questions</span>
                                 </Button>
                                 <Button
+                                  type="button"
                                   variant="outline"
                                   size="sm"
-                                  className="h-8 px-2 text-xs text-red-600 border-red-200 hover:bg-red-50 shrink-0"
+                                  className="col-span-2 h-8 justify-center px-2 text-xs text-red-600 border-red-200 hover:bg-red-50 select-none"
                                   onClick={() => handleDeleteExam(exam._id)}
                                 >
-                                  <Trash2 className="h-3.5 w-3.5 mr-1" />
-                                  Delete
+                                  <Trash2 className="mr-1 h-3.5 w-3.5 shrink-0" />
+                                  <span className="whitespace-nowrap">Delete</span>
                                 </Button>
                               </div>
                             </CardContent>
@@ -2506,7 +2523,10 @@ export default function ExamManagement() {
           setPendingDeleteQuestion(null);
         }
       }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          className="max-w-4xl max-h-[90vh] overflow-y-auto"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Manage Questions - {selectedExam?.title}</DialogTitle>
             <DialogDescription>
