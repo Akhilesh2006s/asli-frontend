@@ -891,10 +891,18 @@ export default function SubjectContentManagement() {
         });
       }
     } catch (error) {
-      console.error('Failed to upload content file:', error);
+      const uploadUrl = `${API_BASE_URL}/api/super-admin/content/upload-file`;
+      console.error('Failed to upload content file:', error, { uploadUrl });
+      const isNetwork =
+        error instanceof TypeError &&
+        (String(error.message).includes('fetch') ||
+          String(error.message).includes('Failed to fetch') ||
+          String(error.message).includes('NetworkError'));
       toast({
         title: 'Upload failed',
-        description: 'Network error or server unreachable. Check API URL and CORS.',
+        description: isNetwork
+          ? 'Connection failed before the server responded (often nginx client_max_body_size default 1m, or proxy timeout). On the API host, set client_max_body_size 100m; and proxy_read_timeout 300s for api.aslilearn.ai. If small JSON calls work, this is usually the body limit.'
+          : 'Network error or server unreachable. Check API URL, TLS, and reverse proxy limits.',
         variant: 'destructive',
       });
     } finally {
