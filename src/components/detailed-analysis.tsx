@@ -589,6 +589,119 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     setTouchStartY(null);
   };
 
+  /** Purple hero + score / marks card — shown only on AI Report and Overview tabs */
+  const questionAnalysisMarksModule = (
+    <>
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-8 rounded-2xl mb-8">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Question Analysis</h1>
+            <p className="text-purple-100">Review each question and understand your performance</p>
+            {Number(result.attemptNumber) >= 1 && (
+              <p className="text-sm font-semibold text-white/95 mt-2">
+                Attempt {Number(result.attemptNumber)}
+              </p>
+            )}
+          </div>
+          <div className="bg-white/20 rounded-lg px-4 py-2">
+            <span className="text-sm font-medium">{result.questions?.length || 0} Total Questions</span>
+          </div>
+        </div>
+      </div>
+
+      <Card className="mb-8 border-0 shadow-2xl bg-gradient-to-br from-white to-blue-50">
+        <CardContent className="p-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="relative w-40 h-40 mx-auto mb-6">
+                <svg className="w-40 h-40 transform -rotate-90" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="40" stroke="#e2e8f0" strokeWidth="8" fill="none" />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    stroke={displayPercentage >= 70 ? '#10b981' : displayPercentage >= 50 ? '#f59e0b' : '#ef4444'}
+                    strokeWidth="8"
+                    fill="none"
+                    strokeDasharray={`${2 * Math.PI * 40}`}
+                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - animatedValues.percentage / 100)}`}
+                    className="transition-all duration-2000 ease-out"
+                    style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))' }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-gray-900 mb-1">{animatedValues.percentage}%</div>
+                    <div className={`text-lg font-semibold ${grade.color}`}>{grade.grade}</div>
+                  </div>
+                </div>
+              </div>
+              <div
+                className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold ${grade.bgColor} ${grade.color} shadow-lg`}
+              >
+                <GradeIcon className="w-4 h-4 mr-2" />
+                {grade.grade} Grade
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-gray-900 mb-2">{animatedValues.obtainedMarks}</div>
+                <div className="text-lg text-gray-600">out of {result.totalMarks} marks</div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                  <CheckCircle className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-green-600">{animatedValues.correctAnswers}</div>
+                  <div className="text-sm text-green-700">Correct</div>
+                </div>
+                <div className="text-center p-4 bg-gradient-to-br from-red-50 to-pink-50 rounded-xl border border-red-200">
+                  <XCircle className="w-6 h-6 text-red-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-red-600">{animatedValues.wrongAnswers}</div>
+                  <div className="text-sm text-red-700">Wrong</div>
+                </div>
+                <div className="text-center p-4 bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl border border-gray-200">
+                  <AlertCircle className="w-6 h-6 text-gray-600 mx-auto mb-2" />
+                  <div className="text-2xl font-bold text-gray-600">{animatedValues.unattempted}</div>
+                  <div className="text-sm text-gray-700">Skipped</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <div className="flex justify-between text-sm mb-3">
+                  <span className="font-semibold text-gray-700">Accuracy Rate</span>
+                  <span className="font-bold text-green-600">{accuracyRate.toFixed(1)}%</span>
+                </div>
+                <Progress value={accuracyRate} className="h-3 bg-gray-200" />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-sm mb-3">
+                  <span className="font-semibold text-gray-700">Completion Rate</span>
+                  <span className="font-bold text-blue-600">{completionRate.toFixed(1)}%</span>
+                </div>
+                <Progress value={completionRate} className="h-3 bg-gray-200" />
+              </div>
+
+              <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Clock className="w-5 h-5 text-blue-600" />
+                    <span className="font-semibold text-gray-700">Time Taken</span>
+                  </div>
+                  <span className="font-bold text-blue-600">{formatTime(result.timeTaken)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation Tabs */}
@@ -658,149 +771,12 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
-        
-        {/* Header Banner */}
-        <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-8 rounded-2xl mb-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">Question Analysis</h1>
-              <p className="text-purple-100">Review each question and understand your performance</p>
-              {Number(result.attemptNumber) >= 1 && (
-                <p className="text-sm font-semibold text-white/95 mt-2">
-                  Attempt {Number(result.attemptNumber)}
-                </p>
-              )}
-            </div>
-            <div className="bg-white/20 rounded-lg px-4 py-2">
-              <span className="text-sm font-medium">{result.questions?.length || 0} Total Questions</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Score Card with Animation */}
-        <Card className="mb-8 border-0 shadow-2xl bg-gradient-to-br from-white to-blue-50">
-          <CardContent className="p-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              
-              {/* Animated Score Circle */}
-              <div className="text-center">
-                <div className="relative w-40 h-40 mx-auto mb-6">
-                  <svg className="w-40 h-40 transform -rotate-90" viewBox="0 0 100 100">
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      stroke="#e2e8f0"
-                      strokeWidth="8"
-                      fill="none"
-                    />
-                    <circle
-                      cx="50"
-                      cy="50"
-                      r="40"
-                      stroke={displayPercentage >= 70 ? "#10b981" : displayPercentage >= 50 ? "#f59e0b" : "#ef4444"}
-                      strokeWidth="8"
-                      fill="none"
-                      strokeDasharray={`${2 * Math.PI * 40}`}
-                      strokeDashoffset={`${2 * Math.PI * 40 * (1 - animatedValues.percentage / 100)}`}
-                      className="transition-all duration-2000 ease-out"
-                      style={{
-                        filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
-                      }}
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="text-4xl font-bold text-gray-900 mb-1">
-                        {animatedValues.percentage}%
-                      </div>
-                      <div className={`text-lg font-semibold ${grade.color}`}>
-                        {grade.grade}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold ${grade.bgColor} ${grade.color} shadow-lg`}>
-                  <GradeIcon className="w-4 h-4 mr-2" />
-                  {grade.grade} Grade
-                </div>
-              </div>
-
-              {/* Detailed Stats */}
-              <div className="space-y-6">
-                <div className="text-center">
-                  <div className="text-4xl font-bold text-gray-900 mb-2">
-                    {animatedValues.obtainedMarks}
-                  </div>
-                  <div className="text-lg text-gray-600">out of {result.totalMarks} marks</div>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                    <CheckCircle className="w-6 h-6 text-green-600 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-green-600">{animatedValues.correctAnswers}</div>
-                    <div className="text-sm text-green-700">Correct</div>
-                  </div>
-                  <div className="text-center p-4 bg-gradient-to-br from-red-50 to-pink-50 rounded-xl border border-red-200">
-                    <XCircle className="w-6 h-6 text-red-600 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-red-600">{animatedValues.wrongAnswers}</div>
-                    <div className="text-sm text-red-700">Wrong</div>
-                  </div>
-                  <div className="text-center p-4 bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl border border-gray-200">
-                    <AlertCircle className="w-6 h-6 text-gray-600 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-gray-600">{animatedValues.unattempted}</div>
-                    <div className="text-sm text-gray-700">Skipped</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Performance Metrics */}
-              <div className="space-y-6">
-                <div>
-                  <div className="flex justify-between text-sm mb-3">
-                    <span className="font-semibold text-gray-700">Accuracy Rate</span>
-                    <span className="font-bold text-green-600">
-                      {accuracyRate.toFixed(1)}%
-                    </span>
-                  </div>
-                  <Progress 
-                    value={accuracyRate} 
-                    className="h-3 bg-gray-200"
-                  />
-                </div>
-                
-                <div>
-                  <div className="flex justify-between text-sm mb-3">
-                    <span className="font-semibold text-gray-700">Completion Rate</span>
-                    <span className="font-bold text-blue-600">
-                      {completionRate.toFixed(1)}%
-                    </span>
-                  </div>
-                  <Progress 
-                    value={completionRate} 
-                    className="h-3 bg-gray-200"
-                  />
-                </div>
-                
-                <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Clock className="w-5 h-5 text-blue-600" />
-                      <span className="font-semibold text-gray-700">Time Taken</span>
-                    </div>
-                    <span className="font-bold text-blue-600">{formatTime(result.timeTaken)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Tab Content */}
 
         {/* AI Report Tab */}
         {activeTab === 'ai' && (
           <div className="space-y-6">
+            {questionAnalysisMarksModule}
             <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-violet-50">
               <CardHeader>
                 <CardTitle className="text-lg">AI Performance Snapshot</CardTitle>
@@ -1091,6 +1067,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
         {/* Overview Tab */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
+            {questionAnalysisMarksModule}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               
               {/* Question Distribution Chart */}
