@@ -659,7 +659,7 @@ export default function SubjectContentManagement() {
       title: '',
       description: '',
       type: 'Video',
-      date: new Date().toISOString().slice(0, 10),
+      date: '',
       fileUrl: '',
     });
     setEditingContentId(null);
@@ -691,14 +691,14 @@ export default function SubjectContentManagement() {
     if (
       !subjectIdForValidation ||
       !contentForm.title.trim() ||
-      !contentForm.date ||
-      !contentForm.fileUrl.trim()
+      !contentForm.fileUrl.trim() ||
+      (!editingContentId && !String(contentForm.type || '').trim())
     ) {
       toast({
         title: 'Validation error',
         description: editingContentId
-          ? 'Title, date, and file/video URL are required.'
-          : 'Title, date, file/video URL, class and subject are required.',
+          ? 'Title and file/video URL are required.'
+          : 'Title, type, file/video URL, class and subject are required.',
         variant: 'destructive',
       });
       return;
@@ -771,10 +771,12 @@ export default function SubjectContentManagement() {
       const body: Record<string, unknown> = {
         title: contentForm.title.trim(),
         description: contentForm.description?.trim() || undefined,
-        date: contentForm.date,
         fileUrl: contentForm.fileUrl.trim(),
         classNumber: classForPayload,
       };
+      if (contentForm.date?.trim()) {
+        body.date = contentForm.date.trim();
+      }
       if (!editingContentId) {
         body.type = contentForm.type;
         body.board = normalizedSubBoard;
@@ -845,8 +847,9 @@ export default function SubjectContentManagement() {
     try {
       const token = localStorage.getItem('authToken');
       const formData = new FormData();
-      formData.append('file', selectedUploadFile);
+      // Append non-file fields first so multipart parsers often populate req.body before the file part.
       formData.append('contentType', contentForm.type);
+      formData.append('file', selectedUploadFile);
 
       const response = await fetch(
         `${API_BASE_URL}/api/super-admin/content/upload-file?contentType=${encodeURIComponent(
@@ -861,7 +864,13 @@ export default function SubjectContentManagement() {
         }
       );
 
-      const data = await response.json().catch(() => ({}));
+      const rawText = await response.text().catch(() => '');
+      let data: { success?: boolean; message?: string; fileUrl?: string; code?: string } = {};
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        data = {};
+      }
 
       if (response.ok && data.success && typeof data.fileUrl === 'string') {
         setContentForm((prev) => ({ ...prev, fileUrl: data.fileUrl }));
@@ -871,9 +880,13 @@ export default function SubjectContentManagement() {
           description: 'File uploaded successfully. You can now save the content.',
         });
       } else {
+        const nginxHint =
+          response.status === 413
+            ? ' Request too large for reverse proxy (nginx: raise client_max_body_size).'
+            : '';
         toast({
           title: 'Upload failed',
-          description: data.message || 'Failed to upload file',
+          description: (data.message || response.statusText || 'Failed to upload file') + nginxHint,
           variant: 'destructive',
         });
       }
@@ -881,7 +894,7 @@ export default function SubjectContentManagement() {
       console.error('Failed to upload content file:', error);
       toast({
         title: 'Upload failed',
-        description: 'Failed to upload file',
+        description: 'Network error or server unreachable. Check API URL and CORS.',
         variant: 'destructive',
       });
     } finally {
@@ -1494,11 +1507,15 @@ export default function SubjectContentManagement() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Class</Label>
+                <Label>
+                  Class <span className="text-destructive" aria-hidden="true">*</span>
+                </Label>
                 <Input value={selectedClassLabel ?? ''} disabled />
               </div>
               <div>
-                <Label>Subject</Label>
+                <Label>
+                  Subject <span className="text-destructive" aria-hidden="true">*</span>
+                </Label>
                 <Input
                   value={
                     linkedSubjectForContent
@@ -1536,7 +1553,9 @@ export default function SubjectContentManagement() {
               </div>
             )}
             <div>
-              <Label>Content Title</Label>
+              <Label>
+                Content Title <span className="text-destructive" aria-hidden="true">*</span>
+              </Label>
               <Input
                 value={contentForm.title}
                 onChange={(e) =>
@@ -1561,7 +1580,9 @@ export default function SubjectContentManagement() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Type</Label>
+                <Label>
+                  Type <span className="text-destructive" aria-hidden="true">*</span>
+                </Label>
                 <Select
                   value={contentForm.type}
                   onValueChange={(value: ContentType) =>
@@ -1582,7 +1603,10 @@ export default function SubjectContentManagement() {
                 </Select>
               </div>
               <div>
-                <Label>Date</Label>
+                <Label>
+                  Date{' '}
+                  <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+                </Label>
                 <Input
                   type="date"
                   value={contentForm.date}
@@ -1593,7 +1617,10 @@ export default function SubjectContentManagement() {
               </div>
             </div>
             <div>
-              <Label>Upload File (saved on DigitalOcean server)</Label>
+              <Label>
+                Upload File (saved on DigitalOcean server){' '}
+                <span className="text-destructive" aria-hidden="true">*</span>
+              </Label>
               <div className="mt-2 flex flex-col gap-2">
                 <div className="flex flex-col sm:flex-row gap-2">
                   <Input

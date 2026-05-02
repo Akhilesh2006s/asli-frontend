@@ -8,6 +8,7 @@ const MESSAGES = [
   "Need some help with chemistry?",
 ];
 
+/** Compact corner assistant: small circular avatar + narrow tooltip so lesson actions stay tappable. */
 export default function VidyaAIFloatingAssistant() {
   const [, setLocation] = useLocation();
   const [currentMessage, setCurrentMessage] = useState(0);
@@ -21,16 +22,19 @@ export default function VidyaAIFloatingAssistant() {
   }, []);
 
   return (
-    <div className="fixed bottom-6 right-2 sm:bottom-8 sm:right-4 z-30 flex flex-col items-end">
-      <div className="relative mb-2 animate-fade-in">
-        <div className="bg-white rounded-lg shadow-xl p-3 border-2 border-blue-200 relative">
-          <p className="text-sm font-medium text-gray-800 whitespace-nowrap">
+    <div
+      className="fixed bottom-4 right-3 z-30 flex max-w-[min(16rem,calc(100vw-1.25rem))] flex-col items-end gap-1.5 sm:bottom-6 sm:right-5"
+      style={{ pointerEvents: "none" }}
+    >
+      <div className="pointer-events-auto animate-fade-in">
+        <div className="relative rounded-lg border border-sky-200 bg-white/95 p-2.5 shadow-md backdrop-blur-sm">
+          <p className="max-w-[14rem] text-xs font-medium leading-snug text-gray-800 sm:text-sm">
             {MESSAGES[currentMessage]}
           </p>
-          <div className="absolute bottom-0 right-8 transform translate-y-full">
-            <div className="w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-blue-200" />
+          <div className="absolute bottom-0 right-6 translate-y-full">
+            <div className="h-0 w-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-sky-200" />
             <div
-              className="absolute top-0 left-0 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white"
+              className="absolute left-0 top-0 h-0 w-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-white"
               style={{ marginTop: "-1px" }}
             />
           </div>
@@ -39,7 +43,7 @@ export default function VidyaAIFloatingAssistant() {
 
       <button
         type="button"
-        className="cursor-pointer"
+        className="pointer-events-auto rounded-full p-0.5 shadow-lg ring-2 ring-white transition-transform hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2"
         onClick={() => setLocation("/ai-tutor")}
         aria-label="Open Vidya AI tutor"
       >
@@ -47,7 +51,7 @@ export default function VidyaAIFloatingAssistant() {
           src="/Vidya-ai.jpg"
           alt="Vidya AI - Click to chat"
           draggable={false}
-          className="w-32 h-auto rounded-xl shadow-xl opacity-80 hover:opacity-100 hover:scale-105 transition-all duration-300"
+          className="h-12 w-12 rounded-full object-cover object-top sm:h-14 sm:w-14"
         />
       </button>
     </div>

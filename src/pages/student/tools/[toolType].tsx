@@ -595,6 +595,25 @@ export default function StudentToolPage() {
   }, []);
 
   useEffect(() => {
+    if (isLoadingUser) return;
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const subject = sp.get('subject');
+      const topic = sp.get('topic');
+      const subTopic = sp.get('subTopic');
+      if (!subject && !topic && !subTopic) return;
+      setFormParams((prev) => ({
+        ...prev,
+        ...(subject ? { subject: decodeURIComponent(subject) } : {}),
+        ...(topic ? { topic: decodeURIComponent(topic) } : {}),
+        ...(subTopic ? { subTopic: decodeURIComponent(subTopic) } : {}),
+      }));
+    } catch {
+      /* ignore malformed query */
+    }
+  }, [isLoadingUser, toolType]);
+
+  useEffect(() => {
     const classValue = formParams.gradeLevel;
     const subjectValue = formParams.subject;
     if (!classValue || !subjectValue) {

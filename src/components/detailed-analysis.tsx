@@ -137,6 +137,20 @@ type WeakArea = {
   bgColor: string;
 };
 
+/** Handles string ids and populated / extended JSON shapes so /review URLs stay valid. */
+function normalizeMongoId(value: unknown): string {
+  if (value == null || value === '') return '';
+  if (typeof value === 'string' || typeof value === 'number') return String(value).trim();
+  if (typeof value === 'object' && value !== null) {
+    const o = value as { _id?: unknown; $oid?: unknown };
+    if (typeof o.$oid === 'string') return o.$oid.trim();
+    if (o.$oid != null) return String(o.$oid).trim();
+    if (typeof o._id === 'string') return o._id.trim();
+    if (o._id != null) return normalizeMongoId(o._id);
+  }
+  return '';
+}
+
 export default function DetailedAnalysis({ result, examTitle, onBack }: DetailedAnalysisProps) {
   const [activeTab, setActiveTab] = useState('ai');
   const [mobileQuestionIndex, setMobileQuestionIndex] = useState(0);
@@ -145,6 +159,8 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState('');
   const [aiAnalysis, setAiAnalysis] = useState<AiExamAnalysis | null>(null);
+  /** Merges in questions/answers from /review when the parent result has no question list (e.g. right after submit). */
+  const [displayResult, setDisplayResult] = useState<ExamResult>(result);
 
   const normalizeLegacyExamText = (value: unknown, subject?: string): string =>
     normalizeAndFormatExamDisplayText(value, subject);
@@ -318,7 +334,12 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
   };
 
   const getUserAnswerForQuestion = (question: Question, questionIndex: number): any => {
-    const answerMap = (result.answers && typeof result.answers === 'object') ? result.answers : {};
+    const baseAnswers = result.answers && typeof result.answers === 'object' && !Array.isArray(result.answers) ? result.answers : {};
+    const extraAnswers =
+      displayResult.answers && typeof displayResult.answers === 'object' && !Array.isArray(displayResult.answers)
+        ? displayResult.answers
+        : {};
+    const answerMap = { ...baseAnswers, ...extraAnswers };
     const questionId = normalizeAnswerKey((question as any)?._id);
     const candidateKeys = [
       (question as any)?._id,
@@ -396,6 +417,97 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       animateValue(0, result.obtainedMarks, (value) => setAnimatedValues(prev => ({ ...prev, obtainedMarks: value })));
     }, 300);
   }, [result]);
+
+  // Merge parent `result` updates without wiping questions we loaded via /review (parent often passes a new object each render).
+  useEffect(() => {
+    setDisplayResult((dr) => {
+      const parentHasQuestions = Array.isArray(result.questions) && result.questions.length > 0;
+      if (parentHasQuestions) {
+        return { ...result, questions: result.questions };
+      }
+      const mergedAnswers = (() => {
+        const fromParent =
+          result.answers && typeof result.answers === 'object' && !Array.isArray(result.answers)
+            ? (result.answers as Record<string, unknown>)
+            : {};
+        const fromDisplay =
+          dr.answers && typeof dr.answers === 'object' && !Array.isArray(dr.answers)
+            ? (dr.answers as Record<string, unknown>)
+            : {};
+        return { ...fromDisplay, ...fromParent };
+      })();
+      return {
+        ...result,
+        questions: dr.questions?.length ? dr.questions : result.questions,
+        answers: mergedAnswers,
+      };
+    });
+  }, [
+    normalizeMongoId((result as ExamResult & { _id?: unknown })._id),
+    normalizeMongoId(result.examId),
+    result.attemptNumber,
+    result.correctAnswers,
+    result.wrongAnswers,
+    result.unattempted,
+    result.totalQuestions,
+    result.obtainedMarks,
+    result.totalMarks,
+    result.percentage,
+    result.timeTaken,
+    result.examTitle,
+    result.questions?.length,
+  ]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const hydrateQuestions = async () => {
+      if (Array.isArray(result.questions) && result.questions.length > 0) return;
+      const examIdStr = normalizeMongoId(result.examId);
+      if (!examIdStr) return;
+
+      try {
+        const token = localStorage.getItem('authToken');
+        const resultRowId = normalizeMongoId((result as ExamResult & { _id?: unknown })._id);
+        const rid =
+          resultRowId !== '' ? `?resultId=${encodeURIComponent(resultRowId)}` : '';
+        const res = await fetch(`${API_BASE_URL}/api/student/exam-results/${examIdStr}/review${rid}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!res.ok || cancelled) return;
+        const json = await res.json().catch(() => ({}));
+        const qs = json?.data?.questions;
+        const srv = json?.data?.result as { answers?: Record<string, unknown> } | undefined;
+        if (!Array.isArray(qs) || qs.length === 0 || cancelled) return;
+
+        setDisplayResult((prev) => {
+          const prevAnswers =
+            prev.answers && typeof prev.answers === 'object' && !Array.isArray(prev.answers)
+              ? (prev.answers as Record<string, unknown>)
+              : {};
+          const serverAnswers =
+            srv?.answers && typeof srv.answers === 'object' && !Array.isArray(srv.answers)
+              ? srv.answers
+              : {};
+          return {
+            ...prev,
+            questions: qs as ExamResult['questions'],
+            answers:
+              Object.keys(serverAnswers).length > 0 ? { ...prevAnswers, ...serverAnswers } : prev.answers,
+          };
+        });
+      } catch {
+        /* non-fatal */
+      }
+    };
+
+    hydrateQuestions();
+    return () => {
+      cancelled = true;
+    };
+  }, [normalizeMongoId(result.examId), normalizeMongoId((result as ExamResult & { _id?: unknown })._id), result.questions?.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -547,24 +659,34 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
 
   const insights = getPerformanceInsights();
   const weakAreas = getWeakAreas();
-  const advancedExamId =
-    typeof (result as any)?.examId === 'object'
-      ? String((result as any)?.examId?._id || '')
-      : String((result as any)?.examId || '');
+  const advancedExamId = normalizeMongoId(result.examId);
+
+  const analysisQuestions =
+    displayResult.questions && displayResult.questions.length > 0
+      ? displayResult.questions
+      : result.questions && result.questions.length > 0
+        ? result.questions
+        : [];
 
   const goToPrev = () => {
-    if (!result.questions || result.questions.length === 0) return;
+    if (!analysisQuestions.length) return;
     if (mobileQuestionIndex <= 0) return;
     setAnimDirection('down');
     setMobileQuestionIndex((idx) => Math.max(0, idx - 1));
   };
 
   const goToNext = () => {
-    if (!result.questions || result.questions.length === 0) return;
-    if (mobileQuestionIndex >= result.questions.length - 1) return;
+    if (!analysisQuestions.length) return;
+    if (mobileQuestionIndex >= analysisQuestions.length - 1) return;
     setAnimDirection('up');
-    setMobileQuestionIndex((idx) => Math.min(result.questions!.length - 1, idx + 1));
+    setMobileQuestionIndex((idx) => Math.min(analysisQuestions.length - 1, idx + 1));
   };
+
+  useEffect(() => {
+    const n = analysisQuestions.length;
+    if (n === 0) return;
+    setMobileQuestionIndex((idx) => Math.min(idx, n - 1));
+  }, [analysisQuestions.length]);
 
   const handleWheel: React.WheelEventHandler<HTMLDivElement> = (e) => {
     if (e.deltaY > 10) {
@@ -604,7 +726,9 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
             )}
           </div>
           <div className="bg-white/20 rounded-lg px-4 py-2">
-            <span className="text-sm font-medium">{result.questions?.length || 0} Total Questions</span>
+            <span className="text-sm font-medium">
+              {analysisQuestions.length || result.totalQuestions || 0} Total Questions
+            </span>
           </div>
         </div>
       </div>
@@ -1167,7 +1291,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
         {/* Questions Tab */}
         {activeTab === 'questions' && (
           <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              {result.questions && result.questions.length > 0 ? (
+              {analysisQuestions.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 
                 {/* Question Navigation Sidebar - Modern Grid Layout */}
@@ -1179,14 +1303,14 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                         Questions
                       </CardTitle>
                       <p className="text-xs text-gray-500 mt-1">
-                        {result.questions.length} questions
+                        {analysisQuestions.length} questions
                       </p>
                     </CardHeader>
                     <CardContent className="pt-0">
                       {/* Question Numbers Grid - 5 columns, 5-6 rows */}
                       <div className="bg-gradient-to-br from-gray-50 to-purple-50/30 rounded-xl p-4 border border-gray-200">
                         <div className="grid grid-cols-5 gap-2.5">
-                          {result.questions.map((question, index) => {
+                          {analysisQuestions.map((question, index) => {
                             const userAnswer = getUserAnswerForQuestion(question, index);
                             const isCorrect = compareAnswers(question, userAnswer, question.correctAnswer);
                             const isAttempted = userAnswer !== undefined && userAnswer !== null && userAnswer !== '';
@@ -1265,16 +1389,16 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                 {/* Question Container */}
                 <Card className="shadow-lg border-0 bg-white">
                   <CardContent className="p-6">
-                    {result.questions && result.questions.length > 0 && (
+                    {analysisQuestions.length > 0 && (
                       <>
                         {/* Question Header */}
                         <div className="flex items-center justify-between mb-6">
                           <div className="flex items-center space-x-4">
                             <Badge variant="outline" className="capitalize">
-                              {result.questions[mobileQuestionIndex]?.subject || 'Unknown'}
+                              {analysisQuestions[mobileQuestionIndex]?.subject || 'Unknown'}
                             </Badge>
                             <Badge variant="secondary">
-                              {result.questions[mobileQuestionIndex]?.marks || 0} marks
+                              {analysisQuestions[mobileQuestionIndex]?.marks || 0} marks
                             </Badge>
                           </div>
                         </div>
@@ -1286,21 +1410,21 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                               Q{mobileQuestionIndex + 1}.
                             </span>
                             <div className="flex-1">
-                              {result.questions[mobileQuestionIndex]?.questionText && (
+                              {analysisQuestions[mobileQuestionIndex]?.questionText && (
                                 <p className="text-lg text-gray-900 mb-4">
                                   {normalizeExamText(
-                                    result.questions[mobileQuestionIndex].questionText,
-                                    result.questions[mobileQuestionIndex]?.subject
+                                    analysisQuestions[mobileQuestionIndex].questionText,
+                                    analysisQuestions[mobileQuestionIndex]?.subject
                                   )}
                                 </p>
                               )}
                               
-                              {result.questions[mobileQuestionIndex]?.questionImage && (
+                              {analysisQuestions[mobileQuestionIndex]?.questionImage && (
                                 <div className="mb-4">
                                   <img 
-                                    src={result.questions[mobileQuestionIndex].questionImage.startsWith('http') 
-                                      ? result.questions[mobileQuestionIndex].questionImage 
-                                      : `${API_BASE_URL}${result.questions[mobileQuestionIndex].questionImage}`}
+                                    src={analysisQuestions[mobileQuestionIndex].questionImage.startsWith('http') 
+                                      ? analysisQuestions[mobileQuestionIndex].questionImage 
+                                      : `${API_BASE_URL}${analysisQuestions[mobileQuestionIndex].questionImage}`}
                                     alt="Question" 
                                     className="max-w-full h-auto rounded-lg border border-gray-200"
                                   />
@@ -1310,10 +1434,10 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                           </div>
 
                           {/* Answer Options */}
-                          {result.questions[mobileQuestionIndex]?.questionType === 'mcq' && result.questions[mobileQuestionIndex]?.options && (
+                          {analysisQuestions[mobileQuestionIndex]?.questionType === 'mcq' && analysisQuestions[mobileQuestionIndex]?.options && (
                             <div className="space-y-3">
-                              {result.questions[mobileQuestionIndex].options.map((option: any, index: number) => {
-                                const activeQuestion = result.questions![mobileQuestionIndex];
+                              {analysisQuestions[mobileQuestionIndex].options.map((option: any, index: number) => {
+                                const activeQuestion = analysisQuestions[mobileQuestionIndex];
                                 const optionText = getOptionText(option, activeQuestion.subject);
                                 const userAnswer = getUserAnswerForQuestion(activeQuestion, mobileQuestionIndex);
                                 const userAnswerTexts = resolveAnswerTexts(activeQuestion, userAnswer);
@@ -1352,7 +1476,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                               <div className="text-xs font-semibold text-purple-800 mb-2">Your Answer</div>
                               <div className="text-sm text-purple-900">
                                 {(() => {
-                                  const activeQuestion = result.questions![mobileQuestionIndex];
+                                  const activeQuestion = analysisQuestions[mobileQuestionIndex];
                                   const userAnswer = getUserAnswerForQuestion(activeQuestion, mobileQuestionIndex);
                                   const userAnswerTexts = resolveAnswerTexts(activeQuestion, userAnswer);
                                   const isAttempted = userAnswerTexts.length > 0;
@@ -1366,7 +1490,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                               <div className="text-xs font-semibold text-green-800 mb-2">Correct Answer</div>
                               <div className="text-sm text-green-900">
                                 {(() => {
-                                  const activeQuestion = result.questions![mobileQuestionIndex];
+                                  const activeQuestion = analysisQuestions[mobileQuestionIndex];
                                   const correctAnswerTexts = resolveAnswerTexts(activeQuestion, activeQuestion.correctAnswer);
                                   return correctAnswerTexts.length > 0 ? correctAnswerTexts.join(', ') : 'N/A';
                                 })()}
@@ -1379,8 +1503,8 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                             <div className="text-xs font-semibold text-blue-800 mb-2">Solution</div>
                             <div className="text-sm text-blue-900 whitespace-pre-wrap">
                               {normalizeExamText(
-                                result.questions[mobileQuestionIndex]?.explanation,
-                                result.questions[mobileQuestionIndex]?.subject
+                                analysisQuestions[mobileQuestionIndex]?.explanation,
+                                analysisQuestions[mobileQuestionIndex]?.subject
                               ) || 'Solution not provided for this question.'}
                             </div>
                           </div>
@@ -1389,7 +1513,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                         {/* Navigation Buttons */}
                         <div className="flex items-center justify-between mt-6 pt-6 border-t">
                           {(() => {
-                            const totalQuestions = result.questions?.length ?? 0;
+                            const totalQuestions = analysisQuestions.length;
                             const lastQuestionIndex = Math.max(0, totalQuestions - 1);
                             return (
                               <>
