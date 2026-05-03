@@ -893,16 +893,18 @@ export default function SubjectContentManagement() {
     } catch (error) {
       const uploadUrl = `${API_BASE_URL}/api/super-admin/content/upload-file`;
       console.error('Failed to upload content file:', error, { uploadUrl });
-      const isNetwork =
-        error instanceof TypeError &&
-        (String(error.message).includes('fetch') ||
-          String(error.message).includes('Failed to fetch') ||
-          String(error.message).includes('NetworkError'));
+      const msg = error instanceof Error ? error.message : String(error);
+      const looksLikeDroppedConnection =
+        msg.includes('fetch') ||
+        msg.includes('Failed to fetch') ||
+        msg.includes('NetworkError') ||
+        msg.includes('Load failed') ||
+        msg.includes('aborted');
       toast({
         title: 'Upload failed',
-        description: isNetwork
-          ? 'Connection failed before the server responded (often nginx client_max_body_size default 1m, or proxy timeout). On the API host, set client_max_body_size 100m; and proxy_read_timeout 300s for api.aslilearn.ai. If small JSON calls work, this is usually the body limit.'
-          : 'Network error or server unreachable. Check API URL, TLS, and reverse proxy limits.',
+        description: looksLikeDroppedConnection
+          ? 'The request never got a normal response—usually nginx default 1MB body limit or a short proxy timeout. On the server that serves api.aslilearn.ai: set client_max_body_size 100m; proxy_read_timeout 300s; reload nginx. Redeploy the frontend after git pull if you still see an old message.'
+          : `Upload error: ${msg}. If this only happens in production with large files, raise nginx client_max_body_size (see server docs).`,
         variant: 'destructive',
       });
     } finally {
