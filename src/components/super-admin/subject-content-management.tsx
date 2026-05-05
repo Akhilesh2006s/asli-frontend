@@ -4,7 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { API_BASE_URL } from '@/lib/api-config';
@@ -19,7 +26,8 @@ import {
   Plus,
   Trash2,
   Video,
-  Edit
+  Edit,
+  ExternalLink,
 } from 'lucide-react';
 
 interface SubjectItem {
@@ -120,11 +128,14 @@ function syllabusLabel(board: string): string {
   return o?.label ?? board;
 }
 
-const PRIMARY_CONTENT_TYPES: ContentType[] = [
-  'TextBook',
-  'Workbook',
-  'Video',
-  'Audio',
+/** Section order for content cards (every type gets its own heading; avoids mis-labelling Material/Homework as "Other"). */
+const CONTENT_TYPE_SECTIONS: { title: string; types: ContentType[] }[] = [
+  { title: 'Textbooks', types: ['TextBook'] },
+  { title: 'Workbooks', types: ['Workbook'] },
+  { title: 'Materials', types: ['Material'] },
+  { title: 'Homework', types: ['Homework'] },
+  { title: 'Videos', types: ['Video'] },
+  { title: 'Audio', types: ['Audio'] },
 ];
 
 const extractClassNumberFromSubjectName = (name: string): string | null => {
@@ -210,6 +221,33 @@ const normalizeMediaUrl = (value?: string | null): string | null => {
   return trimmed;
 };
 
+/** YouTube / Vimeo URLs must use an iframe; <video src> cannot play them. */
+function getStreamingEmbedSrc(url: string): string | null {
+  try {
+    const u = new URL(url);
+    const host = u.hostname.replace(/^www\./, '');
+    if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'youtube-nocookie.com') {
+      const v = u.searchParams.get('v');
+      if (v) return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(v)}`;
+      const embed = u.pathname.match(/\/embed\/([^/?]+)/);
+      if (embed?.[1]) return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(embed[1])}`;
+      const shorts = u.pathname.match(/\/shorts\/([^/?]+)/);
+      if (shorts?.[1]) return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(shorts[1])}`;
+    }
+    if (host === 'youtu.be') {
+      const id = u.pathname.split('/').filter(Boolean)[0];
+      if (id) return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}`;
+    }
+    if (host === 'vimeo.com') {
+      const id = u.pathname.split('/').filter(Boolean)[0];
+      if (id && /^\d+$/.test(id)) return `https://player.vimeo.com/video/${id}`;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export default function SubjectContentManagement() {
   const { toast } = useToast();
 
@@ -248,6 +286,16 @@ export default function SubjectContentManagement() {
   const [deletingSubjectId, setDeletingSubjectId] = useState<string | null>(null);
   const [deletingContentId, setDeletingContentId] = useState<string | null>(null);
   const [failedThumbnailIds, setFailedThumbnailIds] = useState<Set<string>>(new Set());
+  /** In-page preview instead of opening files in a new browser tab. */
+  const [contentPreviewItem, setContentPreviewItem] = useState<ContentItem | null>(null);
+
+  const contentPreviewUrl = useMemo(() => {
+    if (!contentPreviewItem) return null;
+    const u =
+      normalizeMediaUrl(contentPreviewItem.fileUrl) || contentPreviewItem.fileUrl;
+    const t = String(u || '').trim();
+    return t ? t : null;
+  }, [contentPreviewItem]);
 
   useEffect(() => {
     // Load subjects and content as soon as the page mounts
@@ -336,27 +384,14 @@ export default function SubjectContentManagement() {
   }, [isAddContentOpen, editingContentId, contents, subjects, selectedSubjectId]);
 
   const contentSections = useMemo(() => {
-    const sections: { title: string; items: ContentItem[] }[] = [
-      {
-        title: 'Textbooks',
-        items: filteredContents.filter((c) => c.type === 'TextBook'),
-      },
-      {
-        title: 'Workbooks',
-        items: filteredContents.filter((c) => c.type === 'Workbook'),
-      },
-      {
-        title: 'Videos',
-        items: filteredContents.filter((c) => c.type === 'Video'),
-      },
-      {
-        title: 'Audio',
-        items: filteredContents.filter((c) => c.type === 'Audio'),
-      },
-    ];
-    const other = filteredContents.filter(
-      (c) => !PRIMARY_CONTENT_TYPES.includes(c.type)
+    const knownTypes = new Set(
+      CONTENT_TYPE_SECTIONS.flatMap((s) => s.types)
     );
+    const sections = CONTENT_TYPE_SECTIONS.map(({ title, types }) => ({
+      title,
+      items: filteredContents.filter((c) => types.includes(c.type)),
+    }));
+    const other = filteredContents.filter((c) => !knownTypes.has(c.type));
     if (other.length > 0) {
       sections.push({ title: 'Other', items: other });
     }
@@ -873,7 +908,8 @@ export default function SubjectContentManagement() {
       }
 
       if (response.ok && data.success && typeof data.fileUrl === 'string') {
-        setContentForm((prev) => ({ ...prev, fileUrl: data.fileUrl }));
+        const uploadedUrl = data.fileUrl;
+        setContentForm((prev) => ({ ...prev, fileUrl: uploadedUrl }));
         setSelectedUploadFile(null);
         toast({
           title: 'Uploaded',
@@ -1184,6 +1220,9 @@ export default function SubjectContentManagement() {
 
                         const fileUrl =
                           normalizeMediaUrl(content.fileUrl) || content.fileUrl;
+                        const hasPreviewableFile = Boolean(
+                          String(content.fileUrl || '').trim()
+                        );
 
                         const showPdfPreview =
                           (!thumbnailSrc || hasBrokenThumbnail) && isPdfUrl(fileUrl);
@@ -1282,9 +1321,23 @@ export default function SubjectContentManagement() {
                                   variant="outline"
                                   size="sm"
                                   className="text-xs"
-                                  onClick={() =>
-                                    window.open(fileUrl, '_blank', 'noopener,noreferrer')
+                                  disabled={!hasPreviewableFile}
+                                  title={
+                                    hasPreviewableFile
+                                      ? 'View here'
+                                      : 'No file uploaded for this content'
                                   }
+                                  onClick={() => {
+                                    if (!hasPreviewableFile) {
+                                      toast({
+                                        title: 'No file',
+                                        description: 'Upload a file for this content before viewing.',
+                                        variant: 'destructive',
+                                      });
+                                      return;
+                                    }
+                                    setContentPreviewItem(content);
+                                  }}
                                 >
                                   View
                                 </Button>
@@ -1696,6 +1749,139 @@ export default function SubjectContentManagement() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!contentPreviewItem}
+        onOpenChange={(open) => {
+          if (!open) setContentPreviewItem(null);
+        }}
+      >
+        <DialogContent className="flex max-h-[92vh] w-full max-w-[min(100vw-1.5rem,1280px)] flex-col gap-4 overflow-hidden p-6">
+          <DialogHeader>
+            <DialogTitle className="pr-8">
+              {contentPreviewItem?.title ?? 'Content preview'}
+            </DialogTitle>
+            <DialogDescription>
+              {contentPreviewItem
+                ? `${contentPreviewItem.type} · ${syllabusLabel(contentPreviewItem.board)}`
+                : 'Preview attached file'}
+            </DialogDescription>
+          </DialogHeader>
+          {contentPreviewItem && (
+            <>
+              <div
+                className={`min-h-0 flex-1 rounded-md border bg-muted/30 ${
+                  contentPreviewItem.type === 'Video' || contentPreviewItem.type === 'Audio'
+                    ? 'overflow-hidden'
+                    : 'overflow-y-auto overflow-x-hidden'
+                }`}
+              >
+                {!contentPreviewUrl ? (
+                  <p className="p-6 text-center text-sm text-muted-foreground">
+                    No file URL for this content.
+                  </p>
+                ) : contentPreviewItem.type === 'Video' ? (
+                  (() => {
+                    const embed = getStreamingEmbedSrc(contentPreviewUrl);
+                    if (embed) {
+                      return (
+                        <div className="w-full overflow-hidden bg-black p-2 sm:p-3">
+                          <div className="relative mx-auto aspect-video w-full max-w-full max-h-[min(68vh,78dvh)] overflow-hidden rounded-sm bg-black shadow-inner">
+                            <iframe
+                              title={contentPreviewItem.title}
+                              src={embed}
+                              className="absolute inset-0 box-border h-full w-full border-0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                              allowFullScreen
+                            />
+                          </div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="flex w-full flex-col items-stretch overflow-hidden bg-black p-2 sm:p-3">
+                        <video
+                          key={contentPreviewUrl}
+                          src={contentPreviewUrl}
+                          controls
+                          playsInline
+                          preload="metadata"
+                          className="mx-auto block w-full max-w-full bg-black object-contain"
+                          style={{
+                            aspectRatio: '16 / 9',
+                            minHeight: 220,
+                            maxHeight: 'min(72vh, 80dvh)',
+                          }}
+                          onError={() => {
+                            toast({
+                              title: 'Video could not play here',
+                              description:
+                                'The file may be an unsupported format, blocked by the server, or a hosted link that needs Open in new tab.',
+                              variant: 'destructive',
+                            });
+                          }}
+                        >
+                          Your browser does not support embedded video.
+                        </video>
+                      </div>
+                    );
+                  })()
+                ) : contentPreviewItem.type === 'Audio' ? (
+                  <div className="flex flex-col items-center justify-center gap-4 p-8">
+                    <Headphones className="h-12 w-12 text-sky-500" />
+                    <audio src={contentPreviewUrl} controls className="w-full max-w-md">
+                      Your browser does not support embedded audio.
+                    </audio>
+                  </div>
+                ) : isPdfUrl(contentPreviewUrl) ? (
+                  <iframe
+                    title={contentPreviewItem.title}
+                    src={contentPreviewUrl}
+                    className="h-[min(78vh,900px)] w-full border-0 bg-white"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-4 p-8 text-center text-sm text-muted-foreground">
+                    <FileText className="h-12 w-12 opacity-40" />
+                    <p>
+                      In-browser preview is not available for this file type. Open it in a new
+                      tab to use your device&apos;s viewer.
+                    </p>
+                    <Button variant="secondary" asChild>
+                      <a
+                        href={contentPreviewUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        Open in new tab
+                      </a>
+                    </Button>
+                  </div>
+                )}
+              </div>
+              <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                {contentPreviewUrl ? (
+                  <Button variant="outline" asChild>
+                    <a
+                      href={contentPreviewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Open in new tab
+                    </a>
+                  </Button>
+                ) : null}
+                <Button type="button" onClick={() => setContentPreviewItem(null)}>
+                  Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>

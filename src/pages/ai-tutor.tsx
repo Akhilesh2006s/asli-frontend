@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import Navigation from "@/components/navigation";
@@ -26,6 +26,7 @@ import {
 import { useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { API_BASE_URL } from "@/lib/api-config";
+import { collectVidyaSubjectLabels } from "@/lib/vidya-subjects";
 
 // Mock user ID - in a real app, this would come from authentication
 const MOCK_USER_ID = "user-1";
@@ -255,6 +256,17 @@ export default function AITutor() {
 
   const userId = user?._id || user?.id || MOCK_USER_ID;
 
+  const vidyaSubjectNames = useMemo(
+    () =>
+      collectVidyaSubjectLabels({
+        subjectProgress,
+        subjects,
+        assignedSubjects: user?.assignedSubjects,
+        assignedClassSubjects: user?.assignedClass?.assignedSubjects,
+      }),
+    [subjectProgress, subjects, user?.assignedSubjects, user?.assignedClass?.assignedSubjects]
+  );
+
   // Fetch user's chat sessions
   const { data: chatSessions = [], isLoading: sessionsLoading } = useQuery<any[]>({
     queryKey: ["/api/users", userId, "chat-sessions"],
@@ -392,8 +404,8 @@ export default function AITutor() {
     return (
       <>
         <Navigation />
-        <div className="min-h-screen bg-gradient-to-br from-teal-100 via-teal-50 to-teal-100">
-          <div className={`container mx-auto px-4 pt-20 sm:pt-24 py-6 ${isMobile ? 'pb-20' : ''}`}>
+        <div className="h-screen overflow-hidden bg-gradient-to-br from-teal-100 via-teal-50 to-teal-100">
+          <div className={`container mx-auto flex h-full min-h-0 flex-col px-4 pt-20 sm:pt-24 py-6 ${isMobile ? 'pb-20' : ''}`}>
             <Button
               variant="outline"
               onClick={() => setSelectedTool(null)}
@@ -402,13 +414,16 @@ export default function AITutor() {
               <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
               Back to Tools
             </Button>
-            <div className="bg-white rounded-xl shadow-md border border-gray-200" style={{ minHeight: '600px' }}>
+            <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md">
               <AIChat 
                 userId={userId}
-                className="flex-1 h-full"
+                className="h-full min-h-0 flex-1"
                 context={{
                   studentName: user?.fullName || user?.email?.split('@')[0] || "Student",
-                  currentSubject: getCurrentSubject(),
+                  subjectOptions: vidyaSubjectNames,
+                  currentSubject:
+                    vidyaSubjectNames[0] ||
+                    getCurrentSubject(),
                   currentTopic: undefined
                 }}
               />

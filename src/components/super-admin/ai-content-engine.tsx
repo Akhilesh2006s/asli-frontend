@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
+import { toCurriculumSelectRows, type CurriculumSelectRow } from "@/lib/vidya-subjects";
 import {
   Wrench,
   School,
@@ -48,6 +49,19 @@ type PdfItem = {
   uploadDate: string;
 };
 
+type SubjectContentItem = {
+  _id: string;
+  title: string;
+  topic?: string;
+  classNumber?: string;
+  fileUrl?: string;
+  fileUrls?: string[];
+  subject?: {
+    _id: string;
+    name: string;
+  };
+};
+
 export default function AIContentEngine() {
   const { toast } = useToast();
   const [items, setItems] = useState<PdfItem[]>([]);
@@ -58,11 +72,13 @@ export default function AIContentEngine() {
   const [topic, setTopic] = useState("");
   const [subTopic, setSubTopic] = useState("");
   const [toolType, setToolType] = useState("");
-  const [file, setFile] = useState<File | null>(null);
+  const [sourceContents, setSourceContents] = useState<SubjectContentItem[]>([]);
+  const [selectedContentId, setSelectedContentId] = useState("");
+  const [selectedPdfUrl, setSelectedPdfUrl] = useState("");
   const [classOptions, setClassOptions] = useState<string[]>([]);
-  const [subjectOptions, setSubjectOptions] = useState<string[]>([]);
-  const [topicOptions, setTopicOptions] = useState<string[]>([]);
-  const [subtopicOptions, setSubtopicOptions] = useState<string[]>([]);
+  const [subjectRows, setSubjectRows] = useState<CurriculumSelectRow[]>([]);
+  const [topicRows, setTopicRows] = useState<CurriculumSelectRow[]>([]);
+  const [subtopicRows, setSubtopicRows] = useState<CurriculumSelectRow[]>([]);
   const [loadingClasses, setLoadingClasses] = useState(false);
   const [loadingSubjects, setLoadingSubjects] = useState(false);
   const [loadingTopics, setLoadingTopics] = useState(false);
@@ -88,12 +104,8 @@ export default function AIContentEngine() {
     [],
   );
 
-  const availableTopics = topicOptions;
-  const availableSubtopics = subtopicOptions;
   const fieldClassName =
     "h-11 border-slate-300 bg-slate-50 text-slate-800 placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0";
-  const fileFieldClassName =
-    "h-11 border-slate-200 bg-blue-50/40 text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-200";
   const labelClassName = "text-slate-700";
   const reqStar = <span className="text-red-600">*</span>;
   const getToolLabel = (toolValue?: string) =>
@@ -454,10 +466,26 @@ export default function AIContentEngine() {
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
+  const normalizeContentClass = (item: SubjectContentItem): string => {
+    const rawClass = String(item.classNumber || "").trim();
+    if (!rawClass) return "";
+    return /^class\s+/i.test(rawClass) ? rawClass : `Class ${rawClass}`;
+  };
+
+  const getContentPdfUrls = (item: SubjectContentItem): string[] => {
+    const urls = [
+      ...(Array.isArray(item.fileUrls) ? item.fileUrls : []),
+      item.fileUrl || "",
+    ]
+      .map((url) => String(url || "").trim())
+      .filter((url) => url && /\.pdf(\?|$)/i.test(url));
+    return Array.from(new Set(urls));
+  };
+
   const toNames = (data: any): string[] => {
     const rows = Array.isArray(data) ? data : [];
     return rows
-      .map((row: any) => String(row?.name || row?.label || row?.id || "").trim())
+      .map((row: any) => String(row?.name || row?.label || row?.title || "").trim())
       .filter(Boolean);
   };
 
@@ -484,9 +512,9 @@ export default function AIContentEngine() {
       if (!res.ok || json?.success === false) {
         throw new Error(json?.message || "Failed to load subjects");
       }
-      setSubjectOptions(toNames(json?.data));
+      setSubjectRows(toCurriculumSelectRows(json?.data));
     } catch {
-      setSubjectOptions([]);
+      setSubjectRows([]);
     } finally {
       setLoadingSubjects(false);
     }
@@ -501,9 +529,9 @@ export default function AIContentEngine() {
       if (!res.ok || json?.success === false) {
         throw new Error(json?.message || "Failed to load topics");
       }
-      setTopicOptions(toNames(json?.data));
+      setTopicRows(toCurriculumSelectRows(json?.data));
     } catch {
-      setTopicOptions([]);
+      setTopicRows([]);
     } finally {
       setLoadingTopics(false);
     }
@@ -522,9 +550,9 @@ export default function AIContentEngine() {
       if (!res.ok || json?.success === false) {
         throw new Error(json?.message || "Failed to load subtopics");
       }
-      setSubtopicOptions(toNames(json?.data));
+      setSubtopicRows(toCurriculumSelectRows(json?.data));
     } catch {
-      setSubtopicOptions([]);
+      setSubtopicRows([]);
     } finally {
       setLoadingSubtopics(false);
     }
@@ -546,6 +574,62 @@ export default function AIContentEngine() {
       setIsLoading(false);
     }
   };
+
+  const fetchSourceContents = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/super-admin/boards/ASLI_EXCLUSIVE_SCHOOLS/content`, {
+        headers: authHeaders(),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.success) throw new Error(json?.message || "Failed to load source content");
+      const rows: SubjectContentItem[] = Array.isArray(json?.data) ? json.data : [];
+      setSourceContents(rows);
+    } catch (error: any) {
+      toast({
+        title: "Failed",
+        description: error?.message || "Could not load Subject/Content PDFs",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const classDropdownOptions = useMemo(() => {
+    const classes = sourceContents
+      .filter((item) => getContentPdfUrls(item).length > 0)
+      .map((item) => normalizeContentClass(item))
+      .filter(Boolean);
+    return Array.from(new Set(classes)).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, [sourceContents]);
+
+  const subjectDropdownOptions = useMemo(() => {
+    const subjects = sourceContents
+      .filter((item) => normalizeContentClass(item) === classLabel)
+      .filter((item) => getContentPdfUrls(item).length > 0)
+      .map((item) => ({
+        id: String(item.subject?._id || ""),
+        label: String(item.subject?.name || "").trim(),
+      }))
+      .filter((row) => row.id && row.label);
+    const unique = new Map<string, string>();
+    subjects.forEach((row) => {
+      if (!unique.has(row.id)) unique.set(row.id, row.label);
+    });
+    return Array.from(unique.entries()).map(([id, label]) => ({ id, label }));
+  }, [sourceContents, classLabel]);
+
+  const contentDropdownOptions = useMemo(() => {
+    return sourceContents.filter((item) => {
+      if (normalizeContentClass(item) !== classLabel) return false;
+      if (String(item.subject?._id || "") !== subject) return false;
+      return getContentPdfUrls(item).length > 0;
+    });
+  }, [sourceContents, classLabel, subject]);
+
+  const pdfDropdownOptions = useMemo(() => {
+    const selected = contentDropdownOptions.find((item) => item._id === selectedContentId);
+    if (!selected) return [];
+    return getContentPdfUrls(selected);
+  }, [contentDropdownOptions, selectedContentId]);
 
   const reviewAction = async (id: string, action: "approve" | "reject") => {
     setReviewingId(id);
@@ -569,11 +653,12 @@ export default function AIContentEngine() {
   useEffect(() => {
     fetchClasses();
     fetchList();
+    fetchSourceContents();
   }, []);
 
   useEffect(() => {
     if (!classLabel) {
-      setSubjectOptions([]);
+      setSubjectRows([]);
       return;
     }
     fetchSubjects(classLabel);
@@ -581,7 +666,7 @@ export default function AIContentEngine() {
 
   useEffect(() => {
     if (!classLabel || !subject) {
-      setTopicOptions([]);
+      setTopicRows([]);
       return;
     }
     fetchTopics(classLabel, subject);
@@ -589,23 +674,32 @@ export default function AIContentEngine() {
 
   useEffect(() => {
     if (!classLabel || !subject || !topic) {
-      setSubtopicOptions([]);
+      setSubtopicRows([]);
       return;
     }
     fetchSubtopics(classLabel, subject, topic);
   }, [classLabel, subject, topic]);
 
   const handleUpload = async () => {
-    if (!file || !subject || !classLabel || !topic || !toolType) {
-      setUploadError("File, class, subject, topic, and tool are required.");
-      toast({ title: "Missing fields", description: "File, class, subject, topic, and tool are required." });
+    if (!selectedPdfUrl || !subject || !classLabel || !topic || !toolType) {
+      setUploadError("PDF, class, subject, topic, and tool are required.");
+      toast({ title: "Missing fields", description: "PDF, class, subject, topic, and tool are required." });
       return;
     }
     setIsUploading(true);
     setUploadError("");
     try {
+      const pdfUrl = selectedPdfUrl.startsWith("http")
+        ? selectedPdfUrl
+        : `${API_BASE_URL}${selectedPdfUrl.startsWith("/") ? "" : "/"}${selectedPdfUrl}`;
+      const pdfRes = await fetch(pdfUrl, { headers: authHeaders() });
+      if (!pdfRes.ok) throw new Error("Failed to fetch selected PDF from content library");
+      const pdfBlob = await pdfRes.blob();
+      const filenameFromUrl = selectedPdfUrl.split("/").pop() || `content-${Date.now()}.pdf`;
+      const pdfFile = new File([pdfBlob], filenameFromUrl, { type: "application/pdf" });
+
       const form = new FormData();
-      form.append("file", file);
+      form.append("file", pdfFile);
       form.append("subject", subject);
       form.append("class", classLabel);
       form.append("chapter", topic);
@@ -628,9 +722,8 @@ export default function AIContentEngine() {
       }
       toast({ title: "Uploaded", description: "PDF uploaded successfully. Click process to index." });
       setUploadError("");
-      setFile(null);
-      setTopic("");
-      setSubTopic("");
+      setSelectedPdfUrl("");
+      setSelectedContentId("");
       fetchList();
     } catch (error: any) {
       setUploadError(error?.message || "Failed to upload");
@@ -664,17 +757,6 @@ export default function AIContentEngine() {
         <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
             <Label className={labelClassName}>
-              PDF {reqStar}
-            </Label>
-            <Input
-              className={fileFieldClassName}
-              type="file"
-              accept="application/pdf"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-            />
-          </div>
-          <div>
-            <Label className={labelClassName}>
               Class {reqStar}
             </Label>
             <Select
@@ -684,14 +766,15 @@ export default function AIContentEngine() {
                 setSubject("");
                 setTopic("");
                 setSubTopic("");
+                setSelectedContentId("");
+                setSelectedPdfUrl("");
               }}
-              disabled={loadingClasses}
             >
               <SelectTrigger className={fieldClassName}>
-                <SelectValue placeholder={loadingClasses ? "Loading classes..." : "Select class"} />
+                <SelectValue placeholder="Select class" />
               </SelectTrigger>
               <SelectContent>
-                {classOptions.map((option) => (
+                {classDropdownOptions.map((option) => (
                   <SelectItem key={option} value={option}>
                     {option}
                   </SelectItem>
@@ -709,20 +792,18 @@ export default function AIContentEngine() {
                 setSubject(value);
                 setTopic("");
                 setSubTopic("");
+                setSelectedContentId("");
+                setSelectedPdfUrl("");
               }}
-              disabled={!classLabel || loadingSubjects}
+              disabled={!classLabel}
             >
               <SelectTrigger className={fieldClassName}>
-                <SelectValue
-                  placeholder={
-                    !classLabel ? "Select class first" : loadingSubjects ? "Loading subjects..." : "Select subject"
-                  }
-                />
+                <SelectValue placeholder={!classLabel ? "Select class first" : "Select subject"} />
               </SelectTrigger>
               <SelectContent>
-                {subjectOptions.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
+                {subjectDropdownOptions.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>
+                    {option.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -730,31 +811,61 @@ export default function AIContentEngine() {
           </div>
           <div>
             <Label className={labelClassName}>
-              Topic {reqStar}
+              Content {reqStar}
             </Label>
             <Select
-              value={topic}
+              value={selectedContentId}
               onValueChange={(value) => {
-                setTopic(value);
-                setSubTopic("");
+                setSelectedContentId(value);
+                const selectedContent = contentDropdownOptions.find((item) => item._id === value);
+                if (selectedContent) {
+                  const selectedTopic = String(selectedContent.topic || selectedContent.title || "").trim();
+                  setTopic(selectedTopic);
+                  setSubTopic("");
+                  const contentPdfs = getContentPdfUrls(selectedContent);
+                  setSelectedPdfUrl(contentPdfs[0] || "");
+                } else {
+                  setSelectedPdfUrl("");
+                }
               }}
-              disabled={!classLabel || !subject || loadingTopics}
+              disabled={!classLabel || !subject}
             >
               <SelectTrigger className={fieldClassName}>
                 <SelectValue
                   placeholder={
-                    !classLabel || !subject
-                      ? "Select class & subject first"
-                      : loadingTopics
-                        ? "Loading topics..."
-                        : "Select topic"
+                    !subject ? "Select subject first" : "Select content"
                   }
                 />
               </SelectTrigger>
               <SelectContent>
-                {availableTopics.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
+                {contentDropdownOptions.map((row) => (
+                  <SelectItem key={row._id} value={row._id}>
+                    {row.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className={labelClassName}>
+              PDF {reqStar}
+            </Label>
+            <Select
+              value={selectedPdfUrl}
+              onValueChange={setSelectedPdfUrl}
+              disabled={!selectedContentId}
+            >
+              <SelectTrigger className={fieldClassName}>
+                <SelectValue
+                  placeholder={
+                    !selectedContentId ? "Select content first" : "Select PDF"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {pdfDropdownOptions.map((pdfUrl) => (
+                  <SelectItem key={pdfUrl} value={pdfUrl}>
+                    {pdfUrl.split("/").pop() || pdfUrl}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -779,9 +890,9 @@ export default function AIContentEngine() {
                 />
               </SelectTrigger>
               <SelectContent>
-                {availableSubtopics.map((option) => (
-                  <SelectItem key={option} value={option}>
-                    {option}
+                {subtopicRows.map((row) => (
+                  <SelectItem key={row.value} value={row.value}>
+                    {row.label}
                   </SelectItem>
                 ))}
               </SelectContent>

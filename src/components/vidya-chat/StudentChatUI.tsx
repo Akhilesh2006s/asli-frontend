@@ -1,6 +1,12 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Image as ImageIcon, Loader2, Mic, Send, Sparkles } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Image as ImageIcon, Loader2, Mic, Send } from "lucide-react";
 import { useState } from "react";
 import type { UseVidyaChatResult } from "./types";
 
@@ -29,7 +35,7 @@ export function StudentChatUI({ model, className }: StudentChatUIProps) {
   }
 
   return (
-    <div className={`${className ?? ""} flex h-full min-h-0 flex-col rounded-2xl border border-indigo-100 bg-gradient-to-b from-indigo-50 via-sky-50 to-teal-50`}>
+    <div className={`${className ?? ""} flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-b from-indigo-50 via-sky-50 to-teal-50`}>
       <div className="border-b border-indigo-100 px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -46,10 +52,52 @@ export function StudentChatUI({ model, className }: StudentChatUIProps) {
       </div>
 
       <div className="px-4 pt-3">
+        {(model.todayFocusAction || model.studyStreakMessage) && (
+          <div className="mb-3 grid grid-cols-1 gap-2">
+            {model.todayFocusAction && (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                <p className="text-[11px] uppercase tracking-wide text-amber-700">Today Focus On This</p>
+                <p className="text-sm font-semibold text-amber-900">{model.todayFocusAction}</p>
+                {model.todayFocusReason ? <p className="text-xs text-amber-800">{model.todayFocusReason}</p> : null}
+              </div>
+            )}
+            {model.studyStreakMessage && (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                <p className="text-xs font-medium text-emerald-800">{model.studyStreakMessage}</p>
+              </div>
+            )}
+            {model.proactivePrompt && (
+              <button
+                onClick={() => model.onPromptClick(model.proactivePrompt || "")}
+                className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-left text-xs text-indigo-800 hover:bg-indigo-100"
+              >
+                {model.proactivePrompt}
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-lg border border-indigo-100 bg-white px-3 py-2">
-            <p className="text-[11px] uppercase tracking-wide text-slate-500">Current Subject</p>
-            <p className="text-sm font-semibold text-indigo-700">{model.currentSubject}</p>
+            <label htmlFor="vidya-subject-select" className="text-[11px] uppercase tracking-wide text-slate-500">
+              Subject focus
+            </label>
+            <Select value={model.currentSubject} onValueChange={model.setSelectedSubject}>
+              <SelectTrigger
+                id="vidya-subject-select"
+                className="mt-1 h-9 border-indigo-200 bg-white text-left text-sm font-medium text-indigo-800"
+              >
+                <SelectValue placeholder="Choose subject" />
+              </SelectTrigger>
+              <SelectContent>
+                {model.subjectOptions.map((name) => (
+                  <SelectItem key={name} value={name}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-[10px] leading-snug text-slate-500">Vidya stays within this subject.</p>
           </div>
           <div className="rounded-lg border border-emerald-100 bg-white px-3 py-2">
             <p className="text-[11px] uppercase tracking-wide text-slate-500">Learning Progress</p>

@@ -10,6 +10,7 @@ import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { extractClassNumberFromSubjectName } from '@/lib/subject-names';
+import { sanitizeTopicStrings } from '@/lib/vidya-subjects';
 
 interface QuestionGeneratorProps {
   classNumber: number;
@@ -120,14 +121,10 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
         const data = await response.json();
         const contentItems = data.data || [];
         // Extract unique topics from content
-        const uniqueTopics = Array.from(
-          new Set(
-            contentItems
-              .map((item: any) => item.topic)
-              .filter((topic: string) => topic && topic.trim() !== '')
-          )
-        ) as string[];
-        setTopics(uniqueTopics.sort());
+        const rawTopics = contentItems
+          .map((item: any) => String(item.topic || '').trim())
+          .filter(Boolean);
+        setTopics(sanitizeTopicStrings(rawTopics));
       }
     } catch (error) {
       console.error('Error fetching topics:', error);

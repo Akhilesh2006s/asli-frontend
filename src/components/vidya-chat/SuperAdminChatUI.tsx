@@ -1,11 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Activity,
-  AlertTriangle,
-  BarChart3,
-  BrainCircuit,
-  Cpu,
   Image as ImageIcon,
   Loader2,
   Mic,
@@ -21,33 +16,6 @@ interface SuperAdminChatUIProps {
 }
 
 export function SuperAdminChatUI({ model, className }: SuperAdminChatUIProps) {
-  const analyticsCards = [
-    {
-      label: "AI Requests",
-      value: model.displayMessages.length > 0 ? `${model.displayMessages.length}` : "124",
-      icon: Activity,
-      tone: "text-orange-600",
-    },
-    {
-      label: "Anomaly Alerts",
-      value: "3",
-      icon: AlertTriangle,
-      tone: "text-amber-600",
-    },
-    {
-      label: "Model Health",
-      value: "98.2%",
-      icon: ShieldCheck,
-      tone: "text-green-600",
-    },
-    {
-      label: "Avg Response",
-      value: "1.4s",
-      icon: BarChart3,
-      tone: "text-slate-700",
-    },
-  ];
-
   if (model.isLoading) {
     return (
       <div className={`${className ?? ""} flex h-full min-h-[320px] items-center justify-center bg-white`}>
@@ -68,40 +36,38 @@ export function SuperAdminChatUI({ model, className }: SuperAdminChatUIProps) {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-white">AI System Control Panel</h3>
-              <p className="text-xs text-orange-100">Live governance, model supervision, and AI fleet monitoring</p>
+              <p className="text-xs text-orange-100">
+                Database-backed control assistant: Gemini classifies intent; answers use live MongoDB aggregates.
+              </p>
             </div>
           </div>
           <Badge className="border border-white/30 bg-white/20 text-white hover:bg-white/20">Control Mode: Active</Badge>
         </div>
       </div>
 
-      <div className="border-b border-orange-100 px-5 py-4">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {analyticsCards.map((card) => {
-            const Icon = card.icon;
-            return (
-              <div key={card.label} className="rounded-xl border border-orange-100 bg-white px-4 py-3 shadow-sm">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">{card.label}</p>
-                  <Icon className={`h-4 w-4 ${card.tone}`} />
-                </div>
-                <p className="text-xl font-bold text-slate-900">{card.value}</p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
       <div className="min-h-0 flex-1 px-5 py-4">
-        <div className="grid h-full min-h-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid h-full min-h-0 grid-cols-1 gap-4">
           <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 px-4 py-3">
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-sm font-semibold text-slate-900">Control Console</h4>
-                  <p className="text-xs text-slate-600">Run command-style prompts for system diagnostics</p>
+                  <p className="text-xs text-slate-600">
+                    Ask platform metrics; every number is computed server-side (not invented by the model).
+                  </p>
                 </div>
-                <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">Audit Channel</Badge>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={model.clearChat}
+                    disabled={model.isPending || model.isClearingChat || model.displayMessages.length === 0}
+                  >
+                    {model.isClearingChat ? "Clearing..." : "Clear Chat"}
+                  </Button>
+                  <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">Audit Channel</Badge>
+                </div>
               </div>
             </div>
 
@@ -203,40 +169,6 @@ export function SuperAdminChatUI({ model, className }: SuperAdminChatUIProps) {
             </div>
           </div>
 
-          <aside className="space-y-3 rounded-xl border border-orange-100 bg-white p-4 shadow-sm">
-            <div className="border-b border-slate-100 pb-3">
-              <h4 className="text-sm font-semibold text-slate-900">AI Operations Sidebar</h4>
-              <p className="text-xs text-slate-600">Monitoring signal and model telemetry</p>
-            </div>
-
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-              <div className="mb-1 flex items-center justify-between">
-                <p className="text-xs uppercase tracking-wide text-slate-500">AI Status</p>
-                <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Online</Badge>
-              </div>
-              <p className="text-sm font-medium text-slate-800">Inference Cluster Healthy</p>
-            </div>
-
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-              <div className="mb-1 flex items-center justify-between">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Primary Model</p>
-                <Cpu className="h-4 w-4 text-orange-600" />
-              </div>
-              <p className="text-sm font-medium text-slate-800">Vidya-OPS v3.2.1</p>
-            </div>
-
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
-              <div className="mb-1 flex items-center justify-between">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Usage Window</p>
-                <BrainCircuit className="h-4 w-4 text-orange-500" />
-              </div>
-              <p className="text-sm font-medium text-slate-800">124 Active Requests</p>
-            </div>
-
-            <div className="rounded-lg border border-orange-100 bg-orange-50 px-3 py-3 text-xs text-orange-700">
-              Live control mode enabled. Commands trigger analytics and compliance-aware responses.
-            </div>
-          </aside>
         </div>
       </div>
     </div>

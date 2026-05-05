@@ -120,6 +120,15 @@ const AdminDashboard = () => {
     checkAuth();
   }, []);
 
+  useEffect(() => {
+    document.documentElement.classList.add('dashboard-no-scrollbar');
+    document.body.classList.add('dashboard-no-scrollbar');
+    return () => {
+      document.documentElement.classList.remove('dashboard-no-scrollbar');
+      document.body.classList.remove('dashboard-no-scrollbar');
+    };
+  }, []);
+
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalTeachers: 0,
@@ -560,7 +569,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-1 hide-scrollbar">
           <button
             onClick={() => setActiveTab('overview')}
             className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
@@ -686,7 +695,7 @@ const AdminDashboard = () => {
       )}
 
         {/* Main Content Area */}
-        <div className="flex-1 w-full min-w-0 flex flex-col relative z-10 md:h-screen md:overflow-y-auto">
+        <div className="flex-1 w-full min-w-0 flex flex-col relative z-10 md:h-screen md:overflow-y-auto hide-scrollbar">
           {/* Top Header - Student Dashboard Theme */}
           <div className="bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 shadow-xl border-b-0 rounded-b-3xl md:rounded-b-3xl rounded-b-2xl px-responsive py-6 relative z-10">
             <div className="flex-responsive-col items-center sm:items-start justify-between space-y-responsive sm:space-y-0">

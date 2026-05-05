@@ -15,10 +15,29 @@ export function AdminChatUI({ model, className }: AdminChatUIProps) {
     { label: "Reports", icon: BarChart3, tone: "border-emerald-200 text-emerald-700 hover:bg-emerald-50" },
   ];
 
+  const turns = Math.max(0, Math.floor(model.displayMessages.length / 2));
   const statsStrip = [
-    { label: "Students", value: "1,284", icon: Users, tone: "text-sky-700 border-sky-100 bg-sky-50/70" },
-    { label: "Classes", value: "42", icon: Sparkles, tone: "text-teal-700 border-teal-100 bg-teal-50/70" },
-    { label: "Exams", value: "18", icon: CalendarDays, tone: "text-emerald-700 border-emerald-100 bg-emerald-50/70" },
+    {
+      label: "Assist mode",
+      value: model.isDatabaseBackedAssistant ? "DB-grounded" : "—",
+      icon: Sparkles,
+      tone: "text-teal-700 border-teal-100 bg-teal-50/70",
+    },
+    {
+      label: "Queries (session)",
+      value: `${turns}`,
+      icon: Users,
+      tone: "text-sky-700 border-sky-100 bg-sky-50/70",
+    },
+    {
+      label: "Last latency",
+      value:
+        typeof model.lastControlLatencyMs === "number" && Number.isFinite(model.lastControlLatencyMs)
+          ? `${(model.lastControlLatencyMs / 1000).toFixed(2)}s`
+          : "—",
+      icon: CalendarDays,
+      tone: "text-emerald-700 border-emerald-100 bg-emerald-50/70",
+    },
   ];
 
   if (model.isLoading) {
@@ -39,7 +58,9 @@ export function AdminChatUI({ model, className }: AdminChatUIProps) {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-slate-900">School AI Assistant</h3>
-              <p className="text-sm text-slate-600">Manage students, teachers, and school workflows</p>
+              <p className="text-sm text-slate-600">
+                School-scoped metrics from your live database — ask counts, exams, attendance proxy, and AI usage.
+              </p>
             </div>
           </div>
         </div>
@@ -84,6 +105,17 @@ export function AdminChatUI({ model, className }: AdminChatUIProps) {
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
+        <div className="mx-auto mb-3 flex max-w-3xl justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            onClick={model.clearChat}
+            disabled={model.isPending || model.isClearingChat || model.displayMessages.length === 0}
+          >
+            {model.isClearingChat ? "Clearing..." : "Clear Chat"}
+          </Button>
+        </div>
         {model.displayMessages.length === 0 ? (
           <div className="mx-auto max-w-3xl py-8 text-center">
             <h4 className="text-lg font-semibold text-slate-900">How can I support school operations?</h4>

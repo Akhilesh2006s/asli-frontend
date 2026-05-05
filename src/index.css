@@ -99,16 +99,18 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     overflow-x: hidden;
-    overflow-y: scroll;
+    overflow-y: auto;
     min-height: 100vh;
   }
   
   html {
     @apply bg-white;
     overflow-x: hidden;
-    overflow-y: scroll;
-    /* Reserve scrollbar space to prevent full-page horizontal jump on filter/list updates. */
-    scrollbar-gutter: stable;
+    overflow-y: auto;
+  }
+
+  #root {
+    min-height: 100%;
   }
 
   img,
@@ -393,6 +395,28 @@
 }
 
 .super-admin-sidebar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+/* Hide scrollbar while preserving scroll behavior */
+.hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge Legacy */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+/* Hide root page scrollbar for full-screen dashboard layouts */
+html.dashboard-no-scrollbar,
+body.dashboard-no-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge Legacy */
+}
+
+html.dashboard-no-scrollbar::-webkit-scrollbar,
+body.dashboard-no-scrollbar::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Edge */
 }
 

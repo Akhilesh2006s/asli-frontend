@@ -76,6 +76,7 @@ import YouTubePlayer from '@/components/youtube-player';
 import DriveViewer from '@/components/drive-viewer';
 import VideoModal from '@/components/video-modal';
 import { API_BASE_URL } from '@/lib/api-config';
+import { collectVidyaSubjectLabels } from '@/lib/vidya-subjects';
 import { getUser as getStoredUser } from '@/lib/auth-utils';
 import {
   getTodayStudyTime,
@@ -1645,6 +1646,18 @@ export default function Dashboard() {
   const topIncompleteQuizzes = useMemo(() => {
     return incompleteQuizzes.slice(0, 10);
   }, [incompleteQuizzes]);
+
+  const vidyaSubjectNames = useMemo(
+    () =>
+      collectVidyaSubjectLabels({
+        subjectProgress,
+        subjects,
+        assignedSubjects: user?.assignedSubjects,
+        assignedClassSubjects: user?.assignedClass?.assignedSubjects,
+      }),
+    [subjectProgress, subjects, user?.assignedSubjects, user?.assignedClass?.assignedSubjects]
+  );
+
   const [selectedTopicSubject, setSelectedTopicSubject] = useState<string>('');
 
   const topicWiseProgress = useMemo(() => {
@@ -3603,17 +3616,10 @@ export default function Dashboard() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="rounded-xl border border-indigo-100 bg-gradient-to-r from-indigo-50 to-sky-50 p-3 shadow-sm">
-                        <p className="text-xs uppercase tracking-wide text-slate-500">Current Subject</p>
-                        <p className="text-sm font-semibold text-indigo-700 mt-1">
-                          {subjectProgress?.[0]?.name || subjects?.[0]?.name || "General Study"}
-                        </p>
-                      </div>
-                      <div className="rounded-xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 p-3 shadow-sm">
-                        <p className="text-xs uppercase tracking-wide text-slate-500">Learning Progress %</p>
-                        <p className="text-sm font-semibold text-emerald-700 mt-1">{overallProgress}%</p>
-                      </div>
+                    <div className="rounded-xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 p-3 shadow-sm">
+                      <p className="text-xs uppercase tracking-wide text-slate-500">Learning progress</p>
+                      <p className="text-sm font-semibold text-emerald-700 mt-1">{overallProgress}%</p>
+                      <p className="mt-1 text-xs text-slate-600">Pick your subject in the chat panel so Vidya stays on-topic.</p>
                     </div>
 
                     <div className="flex flex-wrap gap-2 rounded-xl bg-white border border-slate-200 p-2 shadow-sm">
@@ -3657,7 +3663,12 @@ export default function Dashboard() {
                           className="h-full max-w-2xl mx-auto"
                           context={{
                             studentName: user?.fullName || user?.name || "Student",
-                            currentSubject: subjectProgress?.[0]?.name || subjects?.[0]?.name || "General Study",
+                            subjectOptions: vidyaSubjectNames,
+                            currentSubject:
+                              vidyaSubjectNames[0] ||
+                              subjectProgress?.[0]?.name ||
+                              subjects?.[0]?.name ||
+                              "General Study",
                             currentTopic: studentLearningMode === 'explain'
                               ? "Explain concepts clearly"
                               : studentLearningMode === 'quiz'

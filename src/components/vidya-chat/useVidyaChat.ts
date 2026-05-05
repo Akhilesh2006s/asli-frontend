@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
@@ -8,6 +8,18 @@ import type {
   VidyaChatRole,
   Message,
 } from "./types";
+import { isLikelyMongoObjectId } from "@/lib/vidya-subjects";
+
+const CONTROL_ASSISTANT_QUICK_QUESTIONS = [
+  "How many students are there in the application?",
+  "How many students are in Class 7?",
+  "How many teachers are active?",
+  "Show today's attendance summary",
+  "How many exams are scheduled this week?",
+  "Which class has the highest student count?",
+  "How many pending fee records exist?",
+  "How many AI requests were generated today?",
+];
 
 const QUICK_QUESTIONS_BY_ROLE: Record<VidyaChatRole, string[]> = {
   student: [
@@ -43,6 +55,9 @@ const INPUT_PLACEHOLDER_BY_ROLE: Record<VidyaChatRole, string> = {
   super_admin: "Ask about system analytics, AI monitoring...",
 };
 
+const CONTROL_INPUT_PLACEHOLDER =
+  "Ask for live metrics: students, teachers, exams, attendance (login proxy), AI generations…";
+
 interface UseVidyaChatOptions {
   userId: string;
   role: VidyaChatRole;
@@ -54,20 +69,62 @@ type VidyaChatPrefillEvent = CustomEvent<{
   message: string;
 }>;
 
+function mergeSubjectOptions(
+  subjectOptions: string[] | undefined,
+  currentSubject: string | undefined
+): string[] {
+  const opts = (subjectOptions ?? []).map((s) => String(s || "").trim()).filter(Boolean);
+  const cur = String(currentSubject || "").trim();
+  const list = opts.length > 0 ? [...opts] : cur ? [cur] : ["General Study"];
+  const hasCur = cur && list.some((x) => x.localeCompare(cur, undefined, { sensitivity: "accent" }) === 0);
+  const merged = cur && !hasCur ? [cur, ...list] : list;
+  return Array.from(new Set(merged)).filter((s) => !isLikelyMongoObjectId(s));
+}
+
 export function useVidyaChat({
   userId,
   role,
   context,
 }: UseVidyaChatOptions): UseVidyaChatResult {
+  const isDatabaseBackedAssistant = role === "super_admin" || role === "admin";
+  const isStudentMentorMode = role === "student";
+
   const [message, setMessage] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  const [lastControlLatencyMs, setLastControlLatencyMs] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const localMessagesRef = useRef<Message[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: sessions, isLoading, refetch } = useQuery({
+  useEffect(() => {
+    localMessagesRef.current = localMessages;
+  }, [localMessages]);
+
+  const mergedSubjectOptions = useMemo(
+    () => mergeSubjectOptions(context?.subjectOptions, context?.currentSubject),
+    [
+      context?.currentSubject,
+      Array.isArray(context?.subjectOptions) ? context!.subjectOptions!.join("\u0001") : "",
+    ]
+  );
+
+  const [selectedSubject, setSelectedSubject] = useState(
+    () => mergedSubjectOptions[0] || "General Study"
+  );
+  const selectedSubjectRef = useRef(selectedSubject);
+  selectedSubjectRef.current = selectedSubject;
+
+  useEffect(() => {
+    const fallback = mergedSubjectOptions[0] || "General Study";
+    setSelectedSubject((prev) =>
+      mergedSubjectOptions.some((s) => s === prev) ? prev : fallback
+    );
+  }, [mergedSubjectOptions]);
+
+  const { data: sessions, isLoading: sessionsLoading, refetch } = useQuery({
     queryKey: ["/api/users", userId, "chat-sessions"],
     queryFn: async () => {
       const token = localStorage.getItem("authToken");
@@ -80,20 +137,84 @@ export function useVidyaChat({
       if (!response.ok) throw new Error("Failed to fetch chat sessions");
       return response.json();
     },
-    refetchInterval: 2000,
+    refetchInterval: isDatabaseBackedAssistant ? false : 2000,
+    enabled: Boolean(userId) && !isDatabaseBackedAssistant,
+  });
+
+  const { data: controlHistory, isLoading: controlHistoryLoading } = useQuery({
+    queryKey: ["vidya-control-history", userId],
+    queryFn: async () => {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(`${API_BASE_URL}/api/vidya/control/history?limit=50`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) throw new Error("Failed to fetch control history");
+      return response.json() as Promise<{
+        success: boolean;
+        items: Array<{ prompt: string; responseText: string; createdAt?: string }>;
+      }>;
+    },
+    enabled: Boolean(userId) && isDatabaseBackedAssistant,
+  });
+
+  const { data: studentFocus } = useQuery({
+    queryKey: ["vidya-student-focus", userId],
+    queryFn: async () => {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(`${API_BASE_URL}/api/vidya/student/focus-card`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) throw new Error("Failed to fetch student focus card");
+      return response.json() as Promise<{
+        success: boolean;
+        focusCard?: { action?: string; reason?: string };
+        studyStreak?: { message?: string };
+        proactivePrompt?: { _id?: string; promptText?: string } | null;
+      }>;
+    },
+    enabled: Boolean(userId) && role === "student",
+    refetchInterval: role === "student" ? 30000 : false,
   });
 
   const currentSession = sessions?.[0];
   const sessionMessages: Message[] = (currentSession?.messages as Message[]) || [];
 
   useEffect(() => {
+    if (isDatabaseBackedAssistant) return;
     if (
       sessionMessages.length > 0 &&
       (localMessages.length === 0 || sessionMessages.length > localMessages.length)
     ) {
       setLocalMessages(sessionMessages);
     }
-  }, [sessionMessages, localMessages.length]);
+  }, [isDatabaseBackedAssistant, sessionMessages, localMessages.length]);
+
+  useEffect(() => {
+    if (!isDatabaseBackedAssistant) return;
+    if (controlHistory === undefined) return;
+    if (!controlHistory?.success) return;
+    const items = controlHistory.items || [];
+    if (items.length === 0) {
+      setLocalMessages([]);
+      return;
+    }
+    setLocalMessages((prev) => {
+      if (prev.length > 0) return prev;
+      const mapped: Message[] = [];
+      for (const it of items) {
+        const ts = it.createdAt ? new Date(it.createdAt) : new Date();
+        mapped.push({ role: "user", content: it.prompt, timestamp: ts });
+        mapped.push({ role: "assistant", content: it.responseText, timestamp: ts });
+      }
+      return mapped;
+    });
+  }, [isDatabaseBackedAssistant, controlHistory]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async (data: { message: string; context?: AIChatContext }) => {
@@ -103,7 +224,91 @@ export function useVidyaChat({
         content: data.message,
         timestamp: new Date(),
       };
+
+      const historyPayload = localMessagesRef.current
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .slice(-12)
+        .map((m) => ({
+          role: m.role,
+          content: String(m.content || "").slice(0, 6000),
+        }));
+
       setLocalMessages((prev) => [...prev, userMessage]);
+
+      if (isDatabaseBackedAssistant) {
+        const response = await fetch(`${API_BASE_URL}/api/vidya/control/query`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: data.message,
+            history: historyPayload,
+          }),
+        });
+
+        if (!response.ok) {
+          let errorMessage = "Control assistant request failed";
+          try {
+            const errorJson = await response.json();
+            if (errorJson?.message) errorMessage = String(errorJson.message);
+          } catch (_) {
+            // ignore
+          }
+          throw new Error(errorMessage);
+        }
+
+        const result = await response.json();
+        if (result.message) {
+          setLastControlLatencyMs(
+            typeof result.latencyMs === "number" ? result.latencyMs : null
+          );
+          const aiMessage: Message = {
+            role: "assistant",
+            content: result.message,
+            timestamp: new Date(),
+          };
+          setLocalMessages((prev) => [...prev, aiMessage]);
+        }
+        return result;
+      }
+
+      if (isStudentMentorMode) {
+        const response = await fetch(`${API_BASE_URL}/api/vidya/student/chat`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: data.message,
+            studentId: userId,
+          }),
+        });
+
+        if (!response.ok) {
+          let errorMessage = "Student mentor request failed";
+          try {
+            const errorJson = await response.json();
+            if (errorJson?.message) errorMessage = String(errorJson.message);
+          } catch (_) {
+            // ignore
+          }
+          throw new Error(errorMessage);
+        }
+
+        const result = await response.json();
+        if (result.message) {
+          const aiMessage: Message = {
+            role: "assistant",
+            content: result.message,
+            timestamp: new Date(),
+          };
+          setLocalMessages((prev) => [...prev, aiMessage]);
+        }
+        return result;
+      }
 
       const response = await fetch(`${API_BASE_URL}/api/ai-chat`, {
         method: "POST",
@@ -115,10 +320,14 @@ export function useVidyaChat({
           userId,
           message: data.message,
           context: {
+            ...context,
             ...data.context,
-            studentName: context?.studentName || "Student",
-            currentSubject: context?.currentSubject || data.context?.currentSubject,
-            currentTopic: context?.currentTopic || data.context?.currentTopic,
+            studentName: context?.studentName || data.context?.studentName || "Student",
+            currentSubject:
+              data.context?.currentSubject ??
+              selectedSubjectRef.current ??
+              context?.currentSubject,
+            currentTopic: data.context?.currentTopic ?? context?.currentTopic,
           },
         }),
       });
@@ -156,15 +365,22 @@ export function useVidyaChat({
 
       return result;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users", userId, "chat-sessions"] });
+    onSuccess: (_data, _vars, _ctx) => {
+      if (isDatabaseBackedAssistant) {
+        queryClient.invalidateQueries({ queryKey: ["vidya-control-history", userId] });
+      } else if (isStudentMentorMode) {
+        queryClient.invalidateQueries({ queryKey: ["vidya-student-focus", userId] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["/api/users", userId, "chat-sessions"] });
+        setTimeout(() => refetch(), 1000);
+      }
       setMessage("");
-      setTimeout(() => refetch(), 1000);
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const msg = error instanceof Error ? error.message : "Failed to send message.";
       toast({
         title: "Error",
-        description: error.message || "Failed to send message. Please try again.",
+        description: msg,
         variant: "destructive",
       });
       setLocalMessages((prev) => prev.slice(0, -1));
@@ -199,7 +415,7 @@ export function useVidyaChat({
     onSuccess: (data) => {
       sendMessageMutation.mutate({
         message: `Please analyze this image: ${data.analysis}`,
-        context,
+        context: { ...context, currentSubject: selectedSubjectRef.current },
       });
     },
     onError: () => {
@@ -213,17 +429,62 @@ export function useVidyaChat({
 
   const sendSpecificMessage = (text: string) => {
     if (!text.trim() || sendMessageMutation.isPending) return;
-    const subjectContext = context?.currentSubject || "General Preparation";
     sendMessageMutation.mutate({
       message: text.trim(),
       context: {
         ...context,
-        currentSubject: subjectContext,
+        currentSubject: selectedSubjectRef.current || context?.currentSubject || "General Study",
       },
     });
   };
 
   const handleSendMessage = () => sendSpecificMessage(message);
+
+  const clearChatMutation = useMutation({
+    mutationFn: async () => {
+      if (!isDatabaseBackedAssistant) return { success: true };
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(`${API_BASE_URL}/api/vidya/control/history`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) {
+        let errorMessage = "Failed to clear chat history";
+        try {
+          const errorJson = await response.json();
+          if (errorJson?.message) errorMessage = String(errorJson.message);
+        } catch (_) {
+          // ignore json parse errors
+        }
+        throw new Error(errorMessage);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      setLocalMessages([]);
+      setMessage("");
+      if (isDatabaseBackedAssistant) {
+        queryClient.invalidateQueries({ queryKey: ["vidya-control-history", userId] });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["/api/users", userId, "chat-sessions"] });
+      }
+      toast({
+        title: "Chat cleared",
+        description: "Conversation history has been cleared.",
+      });
+    },
+    onError: (error: unknown) => {
+      const msg = error instanceof Error ? error.message : "Failed to clear chat history.";
+      toast({
+        title: "Error",
+        description: msg,
+        variant: "destructive",
+      });
+    },
+  });
 
   useEffect(() => {
     const onPrefill = (event: Event) => {
@@ -238,7 +499,7 @@ export function useVidyaChat({
     return () => {
       window.removeEventListener("vidya-chat-prefill", onPrefill);
     };
-  }, [role, sendMessageMutation.isPending, context, userId]);
+  }, [role, sendMessageMutation.isPending, context, userId, selectedSubject]);
 
   const onPromptClick = (question: string) => {
     setMessage(question);
@@ -255,7 +516,7 @@ export function useVidyaChat({
       const base64Data = base64.split(",")[1];
       analyzeImageMutation.mutate({
         image: base64Data,
-        context: `Subject: ${context?.currentSubject || "General Preparation"}. Please analyze this educational image and help me understand the concepts.`,
+        context: `Subject: ${selectedSubjectRef.current || context?.currentSubject || "General Study"}. Please analyze this educational image and help me understand the concepts.`,
       });
     };
     reader.readAsDataURL(file);
@@ -271,9 +532,23 @@ export function useVidyaChat({
       return;
     }
 
-    const SpeechRecognition =
-      (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
-    const recognition = new SpeechRecognition();
+    const Win = window as unknown as {
+      webkitSpeechRecognition?: new () => { start: () => void; onstart: (() => void) | null };
+      SpeechRecognition?: new () => { start: () => void; onstart: (() => void) | null };
+    };
+    const SpeechRecognitionCtor = Win.webkitSpeechRecognition || Win.SpeechRecognition;
+    if (!SpeechRecognitionCtor) return;
+    // Minimal typing: Web Speech API is not modeled in TS for all browsers here.
+    const recognition = new SpeechRecognitionCtor() as {
+      continuous: boolean;
+      interimResults: boolean;
+      lang: string;
+      start: () => void;
+      onstart: ((this: unknown) => void) | null;
+      onerror: ((this: unknown) => void) | null;
+      onresult: ((this: unknown, event: { results: { 0: { 0: { transcript: string } } } }) => void) | null;
+      onend: ((this: unknown) => void) | null;
+    };
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = "en-US";
@@ -286,7 +561,9 @@ export function useVidyaChat({
         variant: "destructive",
       });
     };
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: {
+      results: { 0: { 0: { transcript: string } } };
+    }) => {
       const transcript = event.results[0][0].transcript;
       if (transcript.trim()) {
         setMessage(transcript);
@@ -297,7 +574,10 @@ export function useVidyaChat({
     recognition.start();
   };
 
-  const displayMessages = localMessages.length > 0 ? localMessages : sessionMessages;
+  const displayMessages = useMemo(() => {
+    if (isDatabaseBackedAssistant) return localMessages;
+    return localMessages.length > 0 ? localMessages : sessionMessages;
+  }, [isDatabaseBackedAssistant, localMessages, sessionMessages]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -314,16 +594,30 @@ export function useVidyaChat({
     return cleaned.trim();
   };
 
+  const quickQuestions = isDatabaseBackedAssistant
+    ? CONTROL_ASSISTANT_QUICK_QUESTIONS
+    : QUICK_QUESTIONS_BY_ROLE[role];
+
+  const inputPlaceholder = isDatabaseBackedAssistant
+    ? CONTROL_INPUT_PLACEHOLDER
+    : INPUT_PLACEHOLDER_BY_ROLE[role];
+
+  const isLoading = isDatabaseBackedAssistant
+    ? controlHistoryLoading && localMessages.length === 0
+    : sessionsLoading && localMessages.length === 0;
+
   return {
     message,
     setMessage,
     isListening,
-    isLoading: isLoading && localMessages.length === 0,
+    isLoading,
     isPending: sendMessageMutation.isPending || analyzeImageMutation.isPending,
     displayMessages,
-    quickQuestions: QUICK_QUESTIONS_BY_ROLE[role],
-    inputPlaceholder: INPUT_PLACEHOLDER_BY_ROLE[role],
-    currentSubject: context?.currentSubject || "General Preparation",
+    quickQuestions,
+    inputPlaceholder,
+    currentSubject: selectedSubject,
+    subjectOptions: mergedSubjectOptions,
+    setSelectedSubject,
     userInitial: context?.studentName?.charAt(0)?.toUpperCase() || "A",
     fileInputRef,
     messagesEndRef,
@@ -332,6 +626,17 @@ export function useVidyaChat({
     handleImageUpload,
     handleVoiceInput,
     onPromptClick,
+    clearChat: () => {
+      if (clearChatMutation.isPending) return;
+      clearChatMutation.mutate();
+    },
+    isClearingChat: clearChatMutation.isPending,
     formatMessage,
+    isDatabaseBackedAssistant,
+    lastControlLatencyMs,
+    todayFocusAction: studentFocus?.focusCard?.action || "",
+    todayFocusReason: studentFocus?.focusCard?.reason || "",
+    studyStreakMessage: studentFocus?.studyStreak?.message || "",
+    proactivePrompt: studentFocus?.proactivePrompt?.promptText || "",
   };
 }

@@ -1698,7 +1698,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
           <Button 
             variant="outline" 
             onClick={onBack}
-            className="px-8 py-3 bg-white hover:bg-gray-50 border-2 border-gray-300 hover:border-gray-400 shadow-lg"
+            className="px-8 py-3 bg-white text-gray-800 hover:text-gray-900 hover:bg-gray-50 border-2 border-gray-300 hover:border-gray-400 shadow-lg font-semibold"
           >
             <ArrowUp className="w-4 h-4 mr-2" />
             Back to Results
