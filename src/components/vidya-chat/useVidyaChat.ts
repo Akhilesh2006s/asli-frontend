@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { API_BASE_URL } from "@/lib/api-config";
+import { API_BASE_URL, apiFetch } from "@/lib/api-config";
 import type {
   AIChatContext,
   UseVidyaChatResult,
@@ -29,10 +29,11 @@ const QUICK_QUESTIONS_BY_ROLE: Record<VidyaChatRole, string[]> = {
     "Summarize this chapter",
   ],
   teacher: [
-    "Create a lesson plan for Biology",
-    "Generate quiz questions",
-    "Explain topic in simple terms",
-    "Suggest classroom activity",
+    "Give me 10 MCQs on [current topic]",
+    "Create a 5-question worksheet for my class",
+    "Write a lesson plan for today",
+    "Which students in my class need extra attention?",
+    "Summarize this week's curriculum points",
   ],
   admin: [
     "How do I enroll students into classes?",
@@ -93,6 +94,10 @@ export function useVidyaChat({
   const [isListening, setIsListening] = useState(false);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [lastControlLatencyMs, setLastControlLatencyMs] = useState<number | null>(null);
+  const [todayFocusAction, setTodayFocusAction] = useState("");
+  const [todayFocusReason, setTodayFocusReason] = useState("");
+  const [studyStreakMessage, setStudyStreakMessage] = useState("");
+  const [proactivePrompt, setProactivePrompt] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const localMessagesRef = useRef<Message[]>([]);
@@ -160,27 +165,33 @@ export function useVidyaChat({
     enabled: Boolean(userId) && isDatabaseBackedAssistant,
   });
 
-  const { data: studentFocus } = useQuery({
-    queryKey: ["vidya-student-focus", userId],
-    queryFn: async () => {
-      const token = localStorage.getItem("authToken");
-      const response = await fetch(`${API_BASE_URL}/api/vidya/student/focus-card`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-      if (!response.ok) throw new Error("Failed to fetch student focus card");
-      return response.json() as Promise<{
-        success: boolean;
-        focusCard?: { action?: string; reason?: string };
-        studyStreak?: { message?: string };
-        proactivePrompt?: { _id?: string; promptText?: string } | null;
-      }>;
-    },
-    enabled: Boolean(userId) && role === "student",
-    refetchInterval: role === "student" ? 30000 : false,
-  });
+  useEffect(() => {
+    if (role !== "student") return;
+    let mounted = true;
+    apiFetch("/api/vidya/student/focus-card")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!mounted || !data?.success) return;
+        setTodayFocusAction(data.focusCard?.action || data.todayFocus?.action || "");
+        setTodayFocusReason(data.focusCard?.reason || "");
+        const streakCount = Number(data.studyStreak?.count || 0);
+        setStudyStreakMessage(streakCount > 0 ? `🔥 ${streakCount}-day streak!` : data.studyStreak?.message || "");
+        setProactivePrompt(data.proactivePrompt?.promptText || "");
+        if (data.autoGreeting && localMessagesRef.current.length === 0) {
+          setLocalMessages([
+            {
+              role: "assistant",
+              content: String(data.autoGreeting),
+              timestamp: new Date(),
+            },
+          ]);
+        }
+      })
+      .catch(() => null);
+    return () => {
+      mounted = false;
+    };
+  }, [role, userId]);
 
   const currentSession = sessions?.[0];
   const sessionMessages: Message[] = (currentSession?.messages as Message[]) || [];
@@ -634,9 +645,9 @@ export function useVidyaChat({
     formatMessage,
     isDatabaseBackedAssistant,
     lastControlLatencyMs,
-    todayFocusAction: studentFocus?.focusCard?.action || "",
-    todayFocusReason: studentFocus?.focusCard?.reason || "",
-    studyStreakMessage: studentFocus?.studyStreak?.message || "",
-    proactivePrompt: studentFocus?.proactivePrompt?.promptText || "",
+    todayFocusAction,
+    todayFocusReason,
+    studyStreakMessage,
+    proactivePrompt,
   };
 }

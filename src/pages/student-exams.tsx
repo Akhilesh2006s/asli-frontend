@@ -31,7 +31,7 @@ import AnimatedExam from '@/components/animated-exam';
 import ExamResults from '@/components/exam-results';
 import StudentRanking from '@/components/student/student-ranking';
 import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
-import { API_BASE_URL } from '@/lib/api-config';
+import { API_BASE_URL, apiFetch } from '@/lib/api-config';
 import {
   CLASS_FILTER_OPTIONS,
   examMatchesStudentClassFilter,
@@ -110,6 +110,8 @@ export default function StudentExams() {
   const [examClassFilter, setExamClassFilter] = useState<string>('my');
   const [examSubjectFilter, setExamSubjectFilter] = useState<string>('all');
   const [startingExamId, setStartingExamId] = useState<string | null>(null);
+  const [postExamVidyaPrompt, setPostExamVidyaPrompt] = useState('');
+  const [postExamPromptId, setPostExamPromptId] = useState<string | null>(null);
   const didInitClassFilter = useRef(false);
 
   const preserveScrollOnFilterChange = (setter: (value: string) => void, value: string) => {
@@ -640,6 +642,19 @@ export default function StudentExams() {
     queryClient.refetchQueries({ queryKey: ['/api/student/exam-results', effectiveStudentId] });
   };
 
+  useEffect(() => {
+    if (!examResult) return;
+    apiFetch('/api/vidya/student/focus-card')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.proactivePrompt && !data.proactivePrompt?.delivered) {
+          setPostExamVidyaPrompt(String(data.proactivePrompt.promptText || ''));
+          setPostExamPromptId(String(data.proactivePrompt._id || ''));
+        }
+      })
+      .catch(() => null);
+  }, [examResult]);
+
   const getExamTypeColor = (type: string) => {
     switch (type) {
       case 'mains': return 'bg-blue-100 text-blue-700';
@@ -688,15 +703,39 @@ export default function StudentExams() {
     const used = Math.max(counted, fromThisResult);
     const attemptsRemaining = Math.max(0, maxA - used);
     return (
-      <ExamResults
-        result={examResult}
-        examTitle={currentExam.title}
-        onRetake={handleRetakeExam}
-        onViewAnalysis={() => {}}
-        onBack={handleBackToExams}
-        openDetailedByDefault
-        attemptsRemaining={attemptsRemaining}
-      />
+      <div className="min-h-screen bg-sky-50 px-4 py-6">
+        {postExamVidyaPrompt && (
+          <div className="mx-auto mt-4 max-w-5xl rounded-xl border border-sky-300 bg-sky-50 p-4">
+            <div className="flex items-start gap-3">
+              <img src="/Vidya-ai.jpg" className="h-9 w-9 rounded-full object-cover" alt="Vidya" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-sky-800">{postExamVidyaPrompt}</p>
+                <button
+                  onClick={() => {
+                    apiFetch('/api/vidya/student/proactive/delivered', {
+                      method: 'POST',
+                      body: JSON.stringify({ promptId: postExamPromptId }),
+                    }).catch(() => null);
+                    setLocation(`/ai-tutor?prompt=${encodeURIComponent(postExamVidyaPrompt)}`);
+                  }}
+                  className="mt-2 rounded-lg bg-sky-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-sky-700"
+                >
+                  Review with Vidya →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        <ExamResults
+          result={examResult}
+          examTitle={currentExam.title}
+          onRetake={handleRetakeExam}
+          onViewAnalysis={() => {}}
+          onBack={handleBackToExams}
+          openDetailedByDefault
+          attemptsRemaining={attemptsRemaining}
+        />
+      </div>
     );
   }
 

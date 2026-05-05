@@ -75,7 +75,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import YouTubePlayer from '@/components/youtube-player';
 import DriveViewer from '@/components/drive-viewer';
 import VideoModal from '@/components/video-modal';
-import { API_BASE_URL } from '@/lib/api-config';
+import { API_BASE_URL, apiFetch } from '@/lib/api-config';
 import { collectVidyaSubjectLabels } from '@/lib/vidya-subjects';
 import { getUser as getStoredUser } from '@/lib/auth-utils';
 import {
@@ -118,6 +118,7 @@ export default function Dashboard() {
   const [homeworkSubmitError, setHomeworkSubmitError] = useState<string>('');
   const [riskAnalysisReports, setRiskAnalysisReports] = useState<any[]>([]);
   const [isLoadingReports, setIsLoadingReports] = useState(false);
+  const [studyStreak, setStudyStreak] = useState<{ count: number; message?: string } | null>(null);
 
   // Fetch user data
   useEffect(() => {
@@ -197,6 +198,16 @@ export default function Dashboard() {
     };
     loadProgress();
   }, []);
+
+  useEffect(() => {
+    if (String(user?.role || '').toLowerCase() !== 'student') return;
+    apiFetch('/api/vidya/student/focus-card')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.success && d.studyStreak) setStudyStreak(d.studyStreak);
+      })
+      .catch(() => null);
+  }, [user?.role]);
 
   // Fetch content data
   useEffect(() => {
@@ -1921,6 +1932,15 @@ export default function Dashboard() {
         
         {/* Welcome Section */}
         <div className="mt-6 sm:mt-8 mb-6 relative z-10">
+        {studyStreak && studyStreak.count > 0 && (
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2.5">
+            <span className="text-xl">🔥</span>
+            <div>
+              <p className="text-sm font-semibold text-orange-700">{studyStreak.count}-day study streak!</p>
+              <p className="text-xs text-orange-600">{studyStreak.message || 'Keep it up!'}</p>
+            </div>
+          </div>
+        )}
         <div className="bg-gradient-to-r from-blue-500 via-blue-400 to-teal-400 rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl">
         <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
             <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -3656,11 +3676,11 @@ export default function Dashboard() {
                     </div>
 
                     <div className="rounded-2xl border border-sky-100 bg-gradient-to-b from-sky-50 via-indigo-50 to-teal-50 p-3 shadow-md">
-                      <div className="rounded-2xl border border-white/80 bg-white/85 backdrop-blur-sm shadow-sm" style={{ minHeight: '560px' }}>
+                      <div className="flex h-[min(72vh,780px)] min-h-[420px] flex-col overflow-hidden rounded-2xl border border-white/80 bg-white/85 shadow-sm backdrop-blur-sm sm:min-h-[480px]">
                         <AIChat
                           userId={String(user?._id || user?.id || localStorage.getItem('userId') || MOCK_USER_ID)}
                           promptVariant="student"
-                          className="h-full max-w-2xl mx-auto"
+                          className="flex min-h-0 w-full max-w-2xl flex-1 flex-col overflow-hidden mx-auto"
                           context={{
                             studentName: user?.fullName || user?.name || "Student",
                             subjectOptions: vidyaSubjectNames,

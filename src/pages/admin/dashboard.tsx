@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { API_BASE_URL } from '@/lib/api-config';
+import { AtRiskStudentsPanel } from '@/components/admin/AtRiskStudentsPanel';
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import { 
   BookOpen, 
@@ -896,6 +897,8 @@ const AdminDashboard = () => {
 
             </div>
 
+            <AtRiskStudentsPanel />
+
             <Suspense fallback={lazySectionFallback}>
               <AdminTeacherDiaryFeed />
             </Suspense>
@@ -1185,8 +1188,16 @@ const AdminDashboard = () => {
                   AI assists with administrative tasks and reporting
                 </div>
 
+                <AtRiskStudentsPanel />
+
                 <div className="w-full max-w-5xl mx-auto rounded-2xl bg-gradient-to-b from-sky-50 via-cyan-50 to-teal-50 p-4 border border-white/70 shadow-xl">
-                  <div className="bg-white/85 rounded-2xl border border-sky-100 shadow-md" style={{ minHeight: '600px' }}>
+                  <div className="rounded-t-2xl border-b border-sky-100 bg-white/90 px-5 py-4">
+                    <h3 className="text-base font-semibold text-gray-800">Chat with Vidya AI</h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Ask about your school&apos;s students, attendance, exams, and performance data.
+                    </p>
+                  </div>
+                  <div className="bg-white/85 rounded-b-2xl border-x border-b border-sky-100 shadow-md" style={{ minHeight: '600px' }}>
                     {adminId ? (
                       <Suspense fallback={lazySectionFallback}>
                         <AIChat

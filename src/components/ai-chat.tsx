@@ -14,7 +14,9 @@ function resolvePromptVariant(
 
 function mapPromptVariantToRole(variant: AIChatPromptVariant): VidyaChatRole {
   if (variant === "super-admin") return "super_admin";
-  return variant;
+  if (variant === "admin") return "admin";
+  if (variant === "teacher") return "teacher";
+  return "student";
 }
 
 export default function AIChat({ userId, context, className, promptVariant }: AIChatProps) {

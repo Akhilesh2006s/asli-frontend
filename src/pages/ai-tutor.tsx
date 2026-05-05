@@ -23,7 +23,7 @@ import {
   ArrowRight,
   Sparkles
 } from "lucide-react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { API_BASE_URL } from "@/lib/api-config";
 import { collectVidyaSubjectLabels } from "@/lib/vidya-subjects";
@@ -39,6 +39,11 @@ export default function AITutor() {
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const [, setLocation] = useLocation();
+  const search = useSearch();
+  const prefilledPrompt = useMemo(() => {
+    const params = new URLSearchParams(search || "");
+    return params.get("prompt");
+  }, [search]);
 
   // Student AI Tools — Class 6–10
   const studentTools = [
@@ -177,6 +182,18 @@ export default function AITutor() {
 
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    if (!prefilledPrompt) return;
+    const t = window.setTimeout(() => {
+      window.dispatchEvent(
+        new CustomEvent("vidya-chat-prefill", {
+          detail: { role: "student", message: prefilledPrompt },
+        })
+      );
+    }, 600);
+    return () => window.clearTimeout(t);
+  }, [prefilledPrompt]);
 
   // Fetch subjects
   useEffect(() => {

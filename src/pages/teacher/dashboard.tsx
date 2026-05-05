@@ -2591,7 +2591,10 @@ const TeacherDashboard = () => {
                             studentName: teacherUser?.fullName || teacherUser?.email?.split('@')[0] || "Teacher",
                             currentSubject: teacherSubjects.length > 0 ? teacherSubjects[0].name : "General",
                             currentTopic: undefined,
-                            teacherMode: teacherChatFocusTab
+                            teacherMode: teacherChatFocusTab,
+                            subjectOptions: teacherSubjects
+                              .map((s: any) => s.name || s.subjectName || '')
+                              .filter(Boolean),
                           }}
                         />
                       ) : (

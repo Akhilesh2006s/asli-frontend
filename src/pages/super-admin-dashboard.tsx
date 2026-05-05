@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import { useSuperAdminDrawerNav } from "@/hooks/use-mobile";
 import { useSearch } from "wouter";
+import { VidyaAnalyticsCard } from "@/components/super-admin/VidyaAnalyticsCard";
 
 const lazySectionFallback = (
   <div className="rounded-xl border border-orange-100 bg-white p-8 shadow-sm">
@@ -488,6 +489,8 @@ export default function SuperAdminDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        <VidyaAnalyticsCard />
 
 
       {/* AI-Powered Recommendations */}

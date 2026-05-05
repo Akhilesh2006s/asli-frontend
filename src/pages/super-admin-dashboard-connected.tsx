@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
+import { VidyaAnalyticsCard } from "@/components/super-admin/VidyaAnalyticsCard";
 import { 
   BellIcon, 
   LogOutIcon, 
@@ -509,6 +510,7 @@ export default function SuperAdminDashboard() {
             </Card>
           </div>
         </div>
+        <VidyaAnalyticsCard />
       </div>
     );
   };
