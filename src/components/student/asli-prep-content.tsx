@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Play, FileText, File, Image, Video, Download, Search, Filter, BookOpen, ExternalLink } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Content {
   _id: string;
@@ -36,6 +37,10 @@ export default function AsliPrepContent() {
     topic: ''
   });
   const [subjects, setSubjects] = useState<any[]>([]);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewContent, setPreviewContent] = useState<Content | null>(null);
+  const [pdfPreviewBlobUrl, setPdfPreviewBlobUrl] = useState<string | null>(null);
+  const [isLoadingPdfPreview, setIsLoadingPdfPreview] = useState(false);
 
   useEffect(() => {
     fetchContents();
@@ -147,6 +152,77 @@ export default function AsliPrepContent() {
     if (hrs > 0) return `${hrs}h ${mins}m`;
     return `${mins}m`;
   };
+
+  const getNormalizedContentUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.startsWith('http') || url.startsWith('//')) return url;
+    return url.startsWith('/') ? `${API_BASE_URL}${url}` : `${API_BASE_URL}/${url}`;
+  };
+
+  const getYouTubeEmbedUrl = (url?: string) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? `https://www.youtube.com/embed/${match[2]}` : null;
+  };
+
+  const getPreviewProxyUrl = (fileUrl: string, fileName?: string) =>
+    `${API_BASE_URL}/api/student/content-download?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(fileName || 'preview.pdf')}`;
+
+  useEffect(() => {
+    const loadPdfPreview = async () => {
+      if (!isPreviewOpen || !previewContent?.fileUrl) {
+        setPdfPreviewBlobUrl((prev) => {
+          if (prev) window.URL.revokeObjectURL(prev);
+          return null;
+        });
+        setIsLoadingPdfPreview(false);
+        return;
+      }
+
+      const fileUrl = getNormalizedContentUrl(previewContent.fileUrl);
+      const isPdf = fileUrl.toLowerCase().endsWith('.pdf') || fileUrl.toLowerCase().includes('pdf');
+      if (!isPdf) {
+        setPdfPreviewBlobUrl((prev) => {
+          if (prev) window.URL.revokeObjectURL(prev);
+          return null;
+        });
+        setIsLoadingPdfPreview(false);
+        return;
+      }
+
+      setIsLoadingPdfPreview(true);
+      const token = localStorage.getItem('authToken');
+      const previewUrl = getPreviewProxyUrl(fileUrl, previewContent?.title || 'preview.pdf');
+
+      try {
+        const response = await fetch(previewUrl, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          }
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to load PDF preview: ${response.status}`);
+        }
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        setPdfPreviewBlobUrl((prev) => {
+          if (prev) window.URL.revokeObjectURL(prev);
+          return blobUrl;
+        });
+      } catch (error) {
+        console.error('PDF preview loading failed:', error);
+        setPdfPreviewBlobUrl((prev) => {
+          if (prev) window.URL.revokeObjectURL(prev);
+          return null;
+        });
+      } finally {
+        setIsLoadingPdfPreview(false);
+      }
+    };
+
+    loadPdfPreview();
+  }, [isPreviewOpen, previewContent]);
 
   if (isLoading) {
     return (
@@ -307,7 +383,10 @@ export default function AsliPrepContent() {
                   {content.type === 'Video' ? (
                     <Button 
                       className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                      onClick={() => window.open(content.fileUrl, '_blank')}
+                      onClick={() => {
+                        setPreviewContent(content);
+                        setIsPreviewOpen(true);
+                      }}
                     >
                       <Play className="h-4 w-4 mr-2" />
                       Watch Video
@@ -315,7 +394,10 @@ export default function AsliPrepContent() {
                   ) : content.type === 'Audio' ? (
                     <Button 
                       className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                      onClick={() => window.open(content.fileUrl, '_blank')}
+                      onClick={() => {
+                        setPreviewContent(content);
+                        setIsPreviewOpen(true);
+                      }}
                     >
                       <Play className="h-4 w-4 mr-2" />
                       Play Audio
@@ -326,7 +408,10 @@ export default function AsliPrepContent() {
                         variant="ghost"
                         size="sm"
                         className="text-xs px-0 h-auto text-gray-700 hover:text-blue-600"
-                        onClick={() => window.open(content.fileUrl, '_blank')}
+                        onClick={() => {
+                          setPreviewContent(content);
+                          setIsPreviewOpen(true);
+                        }}
                       >
                         <ExternalLink className="h-3 w-3 mr-1" />
                         {content.type === 'TextBook' || content.type === 'Workbook' ? 'Open' : 'Preview'}
@@ -353,6 +438,103 @@ export default function AsliPrepContent() {
           ))}
         </div>
       )}
+
+      <Dialog
+        open={isPreviewOpen}
+        onOpenChange={(open) => {
+          setIsPreviewOpen(open);
+          if (!open) setPreviewContent(null);
+        }}
+      >
+        <DialogContent className="max-w-5xl w-[95vw]">
+          <DialogHeader>
+            <DialogTitle>{previewContent?.title || 'Content Preview'}</DialogTitle>
+          </DialogHeader>
+          {(() => {
+            const fileUrl = getNormalizedContentUrl(previewContent?.fileUrl);
+            const lower = fileUrl.toLowerCase();
+            const isPdf = lower.endsWith('.pdf') || lower.includes('pdf');
+            const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/.test(lower);
+            const isAudio = /\.(mp3|wav|ogg|m4a|aac|flac)$/.test(lower) || previewContent?.type === 'Audio';
+            const isVideo = /\.(mp4|webm|ogg|mov|avi|mkv)$/.test(lower) || previewContent?.type === 'Video';
+            const youtubeEmbedUrl = getYouTubeEmbedUrl(fileUrl);
+
+            if (!fileUrl) return <p className="text-sm text-gray-500">No preview URL available.</p>;
+
+            if (youtubeEmbedUrl) {
+              return (
+                <div className="w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
+                  <iframe
+                    className="w-full h-full border-0"
+                    src={youtubeEmbedUrl}
+                    title={previewContent?.title || 'YouTube content'}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              );
+            }
+
+            if (isPdf) {
+              return (
+                <div className="w-full h-[70vh] rounded-lg overflow-hidden bg-gray-100">
+                  {isLoadingPdfPreview ? (
+                    <div className="w-full h-full flex items-center justify-center text-sm text-gray-600">
+                      Loading PDF preview...
+                    </div>
+                  ) : pdfPreviewBlobUrl ? (
+                    <object
+                      data={`${pdfPreviewBlobUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`}
+                      type="application/pdf"
+                      className="w-full h-full"
+                    >
+                      <iframe
+                        src={`${pdfPreviewBlobUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`}
+                        className="w-full h-full border-0"
+                        title={previewContent?.title || 'PDF content'}
+                      />
+                    </object>
+                  ) : (
+                    <object
+                      data={`${fileUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`}
+                      type="application/pdf"
+                      className="w-full h-full"
+                    >
+                      <iframe
+                        src={`https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(fileUrl)}`}
+                        className="w-full h-full border-0"
+                        title={previewContent?.title || 'PDF content'}
+                      />
+                    </object>
+                  )}
+                </div>
+              );
+            }
+
+            if (isImage) {
+              return (
+                <div className="w-full max-h-[70vh] overflow-auto rounded-lg bg-gray-100 p-2">
+                  <img src={fileUrl} alt={previewContent?.title || 'Preview'} className="mx-auto max-h-[66vh] object-contain" draggable={false} />
+                </div>
+              );
+            }
+
+            if (isAudio) {
+              return <audio src={fileUrl} controls className="w-full" />;
+            }
+
+            if (isVideo) {
+              return (
+                <div className="w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
+                  <video src={fileUrl} controls className="w-full h-full" />
+                </div>
+              );
+            }
+
+            return <p className="text-sm text-gray-500">Preview not available for this file type.</p>;
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -41,6 +41,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect } from "react";
 import { API_BASE_URL } from "@/lib/api-config";
 import VidyaAIFloatingAssistant from "@/components/student/VidyaAIFloatingAssistant";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import DriveViewer from "@/components/drive-viewer";
 
 export default function LearningPaths() {
   const [, setLocation] = useLocation();
@@ -66,12 +68,88 @@ export default function LearningPaths() {
   const [isLoadingFilteredContent, setIsLoadingFilteredContent] = useState(false);
   const [allLibraryContent, setAllLibraryContent] = useState<any[]>([]);
   const [downloadingContentId, setDownloadingContentId] = useState<string | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewContent, setPreviewContent] = useState<any | null>(null);
+  const [pdfPreviewBlobUrl, setPdfPreviewBlobUrl] = useState<string | null>(null);
+  const [isLoadingPdfPreview, setIsLoadingPdfPreview] = useState(false);
 
   const isYouTubeUrl = (url?: string) => {
     if (!url) return false;
     const lower = url.toLowerCase();
     return lower.includes("youtube.com") || lower.includes("youtu.be");
   };
+
+  const getNormalizedContentUrl = (url?: string) => {
+    if (!url) return "";
+    if (url.startsWith("http") || url.startsWith("//")) return url;
+    return url.startsWith("/") ? `${API_BASE_URL}${url}` : `${API_BASE_URL}/${url}`;
+  };
+
+  const getYouTubeEmbedUrl = (url?: string) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    if (!match || match[2].length !== 11) return null;
+    return `https://www.youtube.com/embed/${match[2]}`;
+  };
+
+  const getPreviewProxyUrl = (fileUrl: string, fileName?: string) =>
+    `${API_BASE_URL}/api/student/content-download?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(fileName || "preview.pdf")}`;
+
+  useEffect(() => {
+    const loadPdfPreview = async () => {
+      if (!isPreviewOpen || !previewContent?.fileUrl) {
+        setPdfPreviewBlobUrl((prev) => {
+          if (prev) window.URL.revokeObjectURL(prev);
+          return null;
+        });
+        setIsLoadingPdfPreview(false);
+        return;
+      }
+
+      const fileUrl = getNormalizedContentUrl(previewContent.fileUrl);
+      const isPdf = fileUrl.toLowerCase().endsWith(".pdf") || fileUrl.toLowerCase().includes("pdf");
+      if (!isPdf) {
+        setPdfPreviewBlobUrl((prev) => {
+          if (prev) window.URL.revokeObjectURL(prev);
+          return null;
+        });
+        setIsLoadingPdfPreview(false);
+        return;
+      }
+
+      setIsLoadingPdfPreview(true);
+      const token = localStorage.getItem("authToken");
+      const previewUrl = getPreviewProxyUrl(fileUrl, previewContent?.title || "preview.pdf");
+
+      try {
+        const response = await fetch(previewUrl, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          }
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to load PDF preview: ${response.status}`);
+        }
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        setPdfPreviewBlobUrl((prev) => {
+          if (prev) window.URL.revokeObjectURL(prev);
+          return blobUrl;
+        });
+      } catch (error) {
+        console.error("PDF preview loading failed:", error);
+        setPdfPreviewBlobUrl((prev) => {
+          if (prev) window.URL.revokeObjectURL(prev);
+          return null;
+        });
+      } finally {
+        setIsLoadingPdfPreview(false);
+      }
+    };
+
+    loadPdfPreview();
+  }, [isPreviewOpen, previewContent]);
 
   const handleContentDownload = async (content: any) => {
     const fileUrl = content?.fileUrl;
@@ -1037,7 +1115,8 @@ export default function LearningPaths() {
                             className="flex-1"
                             onClick={() => {
                               if (!content.fileUrl) return;
-                              window.open(content.fileUrl, '_blank', 'noopener,noreferrer');
+                              setPreviewContent(content);
+                              setIsPreviewOpen(true);
                             }}
                             disabled={!content.fileUrl}
                           >
@@ -1049,8 +1128,11 @@ export default function LearningPaths() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => window.open(content.fileUrl, '_blank', 'noopener,noreferrer')}
-                                title="Open YouTube in new tab"
+                                onClick={() => {
+                                  setPreviewContent(content);
+                                  setIsPreviewOpen(true);
+                                }}
+                                title="Preview in this page"
                               >
                                 <ExternalLink className="w-4 h-4" />
                               </Button>
@@ -1162,6 +1244,130 @@ export default function LearningPaths() {
         </div>
 
       </div>
+
+      <Dialog
+        open={isPreviewOpen}
+        onOpenChange={(open) => {
+          setIsPreviewOpen(open);
+          if (!open) setPreviewContent(null);
+        }}
+      >
+        <DialogContent className="max-w-5xl w-[95vw]">
+          <DialogHeader>
+            <DialogTitle>{previewContent?.title || "Content Preview"}</DialogTitle>
+          </DialogHeader>
+
+          {(() => {
+            const fileUrl = getNormalizedContentUrl(previewContent?.fileUrl);
+            const lower = fileUrl.toLowerCase();
+            const isPdf = lower.endsWith(".pdf") || lower.includes("pdf");
+            const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/.test(lower);
+            const isAudio = /\.(mp3|wav|ogg|m4a|aac|flac)$/.test(lower) || previewContent?.type === "Audio";
+            const isVideo = /\.(mp4|webm|ogg|mov|avi|mkv)$/.test(lower) || previewContent?.type === "Video";
+            const isYouTube = isYouTubeUrl(fileUrl);
+            const youtubeEmbedUrl = getYouTubeEmbedUrl(fileUrl);
+            const isGoogleDrive = lower.includes("drive.google.com");
+
+            if (!fileUrl) {
+              return <p className="text-sm text-gray-500">No preview URL available.</p>;
+            }
+
+            if (isYouTube && youtubeEmbedUrl) {
+              return (
+                <div className="w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
+                  <iframe
+                    className="w-full h-full border-0"
+                    src={youtubeEmbedUrl}
+                    title={previewContent?.title || "YouTube content"}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              );
+            }
+
+            if (isPdf) {
+              return (
+                <div className="w-full h-[70vh] rounded-lg overflow-hidden bg-gray-100">
+                  {isLoadingPdfPreview ? (
+                    <div className="w-full h-full flex items-center justify-center text-sm text-gray-600">
+                      Loading PDF preview...
+                    </div>
+                  ) : pdfPreviewBlobUrl ? (
+                    <object
+                      data={`${pdfPreviewBlobUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`}
+                      type="application/pdf"
+                      className="w-full h-full"
+                    >
+                      <iframe
+                        src={`${pdfPreviewBlobUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`}
+                        className="w-full h-full border-0"
+                        title={previewContent?.title || "PDF content"}
+                      />
+                    </object>
+                  ) : (
+                    <object
+                      data={`${fileUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`}
+                      type="application/pdf"
+                      className="w-full h-full"
+                    >
+                      <iframe
+                        src={`https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(fileUrl)}`}
+                        className="w-full h-full border-0"
+                        title={previewContent?.title || "PDF content"}
+                      />
+                    </object>
+                  )}
+                </div>
+              );
+            }
+
+            if (isImage) {
+              return (
+                <div className="w-full max-h-[70vh] overflow-auto rounded-lg bg-gray-100 p-2">
+                  <img
+                    src={fileUrl}
+                    alt={previewContent?.title || "Preview"}
+                    className="mx-auto max-h-[66vh] object-contain"
+                    draggable={false}
+                  />
+                </div>
+              );
+            }
+
+            if (isAudio) {
+              return (
+                <div className="w-full rounded-lg bg-gray-100 p-8">
+                  <audio src={fileUrl} controls className="w-full" />
+                </div>
+              );
+            }
+
+            if (isVideo) {
+              return (
+                <div className="w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
+                  <video src={fileUrl} controls className="w-full h-full" />
+                </div>
+              );
+            }
+
+            if (isGoogleDrive) {
+              return (
+                <DriveViewer
+                  driveUrl={fileUrl}
+                  title={previewContent?.title || "Drive content"}
+                />
+              );
+            }
+
+            return (
+              <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-4">
+                Preview is not available for this file type.
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

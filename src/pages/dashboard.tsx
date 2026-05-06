@@ -359,6 +359,8 @@ export default function Dashboard() {
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
   const [selectedScheduleItem, setSelectedScheduleItem] = useState<any | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [pdfPreviewBlobUrl, setPdfPreviewBlobUrl] = useState<string | null>(null);
+  const [isLoadingPdfPreview, setIsLoadingPdfPreview] = useState(false);
   const [completedScheduleIds, setCompletedScheduleIds] = useState<Set<string>>(new Set());
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => {
     const now = new Date();
@@ -1541,6 +1543,70 @@ export default function Dashboard() {
     }
     return 'Unknown Subject';
   };
+
+  const getPreviewProxyUrl = (fileUrl: string, fileName?: string) =>
+    `${API_BASE_URL}/api/student/content-download?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(fileName || 'preview.pdf')}`;
+
+  useEffect(() => {
+    const loadPdfPreview = async () => {
+      if (!isPreviewOpen || !selectedScheduleItem?.fileUrl) {
+        setPdfPreviewBlobUrl((prev) => {
+          if (prev) window.URL.revokeObjectURL(prev);
+          return null;
+        });
+        setIsLoadingPdfPreview(false);
+        return;
+      }
+
+      const fileUrl = String(selectedScheduleItem.fileUrl || '');
+      const normalizedUrl =
+        fileUrl.startsWith('http') || fileUrl.startsWith('//')
+          ? fileUrl
+          : fileUrl.startsWith('/')
+            ? `${API_BASE_URL}${fileUrl}`
+            : `${API_BASE_URL}/${fileUrl}`;
+      const lower = normalizedUrl.toLowerCase();
+      const isPDF = lower.endsWith('.pdf') || lower.includes('pdf');
+
+      if (!isPDF) {
+        setPdfPreviewBlobUrl((prev) => {
+          if (prev) window.URL.revokeObjectURL(prev);
+          return null;
+        });
+        setIsLoadingPdfPreview(false);
+        return;
+      }
+
+      setIsLoadingPdfPreview(true);
+      const token = localStorage.getItem('authToken');
+      const previewUrl = getPreviewProxyUrl(normalizedUrl, selectedScheduleItem?.title || 'preview.pdf');
+
+      try {
+        const response = await fetch(previewUrl, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          }
+        });
+        if (!response.ok) throw new Error(`Failed to load PDF preview: ${response.status}`);
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        setPdfPreviewBlobUrl((prev) => {
+          if (prev) window.URL.revokeObjectURL(prev);
+          return blobUrl;
+        });
+      } catch (error) {
+        console.error('Dashboard PDF preview loading failed:', error);
+        setPdfPreviewBlobUrl((prev) => {
+          if (prev) window.URL.revokeObjectURL(prev);
+          return null;
+        });
+      } finally {
+        setIsLoadingPdfPreview(false);
+      }
+    };
+
+    loadPdfPreview();
+  }, [isPreviewOpen, selectedScheduleItem]);
 
   // Fetch student remarks
   useEffect(() => {
@@ -3926,33 +3992,44 @@ export default function Dashboard() {
                           }
                           
                           if (isPDF) {
-                            const pdfViewerUrl = `${fileUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`;
-                            const googleViewerUrl = `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(fileUrl)}`;
+                            const pdfViewerUrl = pdfPreviewBlobUrl
+                              ? `${pdfPreviewBlobUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`
+                              : '';
                             return (
                               <div className="space-y-3">
                                 <div className="w-full h-[60vh] bg-gray-100 rounded-lg overflow-hidden">
-                                  <object
-                                    data={pdfViewerUrl}
-                                    type="application/pdf"
-                                    className="w-full h-full"
-                                  >
-                                    <iframe
-                                      src={googleViewerUrl}
-                                      className="w-full h-full border-0"
-                                      title={selectedScheduleItem.title}
-                                    />
-                                  </object>
+                                  {isLoadingPdfPreview ? (
+                                    <div className="w-full h-full flex items-center justify-center text-sm text-gray-600">
+                                      Loading PDF preview...
+                                    </div>
+                                  ) : pdfPreviewBlobUrl ? (
+                                    <object
+                                      data={pdfViewerUrl}
+                                      type="application/pdf"
+                                      className="w-full h-full"
+                                    >
+                                      <iframe
+                                        src={pdfViewerUrl}
+                                        className="w-full h-full border-0"
+                                        title={selectedScheduleItem.title}
+                                      />
+                                    </object>
+                                  ) : (
+                                    <object
+                                      data={`${fileUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`}
+                                      type="application/pdf"
+                                      className="w-full h-full"
+                                    >
+                                      <iframe
+                                        src={`https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(fileUrl)}`}
+                                        className="w-full h-full border-0"
+                                        title={selectedScheduleItem.title}
+                                      />
+                                    </object>
+                                  )}
                                 </div>
-                                <div className="flex items-center justify-between gap-2 text-xs text-gray-600">
-                                  <span>If preview is blocked on this device, use Open Book.</span>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => window.open(fileUrl, '_blank', 'noopener,noreferrer')}
-                                  >
-                                    Open Book
-                                  </Button>
+                                <div className="text-xs text-gray-600">
+                                  Preview is shown directly inside this page.
                                 </div>
                               </div>
                             );
@@ -4103,7 +4180,10 @@ export default function Dashboard() {
                     variant="outline"
                     size="sm"
                     className="mt-2"
-                    onClick={() => window.open(selectedHomeworkForSubmit.fileUrl, '_blank', 'noopener,noreferrer')}
+                    onClick={() => {
+                      setSelectedScheduleItem(selectedHomeworkForSubmit);
+                      setIsPreviewOpen(true);
+                    }}
                   >
                     <ExternalLink className="w-4 h-4 mr-2" />
                     View Teacher Homework
