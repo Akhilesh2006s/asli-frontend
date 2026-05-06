@@ -71,8 +71,19 @@ export default function AIContentEngine() {
   const [loadingTopics, setLoadingTopics] = useState(false);
   const [loadingSubtopics, setLoadingSubtopics] = useState(false);
   const [reviewingId, setReviewingId] = useState("");
+  const [deletingPdfId, setDeletingPdfId] = useState("");
   const [deletingQuestionKey, setDeletingQuestionKey] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState("");
+  const [mismatchDetails, setMismatchDetails] = useState<
+    null | {
+      selectedSubject?: string;
+      detectedSubject?: string;
+      selectedTopic?: string;
+      detectedTopic?: string;
+      selectedTool?: string;
+      detectedTool?: string;
+    }
+  >(null);
 
   const toolOptions = useMemo(
     () => [
@@ -97,6 +108,7 @@ export default function AIContentEngine() {
   const reqStar = <span className="text-red-600">*</span>;
   const getToolLabel = (toolValue?: string) =>
     toolOptions.find((tool) => tool.value === String(toolValue || "").trim())?.label || toolValue || "-";
+
   const parseQuestionBlob = (blob: string) => {
     const cleaned = String(blob || "")
       .replace(/\s+/g, " ")
@@ -360,18 +372,71 @@ export default function AIContentEngine() {
     }
 
     if (item.toolType === "activity-project-generator" || kind === "activity" || fallback.steps || fallback.materials) {
+      const coalesceLines = (v: unknown): string[] => {
+        if (Array.isArray(v)) return v.map((x) => String(x ?? "").trim()).filter(Boolean);
+        if (typeof v === "string" && v.trim()) {
+          return v
+            .split(/\n+/)
+            .map((line) => line.replace(/^\s*[-*•]\s*|\s*\d+[\).\s]+/i, "").trim())
+            .filter(Boolean);
+        }
+        return [];
+      };
       const title = String(content.title || fallback.title || "Activity").trim();
-      const materials = Array.isArray(content.materials) ? content.materials : fallback.materials || [];
-      const steps = Array.isArray(content.steps) ? content.steps : fallback.steps || [];
+      let materials = coalesceLines(
+        Array.isArray(content.materials) && content.materials.length ? content.materials : fallback.materials,
+      );
+      let steps = coalesceLines(Array.isArray(content.steps) && content.steps.length ? content.steps : fallback.steps);
+      if (!steps.length) {
+        steps = coalesceLines(
+          (fallback as { procedure?: string; procedures?: string; instructions?: string }).procedure ||
+            (fallback as { instructions?: string }).instructions,
+        );
+      }
       const learningOutcome = String(content.learningOutcome || fallback.learningOutcome || "").trim();
+      const rawExcerpt =
+        String(
+          (fallback as { content?: string }).content ||
+            (fallback as { description?: string }).description ||
+            (fallback as { overview?: string }).overview ||
+            "",
+        ).trim();
       return (
         <div className="space-y-3">
           {renderSectionHeader(<FlaskConical className="h-4 w-4" />, title)}
           <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-xl border bg-white p-3"><p className="text-xs font-semibold text-slate-500">Materials</p><ul className="mt-2 text-sm space-y-1">{materials.map((m: any, i: number) => <li key={`${item._id}-m-${i}`}>- {String(m)}</li>)}</ul></div>
-            <div className="rounded-xl border bg-white p-3 md:col-span-2"><p className="text-xs font-semibold text-slate-500">Steps</p><ol className="mt-2 text-sm space-y-1 list-decimal list-inside">{steps.map((s: any, i: number) => <li key={`${item._id}-s-${i}`}>{String(s)}</li>)}</ol></div>
+            <div className="rounded-xl border bg-white p-3">
+              <p className="text-xs font-semibold text-slate-500">Materials</p>
+              {materials.length > 0 ? (
+                <ul className="mt-2 text-sm space-y-1">
+                  {materials.map((m: string, i: number) => (
+                    <li key={`${item._id}-m-${i}`}>- {m}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-xs text-slate-500 italic">None listed.</p>
+              )}
+            </div>
+            <div className="rounded-xl border bg-white p-3 md:col-span-2">
+              <p className="text-xs font-semibold text-slate-500">Steps</p>
+              {steps.length > 0 ? (
+                <ol className="mt-2 text-sm space-y-1 list-decimal list-inside">
+                  {steps.map((s: string, i: number) => (
+                    <li key={`${item._id}-s-${i}`}>{s}</li>
+                  ))}
+                </ol>
+              ) : rawExcerpt ? (
+                <p className="mt-2 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{rawExcerpt}</p>
+              ) : (
+                <p className="mt-2 text-xs text-slate-500 italic">No steps stored. Regenerate from a new PDF upload to fill this activity.</p>
+              )}
+            </div>
           </div>
-          {learningOutcome && <p className="rounded-xl border bg-emerald-50 p-3 text-sm text-emerald-800"><span className="font-medium">Learning outcome:</span> {learningOutcome}</p>}
+          {learningOutcome && (
+            <p className="rounded-xl border bg-emerald-50 p-3 text-sm text-emerald-800">
+              <span className="font-medium">Learning outcome:</span> {learningOutcome}
+            </p>
+          )}
         </div>
       );
     }
@@ -602,6 +667,7 @@ export default function AIContentEngine() {
     }
     setIsUploading(true);
     setUploadError("");
+    setMismatchDetails(null);
     try {
       const form = new FormData();
       form.append("file", pdfFile);
@@ -616,29 +682,65 @@ export default function AIContentEngine() {
         headers: authHeaders(),
         body: form,
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => ({}));
       if (!res.ok || !json?.success) {
-        const selectedTool = json?.data?.selectedTool ? `Selected: ${json.data.selectedTool}` : "";
-        const detectedTool = json?.data?.detectedTool ? `Detected: ${json.data.detectedTool}` : "";
-        const detail = [selectedTool, detectedTool].filter(Boolean).join(" | ");
-        throw new Error(
-          detail ? `${json?.message || "Upload failed"} (${detail})` : (json?.message || "Upload failed"),
-        );
+        type UploadErrData = {
+          detectedSubject?: string;
+          detectedTopic?: string;
+          detectedTool?: string;
+          selectedSubject?: string;
+          selectedTopic?: string;
+          selectedTool?: string;
+        };
+        const data = json?.data as UploadErrData | undefined;
+        const err = new Error(json?.message || "Upload failed") as Error & { data?: UploadErrData };
+        err.data = data;
+        throw err;
       }
-      toast({ title: "Uploaded", description: "PDF uploaded successfully. Click process to index." });
+      toast({ title: "Generated ✓", description: "Content saved successfully." });
       setUploadError("");
+      setMismatchDetails(null);
       setPdfFile(null);
       if (pdfInputRef.current) pdfInputRef.current.value = "";
       fetchList();
-    } catch (error: any) {
-      setUploadError(error?.message || "Failed to upload");
-      toast({ title: "Upload failed", description: error?.message || "Failed to upload", variant: "destructive" });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to upload";
+      const data = (error as Error & {
+        data?: {
+          detectedSubject?: string;
+          detectedTopic?: string;
+          detectedTool?: string;
+          selectedSubject?: string;
+          selectedTopic?: string;
+          selectedTool?: string;
+        };
+      })?.data;
+      setUploadError(message);
+      if (
+        data &&
+        (data.detectedSubject !== undefined ||
+          data.detectedTopic !== undefined ||
+          data.detectedTool !== undefined ||
+          data.selectedSubject !== undefined ||
+          data.selectedTopic !== undefined)
+      ) {
+        setMismatchDetails({
+          selectedSubject: data.selectedSubject,
+          detectedSubject: data.detectedSubject,
+          selectedTopic: data.selectedTopic,
+          detectedTopic: data.detectedTopic,
+          selectedTool: data.selectedTool,
+          detectedTool: data.detectedTool,
+        });
+      }
+      toast({ title: "Generate failed", description: message, variant: "destructive" });
     } finally {
       setIsUploading(false);
     }
   };
 
   const deletePdf = async (id: string) => {
+    setDeletingPdfId(id);
     try {
       const res = await fetch(`${API_BASE_URL}/api/pdf/${id}`, {
         method: "DELETE",
@@ -650,6 +752,8 @@ export default function AIContentEngine() {
       fetchList();
     } catch (error: any) {
       toast({ title: "Delete failed", description: error?.message || "Could not delete", variant: "destructive" });
+    } finally {
+      setDeletingPdfId("");
     }
   };
 
@@ -688,18 +792,17 @@ export default function AIContentEngine() {
                   return;
                 }
                 setPdfFile(next);
+                setMismatchDetails(null);
+                setUploadError("");
               }}
             />
             {pdfFile ? (
               <p className="mt-1.5 truncate text-xs text-slate-600">Selected: {pdfFile.name}</p>
             ) : (
-              <p className="mt-1.5 text-xs text-slate-500">Pick your PDF first, then fill class, subject, and topic.</p>
+              <p className="mt-1.5 text-xs text-slate-500">
+                Choose PDF, fill class → subject → topic (and optional sub-topic) → tool, then Generate.
+              </p>
             )}
-          </div>
-          <div className="flex items-end lg:col-span-1">
-            <Button onClick={handleUpload} disabled={isUploading} className="w-full bg-blue-600 hover:bg-blue-700">
-              {isUploading ? "Uploading..." : "Upload PDF"}
-            </Button>
           </div>
 
           <div>
@@ -837,11 +940,46 @@ export default function AIContentEngine() {
               </SelectContent>
             </Select>
           </div>
+
           <div className="flex items-end md:col-span-2 lg:col-span-4">
-            <Button onClick={handleUpload} disabled={isUploading} className="h-11 w-full bg-blue-600 hover:bg-blue-700">
+            <Button
+              type="button"
+              onClick={() => void handleUpload()}
+              disabled={isUploading}
+              className="h-11 w-full bg-blue-600 hover:bg-blue-700"
+            >
               {isUploading ? "Generating..." : "Generate"}
             </Button>
           </div>
+
+          {mismatchDetails && (
+            <div className="md:col-span-2 lg:col-span-4 rounded-md bg-amber-50 border border-amber-300 px-3 py-2 text-xs text-amber-900 space-y-1">
+              <p className="font-semibold">PDF mismatch detected:</p>
+              {mismatchDetails.selectedSubject ? (
+                <p>
+                  Subject — Selected: <strong>{mismatchDetails.selectedSubject}</strong>
+                  {" "}
+                  | Detected: <strong>{mismatchDetails.detectedSubject || "Unknown"}</strong>
+                </p>
+              ) : null}
+              {mismatchDetails.selectedTopic ? (
+                <p>
+                  Topic — Selected: <strong>{mismatchDetails.selectedTopic}</strong>
+                  {" "}
+                  | Detected: <strong>{mismatchDetails.detectedTopic || "Unknown"}</strong>
+                </p>
+              ) : null}
+              {mismatchDetails.selectedTool ? (
+                <p>
+                  Tool — Selected: <strong>{mismatchDetails.selectedTool}</strong>
+                  {" "}
+                  | Detected: <strong>{mismatchDetails.detectedTool || "Unknown"}</strong>
+                </p>
+              ) : null}
+              <p>Please upload a PDF that matches your selected subject and topic.</p>
+            </div>
+          )}
+
           {uploadError && (
             <p className="md:col-span-2 lg:col-span-4 text-xs text-red-600 bg-red-50 border border-red-200 rounded px-2 py-1">
               {uploadError}
@@ -942,6 +1080,21 @@ export default function AIContentEngine() {
                   <div className="flex items-center gap-2">
                                                             <Badge>{record.approvalStatus || "pending"}</Badge>
                                                             <Badge variant="secondary">{record.contentType || "Generated Content"}</Badge>
+                                                            <Button
+                                                              type="button"
+                                                              variant="outline"
+                                                              size="icon"
+                                                              className="h-8 w-8 shrink-0 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                                                              disabled={deletingPdfId === record._id}
+                                                              aria-label={`Delete record ${idx + 1}`}
+                                                              onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                void deletePdf(record._id);
+                                                              }}
+                                                            >
+                                                              <Trash2 className="h-4 w-4" />
+                                                            </Button>
                   </div>
                 </div>
                                                         {renderEducationalContent(record)}
