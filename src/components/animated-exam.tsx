@@ -1021,18 +1021,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       {/* Mobile-style Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
         <div className="max-w-md mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            {/* Back Button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onExit}
-              className="text-gray-600 hover:text-gray-900 transition-all duration-200 hover:scale-105"
-            >
-              <ArrowLeft className="w-4 h-4 mr-1 transition-transform duration-200 group-hover:-translate-x-1" />
-              Back
-            </Button>
-
+          <div className="flex items-center justify-end gap-3">
             {/* Timer */}
             <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium transition-all duration-300 ${
               timeLeft < 300 
