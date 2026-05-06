@@ -1321,11 +1321,24 @@ export default function LearningPaths() {
                       title={previewContent?.title || "PDF Preview"}
                     />
                   ) : pdfPreviewFallbackUrl ? (
-                    <iframe
-                      src={`https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(pdfPreviewFallbackUrl)}`}
-                      style={{ width: "100%", height: "100%", minHeight: "85vh", border: "none", display: "block", background: "#fff" }}
-                      title={previewContent?.title || "PDF Preview"}
-                    />
+                    <div className="w-full h-full min-h-[85vh] flex flex-col gap-3">
+                      <iframe
+                        src={`${pdfPreviewFallbackUrl}#toolbar=0&navpanes=0&scrollbar=1`}
+                        style={{ width: "100%", height: "100%", minHeight: "80vh", border: "none", display: "block", background: "#fff" }}
+                        title={previewContent?.title || "PDF Preview"}
+                      />
+                      <div className="flex items-center justify-center gap-3 text-xs text-gray-600">
+                        <span>If preview is blocked by source website, open directly:</span>
+                        <a
+                          href={pdfPreviewFallbackUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline text-blue-600 hover:text-blue-700"
+                        >
+                          Open PDF
+                        </a>
+                      </div>
+                    </div>
                   ) : (
                     <div className="w-full min-h-[85vh] flex flex-col items-center justify-center gap-3 text-sm text-gray-600 px-4 text-center">
                       <span>Unable to preview PDF. Click Download instead.</span>
