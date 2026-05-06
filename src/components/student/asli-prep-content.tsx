@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Play, FileText, File, Image, Video, Download, Search, Filter, BookOpen, ExternalLink } from 'lucide-react';
-import { API_BASE_URL } from '@/lib/api-config';
+import { API_BASE_URL, getStudentPdfPreviewIframeSrc } from '@/lib/api-config';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Content {
@@ -39,8 +39,6 @@ export default function AsliPrepContent() {
   const [subjects, setSubjects] = useState<any[]>([]);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewContent, setPreviewContent] = useState<Content | null>(null);
-  const [pdfPreviewBlobUrl, setPdfPreviewBlobUrl] = useState<string | null>(null);
-  const [isLoadingPdfPreview, setIsLoadingPdfPreview] = useState(false);
 
   useEffect(() => {
     fetchContents();
@@ -178,64 +176,6 @@ export default function AsliPrepContent() {
     const match = url.match(regExp);
     return match && match[2].length === 11 ? `https://www.youtube.com/embed/${match[2]}` : null;
   };
-
-  const getPreviewProxyUrl = (fileUrl: string, fileName?: string) =>
-    `${API_BASE_URL}/api/student/content-download?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(fileName || 'preview.pdf')}`;
-
-  useEffect(() => {
-    const loadPdfPreview = async () => {
-      if (!isPreviewOpen || !previewContent?.fileUrl) {
-        setPdfPreviewBlobUrl((prev) => {
-          if (prev) window.URL.revokeObjectURL(prev);
-          return null;
-        });
-        setIsLoadingPdfPreview(false);
-        return;
-      }
-
-      const fileUrl = extractDirectFileUrl(getNormalizedContentUrl(previewContent.fileUrl));
-      const isPdf = fileUrl.toLowerCase().endsWith('.pdf') || fileUrl.toLowerCase().includes('pdf');
-      if (!isPdf) {
-        setPdfPreviewBlobUrl((prev) => {
-          if (prev) window.URL.revokeObjectURL(prev);
-          return null;
-        });
-        setIsLoadingPdfPreview(false);
-        return;
-      }
-
-      setIsLoadingPdfPreview(true);
-      const token = localStorage.getItem('authToken');
-      const previewUrl = getPreviewProxyUrl(fileUrl, previewContent?.title || 'preview.pdf');
-
-      try {
-        const response = await fetch(previewUrl, {
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          }
-        });
-        if (!response.ok) {
-          throw new Error(`Failed to load PDF preview: ${response.status}`);
-        }
-        const blob = await response.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
-        setPdfPreviewBlobUrl((prev) => {
-          if (prev) window.URL.revokeObjectURL(prev);
-          return blobUrl;
-        });
-      } catch (error) {
-        console.error('PDF preview loading failed:', error);
-        setPdfPreviewBlobUrl((prev) => {
-          if (prev) window.URL.revokeObjectURL(prev);
-          return null;
-        });
-      } finally {
-        setIsLoadingPdfPreview(false);
-      }
-    };
-
-    loadPdfPreview();
-  }, [isPreviewOpen, previewContent]);
 
   if (isLoading) {
     return (
@@ -467,7 +407,8 @@ export default function AsliPrepContent() {
           {(() => {
             const fileUrl = extractDirectFileUrl(getNormalizedContentUrl(previewContent?.fileUrl));
             const lower = fileUrl.toLowerCase();
-            const isPdf = lower.endsWith('.pdf') || lower.includes('pdf');
+            const isPdf =
+              lower.endsWith('.pdf') || lower.includes('.pdf') || previewContent?.type === 'PDF';
             const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/.test(lower);
             const isAudio = /\.(mp3|wav|ogg|m4a|aac|flac)$/.test(lower) || previewContent?.type === 'Audio';
             const isVideo = /\.(mp4|webm|ogg|mov|avi|mkv)$/.test(lower) || previewContent?.type === 'Video';
@@ -490,36 +431,14 @@ export default function AsliPrepContent() {
             }
 
             if (isPdf) {
+              const iframeSrc = getStudentPdfPreviewIframeSrc(fileUrl, previewContent?.title);
               return (
-                <div className="pdf-viewer-wrapper w-full h-full min-h-0 rounded-lg overflow-y-auto bg-white border border-gray-100">
-                  {isLoadingPdfPreview ? (
-                    <div className="w-full min-h-[85vh] flex items-center justify-center text-sm text-gray-600">
-                      Loading PDF preview...
-                    </div>
-                  ) : pdfPreviewBlobUrl ? (
-                    <iframe
-                      src={`${pdfPreviewBlobUrl}#toolbar=0&navpanes=0&scrollbar=1`}
-                      style={{ width: '100%', height: '100%', minHeight: '85vh', border: 'none', display: 'block', background: '#fff' }}
-                      title={previewContent?.title || 'PDF Preview'}
-                    />
-                  ) : (
-                    <div className="w-full min-h-[85vh] flex flex-col items-center justify-center gap-3 text-sm text-gray-600 px-4 text-center">
-                      <span>Unable to preview PDF. Click Download instead.</span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const link = document.createElement('a');
-                          link.href = fileUrl;
-                          link.download = previewContent?.title || 'download';
-                          link.click();
-                        }}
-                      >
-                        Download
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <iframe
+                  key={iframeSrc}
+                  title={previewContent?.title || 'PDF Preview'}
+                  src={iframeSrc}
+                  className="h-[min(78vh,900px)] w-full border-0 bg-white rounded-lg"
+                />
               );
             }
 

@@ -75,7 +75,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import YouTubePlayer from '@/components/youtube-player';
 import DriveViewer from '@/components/drive-viewer';
 import VideoModal from '@/components/video-modal';
-import { API_BASE_URL, apiFetch } from '@/lib/api-config';
+import { API_BASE_URL, apiFetch, getStudentPdfPreviewIframeSrc } from '@/lib/api-config';
 import { collectVidyaSubjectLabels } from '@/lib/vidya-subjects';
 import { getUser as getStoredUser } from '@/lib/auth-utils';
 import {
@@ -359,8 +359,6 @@ export default function Dashboard() {
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
   const [selectedScheduleItem, setSelectedScheduleItem] = useState<any | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [pdfPreviewBlobUrl, setPdfPreviewBlobUrl] = useState<string | null>(null);
-  const [isLoadingPdfPreview, setIsLoadingPdfPreview] = useState(false);
   const [completedScheduleIds, setCompletedScheduleIds] = useState<Set<string>>(new Set());
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => {
     const now = new Date();
@@ -1544,9 +1542,6 @@ export default function Dashboard() {
     return 'Unknown Subject';
   };
 
-  const getPreviewProxyUrl = (fileUrl: string, fileName?: string) =>
-    `${API_BASE_URL}/api/student/content-download?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(fileName || 'preview.pdf')}`;
-
   const extractDirectFileUrl = (rawUrl: string) => {
     try {
       const parsed = new URL(rawUrl);
@@ -1559,68 +1554,6 @@ export default function Dashboard() {
     }
     return rawUrl;
   };
-
-  useEffect(() => {
-    const loadPdfPreview = async () => {
-      if (!isPreviewOpen || !selectedScheduleItem?.fileUrl) {
-        setPdfPreviewBlobUrl((prev) => {
-          if (prev) window.URL.revokeObjectURL(prev);
-          return null;
-        });
-        setIsLoadingPdfPreview(false);
-        return;
-      }
-
-      const fileUrl = String(selectedScheduleItem.fileUrl || '');
-      const normalizedUrl =
-        fileUrl.startsWith('http') || fileUrl.startsWith('//')
-          ? fileUrl
-          : fileUrl.startsWith('/')
-            ? `${API_BASE_URL}${fileUrl}`
-            : `${API_BASE_URL}/${fileUrl}`;
-      const directUrl = extractDirectFileUrl(normalizedUrl);
-      const lower = directUrl.toLowerCase();
-      const isPDF = lower.endsWith('.pdf') || lower.includes('pdf');
-
-      if (!isPDF) {
-        setPdfPreviewBlobUrl((prev) => {
-          if (prev) window.URL.revokeObjectURL(prev);
-          return null;
-        });
-        setIsLoadingPdfPreview(false);
-        return;
-      }
-
-      setIsLoadingPdfPreview(true);
-      const token = localStorage.getItem('authToken');
-      const previewUrl = getPreviewProxyUrl(directUrl, selectedScheduleItem?.title || 'preview.pdf');
-
-      try {
-        const response = await fetch(previewUrl, {
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          }
-        });
-        if (!response.ok) throw new Error(`Failed to load PDF preview: ${response.status}`);
-        const blob = await response.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
-        setPdfPreviewBlobUrl((prev) => {
-          if (prev) window.URL.revokeObjectURL(prev);
-          return blobUrl;
-        });
-      } catch (error) {
-        console.error('Dashboard PDF preview loading failed:', error);
-        setPdfPreviewBlobUrl((prev) => {
-          if (prev) window.URL.revokeObjectURL(prev);
-          return null;
-        });
-      } finally {
-        setIsLoadingPdfPreview(false);
-      }
-    };
-
-    loadPdfPreview();
-  }, [isPreviewOpen, selectedScheduleItem]);
 
   // Fetch student remarks
   useEffect(() => {
@@ -3958,7 +3891,10 @@ export default function Dashboard() {
                                          fileUrlLower.match(/\.(mp4|webm|ogg|mov|avi|mkv)$/) ||
                                          fileUrlLower.includes('youtube.com') || 
                                          fileUrlLower.includes('youtu.be');
-                          const isPDF = fileUrlLower.endsWith('.pdf') || fileUrlLower.includes('pdf');
+                          const isPDF =
+                            fileUrlLower.endsWith('.pdf') ||
+                            fileUrlLower.includes('.pdf') ||
+                            selectedScheduleItem.type === 'PDF';
                           const isAudio = selectedScheduleItem.type === 'Audio' || 
                                          fileUrlLower.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/);
                           const isImage = fileUrlLower.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/);
@@ -4007,41 +3943,17 @@ export default function Dashboard() {
                           }
                           
                           if (isPDF) {
+                            const iframeSrc = getStudentPdfPreviewIframeSrc(
+                              fileUrl,
+                              selectedScheduleItem?.title
+                            );
                             return (
-                              <div className="space-y-3">
-                                <div className="pdf-viewer-wrapper w-full h-full min-h-0 bg-white rounded-lg overflow-y-auto border border-gray-100">
-                                  {isLoadingPdfPreview ? (
-                                    <div className="w-full min-h-[85vh] flex items-center justify-center text-sm text-gray-600">
-                                      Loading PDF preview...
-                                    </div>
-                                  ) : pdfPreviewBlobUrl ? (
-                                    <iframe
-                                      src={`${pdfPreviewBlobUrl}#toolbar=0&navpanes=0&scrollbar=1`}
-                                      title={selectedScheduleItem.title || 'PDF Preview'}
-                                      style={{ width: '100%', height: '100%', minHeight: '85vh', border: 'none', display: 'block', background: '#fff' }}
-                                    />
-                                  ) : (
-                                    <div className="w-full min-h-[85vh] flex flex-col items-center justify-center gap-3 px-4 text-center text-sm text-gray-600">
-                                      <span>Unable to preview PDF. Click Download instead.</span>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => {
-                                          const link = document.createElement('a');
-                                          link.href = fileUrl;
-                                          link.download = selectedScheduleItem?.title || 'download';
-                                          link.click();
-                                        }}
-                                      >
-                                        Download
-                                      </Button>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="text-xs text-gray-600">
-                                  Preview is shown directly inside this page.
-                                </div>
-                              </div>
+                              <iframe
+                                key={iframeSrc}
+                                title={selectedScheduleItem.title || 'PDF Preview'}
+                                src={iframeSrc}
+                                className="h-[min(78vh,900px)] w-full border-0 bg-white rounded-lg"
+                              />
                             );
                           }
                           

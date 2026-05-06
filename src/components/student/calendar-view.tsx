@@ -24,7 +24,7 @@ import {
   Upload,
   CheckCircle2
 } from 'lucide-react';
-import { API_BASE_URL } from '@/lib/api-config';
+import { API_BASE_URL, getStudentPdfPreviewIframeSrc } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 
 interface ContentItem {
@@ -389,7 +389,8 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
     const youtubeId = extractYouTubeId(content.fileUrl);
     const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileExtension);
     const isVideo = ['mp4', 'webm', 'ogg'].includes(fileExtension);
-    const isPDF = fileExtension === 'pdf';
+    const isPDF =
+      fileExtension === 'pdf' || previewUrl.toLowerCase().includes('.pdf');
     const isAudio = ['mp3', 'wav', 'ogg', 'm4a'].includes(fileExtension);
     
     // Handle YouTube videos
@@ -442,17 +443,14 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
     }
 
     if (isPDF) {
+      const iframeSrc = getStudentPdfPreviewIframeSrc(previewUrl, content.title);
       return (
-        <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-lg">
-          <iframe
-            src={previewUrl}
-            className="w-full h-[60vh] rounded-lg border-0"
-            title={content.title}
-            onError={(e) => {
-              console.error('PDF preview error:', e);
-            }}
-          />
-        </div>
+        <iframe
+          key={iframeSrc}
+          title={content.title || 'PDF Preview'}
+          src={iframeSrc}
+          className="h-[min(78vh,900px)] w-full border-0 bg-white rounded-lg"
+        />
       );
     }
 

@@ -39,7 +39,7 @@ import {
 import { Link, useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect } from "react";
-import { API_BASE_URL } from "@/lib/api-config";
+import { API_BASE_URL, getStudentPdfPreviewIframeSrc } from "@/lib/api-config";
 import VidyaAIFloatingAssistant from "@/components/student/VidyaAIFloatingAssistant";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import DriveViewer from "@/components/drive-viewer";
@@ -70,9 +70,6 @@ export default function LearningPaths() {
   const [downloadingContentId, setDownloadingContentId] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewContent, setPreviewContent] = useState<any | null>(null);
-  const [pdfPreviewBlobUrl, setPdfPreviewBlobUrl] = useState<string | null>(null);
-  const [pdfPreviewFallbackUrl, setPdfPreviewFallbackUrl] = useState<string | null>(null);
-  const [isLoadingPdfPreview, setIsLoadingPdfPreview] = useState(false);
 
   const isYouTubeUrl = (url?: string) => {
     if (!url) return false;
@@ -106,70 +103,6 @@ export default function LearningPaths() {
     if (!match || match[2].length !== 11) return null;
     return `https://www.youtube.com/embed/${match[2]}`;
   };
-
-  const getPreviewProxyUrl = (fileUrl: string, fileName?: string) =>
-    `${API_BASE_URL}/api/student/content-download?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(fileName || "preview.pdf")}`;
-
-  useEffect(() => {
-    const loadPdfPreview = async () => {
-      if (!isPreviewOpen || !previewContent?.fileUrl) {
-        setPdfPreviewBlobUrl((prev) => {
-          if (prev) window.URL.revokeObjectURL(prev);
-          return null;
-        });
-        setPdfPreviewFallbackUrl(null);
-        setIsLoadingPdfPreview(false);
-        return;
-      }
-
-      const fileUrl = extractDirectFileUrl(getNormalizedContentUrl(previewContent.fileUrl));
-      const isPdf = fileUrl.toLowerCase().endsWith(".pdf") || fileUrl.toLowerCase().includes("pdf");
-      if (!isPdf) {
-        setPdfPreviewBlobUrl((prev) => {
-          if (prev) window.URL.revokeObjectURL(prev);
-          return null;
-        });
-        setPdfPreviewFallbackUrl(null);
-        setIsLoadingPdfPreview(false);
-        return;
-      }
-
-      setIsLoadingPdfPreview(true);
-      const token = localStorage.getItem("authToken");
-      const previewUrl = getPreviewProxyUrl(fileUrl, previewContent?.title || "preview.pdf");
-
-      try {
-        const response = await fetch(previewUrl, {
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          }
-        });
-        if (!response.ok) {
-          throw new Error(`Failed to load PDF preview: ${response.status}`);
-        }
-        const blob = await response.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
-        setPdfPreviewBlobUrl((prev) => {
-          if (prev) window.URL.revokeObjectURL(prev);
-          return blobUrl;
-        });
-        setPdfPreviewFallbackUrl(null);
-      } catch (error) {
-        console.error("PDF preview loading failed:", error);
-        setPdfPreviewBlobUrl((prev) => {
-          if (prev) window.URL.revokeObjectURL(prev);
-          return null;
-        });
-        // Production fallback: render source PDF directly in iframe
-        // when backend proxy cannot reach upstream.
-        setPdfPreviewFallbackUrl(fileUrl);
-      } finally {
-        setIsLoadingPdfPreview(false);
-      }
-    };
-
-    loadPdfPreview();
-  }, [isPreviewOpen, previewContent]);
 
   const handleContentDownload = async (content: any) => {
     const fileUrl = content?.fileUrl;
@@ -1281,7 +1214,8 @@ export default function LearningPaths() {
           {(() => {
             const fileUrl = extractDirectFileUrl(getNormalizedContentUrl(previewContent?.fileUrl));
             const lower = fileUrl.toLowerCase();
-            const isPdf = lower.endsWith(".pdf") || lower.includes("pdf");
+            const isPdf =
+              lower.endsWith(".pdf") || lower.includes(".pdf") || previewContent?.type === "PDF";
             const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/.test(lower);
             const isAudio = /\.(mp3|wav|ogg|m4a|aac|flac)$/.test(lower) || previewContent?.type === "Audio";
             const isVideo = /\.(mp4|webm|ogg|mov|avi|mkv)$/.test(lower) || previewContent?.type === "Video";
@@ -1308,46 +1242,14 @@ export default function LearningPaths() {
             }
 
             if (isPdf) {
+              const iframeSrc = getStudentPdfPreviewIframeSrc(fileUrl, previewContent?.title);
               return (
-                <div className="pdf-viewer-wrapper w-full h-full min-h-0 rounded-lg overflow-y-auto bg-white border border-gray-100">
-                  {isLoadingPdfPreview ? (
-                    <div className="w-full min-h-[85vh] flex items-center justify-center text-sm text-gray-600">
-                      Loading PDF preview...
-                    </div>
-                  ) : pdfPreviewBlobUrl ? (
-                    <iframe
-                      src={`${pdfPreviewBlobUrl}#toolbar=0&navpanes=0&scrollbar=1`}
-                      style={{ width: "100%", height: "100%", minHeight: "85vh", border: "none", display: "block", background: "#fff" }}
-                      title={previewContent?.title || "PDF Preview"}
-                    />
-                  ) : pdfPreviewFallbackUrl ? (
-                    <div className="w-full h-full min-h-[85vh] flex flex-col gap-3">
-                      <iframe
-                        src={`${pdfPreviewFallbackUrl}#toolbar=0&navpanes=0&scrollbar=1`}
-                        style={{ width: "100%", height: "100%", minHeight: "80vh", border: "none", display: "block", background: "#fff" }}
-                        title={previewContent?.title || "PDF Preview"}
-                      />
-                      <div className="flex items-center justify-center gap-3 text-xs text-gray-600">
-                        <span>If preview is blocked by source website, open directly:</span>
-                        <a
-                          href={pdfPreviewFallbackUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="underline text-blue-600 hover:text-blue-700"
-                        >
-                          Open PDF
-                        </a>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="w-full min-h-[85vh] flex flex-col items-center justify-center gap-3 text-sm text-gray-600 px-4 text-center">
-                      <span>Unable to preview PDF. Click Download instead.</span>
-                      <Button variant="outline" size="sm" onClick={() => handleContentDownload(previewContent)}>
-                        Download
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <iframe
+                  key={iframeSrc}
+                  title={previewContent?.title || 'PDF Preview'}
+                  src={iframeSrc}
+                  className="h-[min(78vh,900px)] w-full border-0 bg-white rounded-lg"
+                />
               );
             }
 

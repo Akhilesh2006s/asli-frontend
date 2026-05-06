@@ -4,15 +4,9 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { API_BASE_URL } from '@/lib/api-config';
+import { API_BASE_URL, getStudentPdfPreviewIframeSrc } from '@/lib/api-config';
 import { BookOpen, FileText, Package, Video, Youtube } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { Document, Page, pdfjs } from 'react-pdf';
-
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString();
+import { useState } from 'react';
 
 export interface WeakSubjectContentItem {
   _id: string;
@@ -69,10 +63,6 @@ function extractDirectFileUrl(rawUrl: string): string {
   return rawUrl;
 }
 
-function isPdfBlob(blob: Blob): Promise<boolean> {
-  return blob.slice(0, 5).text().then((prefix) => prefix.startsWith('%PDF-'));
-}
-
 const TAB_ORDER: TabKey[] = ['Video', 'TextBook', 'Workbook', 'Material'];
 
 const TAB_LABELS: Record<TabKey, string> = {
@@ -106,115 +96,11 @@ export function WeakSubjectResourcesCard({
 }) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewItem, setPreviewItem] = useState<WeakSubjectContentItem | null>(null);
-  const [pdfPreviewBlobUrl, setPdfPreviewBlobUrl] = useState<string | null>(null);
-  const [isLoadingPdfPreview, setIsLoadingPdfPreview] = useState(false);
-  const [pdfPreviewError, setPdfPreviewError] = useState<string | null>(null);
-  const [pdfPageCount, setPdfPageCount] = useState(0);
-  const [pdfZoom, setPdfZoom] = useState(1);
-  const [useEmbedFallback, setUseEmbedFallback] = useState(false);
 
   const openPreview = (item: WeakSubjectContentItem) => {
     setPreviewItem(item);
     setIsPreviewOpen(true);
   };
-
-  useEffect(() => {
-    const loadPdfBlob = async () => {
-      if (!isPreviewOpen || !previewItem?.fileUrl) {
-        setPdfPreviewBlobUrl((prev) => {
-          if (prev) window.URL.revokeObjectURL(prev);
-          return null;
-        });
-        setIsLoadingPdfPreview(false);
-        setPdfPreviewError(null);
-        setPdfPageCount(0);
-        setPdfZoom(1);
-        setUseEmbedFallback(false);
-        return;
-      }
-
-      const resolved = resolveContentHref(previewItem.fileUrl);
-      const directUrl = extractDirectFileUrl(resolved);
-      const isPdf = directUrl.toLowerCase().endsWith('.pdf') || directUrl.toLowerCase().includes('pdf');
-      if (!isPdf) {
-        setPdfPreviewBlobUrl((prev) => {
-          if (prev) window.URL.revokeObjectURL(prev);
-          return null;
-        });
-        setIsLoadingPdfPreview(false);
-        setPdfPreviewError(null);
-        setPdfPageCount(0);
-        setPdfZoom(1);
-        setUseEmbedFallback(false);
-        return;
-      }
-
-      setIsLoadingPdfPreview(true);
-      setPdfPreviewError(null);
-      setPdfPageCount(0);
-      setPdfZoom(1);
-      setUseEmbedFallback(false);
-      console.log('WeakSubject PDF source URL:', directUrl);
-      try {
-        const token = localStorage.getItem('authToken');
-        const candidates = Array.from(new Set([directUrl, resolved])).filter(Boolean);
-
-        let loadedBlobUrl: string | null = null;
-        let lastError: Error | null = null;
-
-        for (const candidate of candidates) {
-          try {
-            const previewUrl = `${API_BASE_URL}/api/student/content-preview?url=${encodeURIComponent(candidate)}&filename=${encodeURIComponent(previewItem?.title || 'preview.pdf')}`;
-            const response = await fetch(previewUrl, {
-              headers: {
-                ...(token ? { Authorization: `Bearer ${token}` } : {})
-              }
-            });
-            const contentType = response.headers.get('content-type') || '';
-            console.log('WeakSubject PDF preview response:', {
-              candidate,
-              status: response.status,
-              ok: response.ok,
-              contentType
-            });
-            if (!response.ok) throw new Error(`PDF preview fetch failed: ${response.status}`);
-            if (!contentType.toLowerCase().includes('application/pdf') && !contentType.toLowerCase().includes('application/octet-stream')) {
-              throw new Error(`Invalid content type for PDF preview: ${contentType || 'unknown'}`);
-            }
-            const blob = await response.blob();
-            const validPdf = await isPdfBlob(blob);
-            if (!validPdf) {
-              throw new Error('Preview payload is not a valid PDF binary');
-            }
-            loadedBlobUrl = window.URL.createObjectURL(blob);
-            break;
-          } catch (candidateError) {
-            lastError = candidateError instanceof Error ? candidateError : new Error(String(candidateError));
-          }
-        }
-
-        if (!loadedBlobUrl) {
-          throw lastError || new Error('Unable to load PDF from available sources');
-        }
-
-        setPdfPreviewBlobUrl((prev) => {
-          if (prev) window.URL.revokeObjectURL(prev);
-          return loadedBlobUrl;
-        });
-      } catch (error) {
-        console.error('Weak subjects PDF preview failed:', error);
-        setPdfPreviewError('Unable to preview PDF. Click Download instead.');
-        setPdfPreviewBlobUrl((prev) => {
-          if (prev) window.URL.revokeObjectURL(prev);
-          return null;
-        });
-      } finally {
-        setIsLoadingPdfPreview(false);
-      }
-    };
-
-    loadPdfBlob();
-  }, [isPreviewOpen, previewItem]);
 
   return (
     <>
@@ -335,7 +221,6 @@ export function WeakSubjectResourcesCard({
           setIsPreviewOpen(open);
           if (!open) {
             setPreviewItem(null);
-            setPdfPreviewError(null);
           }
         }}
       >
@@ -364,104 +249,14 @@ export function WeakSubjectResourcesCard({
               return <video src={fileUrl} controls className="w-full h-full min-h-[85vh] rounded-lg bg-black" />;
             }
             if (isPdf) {
-              const proxiedDownloadUrl = `${API_BASE_URL}/api/student/content-download?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(previewItem?.title || 'preview.pdf')}`;
+              const iframeSrc = getStudentPdfPreviewIframeSrc(fileUrl, previewItem?.title);
               return (
-                <div className="pdf-viewer-wrapper flex-1 min-h-0 overflow-y-auto bg-white border border-gray-100 rounded-lg p-2">
-                  {isLoadingPdfPreview ? (
-                    <div className="w-full h-full min-h-[85vh] flex items-center justify-center text-sm text-gray-600">
-                      Loading PDF preview...
-                    </div>
-                  ) : pdfPreviewBlobUrl ? (
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-                        <span className="text-xs text-muted-foreground">
-                          {pdfPageCount > 0 ? `${pdfPageCount} page${pdfPageCount === 1 ? '' : 's'}` : 'Preparing preview'}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setPdfZoom((prev) => Math.max(0.7, Number((prev - 0.1).toFixed(2))))}
-                            disabled={useEmbedFallback}
-                          >
-                            Zoom -
-                          </Button>
-                          <span className="text-xs text-muted-foreground min-w-14 text-center">
-                            {Math.round(pdfZoom * 100)}%
-                          </span>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setPdfZoom((prev) => Math.min(2.2, Number((prev + 0.1).toFixed(2))))}
-                            disabled={useEmbedFallback}
-                          >
-                            Zoom +
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setUseEmbedFallback((prev) => !prev)}
-                          >
-                            {useEmbedFallback ? 'Use Enhanced Viewer' : 'Use Browser Viewer'}
-                          </Button>
-                        </div>
-                      </div>
-
-                      {useEmbedFallback ? (
-                        <iframe
-                          src={`${pdfPreviewBlobUrl}#toolbar=0&navpanes=0&scrollbar=1`}
-                          title={previewItem?.title || 'PDF Preview'}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            minHeight: '85vh',
-                            border: 'none',
-                            display: 'block',
-                            background: '#fff'
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full overflow-y-auto min-h-[85vh]">
-                          <Document
-                            file={pdfPreviewBlobUrl}
-                            loading={<div className="w-full min-h-[85vh] flex items-center justify-center text-sm text-gray-600">Rendering PDF...</div>}
-                            onLoadSuccess={({ numPages }) => {
-                              setPdfPageCount(numPages);
-                              setPdfPreviewError(null);
-                            }}
-                            onLoadError={(error) => {
-                              console.error('react-pdf render failed:', error);
-                              setPdfPreviewError('Preview unavailable. Click Download PDF');
-                              setUseEmbedFallback(true);
-                            }}
-                          >
-                            {Array.from({ length: pdfPageCount || 1 }, (_, index) => (
-                              <div key={index + 1} className="mb-4 flex justify-center">
-                                <Page
-                                  pageNumber={index + 1}
-                                  scale={pdfZoom}
-                                  renderAnnotationLayer={false}
-                                  renderTextLayer={false}
-                                />
-                              </div>
-                            ))}
-                          </Document>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="w-full h-full min-h-[85vh] flex flex-col items-center justify-center text-sm text-gray-600 gap-3 px-4 text-center">
-                      <span>{pdfPreviewError || 'Preview unavailable. Click Download PDF'}</span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(proxiedDownloadUrl, '_blank', 'noopener,noreferrer')}
-                      >
-                        Download PDF
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                <iframe
+                  key={iframeSrc}
+                  title={previewItem?.title || 'PDF Preview'}
+                  src={iframeSrc}
+                  className="h-[min(78vh,900px)] w-full border-0 bg-white rounded-lg"
+                />
               );
             }
             if (isImage) {
