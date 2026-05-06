@@ -460,8 +460,8 @@ export default function AsliPrepContent() {
         }}
       >
         <DialogContent className="w-[90vw] h-[95vh] max-w-none bg-white rounded-2xl overflow-hidden flex flex-col p-0">
-          <DialogHeader>
-            <DialogTitle>{previewContent?.title || 'Content Preview'}</DialogTitle>
+          <DialogHeader className="px-8 pt-5 pb-3 border-b border-gray-200">
+            <DialogTitle className="pl-2 pt-1">{previewContent?.title || 'Content Preview'}</DialogTitle>
           </DialogHeader>
           <div className="flex-1 min-h-0 overflow-hidden px-4 py-4">
           {(() => {
@@ -498,7 +498,7 @@ export default function AsliPrepContent() {
                     </div>
                   ) : pdfPreviewBlobUrl ? (
                     <iframe
-                      src={`${pdfPreviewBlobUrl}#toolbar=1&navpanes=1&scrollbar=1`}
+                      src={`${pdfPreviewBlobUrl}#toolbar=0&navpanes=0&scrollbar=1`}
                       style={{ width: '100%', height: '100%', minHeight: '85vh', border: 'none', display: 'block', background: '#fff' }}
                       title={previewContent?.title || 'PDF Preview'}
                     />

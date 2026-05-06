@@ -4016,7 +4016,7 @@ export default function Dashboard() {
                                     </div>
                                   ) : pdfPreviewBlobUrl ? (
                                     <iframe
-                                      src={`${pdfPreviewBlobUrl}#toolbar=1&navpanes=1&scrollbar=1`}
+                                      src={`${pdfPreviewBlobUrl}#toolbar=0&navpanes=0&scrollbar=1`}
                                       title={selectedScheduleItem.title || 'PDF Preview'}
                                       style={{ width: '100%', height: '100%', minHeight: '85vh', border: 'none', display: 'block', background: '#fff' }}
                                     />
