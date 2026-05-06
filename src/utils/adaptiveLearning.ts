@@ -52,8 +52,60 @@ export interface VideoItem {
   subjectId?: string;
   videoUrl?: string;
   youtubeUrl?: string;
+  /** Some APIs store the media link only on fileUrl (same as learning-path content). */
+  fileUrl?: string;
   duration?: number;
   [key: string]: unknown;
+}
+
+/**
+ * Best URL to open for a video recommendation (subject videos + library often differ by field).
+ */
+export function resolveVideoPlaybackUrl(video: VideoItem): string {
+  const v = video as VideoItem & { fileUrl?: string };
+  const raw = (v.youtubeUrl || v.videoUrl || v.fileUrl || '').trim();
+  return raw;
+}
+
+/**
+ * True when the URL is suitable to show under "Recommended Videos" (not PDFs/docs mis-tagged as Video).
+ */
+export function shouldRecommendAsVideoUrl(url?: string): boolean {
+  const u = (url || '').trim().toLowerCase();
+  if (!u) return false;
+
+  if (/\.pdf(\?|#|$)/.test(u) || u.includes('/pdf?') || u.includes('type=pdf')) return false;
+  if (u.includes('docs.google.com/document')) return false;
+  if (/\.(doc|docx|ppt|pptx|xls|xlsx|csv|zip|epub)(\?|#|$)/.test(u)) return false;
+
+  if (u.includes('youtube.com') || u.includes('youtu.be')) return true;
+  if (u.includes('vimeo.com') || u.includes('loom.com/share') || u.includes('dailymotion.com')) return true;
+  if (/\.(mp4|webm|ogg|m3u8|mov|mkv|avi)(\?|#|$)/.test(u)) return true;
+
+  return false;
+}
+
+function videoItemHasPlayableVideoUrl(v: VideoItem): boolean {
+  return shouldRecommendAsVideoUrl(resolveVideoPlaybackUrl(v));
+}
+
+/** Listed under videos: real video URL, or no URL yet but we can deep-link to the subject page. */
+function videoItemEligibleAsRecommendation(v: VideoItem): boolean {
+  if (videoItemHasPlayableVideoUrl(v)) return true;
+  const hasUrl = Boolean(resolveVideoPlaybackUrl(v));
+  const sid = normId(v.subjectId);
+  if (!hasUrl && sid) return true;
+  return false;
+}
+
+/** Content links that are clearly documents (used when type is Video but file points to PDF, etc.). */
+function isLikelyDocumentUrl(url?: string): boolean {
+  const u = (url || '').trim().toLowerCase();
+  if (!u) return false;
+  if (/\.pdf(\?|#|$)/.test(u) || u.includes('/pdf?') || u.includes('type=pdf')) return true;
+  if (u.includes('docs.google.com/document')) return true;
+  if (/\.(doc|docx|ppt|pptx|xls|xlsx|csv|epub)(\?|#|$)/.test(u)) return true;
+  return false;
 }
 
 export interface ContentItem {
@@ -86,6 +138,26 @@ const MAX_NOTES_PER_SUBJECT = 2;
 const MAX_QUIZ_PER_SUBJECT = 1;
 
 const NOTE_TYPES = ['TextBook', 'Workbook', 'Material'];
+
+/** Learning-path / API "video" rows sometimes point at PDFs — show those under Recommended Notes instead. */
+function tryPromoteMisplacedSubjectVideoAsNote(
+  v: VideoItem,
+  subjectNotes: ContentItem[],
+  seenContentIds: Set<string>
+): void {
+  const docUrl = resolveVideoPlaybackUrl(v);
+  const vidId = v._id != null ? String(v._id) : '';
+  if (!docUrl || !isLikelyDocumentUrl(docUrl) || !vidId) return;
+  if (seenContentIds.has(`content-${vidId}`) || seenContentIds.has(`video-${vidId}`)) return;
+  if (subjectNotes.length >= MAX_NOTES_PER_SUBJECT) return;
+  subjectNotes.push({
+    _id: vidId,
+    title: v.title || 'Resource',
+    fileUrl: docUrl,
+    type: 'Material',
+  } as ContentItem);
+  seenContentIds.add(`content-${vidId}`);
+}
 
 /**
  * Normalize subject name to a key for matching (lowercase, trimmed).
@@ -386,6 +458,10 @@ export function generateAdaptiveRecommendations(input: GenerateRecommendationsIn
 
     for (const v of nestedVideos) {
       const vidId = v._id?.toString() || v._id;
+      if (!videoItemEligibleAsRecommendation(v)) {
+        tryPromoteMisplacedSubjectVideoAsNote(v, subjectNotes, seenContentIds);
+        continue;
+      }
       if (subjectVideos.length >= MAX_VIDEOS_PER_SUBJECT) break;
       if (vidId && !seenContentIds.has(`video-${vidId}`)) {
         subjectVideos.push(v);
@@ -400,10 +476,13 @@ export function generateAdaptiveRecommendations(input: GenerateRecommendationsIn
         if (vidId && seenContentIds.has(`video-${vidId}`)) continue;
         const vSubjId = normId(v.subjectId);
         const matches = subjectIdStr && vSubjId && (vSubjId === subjectIdStr || toSubjectKey(vSubjId) === toSubjectKey(ws.name));
-        if (matches) {
-          subjectVideos.push(v);
-          if (vidId) seenContentIds.add(`video-${vidId}`);
+        if (!matches) continue;
+        if (!videoItemEligibleAsRecommendation(v)) {
+          tryPromoteMisplacedSubjectVideoAsNote(v, subjectNotes, seenContentIds);
+          continue;
         }
+        subjectVideos.push(v);
+        if (vidId) seenContentIds.add(`video-${vidId}`);
       }
     }
 
@@ -415,11 +494,24 @@ export function generateAdaptiveRecommendations(input: GenerateRecommendationsIn
       if (!contentMatchesSubject(c, ws.subjectId, ws.name)) continue;
       const cid = c._id?.toString() || c._id;
       if (cid && seenContentIds.has(`content-video-${cid}`)) continue;
-      const url = c.fileUrl || '';
+      const url = (c.fileUrl || '').trim();
+      if (!shouldRecommendAsVideoUrl(url)) {
+        if (
+          cid &&
+          !seenContentIds.has(`content-${cid}`) &&
+          subjectNotes.length < MAX_NOTES_PER_SUBJECT &&
+          isLikelyDocumentUrl(url)
+        ) {
+          subjectNotes.push(c);
+          seenContentIds.add(`content-${cid}`);
+        }
+        continue;
+      }
       subjectVideos.push({
         _id: String(cid),
         title: c.title || 'Video',
         videoUrl: url,
+        fileUrl: url,
         youtubeUrl: url && (url.includes('youtube.com') || url.includes('youtu.be')) ? url : undefined,
         subjectId: ws.subjectId,
       } as VideoItem);

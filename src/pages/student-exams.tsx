@@ -315,6 +315,25 @@ export default function StudentExams() {
   // Ensure exams is always an array
   const exams = Array.isArray(examsData) ? examsData : [];
 
+  /** Deep-link from Adaptive Learning recommendations */
+  useEffect(() => {
+    if (!exams.length || isLoading) return;
+    try {
+      const raw = sessionStorage.getItem('adaptiveJumpExamId');
+      if (!raw) return;
+      sessionStorage.removeItem('adaptiveJumpExamId');
+      setActiveTab('available');
+      const el = document.getElementById(`adaptive-exam-${raw}`);
+      if (el) {
+        window.requestAnimationFrame(() =>
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        );
+      }
+    } catch {
+      /* ignore storage / DOM quirks */
+    }
+  }, [exams, isLoading]);
+
   const allowedClassFilterOptions = useMemo(() => {
     const normalizedUserClass = normalizeClassNumber(user?.classNumber);
     const userClassNumber = Number(normalizedUserClass);
@@ -891,7 +910,11 @@ export default function StudentExams() {
                 const hydratedQuestionCount = Array.isArray(exam.questions) ? exam.questions.length : Number(exam.totalQuestions || 0);
                 
                 return (
-                  <Card key={exam._id} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
+                  <Card
+                    key={exam._id}
+                    id={`adaptive-exam-${exam._id}`}
+                    className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}
+                  >
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">

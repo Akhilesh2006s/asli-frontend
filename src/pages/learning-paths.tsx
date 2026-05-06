@@ -17,7 +17,6 @@ import {
   Award,
   FileText,
   BarChart3,
-  Video,
   BookOpen as BookIcon,
   User,
   Gamepad2,
@@ -27,7 +26,6 @@ import {
   Microscope,
   File,
   Image as ImageIcon,
-  Video as VideoIcon,
   FileText as FileTextIcon,
   X,
   Download,
@@ -62,12 +60,11 @@ export default function LearningPaths() {
     TextBook: 0,
     Workbook: 0,
     Material: 0,
-    Video: 0,
     Audio: 0,
     Homework: 0
   });
   const [isLoadingContentCounts, setIsLoadingContentCounts] = useState(true);
-  const [selectedContentType, setSelectedContentType] = useState<'TextBook' | 'Workbook' | 'Material' | 'Video' | 'Audio' | 'Homework' | null>(null);
+  const [selectedContentType, setSelectedContentType] = useState<'TextBook' | 'Workbook' | 'Material' | 'Audio' | 'Homework' | null>(null);
   const [filteredContent, setFilteredContent] = useState<any[]>([]);
   const [isLoadingFilteredContent, setIsLoadingFilteredContent] = useState(false);
   const [allLibraryContent, setAllLibraryContent] = useState<any[]>([]);
@@ -583,7 +580,6 @@ export default function LearningPaths() {
             TextBook: 0,
             Workbook: 0,
             Material: 0,
-            Video: 0,
             Audio: 0,
             Homework: 0
           };
@@ -935,24 +931,6 @@ export default function LearningPaths() {
               </CardContent>
             </Card>
 
-            {/* Video Card */}
-            <Card 
-              className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
-                selectedContentType === 'Video' ? 'ring-2 ring-blue-500' : ''
-              }`}
-              onClick={() => setSelectedContentType(selectedContentType === 'Video' ? null : 'Video')}
-            >
-              <CardContent className="p-6 flex flex-col items-center text-center">
-                <div className="w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md mb-4">
-                  <VideoIcon className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
-                </div>
-                <CardTitle className="text-lg font-semibold text-gray-900 mb-1">Video</CardTitle>
-                <p className="text-sm text-gray-500">
-                  {isLoadingContentCounts ? '...' : `${contentTypeCounts.Video} files`}
-                </p>
-              </CardContent>
-            </Card>
-
             {/* Audio Card */}
             <Card 
               className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
@@ -1032,8 +1010,6 @@ export default function LearningPaths() {
                               <FileTextIcon className="w-6 h-6 text-white" />
                             ) : selectedContentType === 'Material' ? (
                               <File className="w-6 h-6 text-white" />
-                            ) : selectedContentType === 'Video' ? (
-                              <VideoIcon className="w-6 h-6 text-white" />
                             ) : selectedContentType === 'Audio' ? (
                               <Headphones className="w-6 h-6 text-white" />
                             ) : selectedContentType === 'Homework' ? (
