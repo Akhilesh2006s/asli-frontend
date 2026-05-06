@@ -89,9 +89,9 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
       // Handle both Date objects and ISO strings
       let contentDate: Date;
       if (content.date) {
-        contentDate = content.date instanceof Date ? content.date : new Date(content.date);
+        contentDate = new Date(content.date);
       } else if (content.createdAt) {
-        contentDate = content.createdAt instanceof Date ? content.createdAt : new Date(content.createdAt);
+        contentDate = new Date(content.createdAt);
       } else {
         console.warn('⚠️ Calendar: No date found for content:', content.title);
         return; // Skip content without date
@@ -228,7 +228,11 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
           if (onMarkAsDone) {
             onMarkAsDone(homeworkId);
           }
-          setMarkedDone(prev => new Set([...prev, homeworkId]));
+          setMarkedDone((prev) => {
+            const next = new Set(prev);
+            next.add(homeworkId);
+            return next;
+          });
         } else {
           setExistingSubmission(null);
           setSubmissionLink('');
@@ -294,7 +298,11 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
         if (onMarkAsDone) {
           onMarkAsDone(selectedHomework._id);
         }
-        setMarkedDone(prev => new Set([...prev, selectedHomework._id]));
+        setMarkedDone((prev) => {
+          const next = new Set(prev);
+          next.add(selectedHomework._id);
+          return next;
+        });
         
         toast({
           title: 'Success',
