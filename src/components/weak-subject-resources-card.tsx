@@ -339,10 +339,11 @@ export function WeakSubjectResourcesCard({
           }
         }}
       >
-        <DialogContent className="max-w-6xl w-[96vw] h-[90vh] overflow-y-auto bg-white">
-          <DialogHeader>
-            <DialogTitle>{previewItem?.title || 'Preview'}</DialogTitle>
+        <DialogContent className="w-[90vw] h-[95vh] max-w-none bg-white rounded-2xl overflow-hidden flex flex-col p-0">
+          <DialogHeader className="px-8 pt-5 pb-3 border-b border-gray-200">
+            <DialogTitle className="pl-2 pt-1">{previewItem?.title || 'Preview'}</DialogTitle>
           </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-hidden px-4 py-4">
           {(() => {
             const fileUrl = extractDirectFileUrl(resolveContentHref(previewItem?.fileUrl || ''));
             const lower = fileUrl.toLowerCase();
@@ -357,17 +358,17 @@ export function WeakSubjectResourcesCard({
             if (!fileUrl || fileUrl === '#') return <p className="text-sm text-gray-500">No preview URL available.</p>;
 
             if (isVideo && youtubeEmbed) {
-              return <iframe src={youtubeEmbed} className="w-full h-[70vh] border-0 rounded-lg" title={previewItem?.title || 'Video'} allowFullScreen />;
+              return <iframe src={youtubeEmbed} className="w-full h-full min-h-[85vh] border-0 rounded-lg bg-white block" title={previewItem?.title || 'Video'} allowFullScreen />;
             }
             if (isVideo) {
-              return <video src={fileUrl} controls className="w-full max-h-[70vh] rounded-lg bg-black" />;
+              return <video src={fileUrl} controls className="w-full h-full min-h-[85vh] rounded-lg bg-black" />;
             }
             if (isPdf) {
               const proxiedDownloadUrl = `${API_BASE_URL}/api/student/content-download?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(previewItem?.title || 'preview.pdf')}`;
               return (
-                <div className="w-full min-h-[85vh] rounded-lg overflow-y-auto bg-white border border-gray-100 p-2">
+                <div className="pdf-viewer-wrapper flex-1 min-h-0 overflow-y-auto bg-white border border-gray-100 rounded-lg p-2">
                   {isLoadingPdfPreview ? (
-                    <div className="w-full min-h-[85vh] flex items-center justify-center text-sm text-gray-600">
+                    <div className="w-full h-full min-h-[85vh] flex items-center justify-center text-sm text-gray-600">
                       Loading PDF preview...
                     </div>
                   ) : pdfPreviewBlobUrl ? (
@@ -407,19 +408,20 @@ export function WeakSubjectResourcesCard({
                       </div>
 
                       {useEmbedFallback ? (
-                        <embed
-                          src={pdfPreviewBlobUrl}
-                          type="application/pdf"
-                          width="100%"
-                          height="100%"
+                        <iframe
+                          src={`${pdfPreviewBlobUrl}#toolbar=0&navpanes=0&scrollbar=1`}
+                          title={previewItem?.title || 'PDF Preview'}
                           style={{
+                            width: '100%',
+                            height: '100%',
                             minHeight: '85vh',
-                            borderRadius: '12px',
+                            border: 'none',
+                            display: 'block',
                             background: '#fff'
                           }}
                         />
                       ) : (
-                        <div className="w-full overflow-y-auto" style={{ minHeight: '85vh' }}>
+                        <div className="w-full overflow-y-auto min-h-[85vh]">
                           <Document
                             file={pdfPreviewBlobUrl}
                             loading={<div className="w-full min-h-[85vh] flex items-center justify-center text-sm text-gray-600">Rendering PDF...</div>}
@@ -448,7 +450,7 @@ export function WeakSubjectResourcesCard({
                       )}
                     </div>
                   ) : (
-                    <div className="w-full min-h-[85vh] flex flex-col items-center justify-center text-sm text-gray-600 gap-3 px-4 text-center">
+                    <div className="w-full h-full min-h-[85vh] flex flex-col items-center justify-center text-sm text-gray-600 gap-3 px-4 text-center">
                       <span>{pdfPreviewError || 'Preview unavailable. Click Download PDF'}</span>
                       <Button
                         variant="outline"
@@ -463,13 +465,14 @@ export function WeakSubjectResourcesCard({
               );
             }
             if (isImage) {
-              return <img src={fileUrl} alt={previewItem?.title || 'Preview'} className="w-full max-h-[70vh] object-contain rounded-lg bg-gray-100" />;
+              return <img src={fileUrl} alt={previewItem?.title || 'Preview'} className="w-full h-full min-h-[85vh] object-contain rounded-lg bg-gray-100" />;
             }
             if (isAudio) {
               return <audio src={fileUrl} controls className="w-full" />;
             }
             return <p className="text-sm text-gray-500">Preview is not available for this file type.</p>;
           })()}
+          </div>
         </DialogContent>
       </Dialog>
     </>

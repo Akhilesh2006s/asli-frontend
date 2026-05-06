@@ -3863,7 +3863,7 @@ export default function Dashboard() {
 
       {/* Content Preview Modal */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[90vw] h-[95vh] max-w-none overflow-hidden bg-white rounded-2xl flex flex-col">
           {selectedScheduleItem && (
             <>
               <DialogHeader>
@@ -3879,7 +3879,7 @@ export default function Dashboard() {
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="space-y-4 py-4">
+              <div className="space-y-4 py-4 flex-1 min-h-0 overflow-y-auto">
                 {selectedScheduleItem.isQuiz ? (
                   <>
                     <div className="grid grid-cols-2 gap-4">
@@ -4007,26 +4007,21 @@ export default function Dashboard() {
                           }
                           
                           if (isPDF) {
-                            const pdfViewerUrl = pdfPreviewBlobUrl
-                              ? `${pdfPreviewBlobUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`
-                              : '';
                             return (
                               <div className="space-y-3">
-                                <div className="w-full min-h-[80vh] bg-white rounded-lg overflow-auto border border-gray-100">
+                                <div className="pdf-viewer-wrapper w-full h-full min-h-0 bg-white rounded-lg overflow-y-auto border border-gray-100">
                                   {isLoadingPdfPreview ? (
-                                    <div className="w-full min-h-[80vh] flex items-center justify-center text-sm text-gray-600">
+                                    <div className="w-full min-h-[85vh] flex items-center justify-center text-sm text-gray-600">
                                       Loading PDF preview...
                                     </div>
                                   ) : pdfPreviewBlobUrl ? (
                                     <iframe
-                                      src={pdfViewerUrl}
-                                      width="100%"
-                                      height="80vh"
-                                      style={{ border: 'none', borderRadius: '12px', background: '#fff' }}
-                                      title={selectedScheduleItem.title}
+                                      src={`${pdfPreviewBlobUrl}#toolbar=1&navpanes=1&scrollbar=1`}
+                                      title={selectedScheduleItem.title || 'PDF Preview'}
+                                      style={{ width: '100%', height: '100%', minHeight: '85vh', border: 'none', display: 'block', background: '#fff' }}
                                     />
                                   ) : (
-                                    <div className="w-full min-h-[80vh] flex flex-col items-center justify-center gap-3 px-4 text-center text-sm text-gray-600">
+                                    <div className="w-full min-h-[85vh] flex flex-col items-center justify-center gap-3 px-4 text-center text-sm text-gray-600">
                                       <span>Unable to preview PDF. Click Download instead.</span>
                                       <Button
                                         variant="outline"

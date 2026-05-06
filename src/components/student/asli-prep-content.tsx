@@ -459,10 +459,11 @@ export default function AsliPrepContent() {
           if (!open) setPreviewContent(null);
         }}
       >
-        <DialogContent className="max-w-5xl w-[95vw]">
+        <DialogContent className="w-[90vw] h-[95vh] max-w-none bg-white rounded-2xl overflow-hidden flex flex-col p-0">
           <DialogHeader>
             <DialogTitle>{previewContent?.title || 'Content Preview'}</DialogTitle>
           </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-hidden px-4 py-4">
           {(() => {
             const fileUrl = extractDirectFileUrl(getNormalizedContentUrl(previewContent?.fileUrl));
             const lower = fileUrl.toLowerCase();
@@ -490,21 +491,19 @@ export default function AsliPrepContent() {
 
             if (isPdf) {
               return (
-                <div className="w-full min-h-[80vh] rounded-lg overflow-auto bg-white border border-gray-100">
+                <div className="pdf-viewer-wrapper w-full h-full min-h-0 rounded-lg overflow-y-auto bg-white border border-gray-100">
                   {isLoadingPdfPreview ? (
-                    <div className="w-full min-h-[80vh] flex items-center justify-center text-sm text-gray-600">
+                    <div className="w-full min-h-[85vh] flex items-center justify-center text-sm text-gray-600">
                       Loading PDF preview...
                     </div>
                   ) : pdfPreviewBlobUrl ? (
                     <iframe
-                      src={`${pdfPreviewBlobUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-                      width="100%"
-                      height="80vh"
-                      style={{ border: 'none', borderRadius: '12px', background: '#fff' }}
+                      src={`${pdfPreviewBlobUrl}#toolbar=1&navpanes=1&scrollbar=1`}
+                      style={{ width: '100%', height: '100%', minHeight: '85vh', border: 'none', display: 'block', background: '#fff' }}
                       title={previewContent?.title || 'PDF Preview'}
                     />
                   ) : (
-                    <div className="w-full min-h-[80vh] flex flex-col items-center justify-center gap-3 text-sm text-gray-600 px-4 text-center">
+                    <div className="w-full min-h-[85vh] flex flex-col items-center justify-center gap-3 text-sm text-gray-600 px-4 text-center">
                       <span>Unable to preview PDF. Click Download instead.</span>
                       <Button
                         variant="outline"
@@ -546,6 +545,7 @@ export default function AsliPrepContent() {
 
             return <p className="text-sm text-gray-500">Preview not available for this file type.</p>;
           })()}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
