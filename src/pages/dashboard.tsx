@@ -1547,6 +1547,19 @@ export default function Dashboard() {
   const getPreviewProxyUrl = (fileUrl: string, fileName?: string) =>
     `${API_BASE_URL}/api/student/content-download?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(fileName || 'preview.pdf')}`;
 
+  const extractDirectFileUrl = (rawUrl: string) => {
+    try {
+      const parsed = new URL(rawUrl);
+      if (parsed.hostname.includes('docs.google.com') && parsed.pathname.includes('/gview')) {
+        const target = parsed.searchParams.get('url');
+        if (target) return target;
+      }
+    } catch {
+      return rawUrl;
+    }
+    return rawUrl;
+  };
+
   useEffect(() => {
     const loadPdfPreview = async () => {
       if (!isPreviewOpen || !selectedScheduleItem?.fileUrl) {
@@ -1565,7 +1578,8 @@ export default function Dashboard() {
           : fileUrl.startsWith('/')
             ? `${API_BASE_URL}${fileUrl}`
             : `${API_BASE_URL}/${fileUrl}`;
-      const lower = normalizedUrl.toLowerCase();
+      const directUrl = extractDirectFileUrl(normalizedUrl);
+      const lower = directUrl.toLowerCase();
       const isPDF = lower.endsWith('.pdf') || lower.includes('pdf');
 
       if (!isPDF) {
@@ -1579,7 +1593,7 @@ export default function Dashboard() {
 
       setIsLoadingPdfPreview(true);
       const token = localStorage.getItem('authToken');
-      const previewUrl = getPreviewProxyUrl(normalizedUrl, selectedScheduleItem?.title || 'preview.pdf');
+      const previewUrl = getPreviewProxyUrl(directUrl, selectedScheduleItem?.title || 'preview.pdf');
 
       try {
         const response = await fetch(previewUrl, {
@@ -3937,6 +3951,7 @@ export default function Dashboard() {
                               fileUrl = `${API_BASE_URL}/${fileUrl}`;
                             }
                           }
+                          fileUrl = extractDirectFileUrl(fileUrl);
                           
                           const fileUrlLower = fileUrl.toLowerCase();
                           const isVideo = selectedScheduleItem.type === 'Video' || 
@@ -3993,39 +4008,39 @@ export default function Dashboard() {
                           
                           if (isPDF) {
                             const pdfViewerUrl = pdfPreviewBlobUrl
-                              ? `${pdfPreviewBlobUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`
+                              ? `${pdfPreviewBlobUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`
                               : '';
                             return (
                               <div className="space-y-3">
-                                <div className="w-full h-[60vh] bg-gray-100 rounded-lg overflow-hidden">
+                                <div className="w-full min-h-[80vh] bg-white rounded-lg overflow-auto border border-gray-100">
                                   {isLoadingPdfPreview ? (
-                                    <div className="w-full h-full flex items-center justify-center text-sm text-gray-600">
+                                    <div className="w-full min-h-[80vh] flex items-center justify-center text-sm text-gray-600">
                                       Loading PDF preview...
                                     </div>
                                   ) : pdfPreviewBlobUrl ? (
-                                    <object
-                                      data={pdfViewerUrl}
-                                      type="application/pdf"
-                                      className="w-full h-full"
-                                    >
-                                      <iframe
-                                        src={pdfViewerUrl}
-                                        className="w-full h-full border-0"
-                                        title={selectedScheduleItem.title}
-                                      />
-                                    </object>
+                                    <iframe
+                                      src={pdfViewerUrl}
+                                      width="100%"
+                                      height="80vh"
+                                      style={{ border: 'none', borderRadius: '12px', background: '#fff' }}
+                                      title={selectedScheduleItem.title}
+                                    />
                                   ) : (
-                                    <object
-                                      data={`${fileUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`}
-                                      type="application/pdf"
-                                      className="w-full h-full"
-                                    >
-                                      <iframe
-                                        src={`https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(fileUrl)}`}
-                                        className="w-full h-full border-0"
-                                        title={selectedScheduleItem.title}
-                                      />
-                                    </object>
+                                    <div className="w-full min-h-[80vh] flex flex-col items-center justify-center gap-3 px-4 text-center text-sm text-gray-600">
+                                      <span>Unable to preview PDF. Click Download instead.</span>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          const link = document.createElement('a');
+                                          link.href = fileUrl;
+                                          link.download = selectedScheduleItem?.title || 'download';
+                                          link.click();
+                                        }}
+                                      >
+                                        Download
+                                      </Button>
+                                    </div>
                                   )}
                                 </div>
                                 <div className="text-xs text-gray-600">

@@ -159,6 +159,19 @@ export default function AsliPrepContent() {
     return url.startsWith('/') ? `${API_BASE_URL}${url}` : `${API_BASE_URL}/${url}`;
   };
 
+  const extractDirectFileUrl = (rawUrl: string) => {
+    try {
+      const parsed = new URL(rawUrl);
+      if (parsed.hostname.includes('docs.google.com') && parsed.pathname.includes('/gview')) {
+        const target = parsed.searchParams.get('url');
+        if (target) return target;
+      }
+    } catch {
+      return rawUrl;
+    }
+    return rawUrl;
+  };
+
   const getYouTubeEmbedUrl = (url?: string) => {
     if (!url) return null;
     const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -180,7 +193,7 @@ export default function AsliPrepContent() {
         return;
       }
 
-      const fileUrl = getNormalizedContentUrl(previewContent.fileUrl);
+      const fileUrl = extractDirectFileUrl(getNormalizedContentUrl(previewContent.fileUrl));
       const isPdf = fileUrl.toLowerCase().endsWith('.pdf') || fileUrl.toLowerCase().includes('pdf');
       if (!isPdf) {
         setPdfPreviewBlobUrl((prev) => {
@@ -451,7 +464,7 @@ export default function AsliPrepContent() {
             <DialogTitle>{previewContent?.title || 'Content Preview'}</DialogTitle>
           </DialogHeader>
           {(() => {
-            const fileUrl = getNormalizedContentUrl(previewContent?.fileUrl);
+            const fileUrl = extractDirectFileUrl(getNormalizedContentUrl(previewContent?.fileUrl));
             const lower = fileUrl.toLowerCase();
             const isPdf = lower.endsWith('.pdf') || lower.includes('pdf');
             const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/.test(lower);
@@ -477,35 +490,35 @@ export default function AsliPrepContent() {
 
             if (isPdf) {
               return (
-                <div className="w-full h-[70vh] rounded-lg overflow-hidden bg-gray-100">
+                <div className="w-full min-h-[80vh] rounded-lg overflow-auto bg-white border border-gray-100">
                   {isLoadingPdfPreview ? (
-                    <div className="w-full h-full flex items-center justify-center text-sm text-gray-600">
+                    <div className="w-full min-h-[80vh] flex items-center justify-center text-sm text-gray-600">
                       Loading PDF preview...
                     </div>
                   ) : pdfPreviewBlobUrl ? (
-                    <object
-                      data={`${pdfPreviewBlobUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`}
-                      type="application/pdf"
-                      className="w-full h-full"
-                    >
-                      <iframe
-                        src={`${pdfPreviewBlobUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`}
-                        className="w-full h-full border-0"
-                        title={previewContent?.title || 'PDF content'}
-                      />
-                    </object>
+                    <iframe
+                      src={`${pdfPreviewBlobUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                      width="100%"
+                      height="80vh"
+                      style={{ border: 'none', borderRadius: '12px', background: '#fff' }}
+                      title={previewContent?.title || 'PDF Preview'}
+                    />
                   ) : (
-                    <object
-                      data={`${fileUrl}#toolbar=1&navpanes=0&scrollbar=1&view=FitH`}
-                      type="application/pdf"
-                      className="w-full h-full"
-                    >
-                      <iframe
-                        src={`https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(fileUrl)}`}
-                        className="w-full h-full border-0"
-                        title={previewContent?.title || 'PDF content'}
-                      />
-                    </object>
+                    <div className="w-full min-h-[80vh] flex flex-col items-center justify-center gap-3 text-sm text-gray-600 px-4 text-center">
+                      <span>Unable to preview PDF. Click Download instead.</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = fileUrl;
+                          link.download = previewContent?.title || 'download';
+                          link.click();
+                        }}
+                      >
+                        Download
+                      </Button>
+                    </div>
                   )}
                 </div>
               );
