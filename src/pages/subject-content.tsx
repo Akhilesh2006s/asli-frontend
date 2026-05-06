@@ -414,7 +414,10 @@ export default function SubjectContent() {
           <div className="text-center">
             <h1 className="text-2xl font-bold text-gray-900 mb-4">Subject not found</h1>
             <Link href="/dashboard">
-              <Button>
+              <Button
+                variant="outline"
+                className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+              >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Dashboard
               </Button>
@@ -440,7 +443,7 @@ export default function SubjectContent() {
             <Link href="/dashboard">
               <Button 
                 variant="outline" 
-                className="mr-4 bg-white/90 backdrop-blur-sm border-gray-300 shadow-sm hover:bg-white hover:shadow-md transition-all"
+                className="mr-4 bg-white/90 backdrop-blur-sm border-blue-200 text-blue-700 shadow-sm hover:bg-blue-50 hover:text-blue-800 hover:shadow-md transition-all"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Dashboard

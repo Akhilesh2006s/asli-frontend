@@ -7,6 +7,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { API_BASE_URL } from '@/lib/api-config';
 import { BookOpen, FileText, Package, Video, Youtube } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Document, Page, pdfjs } from 'react-pdf';
+
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString();
 
 export interface WeakSubjectContentItem {
   _id: string;
@@ -52,12 +58,19 @@ function extractDirectFileUrl(rawUrl: string): string {
     // Normalize Drive share links to preview endpoint.
     if (parsed.hostname.includes('drive.google.com')) {
       const match = parsed.pathname.match(/\/file\/d\/([^/]+)\//);
-      if (match?.[1]) return `https://drive.google.com/file/d/${match[1]}/preview`;
+      if (match?.[1]) return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+
+      const idFromQuery = parsed.searchParams.get('id');
+      if (idFromQuery) return `https://drive.google.com/uc?export=download&id=${idFromQuery}`;
     }
   } catch {
     return rawUrl;
   }
   return rawUrl;
+}
+
+function isPdfBlob(blob: Blob): Promise<boolean> {
+  return blob.slice(0, 5).text().then((prefix) => prefix.startsWith('%PDF-'));
 }
 
 const TAB_ORDER: TabKey[] = ['Video', 'TextBook', 'Workbook', 'Material'];
@@ -96,7 +109,9 @@ export function WeakSubjectResourcesCard({
   const [pdfPreviewBlobUrl, setPdfPreviewBlobUrl] = useState<string | null>(null);
   const [isLoadingPdfPreview, setIsLoadingPdfPreview] = useState(false);
   const [pdfPreviewError, setPdfPreviewError] = useState<string | null>(null);
-  const [pdfRenderMode, setPdfRenderMode] = useState<'iframe' | 'embed' | 'object'>('iframe');
+  const [pdfPageCount, setPdfPageCount] = useState(0);
+  const [pdfZoom, setPdfZoom] = useState(1);
+  const [useEmbedFallback, setUseEmbedFallback] = useState(false);
 
   const openPreview = (item: WeakSubjectContentItem) => {
     setPreviewItem(item);
@@ -112,7 +127,9 @@ export function WeakSubjectResourcesCard({
         });
         setIsLoadingPdfPreview(false);
         setPdfPreviewError(null);
-        setPdfRenderMode('iframe');
+        setPdfPageCount(0);
+        setPdfZoom(1);
+        setUseEmbedFallback(false);
         return;
       }
 
@@ -126,37 +143,63 @@ export function WeakSubjectResourcesCard({
         });
         setIsLoadingPdfPreview(false);
         setPdfPreviewError(null);
-        setPdfRenderMode('iframe');
+        setPdfPageCount(0);
+        setPdfZoom(1);
+        setUseEmbedFallback(false);
         return;
       }
 
       setIsLoadingPdfPreview(true);
       setPdfPreviewError(null);
-      setPdfRenderMode('iframe');
+      setPdfPageCount(0);
+      setPdfZoom(1);
+      setUseEmbedFallback(false);
       console.log('WeakSubject PDF source URL:', directUrl);
       try {
         const token = localStorage.getItem('authToken');
-        const previewUrl = `${API_BASE_URL}/api/student/content-download?url=${encodeURIComponent(directUrl)}&filename=${encodeURIComponent(previewItem?.title || 'preview.pdf')}`;
-        const response = await fetch(previewUrl, {
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
+        const candidates = Array.from(new Set([directUrl, resolved])).filter(Boolean);
+
+        let loadedBlobUrl: string | null = null;
+        let lastError: Error | null = null;
+
+        for (const candidate of candidates) {
+          try {
+            const previewUrl = `${API_BASE_URL}/api/student/content-preview?url=${encodeURIComponent(candidate)}&filename=${encodeURIComponent(previewItem?.title || 'preview.pdf')}`;
+            const response = await fetch(previewUrl, {
+              headers: {
+                ...(token ? { Authorization: `Bearer ${token}` } : {})
+              }
+            });
+            const contentType = response.headers.get('content-type') || '';
+            console.log('WeakSubject PDF preview response:', {
+              candidate,
+              status: response.status,
+              ok: response.ok,
+              contentType
+            });
+            if (!response.ok) throw new Error(`PDF preview fetch failed: ${response.status}`);
+            if (!contentType.toLowerCase().includes('application/pdf') && !contentType.toLowerCase().includes('application/octet-stream')) {
+              throw new Error(`Invalid content type for PDF preview: ${contentType || 'unknown'}`);
+            }
+            const blob = await response.blob();
+            const validPdf = await isPdfBlob(blob);
+            if (!validPdf) {
+              throw new Error('Preview payload is not a valid PDF binary');
+            }
+            loadedBlobUrl = window.URL.createObjectURL(blob);
+            break;
+          } catch (candidateError) {
+            lastError = candidateError instanceof Error ? candidateError : new Error(String(candidateError));
           }
-        });
-        const contentType = response.headers.get('content-type') || '';
-        console.log('WeakSubject PDF preview response:', {
-          status: response.status,
-          ok: response.ok,
-          contentType
-        });
-        if (!response.ok) throw new Error(`PDF preview fetch failed: ${response.status}`);
-        if (!contentType.toLowerCase().includes('application/pdf') && !contentType.toLowerCase().includes('application/octet-stream')) {
-          throw new Error(`Invalid content type for PDF preview: ${contentType || 'unknown'}`);
         }
-        const blob = await response.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
+
+        if (!loadedBlobUrl) {
+          throw lastError || new Error('Unable to load PDF from available sources');
+        }
+
         setPdfPreviewBlobUrl((prev) => {
           if (prev) window.URL.revokeObjectURL(prev);
-          return blobUrl;
+          return loadedBlobUrl;
         });
       } catch (error) {
         console.error('Weak subjects PDF preview failed:', error);
@@ -293,11 +336,10 @@ export function WeakSubjectResourcesCard({
           if (!open) {
             setPreviewItem(null);
             setPdfPreviewError(null);
-            setPdfRenderMode('iframe');
           }
         }}
       >
-        <DialogContent className="max-w-5xl w-[95vw]">
+        <DialogContent className="max-w-6xl w-[96vw] h-[90vh] overflow-y-auto bg-white">
           <DialogHeader>
             <DialogTitle>{previewItem?.title || 'Preview'}</DialogTitle>
           </DialogHeader>
@@ -321,62 +363,99 @@ export function WeakSubjectResourcesCard({
               return <video src={fileUrl} controls className="w-full max-h-[70vh] rounded-lg bg-black" />;
             }
             if (isPdf) {
+              const proxiedDownloadUrl = `${API_BASE_URL}/api/student/content-download?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(previewItem?.title || 'preview.pdf')}`;
               return (
-                <div className="w-full min-h-[80vh] rounded-lg overflow-auto bg-white border border-gray-100">
+                <div className="w-full min-h-[85vh] rounded-lg overflow-y-auto bg-white border border-gray-100 p-2">
                   {isLoadingPdfPreview ? (
-                    <div className="w-full min-h-[80vh] flex items-center justify-center text-sm text-gray-600">
+                    <div className="w-full min-h-[85vh] flex items-center justify-center text-sm text-gray-600">
                       Loading PDF preview...
                     </div>
                   ) : pdfPreviewBlobUrl ? (
-                    <>
-                      {pdfRenderMode === 'iframe' && (
-                        <iframe
-                          src={`${pdfPreviewBlobUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-                          width="100%"
-                          height="80vh"
-                          style={{ border: 'none', borderRadius: '12px', minHeight: '80vh', background: '#fff' }}
-                          title={previewItem?.title || 'PDF Preview'}
-                          onLoad={() => console.log('PDF iframe loaded:', pdfPreviewBlobUrl)}
-                          onError={() => {
-                            console.warn('PDF iframe failed, switching to embed:', pdfPreviewBlobUrl);
-                            setPdfRenderMode('embed');
-                          }}
-                        />
-                      )}
-                      {pdfRenderMode === 'embed' && (
-                        <embed
-                          src={`${pdfPreviewBlobUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-                          type="application/pdf"
-                          width="100%"
-                          height="80vh"
-                          className="rounded-lg"
-                          onLoad={() => console.log('PDF embed loaded:', pdfPreviewBlobUrl)}
-                        />
-                      )}
-                      {pdfRenderMode === 'object' && (
-                        <object
-                          data={`${pdfPreviewBlobUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-                          type="application/pdf"
-                          className="w-full min-h-[80vh] rounded-lg"
-                        />
-                      )}
-                      {pdfRenderMode === 'embed' && (
-                        <div className="px-2 pb-2 text-right">
-                          <Button size="sm" variant="ghost" onClick={() => setPdfRenderMode('object')}>
-                            Use alternate viewer
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+                        <span className="text-xs text-muted-foreground">
+                          {pdfPageCount > 0 ? `${pdfPageCount} page${pdfPageCount === 1 ? '' : 's'}` : 'Preparing preview'}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPdfZoom((prev) => Math.max(0.7, Number((prev - 0.1).toFixed(2))))}
+                            disabled={useEmbedFallback}
+                          >
+                            Zoom -
+                          </Button>
+                          <span className="text-xs text-muted-foreground min-w-14 text-center">
+                            {Math.round(pdfZoom * 100)}%
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPdfZoom((prev) => Math.min(2.2, Number((prev + 0.1).toFixed(2))))}
+                            disabled={useEmbedFallback}
+                          >
+                            Zoom +
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setUseEmbedFallback((prev) => !prev)}
+                          >
+                            {useEmbedFallback ? 'Use Enhanced Viewer' : 'Use Browser Viewer'}
                           </Button>
                         </div>
+                      </div>
+
+                      {useEmbedFallback ? (
+                        <embed
+                          src={pdfPreviewBlobUrl}
+                          type="application/pdf"
+                          width="100%"
+                          height="100%"
+                          style={{
+                            minHeight: '85vh',
+                            borderRadius: '12px',
+                            background: '#fff'
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full overflow-y-auto" style={{ minHeight: '85vh' }}>
+                          <Document
+                            file={pdfPreviewBlobUrl}
+                            loading={<div className="w-full min-h-[85vh] flex items-center justify-center text-sm text-gray-600">Rendering PDF...</div>}
+                            onLoadSuccess={({ numPages }) => {
+                              setPdfPageCount(numPages);
+                              setPdfPreviewError(null);
+                            }}
+                            onLoadError={(error) => {
+                              console.error('react-pdf render failed:', error);
+                              setPdfPreviewError('Preview unavailable. Click Download PDF');
+                              setUseEmbedFallback(true);
+                            }}
+                          >
+                            {Array.from({ length: pdfPageCount || 1 }, (_, index) => (
+                              <div key={index + 1} className="mb-4 flex justify-center">
+                                <Page
+                                  pageNumber={index + 1}
+                                  scale={pdfZoom}
+                                  renderAnnotationLayer={false}
+                                  renderTextLayer={false}
+                                />
+                              </div>
+                            ))}
+                          </Document>
+                        </div>
                       )}
-                    </>
+                    </div>
                   ) : (
-                    <div className="w-full min-h-[80vh] flex flex-col items-center justify-center text-sm text-gray-600 gap-3 px-4 text-center">
-                      <span>{pdfPreviewError || 'Unable to preview PDF. Click Download instead.'}</span>
+                    <div className="w-full min-h-[85vh] flex flex-col items-center justify-center text-sm text-gray-600 gap-3 px-4 text-center">
+                      <span>{pdfPreviewError || 'Preview unavailable. Click Download PDF'}</span>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => window.open(fileUrl, '_blank', 'noopener,noreferrer')}
+                        onClick={() => window.open(proxiedDownloadUrl, '_blank', 'noopener,noreferrer')}
                       >
-                        Download
+                        Download PDF
                       </Button>
                     </div>
                   )}
