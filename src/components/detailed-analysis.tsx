@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,10 @@ import { Progress } from '@/components/ui/progress';
 import { API_BASE_URL } from '@/lib/api-config';
 import { normalizeAndFormatExamDisplayText } from '@/lib/exam-text-normalize';
 import AdvancedPerformanceDashboard from '@/components/analytics/AdvancedPerformanceDashboard';
+import {
+  WeakSubjectResourcesCard,
+  type WeakSubjectContentMap,
+} from '@/components/weak-subject-resources-card';
 import { 
   Trophy, 
   Target, 
@@ -658,7 +662,51 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
   };
 
   const insights = getPerformanceInsights();
-  const weakAreas = getWeakAreas();
+  const weakAreas = useMemo(() => getWeakAreas(), [result.subjectWiseScore]);
+  const [weakSubjectContent, setWeakSubjectContent] = useState<WeakSubjectContentMap | null>(null);
+  const [loadingWeakContent, setLoadingWeakContent] = useState(false);
+
+  useEffect(() => {
+    if (weakAreas.length === 0) {
+      setWeakSubjectContent(null);
+      return;
+    }
+    const subjectNames = weakAreas.map((w) => w.subject.toLowerCase()).join(',');
+    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    const controller = new AbortController();
+
+    async function fetchWeakContent() {
+      setLoadingWeakContent(true);
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/api/student/weak-subject-content?subjects=${encodeURIComponent(subjectNames)}`,
+          {
+            signal: controller.signal,
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        const data = await res.json().catch(() => ({}));
+        if (data?.success && data.data && !controller.signal.aborted) {
+          setWeakSubjectContent(data.data as WeakSubjectContentMap);
+        }
+      } catch (e) {
+        if ((e as Error)?.name !== 'AbortError') {
+          console.error(e);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoadingWeakContent(false);
+        }
+      }
+    }
+
+    void fetchWeakContent();
+    return () => controller.abort();
+  }, [weakAreas]);
+
   const advancedExamId = normalizeMongoId(result.examId);
 
   const analysisQuestions =
@@ -1062,6 +1110,17 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
               </Card>
             </div>
 
+            {weakAreas.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground py-6 rounded-xl border border-dashed border-purple-100 bg-gradient-to-r from-purple-50/80 to-pink-50/50">
+                Great job! No weak areas detected — keep it up! 🎉
+              </p>
+            ) : (
+              <WeakSubjectResourcesCard
+                loadingContent={loadingWeakContent}
+                weakSubjectContent={weakSubjectContent}
+              />
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-purple-50">
                 <CardHeader>
@@ -1091,34 +1150,9 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
 
               <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-blue-50">
                 <CardHeader>
-                  <CardTitle className="text-lg">Recommended Videos & AI Tools</CardTitle>
+                  <CardTitle className="text-lg">Recommended AI Tools</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-sm mb-2">Subject-wise Videos</h4>
-                    <div className="space-y-2">
-                      {(aiAnalysis?.videoRecommendations || []).slice(0, 5).map((v, idx) => (
-                        <a
-                          key={idx}
-                          href={v.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block p-2 rounded border border-blue-200 bg-blue-50 hover:bg-blue-100"
-                        >
-                          <div className="text-sm font-medium text-blue-900">{v.title}</div>
-                          <div className="text-xs text-blue-700 capitalize">{v.subject || 'subject'} {v.topic ? `• ${v.topic}` : ''}</div>
-                        </a>
-                      ))}
-                      {(!aiAnalysis?.videoRecommendations || aiAnalysis.videoRecommendations.length === 0) && (
-                        <div className="space-y-1">
-                          <p className="text-gray-500 text-sm">No direct video recommendation found yet.</p>
-                          <p className="text-xs text-gray-500">
-                            Open Learning Path and choose weak subject + topic to get targeted videos.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
                   <div>
                     <h4 className="font-semibold text-sm mb-2">AsliLearn AI Tools</h4>
                     <div className="space-y-2">
@@ -1128,6 +1162,9 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                           <div className="text-xs text-indigo-800">{t.why}</div>
                         </div>
                       ))}
+                      {(!aiAnalysis?.recommendedAiTools || aiAnalysis.recommendedAiTools.length === 0) && (
+                        <p className="text-gray-500 text-sm">No AI tool picks available yet.</p>
+                      )}
                     </div>
                   </div>
                 </CardContent>

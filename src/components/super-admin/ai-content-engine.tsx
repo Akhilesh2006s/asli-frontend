@@ -31,6 +31,10 @@ import {
   Trash2,
 } from "lucide-react";
 
+/** Keep in sync with ASLI-STUD-BACK/routes/pdf-rag.js AI_PDF_MAX_FILE_BYTES */
+const AI_PDF_MAX_MB = 100;
+const AI_PDF_MAX_BYTES = AI_PDF_MAX_MB * 1024 * 1024;
+
 type PdfItem = {
   _id: string;
   originalName: string;
@@ -665,6 +669,12 @@ export default function AIContentEngine() {
       toast({ title: "Missing fields", description: "Choose a PDF file, class, subject, topic, and tool." });
       return;
     }
+    if (pdfFile.size > AI_PDF_MAX_BYTES) {
+      const msg = `PDF is larger than ${AI_PDF_MAX_MB} MB. Choose a smaller file or split the document.`;
+      setUploadError(msg);
+      toast({ title: "File too large", description: msg, variant: "destructive" });
+      return;
+    }
     setIsUploading(true);
     setUploadError("");
     setMismatchDetails(null);
@@ -791,16 +801,27 @@ export default function AIContentEngine() {
                   setPdfFile(null);
                   return;
                 }
+                if (next.size > AI_PDF_MAX_BYTES) {
+                  const msg = `Maximum size is ${AI_PDF_MAX_MB} MB.`;
+                  toast({ title: "File too large", description: msg, variant: "destructive" });
+                  e.target.value = "";
+                  setPdfFile(null);
+                  setUploadError(msg);
+                  return;
+                }
                 setPdfFile(next);
                 setMismatchDetails(null);
                 setUploadError("");
               }}
             />
             {pdfFile ? (
-              <p className="mt-1.5 truncate text-xs text-slate-600">Selected: {pdfFile.name}</p>
+              <p className="mt-1.5 truncate text-xs text-slate-600">
+                Selected: {pdfFile.name} ({(pdfFile.size / (1024 * 1024)).toFixed(2)} MB · max {AI_PDF_MAX_MB} MB)
+              </p>
             ) : (
               <p className="mt-1.5 text-xs text-slate-500">
-                Choose PDF, fill class → subject → topic (and optional sub-topic) → tool, then Generate.
+                Choose PDF (max {AI_PDF_MAX_MB} MB per file), fill class → subject → topic (and optional sub-topic)
+                → tool, then Generate.
               </p>
             )}
           </div>
