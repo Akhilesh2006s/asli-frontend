@@ -71,6 +71,7 @@ export default function LearningPaths() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewContent, setPreviewContent] = useState<any | null>(null);
   const [pdfPreviewBlobUrl, setPdfPreviewBlobUrl] = useState<string | null>(null);
+  const [pdfPreviewFallbackUrl, setPdfPreviewFallbackUrl] = useState<string | null>(null);
   const [isLoadingPdfPreview, setIsLoadingPdfPreview] = useState(false);
 
   const isYouTubeUrl = (url?: string) => {
@@ -116,6 +117,7 @@ export default function LearningPaths() {
           if (prev) window.URL.revokeObjectURL(prev);
           return null;
         });
+        setPdfPreviewFallbackUrl(null);
         setIsLoadingPdfPreview(false);
         return;
       }
@@ -127,6 +129,7 @@ export default function LearningPaths() {
           if (prev) window.URL.revokeObjectURL(prev);
           return null;
         });
+        setPdfPreviewFallbackUrl(null);
         setIsLoadingPdfPreview(false);
         return;
       }
@@ -150,12 +153,16 @@ export default function LearningPaths() {
           if (prev) window.URL.revokeObjectURL(prev);
           return blobUrl;
         });
+        setPdfPreviewFallbackUrl(null);
       } catch (error) {
         console.error("PDF preview loading failed:", error);
         setPdfPreviewBlobUrl((prev) => {
           if (prev) window.URL.revokeObjectURL(prev);
           return null;
         });
+        // Production fallback: render source PDF directly in iframe
+        // when backend proxy cannot reach upstream.
+        setPdfPreviewFallbackUrl(fileUrl);
       } finally {
         setIsLoadingPdfPreview(false);
       }
@@ -1310,6 +1317,12 @@ export default function LearningPaths() {
                   ) : pdfPreviewBlobUrl ? (
                     <iframe
                       src={`${pdfPreviewBlobUrl}#toolbar=0&navpanes=0&scrollbar=1`}
+                      style={{ width: "100%", height: "100%", minHeight: "85vh", border: "none", display: "block", background: "#fff" }}
+                      title={previewContent?.title || "PDF Preview"}
+                    />
+                  ) : pdfPreviewFallbackUrl ? (
+                    <iframe
+                      src={`https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(pdfPreviewFallbackUrl)}`}
                       style={{ width: "100%", height: "100%", minHeight: "85vh", border: "none", display: "block", background: "#fff" }}
                       title={previewContent?.title || "PDF Preview"}
                     />
