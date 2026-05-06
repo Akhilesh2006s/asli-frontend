@@ -39,7 +39,11 @@ import {
 import { Link, useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect } from "react";
-import { API_BASE_URL, getStudentPdfPreviewIframeSrc } from "@/lib/api-config";
+import {
+  API_BASE_URL,
+  getStudentPdfPreviewIframeSrc,
+  shouldFetchDirectly
+} from "@/lib/api-config";
 import VidyaAIFloatingAssistant from "@/components/student/VidyaAIFloatingAssistant";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import DriveViewer from "@/components/drive-viewer";
@@ -123,6 +127,10 @@ export default function LearningPaths() {
       document.body.removeChild(directLink);
     } catch (directError) {
       try {
+        if (shouldFetchDirectly(fileUrl)) {
+          window.open(fileUrl, "_blank");
+          return;
+        }
         // Fallback to authenticated backend proxy when direct download is blocked.
         const token = localStorage.getItem("authToken");
         const fileName = content.title || "download";
