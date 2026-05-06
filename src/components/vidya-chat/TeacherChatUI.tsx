@@ -193,7 +193,9 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
                       msg.role === "user" ? "bg-blue-600 text-white" : "bg-slate-50 text-slate-800"
                     }`}
                   >
-                    {model.formatMessage(msg.content)}
+                    <p className="whitespace-pre-wrap break-words text-left">
+                      {model.formatMessage(msg.content)}
+                    </p>
                   </div>
                 </div>
               </div>

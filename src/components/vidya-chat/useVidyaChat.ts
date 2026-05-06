@@ -598,10 +598,13 @@ export function useVidyaChat({
 
   const formatMessage = (text: string) => {
     if (!text) return "";
-    let cleaned = text;
+    let cleaned = String(text);
+    cleaned = cleaned.replace(/\r\n/g, "\n");
+    cleaned = cleaned.replace(/^#{1,6}\s+/gm, "");
     cleaned = cleaned.replace(/\*\*(.*?)\*\*/g, "$1");
+    cleaned = cleaned.replace(/__(.*?)__/g, "$1");
     cleaned = cleaned.replace(/^\s*[-*]\s+/gm, "• ");
-    cleaned = cleaned.replace(/\s{2,}/g, " ");
+    cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
     return cleaned.trim();
   };
 

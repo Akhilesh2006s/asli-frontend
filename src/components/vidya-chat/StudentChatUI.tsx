@@ -275,7 +275,7 @@ function ChatBubble({ msg, model }: { msg: Message; model: UseVidyaChatResult })
             : "border border-sky-200/90 bg-gradient-to-br from-white to-sky-50/90 text-slate-800"
         }`}
       >
-        {model.formatMessage(msg.content)}
+        <p className="whitespace-pre-wrap break-words">{model.formatMessage(msg.content)}</p>
       </div>
       {time ? (
         <span className={`text-[10px] text-slate-400 ${isUser ? "pr-1" : "pl-1"}`}>{time}</span>

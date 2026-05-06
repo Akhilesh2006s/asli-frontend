@@ -158,7 +158,9 @@ export function AdminChatUI({ model, className }: AdminChatUIProps) {
                         : "bg-white text-slate-800"
                     }`}
                   >
-                    {model.formatMessage(msg.content)}
+                    <p className="whitespace-pre-wrap break-words text-left">
+                      {model.formatMessage(msg.content)}
+                    </p>
                   </div>
                 </div>
               </div>
