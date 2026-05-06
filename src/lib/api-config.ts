@@ -23,21 +23,6 @@ export function isOurBackendPdfUrl(url: string): boolean {
   }
 }
 
-/** Domains known to block datacenter IPs — serve directly to browser */
-const DIRECT_FETCH_DOMAINS = [
-  "ncert.nic.in",
-  "ncertbooks.prashanthellina.com",
-];
-
-export function shouldFetchDirectly(url: string): boolean {
-  try {
-    const host = new URL(url).hostname;
-    return DIRECT_FETCH_DOMAINS.some((d) => host === d || host.endsWith("." + d));
-  } catch {
-    return false;
-  }
-}
-
 /**
  * `src` for student PDF iframes. External URLs use `/content-preview` with `token` in the query
  * because the browser cannot send `Authorization` on iframe navigations.
@@ -47,18 +32,9 @@ export function getStudentPdfPreviewIframeSrc(
   title?: string
 ): string {
   if (!fileUrl) return "";
-
-  // Our own backend URLs — load directly, no proxy needed
   if (isOurBackendPdfUrl(fileUrl)) {
     return fileUrl;
   }
-
-  // External domains that block datacenter IPs — bypass proxy, let browser fetch directly
-  if (shouldFetchDirectly(fileUrl)) {
-    return fileUrl;
-  }
-
-  // All other external URLs — route through our backend proxy
   const token =
     typeof window !== "undefined"
       ? localStorage.getItem("authToken") || ""
