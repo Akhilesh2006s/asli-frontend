@@ -1941,7 +1941,20 @@ export default function StudentToolPage() {
                   ) : toolType === 'lesson-planner' ? (
                     <LessonPlannerViewer content={generatedContent} rawContent={rawGeneratedContent} />
                   ) : toolType === 'activity-project-generator' ? (
-                    <ActivityProjectViewer activities={rawGeneratedContent?.activities || []} />
+                    rawGeneratedContent?.activities?.length ? (
+                      <ActivityProjectViewer activities={rawGeneratedContent.activities} />
+                    ) : (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white border border-gray-200 rounded-lg p-6 max-h-[80vh] overflow-y-auto shadow-sm"
+                      >
+                        <div
+                          className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900"
+                          dangerouslySetInnerHTML={{ __html: renderMarkdown(generatedContent) }}
+                        />
+                      </motion.div>
+                    )
                   ) : (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
