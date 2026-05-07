@@ -25,7 +25,6 @@ import { ShortNotesViewer } from '@/components/short-notes-viewer';
 import { ConceptMasteryViewer } from '@/components/concept-mastery-viewer';
 import { LessonPlannerViewer } from '@/components/lesson-planner-viewer';
 import { ActivityProjectViewer } from '@/components/activity-project-viewer';
-import { getTopicsForClassAndSubject } from '@/data/ncert-topics';
 import { useCurriculumCascade, isGradeWithScienceCurriculumDropdowns } from '@/hooks/use-curriculum-cascade';
 
 interface ToolConfig {
@@ -309,6 +308,9 @@ export default function TeacherToolPage() {
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [availableNCERTTopics, setAvailableNCERTTopics] = useState<string[]>([]);
   const [assignedSubjectNames, setAssignedSubjectNames] = useState<string[]>([]);
+  const [schoolBoardName, setSchoolBoardName] = useState('CBSE');
+  const boardOptions = schoolBoardName === 'IIT' ? ['IIT'] : [schoolBoardName, 'IIT'];
+  const selectedBoard = formParams.board || schoolBoardName;
 
   const normalizeSubjectName = (value: string) => {
     let compact = value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -347,6 +349,7 @@ export default function TeacherToolPage() {
     formParams.gradeLevel,
     formParams.subject || formParams.subjects,
     formParams.topic,
+    selectedBoard,
   );
 
   const availableSubjects = (() => {
@@ -357,13 +360,10 @@ export default function TeacherToolPage() {
     if (cascade.loadingSubjects && raw.length === 0) {
       return [];
     }
-    if (raw.length === 0) {
-      return assignedSubjectNames.length > 0 ? assignedSubjectNames : [];
-    }
+    if (raw.length === 0) return [];
     const restricted = restrictToAssignedSubjects(raw);
     if (restricted.length > 0) return restricted;
     if (raw.length > 0) return raw;
-    if (assignedSubjectNames.length > 0) return assignedSubjectNames;
     return [];
   })();
 
@@ -378,6 +378,30 @@ export default function TeacherToolPage() {
 
   // Fetch teacher-assigned subjects once and keep them as default constraints for all tools
   useEffect(() => {
+    const fetchTeacherBoard = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        const boardFromUser = String(data?.user?.curriculumBoard || '').trim();
+        if (!boardFromUser) return;
+        setSchoolBoardName(boardFromUser);
+        setFormParams((prev) => ({
+          ...prev,
+          board: prev.board || boardFromUser,
+        }));
+      } catch (error) {
+        console.error('Failed to fetch teacher board:', error);
+      }
+    };
+
     const fetchAssignedSubjects = async () => {
       try {
         const token = localStorage.getItem('authToken');
@@ -400,6 +424,7 @@ export default function TeacherToolPage() {
         console.error('Failed to fetch teacher assigned subjects:', error);
       }
     };
+    fetchTeacherBoard();
     fetchAssignedSubjects();
   }, []);
 
@@ -480,17 +505,6 @@ export default function TeacherToolPage() {
 
     const classNumber =
       classValue === 'IIT-6' ? NaN : parseInt(classValue.replace('Class ', '').trim());
-
-    if (
-      topics.length === 0 &&
-      !isNaN(classNumber) &&
-      (classNumber === 6 || classNumber === 7) &&
-      subjectValue &&
-      /science/i.test(String(subjectValue)) &&
-      !/social|computer/i.test(String(subjectValue))
-    ) {
-      topics = getTopicsForClassAndSubject(classNumber, subjectValue);
-    }
 
     const isNcertScienceSyllabus =
       !isNaN(classNumber) &&
@@ -701,6 +715,12 @@ export default function TeacherToolPage() {
       }
 
       if (fieldName === 'topic') {
+        delete updated.subTopic;
+      }
+      if (fieldName === 'board') {
+        delete updated.subject;
+        delete updated.subjects;
+        delete updated.topic;
         delete updated.subTopic;
       }
 
@@ -1635,6 +1655,24 @@ export default function TeacherToolPage() {
               <CardTitle>Tool Parameters</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="board">Board *</Label>
+                <Select
+                  value={selectedBoard}
+                  onValueChange={(value) => handleInputChange('board', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select board" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {boardOptions.map((option) => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               {config.fields.map((field: any) => {
                 // Check if field should be shown based on showWhen condition
                 if (field.showWhen && !field.showWhen(formParams)) {

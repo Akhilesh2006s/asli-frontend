@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from '@/hooks/use-toast';
 import { Edit, Plus, Search, Trash2 } from 'lucide-react';
 
+const NATURAL_COLLATOR = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+
 type Board = { code: string; name: string };
 type TopicRow = {
   _id: string;
@@ -51,6 +53,10 @@ function classNumberFromLabel(value: string) {
   return String(value || '').replace(/\D/g, '');
 }
 
+function sortNatural(values: string[]) {
+  return [...values].sort((a, b) => NATURAL_COLLATOR.compare(a, b));
+}
+
 function buildDisplayTopicName(label: string, topicName: string) {
   const safeLabel = String(label || '').trim();
   const safeTopic = String(topicName || '').trim();
@@ -76,7 +82,15 @@ export default function AiToolTopicsManagement() {
   const [rows, setRows] = useState<TopicRow[]>([]);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState({ board: 'all', classLabel: 'all', subject: 'all' });
+  const [selectedBoard, setSelectedBoard] = useState('');
+  const [selectedClass, setSelectedClass] = useState('');
+  const [selectedSubject, setSelectedSubject] = useState('');
+  const [selectedTopic, setSelectedTopic] = useState('');
+  const [selectedSubTopic, setSelectedSubTopic] = useState('');
+  const [hierarchyClasses, setHierarchyClasses] = useState<string[]>([]);
+  const [hierarchySubjects, setHierarchySubjects] = useState<string[]>([]);
+  const [hierarchyTopics, setHierarchyTopics] = useState<string[]>([]);
+  const [hierarchySubTopics, setHierarchySubTopics] = useState<string[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(defaultForm);
@@ -89,15 +103,6 @@ export default function AiToolTopicsManagement() {
   const [customSubject, setCustomSubject] = useState('');
 
   const allBoardOptions = CORE_BOARD_OPTIONS;
-
-  const uniqueClasses = useMemo(
-    () => [...new Set(rows.map((r) => r.classLabel))].filter(Boolean).sort((a, b) => a.localeCompare(b)),
-    [rows],
-  );
-  const uniqueSubjects = useMemo(
-    () => [...new Set(rows.map((r) => r.subject))].filter(Boolean).sort((a, b) => a.localeCompare(b)),
-    [rows],
-  );
 
   const fetchBoards = async () => {
     try {
@@ -115,9 +120,11 @@ export default function AiToolTopicsManagement() {
     try {
       const params = new URLSearchParams({ page: '1', limit: '200' });
       if (search.trim()) params.set('search', search.trim());
-      if (filters.board !== 'all') params.set('board', filters.board);
-      if (filters.classLabel !== 'all') params.set('classLabel', filters.classLabel);
-      if (filters.subject !== 'all') params.set('subject', filters.subject);
+      if (selectedBoard) params.set('board', selectedBoard);
+      if (selectedClass) params.set('classLabel', selectedClass);
+      if (selectedSubject) params.set('subject', selectedSubject);
+      if (selectedTopic) params.set('topicName', selectedTopic);
+      if (selectedSubTopic) params.set('subTopic', selectedSubTopic);
 
       const response = await fetch(`${API_BASE_URL}/api/super-admin/ai-tool-topics?${params.toString()}`, {
         headers: authHeaders(),
@@ -135,6 +142,85 @@ export default function AiToolTopicsManagement() {
     }
   };
 
+  const fetchHierarchyOptions = async () => {
+    try {
+      const baseUrl = `${API_BASE_URL}/api/super-admin/ai-tool-topics/options`;
+      const [classesRes, subjectsRes, topicsRes, subTopicsRes] = await Promise.all([
+        selectedBoard
+          ? fetch(`${baseUrl}?${new URLSearchParams({ board: selectedBoard }).toString()}`, { headers: authHeaders() })
+          : Promise.resolve(null),
+        selectedBoard && selectedClass
+          ? fetch(
+              `${baseUrl}?${new URLSearchParams({ board: selectedBoard, classLabel: selectedClass }).toString()}`,
+              { headers: authHeaders() },
+            )
+          : Promise.resolve(null),
+        selectedBoard && selectedClass && selectedSubject
+          ? fetch(
+              `${baseUrl}?${new URLSearchParams({
+                board: selectedBoard,
+                classLabel: selectedClass,
+                subject: selectedSubject,
+              }).toString()}`,
+              { headers: authHeaders() },
+            )
+          : Promise.resolve(null),
+        selectedBoard && selectedClass && selectedSubject && selectedTopic
+          ? fetch(
+              `${baseUrl}?${new URLSearchParams({
+                board: selectedBoard,
+                classLabel: selectedClass,
+                subject: selectedSubject,
+                topicName: selectedTopic,
+              }).toString()}`,
+              { headers: authHeaders() },
+            )
+          : Promise.resolve(null),
+      ]);
+
+      if (!selectedBoard) {
+        setHierarchyClasses([]);
+        setHierarchySubjects([]);
+        setHierarchyTopics([]);
+        setHierarchySubTopics([]);
+        return;
+      }
+
+      if (classesRes?.ok) {
+        const classesJson = await classesRes.json();
+        setHierarchyClasses(sortNatural(classesJson?.data?.classes || []));
+      } else {
+        setHierarchyClasses([]);
+      }
+
+      if (subjectsRes?.ok) {
+        const subjectsJson = await subjectsRes.json();
+        setHierarchySubjects(sortNatural(subjectsJson?.data?.subjects || []));
+      } else {
+        setHierarchySubjects([]);
+      }
+
+      if (topicsRes?.ok) {
+        const topicsJson = await topicsRes.json();
+        setHierarchyTopics(sortNatural(topicsJson?.data?.topics || []));
+      } else {
+        setHierarchyTopics([]);
+      }
+
+      if (subTopicsRes?.ok) {
+        const subTopicsJson = await subTopicsRes.json();
+        setHierarchySubTopics(sortNatural(subTopicsJson?.data?.subTopics || []));
+      } else {
+        setHierarchySubTopics([]);
+      }
+    } catch {
+      setHierarchyClasses([]);
+      setHierarchySubjects([]);
+      setHierarchyTopics([]);
+      setHierarchySubTopics([]);
+    }
+  };
+
   useEffect(() => {
     fetchBoards();
   }, []);
@@ -142,7 +228,14 @@ export default function AiToolTopicsManagement() {
   useEffect(() => {
     fetchRows();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, filters.board, filters.classLabel, filters.subject]);
+  }, [search, selectedBoard, selectedClass, selectedSubject, selectedTopic, selectedSubTopic]);
+
+  useEffect(() => {
+    fetchHierarchyOptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBoard, selectedClass, selectedSubject, selectedTopic]);
+
+  const boardTabs = useMemo(() => allBoardOptions, [allBoardOptions]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -258,8 +351,8 @@ export default function AiToolTopicsManagement() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
-            <div className="relative md:col-span-2">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="relative w-full lg:max-w-md">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="pl-9"
@@ -268,38 +361,98 @@ export default function AiToolTopicsManagement() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <Select value={filters.board} onValueChange={(v) => setFilters((p) => ({ ...p, board: v }))}>
-              <SelectTrigger><SelectValue placeholder="Filter board" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All boards</SelectItem>
-                {[...new Set([...allBoardOptions, ...rows.map((r) => r.board)])].map((board) => (
-                  <SelectItem key={board} value={board}>{board}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={filters.classLabel} onValueChange={(v) => setFilters((p) => ({ ...p, classLabel: v }))}>
-              <SelectTrigger><SelectValue placeholder="Filter class" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All classes</SelectItem>
-                {uniqueClasses.map((className) => (
-                  <SelectItem key={className} value={className}>{className}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={filters.subject} onValueChange={(v) => setFilters((p) => ({ ...p, subject: v }))}>
-              <SelectTrigger><SelectValue placeholder="Filter subject" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All subjects</SelectItem>
-                {uniqueSubjects.map((subjectName) => (
-                  <SelectItem key={subjectName} value={subjectName}>{subjectName}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             <div className="flex items-center justify-end">
               <Button onClick={openCreate}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Topic
               </Button>
+            </div>
+          </div>
+
+          <div className="rounded-xl border bg-white p-4 shadow-sm">
+            <div className="mb-4 flex flex-wrap gap-2">
+              {boardTabs.map((board) => {
+                const isActive = selectedBoard === board;
+                return (
+                  <Button
+                    key={board}
+                    type="button"
+                    variant="outline"
+                    className={`rounded-full border px-5 py-2 text-sm font-medium transition-all ${
+                      isActive
+                        ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50/40'
+                    }`}
+                    onClick={() => {
+                      if (selectedBoard === board) return;
+                      setSelectedBoard(board);
+                      setSelectedClass('');
+                      setSelectedSubject('');
+                      setSelectedTopic('');
+                      setSelectedSubTopic('');
+                    }}
+                  >
+                    {board}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+              {[
+                { title: 'Classes', items: hierarchyClasses, selected: selectedClass, disabled: !selectedBoard },
+                { title: 'Subjects', items: hierarchySubjects, selected: selectedSubject, disabled: !selectedClass },
+                { title: 'Topics', items: hierarchyTopics, selected: selectedTopic, disabled: !selectedSubject },
+                { title: 'Sub Topics', items: hierarchySubTopics, selected: selectedSubTopic, disabled: !selectedTopic },
+              ].map((column) => (
+                <div
+                  key={column.title}
+                  className="flex h-[340px] flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+                >
+                  <h3 className="mb-3 text-sm font-semibold text-slate-800">{column.title}</h3>
+                  <div className="space-y-2 overflow-y-auto pr-1">
+                    {column.items.length === 0 ? (
+                      <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                        {column.disabled ? 'Select previous level' : `No ${column.title.toLowerCase()} found`}
+                      </p>
+                    ) : (
+                      column.items.map((item) => {
+                        const isActive = column.selected === item;
+                        return (
+                          <button
+                            key={item}
+                            type="button"
+                            className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition ${
+                              isActive
+                                ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50/40'
+                            }`}
+                            onClick={() => {
+                              if (column.title === 'Classes') {
+                                setSelectedClass(item);
+                                setSelectedSubject('');
+                                setSelectedTopic('');
+                                setSelectedSubTopic('');
+                              } else if (column.title === 'Subjects') {
+                                setSelectedSubject(item);
+                                setSelectedTopic('');
+                                setSelectedSubTopic('');
+                              } else if (column.title === 'Topics') {
+                                setSelectedTopic(item);
+                                setSelectedSubTopic('');
+                              } else {
+                                setSelectedSubTopic(item);
+                              }
+                            }}
+                          >
+                            {item}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 

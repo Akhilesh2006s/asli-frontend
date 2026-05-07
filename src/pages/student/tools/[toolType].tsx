@@ -19,7 +19,6 @@ import {
   normalizeGradeForCurriculum,
   isGradeWithScienceCurriculumDropdowns,
 } from '@/hooks/use-curriculum-cascade';
-import { getTopicsForClassAndSubject } from '@/data/ncert-topics';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import katex from 'katex';
@@ -499,11 +498,15 @@ export default function StudentToolPage() {
   const [user, setUser] = useState<any>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [availableNCERTTopics, setAvailableNCERTTopics] = useState<string[]>([]);
+  const [schoolBoardName, setSchoolBoardName] = useState('CBSE');
+  const boardOptions = schoolBoardName === 'IIT' ? ['IIT'] : [schoolBoardName, 'IIT'];
+  const selectedBoard = formParams.board || schoolBoardName;
 
   const cascade = useCurriculumCascade(
     formParams.gradeLevel,
     formParams.subject,
     formParams.topic,
+    selectedBoard,
   );
 
   const classSelectOptions =
@@ -541,6 +544,14 @@ export default function StudentToolPage() {
         if (response.ok) {
           const userData = await response.json();
           setUser(userData.user);
+          const boardFromUser = String(userData?.user?.curriculumBoard || '').trim();
+          if (boardFromUser) {
+            setSchoolBoardName(boardFromUser);
+            setFormParams((prev) => ({
+              ...prev,
+              board: prev.board || boardFromUser,
+            }));
+          }
           
           // Auto-populate class field with student's assigned class
           if (userData.user) {
@@ -628,16 +639,6 @@ export default function StudentToolPage() {
     const gl = normalizeGradeForCurriculum(classValue) || classValue;
     const isIit = gl === 'IIT-6';
     const classNumber = isIit ? NaN : parseInt(String(gl).replace('Class ', '').trim(), 10);
-    if (
-      topics.length === 0 &&
-      !isNaN(classNumber) &&
-      (classNumber === 6 || classNumber === 7) &&
-      subjectValue &&
-      /science/i.test(String(subjectValue)) &&
-      !/social|computer/i.test(String(subjectValue))
-    ) {
-      topics = getTopicsForClassAndSubject(classNumber, subjectValue);
-    }
     setAvailableNCERTTopics(topics);
   }, [formParams.gradeLevel, formParams.subject, cascade.topics, cascade.loadingTopics]);
 
@@ -676,6 +677,14 @@ export default function StudentToolPage() {
       }
       if (name === 'topic') {
         delete newParams.subTopic;
+      }
+      if (name === 'board') {
+        delete newParams.subject;
+        delete newParams.topic;
+        delete newParams.subTopic;
+        delete newParams.concept;
+        delete newParams.chapter;
+        delete newParams.projectTopic;
       }
       
       return newParams;
@@ -1677,6 +1686,24 @@ export default function StudentToolPage() {
                 <CardTitle>Tool Parameters</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="board">Board *</Label>
+                  <Select
+                    value={selectedBoard}
+                    onValueChange={(value) => handleInputChange('board', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select board" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {boardOptions.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 {config.fields.map((field) => {
                   let fieldOptions = getFieldOptions(field);
                   let isDisabled = !!(field.dependsOn && !formParams[field.dependsOn]);
