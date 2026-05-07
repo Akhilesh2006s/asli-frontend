@@ -42,6 +42,7 @@ export type SuperAdminView =
   | 'iq-rank-boost'
   | 'vidya-ai'
   | 'ai-tool-generations'
+  | 'ai-tool-topics'
   | 'courses'
   | 'add-admin'
   | 'calendar'
@@ -70,6 +71,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
     { id: 'calendar', label: 'School Calendar', icon: Calendar },
     { id: 'vidya-ai', label: 'Vidya AI', icon: Sparkles },
     { id: 'ai-tool-generations', label: 'AI Tool Data', icon: FolderTree },
+    { id: 'ai-tool-topics', label: 'AI Tool Topics', icon: CircleDot },
     { id: 'ai-generator', label: 'AI Generator', icon: Sparkles },
     { id: 'ai-content-engine', label: 'AI PDF', icon: UploadIcon },
     { id: 'analytics', label: 'Analytics', icon: BarChartIcon },

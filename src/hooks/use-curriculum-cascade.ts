@@ -90,6 +90,30 @@ async function fetchCurriculum(path: string, auth: string | null) {
   return json;
 }
 
+async function fetchManagedTopicTaxonomy(
+  auth: string | null,
+  params: { classLabel?: string; subject?: string; topicName?: string },
+) {
+  const qs = new URLSearchParams();
+  if (params.classLabel) qs.set('classLabel', params.classLabel);
+  if (params.subject) qs.set('subject', params.subject);
+  if (params.topicName) qs.set('topicName', params.topicName);
+  const path = `/api/ai-generator/topic-taxonomy?${qs.toString()}`;
+  const key = cacheKey(path);
+  if (responseCache.has(key)) {
+    return cacheGet<{ data?: { topics?: string[]; subTopics?: string[] } }>(key)!;
+  }
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    headers: {
+      Authorization: auth ? `Bearer ${auth}` : '',
+      'Content-Type': 'application/json',
+    },
+  });
+  const json = await res.json();
+  cacheSet(key, json);
+  return json;
+}
+
 /**
  * Cascading curriculum: Class → Subject → Topic → Subtopic via /api/curriculum/*.
  * Does not call child endpoints until parent selection exists.
@@ -174,9 +198,14 @@ export function useCurriculumCascade(gradeLevel: string | undefined, subject: st
       try {
         const token = typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : null;
         const q = `/api/curriculum/topics?classId=${encodeURIComponent(gradeForApi)}&subjectId=${encodeURIComponent(subject)}&syllabus=ncert6eng6hin6math6sst6-7-8-eng7-hin7-math7-sst7-eng8-hin8-math8-sst8-eng10-math10-sst10-hin10-sci10-v1`;
-        const data = await fetchCurriculum(q, token);
+        const [data, managed] = await Promise.all([
+          fetchCurriculum(q, token),
+          fetchManagedTopicTaxonomy(token, { classLabel: gradeForApi, subject }),
+        ]);
         if (cancelled) return;
-        setTopics(rowsToNames((data as { data?: CurriculumRow[] }).data));
+        const curriculumTopics = rowsToNames((data as { data?: CurriculumRow[] }).data);
+        const managedTopics = (managed as { data?: { topics?: string[] } })?.data?.topics || [];
+        setTopics([...new Set([...curriculumTopics, ...managedTopics])].filter(Boolean));
       } catch {
         if (!cancelled) setTopics([]);
       } finally {
@@ -203,9 +232,14 @@ export function useCurriculumCascade(gradeLevel: string | undefined, subject: st
         const q =
           `/api/curriculum/subtopics?classId=${encodeURIComponent(gradeForApi)}` +
           `&subjectId=${encodeURIComponent(subject)}&topicId=${encodeURIComponent(topic)}&syllabus=ncert6eng6hin6math6sst6-7-8-eng7-hin7-math7-sst7-eng8-hin8-math8-sst8-eng10-math10-sst10-hin10-sci10-v1`;
-        const data = await fetchCurriculum(q, token);
+        const [data, managed] = await Promise.all([
+          fetchCurriculum(q, token),
+          fetchManagedTopicTaxonomy(token, { classLabel: gradeForApi, subject, topicName: topic }),
+        ]);
         if (cancelled) return;
-        setSubtopics(rowsToNames((data as { data?: CurriculumRow[] }).data));
+        const curriculumSubtopics = rowsToNames((data as { data?: CurriculumRow[] }).data);
+        const managedSubtopics = (managed as { data?: { subTopics?: string[] } })?.data?.subTopics || [];
+        setSubtopics([...new Set([...curriculumSubtopics, ...managedSubtopics])].filter(Boolean));
       } catch {
         if (!cancelled) setSubtopics([]);
       } finally {

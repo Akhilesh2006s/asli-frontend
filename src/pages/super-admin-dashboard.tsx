@@ -12,6 +12,7 @@ const IQRankBoostActivities = lazy(() => import("@/components/super-admin/iq-ran
 const SuperAdminCalendar = lazy(() => import("@/components/super-admin/super-admin-calendar"));
 const AIChat = lazy(() => import("@/components/ai-chat"));
 const AiToolGenerationsPanel = lazy(() => import("@/components/super-admin/ai-tool-generations/AiToolGenerationsPanel"));
+const AiToolTopicsManagement = lazy(() => import("@/components/super-admin/ai-tool-topics-management"));
 const AIContentEngine = lazy(() => import("@/components/super-admin/ai-content-engine"));
 const SuperAdminAiGenerator = lazy(() => import("@/components/super-admin/ai-generator"));
 const SubscriptionManagement = lazy(() => import("@/components/super-admin/subscription-management"));
@@ -1044,6 +1045,12 @@ export default function SuperAdminDashboard() {
         return (
           <Suspense fallback={lazySectionFallback}>
             <AiToolGenerationsPanel />
+          </Suspense>
+        );
+      case 'ai-tool-topics':
+        return (
+          <Suspense fallback={lazySectionFallback}>
+            <AiToolTopicsManagement />
           </Suspense>
         );
       case 'ai-content-engine':
