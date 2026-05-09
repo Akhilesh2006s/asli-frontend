@@ -12,11 +12,13 @@ import { SubtopicSection } from "./SubtopicSection";
 function SubjectRow({
   toolName,
   classLabel,
+  board,
   subject,
   label,
 }: {
   toolName: string;
   classLabel: string;
+  board?: string;
   subject: string;
   label: string;
 }) {
@@ -30,6 +32,7 @@ function SubjectRow({
       setLoading(true);
       try {
         const r = await fetchBranch({
+          ...(board ? { board } : {}),
           toolName,
           classLabel,
           subject,
@@ -39,7 +42,7 @@ function SubjectRow({
         setLoading(false);
       }
     })();
-  }, [open, topics, toolName, classLabel, subject]);
+  }, [open, topics, toolName, classLabel, subject, board]);
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="rounded-xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
@@ -68,6 +71,7 @@ function SubjectRow({
                 key={`${subject}:${t.value}:${t.count}`}
                 toolName={toolName}
                 classLabel={classLabel}
+                board={board}
                 subject={subject}
                 topic={t.value}
                 topicLabel={t.value === "" ? "(None)" : t.value}
@@ -82,9 +86,11 @@ function SubjectRow({
 export function SubjectSection({
   toolName,
   classLabel,
+  board,
 }: {
   toolName: string;
   classLabel: string;
+  board?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -95,13 +101,13 @@ export function SubjectSection({
     (async () => {
       setLoading(true);
       try {
-        const r = await fetchBranch({ toolName, classLabel });
+        const r = await fetchBranch({ ...(board ? { board } : {}), toolName, classLabel });
         setSubjects(r.data.items || []);
       } finally {
         setLoading(false);
       }
     })();
-  }, [open, subjects, toolName, classLabel]);
+  }, [open, subjects, toolName, classLabel, board]);
 
   const classTitle = classLabel === "" ? "(No class label)" : classLabel;
 
@@ -135,6 +141,7 @@ export function SubjectSection({
                 key={`${s.value}:${s.count}`}
                 toolName={toolName}
                 classLabel={classLabel}
+                board={board}
                 subject={s.value}
                 label={s.value === "" ? "(None)" : s.value}
               />

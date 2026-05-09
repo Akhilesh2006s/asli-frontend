@@ -19,9 +19,11 @@ function humanizeToolId(id: string) {
 export function ToolSection({
   tool,
   displayName,
+  board,
 }: {
   tool: BranchItem;
   displayName?: string;
+  board?: string;
 }) {
   const [open, setOpen] = useState(false);
   const title = displayName || humanizeToolId(tool.value);
@@ -57,7 +59,7 @@ export function ToolSection({
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className="px-4 pb-4 md:px-5 md:pb-5 pt-0 border-t border-slate-100/80 bg-slate-50/40">
-            <ClassSection toolName={tool.value} />
+            <ClassSection toolName={tool.value} board={board} />
           </div>
         </CollapsibleContent>
       </Collapsible>

@@ -50,7 +50,7 @@ type GeneratorRecord = {
 type GroupedSubtopic = { subtopicName: string; records: GeneratorRecord[] };
 type GroupedTopic = { topicName: string; subtopics: GroupedSubtopic[] };
 type GroupedSubject = { subjectName: string; topics: GroupedTopic[] };
-type GroupedClass = { className: string; subjects: GroupedSubject[] };
+type GroupedClass = { className: string; boardName?: string; subjects: GroupedSubject[] };
 type GroupedTool = { toolName: string; toolSlug: string; classes: GroupedClass[] };
 
 function toDisplayPlainText(content: string) {
@@ -111,6 +111,10 @@ function renderSimpleContent(content: string) {
 
 export default function SuperAdminAiGenerator() {
   const { toast } = useToast();
+  const [board, setBoard] = useState("CBSC");
+  /** Records list is filtered only by board; independent of the generate form. */
+  const [recordsBoardFilter, setRecordsBoardFilter] = useState("CBSC");
+  const [boardOptions, setBoardOptions] = useState<string[]>([]);
   const [selectedTool, setSelectedTool] = useState<ToolId | "">("");
   const [classNumber, setClassNumber] = useState("");
   const [subject, setSubject] = useState("");
@@ -137,13 +141,54 @@ export default function SuperAdminAiGenerator() {
     loadingSubjects,
     loadingTopics,
     loadingSubtopics,
-  } = useCurriculumCascade(classNumber || undefined, subject || undefined, topic || undefined);
+  } = useCurriculumCascade(classNumber || undefined, subject || undefined, topic || undefined, board || undefined);
 
   const currentTool = useMemo(() => TOOLS.find((t) => t.id === selectedTool), [selectedTool]);
   const authHeaders = (): Record<string, string> => {
     const token = localStorage.getItem("authToken") || localStorage.getItem("superAdminToken") || localStorage.getItem("token");
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadBoards = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/super-admin/ai-tool-topics/options`, {
+          headers: { ...authHeaders() },
+          credentials: "include",
+        });
+        const json = await res.json();
+        if (!res.ok || json?.success === false || cancelled) throw new Error("Options fetch failed");
+        const boardsFromOptions: string[] = Array.isArray(json?.data?.boards)
+          ? json.data.boards.map((b: unknown) => String(b || "").trim()).filter(Boolean)
+          : [];
+        if (boardsFromOptions.length > 0) {
+          setBoardOptions(Array.from(new Set<string>(boardsFromOptions)).sort((a, b) => a.localeCompare(b)));
+          return;
+        }
+        throw new Error("No boards in options response");
+      } catch {
+        try {
+          // Fallback: still source boards only from ai_tool_topics rows.
+          const listRes = await fetch(`${API_BASE_URL}/api/super-admin/ai-tool-topics?page=1&limit=200`, {
+            headers: { ...authHeaders() },
+            credentials: "include",
+          });
+          const listJson = await listRes.json();
+          const boardsFromRows: string[] = Array.isArray(listJson?.data?.items)
+            ? listJson.data.items.map((row: any) => String(row?.board || "").trim()).filter(Boolean)
+            : [];
+          setBoardOptions(Array.from(new Set<string>(boardsFromRows)).sort((a, b) => a.localeCompare(b)));
+        } catch {
+          setBoardOptions([]);
+        }
+      }
+    };
+    void loadBoards();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const buildExtraParams = () => {
     const payload: Record<string, any> = {};
@@ -161,8 +206,11 @@ export default function SuperAdminAiGenerator() {
   const loadRecords = async () => {
     setRecordsLoading(true);
     try {
-      // Records should show full history without applying current generate-form filters.
-      const res = await fetch(`${API_BASE_URL}/api/ai-generator/records`, {
+      const qs = new URLSearchParams();
+      if (recordsBoardFilter && recordsBoardFilter !== "__all__") {
+        qs.set("board", recordsBoardFilter);
+      }
+      const res = await fetch(`${API_BASE_URL}/api/ai-generator/records?${qs.toString()}`, {
         headers: { ...authHeaders() },
       });
       const json = await res.json();
@@ -182,10 +230,18 @@ export default function SuperAdminAiGenerator() {
 
   useEffect(() => {
     void loadRecords();
-  }, [selectedTool, classNumber, subject, topic, subTopic]);
+  }, [recordsBoardFilter]);
 
   const handleClassChange = (value: string) => {
     setClassNumber(value);
+    setSubject("");
+    setTopic("");
+    setSubTopic("");
+  };
+
+  const handleBoardChange = (value: string) => {
+    setBoard(value);
+    setClassNumber("");
     setSubject("");
     setTopic("");
     setSubTopic("");
@@ -203,8 +259,8 @@ export default function SuperAdminAiGenerator() {
   };
 
   const generate = async () => {
-    if (!selectedTool || !classNumber || !subject || !subTopic) {
-      toast({ title: "Missing fields", description: "Tool, class, subject and sub topic are required.", variant: "destructive" });
+    if (!selectedTool || !board || !classNumber || !subject || !subTopic) {
+      toast({ title: "Missing fields", description: "Tool, board, class, subject and sub topic are required.", variant: "destructive" });
       return;
     }
     if (!topic && !["lesson-planner", "activity-project-generator", "story-passage-creator"].includes(selectedTool)) {
@@ -219,6 +275,7 @@ export default function SuperAdminAiGenerator() {
         body: JSON.stringify({
           toolSlug: selectedTool,
           toolName: currentTool?.name || selectedTool,
+          board,
           className: classNumber,
           subjectName: subject,
           topicName: topic,
@@ -385,9 +442,18 @@ export default function SuperAdminAiGenerator() {
             <div className="mt-1">{currentTool ? <Badge>{currentTool.name}</Badge> : <Badge variant="secondary">No tool selected</Badge>}</div>
           </div>
           <div>
+            <Label>Board</Label>
+            <Select value={board} onValueChange={handleBoardChange}>
+              <SelectTrigger><SelectValue placeholder="Select board" /></SelectTrigger>
+              <SelectContent>
+                {boardOptions.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
             <Label>Class</Label>
-            <Select value={classNumber} onValueChange={handleClassChange} disabled={loadingClasses}>
-              <SelectTrigger><SelectValue placeholder={loadingClasses ? "Loading classes..." : "Select class"} /></SelectTrigger>
+            <Select value={classNumber} onValueChange={handleClassChange} disabled={!board || loadingClasses}>
+              <SelectTrigger><SelectValue placeholder={!board ? "Select board first" : (loadingClasses ? "Loading classes..." : "Select class")} /></SelectTrigger>
               <SelectContent>{classOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
             </Select>
           </div>
@@ -460,8 +526,32 @@ export default function SuperAdminAiGenerator() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Records</CardTitle>
+        <CardHeader className="space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <CardTitle className="mb-0">Records</CardTitle>
+            <div className="flex flex-col gap-1.5 sm:w-64">
+              <Label className="text-xs text-slate-600">Filter by board</Label>
+              <Select value={recordsBoardFilter} onValueChange={setRecordsBoardFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Board" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All boards</SelectItem>
+                  {boardOptions.map((b) => (
+                    <SelectItem key={b} value={b}>
+                      {b}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <p className="text-xs text-slate-500">
+            Showing records for:{" "}
+            <span className="font-medium text-slate-700">
+              {recordsBoardFilter === "__all__" ? "All boards" : recordsBoardFilter}
+            </span>
+          </p>
         </CardHeader>
         <CardContent>
           {recordsLoading ? (
@@ -470,7 +560,10 @@ export default function SuperAdminAiGenerator() {
               Loading records...
             </div>
           ) : recordsTree.length === 0 ? (
-            <p className="text-sm text-slate-600">No records found for the selected Tool/Class/Subject/Topic/Subtopic.</p>
+            <p className="text-sm text-slate-600">
+              No records found
+              {recordsBoardFilter !== "__all__" ? ` for board “${recordsBoardFilter}”.` : "."}
+            </p>
           ) : (
             <Accordion type="multiple" className="w-full">
               {recordsTree.map((toolNode) => (
@@ -489,7 +582,10 @@ export default function SuperAdminAiGenerator() {
                           <AccordionTrigger className="hover:no-underline">
                             <div className="text-left">
                               <p className="text-xs text-slate-500">CLASS</p>
-                              <p className="font-medium">{classNode.className}</p>
+                              <p className="font-medium">
+                                {classNode.className}
+                                {classNode.boardName ? ` (${classNode.boardName})` : ""}
+                              </p>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent>
@@ -659,6 +755,7 @@ export default function SuperAdminAiGenerator() {
               <p className="text-base font-semibold">{String(activeRecord?.toolName || activeRecord?.toolSlug || "-")}</p>
             </div>
             <div className="mt-4 space-y-1 text-sm leading-relaxed text-slate-900">
+              <p><span className="font-semibold">Board:</span> {String(activeRecord?.board || "-")}</p>
               <p><span className="font-semibold">Class:</span> {String(activeRecord?.className || "-")}</p>
               <p><span className="font-semibold">Subject:</span> {String(activeRecord?.subjectName || "-")}</p>
               <p><span className="font-semibold">Topic:</span> {String(activeRecord?.topicName || "-")}</p>

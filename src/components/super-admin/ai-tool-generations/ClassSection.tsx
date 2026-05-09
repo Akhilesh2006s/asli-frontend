@@ -9,7 +9,7 @@ import { ChevronDown, GraduationCap, Loader2 } from "lucide-react";
 import { fetchBranch, type BranchItem } from "./api";
 import { SubjectSection } from "./SubjectSection";
 
-export function ClassSection({ toolName }: { toolName: string }) {
+export function ClassSection({ toolName, board }: { toolName: string; board?: string }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [classes, setClasses] = useState<BranchItem[] | null>(null);
@@ -19,13 +19,13 @@ export function ClassSection({ toolName }: { toolName: string }) {
     (async () => {
       setLoading(true);
       try {
-        const r = await fetchBranch({ toolName });
+        const r = await fetchBranch({ ...(board ? { board } : {}), toolName });
         setClasses(r.data.items || []);
       } finally {
         setLoading(false);
       }
     })();
-  }, [open, classes, toolName]);
+  }, [open, classes, toolName, board]);
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="pt-2">
@@ -48,7 +48,7 @@ export function ClassSection({ toolName }: { toolName: string }) {
         )}
         {classes &&
           classes.map((c) => (
-            <SubjectSection key={`${c.value}:${c.count}`} toolName={toolName} classLabel={c.value} />
+            <SubjectSection key={`${c.value}:${c.count}`} toolName={toolName} classLabel={c.value} board={board} />
           ))}
       </CollapsibleContent>
     </Collapsible>

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Layers, ChevronRight, FileStack, Wrench, BookOpen } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api-config";
 import { fetchBranch, fetchMeta } from "./api";
 import type { BranchItem } from "./api";
 import { ToolSection } from "./ToolSection";
@@ -27,6 +29,8 @@ export default function AiToolGenerationsPanel() {
   const [metaTotal, setMetaTotal] = useState<number | null>(null);
   const [metaTopicsCount, setMetaTopicsCount] = useState<number | null>(null);
   const [tools, setTools] = useState<BranchItem[] | null>(null);
+  const [board, setBoard] = useState("CBSC");
+  const [boards, setBoards] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,11 +39,23 @@ export default function AiToolGenerationsPanel() {
       setLoading(true);
       setError(null);
       try {
-        const [meta, branch] = await Promise.all([fetchMeta(), fetchBranch({})]);
+        const [meta, branch, boardBranch] = await Promise.all([
+          fetchMeta({ ...(board ? { board } : {}) }),
+          fetchBranch({ ...(board ? { board } : {}) }),
+          fetch(`${API_BASE_URL}/api/super-admin/ai-tool-topics/options`, {
+            headers: {
+              "Content-Type": "application/json",
+              ...(localStorage.getItem("authToken")
+                ? { Authorization: `Bearer ${localStorage.getItem("authToken")}` }
+                : {}),
+            },
+          }).then((r) => (r.ok ? r.json() : Promise.resolve({ data: { boards: [] } }))),
+        ]);
         if (cancelled) return;
         setMetaTotal(meta.data.total);
         setMetaTopicsCount(meta.data.topicsCount ?? 0);
         setTools(branch.data.items || []);
+        setBoards(Array.isArray(boardBranch?.data?.boards) ? boardBranch.data.boards : []);
       } catch (e: unknown) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Failed to load");
@@ -51,7 +67,7 @@ export default function AiToolGenerationsPanel() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [board]);
 
   const sortedTools = useMemo(() => {
     if (!tools) return [];
@@ -184,9 +200,29 @@ export default function AiToolGenerationsPanel() {
 
         <section className="space-y-4">
           <div className="px-0.5">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">
-              By tool
-            </h2>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">
+                  By tool
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Records Board: <span className="font-medium text-slate-700">{board || "All Boards"}</span>
+                </p>
+              </div>
+              <div className="w-[220px]">
+                <Select value={board || "__all__"} onValueChange={(v) => setBoard(v === "__all__" ? "" : v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All boards" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All boards</SelectItem>
+                    {boards.map((b) => (
+                      <SelectItem key={b} value={b}>{b}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
           <Card className="w-full border-slate-200/90 shadow-sm">
@@ -221,6 +257,7 @@ export default function AiToolGenerationsPanel() {
                     key={t.value}
                     tool={t}
                     displayName={TOOL_LABELS[t.value]}
+                    board={board}
                   />
                 ))}
             </CardContent>

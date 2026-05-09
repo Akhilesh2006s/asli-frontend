@@ -24,9 +24,6 @@ type TopicRow = {
   updatedAt: string;
 };
 
-const CORE_BOARD_OPTIONS = ['CBSC', 'SSC', 'IIT'];
-const CORE_CLASS_OPTIONS = ['6', '7', '8', '9', '10'];
-const CORE_SUBJECT_OPTIONS = ['Science', 'English', 'Hindi', 'Mathematics', 'Social Science'];
 const defaultForm = {
   board: '',
   classLabel: '',
@@ -101,8 +98,16 @@ export default function AiToolTopicsManagement() {
   const [customClass, setCustomClass] = useState('');
   const [isCustomSubject, setIsCustomSubject] = useState(false);
   const [customSubject, setCustomSubject] = useState('');
+  const [bulkDeleting, setBulkDeleting] = useState<'class' | 'subject' | null>(null);
+  const [availableBoards, setAvailableBoards] = useState<string[]>([]);
+  const [dialogClassOptions, setDialogClassOptions] = useState<string[]>([]);
+  const [dialogSubjectOptions, setDialogSubjectOptions] = useState<string[]>([]);
 
-  const allBoardOptions = CORE_BOARD_OPTIONS;
+  const refreshPage = () => {
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
+  };
 
   const fetchBoards = async () => {
     try {
@@ -145,7 +150,8 @@ export default function AiToolTopicsManagement() {
   const fetchHierarchyOptions = async () => {
     try {
       const baseUrl = `${API_BASE_URL}/api/super-admin/ai-tool-topics/options`;
-      const [classesRes, subjectsRes, topicsRes, subTopicsRes] = await Promise.all([
+      const [boardsRes, classesRes, subjectsRes, topicsRes, subTopicsRes] = await Promise.all([
+        fetch(baseUrl, { headers: authHeaders() }),
         selectedBoard
           ? fetch(`${baseUrl}?${new URLSearchParams({ board: selectedBoard }).toString()}`, { headers: authHeaders() })
           : Promise.resolve(null),
@@ -178,12 +184,18 @@ export default function AiToolTopicsManagement() {
           : Promise.resolve(null),
       ]);
 
+      if (boardsRes?.ok) {
+        const boardsJson = await boardsRes.json();
+        setAvailableBoards(sortNatural(boardsJson?.data?.boards || []));
+      } else {
+        setAvailableBoards([]);
+      }
+
       if (!selectedBoard) {
         setHierarchyClasses([]);
         setHierarchySubjects([]);
         setHierarchyTopics([]);
         setHierarchySubTopics([]);
-        return;
       }
 
       if (classesRes?.ok) {
@@ -214,6 +226,7 @@ export default function AiToolTopicsManagement() {
         setHierarchySubTopics([]);
       }
     } catch {
+      setAvailableBoards([]);
       setHierarchyClasses([]);
       setHierarchySubjects([]);
       setHierarchyTopics([]);
@@ -221,9 +234,50 @@ export default function AiToolTopicsManagement() {
     }
   };
 
+  const fetchDialogOptions = async (boardValue: string, classLabelValue: string) => {
+    try {
+      const baseUrl = `${API_BASE_URL}/api/super-admin/ai-tool-topics/options`;
+      const classesQuery = boardValue
+        ? `?${new URLSearchParams({ board: boardValue }).toString()}`
+        : '';
+      const subjectsQuery =
+        boardValue && classLabelValue
+          ? `?${new URLSearchParams({ board: boardValue, classLabel: classLabelValue }).toString()}`
+          : '';
+
+      const [classesRes, subjectsRes] = await Promise.all([
+        fetch(`${baseUrl}${classesQuery}`, { headers: authHeaders() }),
+        subjectsQuery ? fetch(`${baseUrl}${subjectsQuery}`, { headers: authHeaders() }) : Promise.resolve(null),
+      ]);
+
+      if (classesRes.ok) {
+        const classesJson = await classesRes.json();
+        setDialogClassOptions(sortNatural(classesJson?.data?.classes || []));
+      } else {
+        setDialogClassOptions([]);
+      }
+
+      if (subjectsRes?.ok) {
+        const subjectsJson = await subjectsRes.json();
+        setDialogSubjectOptions(sortNatural(subjectsJson?.data?.subjects || []));
+      } else {
+        setDialogSubjectOptions([]);
+      }
+    } catch {
+      setDialogClassOptions([]);
+      setDialogSubjectOptions([]);
+    }
+  };
+
   useEffect(() => {
     fetchBoards();
   }, []);
+
+  useEffect(() => {
+    if (!isDialogOpen) return;
+    void fetchDialogOptions(form.board, form.classLabel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDialogOpen, form.board, form.classLabel]);
 
   useEffect(() => {
     fetchRows();
@@ -235,7 +289,7 @@ export default function AiToolTopicsManagement() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBoard, selectedClass, selectedSubject, selectedTopic]);
 
-  const boardTabs = useMemo(() => allBoardOptions, [allBoardOptions]);
+  const boardTabs = useMemo(() => availableBoards, [availableBoards]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -262,15 +316,12 @@ export default function AiToolTopicsManagement() {
       topicName: splitTopic.topicName,
       subTopic: row.subTopic,
     });
-    const isCoreBoard = allBoardOptions.includes(row.board);
-    setIsCustomBoard(!isCoreBoard);
-    setCustomBoard(!isCoreBoard ? row.board : '');
-    const isCoreClass = CORE_CLASS_OPTIONS.includes(classNumber);
-    setIsCustomClass(!isCoreClass);
-    setCustomClass(!isCoreClass ? classNumber : '');
-    const isCoreSubject = CORE_SUBJECT_OPTIONS.includes(row.subject);
-    setIsCustomSubject(!isCoreSubject);
-    setCustomSubject(!isCoreSubject ? row.subject : '');
+    setIsCustomBoard(false);
+    setCustomBoard('');
+    setIsCustomClass(false);
+    setCustomClass('');
+    setIsCustomSubject(false);
+    setCustomSubject('');
     setIsDialogOpen(true);
   };
 
@@ -310,6 +361,7 @@ export default function AiToolTopicsManagement() {
       setCustomSubject('');
       setEditingId(null);
       fetchRows();
+      refreshPage();
     } catch (error) {
       toast({
         title: 'Error',
@@ -332,12 +384,67 @@ export default function AiToolTopicsManagement() {
       if (!response.ok) throw new Error(json?.message || 'Failed to delete');
       toast({ title: 'Deleted', description: 'Topic mapping removed.' });
       fetchRows();
+      refreshPage();
     } catch (error) {
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to delete topic',
         variant: 'destructive',
       });
+    }
+  };
+
+  const bulkDelete = async (scope: 'class' | 'subject') => {
+    if (!selectedBoard) {
+      toast({ title: 'Validation', description: 'Please select a board first.', variant: 'destructive' });
+      return;
+    }
+    if (scope === 'class' && !selectedClass) {
+      toast({ title: 'Validation', description: 'Please select a class to delete.', variant: 'destructive' });
+      return;
+    }
+    if (scope === 'subject' && (!selectedClass || !selectedSubject)) {
+      toast({
+        title: 'Validation',
+        description: 'Please select board, class, and subject to delete subject mappings.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const confirmMessage =
+      scope === 'class'
+        ? `Delete all AI Tool Topic mappings for ${selectedBoard} / ${selectedClass}?`
+        : `Delete all AI Tool Topic mappings for ${selectedBoard} / ${selectedClass} / ${selectedSubject}?`;
+    if (!window.confirm(confirmMessage)) return;
+
+    setBulkDeleting(scope);
+    try {
+      const payload: Record<string, string> = { board: selectedBoard };
+      if (selectedClass) payload.classLabel = selectedClass;
+      if (scope === 'subject' && selectedSubject) payload.subject = selectedSubject;
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/ai-tool-topics/bulk-delete`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(payload),
+      });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok || json?.success === false) throw new Error(json?.message || 'Failed to bulk delete');
+      const count = Number(json?.data?.modifiedCount || 0);
+      toast({ title: 'Deleted', description: `Deleted ${count} topic mappings.` });
+      setSelectedTopic('');
+      setSelectedSubTopic('');
+      fetchRows();
+      fetchHierarchyOptions();
+      refreshPage();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to bulk delete',
+        variant: 'destructive',
+      });
+    } finally {
+      setBulkDeleting(null);
     }
   };
 
@@ -454,6 +561,28 @@ export default function AiToolTopicsManagement() {
                 </div>
               ))}
             </div>
+            <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                disabled={!selectedBoard || !selectedClass || bulkDeleting !== null}
+                onClick={() => bulkDelete('class')}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {bulkDeleting === 'class' ? 'Deleting Class...' : 'Delete Selected Class'}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="border-red-300 text-red-700 hover:bg-red-50"
+                disabled={!selectedBoard || !selectedClass || !selectedSubject || bulkDeleting !== null}
+                onClick={() => bulkDelete('subject')}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {bulkDeleting === 'subject' ? 'Deleting Subject...' : 'Delete Selected Subject'}
+              </Button>
+            </div>
           </div>
 
           <div className="rounded-md border">
@@ -536,7 +665,7 @@ export default function AiToolTopicsManagement() {
               >
                 <SelectTrigger><SelectValue placeholder="Select board" /></SelectTrigger>
                 <SelectContent>
-                  {allBoardOptions.map((board) => (
+                  {availableBoards.map((board) => (
                     <SelectItem key={board} value={board}>{board}</SelectItem>
                   ))}
                   <SelectItem value="__custom__">+ New Board</SelectItem>
@@ -571,8 +700,8 @@ export default function AiToolTopicsManagement() {
               >
                 <SelectTrigger><SelectValue placeholder="Select class" /></SelectTrigger>
                 <SelectContent>
-                  {CORE_CLASS_OPTIONS.map((classValue) => (
-                    <SelectItem key={classValue} value={classValue}>{normalizeClassLabel(classValue)}</SelectItem>
+                  {dialogClassOptions.map((classValue) => (
+                    <SelectItem key={classValue} value={classNumberFromLabel(classValue)}>{classValue}</SelectItem>
                   ))}
                   <SelectItem value="__custom__">+ New Class</SelectItem>
                 </SelectContent>
@@ -608,7 +737,7 @@ export default function AiToolTopicsManagement() {
               >
                 <SelectTrigger><SelectValue placeholder="Select subject" /></SelectTrigger>
                 <SelectContent>
-                  {CORE_SUBJECT_OPTIONS.map((subjectValue) => (
+                  {dialogSubjectOptions.map((subjectValue) => (
                     <SelectItem key={subjectValue} value={subjectValue}>{subjectValue}</SelectItem>
                   ))}
                   <SelectItem value="__custom__">+ New Subject</SelectItem>

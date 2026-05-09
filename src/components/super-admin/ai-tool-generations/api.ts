@@ -31,9 +31,10 @@ export async function fetchBranch(params: Record<string, string>) {
   return (await res.json()) as BranchResponse;
 }
 
-export async function fetchMeta() {
+export async function fetchMeta(params: Record<string, string> = {}) {
+  const qs = new URLSearchParams(params);
   const res = await fetch(
-    `${API_BASE_URL}/api/super-admin/ai-tool-generations/meta`,
+    `${API_BASE_URL}/api/super-admin/ai-tool-generations/meta?${qs.toString()}`,
     { headers: authHeaders() },
   );
   if (!res.ok) throw new Error(`Meta fetch failed: ${res.status}`);
@@ -45,6 +46,7 @@ export async function fetchMeta() {
 
 export type RecordRow = {
   _id: string;
+  board?: string;
   toolName: string;
   toolDisplayName?: string;
   classLabel: string;

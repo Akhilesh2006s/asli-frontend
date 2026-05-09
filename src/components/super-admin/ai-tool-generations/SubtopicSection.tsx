@@ -12,12 +12,14 @@ import { SubtopicRecordsSection } from "./SubtopicRecordsSection";
 function SubtopicLeafRow({
   toolName,
   classLabel,
+  board,
   subject,
   topic,
   s,
 }: {
   toolName: string;
   classLabel: string;
+  board?: string;
   subject: string;
   topic: string;
   s: BranchItem;
@@ -52,6 +54,7 @@ function SubtopicLeafRow({
           <div className="border-t border-slate-100 bg-white px-2 pb-2 pt-2">
             <SubtopicRecordsSection
               parents={{
+                ...(board ? { board } : {}),
                 toolName,
                 classLabel,
                 subject,
@@ -69,12 +72,14 @@ function SubtopicLeafRow({
 export function SubtopicSection({
   toolName,
   classLabel,
+  board,
   subject,
   topic,
   topicLabel,
 }: {
   toolName: string;
   classLabel: string;
+  board?: string;
   subject: string;
   topic: string;
   topicLabel: string;
@@ -89,6 +94,7 @@ export function SubtopicSection({
       setLoading(true);
       try {
         const r = await fetchBranch({
+          ...(board ? { board } : {}),
           toolName,
           classLabel,
           subject,
@@ -99,7 +105,7 @@ export function SubtopicSection({
         setLoading(false);
       }
     })();
-  }, [open, subs, toolName, classLabel, subject, topic]);
+  }, [open, subs, toolName, classLabel, subject, topic, board]);
 
   return (
     <div className="rounded-xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
@@ -129,6 +135,7 @@ export function SubtopicSection({
                   key={`${topic}:${s.value}:${s.count}`}
                   toolName={toolName}
                   classLabel={classLabel}
+                  board={board}
                   subject={subject}
                   topic={topic}
                   s={s}

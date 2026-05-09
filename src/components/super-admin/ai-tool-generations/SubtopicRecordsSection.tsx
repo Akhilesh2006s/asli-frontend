@@ -136,6 +136,7 @@ export function SubtopicRecordsSection({
     const initialText = String(row.content || row.preview || "").trim();
     setFullText(initialText || "(No content available)");
     setViewDetail({
+      board: row.board,
       toolName: row.toolName,
       toolDisplayName: row.toolDisplayName,
       classLabel: row.classLabel,
@@ -323,6 +324,7 @@ export function SubtopicRecordsSection({
                       <Calendar className="h-3.5 w-3.5 text-slate-400" />
                       {row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"}
                     </span>
+                    <Badge variant="outline" className="text-[10px]">{row.board || "—"}</Badge>
                     <div className="flex items-center gap-1">
                       <Button
                         size="sm"

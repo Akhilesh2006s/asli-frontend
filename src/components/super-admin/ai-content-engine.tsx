@@ -37,6 +37,7 @@ const AI_PDF_MAX_BYTES = AI_PDF_MAX_MB * 1024 * 1024;
 
 type PdfItem = {
   _id: string;
+  board?: string;
   originalName: string;
   fileUrl: string;
   subject: string;
@@ -60,6 +61,10 @@ export default function AIContentEngine() {
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [subject, setSubject] = useState("");
+  const [board, setBoard] = useState("CBSC");
+  /** PDF records list is filtered only by board; independent of upload/curriculum form. */
+  const [recordsBoardFilter, setRecordsBoardFilter] = useState("CBSC");
+  const [boardOptions, setBoardOptions] = useState<string[]>([]);
   const [classLabel, setClassLabel] = useState("");
   const [topic, setTopic] = useState("");
   const [subTopic, setSubTopic] = useState("");
@@ -466,17 +471,20 @@ export default function AIContentEngine() {
     );
   };
   const groupedHierarchy = useMemo(() => {
-    const byTool = new Map<string, Map<string, Map<string, Map<string, Map<string, PdfItem[]>>>>>();
+    const byTool = new Map<string, Map<string, { classLabel: string; board: string; subjects: Map<string, Map<string, Map<string, PdfItem[]>>> }>>();
     for (const item of items) {
       const tool = getToolLabel(item.toolType) || "-";
       const classKey = String(item.classLabel || "-").trim() || "-";
+      const boardKey = String(item.board || "").trim() || "-";
+      const classMapKey = `${classKey}||${boardKey}`;
       const subjectKey = String(item.subject || "-").trim() || "-";
       const topicKey = String(item.topic || item.chapter || "-").trim() || "-";
       const subtopicKey = String(item.subTopic || "-").trim() || "-";
       if (!byTool.has(tool)) byTool.set(tool, new Map());
       const classMap = byTool.get(tool)!;
-      if (!classMap.has(classKey)) classMap.set(classKey, new Map());
-      const subjectMap = classMap.get(classKey)!;
+      if (!classMap.has(classMapKey)) classMap.set(classMapKey, { classLabel: classKey, board: boardKey, subjects: new Map() });
+      const classEntry = classMap.get(classMapKey)!;
+      const subjectMap = classEntry.subjects;
       if (!subjectMap.has(subjectKey)) subjectMap.set(subjectKey, new Map());
       const topicMap = subjectMap.get(subjectKey)!;
       if (!topicMap.has(topicKey)) topicMap.set(topicKey, new Map());
@@ -490,9 +498,10 @@ export default function AIContentEngine() {
         tool,
         classes: Array.from(classMap.entries())
           .sort(([a], [b]) => a.localeCompare(b))
-          .map(([classLabelValue, subjectMap]) => ({
-            classLabel: classLabelValue,
-            subjects: Array.from(subjectMap.entries())
+          .map(([, classEntry]) => ({
+            classLabel: classEntry.classLabel,
+            board: classEntry.board,
+            subjects: Array.from(classEntry.subjects.entries())
               .sort(([a], [b]) => a.localeCompare(b))
               .map(([subjectValue, topicMap]) => ({
                 subject: subjectValue,
@@ -532,7 +541,9 @@ export default function AIContentEngine() {
   const fetchClasses = async () => {
     setLoadingClasses(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/curriculum/classes?v=3`, { headers: authHeaders(), credentials: "include" });
+      const qs = new URLSearchParams({ v: "3" });
+      if (board) qs.set("board", board);
+      const res = await fetch(`${API_BASE_URL}/api/curriculum/classes?${qs.toString()}`, { headers: authHeaders(), credentials: "include" });
       const json = await res.json();
       const names = toNames(json?.data);
       setClassOptions(names.length > 0 ? names : ["Class 6", "Class 7", "Class 8", "Class 10"]);
@@ -547,6 +558,7 @@ export default function AIContentEngine() {
     setLoadingSubjects(true);
     try {
       const qs = new URLSearchParams({ classId: selectedClass, syllabus: "curriculum-v3" });
+      if (board) qs.set("board", board);
       const res = await fetch(`${API_BASE_URL}/api/curriculum/subjects?${qs.toString()}`, { headers: authHeaders(), credentials: "include" });
       const json = await res.json();
       if (!res.ok || json?.success === false) {
@@ -564,6 +576,7 @@ export default function AIContentEngine() {
     setLoadingTopics(true);
     try {
       const qs = new URLSearchParams({ classId: selectedClass, subjectId: selectedSubject });
+      if (board) qs.set("board", board);
       const res = await fetch(`${API_BASE_URL}/api/curriculum/topics?${qs.toString()}`, { headers: authHeaders(), credentials: "include" });
       const json = await res.json();
       if (!res.ok || json?.success === false) {
@@ -585,6 +598,7 @@ export default function AIContentEngine() {
         subjectId: selectedSubject,
         topicId: selectedTopic,
       });
+      if (board) qs.set("board", board);
       const res = await fetch(`${API_BASE_URL}/api/curriculum/subtopics?${qs.toString()}`, { headers: authHeaders(), credentials: "include" });
       const json = await res.json();
       if (!res.ok || json?.success === false) {
@@ -601,7 +615,11 @@ export default function AIContentEngine() {
   const fetchList = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/pdf/list`, { headers: authHeaders() });
+      const qs = new URLSearchParams();
+      if (recordsBoardFilter && recordsBoardFilter !== "__all__") {
+        qs.set("board", recordsBoardFilter);
+      }
+      const res = await fetch(`${API_BASE_URL}/api/pdf/list?${qs.toString()}`, { headers: authHeaders() });
       const json = await res.json();
       setItems(json?.data || []);
     } catch {
@@ -635,9 +653,53 @@ export default function AIContentEngine() {
   };
 
   useEffect(() => {
-    fetchClasses();
-    fetchList();
+    let cancelled = false;
+    const fetchBoards = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/super-admin/ai-tool-topics/options`, {
+          headers: authHeaders(),
+          credentials: "include",
+        });
+        const json = await res.json();
+        if (!res.ok || json?.success === false || cancelled) throw new Error("Options fetch failed");
+        const boardsFromOptions: string[] = Array.isArray(json?.data?.boards)
+          ? json.data.boards.map((b: unknown) => String(b || "").trim()).filter(Boolean)
+          : [];
+        if (boardsFromOptions.length > 0) {
+          setBoardOptions(Array.from(new Set<string>(boardsFromOptions)).sort((a, b) => a.localeCompare(b)));
+          return;
+        }
+        throw new Error("No boards in options response");
+      } catch {
+        try {
+          // Fallback: still source boards only from ai_tool_topics rows.
+          const listRes = await fetch(`${API_BASE_URL}/api/super-admin/ai-tool-topics?page=1&limit=200`, {
+            headers: authHeaders(),
+            credentials: "include",
+          });
+          const listJson = await listRes.json();
+          const boardsFromRows: string[] = Array.isArray(listJson?.data?.items)
+            ? listJson.data.items.map((row: any) => String(row?.board || "").trim()).filter(Boolean)
+            : [];
+          setBoardOptions(Array.from(new Set<string>(boardsFromRows)).sort((a, b) => a.localeCompare(b)));
+        } catch {
+          setBoardOptions([]);
+        }
+      }
+    };
+    void fetchBoards();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  useEffect(() => {
+    fetchClasses();
+  }, [board]);
+
+  useEffect(() => {
+    void fetchList();
+  }, [recordsBoardFilter]);
 
   useEffect(() => {
     if (!classLabel) {
@@ -645,7 +707,7 @@ export default function AIContentEngine() {
       return;
     }
     fetchSubjects(classLabel);
-  }, [classLabel]);
+  }, [classLabel, board]);
 
   useEffect(() => {
     if (!classLabel || !subject) {
@@ -653,7 +715,7 @@ export default function AIContentEngine() {
       return;
     }
     fetchTopics(classLabel, subject);
-  }, [classLabel, subject]);
+  }, [classLabel, subject, board]);
 
   useEffect(() => {
     if (!classLabel || !subject || !topic) {
@@ -661,12 +723,12 @@ export default function AIContentEngine() {
       return;
     }
     fetchSubtopics(classLabel, subject, topic);
-  }, [classLabel, subject, topic]);
+  }, [classLabel, subject, topic, board]);
 
   const handleUpload = async () => {
-    if (!pdfFile || !subject || !classLabel || !topic || !toolType) {
-      setUploadError("Choose a PDF file, class, subject, topic, and tool.");
-      toast({ title: "Missing fields", description: "Choose a PDF file, class, subject, topic, and tool." });
+    if (!pdfFile || !board || !subject || !classLabel || !topic || !toolType) {
+      setUploadError("Choose a PDF file, board, class, subject, topic, and tool.");
+      toast({ title: "Missing fields", description: "Choose a PDF file, board, class, subject, topic, and tool." });
       return;
     }
     if (pdfFile.size > AI_PDF_MAX_BYTES) {
@@ -681,6 +743,7 @@ export default function AIContentEngine() {
     try {
       const form = new FormData();
       form.append("file", pdfFile);
+      form.append("board", board);
       form.append("subject", subject);
       form.append("class", classLabel);
       form.append("chapter", topic);
@@ -828,6 +891,32 @@ export default function AIContentEngine() {
 
           <div>
             <Label className={labelClassName}>
+              Board {reqStar}
+            </Label>
+            <Select
+              value={board}
+              onValueChange={(value) => {
+                setBoard(value);
+                setClassLabel("");
+                setSubject("");
+                setTopic("");
+                setSubTopic("");
+              }}
+            >
+              <SelectTrigger className={fieldClassName}>
+                <SelectValue placeholder="Select board" />
+              </SelectTrigger>
+              <SelectContent>
+                {boardOptions.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className={labelClassName}>
               Class {reqStar}
             </Label>
             <Select
@@ -838,10 +927,10 @@ export default function AIContentEngine() {
                 setTopic("");
                 setSubTopic("");
               }}
-              disabled={loadingClasses && classOptions.length === 0}
+              disabled={!board || (loadingClasses && classOptions.length === 0)}
             >
               <SelectTrigger className={fieldClassName}>
-                <SelectValue placeholder={loadingClasses ? "Loading classes..." : "Select class"} />
+                <SelectValue placeholder={!board ? "Select board first" : (loadingClasses ? "Loading classes..." : "Select class")} />
               </SelectTrigger>
               <SelectContent>
                 {classOptions.map((option) => (
@@ -863,13 +952,15 @@ export default function AIContentEngine() {
                 setTopic("");
                 setSubTopic("");
               }}
-              disabled={!classLabel || loadingSubjects}
+              disabled={!board || !classLabel || loadingSubjects}
             >
               <SelectTrigger className={fieldClassName}>
                 <SelectValue
                   placeholder={
-                    !classLabel
-                      ? "Select class first"
+                    !board
+                      ? "Select board first"
+                      : !classLabel
+                        ? "Select class first"
                       : loadingSubjects
                         ? "Loading subjects..."
                         : "Select subject"
@@ -895,7 +986,7 @@ export default function AIContentEngine() {
                 setTopic(value);
                 setSubTopic("");
               }}
-              disabled={!classLabel || !subject || loadingTopics}
+              disabled={!board || !classLabel || !subject || loadingTopics}
             >
               <SelectTrigger className={fieldClassName}>
                 <SelectValue
@@ -922,7 +1013,7 @@ export default function AIContentEngine() {
             <Select
               value={subTopic}
               onValueChange={setSubTopic}
-              disabled={!classLabel || !subject || !topic || loadingSubtopics}
+              disabled={!board || !classLabel || !subject || !topic || loadingSubtopics}
             >
               <SelectTrigger className={fieldClassName}>
                 <SelectValue
@@ -1010,7 +1101,34 @@ export default function AIContentEngine() {
       </Card>
 
       <Card>
-        <CardContent>
+        <CardContent className="pt-6">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-slate-800">Saved PDF records</p>
+              <p className="text-xs text-slate-500">
+                Showing:{" "}
+                <span className="font-medium text-slate-700">
+                  {recordsBoardFilter === "__all__" ? "All boards" : recordsBoardFilter}
+                </span>
+              </p>
+            </div>
+            <div className="flex flex-col gap-1.5 sm:w-64">
+              <Label className={labelClassName}>Filter by board</Label>
+              <Select value={recordsBoardFilter} onValueChange={setRecordsBoardFilter}>
+                <SelectTrigger className={fieldClassName}>
+                  <SelectValue placeholder="Board" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All boards</SelectItem>
+                  {boardOptions.map((b) => (
+                    <SelectItem key={b} value={b}>
+                      {b}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           {isLoading ? (
             <p className="text-sm text-gray-600">Loading hierarchy...</p>
           ) : groupedHierarchy.length === 0 ? (
@@ -1030,8 +1148,8 @@ export default function AIContentEngine() {
                     <Accordion type="multiple" className="w-full space-y-2">
                       {toolNode.classes.map((classNode) => (
                         <AccordionItem
-                          key={`${toolNode.tool}:${classNode.classLabel}`}
-                          value={`class:${toolNode.tool}:${classNode.classLabel}`}
+                          key={`${toolNode.tool}:${classNode.classLabel}:${classNode.board}`}
+                          value={`class:${toolNode.tool}:${classNode.classLabel}:${classNode.board}`}
                           className="rounded-md border px-3"
                         >
                           <AccordionTrigger className="py-2.5 no-underline hover:no-underline">
@@ -1039,14 +1157,15 @@ export default function AIContentEngine() {
                               <School className="h-4 w-4 text-slate-600" />
                               <Badge variant="secondary">Class</Badge>
                               <span className="text-sm">{classNode.classLabel}</span>
+                              <Badge variant="outline">{classNode.board || "-"}</Badge>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent className="space-y-2">
                             <Accordion type="multiple" className="w-full space-y-2">
                               {classNode.subjects.map((subjectNode) => (
                                 <AccordionItem
-                                  key={`${toolNode.tool}:${classNode.classLabel}:${subjectNode.subject}`}
-                                  value={`subject:${toolNode.tool}:${classNode.classLabel}:${subjectNode.subject}`}
+                                  key={`${toolNode.tool}:${classNode.classLabel}:${classNode.board}:${subjectNode.subject}`}
+                                  value={`subject:${toolNode.tool}:${classNode.classLabel}:${classNode.board}:${subjectNode.subject}`}
                                   className="rounded-md border px-3"
                                 >
                                   <AccordionTrigger className="py-2.5 no-underline hover:no-underline">
@@ -1060,8 +1179,8 @@ export default function AIContentEngine() {
                                     <Accordion type="multiple" className="w-full space-y-2">
                                       {subjectNode.topics.map((topicNode) => (
                                         <AccordionItem
-                                          key={`${toolNode.tool}:${classNode.classLabel}:${subjectNode.subject}:${topicNode.topic}`}
-                                          value={`topic:${toolNode.tool}:${classNode.classLabel}:${subjectNode.subject}:${topicNode.topic}`}
+                                          key={`${toolNode.tool}:${classNode.classLabel}:${classNode.board}:${subjectNode.subject}:${topicNode.topic}`}
+                                          value={`topic:${toolNode.tool}:${classNode.classLabel}:${classNode.board}:${subjectNode.subject}:${topicNode.topic}`}
                                           className="rounded-md border px-3"
                                         >
                                           <AccordionTrigger className="py-2.5 no-underline hover:no-underline">
@@ -1075,8 +1194,8 @@ export default function AIContentEngine() {
                                             <Accordion type="multiple" className="w-full space-y-2">
                                               {topicNode.subtopics.map((subtopicNode) => (
                                                 <AccordionItem
-                                                  key={`${toolNode.tool}:${classNode.classLabel}:${subjectNode.subject}:${topicNode.topic}:${subtopicNode.subtopic}`}
-                                                  value={`subtopic:${toolNode.tool}:${classNode.classLabel}:${subjectNode.subject}:${topicNode.topic}:${subtopicNode.subtopic}`}
+                                                  key={`${toolNode.tool}:${classNode.classLabel}:${classNode.board}:${subjectNode.subject}:${topicNode.topic}:${subtopicNode.subtopic}`}
+                                                  value={`subtopic:${toolNode.tool}:${classNode.classLabel}:${classNode.board}:${subjectNode.subject}:${topicNode.topic}:${subtopicNode.subtopic}`}
                                                   className="rounded-md border px-3"
                                                 >
                                                   <AccordionTrigger className="py-2.5 no-underline hover:no-underline">
