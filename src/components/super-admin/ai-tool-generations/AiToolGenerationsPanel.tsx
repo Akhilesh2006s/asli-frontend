@@ -29,7 +29,7 @@ export default function AiToolGenerationsPanel() {
   const [metaTotal, setMetaTotal] = useState<number | null>(null);
   const [metaTopicsCount, setMetaTopicsCount] = useState<number | null>(null);
   const [tools, setTools] = useState<BranchItem[] | null>(null);
-  const [board, setBoard] = useState("CBSC");
+  const [board, setBoard] = useState("CBSE");
   const [boards, setBoards] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 

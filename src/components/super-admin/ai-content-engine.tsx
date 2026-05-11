@@ -61,9 +61,9 @@ export default function AIContentEngine() {
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [subject, setSubject] = useState("");
-  const [board, setBoard] = useState("CBSC");
+  const [board, setBoard] = useState("CBSE");
   /** PDF records list is filtered only by board; independent of upload/curriculum form. */
-  const [recordsBoardFilter, setRecordsBoardFilter] = useState("CBSC");
+  const [recordsBoardFilter, setRecordsBoardFilter] = useState("CBSE");
   const [boardOptions, setBoardOptions] = useState<string[]>([]);
   const [classLabel, setClassLabel] = useState("");
   const [topic, setTopic] = useState("");

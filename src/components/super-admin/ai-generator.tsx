@@ -111,9 +111,9 @@ function renderSimpleContent(content: string) {
 
 export default function SuperAdminAiGenerator() {
   const { toast } = useToast();
-  const [board, setBoard] = useState("CBSC");
+  const [board, setBoard] = useState("CBSE");
   /** Records list is filtered only by board; independent of the generate form. */
-  const [recordsBoardFilter, setRecordsBoardFilter] = useState("CBSC");
+  const [recordsBoardFilter, setRecordsBoardFilter] = useState("CBSE");
   const [boardOptions, setBoardOptions] = useState<string[]>([]);
   const [selectedTool, setSelectedTool] = useState<ToolId | "">("");
   const [classNumber, setClassNumber] = useState("");
