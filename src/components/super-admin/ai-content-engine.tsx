@@ -29,11 +29,22 @@ import {
   Layers,
   CalendarDays,
   Trash2,
+  Loader2,
 } from "lucide-react";
 
 /** Keep in sync with ASLI-STUD-BACK/routes/pdf-rag.js AI_PDF_MAX_FILE_BYTES */
 const AI_PDF_MAX_MB = 100;
 const AI_PDF_MAX_BYTES = AI_PDF_MAX_MB * 1024 * 1024;
+
+/** Merge legacy typo CBSC with CBSE when grouping list rows (matches backend board helpers). */
+function canonicalCurriculumBoardLabel(raw: string): string {
+  const s = String(raw || "")
+    .trim()
+    .replace(/\s+/g, " ");
+  if (!s || s === "-") return s || "-";
+  if (s.toUpperCase() === "CBSC") return "CBSE";
+  return s;
+}
 
 type PdfItem = {
   _id: string;
@@ -53,6 +64,18 @@ type PdfItem = {
   renderContent?: any;
   chunkCount: number;
   uploadDate: string;
+};
+
+type UploadStep = "idle" | "uploading" | "extracting" | "parsing" | "saving" | "done" | "error";
+
+const STEP_MESSAGES: Record<UploadStep, string> = {
+  idle: "",
+  uploading: "Uploading PDF...",
+  extracting: "Reading PDF text...",
+  parsing: "Extracting detailed items from PDF...",
+  saving: "Generating missing items with AI and saving all records...",
+  done: "",
+  error: "",
 };
 
 export default function AIContentEngine() {
@@ -83,6 +106,8 @@ export default function AIContentEngine() {
   const [deletingPdfId, setDeletingPdfId] = useState("");
   const [deletingQuestionKey, setDeletingQuestionKey] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState("");
+  const [uploadStep, setUploadStep] = useState<UploadStep>("idle");
+  const [lastUploadResult, setLastUploadResult] = useState<{ totalSaved: number } | null>(null);
   const [mismatchDetails, setMismatchDetails] = useState<
     null | {
       selectedSubject?: string;
@@ -233,6 +258,26 @@ export default function AIContentEngine() {
     }
   };
 
+  const activityTitleForDisplay = (raw: string, record: PdfItem): string => {
+    const bad =
+      /^(?:\d+\.\s*)?(?:title\s*[—:-]\s*)?(materials required|learning objectives|step-by-step procedure|teacher instructions|expected learning outcomes|assessment criteria(?:\s*\(rubric\))?|rubric|real[-\s]?life application|title)\s*$/i;
+    let t = String(raw || "").replace(/\s+/g, " ").trim();
+    t = t.replace(/^1\.\s*title\s*[—:-]\s*/i, "").trim();
+    if (/title\s*[—:-]\s*materials required/i.test(t)) {
+      t = t.replace(/\s*title\s*[—:-]\s*materials required\s*$/i, "").trim();
+    }
+    const dashParts = t.split(/\s*[—–]\s/).map((p) => p.trim()).filter(Boolean);
+    if (dashParts.length >= 2 && bad.test(dashParts[dashParts.length - 1])) {
+      t = dashParts.slice(0, -1).join(" — ");
+    }
+    if (!t || bad.test(t)) {
+      const meta = (record as { metadata?: { bulkItemIndex?: number } }).metadata;
+      const n = meta?.bulkItemIndex != null ? Number(meta.bulkItemIndex) + 1 : null;
+      return n != null ? `Activity ${n}` : "Activity";
+    }
+    return t;
+  };
+
   const renderEducationalContent = (item: PdfItem) => {
     const content = (item.renderContent && typeof item.renderContent === "object" ? item.renderContent : null) || {};
     const fallback = (item.structuredContent && typeof item.structuredContent === "object" ? item.structuredContent : null) || {};
@@ -380,7 +425,14 @@ export default function AIContentEngine() {
       );
     }
 
-    if (item.toolType === "activity-project-generator" || kind === "activity" || fallback.steps || fallback.materials) {
+    if (
+      item.toolType === "activity-project-generator" ||
+      kind === "activity" ||
+      fallback.steps ||
+      fallback.materials ||
+      fallback.student_instructions ||
+      fallback.step_by_step_procedure
+    ) {
       const coalesceLines = (v: unknown): string[] => {
         if (Array.isArray(v)) return v.map((x) => String(x ?? "").trim()).filter(Boolean);
         if (typeof v === "string" && v.trim()) {
@@ -391,61 +443,135 @@ export default function AIContentEngine() {
         }
         return [];
       };
-      const title = String(content.title || fallback.title || "Activity").trim();
-      let materials = coalesceLines(
-        Array.isArray(content.materials) && content.materials.length ? content.materials : fallback.materials,
-      );
-      let steps = coalesceLines(Array.isArray(content.steps) && content.steps.length ? content.steps : fallback.steps);
+      const fb = fallback as Record<string, unknown>;
+      const rc = content as Record<string, unknown>;
+      const pickLines = (primary: unknown, ...alts: unknown[]) => {
+        const a = coalesceLines(primary);
+        if (a.length) return a;
+        for (const x of alts) {
+          const b = coalesceLines(x);
+          if (b.length) return b;
+        }
+        return [];
+      };
+      const title = String(rc.title || fb.title || "Activity").trim();
+      const displayTitle = activityTitleForDisplay(title, item);
+      const learningObjectives = pickLines(rc.learningObjectives, fb.learning_objectives, fb.learningObjectives);
+      let materials = pickLines(rc.materials, fb.materials_required, fb.materials);
+      let steps = pickLines(rc.steps, fb.step_by_step_procedure, fb.steps);
+      const modelPlaceholder = /No structured steps were returned from the model/i;
+      if (steps.length && steps.every((s) => modelPlaceholder.test(String(s)))) {
+        const fbSteps = coalesceLines(fb.steps || fb.step_by_step_procedure);
+        if (fbSteps.length) steps = fbSteps;
+      }
       if (!steps.length) {
         steps = coalesceLines(
-          (fallback as { procedure?: string; procedures?: string; instructions?: string }).procedure ||
-            (fallback as { instructions?: string }).instructions,
+          (fb as { procedure?: string }).procedure || (fb as { instructions?: string }).instructions,
         );
       }
-      const learningOutcome = String(content.learningOutcome || fallback.learningOutcome || "").trim();
+      const stepsVisible = steps.filter((s) => !modelPlaceholder.test(String(s)));
+      const teacherInstructions = pickLines(rc.teacherInstructions, fb.teacher_instructions, fb.teacherInstructions);
+      const studentInstructions = pickLines(rc.studentInstructions, fb.student_instructions, fb.studentInstructions);
+      const expectedOutcomes = String(
+        rc.learningOutcome || fb.learningOutcome || fb.expected_learning_outcomes || fb.expectedLearningOutcomes || "",
+      ).trim();
+      const assessmentRubric = pickLines(rc.assessmentRubric, fb.assessment_criteria_rubric, fb.assessment);
+      const realLifeApplication = String(rc.realLifeApplication || fb.real_life_application || fb.realLifeApplication || "").trim();
       const rawExcerpt =
         String(
-          (fallback as { content?: string }).content ||
-            (fallback as { description?: string }).description ||
-            (fallback as { overview?: string }).overview ||
+          (fb as { content?: string }).content ||
+            (fb as { description?: string }).description ||
+            (fb as { overview?: string }).overview ||
             "",
         ).trim();
+      const section = (label: string, children: ReactNode) => (
+        <div className="rounded-xl border bg-white p-3 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500">{label}</p>
+          <div className="mt-2">{children}</div>
+        </div>
+      );
       return (
         <div className="space-y-3">
-          {renderSectionHeader(<FlaskConical className="h-4 w-4" />, title)}
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-xl border bg-white p-3">
-              <p className="text-xs font-semibold text-slate-500">Materials</p>
-              {materials.length > 0 ? (
-                <ul className="mt-2 text-sm space-y-1">
-                  {materials.map((m: string, i: number) => (
-                    <li key={`${item._id}-m-${i}`}>- {m}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-2 text-xs text-slate-500 italic">None listed.</p>
-              )}
-            </div>
-            <div className="rounded-xl border bg-white p-3 md:col-span-2">
-              <p className="text-xs font-semibold text-slate-500">Steps</p>
-              {steps.length > 0 ? (
-                <ol className="mt-2 text-sm space-y-1 list-decimal list-inside">
-                  {steps.map((s: string, i: number) => (
-                    <li key={`${item._id}-s-${i}`}>{s}</li>
-                  ))}
-                </ol>
-              ) : rawExcerpt ? (
-                <p className="mt-2 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{rawExcerpt}</p>
-              ) : (
-                <p className="mt-2 text-xs text-slate-500 italic">No steps stored. Regenerate from a new PDF upload to fill this activity.</p>
-              )}
-            </div>
+          <div className="space-y-0.5">
+            {renderSectionHeader(<FlaskConical className="h-4 w-4" />, displayTitle)}
+            <p className="text-xs text-slate-500 pl-9">Activity &amp; Project — section 1 (title)</p>
           </div>
-          {learningOutcome && (
-            <p className="rounded-xl border bg-emerald-50 p-3 text-sm text-emerald-800">
-              <span className="font-medium">Learning outcome:</span> {learningOutcome}
-            </p>
+          {section(
+            "2. Learning Objectives",
+            learningObjectives.length > 0 ? (
+              <ul className="text-sm space-y-1">
+                {learningObjectives.map((line: string, i: number) => (
+                  <li key={`${item._id}-lo-${i}`}>- {line}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-500 italic">None listed.</p>
+            ),
           )}
+          {section(
+            "3. Materials Required",
+            materials.length > 0 ? (
+              <ul className="text-sm space-y-1">
+                {materials.map((m: string, i: number) => (
+                  <li key={`${item._id}-m-${i}`}>- {m}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-500 italic">None listed.</p>
+            ),
+          )}
+          {section(
+            "4. Step-by-step Procedure",
+            stepsVisible.length > 0 ? (
+              <ol className="text-sm space-y-1 list-decimal list-inside">
+                {stepsVisible.map((s: string, i: number) => (
+                  <li key={`${item._id}-s-${i}`}>{s}</li>
+                ))}
+              </ol>
+            ) : rawExcerpt ? (
+              <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{rawExcerpt}</p>
+            ) : (
+              <p className="text-xs text-slate-500 italic">No procedure extracted. Re-upload the PDF after server update, or check that the PDF uses the template section headings.</p>
+            ),
+          )}
+          {teacherInstructions.length > 0
+            ? section(
+                "5. Teacher Instructions",
+                <ul className="text-sm space-y-1">
+                  {teacherInstructions.map((t: string, i: number) => (
+                    <li key={`${item._id}-ti-${i}`}>- {t}</li>
+                  ))}
+                </ul>,
+              )
+            : null}
+          {section(
+            "6. Student Instructions",
+            studentInstructions.length > 0 ? (
+              <ul className="text-sm space-y-1">
+                {studentInstructions.map((t: string, i: number) => (
+                  <li key={`${item._id}-si-${i}`}>- {t}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-500 italic">None listed.</p>
+            ),
+          )}
+          {expectedOutcomes
+            ? section("7. Expected Learning Outcomes", <p className="text-sm text-slate-800 whitespace-pre-wrap">{expectedOutcomes}</p>)
+            : null}
+          {assessmentRubric.length > 0
+            ? section(
+                "8. Assessment Criteria (Rubric)",
+                <ul className="text-sm space-y-1">
+                  {assessmentRubric.map((row: string, i: number) => (
+                    <li key={`${item._id}-ar-${i}`}>- {row}</li>
+                  ))}
+                </ul>,
+              )
+            : null}
+          {realLifeApplication
+            ? section("9. Real-life Application", <p className="text-sm text-slate-800 whitespace-pre-wrap">{realLifeApplication}</p>)
+            : null}
         </div>
       );
     }
@@ -475,7 +601,7 @@ export default function AIContentEngine() {
     for (const item of items) {
       const tool = getToolLabel(item.toolType) || "-";
       const classKey = String(item.classLabel || "-").trim() || "-";
-      const boardKey = String(item.board || "").trim() || "-";
+      const boardKey = canonicalCurriculumBoardLabel(String(item.board || "").trim() || "-");
       const classMapKey = `${classKey}||${boardKey}`;
       const subjectKey = String(item.subject || "-").trim() || "-";
       const topicKey = String(item.topic || item.chapter || "-").trim() || "-";
@@ -616,6 +742,8 @@ export default function AIContentEngine() {
     setIsLoading(true);
     try {
       const qs = new URLSearchParams();
+      qs.set("page", "1");
+      qs.set("limit", "300");
       if (recordsBoardFilter && recordsBoardFilter !== "__all__") {
         qs.set("board", recordsBoardFilter);
       }
@@ -738,7 +866,9 @@ export default function AIContentEngine() {
       return;
     }
     setIsUploading(true);
+    setUploadStep("uploading");
     setUploadError("");
+    setLastUploadResult(null);
     setMismatchDetails(null);
     try {
       const form = new FormData();
@@ -750,11 +880,14 @@ export default function AIContentEngine() {
       form.append("topic", topic);
       form.append("subTopic", String(subTopic || "").trim());
       form.append("toolType", toolType);
+      setUploadStep("extracting");
+      setUploadStep("parsing");
       const res = await fetch(`${API_BASE_URL}/api/pdf/upload`, {
         method: "POST",
         headers: authHeaders(),
         body: form,
       });
+      setUploadStep("saving");
       const json = await res.json().catch(() => ({}));
       if (!res.ok || !json?.success) {
         type UploadErrData = {
@@ -770,7 +903,15 @@ export default function AIContentEngine() {
         err.data = data;
         throw err;
       }
-      toast({ title: "Generated ✓", description: "Content saved successfully." });
+      const totalSaved = Number(json?.data?.totalSaved || 1);
+      const extractedFromPdf = Number(json?.data?.extractedFromPdf || 0);
+      const generatedByAI = Number(json?.data?.generatedByAI || 0);
+      setUploadStep("done");
+      setLastUploadResult({ totalSaved });
+      toast({
+        title: `PDF Processed - ${totalSaved} records saved`,
+        description: `${extractedFromPdf} extracted from PDF + ${generatedByAI} AI-generated to complete the set`,
+      });
       setUploadError("");
       setMismatchDetails(null);
       setPdfFile(null);
@@ -789,6 +930,7 @@ export default function AIContentEngine() {
         };
       })?.data;
       setUploadError(message);
+      setUploadStep("error");
       if (
         data &&
         (data.detectedSubject !== undefined ||
@@ -1063,6 +1205,19 @@ export default function AIContentEngine() {
               {isUploading ? "Generating..." : "Generate"}
             </Button>
           </div>
+
+          {uploadStep !== "idle" && uploadStep !== "done" && uploadStep !== "error" && (
+            <div className="md:col-span-2 lg:col-span-4 flex items-center gap-2 text-sm text-blue-700 bg-blue-50 px-4 py-2 rounded-lg">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {STEP_MESSAGES[uploadStep]}
+            </div>
+          )}
+
+          {uploadStep === "done" && lastUploadResult && (
+            <div className="md:col-span-2 lg:col-span-4 text-sm text-emerald-700 bg-emerald-50 px-4 py-2 rounded-lg">
+              {`✅ ${lastUploadResult.totalSaved} record${lastUploadResult.totalSaved !== 1 ? "s" : ""} saved successfully`}
+            </div>
+          )}
 
           {mismatchDetails && (
             <div className="md:col-span-2 lg:col-span-4 rounded-md bg-amber-50 border border-amber-300 px-3 py-2 text-xs text-amber-900 space-y-1">
