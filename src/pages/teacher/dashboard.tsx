@@ -1814,8 +1814,11 @@ const TeacherDashboard = () => {
                 </Button>
               </div>
 
-              {/* Stats Cards */}
-              <div className="grid-responsive-4 gap-responsive">
+              {/* Dashboard tab: summary stats, My Classes, Learning Paths */}
+              {dashboardSubTab === 'ai-classes' && (
+                <>
+              {/* Stats Cards — Dashboard only (hidden on My Students, EduOTT, Vidya AI) */}
+              <div className="grid-responsive-4 gap-responsive mb-8">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1905,11 +1908,6 @@ const TeacherDashboard = () => {
                 </motion.div>
 
               </div>
-
-              {/* Dashboard Tab - Stats Cards, My Classes, and Learning Paths */}
-              {dashboardSubTab === 'ai-classes' && (
-                <>
-                {/* Stats Cards are shown above, outside conditional */}
 
               {/* My Classes */}
               <motion.div
