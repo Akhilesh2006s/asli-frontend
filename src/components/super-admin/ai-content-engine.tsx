@@ -66,6 +66,8 @@ type PdfItem = {
   renderContent?: any;
   chunkCount: number;
   uploadDate: string;
+  /** Plain-text layout from DB when structured JSON is sparse (ai_pdf master rows). */
+  generatedContent?: string;
 };
 
 type UploadStep = "idle" | "uploading" | "extracting" | "parsing" | "saving" | "done" | "error";
@@ -277,7 +279,10 @@ export default function AIContentEngine() {
     if (!t || bad.test(t)) {
       const meta = (record as { metadata?: { bulkItemIndex?: number } }).metadata;
       const n = meta?.bulkItemIndex != null ? Number(meta.bulkItemIndex) + 1 : null;
-      return n != null ? `Activity ${n}` : "Activity";
+      const isLesson =
+        record.toolType === "lesson-planner" || record.toolType === "daily-class-plan-maker";
+      const label = isLesson ? "Lesson" : "Activity";
+      return n != null ? `${label} ${n}` : label;
     }
     return t;
   };
@@ -413,18 +418,160 @@ export default function AIContentEngine() {
       );
     }
 
-    if (kind === "lessonPlan" || fallback.objectives || fallback.timeline || fallback.activities) {
-      const objectives = Array.isArray(content.objectives) ? content.objectives : fallback.objectives || [];
-      const activities = Array.isArray(content.activities) ? content.activities : fallback.activities || [];
-      const timeline = Array.isArray(content.timeline) ? content.timeline : fallback.timeline || [];
+    const isLessonPlannerRecord =
+      kind === "lessonPlan" ||
+      item.toolType === "lesson-planner" ||
+      item.toolType === "daily-class-plan-maker";
+
+    if (isLessonPlannerRecord) {
+      const fb = fallback as Record<string, unknown>;
+      const rc = content as Record<string, unknown>;
+
+      const listFrom = (primary: unknown, ...alts: unknown[]): string[] => {
+        const pull = (v: unknown): string[] => {
+          if (v == null) return [];
+          if (Array.isArray(v)) {
+            return v.flatMap((x) => {
+              if (typeof x === "string") return [String(x).trim()].filter(Boolean);
+              if (x && typeof x === "object") {
+                const o = x as Record<string, unknown>;
+                const s = String(
+                  o.text || o.step || o.objective || o.outcome || o.description || o.activity || o.content || "",
+                ).trim();
+                return s ? [s] : [];
+              }
+              return [];
+            });
+          }
+          if (typeof v === "string" && v.trim()) {
+            return v
+              .split(/\n+/)
+              .map((ln) => ln.replace(/^\s*[-*•]\s*|\s*\d+[\).\s]+/i, "").trim())
+              .filter(Boolean);
+          }
+          return [];
+        };
+        const a = pull(primary);
+        if (a.length) return a;
+        for (const x of alts) {
+          const b = pull(x);
+          if (b.length) return b;
+        }
+        return [];
+      };
+
+      const objectives = listFrom(
+        rc.objectives,
+        fb.objectives,
+        fb.learning_objectives,
+        fb.learningObjectives,
+        fb.goals,
+      );
+      const activities = listFrom(
+        rc.activities,
+        fb.activities,
+        fb.teaching_activities,
+        fb.teaching_learning_process,
+        fb.step_by_step_procedure,
+        fb.steps,
+      );
+      const materials = listFrom(rc.materials, fb.materials_required, fb.materials);
+      let timeline = listFrom(rc.timeline, fb.timeline, fb.schedule, fb.duration_plan);
+      if (!timeline.length && Array.isArray(fb.time_slots)) {
+        timeline = (fb.time_slots as { time?: string; activity?: string }[])
+          .map((ts) => {
+            const t = String(ts?.time || "").trim();
+            const a = String(ts?.activity || "").trim();
+            if (t && a) return `${t}: ${a}`;
+            return a || t;
+          })
+          .filter(Boolean);
+      }
+      const assessment = String(rc.assessment || fb.assessment || "").trim();
+      const displayLessonTitle = activityTitleForDisplay(
+        String(rc.title || fb.lesson_name || fb.title || fb.name || "Lesson plan").trim(),
+        item,
+      );
+
+      const section = (label: string, children: ReactNode) => (
+        <div className="rounded-xl border bg-white p-3 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500">{label}</p>
+          <div className="mt-2">{children}</div>
+        </div>
+      );
+
+      const fallbackBody = String(item.generatedContent || "").trim();
+      const emptyLessonCore =
+        !objectives.length && !activities.length && !materials.length && !timeline.length && !assessment;
+
       return (
         <div className="space-y-3">
-          {renderSectionHeader(<CalendarDays className="h-4 w-4" />, "Lesson / Daily Plan")}
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-xl border bg-white p-3"><p className="text-xs font-semibold text-slate-500 flex items-center gap-1"><Target className="h-3.5 w-3.5" />Objectives</p><ul className="mt-2 text-sm space-y-1">{objectives.map((v: any, i: number) => <li key={`${item._id}-o-${i}`}>- {String(v)}</li>)}</ul></div>
-            <div className="rounded-xl border bg-white p-3"><p className="text-xs font-semibold text-slate-500 flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />Activities</p><ul className="mt-2 text-sm space-y-1">{activities.map((v: any, i: number) => <li key={`${item._id}-a-${i}`}>- {String(v)}</li>)}</ul></div>
-            <div className="rounded-xl border bg-white p-3"><p className="text-xs font-semibold text-slate-500 flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" />Timeline</p><ul className="mt-2 text-sm space-y-1">{timeline.map((v: any, i: number) => <li key={`${item._id}-t-${i}`}>- {String(v)}</li>)}</ul></div>
+          <div className="space-y-0.5">
+            {renderSectionHeader(<CalendarDays className="h-4 w-4" />, displayLessonTitle)}
+            <p className="text-xs text-slate-500 pl-9">Lesson planner — structured fields (objectives, materials, steps, timeline)</p>
           </div>
+          {section(
+            "2. Learning objectives",
+            objectives.length > 0 ? (
+              <ul className="text-sm space-y-1">
+                {objectives.map((line, i) => (
+                  <li key={`${item._id}-lp-lo-${i}`}>- {line}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-500 italic">None listed.</p>
+            ),
+          )}
+          {section(
+            "3. Materials required",
+            materials.length > 0 ? (
+              <ul className="text-sm space-y-1">
+                {materials.map((m, i) => (
+                  <li key={`${item._id}-lp-m-${i}`}>- {m}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-500 italic">None listed.</p>
+            ),
+          )}
+          {section(
+            "4. Teaching steps / activities",
+            activities.length > 0 ? (
+              <ol className="text-sm space-y-1 list-decimal list-inside">
+                {activities.map((s, i) => (
+                  <li key={`${item._id}-lp-a-${i}`}>{s}</li>
+                ))}
+              </ol>
+            ) : (
+              <p className="text-xs text-slate-500 italic">None listed.</p>
+            ),
+          )}
+          {section(
+            "5. Timeline / sequence",
+            timeline.length > 0 ? (
+              <ul className="text-sm space-y-1">
+                {timeline.map((t, i) => (
+                  <li key={`${item._id}-lp-t-${i}`}>- {t}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-500 italic">None listed.</p>
+            ),
+          )}
+          {assessment
+            ? section(
+                "6. Assessment",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{assessment}</p>,
+              )
+            : null}
+          {emptyLessonCore && fallbackBody ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3">
+              <p className="text-xs font-semibold text-amber-900 mb-2">Saved text (structured fields were empty)</p>
+              <pre className="max-h-72 overflow-y-auto text-xs text-slate-800 whitespace-pre-wrap leading-relaxed font-mono">
+                {fallbackBody.slice(0, 120000)}
+              </pre>
+            </div>
+          ) : null}
         </div>
       );
     }
@@ -1023,7 +1170,7 @@ export default function AIContentEngine() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-lg:space-y-4">
       <Card>
         <CardHeader>
           <CardTitle>AI PDF</CardTitle>
@@ -1339,14 +1486,18 @@ export default function AIContentEngine() {
           ) : groupedHierarchy.length === 0 ? (
             <p className="text-sm text-gray-600">No saved AI content records yet.</p>
           ) : (
-            <Accordion type="multiple" className="w-full space-y-2">
+            <Accordion type="multiple" className="w-full space-y-2 max-lg:space-y-1.5">
               {groupedHierarchy.map((toolNode) => (
-                <AccordionItem key={toolNode.tool} value={`tool:${toolNode.tool}`} className="rounded-md border px-3">
-                  <AccordionTrigger className="py-3 no-underline hover:no-underline">
-                    <div className="flex items-center gap-2">
-                      <Wrench className="h-4 w-4 text-orange-600" />
-                      <Badge className="bg-orange-500 hover:bg-orange-500">Tool</Badge>
-                      <span className="font-medium text-sm">{toolNode.tool}</span>
+                <AccordionItem
+                  key={toolNode.tool}
+                  value={`tool:${toolNode.tool}`}
+                  className="rounded-md border px-2 sm:px-2.5 lg:px-3"
+                >
+                  <AccordionTrigger className="py-3 no-underline hover:no-underline max-lg:py-2.5 [&>svg]:shrink-0">
+                    <div className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                      <Wrench className="h-4 w-4 shrink-0 text-orange-600" />
+                      <Badge className="shrink-0 bg-orange-500 hover:bg-orange-500">Tool</Badge>
+                      <span className="min-w-0 break-words font-medium text-sm">{toolNode.tool}</span>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="space-y-2">
@@ -1355,14 +1506,18 @@ export default function AIContentEngine() {
                         <AccordionItem
                           key={`${toolNode.tool}:${classNode.classLabel}:${classNode.board}`}
                           value={`class:${toolNode.tool}:${classNode.classLabel}:${classNode.board}`}
-                          className="rounded-md border px-3"
+                          className="rounded-md border px-2 sm:px-2.5 lg:px-3"
                         >
-                          <AccordionTrigger className="py-2.5 no-underline hover:no-underline">
-                            <div className="flex items-center gap-2">
-                              <School className="h-4 w-4 text-slate-600" />
-                              <Badge variant="secondary">Class</Badge>
-                              <span className="text-sm">{classNode.classLabel}</span>
-                              <Badge variant="outline">{classNode.board || "-"}</Badge>
+                          <AccordionTrigger className="py-2.5 no-underline hover:no-underline max-lg:py-2 [&>svg]:shrink-0">
+                            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-left">
+                              <School className="h-4 w-4 shrink-0 text-slate-600" />
+                              <Badge className="shrink-0" variant="secondary">
+                                Class
+                              </Badge>
+                              <span className="min-w-0 break-words text-sm">{classNode.classLabel}</span>
+                              <Badge className="shrink-0" variant="outline">
+                                {classNode.board || "-"}
+                              </Badge>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent className="space-y-2">
@@ -1371,13 +1526,15 @@ export default function AIContentEngine() {
                                 <AccordionItem
                                   key={`${toolNode.tool}:${classNode.classLabel}:${classNode.board}:${subjectNode.subject}`}
                                   value={`subject:${toolNode.tool}:${classNode.classLabel}:${classNode.board}:${subjectNode.subject}`}
-                                  className="rounded-md border px-3"
+                                  className="rounded-md border px-2 sm:px-2.5 lg:px-3"
                                 >
-                                  <AccordionTrigger className="py-2.5 no-underline hover:no-underline">
-                                    <div className="flex items-center gap-2">
-                                      <BookOpen className="h-4 w-4 text-slate-600" />
-                                      <Badge variant="secondary">Subject</Badge>
-                                      <span className="text-sm">{subjectNode.subject}</span>
+                                  <AccordionTrigger className="py-2.5 no-underline hover:no-underline max-lg:py-2 [&>svg]:shrink-0">
+                                    <div className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                                      <BookOpen className="h-4 w-4 shrink-0 text-slate-600" />
+                                      <Badge className="shrink-0" variant="secondary">
+                                        Subject
+                                      </Badge>
+                                      <span className="min-w-0 break-words text-sm">{subjectNode.subject}</span>
                                     </div>
                                   </AccordionTrigger>
                                   <AccordionContent className="space-y-2">
@@ -1386,13 +1543,15 @@ export default function AIContentEngine() {
                                         <AccordionItem
                                           key={`${toolNode.tool}:${classNode.classLabel}:${classNode.board}:${subjectNode.subject}:${topicNode.topic}`}
                                           value={`topic:${toolNode.tool}:${classNode.classLabel}:${classNode.board}:${subjectNode.subject}:${topicNode.topic}`}
-                                          className="rounded-md border px-3"
+                                          className="rounded-md border px-2 sm:px-2.5 lg:px-3"
                                         >
-                                          <AccordionTrigger className="py-2.5 no-underline hover:no-underline">
-                                            <div className="flex items-center gap-2">
-                                              <BookText className="h-4 w-4 text-slate-600" />
-                                              <Badge variant="secondary">Topic</Badge>
-                                              <span className="text-sm">{topicNode.topic}</span>
+                                          <AccordionTrigger className="py-2.5 no-underline hover:no-underline max-lg:py-2 [&>svg]:shrink-0">
+                                            <div className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                                              <BookText className="h-4 w-4 shrink-0 text-slate-600" />
+                                              <Badge className="shrink-0" variant="secondary">
+                                                Topic
+                                              </Badge>
+                                              <span className="min-w-0 break-words text-sm">{topicNode.topic}</span>
                                             </div>
                                           </AccordionTrigger>
                                           <AccordionContent className="space-y-2">
@@ -1401,83 +1560,101 @@ export default function AIContentEngine() {
                                                 <AccordionItem
                                                   key={`${toolNode.tool}:${classNode.classLabel}:${classNode.board}:${subjectNode.subject}:${topicNode.topic}:${subtopicNode.subtopic}`}
                                                   value={`subtopic:${toolNode.tool}:${classNode.classLabel}:${classNode.board}:${subjectNode.subject}:${topicNode.topic}:${subtopicNode.subtopic}`}
-                                                  className="rounded-md border px-3"
+                                                  className="rounded-md border px-2 sm:px-2.5 lg:px-3"
                                                 >
-                                                  <AccordionTrigger className="py-2.5 no-underline hover:no-underline">
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                      <Pin className="h-4 w-4 text-slate-600" />
-                                                      <Badge variant="secondary">Subtopic</Badge>
-                                                      <span className="text-sm">{subtopicNode.subtopic}</span>
-                                                      <Badge variant="outline">{subtopicNode.records.length} generations</Badge>
+                                                  <AccordionTrigger className="py-2.5 no-underline hover:no-underline max-lg:py-2 [&>svg]:shrink-0">
+                                                    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-left">
+                                                      <Pin className="h-4 w-4 shrink-0 text-slate-600" />
+                                                      <Badge className="shrink-0" variant="secondary">
+                                                        Subtopic
+                                                      </Badge>
+                                                      <span className="min-w-0 flex-1 break-words text-sm lg:flex-initial">
+                                                        {subtopicNode.subtopic}
+                                                      </span>
+                                                      <Badge className="shrink-0" variant="outline">
+                                                        {subtopicNode.records.length} generations
+                                                      </Badge>
                                                     </div>
                                                   </AccordionTrigger>
-                                                  <AccordionContent className="space-y-2">
+                                                  <AccordionContent className="space-y-2 max-lg:space-y-1.5 max-lg:pb-1">
                                                     {subtopicNode.records.map((record, idx) => (
                                                       <div
                                                         key={record._id}
-                                                        className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.04] transition-shadow hover:shadow-md"
+                                                        className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.04] transition-shadow hover:shadow-md max-lg:rounded-xl"
                                                       >
                                                         <div
                                                           className="h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 opacity-[0.92]"
                                                           aria-hidden
                                                         />
-                                                        <div className="p-4 pt-4 space-y-3">
-                                                          <div className="flex flex-wrap items-start justify-between gap-3">
+                                                        <div className="space-y-3 p-4 pt-4 max-lg:space-y-2.5 max-lg:p-3 max-lg:pt-3">
+                                                          <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-start lg:justify-between">
                                                             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                                                               <div className="flex flex-wrap items-center gap-2">
                                                                 <FolderOpen className="h-4 w-4 shrink-0 text-slate-500" />
                                                                 <Badge variant="outline" className="font-medium">
                                                                   Record {idx + 1}
                                                                 </Badge>
-                                                                <span className="text-xs text-slate-500 tabular-nums">
+                                                                <span className="hidden text-xs text-slate-500 tabular-nums lg:inline">
                                                                   {new Date(record.uploadDate).toLocaleString()}
                                                                 </span>
                                                               </div>
+                                                              <span className="pl-6 text-xs text-slate-500 tabular-nums lg:hidden">
+                                                                {new Date(record.uploadDate).toLocaleString()}
+                                                              </span>
                                                               <p className="text-sm font-medium leading-snug text-slate-800 line-clamp-2 pl-6 sm:pl-0">
                                                                 {pdfRecordPreviewLine(record)}
                                                               </p>
                                                             </div>
-                                                            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                                                              <Badge
-                                                                variant={record.approvalStatus === "approved" ? "default" : "secondary"}
-                                                                className="capitalize"
-                                                              >
-                                                                {record.approvalStatus || "pending"}
-                                                              </Badge>
-                                                              <Badge variant="outline" className="max-w-[10rem] truncate font-normal">
-                                                                {record.contentType || "Generated Content"}
-                                                              </Badge>
-                                                              <Button
-                                                                type="button"
-                                                                size="sm"
-                                                                className="h-9 gap-1.5 rounded-xl bg-slate-900 px-4 text-white shadow-sm hover:bg-slate-800"
-                                                                onClick={(e) => {
-                                                                  e.preventDefault();
-                                                                  e.stopPropagation();
-                                                                  setPdfContentViewId(record._id);
-                                                                }}
-                                                              >
-                                                                <Eye className="h-4 w-4 shrink-0" />
-                                                                View
-                                                              </Button>
-                                                              <Button
-                                                                type="button"
-                                                                variant="outline"
-                                                                size="icon"
-                                                                className="h-9 w-9 shrink-0 rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                                                                disabled={deletingPdfId === record._id}
-                                                                aria-label={`Delete record ${idx + 1}`}
-                                                                onClick={(e) => {
-                                                                  e.preventDefault();
-                                                                  e.stopPropagation();
-                                                                  void deletePdf(record._id);
-                                                                }}
-                                                              >
-                                                                <Trash2 className="h-4 w-4" />
-                                                              </Button>
+                                                            <div className="flex w-full min-w-0 flex-col gap-2 lg:w-auto lg:shrink-0 lg:flex-row lg:flex-wrap lg:items-center lg:justify-end">
+                                                              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                                                <Badge
+                                                                  variant={
+                                                                    record.approvalStatus === "approved" ? "default" : "secondary"
+                                                                  }
+                                                                  className="capitalize"
+                                                                >
+                                                                  {record.approvalStatus || "pending"}
+                                                                </Badge>
+                                                                <Badge
+                                                                  variant="outline"
+                                                                  className="max-w-full font-normal lg:max-w-[10rem] lg:truncate"
+                                                                >
+                                                                  {record.contentType || "Generated Content"}
+                                                                </Badge>
+                                                              </div>
+                                                              <div className="flex w-full gap-2 lg:w-auto">
+                                                                <Button
+                                                                  type="button"
+                                                                  size="sm"
+                                                                  className="h-9 min-h-11 flex-1 gap-1.5 rounded-xl bg-slate-900 px-4 text-white shadow-sm hover:bg-slate-800 lg:min-h-0 lg:h-9 lg:flex-initial"
+                                                                  onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    setPdfContentViewId(record._id);
+                                                                  }}
+                                                                >
+                                                                  <Eye className="h-4 w-4 shrink-0" />
+                                                                  View
+                                                                </Button>
+                                                                <Button
+                                                                  type="button"
+                                                                  variant="outline"
+                                                                  size="icon"
+                                                                  className="h-11 w-11 shrink-0 rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 lg:h-9 lg:w-9"
+                                                                  disabled={deletingPdfId === record._id}
+                                                                  aria-label={`Delete record ${idx + 1}`}
+                                                                  onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    void deletePdf(record._id);
+                                                                  }}
+                                                                >
+                                                                  <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                              </div>
                                                             </div>
                                                           </div>
-                                                          <p className="border-l-2 border-blue-100 pl-3 text-xs leading-relaxed text-slate-500">
+                                                          <p className="border-l-2 border-blue-100 pl-3 text-xs leading-relaxed text-slate-500 max-lg:text-[0.8125rem]">
                                                             Open <span className="font-medium text-slate-600">View</span> for the full
                                                             lesson layout — objectives, materials, steps, and rubrics.
                                                           </p>
