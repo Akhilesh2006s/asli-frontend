@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ import {
   CalendarDays,
   Trash2,
   Loader2,
+  Eye,
 } from "lucide-react";
 
 /** Keep in sync with ASLI-STUD-BACK/routes/pdf-rag.js AI_PDF_MAX_FILE_BYTES */
@@ -108,6 +110,8 @@ export default function AIContentEngine() {
   const [uploadError, setUploadError] = useState("");
   const [uploadStep, setUploadStep] = useState<UploadStep>("idle");
   const [lastUploadResult, setLastUploadResult] = useState<{ totalSaved: number } | null>(null);
+  const [pdfContentViewId, setPdfContentViewId] = useState<string | null>(null);
+
   const [mismatchDetails, setMismatchDetails] = useState<
     null | {
       selectedSubject?: string;
@@ -276,6 +280,41 @@ export default function AIContentEngine() {
       return n != null ? `Activity ${n}` : "Activity";
     }
     return t;
+  };
+
+  /** Curiosity-style PDFs sometimes append an index after the last activity's section 9; strip for display. */
+  const trimActivityRealLifeDisplayTail = (raw: string): string => {
+    const s = String(raw || "").trim();
+    if (!s) return s;
+    const inlineCut = s.search(
+      /\s(?:Included Activities\s*:|Activities\s+\d{1,3}\s*[-–]\s*\d{1,3}\s*\(|The remaining activities follow|Each activity is fully structured using)\b/i,
+    );
+    if (inlineCut > 0) return s.slice(0, inlineCut).trim();
+    return s;
+  };
+
+  const pdfRecordPreviewLine = (record: PdfItem): string => {
+    const rc =
+      record.renderContent && typeof record.renderContent === "object"
+        ? (record.renderContent as Record<string, unknown>)
+        : null;
+    const sc =
+      record.structuredContent && typeof record.structuredContent === "object"
+        ? (record.structuredContent as Record<string, unknown>)
+        : null;
+    const pick = (o: Record<string, unknown> | null) => {
+      if (!o) return "";
+      return String(o.title || o.name || o.lesson_name || "").trim();
+    };
+    return (
+      pick(rc) ||
+      pick(sc) ||
+      String(record.topic || "").trim() ||
+      String(record.subTopic || "").trim() ||
+      String(record.chapter || "").trim() ||
+      String(record.originalName || "").trim() ||
+      "Saved PDF — use View for full structured content"
+    );
   };
 
   const renderEducationalContent = (item: PdfItem) => {
@@ -476,7 +515,9 @@ export default function AIContentEngine() {
         rc.learningOutcome || fb.learningOutcome || fb.expected_learning_outcomes || fb.expectedLearningOutcomes || "",
       ).trim();
       const assessmentRubric = pickLines(rc.assessmentRubric, fb.assessment_criteria_rubric, fb.assessment);
-      const realLifeApplication = String(rc.realLifeApplication || fb.real_life_application || fb.realLifeApplication || "").trim();
+      const realLifeApplication = trimActivityRealLifeDisplayTail(
+        String(rc.realLifeApplication || fb.real_life_application || fb.realLifeApplication || ""),
+      ).trim();
       const rawExcerpt =
         String(
           (fb as { content?: string }).content ||
@@ -648,6 +689,15 @@ export default function AIContentEngine() {
           })),
       }));
   }, [items, toolOptions]);
+
+  const pdfContentViewRecord = useMemo(
+    () => (pdfContentViewId ? items.find((x) => x._id === pdfContentViewId) ?? null : null),
+    [items, pdfContentViewId],
+  );
+
+  useEffect(() => {
+    if (pdfContentViewId && !pdfContentViewRecord) setPdfContentViewId(null);
+  }, [pdfContentViewId, pdfContentViewRecord]);
 
   const authHeaders = (): Record<string, string> => {
     const token =
@@ -1363,37 +1413,76 @@ export default function AIContentEngine() {
                                                   </AccordionTrigger>
                                                   <AccordionContent className="space-y-2">
                                                     {subtopicNode.records.map((record, idx) => (
-                                                      <div key={record._id} className="rounded-xl border bg-slate-50 p-4 space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                                                          <div className="flex items-center gap-2">
-                                                            <FolderOpen className="h-4 w-4 text-slate-600" />
-                                                            <Badge variant="outline">Record {idx + 1}</Badge>
-                                                            <span className="text-xs text-slate-600">
-                                                              {new Date(record.uploadDate).toLocaleString()}
-                                                            </span>
+                                                      <div
+                                                        key={record._id}
+                                                        className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm ring-1 ring-slate-900/[0.04] transition-shadow hover:shadow-md"
+                                                      >
+                                                        <div
+                                                          className="h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500 opacity-[0.92]"
+                                                          aria-hidden
+                                                        />
+                                                        <div className="p-4 pt-4 space-y-3">
+                                                          <div className="flex flex-wrap items-start justify-between gap-3">
+                                                            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                                                              <div className="flex flex-wrap items-center gap-2">
+                                                                <FolderOpen className="h-4 w-4 shrink-0 text-slate-500" />
+                                                                <Badge variant="outline" className="font-medium">
+                                                                  Record {idx + 1}
+                                                                </Badge>
+                                                                <span className="text-xs text-slate-500 tabular-nums">
+                                                                  {new Date(record.uploadDate).toLocaleString()}
+                                                                </span>
+                                                              </div>
+                                                              <p className="text-sm font-medium leading-snug text-slate-800 line-clamp-2 pl-6 sm:pl-0">
+                                                                {pdfRecordPreviewLine(record)}
+                                                              </p>
+                                                            </div>
+                                                            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                                                              <Badge
+                                                                variant={record.approvalStatus === "approved" ? "default" : "secondary"}
+                                                                className="capitalize"
+                                                              >
+                                                                {record.approvalStatus || "pending"}
+                                                              </Badge>
+                                                              <Badge variant="outline" className="max-w-[10rem] truncate font-normal">
+                                                                {record.contentType || "Generated Content"}
+                                                              </Badge>
+                                                              <Button
+                                                                type="button"
+                                                                size="sm"
+                                                                className="h-9 gap-1.5 rounded-xl bg-slate-900 px-4 text-white shadow-sm hover:bg-slate-800"
+                                                                onClick={(e) => {
+                                                                  e.preventDefault();
+                                                                  e.stopPropagation();
+                                                                  setPdfContentViewId(record._id);
+                                                                }}
+                                                              >
+                                                                <Eye className="h-4 w-4 shrink-0" />
+                                                                View
+                                                              </Button>
+                                                              <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="icon"
+                                                                className="h-9 w-9 shrink-0 rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                                                disabled={deletingPdfId === record._id}
+                                                                aria-label={`Delete record ${idx + 1}`}
+                                                                onClick={(e) => {
+                                                                  e.preventDefault();
+                                                                  e.stopPropagation();
+                                                                  void deletePdf(record._id);
+                                                                }}
+                                                              >
+                                                                <Trash2 className="h-4 w-4" />
+                                                              </Button>
+                                                            </div>
                                                           </div>
-                  <div className="flex items-center gap-2">
-                                                            <Badge>{record.approvalStatus || "pending"}</Badge>
-                                                            <Badge variant="secondary">{record.contentType || "Generated Content"}</Badge>
-                                                            <Button
-                                                              type="button"
-                                                              variant="outline"
-                                                              size="icon"
-                                                              className="h-8 w-8 shrink-0 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                                                              disabled={deletingPdfId === record._id}
-                                                              aria-label={`Delete record ${idx + 1}`}
-                                                              onClick={(e) => {
-                                                                e.preventDefault();
-                                                                e.stopPropagation();
-                                                                void deletePdf(record._id);
-                                                              }}
-                                                            >
-                                                              <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                  </div>
-                </div>
-                                                        {renderEducationalContent(record)}
-              </div>
+                                                          <p className="border-l-2 border-blue-100 pl-3 text-xs leading-relaxed text-slate-500">
+                                                            Open <span className="font-medium text-slate-600">View</span> for the full
+                                                            lesson layout — objectives, materials, steps, and rubrics.
+                                                          </p>
+                                                        </div>
+                                                      </div>
                                                     ))}
                                                   </AccordionContent>
                                                 </AccordionItem>
@@ -1418,6 +1507,32 @@ export default function AIContentEngine() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!pdfContentViewId} onOpenChange={(open) => !open && setPdfContentViewId(null)}>
+        <DialogContent className="flex max-h-[min(92vh,920px)] w-[min(100vw-1.5rem,56rem)] max-w-[56rem] flex-col gap-0 overflow-hidden rounded-2xl border-slate-200/90 p-0 shadow-2xl">
+          <DialogHeader className="shrink-0 space-y-1 border-b border-slate-100 bg-gradient-to-br from-slate-50 via-white to-blue-50/50 px-6 py-4 text-left">
+            <DialogTitle className="pr-8 text-lg font-semibold leading-snug tracking-tight text-slate-900">
+              {pdfContentViewRecord ? pdfRecordPreviewLine(pdfContentViewRecord) : "Record content"}
+            </DialogTitle>
+            {pdfContentViewRecord ? (
+              <p className="text-xs text-slate-500">
+                <span className="font-medium text-slate-600">{getToolLabel(pdfContentViewRecord.toolType)}</span>
+                {pdfContentViewRecord.topic ? ` · ${pdfContentViewRecord.topic}` : ""}
+                {pdfContentViewRecord.subTopic ? ` · ${pdfContentViewRecord.subTopic}` : ""}
+                <span className="text-slate-400"> · </span>
+                {new Date(pdfContentViewRecord.uploadDate).toLocaleString()}
+              </p>
+            ) : null}
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/60 px-4 py-4 sm:px-6 sm:py-5">
+            {pdfContentViewRecord ? (
+              <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm sm:p-6">
+                {renderEducationalContent(pdfContentViewRecord)}
+              </div>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
