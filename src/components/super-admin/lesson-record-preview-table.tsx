@@ -67,14 +67,17 @@ export function LessonRecordPreviewTable({
   stripMeta = true,
   className = "",
 }: LessonRecordPreviewTableProps) {
-  const source = stripMeta ? stripLessonListMetaMarkdown(raw) : String(raw || "");
+  const normalized = stripStructuredAiToolMetadata(String(raw || ""));
+  const source = stripMeta ? stripLessonListMetaMarkdown(normalized) : normalized;
   const title = lessonTitleFromMarkdown(source) || "Lesson";
   const rows = parseMarkdownLessonSections(source);
 
   if (rows.length === 0) {
+    const fallback = stripMeta ? stripLessonListMetaMarkdown(normalized) : normalized;
+    const plain = toPlainOneLine(fallback);
     return (
       <p className={`text-sm text-slate-600 leading-relaxed line-clamp-3 ${className}`}>
-        {stripMeta ? stripLessonListMetaMarkdown(toPlainOneLine(raw)) : toPlainOneLine(raw)}
+        {plain.length > 320 ? `${plain.slice(0, 320)}…` : plain}
       </p>
     );
   }
