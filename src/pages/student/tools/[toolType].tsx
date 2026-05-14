@@ -33,6 +33,14 @@ import { LessonPlannerViewer } from '@/components/lesson-planner-viewer';
 import { ActivityProjectViewer } from '@/components/activity-project-viewer';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 
+/** Radix Select shows a blank label when `value` is not listed in items (e.g. URL-preset or taxonomy drift). */
+function mergeSelectedIntoOptions(options: string[], selected: unknown): string[] {
+  const v = typeof selected === 'string' ? selected.trim() : '';
+  if (!v) return options;
+  if (options.includes(v)) return options;
+  return [v, ...options];
+}
+
 // Import the renderMarkdown function from teacher tool page
 const renderMarkdown = (text: string) => {
   if (!text) return '';
@@ -498,6 +506,15 @@ export default function StudentToolPage() {
     () => stripStructuredAiToolMetadata(generatedContent),
     [generatedContent],
   );
+  const generationContextSummary = useMemo(() => {
+    const parts: string[] = [];
+    if (formParams.board) parts.push(String(formParams.board));
+    if (formParams.gradeLevel) parts.push(String(formParams.gradeLevel));
+    if (formParams.subject) parts.push(String(formParams.subject));
+    if (formParams.topic) parts.push(String(formParams.topic));
+    if (formParams.subTopic) parts.push(`Sub topic: ${String(formParams.subTopic)}`);
+    return parts.join(' · ');
+  }, [formParams.board, formParams.gradeLevel, formParams.subject, formParams.topic, formParams.subTopic]);
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -1776,13 +1793,17 @@ export default function StudentToolPage() {
                         ? 'Select Topic first'
                         : cascade.loadingSubtopics
                           ? 'Loading subtopics...'
-                          : cascade.subtopics.length === 0
+                          : cascade.subtopics.length === 0 && !String(formParams.subTopic || '').trim()
                             ? 'No data available'
                             : field.placeholder || 'Select subtopic';
                     } else if (fieldOptions.length === 0 && field.dependsOn) {
                       placeholderText = `Select ${config.fields.find((f) => f.name === field.dependsOn)?.label || 'Class'} first`;
                     }
                   }
+
+                  const optionsForSelect = fieldUsesCurriculumSelect(field)
+                    ? mergeSelectedIntoOptions(fieldOptions, formParams[field.name])
+                    : fieldOptions;
 
                   return (
                     <div key={field.name}>
@@ -1800,8 +1821,8 @@ export default function StudentToolPage() {
                             <SelectValue placeholder={placeholderText} />
                           </SelectTrigger>
                           <SelectContent>
-                            {fieldOptions.length > 0 ? (
-                              fieldOptions.map((option) => (
+                            {optionsForSelect.length > 0 ? (
+                              optionsForSelect.map((option) => (
                                 <SelectItem key={option} value={option}>
                                   {option.charAt(0).toUpperCase() + option.slice(1)}
                                 </SelectItem>
@@ -1876,6 +1897,11 @@ export default function StudentToolPage() {
                 <div className="flex items-center justify-between">
                   <div>
                   <CardTitle>Generated Content</CardTitle>
+                    {generatedContent && generationContextSummary ? (
+                      <p className="text-xs text-slate-600 mt-1.5 leading-relaxed" role="status">
+                        {generationContextSummary}
+                      </p>
+                    ) : null}
                     {generatedContent && contentSource && (
                       <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                         <span>Source:</span>

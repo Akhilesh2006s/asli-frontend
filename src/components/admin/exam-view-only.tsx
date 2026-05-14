@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Eye, BarChart3, Filter, Download, TrendingUp, Users, Clock, Calendar, BookOpen } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
+import { useToast } from '@/hooks/use-toast';
 import {
   CLASS_FILTER_OPTIONS,
   examIncludesClass,
@@ -91,12 +92,14 @@ const getPerformerPercentage = (performer: any): number => {
 };
 
 export default function ExamViewOnly() {
+  const { toast } = useToast();
   const [exams, setExams] = useState<Exam[]>([]);
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
   const [examResults, setExamResults] = useState<ExamResult[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingResults, setIsLoadingResults] = useState(false);
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [filters, setFilters] = useState({
     classNumber: '',
     subject: '',
@@ -160,7 +163,7 @@ export default function ExamViewOnly() {
     try {
       const token = localStorage.getItem('authToken');
       const queryParams = new URLSearchParams();
-      queryParams.append('examId', examId);
+      queryParams.append('examId', String(examId));
       if (filters.classNumber) queryParams.append('classNumber', filters.classNumber);
       if (filters.subject) queryParams.append('subject', filters.subject);
       if (filters.startDate) queryParams.append('startDate', filters.startDate);
@@ -186,33 +189,61 @@ export default function ExamViewOnly() {
     }
   };
 
+  const emptyAnalytics = () => ({
+    totalStudents: 0,
+    attemptedCount: 0,
+    notAttemptedCount: 0,
+    averageScore: '0.00',
+    topPerformers: [] as any[],
+    classPerformance: [] as any[],
+  });
+
   const fetchAnalytics = async (examId: string) => {
+    setIsLoadingAnalytics(true);
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/admin/exams/${examId}/analytics`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const qs = new URLSearchParams();
+      if (filters.classNumber) qs.set('classNumber', filters.classNumber);
+      const suffix = qs.toString() ? `?${qs.toString()}` : '';
+      const response = await fetch(
+        `${API_BASE_URL}/api/admin/exams/${encodeURIComponent(examId)}/analytics${suffix}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setAnalytics(data.data);
-        }
+      const data = await response.json().catch(() => ({}));
+      if (response.ok && data.success && data.data) {
+        setAnalytics(data.data);
+      } else {
+        setAnalytics(emptyAnalytics());
+        toast({
+          title: 'Could not load exam analytics',
+          description: data?.message || `Request failed (${response.status})`,
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
+      setAnalytics(emptyAnalytics());
+      toast({
+        title: 'Could not load exam analytics',
+        description: error instanceof Error ? error.message : 'Network error',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingAnalytics(false);
     }
   };
 
   const handleViewExam = async (exam: Exam) => {
+    const examId = String(exam._id ?? '');
     setSelectedExam(exam);
-    await Promise.all([
-      fetchExamResults(exam._id),
-      fetchAnalytics(exam._id)
-    ]);
+    setAnalytics(null);
+    await Promise.all([fetchExamResults(examId), fetchAnalytics(examId)]);
   };
 
   const getExamTypeColor = (type: string) => {
@@ -351,14 +382,31 @@ export default function ExamViewOnly() {
                 />
               </div>
             </div>
-            <Button className="mt-4" onClick={() => fetchExamResults(selectedExam._id)}>
+            <Button
+              className="mt-4"
+              onClick={() => {
+                const id = String(selectedExam._id ?? '');
+                void Promise.all([fetchExamResults(id), fetchAnalytics(id)]);
+              }}
+            >
               Apply Filters
             </Button>
           </CardContent>
         </Card>
 
         {/* Analytics */}
-        {analytics && (
+        {isLoadingAnalytics && !analytics ? (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {[0, 1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardContent className="p-6 animate-pulse">
+                  <div className="h-4 w-24 bg-gray-200 rounded mb-3" />
+                  <div className="h-8 w-16 bg-gray-200 rounded" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : analytics ? (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
               <CardContent className="p-6">
@@ -405,7 +453,7 @@ export default function ExamViewOnly() {
               </CardContent>
             </Card>
           </div>
-        )}
+        ) : null}
 
         {/* Top Performers */}
         {analytics?.topPerformers && analytics.topPerformers.length > 0 && (

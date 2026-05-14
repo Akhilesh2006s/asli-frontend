@@ -104,7 +104,7 @@ const SubjectManagement = () => {
                   email: s.teacher.email || '',
                 }
               : undefined,
-            grade: s.grade || '',
+            grade: s.grade || s.classNumber || '',
             department: s.department || '',
             isActive: s.isActive !== false,
             createdAt: s.createdAt || new Date().toISOString(),
