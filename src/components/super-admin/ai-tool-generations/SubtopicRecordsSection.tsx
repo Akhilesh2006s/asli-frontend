@@ -21,6 +21,7 @@ import {
   type McqQuestion,
 } from "@/lib/mcq-record-utils";
 import { GeneratedRecordBody } from "@/components/super-admin/generated-record-body";
+import { LessonRecordPreviewTable } from "@/components/super-admin/lesson-record-preview-table";
 
 function labelEmpty(v: string) {
   return v === "" || v == null ? "(None)" : v;
@@ -266,6 +267,8 @@ export function SubtopicRecordsSection({
               const mcqQs = isMcqTool(parents.toolName)
                 ? extractMcqQuestionsFromRecord(row)
                 : [];
+              const isLessonTool =
+                parents.toolName === "lesson-planner" || parents.toolName === "daily-class-plan-maker";
               return (
                 <li
                   key={row._id}
@@ -276,7 +279,11 @@ export function SubtopicRecordsSection({
                       <Calendar className="h-3.5 w-3.5 text-slate-400" />
                       {row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"}
                     </span>
-                    <Badge variant="outline" className="text-[10px]">{row.board || "—"}</Badge>
+                    {!isLessonTool ? (
+                      <Badge variant="outline" className="text-[10px]">{row.board || "—"}</Badge>
+                    ) : (
+                      <span className="text-[10px] text-slate-400" aria-hidden />
+                    )}
                     <div className="flex items-center gap-1">
                       <Button
                         size="sm"
@@ -355,6 +362,8 @@ export function SubtopicRecordsSection({
                         </div>
                       ))}
                     </div>
+                  ) : isLessonTool ? (
+                    <LessonRecordPreviewTable raw={String(row.content || row.preview || "")} />
                   ) : (
                     <p className="text-sm text-slate-700 line-clamp-4 leading-relaxed border-l-2 border-orange-200 pl-3">
                       {toEditablePlainText(String(row.content || row.preview || ""))}
