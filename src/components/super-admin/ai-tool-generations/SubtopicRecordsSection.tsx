@@ -20,6 +20,7 @@ import {
   isMcqTool,
   type McqQuestion,
 } from "@/lib/mcq-record-utils";
+import { GeneratedRecordBody } from "@/components/super-admin/generated-record-body";
 
 function labelEmpty(v: string) {
   return v === "" || v == null ? "(None)" : v;
@@ -46,55 +47,6 @@ function toEditablePlainText(content: string) {
     .replace(/!\[(.*?)\]\((.*?)\)/g, "$1")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
-}
-
-function renderSimpleContent(content: string) {
-  const lines = toEditablePlainText(content)
-    .split("\n")
-    .map((l) => l.trimEnd())
-    .filter((l) => l.trim().length > 0);
-
-  const isBullet = (line: string) => /^[-*•]\s+/.test(line) || /^\d+\.\s+/.test(line);
-  const isHeading = (line: string) =>
-    !isBullet(line) &&
-    line.length <= 70 &&
-    /^[A-Za-z][A-Za-z0-9\s/&(),'-]{2,}:?$/.test(line) &&
-    !line.endsWith(".");
-
-  return (
-    <div className="space-y-2">
-      {lines.map((line, idx) => {
-        if (isHeading(line)) {
-          return (
-            <h4 key={`h-${idx}`} className="pt-2 text-sm font-semibold text-slate-900">
-              {line.replace(/:$/, "")}
-            </h4>
-          );
-        }
-        if (isBullet(line)) {
-          const cleaned = line.replace(/^[-*•]\s+/, "").trim();
-          return (
-            <div key={`b-${idx}`} className="flex items-start gap-2 text-sm text-slate-800 leading-relaxed">
-              <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-slate-400 shrink-0" />
-              <span>{cleaned}</span>
-            </div>
-          );
-        }
-        return (
-          <p key={`p-${idx}`} className="text-sm text-slate-800 leading-relaxed">
-            {line}
-          </p>
-        );
-      })}
-    </div>
-  );
-}
-
-function readDetailValue(detail: Record<string, unknown> | null, key: string, fallback = ""): string {
-  if (!detail) return fallback;
-  const v = detail[key];
-  if (v == null) return fallback;
-  return String(v);
 }
 
 export function SubtopicRecordsSection({
@@ -501,31 +453,9 @@ export function SubtopicRecordsSection({
                     </div>
                   );
                 }
-                const displayTool =
-                  readDetailValue(viewDetail, "toolDisplayName") ||
-                  readDetailValue(viewDetail, "toolName") ||
-                  view?.toolDisplayName ||
-                  view?.toolName ||
-                  "-";
-                const displayClass = readDetailValue(viewDetail, "classLabel") || view?.classLabel || "-";
-                const displaySubject = readDetailValue(viewDetail, "subject") || view?.subject || "-";
-                const displayTopic = readDetailValue(viewDetail, "topic") || view?.topic || "-";
-                const displaySubtopic = readDetailValue(viewDetail, "subtopic") || view?.subtopic || "-";
                 return (
                   <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm max-h-[min(70vh,620px)] overflow-y-auto">
-                    <div className="space-y-1.5 text-slate-900">
-                      <p className="text-xl font-semibold">Generated Record</p>
-                      <p className="text-base font-medium">{displayTool}</p>
-                    </div>
-                    <div className="mt-4 space-y-1 text-sm leading-relaxed text-slate-900">
-                      <p><span className="font-semibold">Class:</span> {displayClass}</p>
-                      <p><span className="font-semibold">Subject:</span> {displaySubject}</p>
-                      <p><span className="font-semibold">Topic:</span> {displayTopic}</p>
-                      <p><span className="font-semibold">Subtopic:</span> {displaySubtopic}</p>
-                    </div>
-                    <div className="mt-5 pt-4 border-t border-slate-200">
-                      {renderSimpleContent(fullText)}
-                    </div>
+                    <GeneratedRecordBody content={fullText} />
                   </div>
                 );
               })()}

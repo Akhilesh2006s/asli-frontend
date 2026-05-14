@@ -62,9 +62,70 @@ type PdfItem = {
   contentType?: string;
   structuredContent?: any;
   renderContent?: any;
+  /** Full body from DB (markdown) — required when structured fields are absent on list rows. */
+  generatedContent?: string;
   chunkCount: number;
   uploadDate: string;
 };
+
+/** Flatten nested hierarchy for Lesson Planner — one list without repeating class/subject/topic UI. */
+function flattenLessonPlannerRecords(
+  toolNode: {
+    classes: Array<{
+      subjects: Array<{
+        topics: Array<{
+          subtopics: Array<{ records: PdfItem[] }>;
+        }>;
+      }>;
+    }>;
+  },
+): PdfItem[] {
+  const out: PdfItem[] = [];
+  for (const c of toolNode.classes) {
+    for (const s of c.subjects) {
+      for (const t of s.topics) {
+        for (const st of t.subtopics) {
+          out.push(...st.records);
+        }
+      }
+    }
+  }
+  return out.sort((a, b) => new Date(b.uploadDate || 0).getTime() - new Date(a.uploadDate || 0).getTime());
+}
+
+/** When structured JSON is missing, parse markdown from formatItemToContent (### sections, - bullets). */
+function parseLessonMarkdownSections(markdown: string): { key: string; label: string; items: string[] }[] {
+  const text = String(markdown || "").replace(/\r\n/g, "\n");
+  if (!text.trim()) return [];
+  const lines = text.split("\n");
+  const sections: { label: string; items: string[] }[] = [];
+  let current: { label: string; items: string[] } | null = null;
+  for (const raw of lines) {
+    const line = raw.trim();
+    const h3 = line.match(/^###\s+(.+)/);
+    if (h3) {
+      if (current && current.items.length) sections.push(current);
+      current = { label: h3[1].trim(), items: [] };
+      continue;
+    }
+    if (!current) continue;
+    const bullet = line.match(/^[-*]\s+(.+)/);
+    if (bullet) {
+      current.items.push(bullet[1].trim());
+      continue;
+    }
+    if (line && !line.startsWith("**") && !line.startsWith("|") && !line.startsWith("#")) {
+      if (line.length < 280) current.items.push(line.trim());
+    }
+  }
+  if (current && current.items.length) sections.push(current);
+  return sections.map((s, i) => ({ key: `md-${i}`, label: s.label, items: s.items }));
+}
+
+function lessonTitleFromMarkdown(markdown: string): string {
+  const m = String(markdown || "").match(/^##\s+(.+)$/m);
+  return m ? m[1].trim() : "";
+}
 
 type UploadStep = "idle" | "uploading" | "extracting" | "parsing" | "saving" | "done" | "error";
 
@@ -278,6 +339,27 @@ export default function AIContentEngine() {
     return t;
   };
 
+  const coalesceTextLines = (v: unknown): string[] => {
+    if (Array.isArray(v)) return v.map((x) => String(x ?? "").trim()).filter(Boolean);
+    if (typeof v === "string" && v.trim()) {
+      return v
+        .split(/\n+/)
+        .map((line) => line.replace(/^\s*[-*•]\s*|\s*\d+[\).\s]+/i, "").trim())
+        .filter(Boolean);
+    }
+    return [];
+  };
+
+  const pickLessonLines = (primary: unknown, ...alts: unknown[]) => {
+    const a = coalesceTextLines(primary);
+    if (a.length) return a;
+    for (const x of alts) {
+      const b = coalesceTextLines(x);
+      if (b.length) return b;
+    }
+    return [];
+  };
+
   const renderEducationalContent = (item: PdfItem) => {
     const content = (item.renderContent && typeof item.renderContent === "object" ? item.renderContent : null) || {};
     const fallback = (item.structuredContent && typeof item.structuredContent === "object" ? item.structuredContent : null) || {};
@@ -356,6 +438,100 @@ export default function AIContentEngine() {
       );
     }
 
+    if (
+      item.toolType === "lesson-planner" ||
+      kind === "lessonPlan" ||
+      (fallback as { learning_objectives?: unknown }).learning_objectives ||
+      (fallback as { lesson_name?: unknown }).lesson_name ||
+      (fallback as { classroom_activities?: unknown }).classroom_activities ||
+      (fallback as { objectives?: unknown }).objectives ||
+      (fallback as { activities?: unknown }).activities ||
+      (fallback as { timeline?: unknown }).timeline
+    ) {
+      const rc = content as Record<string, unknown>;
+      const fb = fallback as Record<string, unknown>;
+      const genMd = String((item as PdfItem).generatedContent || "").trim();
+      const objectives = pickLessonLines(
+        rc.objectives,
+        rc.learningObjectives,
+        (rc as { learning_objectives?: unknown }).learning_objectives,
+        fb.learning_objectives,
+        fb.learningObjectives,
+        fb.objectives,
+      );
+      const introduction = pickLessonLines(rc.introductionWarmup, fb.introduction_warmup, fb.introductionWarmup);
+      const strategy = pickLessonLines(rc.teachingStrategy, fb.teaching_strategy, fb.teachingStrategy);
+      const activities = pickLessonLines(
+        rc.activities,
+        fb.classroom_activities,
+        fb.classroomActivities,
+        fb.activities,
+      );
+      const assessment = pickLessonLines(rc.assessmentQuestions, fb.assessment_questions, fb.assessmentQuestions);
+      const homework = pickLessonLines(rc.homeworkPractice, fb.homework_practice, fb.homeworkPractice);
+      const aids = pickLessonLines(rc.teachingAids, fb.teaching_aids, fb.teachingAids);
+      const timeline = pickLessonLines(rc.timeline, fb.timeline);
+      let lessonTitle = String(rc.lessonName || rc.title || fb.lesson_name || "Lesson plan").trim();
+      let metaRows: { key: string; label: string; items: string[] }[] = [
+        { key: "lo", label: "Learning objectives", items: objectives },
+        { key: "in", label: "Introduction / warm-up", items: introduction },
+        { key: "ts", label: "Teaching strategy", items: strategy },
+        { key: "ca", label: "Classroom activities", items: activities },
+        { key: "as", label: "Assessment questions", items: assessment },
+        { key: "hw", label: "Homework / practice", items: homework },
+        { key: "ta", label: "Teaching aids required", items: aids },
+        { key: "tl", label: "Timeline", items: timeline },
+      ].filter((row) => row.items.length > 0);
+      if (metaRows.length === 0 && genMd) {
+        metaRows = parseLessonMarkdownSections(genMd);
+        const fromMd = lessonTitleFromMarkdown(genMd);
+        if (fromMd) lessonTitle = fromMd;
+      }
+
+      return (
+        <div className="space-y-3">
+          {renderSectionHeader(<CalendarDays className="h-4 w-4" />, lessonTitle)}
+          {metaRows.length > 0 ? (
+            <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
+              <table className="w-full min-w-[320px] border-collapse text-sm">
+                <thead>
+                  <tr className="bg-slate-100">
+                    <th className="border-b border-slate-200 px-3 py-2.5 text-left font-semibold text-slate-800 w-[30%] max-w-[220px]">
+                      Section
+                    </th>
+                    <th className="border-b border-slate-200 px-3 py-2.5 text-left font-semibold text-slate-800">
+                      Details
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {metaRows.map((row, ri) => (
+                    <tr key={`${item._id}-lp-${row.key}`} className={ri % 2 === 0 ? "bg-white" : "bg-slate-50/80"}>
+                      <td className="border-b border-slate-100 px-3 py-2 align-top font-medium text-slate-800">
+                        {row.label}
+                      </td>
+                      <td className="border-b border-slate-100 px-3 py-2 align-top text-slate-700">
+                        <ul className="list-disc space-y-1 pl-4 leading-relaxed">
+                          {row.items.map((line, li) => (
+                            <li key={`${item._id}-lp-${row.key}-${li}`}>{line}</li>
+                          ))}
+                        </ul>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              No structured lesson sections found on this record. Re-upload the PDF with Lesson Planner selected, or
+              confirm saved data includes fields such as learning_objectives from the PDF import.
+            </p>
+          )}
+        </div>
+      );
+    }
+
     if (kind === "story" || fallback.content || fallback.passage) {
       const title = String(content.title || fallback.title || "Story").trim();
       const passage = String(content.passage || fallback.content || fallback.passage || "").trim();
@@ -370,22 +546,6 @@ export default function AIContentEngine() {
               {questions.map((q, i) => <p key={`${item._id}-story-q-${i}`} className="text-sm">Q{i + 1}. {q.question}</p>)}
             </div>
           )}
-        </div>
-      );
-    }
-
-    if (kind === "lessonPlan" || fallback.objectives || fallback.timeline || fallback.activities) {
-      const objectives = Array.isArray(content.objectives) ? content.objectives : fallback.objectives || [];
-      const activities = Array.isArray(content.activities) ? content.activities : fallback.activities || [];
-      const timeline = Array.isArray(content.timeline) ? content.timeline : fallback.timeline || [];
-      return (
-        <div className="space-y-3">
-          {renderSectionHeader(<CalendarDays className="h-4 w-4" />, "Lesson / Daily Plan")}
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-xl border bg-white p-3"><p className="text-xs font-semibold text-slate-500 flex items-center gap-1"><Target className="h-3.5 w-3.5" />Objectives</p><ul className="mt-2 text-sm space-y-1">{objectives.map((v: any, i: number) => <li key={`${item._id}-o-${i}`}>- {String(v)}</li>)}</ul></div>
-            <div className="rounded-xl border bg-white p-3"><p className="text-xs font-semibold text-slate-500 flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />Activities</p><ul className="mt-2 text-sm space-y-1">{activities.map((v: any, i: number) => <li key={`${item._id}-a-${i}`}>- {String(v)}</li>)}</ul></div>
-            <div className="rounded-xl border bg-white p-3"><p className="text-xs font-semibold text-slate-500 flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" />Timeline</p><ul className="mt-2 text-sm space-y-1">{timeline.map((v: any, i: number) => <li key={`${item._id}-t-${i}`}>- {String(v)}</li>)}</ul></div>
-          </div>
         </div>
       );
     }
@@ -1300,6 +1460,43 @@ export default function AIContentEngine() {
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="space-y-2">
+                    {toolNode.tool === "Lesson Planner" ? (
+                      <div className="space-y-2 pl-1">
+                        {flattenLessonPlannerRecords(toolNode).map((record, idx) => (
+                          <div key={record._id} className="rounded-xl border bg-slate-50 p-4 space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <FolderOpen className="h-4 w-4 text-slate-600" />
+                                <Badge variant="outline">Record {idx + 1}</Badge>
+                                <span className="text-xs text-slate-600">
+                                  {new Date(record.uploadDate).toLocaleString()}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge>{record.approvalStatus || "pending"}</Badge>
+                                <Badge variant="secondary">{record.contentType || "Generated Content"}</Badge>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8 shrink-0 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                                  disabled={deletingPdfId === record._id}
+                                  aria-label={`Delete record ${idx + 1}`}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    void deletePdf(record._id);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            {renderEducationalContent(record)}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
                     <Accordion type="multiple" className="w-full space-y-2">
                       {toolNode.classes.map((classNode) => (
                         <AccordionItem
@@ -1411,6 +1608,7 @@ export default function AIContentEngine() {
                         </AccordionItem>
                       ))}
                     </Accordion>
+                    )}
                   </AccordionContent>
                 </AccordionItem>
               ))}

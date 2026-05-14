@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,7 @@ import { ShortNotesViewer } from '@/components/short-notes-viewer';
 import { ConceptMasteryViewer } from '@/components/concept-mastery-viewer';
 import { LessonPlannerViewer } from '@/components/lesson-planner-viewer';
 import { ActivityProjectViewer } from '@/components/activity-project-viewer';
+import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import { useCurriculumCascade, isGradeWithScienceCurriculumDropdowns } from '@/hooks/use-curriculum-cascade';
 
 interface ToolConfig {
@@ -302,6 +303,10 @@ export default function TeacherToolPage() {
   const [responseMeta, setResponseMeta] = useState<any>(null);
   const [fallbackEmptyMessage, setFallbackEmptyMessage] = useState<string>('');
   const [isFallbackContent, setIsFallbackContent] = useState(false);
+  const displayGeneratedContent = useMemo(
+    () => stripStructuredAiToolMetadata(generatedContent),
+    [generatedContent],
+  );
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [assignedStudents, setAssignedStudents] = useState<Array<{id: string, name: string, classNumber?: string}>>([]);
@@ -1007,7 +1012,7 @@ export default function TeacherToolPage() {
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(generatedContent);
+    navigator.clipboard.writeText(displayGeneratedContent);
     setCopied(true);
     toast({
       title: 'Copied!',
@@ -1411,7 +1416,7 @@ export default function TeacherToolPage() {
   const handleDownloadWord = async () => {
     try {
       setIsDownloading(true);
-      const doc = await convertToWordDocument(generatedContent);
+      const doc = await convertToWordDocument(displayGeneratedContent);
       const blob = await Packer.toBlob(doc);
       const fileName = `${config.name.replace(/\s+/g, '-')}-${Date.now()}.docx`;
       saveAs(blob, fileName);
@@ -1448,7 +1453,7 @@ export default function TeacherToolPage() {
         tempDiv.style.padding = '20mm';
         tempDiv.style.fontFamily = 'Arial, sans-serif';
         tempDiv.style.backgroundColor = 'white';
-        tempDiv.innerHTML = renderMarkdown(generatedContent);
+        tempDiv.innerHTML = renderMarkdown(displayGeneratedContent);
         document.body.appendChild(tempDiv);
         contentElement = tempDiv;
       } else {
@@ -1579,7 +1584,7 @@ export default function TeacherToolPage() {
         // For other tools, create a simple CSV from the content
         const csvRows: string[] = [];
         csvRows.push('Content');
-        csvRows.push(`"${generatedContent.replace(/"/g, '""').replace(/\n/g, ' ')}"`);
+        csvRows.push(`"${displayGeneratedContent.replace(/"/g, '""').replace(/\n/g, ' ')}"`);
         
         const csvContent = csvRows.join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1907,13 +1912,13 @@ export default function TeacherToolPage() {
                 </div>
               ) : generatedContent ? (
                 toolType === 'flashcard-generator' ? (
-                  <FlashcardViewer content={generatedContent} />
+                  <FlashcardViewer content={displayGeneratedContent} />
                 ) : toolType === 'short-notes-summaries-maker' ? (
-                  <ShortNotesViewer content={generatedContent} />
+                  <ShortNotesViewer content={displayGeneratedContent} />
                 ) : toolType === 'concept-mastery-helper' ? (
-                  <ConceptMasteryViewer content={generatedContent} />
+                  <ConceptMasteryViewer content={displayGeneratedContent} />
                 ) : toolType === 'lesson-planner' ? (
-                  <LessonPlannerViewer content={generatedContent} rawContent={rawGeneratedContent} />
+                  <LessonPlannerViewer content={displayGeneratedContent} rawContent={rawGeneratedContent} />
                 ) : toolType === 'activity-project-generator' ? (
                   rawGeneratedContent?.activities?.length ? (
                     <ActivityProjectViewer activities={rawGeneratedContent.activities} />
@@ -1925,12 +1930,12 @@ export default function TeacherToolPage() {
                     >
                       <div
                         className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900"
-                        dangerouslySetInnerHTML={{ __html: renderMarkdown(generatedContent) }}
+                        dangerouslySetInnerHTML={{ __html: renderMarkdown(displayGeneratedContent) }}
                       />
                     </motion.div>
                   )
                 ) : toolType === 'story-passage-creator' ? (
-                  <StoryPassageViewer content={generatedContent} />
+                  <StoryPassageViewer content={displayGeneratedContent} />
                 ) : (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -1939,7 +1944,7 @@ export default function TeacherToolPage() {
                   >
                     <div 
                       className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-code:text-gray-800 prose-img:rounded-lg prose-img:shadow-md prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-gray-300 prose-th:bg-gray-50 prose-th:p-2 prose-td:border prose-td:border-gray-300 prose-td:p-2"
-                      dangerouslySetInnerHTML={{ __html: renderMarkdown(generatedContent) }}
+                      dangerouslySetInnerHTML={{ __html: renderMarkdown(displayGeneratedContent) }}
                     />
                   </motion.div>
                 )
