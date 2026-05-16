@@ -2,8 +2,14 @@ import type { SuperAdminView } from "@/components/dashboard/SuperAdminSidebar";
 
 const RESTORE_VIEW_KEY = "superAdminRestoreView";
 
-/** Only restore School Management when returning from school detail — not board/sub-pages. */
-const RESTORABLE_VIEWS: SuperAdminView[] = ["admins"];
+const RESTORABLE_VIEWS: SuperAdminView[] = [
+  "admins",
+  "board",
+  "subjects-and-content",
+  "exams",
+  "analytics",
+  "dashboard",
+];
 
 export function queueSuperAdminViewRestore(view: SuperAdminView) {
   if (typeof window === "undefined") return;

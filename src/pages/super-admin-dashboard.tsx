@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState, useEffect, useCallback, useRef } from "react";
+import { Suspense, lazy, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { SuperAdminSidebar, type SuperAdminView } from "@/components/dashboard/SuperAdminSidebar";
 const AdminManagement = lazy(() => import("@/components/admin/AdminManagement"));
@@ -46,7 +46,6 @@ import {
   clearSuperAdminDashboardQueryFromUrl,
   consumeSuperAdminViewRestore,
 } from "@/lib/super-admin-nav";
-import { useResetOnTabVisible } from "@/hooks/use-reset-on-tab-visible";
 import { VidyaAnalyticsCard } from "@/components/super-admin/VidyaAnalyticsCard";
 
 const lazySectionFallback = (
@@ -98,33 +97,14 @@ export default function SuperAdminDashboard() {
   >("balanced");
 
   const VIDYA_PREFS_KEY = "superAdminVidyaPrefs";
-  const skipTabResetOnceRef = useRef(false);
-
-  const resetToHomeDashboard = useCallback(() => {
-    setCurrentView("dashboard");
-    setSelectedBoard(null);
-    setBoardData(null);
-    setBoardError(null);
-  }, []);
 
   useEffect(() => {
     clearSuperAdminDashboardQueryFromUrl();
     const restore = consumeSuperAdminViewRestore();
-    if (restore === "admins") {
-      skipTabResetOnceRef.current = true;
-      setCurrentView("admins");
-      return;
+    if (restore) {
+      setCurrentView(restore);
     }
-    resetToHomeDashboard();
-  }, [resetToHomeDashboard]);
-
-  useResetOnTabVisible(() => {
-    if (skipTabResetOnceRef.current) {
-      skipTabResetOnceRef.current = false;
-      return;
-    }
-    resetToHomeDashboard();
-  });
+  }, []);
 
   const handleViewChange = (view: SuperAdminView) => {
     setCurrentView(view);
