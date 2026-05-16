@@ -51,6 +51,8 @@ interface Question {
 }
 
 interface ExamResult {
+  _id?: string;
+  resultId?: string;
   examId: string;
   examTitle?: string;
   attemptNumber?: number;
@@ -77,6 +79,13 @@ interface DetailedAnalysisProps {
   examTitle: string;
   onBack: () => void;
 }
+
+type WeakTopicRow = { subject: string; topic: string };
+
+type AnalysisMeta = {
+  weakTopics?: WeakTopicRow[];
+  weakSubjects?: string[];
+};
 
 interface AiExamAnalysis {
   riskLevel?: 'high' | 'medium' | 'low' | string;
@@ -163,8 +172,24 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState('');
   const [aiAnalysis, setAiAnalysis] = useState<AiExamAnalysis | null>(null);
+  const [analysisMeta, setAnalysisMeta] = useState<AnalysisMeta | null>(null);
   /** Merges in questions/answers from /review when the parent result has no question list (e.g. right after submit). */
   const [displayResult, setDisplayResult] = useState<ExamResult>(result);
+
+  useEffect(() => {
+    setDisplayResult((prev) => ({
+      ...prev,
+      ...result,
+      answers:
+        result.answers && typeof result.answers === 'object' && Object.keys(result.answers).length > 0
+          ? result.answers
+          : prev.answers,
+      questions:
+        Array.isArray(result.questions) && result.questions.length > 0
+          ? result.questions
+          : prev.questions,
+    }));
+  }, [result]);
 
   const normalizeLegacyExamText = (value: unknown, subject?: string): string =>
     normalizeAndFormatExamDisplayText(value, subject);
@@ -462,12 +487,16 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     result.questions?.length,
   ]);
 
+  const [reviewHydrated, setReviewHydrated] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
-    const hydrateQuestions = async () => {
-      if (Array.isArray(result.questions) && result.questions.length > 0) return;
+    const hydrateFromReview = async () => {
       const examIdStr = normalizeMongoId(result.examId);
-      if (!examIdStr) return;
+      if (!examIdStr) {
+        setReviewHydrated(true);
+        return;
+      }
 
       try {
         const token = localStorage.getItem('authToken');
@@ -480,11 +509,17 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
             'Content-Type': 'application/json',
           },
         });
-        if (!res.ok || cancelled) return;
+        if (!res.ok || cancelled) {
+          if (!cancelled) setReviewHydrated(true);
+          return;
+        }
         const json = await res.json().catch(() => ({}));
         const qs = json?.data?.questions;
-        const srv = json?.data?.result as { answers?: Record<string, unknown> } | undefined;
-        if (!Array.isArray(qs) || qs.length === 0 || cancelled) return;
+        const srv = json?.data?.result as ExamResult | undefined;
+        if (!srv || cancelled) {
+          if (!cancelled) setReviewHydrated(true);
+          return;
+        }
 
         setDisplayResult((prev) => {
           const prevAnswers =
@@ -492,28 +527,42 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
               ? (prev.answers as Record<string, unknown>)
               : {};
           const serverAnswers =
-            srv?.answers && typeof srv.answers === 'object' && !Array.isArray(srv.answers)
+            srv.answers && typeof srv.answers === 'object' && !Array.isArray(srv.answers)
               ? srv.answers
               : {};
           return {
             ...prev,
-            questions: qs as ExamResult['questions'],
+            ...srv,
+            _id: srv._id != null ? String(srv._id) : prev._id,
+            examId: String(srv.examId || prev.examId || examIdStr),
+            questions:
+              Array.isArray(qs) && qs.length > 0
+                ? (qs as ExamResult['questions'])
+                : prev.questions?.length
+                  ? prev.questions
+                  : (srv.questions as ExamResult['questions']),
             answers:
-              Object.keys(serverAnswers).length > 0 ? { ...prevAnswers, ...serverAnswers } : prev.answers,
+              Object.keys(serverAnswers).length > 0
+                ? { ...prevAnswers, ...serverAnswers }
+                : prev.answers,
           };
         });
       } catch {
         /* non-fatal */
+      } finally {
+        if (!cancelled) setReviewHydrated(true);
       }
     };
 
-    hydrateQuestions();
+    setReviewHydrated(false);
+    void hydrateFromReview();
     return () => {
       cancelled = true;
     };
-  }, [normalizeMongoId(result.examId), normalizeMongoId((result as ExamResult & { _id?: unknown })._id), result.questions?.length]);
+  }, [normalizeMongoId(result.examId), normalizeMongoId((result as ExamResult & { _id?: unknown })._id), result.attemptNumber]);
 
   useEffect(() => {
+    if (!reviewHydrated) return;
     let cancelled = false;
     const fetchAiReport = async () => {
       setAiLoading(true);
@@ -526,7 +575,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ result, examTitle }),
+          body: JSON.stringify({ result: displayResult, examTitle }),
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || !payload?.success) {
@@ -534,6 +583,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
         }
         if (!cancelled) {
           setAiAnalysis(payload?.data?.analysis || null);
+          setAnalysisMeta((payload?.data?.meta as AnalysisMeta) || null);
         }
       } catch (error: any) {
         if (!cancelled) {
@@ -550,7 +600,19 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     return () => {
       cancelled = true;
     };
-  }, [result, examTitle]);
+  }, [
+    displayResult.examId,
+    displayResult.correctAnswers,
+    displayResult.wrongAnswers,
+    displayResult.unattempted,
+    displayResult.obtainedMarks,
+    displayResult.percentage,
+    displayResult.attemptNumber,
+    displayResult.answers,
+    displayResult._id,
+    examTitle,
+    reviewHydrated,
+  ]);
 
   const getGrade = (percentage: number) => {
     if (percentage >= 95) return { grade: 'A+', color: 'text-purple-600', bgColor: 'bg-gradient-to-r from-purple-100 to-pink-100', icon: Crown };
@@ -671,15 +733,64 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       setWeakSubjectContent(null);
       return;
     }
-    const subjectNames = weakAreas.map((w) => w.subject.toLowerCase()).join(',');
     const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
     const controller = new AbortController();
 
     async function fetchWeakContent() {
       setLoadingWeakContent(true);
       try {
+        let topicRows: WeakTopicRow[] = Array.isArray(analysisMeta?.weakTopics)
+          ? analysisMeta.weakTopics.filter((r) => r?.topic)
+          : [];
+
+        if (topicRows.length === 0 && aiAnalysis) {
+          const fallback: WeakTopicRow[] = [];
+          if (Array.isArray(aiAnalysis.focusAreas)) {
+            aiAnalysis.focusAreas.forEach((fa) => {
+              const issue = String(fa?.issue || '');
+              const match = issue.match(/in\s+(.+?)(?:\s*\(|$)/i);
+              const subject = String(fa?.subject || '').toLowerCase().trim();
+              if (match?.[1]) {
+                fallback.push({ subject, topic: match[1].trim() });
+              }
+            });
+          }
+          if (Array.isArray(aiAnalysis.questionInsights)) {
+            aiAnalysis.questionInsights
+              .filter((q) => q?.status === 'wrong' || q?.status === 'unattempted')
+              .forEach((q) => {
+                const gap = String(q?.conceptGap || '');
+                const topicMatch =
+                  gap.match(/[“"]([^”"]+)[”"]/) ||
+                  gap.match(/\(\s*[“"]?([^"”)]+)[”"]?\s*,/);
+                const subject = String(q?.subject || '').toLowerCase().trim();
+                if (topicMatch?.[1]) {
+                  fallback.push({ subject, topic: topicMatch[1].trim() });
+                }
+              });
+          }
+          topicRows = fallback;
+        }
+
+        const subjectsFromTopics = [
+          ...new Set(topicRows.map((r) => r.subject).filter(Boolean)),
+        ];
+        const subjectNames =
+          subjectsFromTopics.length > 0
+            ? subjectsFromTopics.join(',')
+            : weakAreas.map((w) => w.subject.toLowerCase()).join(',');
+
+        const topicRowsParam = topicRows
+          .slice(0, 10)
+          .map((r) => `${r.subject || ''}|${r.topic}`)
+          .join(',');
+
+        const url = topicRowsParam
+          ? `${API_BASE_URL}/api/student/weak-subject-content?subjects=${encodeURIComponent(subjectNames)}&topicRows=${encodeURIComponent(topicRowsParam)}`
+          : `${API_BASE_URL}/api/student/weak-subject-content?subjects=${encodeURIComponent(subjectNames)}`;
+
         const res = await fetch(
-          `${API_BASE_URL}/api/student/weak-subject-content?subjects=${encodeURIComponent(subjectNames)}`,
+          url,
           {
             signal: controller.signal,
             headers: {
@@ -705,7 +816,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
 
     void fetchWeakContent();
     return () => controller.abort();
-  }, [weakAreas]);
+  }, [weakAreas, aiAnalysis, analysisMeta]);
 
   const advancedExamId = normalizeMongoId(result.examId);
 
@@ -951,7 +1062,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
             {questionAnalysisMarksModule}
             <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-violet-50">
               <CardHeader>
-                <CardTitle className="text-lg">AI Performance Snapshot</CardTitle>
+                <CardTitle className="text-lg">Performance Snapshot</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -981,12 +1092,12 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
               <CardHeader>
                 <CardTitle className="flex items-center text-xl">
                   <Brain className="w-6 h-6 mr-2 text-indigo-600" />
-                  Gemini Performance Report
+                  Performance Analysis Report
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {aiLoading && (
-                  <div className="text-sm text-indigo-700">Generating AI report...</div>
+                  <div className="text-sm text-indigo-700">Generating your report...</div>
                 )}
                 {!aiLoading && aiError && (
                   <div className="text-sm text-red-600">{aiError}</div>

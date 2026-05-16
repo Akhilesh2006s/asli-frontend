@@ -132,7 +132,7 @@ export function WeakSubjectResourcesCard({
                   <TabsContent key={key} value={key} className="mt-0">
                     {items.length === 0 ? (
                       <p className="text-sm text-muted-foreground py-6 text-center rounded-lg border border-dashed border-purple-200/80 bg-white/60">
-                        No {label} available for your weak subjects yet.
+                        No {label} matched your weak topics from this exam yet. Ask your teacher to upload materials with the same topic names.
                       </p>
                     ) : (
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

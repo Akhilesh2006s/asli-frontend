@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
 import { cn } from "@/lib/utils";
 import { toCurriculumSelectRows, type CurriculumSelectRow } from "@/lib/vidya-subjects";
+import { isDeprecatedAiToolIdentifier } from "@/lib/ai-tool-registry";
 import {
   Wrench,
   School,
@@ -90,7 +91,7 @@ export default function AIContentEngine() {
   const [subject, setSubject] = useState("");
   const [board, setBoard] = useState("CBSE");
   /** PDF records list is filtered only by board; independent of upload/curriculum form. */
-  const [recordsBoardFilter, setRecordsBoardFilter] = useState("CBSE");
+  const [recordsBoardFilter, setRecordsBoardFilter] = useState("__all__");
   const [boardOptions, setBoardOptions] = useState<string[]>([]);
   const [classLabel, setClassLabel] = useState("");
   const [topic, setTopic] = useState("");
@@ -309,7 +310,12 @@ export default function AIContentEngine() {
         : null;
     const pick = (o: Record<string, unknown> | null) => {
       if (!o) return "";
-      return String(o.title || o.name || o.lesson_name || "").trim();
+      if (record.toolType === "flashcard-generator") {
+        const cards = Array.isArray(o.cards) ? o.cards : [];
+        const first = cards[0] && typeof cards[0] === "object" ? (cards[0] as Record<string, unknown>) : null;
+        return String(o.front || first?.front || o.title || "").trim();
+      }
+      return String(o.concept_name || o.title || o.name || o.lesson_name || "").trim();
     };
     return (
       pick(rc) ||
@@ -322,17 +328,575 @@ export default function AIContentEngine() {
     );
   };
 
+  const pdfRecordViewHint = (record: PdfItem): string => {
+    switch (record.toolType) {
+      case "flashcard-generator":
+        return "Open View for this card — Front, Back, Memory Cue, Skill Focus, Example Use, Peer Prompt, and Reflection.";
+      case "short-notes-summaries-maker":
+        return "Open View for the full 10-section short notes layout.";
+      case "story-passage-creator":
+        return "Open View for the full story & passage layout.";
+      case "worksheet-mcq-generator":
+        return "Open View for worksheet sections, questions, and answer key.";
+      default:
+        return "Open View for the full lesson layout — objectives, materials, steps, and rubrics.";
+    }
+  };
+
   const renderEducationalContent = (item: PdfItem) => {
     const content = (item.renderContent && typeof item.renderContent === "object" ? item.renderContent : null) || {};
     const fallback = (item.structuredContent && typeof item.structuredContent === "object" ? item.structuredContent : null) || {};
-    const kind = String(content.kind || "").trim();
+    const kind =
+      item.toolType === "story-passage-creator"
+        ? "story"
+        : item.toolType === "short-notes-summaries-maker"
+          ? "shortNotes"
+          : item.toolType === "flashcard-generator"
+            ? "flashcards"
+            : String(content.kind || "").trim();
 
     if (
-      item.toolType === "worksheet-mcq-generator" ||
+      item.toolType !== "short-notes-summaries-maker" &&
+      item.toolType !== "story-passage-creator" &&
+      item.toolType !== "flashcard-generator" &&
+      (item.toolType === "concept-mastery-helper" ||
+        kind === "concept" ||
+        String(fallback.concept_name || "").trim())
+    ) {
+      const fb = fallback as Record<string, unknown>;
+      const rc = content as Record<string, unknown>;
+      const pickStr = (...keys: string[]) => {
+        for (const k of keys) {
+          const v = rc[k] ?? fb[k];
+          if (v != null && String(v).trim()) return String(v).trim();
+        }
+        return "";
+      };
+      const pickArr = (...keys: string[]) => {
+        for (const k of keys) {
+          const v = rc[k] ?? fb[k];
+          if (Array.isArray(v) && v.length) return v.map((x) => String(x ?? "").trim()).filter(Boolean);
+        }
+        return [];
+      };
+      const conceptTitle = pickStr("concept_name", "title", "name") || "Concept";
+      const section = (label: string, children: ReactNode) => (
+        <div className="rounded-xl border bg-white p-3 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500">{label}</p>
+          <div className="mt-2">{children}</div>
+        </div>
+      );
+      const bodyFromMarkdown = String(item.generatedContent || "").trim();
+      const hasStructured = Boolean(
+        pickStr(
+          "lesson",
+          "simple_definition",
+          "explanation",
+          "step_by_step_explanation",
+          "content",
+          "summary",
+          "why_important",
+          "real_example",
+          "exam_tips",
+        ) ||
+          pickArr("key_points").length ||
+          pickArr("common_mistakes").length ||
+          pickArr("concept_check_questions").length,
+      );
+      return (
+        <div className="space-y-3">
+          {renderSectionHeader(<Lightbulb className="h-4 w-4" />, conceptTitle)}
+          {pickStr("simple_definition")
+            ? section("1. Simple Definition", <p className="text-sm text-slate-800 whitespace-pre-wrap">{pickStr("simple_definition")}</p>)
+            : null}
+          {pickStr("why_important")
+            ? section("2. Why This Concept Is Important", <p className="text-sm text-slate-800 whitespace-pre-wrap">{pickStr("why_important")}</p>)
+            : null}
+          {pickStr("prior_knowledge_needed")
+            ? section("3. Prior Knowledge Needed", <p className="text-sm text-slate-800 whitespace-pre-wrap">{pickStr("prior_knowledge_needed")}</p>)
+            : null}
+          {pickStr("lesson", "explanation", "step_by_step_explanation", "content", "summary")
+            ? section(
+                "4. Step-by-step Explanation",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">
+                  {pickStr("lesson", "explanation", "step_by_step_explanation", "content", "summary")}
+                </p>,
+              )
+            : null}
+          {pickStr("diagram_suggestion")
+            ? section("5. Diagram / Visualisation Suggestion", <p className="text-sm text-slate-800 whitespace-pre-wrap">{pickStr("diagram_suggestion")}</p>)
+            : null}
+          {pickStr("real_example")
+            ? section("6. Real-life Examples", <p className="text-sm text-slate-800 whitespace-pre-wrap">{pickStr("real_example")}</p>)
+            : null}
+          {pickArr("common_mistakes").length
+            ? section(
+                "7. Common Misconceptions and Corrections",
+                <ul className="text-sm space-y-1">
+                  {pickArr("common_mistakes").map((line, i) => (
+                    <li key={`${item._id}-cm-${i}`}>- {line}</li>
+                  ))}
+                </ul>,
+              )
+            : null}
+          {pickArr("concept_check_questions").length
+            ? section(
+                "8. Concept Check Questions",
+                <ul className="text-sm space-y-1">
+                  {pickArr("concept_check_questions").map((line, i) => (
+                    <li key={`${item._id}-cc-${i}`}>- {line}</li>
+                  ))}
+                </ul>,
+              )
+            : null}
+          {pickArr("key_points").length
+            ? section(
+                "9. Key Points to Remember",
+                <ul className="text-sm space-y-1">
+                  {pickArr("key_points").map((line, i) => (
+                    <li key={`${item._id}-kp-${i}`}>- {line}</li>
+                  ))}
+                </ul>,
+              )
+            : null}
+          {pickStr("exam_tips")
+            ? section("10. Exam Tips", <p className="text-sm text-slate-800 whitespace-pre-wrap">{pickStr("exam_tips")}</p>)
+            : null}
+          {pickStr("hots_question")
+            ? section("11. Higher-order Thinking Question", <p className="text-sm text-slate-800 whitespace-pre-wrap">{pickStr("hots_question")}</p>)
+            : null}
+          {pickStr("self_reflection_prompt")
+            ? section("12. Quick Self-reflection Prompt", <p className="text-sm text-slate-800 whitespace-pre-wrap">{pickStr("self_reflection_prompt")}</p>)
+            : null}
+          {!hasStructured && bodyFromMarkdown ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3">
+              <p className="text-xs font-semibold text-amber-900 mb-2">Extracted content</p>
+              <pre className="max-h-96 overflow-y-auto text-xs text-slate-800 whitespace-pre-wrap leading-relaxed font-sans">
+                {bodyFromMarkdown}
+              </pre>
+            </div>
+          ) : null}
+          {!hasStructured && !bodyFromMarkdown ? (
+            <p className="text-xs text-slate-500 italic">No concept sections extracted. Re-upload with Concept Mastery Helper selected.</p>
+          ) : null}
+        </div>
+      );
+    }
+
+    if (
       item.toolType === "homework-creator" ||
+      kind === "homework" ||
+      (item.toolType === "homework-creator" &&
+        (fallback.instructions ||
+          fallback.application_tasks ||
+          fallback.creative_thinking_question ||
+          fallback.parent_note))
+    ) {
+      const fb = fallback as Record<string, unknown>;
+      const rc = content as Record<string, unknown>;
+      const pickStr = (...keys: string[]) => {
+        for (const k of keys) {
+          const v = rc[k] ?? fb[k];
+          if (v != null && String(v).trim()) return String(v).trim();
+        }
+        return "";
+      };
+      const listFrom = (primary: unknown, ...alts: unknown[]): string[] => {
+        const pull = (v: unknown): string[] => {
+          if (v == null) return [];
+          if (Array.isArray(v)) {
+            return v.flatMap((x) => {
+              if (typeof x === "string") return [String(x).trim()].filter(Boolean);
+              return [];
+            });
+          }
+          if (typeof v === "string" && v.trim()) {
+            return v
+              .split(/\n+/)
+              .map((ln) => ln.replace(/^\s*[-*•]\s*|\s*\d+[\).\s]+/i, "").trim())
+              .filter(Boolean);
+          }
+          return [];
+        };
+        const a = pull(primary);
+        if (a.length) return a;
+        for (const x of alts) {
+          const b = pull(x);
+          if (b.length) return b;
+        }
+        return [];
+      };
+      const practiceQuestions = toQuestionArray(
+        rc.practiceQuestions || fb.practice_questions || rc.questions || fb.questions || [],
+      );
+      const applicationTasks = listFrom(rc.applicationTasks, fb.application_tasks);
+      const hwTitle = pickStr("title", "homework_title", "name") || "Homework";
+      const section = (label: string, children: ReactNode) => (
+        <div className="rounded-xl border bg-white p-3 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500">{label}</p>
+          <div className="mt-2">{children}</div>
+        </div>
+      );
+      const fallbackBody = String(item.generatedContent || "").trim();
+      const hasStructured = Boolean(
+        pickStr("instructions") ||
+          practiceQuestions.length ||
+          applicationTasks.length ||
+          pickStr("creativeThinkingQuestion", "creative_thinking_question") ||
+          pickStr("realLifeObservationTask", "real_life_observation_task") ||
+          pickStr("challengeQuestion", "challenge_question") ||
+          pickStr("supportHint", "support_hint") ||
+          pickStr("answerHints", "answer_hints") ||
+          pickStr("parentNote", "parent_note"),
+      );
+
+      return (
+        <div className="space-y-3">
+          {renderSectionHeader(<ClipboardList className="h-4 w-4" />, hwTitle)}
+          {pickStr("instructions", "student_instructions")
+            ? section(
+                "2. Clear Student Instructions",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("instructions", "student_instructions")}
+                </p>,
+              )
+            : null}
+          {practiceQuestions.length > 0
+            ? section(
+                "3. Practice Questions",
+                <div className="space-y-3">
+                  {practiceQuestions.map((q, i) => (
+                    <div key={`${item._id}-hw-q-${i}`} className="rounded-lg border border-slate-100 p-3 space-y-2">
+                      <p className="text-sm font-medium">Q{i + 1}. {q.question}</p>
+                      {q.options.length > 0 && (
+                        <ul className="text-sm space-y-1 text-slate-700">
+                          {q.options.map((opt: string, idx: number) => (
+                            <li key={`${item._id}-hw-q-${i}-o-${idx}`}>- {opt}</li>
+                          ))}
+                        </ul>
+                      )}
+                      {q.answer ? (
+                        <p className="text-xs text-emerald-700">
+                          <span className="font-medium">Answer:</span> {q.answer}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>,
+              )
+            : null}
+          {applicationTasks.length > 0
+            ? section(
+                "4. Application-based Tasks",
+                <ul className="text-sm space-y-1">
+                  {applicationTasks.map((t, i) => (
+                    <li key={`${item._id}-hw-app-${i}`}>- {t}</li>
+                  ))}
+                </ul>,
+              )
+            : null}
+          {pickStr("creativeThinkingQuestion", "creative_thinking_question")
+            ? section(
+                "5. One Creative / Thinking Question",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("creativeThinkingQuestion", "creative_thinking_question")}
+                </p>,
+              )
+            : null}
+          {pickStr("realLifeObservationTask", "real_life_observation_task")
+            ? section(
+                "6. One Real-life Observation Task",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("realLifeObservationTask", "real_life_observation_task")}
+                </p>,
+              )
+            : null}
+          {pickStr("challengeQuestion", "challenge_question")
+            ? section(
+                "7. Challenge Question",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("challengeQuestion", "challenge_question")}
+                </p>,
+              )
+            : null}
+          {pickStr("supportHint", "support_hint", "hints")
+            ? section(
+                "8. Support Hint",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("supportHint", "support_hint", "hints")}
+                </p>,
+              )
+            : null}
+          {pickStr("answerHints", "answer_hints", "answer_key")
+            ? section(
+                "9. Answer Hints / Key Points",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("answerHints", "answer_hints", "answer_key")}
+                </p>,
+              )
+            : null}
+          {pickStr("parentNote", "parent_note")
+            ? section(
+                "10. Parent Note",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("parentNote", "parent_note")}
+                </p>,
+              )
+            : null}
+          {!hasStructured && fallbackBody ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3">
+              <p className="text-xs font-semibold text-amber-900 mb-2">Extracted content (sections not mapped)</p>
+              <pre className="max-h-72 overflow-y-auto text-xs text-slate-800 whitespace-pre-wrap leading-relaxed font-sans">
+                {fallbackBody.slice(0, 120000)}
+              </pre>
+            </div>
+          ) : null}
+        </div>
+      );
+    }
+
+    if (item.toolType === "worksheet-mcq-generator" || kind === "worksheet") {
+      const fb = fallback as Record<string, unknown>;
+      const rc = content as Record<string, unknown>;
+      const pickStr = (...keys: string[]) => {
+        for (const k of keys) {
+          const v = rc[k] ?? fb[k];
+          if (v != null && String(v).trim()) return String(v).trim();
+        }
+        return "";
+      };
+      const listFrom = (primary: unknown, ...alts: unknown[]): string[] => {
+        const pull = (v: unknown): string[] => {
+          if (v == null) return [];
+          if (Array.isArray(v)) return v.map((x) => String(x ?? "").trim()).filter(Boolean);
+          if (typeof v === "string" && v.trim()) {
+            return v
+              .split(/\n+/)
+              .map((ln) => ln.replace(/^\s*[-*•]\s*|\s*\d+[\).\s]+/i, "").trim())
+              .filter(Boolean);
+          }
+          return [];
+        };
+        const a = pull(primary);
+        if (a.length) return a;
+        for (const x of alts) {
+          const b = pull(x);
+          if (b.length) return b;
+        }
+        return [];
+      };
+      const WORKSHEET_SECTION_ORDER = [
+        "Section A: MCQs",
+        "Section B: Fill in the Blanks",
+        "Section C: Very Short Answer Questions",
+        "Section D: Short Answer Questions",
+        "Section E: Competency / Real-life Application Questions",
+      ];
+      const mapSectionName = (name: string) => {
+        const n = String(name || "").trim();
+        if (/^section\s*a|mcq|multiple\s*choice/i.test(n)) return WORKSHEET_SECTION_ORDER[0];
+        if (/^section\s*b|fill|blank|fib/i.test(n)) return WORKSHEET_SECTION_ORDER[1];
+        if (/^section\s*c|very\s*short|vsa/i.test(n)) return WORKSHEET_SECTION_ORDER[2];
+        if (/^section\s*d|short\s*answer/i.test(n) && !/very/i.test(n)) return WORKSHEET_SECTION_ORDER[3];
+        if (/^section\s*[ef]|competency|real[\s-]*life|application/i.test(n)) return WORKSHEET_SECTION_ORDER[4];
+        if (n === "Questions" && !n) return n;
+        return WORKSHEET_SECTION_ORDER.includes(n) ? n : n;
+      };
+      const sectionsRaw = (rc.sections ?? fb.sections ?? []) as {
+        sectionName?: string;
+        title?: string;
+        questions?: unknown[];
+      }[];
+      const sectionMap = new Map<string, ReturnType<typeof toQuestionArray>>();
+      const addToSection = (name: string, qs: ReturnType<typeof toQuestionArray>) => {
+        const key = mapSectionName(name);
+        const prev = sectionMap.get(key) || [];
+        sectionMap.set(key, [...prev, ...qs]);
+      };
+      if (Array.isArray(sectionsRaw)) {
+        for (const sec of sectionsRaw) {
+          addToSection(String(sec?.sectionName || sec?.title || "Section"), toQuestionArray(sec?.questions || []));
+        }
+      }
+      const flatQs = toQuestionArray(rc.questions || fb.questions || []);
+      if (flatQs.length) {
+        for (const q of flatQs) {
+          let sec = String((q as { section?: string }).section || "").trim();
+          const qt = String(q.question || "");
+          if (!sec || sec === "Questions") {
+            if ((q as { options?: string[] }).options?.length) sec = WORKSHEET_SECTION_ORDER[0];
+            else if (/_{2,}/.test(qt)) sec = WORKSHEET_SECTION_ORDER[1];
+            else if (/competency|real[\s-]*life|application/i.test(qt)) sec = WORKSHEET_SECTION_ORDER[4];
+            else if (/\?/.test(qt) && qt.split(/\s+/).length <= 22) sec = WORKSHEET_SECTION_ORDER[2];
+            else if (/\?/.test(qt)) sec = WORKSHEET_SECTION_ORDER[3];
+            else sec = WORKSHEET_SECTION_ORDER[2];
+          }
+          addToSection(mapSectionName(sec), [q]);
+        }
+      }
+      if (!sectionMap.size && String(fb.question || "").trim()) {
+        const single = toQuestionArray([fb])[0];
+        const qt = String(single?.question || "");
+        let sec = String(fb.section || "").trim();
+        if (!sec) {
+          if (/_{2,}/.test(qt)) sec = WORKSHEET_SECTION_ORDER[1];
+          else sec = WORKSHEET_SECTION_ORDER[0];
+        }
+        addToSection(mapSectionName(sec), [single]);
+      }
+      const sections = WORKSHEET_SECTION_ORDER.map((sectionName, idx) => ({
+        sectionName,
+        displayLabel: `${4 + idx}. ${sectionName}`,
+        questions: sectionMap.get(sectionName) || [],
+      }));
+      const wsTitle = pickStr("title", "worksheet_title", "name") || activityTitleForDisplay("Worksheet", item);
+      const objectives = listFrom(rc.learningObjectives, fb.learning_objectives, fb.objectives);
+      const section = (label: string, children: ReactNode) => (
+        <div className="rounded-xl border bg-white p-3 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500">{label}</p>
+          <div className="mt-2">{children}</div>
+        </div>
+      );
+      const fallbackBody = String(item.generatedContent || "").trim();
+      const hasStructured = Boolean(
+        objectives.length ||
+          pickStr("instructions", "student_instructions") ||
+          sections.some((s) => s.questions.length) ||
+          pickStr("answerKey", "answer_key") ||
+          pickStr("bloomLevel", "bloom_level") ||
+          pickStr("difficultyTag", "difficulty_tag", "difficulty"),
+      );
+
+      return (
+        <div className="space-y-3">
+          <div className="space-y-0.5">
+            {renderSectionHeader(<ClipboardList className="h-4 w-4" />, wsTitle)}
+            <p className="text-xs text-slate-500 pl-9">Worksheet &amp; MCQ — 10-section template</p>
+          </div>
+          {objectives.length > 0
+            ? section(
+                "2. Learning Objectives",
+                <ul className="text-sm space-y-1">
+                  {objectives.map((line, i) => (
+                    <li key={`${item._id}-ws-lo-${i}`}>- {line}</li>
+                  ))}
+                </ul>,
+              )
+            : null}
+          {pickStr("instructions", "student_instructions")
+            ? section(
+                "3. Instructions to Students",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("instructions", "student_instructions")}
+                </p>,
+              )
+            : null}
+          {sections.map((sec, sIdx) =>
+            section(
+              sec.displayLabel || sec.sectionName,
+              sec.questions.length > 0 ? (
+              <div className="space-y-3">
+                {sec.questions.map((q, qIdx) => {
+                  const qx = q as { question_number?: number; marks?: number; type?: string };
+                  return (
+                    <div
+                      key={`${item._id}-ws-${sIdx}-q-${qIdx}`}
+                      className="rounded-lg border border-slate-100 p-3 space-y-2"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-medium flex-1">
+                          Q{qx.question_number != null ? String(qx.question_number) : qIdx + 1}. {q.question}
+                          {qx.type ? (
+                            <span className="ml-2 text-xs font-normal text-slate-500">({qx.type})</span>
+                          ) : null}
+                        </p>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50"
+                          disabled={deletingQuestionKey === `${item._id}:${qIdx}`}
+                          onClick={() => handleDeleteQuestion(item, qIdx)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      {q.options.length > 0 && (
+                        <ul className="text-sm space-y-1 text-slate-700">
+                          {q.options.map((opt: string, idx: number) => (
+                            <li key={`${item._id}-ws-${sIdx}-q-${qIdx}-o-${idx}`} className="flex items-start gap-2">
+                              <span className="mt-1 inline-block h-2.5 w-2.5 rounded-full border border-slate-500" />
+                              <span>{opt.replace(/^[A-D][\).]\s*/i, `${String.fromCharCode(65 + idx)}) `)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {q.answer ? (
+                        <p className="text-xs text-emerald-700 flex items-center gap-1.5">
+                          <CircleCheck className="h-3.5 w-3.5" />
+                          <span>
+                            <span className="font-medium">Answer:</span> {q.answer}
+                          </span>
+                        </p>
+                      ) : null}
+                      {qx.marks != null && !Number.isNaN(Number(qx.marks)) ? (
+                        <p className="text-xs text-slate-500">Marks: {String(qx.marks)}</p>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+              ) : (
+                <p className="text-xs text-slate-500 italic">
+                  No questions extracted for this section. Re-upload the worksheet PDF to capture all sections.
+                </p>
+              )
+            )
+          )}
+          {pickStr("answerKey", "answer_key")
+            ? section(
+                "9. Answer Key",
+                <pre className="text-xs text-slate-800 whitespace-pre-wrap font-sans leading-relaxed">
+                  {pickStr("answerKey", "answer_key")}
+                </pre>,
+              )
+            : null}
+          {pickStr("bloomLevel", "bloom_level") || pickStr("difficultyTag", "difficulty_tag", "difficulty") ? (
+            section(
+              "10. Bloom's Level and Difficulty Tag",
+              <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                {[pickStr("bloomLevel", "bloom_level"), pickStr("difficultyTag", "difficulty_tag", "difficulty")]
+                  .filter(Boolean)
+                  .join(" — ")}
+              </p>
+            )
+          ) : null}
+          {!hasStructured && fallbackBody ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3">
+              <p className="text-xs font-semibold text-amber-900 mb-2">Extracted content (sections not mapped)</p>
+              <pre className="max-h-72 overflow-y-auto text-xs text-slate-800 whitespace-pre-wrap leading-relaxed font-sans">
+                {fallbackBody.slice(0, 120000)}
+              </pre>
+            </div>
+          ) : null}
+        </div>
+      );
+    }
+
+    if (
       kind === "questionSet" ||
-      Array.isArray(content.questions) ||
-      Array.isArray(fallback.questions)
+      (Array.isArray(content.questions) &&
+        item.toolType !== "concept-mastery-helper" &&
+        item.toolType !== "homework-creator" &&
+        item.toolType !== "worksheet-mcq-generator" &&
+        item.toolType !== "story-passage-creator" &&
+        item.toolType !== "short-notes-summaries-maker") ||
+      (Array.isArray(fallback.questions) &&
+        item.toolType !== "concept-mastery-helper" &&
+        item.toolType !== "homework-creator" &&
+        item.toolType !== "worksheet-mcq-generator" &&
+        item.toolType !== "story-passage-creator" &&
+        item.toolType !== "short-notes-summaries-maker")
     ) {
       const questions = toQuestionArray(content.questions || fallback.questions || []);
       if (questions.length === 0) {
@@ -382,46 +946,710 @@ export default function AIContentEngine() {
       );
     }
 
-    if (kind === "flashcards" || Array.isArray(content.cards) || Array.isArray(fallback.cards)) {
-      const cards = Array.isArray(content.cards) ? content.cards : fallback.cards || [];
+    if (
+      item.toolType === "flashcard-generator" ||
+      kind === "flashcards" ||
+      Array.isArray(content.cards) ||
+      Array.isArray(fallback.cards)
+    ) {
+      const fb = fallback as Record<string, unknown>;
+      const rc = content as Record<string, unknown>;
+      const pickCardStr = (card: Record<string, unknown>, ...keys: string[]) => {
+        for (const k of keys) {
+          const v = card[k];
+          if (v != null && String(v).trim()) return String(v).trim();
+        }
+        return "";
+      };
+      const normalizeCard = (raw: unknown) => {
+        const c = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+        return {
+          front: pickCardStr(c, "front"),
+          back: pickCardStr(c, "back"),
+          memoryCue: pickCardStr(c, "memoryCue", "memory_cue", "hint"),
+          skillFocus: pickCardStr(c, "skillFocus", "skill_focus", "bloom_level"),
+          exampleUse: pickCardStr(c, "exampleUse", "example_use", "real_life_link"),
+          peerPrompt: pickCardStr(c, "peerPrompt", "peer_prompt"),
+          reflection: pickCardStr(c, "reflection", "reflection_prompt", "self_check"),
+        };
+      };
+      const rawCards = Array.isArray(rc.cards)
+        ? rc.cards
+        : Array.isArray(fallback.cards)
+          ? (fallback.cards as unknown[])
+          : pickCardStr(fb, "front") || pickCardStr(fb, "back")
+            ? [fb]
+            : [];
+      const cards = rawCards.map(normalizeCard).filter((c) => c.front || c.back);
+      const deckTitle = pickCardStr(rc, "title") || pickCardStr(fb, "deck_title", "title") || "Flashcards";
+      const fieldRow = (label: string, value: string) =>
+        value ? (
+          <p className="text-sm text-slate-800">
+            <span className="font-medium text-slate-600">{label}:</span> {value}
+          </p>
+        ) : null;
       return (
         <div className="space-y-3">
-          {renderSectionHeader(<Layers className="h-4 w-4" />, "Flashcards")}
+          {renderSectionHeader(<Layers className="h-4 w-4" />, deckTitle)}
+          <p className="text-xs text-slate-500 pl-9">Flashcard Generator — 7-field template per card</p>
           <div className="grid gap-3 md:grid-cols-2">
-          {cards.map((card: any, idx: number) => (
+          {cards.map((card, idx) => (
             <div key={`${item._id}-card-${idx}`} className="rounded-xl border bg-white p-4 space-y-2 shadow-sm">
-              <p className="text-xs text-slate-500">Card {idx + 1}</p>
-              <p className="text-sm"><span className="font-medium">Front:</span> {String(card?.front || "").trim()}</p>
-              <p className="text-sm text-slate-700"><span className="font-medium">Back:</span> {String(card?.back || "").trim()}</p>
+              <p className="text-xs font-semibold text-slate-500">Card {idx + 1}</p>
+              {fieldRow("Front", card.front)}
+              {fieldRow("Back", card.back)}
+              {fieldRow("Memory Cue", card.memoryCue)}
+              {fieldRow("Skill Focus", card.skillFocus)}
+              {fieldRow("Example Use", card.exampleUse)}
+              {fieldRow("Peer Prompt", card.peerPrompt)}
+              {fieldRow("Reflection", card.reflection)}
             </div>
           ))}
           </div>
+          {cards.length === 0 ? (
+            <p className="text-xs text-slate-500 italic">No flashcards extracted. Re-upload with Flashcard Generator selected.</p>
+          ) : null}
         </div>
       );
     }
 
-    if (kind === "story" || fallback.content || fallback.passage) {
-      const title = String(content.title || fallback.title || "Story").trim();
-      const passage = String(content.passage || fallback.content || fallback.passage || "").trim();
-      const questions = toQuestionArray(content.questions || fallback.questions || []);
+    if (item.toolType === "story-passage-creator" || kind === "story") {
+      const fb = fallback as Record<string, unknown>;
+      const rc = content as Record<string, unknown>;
+      const pickStr = (...keys: string[]) => {
+        for (const k of keys) {
+          const v = rc[k] ?? fb[k];
+          if (v != null && String(v).trim()) return String(v).trim();
+        }
+        return "";
+      };
+      const listFrom = (primary: unknown, ...alts: unknown[]): string[] => {
+        const pull = (v: unknown): string[] => {
+          if (v == null) return [];
+          if (Array.isArray(v)) {
+            return v.flatMap((x) => {
+              if (typeof x === "string") return [String(x).trim()].filter(Boolean);
+              if (x && typeof x === "object") {
+                const o = x as Record<string, unknown>;
+                return [String(o.text || o.hint || o.answer || o.question || "").trim()].filter(Boolean);
+              }
+              return [];
+            });
+          }
+          if (typeof v === "string" && v.trim()) {
+            return v
+              .split(/\n+/)
+              .map((ln) => ln.replace(/^\s*[-*•]\s*|\s*\d+[\).\s]+/i, "").trim())
+              .filter(Boolean);
+          }
+          return [];
+        };
+        const a = pull(primary);
+        if (a.length) return a;
+        for (const x of alts) {
+          const b = pull(x);
+          if (b.length) return b;
+        }
+        return [];
+      };
+      const storyTitle = pickStr("title") || "Story";
+      const passage = pickStr("passage", "content");
+      const questions = toQuestionArray(rc.questions || fb.questions || []);
+      const objectives = listFrom(rc.learningObjectives, fb.learning_objectives, fb.objectives);
+      const vocabulary = listFrom(rc.vocabularySupport, fb.vocabulary_support, fb.vocabulary);
+      const answerHints = listFrom(rc.answerHints, fb.answer_hints);
+      const metaClass = pickStr("classLabel", "class_label") || String(item.classLabel || "").trim();
+      const metaSubject = pickStr("subject") || String(item.subject || "").trim();
+      const metaSubtopic = pickStr("subtopic", "subtopic_link") || String(item.subTopic || "").trim();
+      const metaBloom = pickStr("bloomLevel", "bloom_level");
+      const metaDifficulty = pickStr("difficultyLevel", "difficulty_level", "difficulty_tag");
+      const section = (label: string, children: ReactNode) => (
+        <div className="rounded-xl border bg-white p-3 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500">{label}</p>
+          <div className="mt-2">{children}</div>
+        </div>
+      );
+      const alignment =
+        pickStr("alignmentBlock", "alignment_block") ||
+        [
+          pickStr("nepNcfFocus", "nep_ncf_focus") ? `NEP/NCF Focus: ${pickStr("nepNcfFocus", "nep_ncf_focus")}` : "",
+          pickStr("skillFocus", "skill_focus") ? `Skill Focus: ${pickStr("skillFocus", "skill_focus")}` : "",
+          pickStr("udlSupport", "udl_support", "udl") ? `UDL: ${pickStr("udlSupport", "udl_support", "udl")}` : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+      const emptyHint = (text: string) => <p className="text-xs text-slate-500 italic">{text}</p>;
+
       return (
         <div className="space-y-3">
-          {renderSectionHeader(<BookText className="h-4 w-4" />, title || "Story")}
-          {passage && <p className="rounded-xl border bg-white p-4 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{passage}</p>}
-          {questions.length > 0 && (
-            <div className="space-y-2 rounded-xl border bg-white p-4">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Questions</p>
-              {questions.map((q, i) => <p key={`${item._id}-story-q-${i}`} className="text-sm">Q{i + 1}. {q.question}</p>)}
+          <div className="space-y-0.5">
+            {renderSectionHeader(<BookText className="h-4 w-4" />, storyTitle)}
+            <p className="text-xs text-slate-500 pl-9">Story &amp; Passage — 9-section template</p>
+          </div>
+          {(metaClass || metaSubject || metaSubtopic || metaBloom || metaDifficulty) && (
+            <div className="flex flex-wrap gap-2 text-xs">
+              {metaClass ? (
+                <span className="rounded-full border bg-slate-50 px-2 py-1 text-slate-600">Class: {metaClass}</span>
+              ) : null}
+              {metaSubject ? (
+                <span className="rounded-full border bg-slate-50 px-2 py-1 text-slate-600">Subject: {metaSubject}</span>
+              ) : null}
+              {metaSubtopic ? (
+                <span className="rounded-full border bg-slate-50 px-2 py-1 text-slate-600">Subtopic: {metaSubtopic}</span>
+              ) : null}
+              {metaBloom ? (
+                <span className="rounded-full border bg-slate-50 px-2 py-1 text-slate-600">Bloom: {metaBloom}</span>
+              ) : null}
+              {metaDifficulty ? (
+                <span className="rounded-full border bg-slate-50 px-2 py-1 text-slate-600">Difficulty: {metaDifficulty}</span>
+              ) : null}
             </div>
+          )}
+          {section(
+            "1. Alignment Block",
+            alignment ? (
+              <p className="text-sm text-slate-800 whitespace-pre-wrap">{alignment}</p>
+            ) : (
+              emptyHint("Re-upload with Story & Passage Creator to extract NEP/NCF, skill focus, and UDL.")
+            ),
+          )}
+          {section(
+            "2. Learning Objectives",
+            objectives.length > 0 ? (
+              <ul className="text-sm space-y-1 text-slate-800">
+                {objectives.map((o, i) => (
+                  <li key={`${item._id}-story-lo-${i}`}>- {o}</li>
+                ))}
+              </ul>
+            ) : (
+              emptyHint("No learning objectives extracted.")
+            ),
+          )}
+          {section(
+            "3. Passage",
+            passage ? (
+              <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{passage}</p>
+            ) : (
+              emptyHint("Passage text missing — re-upload the story PDF.")
+            ),
+          )}
+          {section(
+            "4. Vocabulary Support",
+            vocabulary.length > 0 ? (
+              <ul className="text-sm space-y-1 text-slate-800">
+                {vocabulary.map((v, i) => (
+                  <li key={`${item._id}-story-voc-${i}`}>- {v}</li>
+                ))}
+              </ul>
+            ) : (
+              emptyHint("No vocabulary list extracted.")
+            ),
+          )}
+          {section(
+            "5. Comprehension and Thinking Questions",
+            questions.length > 0 ? (
+              <div className="space-y-2">
+                {questions.map((q, i) => (
+                  <p key={`${item._id}-story-q-${i}`} className="text-sm text-slate-800">
+                    Q{i + 1}. {q.question}
+                  </p>
+                ))}
+              </div>
+            ) : (
+              emptyHint("No comprehension questions extracted.")
+            ),
+          )}
+          {section(
+            "6. Answer Hints",
+            answerHints.length > 0 ? (
+              <ul className="text-sm space-y-1 text-slate-800">
+                {answerHints.map((h, i) => (
+                  <li key={`${item._id}-story-hint-${i}`}>- {h}</li>
+                ))}
+              </ul>
+            ) : (
+              emptyHint("No answer hints extracted.")
+            ),
+          )}
+          {section(
+            "7. Differentiation",
+            pickStr("differentiationSupport", "differentiation_support") ||
+              pickStr("differentiationExtension", "differentiation_extension") ? (
+              <div className="space-y-2 text-sm text-slate-800">
+                {pickStr("differentiationSupport", "differentiation_support") ? (
+                  <p>
+                    <span className="font-medium">Support:</span>{" "}
+                    {pickStr("differentiationSupport", "differentiation_support")}
+                  </p>
+                ) : null}
+                {pickStr("differentiationExtension", "differentiation_extension") ? (
+                  <p>
+                    <span className="font-medium">Extension:</span>{" "}
+                    {pickStr("differentiationExtension", "differentiation_extension")}
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              emptyHint("No differentiation support or extension extracted.")
+            ),
+          )}
+          {section(
+            "8. Real-life Application",
+            pickStr("realLifeApplication", "real_life_application", "real_life_link") ? (
+              <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                {pickStr("realLifeApplication", "real_life_application", "real_life_link")}
+              </p>
+            ) : (
+              emptyHint("No real-life application extracted.")
+            ),
+          )}
+          {section(
+            "9. Reflection / Exit Ticket",
+            pickStr("reflectionPrompt", "reflection_prompt", "reflection_exit_ticket") ? (
+              <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                {pickStr("reflectionPrompt", "reflection_prompt", "reflection_exit_ticket")}
+              </p>
+            ) : (
+              emptyHint("No reflection / exit ticket extracted.")
+            ),
           )}
         </div>
       );
     }
 
-    const isLessonPlannerRecord =
-      kind === "lessonPlan" ||
-      item.toolType === "lesson-planner" ||
+    if (item.toolType === "short-notes-summaries-maker" || kind === "shortNotes") {
+      const fb = fallback as Record<string, unknown>;
+      const rc = content as Record<string, unknown>;
+      const pickStr = (...keys: string[]) => {
+        for (const k of keys) {
+          const v = rc[k] ?? fb[k];
+          if (v != null && String(v).trim()) return String(v).trim();
+        }
+        return "";
+      };
+      const listFrom = (primary: unknown, ...alts: unknown[]): string[] => {
+        const pull = (v: unknown): string[] => {
+          if (v == null) return [];
+          if (Array.isArray(v)) {
+            return v.flatMap((x) => {
+              if (typeof x === "string") return [String(x).trim()].filter(Boolean);
+              return [];
+            });
+          }
+          if (typeof v === "string" && v.trim()) {
+            return v
+              .split(/\n+/)
+              .map((ln) => ln.replace(/^\s*[-*•]\s*|\s*\d+[\).\s]+/i, "").trim())
+              .filter(Boolean);
+          }
+          return [];
+        };
+        const a = pull(primary);
+        if (a.length) return a;
+        for (const x of alts) {
+          const b = pull(x);
+          if (b.length) return b;
+        }
+        return [];
+      };
+      const noteTitle = pickStr("title", "concept_name") || "Notes";
+      const objectives = listFrom(rc.learningObjectives, fb.learning_objectives, fb.objectives);
+      const keyPoints = listFrom(
+        rc.keyPointsToRemember,
+        fb.key_points_to_remember,
+        fb.key_points,
+        fb.keyPoints,
+      );
+      const quickChecks = listFrom(rc.quickCheckQuestions, fb.quick_check_questions);
+      const metaClass = pickStr("classLabel", "class_label") || String(item.classLabel || "").trim();
+      const metaSubject = pickStr("subject") || String(item.subject || "").trim();
+      const metaSubtopic = pickStr("subtopic") || String(item.subTopic || "").trim();
+      const metaBloom = pickStr("bloomLevel", "bloom_level");
+      const metaSkill = pickStr("skillFocus", "skill_focus", "skill");
+      const section = (label: string, children: ReactNode) => (
+        <div className="rounded-xl border bg-white p-3 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500">{label}</p>
+          <div className="mt-2">{children}</div>
+        </div>
+      );
+      const emptyHint = (text: string) => <p className="text-xs text-slate-500 italic">{text}</p>;
+      const alignment =
+        pickStr("alignmentBlock", "alignment_block") ||
+        [
+          pickStr("nepNcfFocus", "nep_ncf_focus") ? `NEP/NCF Focus: ${pickStr("nepNcfFocus", "nep_ncf_focus")}` : "",
+          pickStr("udlSupport", "udl_support", "udl") ? `UDL: ${pickStr("udlSupport", "udl_support", "udl")}` : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
+
+      return (
+        <div className="space-y-3">
+          <div className="space-y-0.5">
+            {renderSectionHeader(<Lightbulb className="h-4 w-4" />, noteTitle)}
+            <p className="text-xs text-slate-500 pl-9">Short Notes &amp; Summaries — 10-section template</p>
+          </div>
+          {(metaClass || metaSubject || metaSubtopic || metaBloom || metaSkill) && (
+            <div className="flex flex-wrap gap-2 text-xs">
+              {metaClass ? (
+                <span className="rounded-full border bg-slate-50 px-2 py-1 text-slate-600">Class: {metaClass}</span>
+              ) : null}
+              {metaSubject ? (
+                <span className="rounded-full border bg-slate-50 px-2 py-1 text-slate-600">Subject: {metaSubject}</span>
+              ) : null}
+              {metaSubtopic ? (
+                <span className="rounded-full border bg-slate-50 px-2 py-1 text-slate-600">Subtopic: {metaSubtopic}</span>
+              ) : null}
+              {metaBloom ? (
+                <span className="rounded-full border bg-slate-50 px-2 py-1 text-slate-600">Bloom: {metaBloom}</span>
+              ) : null}
+              {metaSkill ? (
+                <span className="rounded-full border bg-slate-50 px-2 py-1 text-slate-600">Skill: {metaSkill}</span>
+              ) : null}
+            </div>
+          )}
+          {section(
+            "1. Alignment Block",
+            alignment ? (
+              <p className="text-sm text-slate-800 whitespace-pre-wrap">{alignment}</p>
+            ) : (
+              emptyHint("Re-upload with Short Notes & Summaries to extract alignment.")
+            ),
+          )}
+          {section(
+            "2. Learning Objectives",
+            objectives.length > 0 ? (
+              <ul className="text-sm space-y-1 text-slate-800">
+                {objectives.map((o, i) => (
+                  <li key={`${item._id}-sns-lo-${i}`}>- {o}</li>
+                ))}
+              </ul>
+            ) : (
+              emptyHint("No learning objectives extracted.")
+            ),
+          )}
+          {section(
+            "3. Short Note / Summary",
+            pickStr("shortNoteSummary", "short_note_summary", "summary") ? (
+              <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">
+                {pickStr("shortNoteSummary", "short_note_summary", "summary")}
+              </p>
+            ) : (
+              emptyHint("Short note summary missing — re-upload the PDF.")
+            ),
+          )}
+          {section(
+            "4. Key Points to Remember",
+            keyPoints.length > 0 ? (
+              <ul className="text-sm space-y-1 text-slate-800">
+                {keyPoints.map((p, i) => (
+                  <li key={`${item._id}-sns-kp-${i}`}>- {p}</li>
+                ))}
+              </ul>
+            ) : (
+              emptyHint("No key points extracted.")
+            ),
+          )}
+          {section(
+            "5. Example",
+            pickStr("example") ? (
+              <p className="text-sm text-slate-800 whitespace-pre-wrap">{pickStr("example")}</p>
+            ) : (
+              emptyHint("No example extracted.")
+            ),
+          )}
+          {section(
+            "6. Common Misconception and Correction",
+            pickStr("commonMisconceptionCorrection", "common_misconception_correction") ? (
+              <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                {pickStr("commonMisconceptionCorrection", "common_misconception_correction")}
+              </p>
+            ) : (
+              emptyHint("No misconception / correction extracted.")
+            ),
+          )}
+          {section(
+            "7. Quick Check Questions",
+            quickChecks.length > 0 ? (
+              <ul className="text-sm space-y-1 text-slate-800">
+                {quickChecks.map((q, i) => (
+                  <li key={`${item._id}-sns-qc-${i}`}>- {q}</li>
+                ))}
+              </ul>
+            ) : (
+              emptyHint("No quick check questions extracted.")
+            ),
+          )}
+          {section(
+            "8. Differentiation",
+            pickStr("differentiationSupport", "differentiation_support") ||
+              pickStr("differentiationExtension", "differentiation_extension") ? (
+              <div className="space-y-2 text-sm text-slate-800">
+                {pickStr("differentiationSupport", "differentiation_support") ? (
+                  <p>
+                    <span className="font-medium">Support:</span>{" "}
+                    {pickStr("differentiationSupport", "differentiation_support")}
+                  </p>
+                ) : null}
+                {pickStr("differentiationExtension", "differentiation_extension") ? (
+                  <p>
+                    <span className="font-medium">Extension:</span>{" "}
+                    {pickStr("differentiationExtension", "differentiation_extension")}
+                  </p>
+                ) : null}
+              </div>
+            ) : (
+              emptyHint("No differentiation extracted.")
+            ),
+          )}
+          {section(
+            "9. Real-life Application",
+            pickStr("realLifeApplication", "real_life_application", "real_life_link") ? (
+              <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                {pickStr("realLifeApplication", "real_life_application", "real_life_link")}
+              </p>
+            ) : (
+              emptyHint("No real-life application extracted.")
+            ),
+          )}
+          {section(
+            "10. Reflection / Exit Ticket",
+            pickStr("reflectionExitTicket", "reflection_exit_ticket", "reflection_prompt") ? (
+              <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                {pickStr("reflectionExitTicket", "reflection_exit_ticket", "reflection_prompt")}
+              </p>
+            ) : (
+              emptyHint("No reflection / exit ticket extracted.")
+            ),
+          )}
+        </div>
+      );
+    }
+
+    const isDailyPlanRecord =
+      kind === "dailyPlan" ||
       item.toolType === "daily-class-plan-maker";
+
+    if (isDailyPlanRecord) {
+      const fb = fallback as Record<string, unknown>;
+      const rc = content as Record<string, unknown>;
+      const listFrom = (primary: unknown, ...alts: unknown[]): string[] => {
+        const pull = (v: unknown): string[] => {
+          if (v == null) return [];
+          if (Array.isArray(v)) {
+            return v.flatMap((x) => {
+              if (typeof x === "string") return [String(x).trim()].filter(Boolean);
+              if (x && typeof x === "object") {
+                const o = x as Record<string, unknown>;
+                const s = String(o.text || o.step || o.objective || o.method || o.activity || "").trim();
+                return s ? [s] : [];
+              }
+              return [];
+            });
+          }
+          if (typeof v === "string" && v.trim()) {
+            return v
+              .split(/\n+/)
+              .map((ln) => ln.replace(/^\s*[-*•]\s*|\s*\d+[\).\s]+/i, "").trim())
+              .filter(Boolean);
+          }
+          return [];
+        };
+        const a = pull(primary);
+        if (a.length) return a;
+        for (const x of alts) {
+          const b = pull(x);
+          if (b.length) return b;
+        }
+        return [];
+      };
+      const pickStr = (...keys: string[]) => {
+        for (const k of keys) {
+          const v = rc[k] ?? fb[k];
+          if (v != null && String(v).trim()) return String(v).trim();
+        }
+        return "";
+      };
+      const section = (label: string, children: ReactNode) => (
+        <div className="rounded-xl border bg-white p-3 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500">{label}</p>
+          <div className="mt-2">{children}</div>
+        </div>
+      );
+      const objectives = listFrom(rc.objectives, fb.objectives, fb.period_objectives, fb.learning_objectives);
+      const teachingMethods = listFrom(rc.teachingMethods, fb.teaching_methods, fb.methodology);
+      const classroomActivity = listFrom(
+        rc.classroomActivity,
+        fb.classroom_activity,
+        fb.classroom_activities,
+        fb.activities,
+      );
+      const teachingAids = listFrom(rc.teachingAids, fb.teaching_aids, fb.materials_required, fb.materials);
+      const timeSlotsRaw = (rc.timeSlots ?? fb.time_slots) as
+        | { time?: string; activity?: string; type?: string }[]
+        | undefined;
+      const timeSlots = Array.isArray(timeSlotsRaw)
+        ? timeSlotsRaw.filter((ts) => String(ts?.activity || ts?.time || "").trim())
+        : [];
+      let timeline = listFrom(rc.timeline, fb.timeline, fb.schedule);
+      if (!timeSlots.length && timeline.length) {
+        timeline.forEach((line) => {
+          const m = String(line).match(/^([^:–-]+)[:–-]\s*(.+)$/);
+          if (m) timeSlots.push({ time: m[1].trim(), activity: m[2].trim(), type: "" });
+          else timeSlots.push({ time: "", activity: line, type: "" });
+        });
+      }
+      const displayTitle = activityTitleForDisplay(
+        pickStr("title", "dayPeriodTopicBreakup", "day_period_topic_breakup", "name") || "Daily class plan",
+        item,
+      );
+      const fallbackBody = String(item.generatedContent || "").trim();
+      const hasStructured = Boolean(
+        pickStr("dayPeriodTopicBreakup", "day_period_topic_breakup") ||
+          objectives.length ||
+          teachingMethods.length ||
+          classroomActivity.length ||
+          pickStr("exitTicket", "exit_ticket", "formative_check") ||
+          pickStr("differentiatedSupport", "differentiated_support", "differentiation") ||
+          pickStr("homeworkFollowup", "homework_followup", "homework") ||
+          teachingAids.length ||
+          pickStr("teacherReflectionNotes", "teacher_reflection_notes", "reflection") ||
+          timeSlots.length ||
+          timeline.length,
+      );
+
+      return (
+        <div className="space-y-3">
+          <div className="space-y-0.5">
+            {renderSectionHeader(<CalendarDays className="h-4 w-4" />, displayTitle)}
+            <p className="text-xs text-slate-500 pl-9">Daily class plan — 9-section template</p>
+          </div>
+          {pickStr("dayPeriodTopicBreakup", "day_period_topic_breakup", "topic_breakup")
+            ? section(
+                "1. Day / Period-wise Topic Break-up",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("dayPeriodTopicBreakup", "day_period_topic_breakup", "topic_breakup")}
+                </p>,
+              )
+            : null}
+          {section(
+            "2. Learning Objectives (per period)",
+            objectives.length > 0 ? (
+              <ul className="text-sm space-y-1">
+                {objectives.map((line, i) => (
+                  <li key={`${item._id}-dp-lo-${i}`}>- {line}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-500 italic">None listed.</p>
+            ),
+          )}
+          {section(
+            "3. Teaching Methods",
+            teachingMethods.length > 0 ? (
+              <ul className="text-sm space-y-1">
+                {teachingMethods.map((line, i) => (
+                  <li key={`${item._id}-dp-tm-${i}`}>- {line}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-500 italic">None listed.</p>
+            ),
+          )}
+          {section(
+            "4. Classroom Activity / Demonstration",
+            classroomActivity.length > 0 ? (
+              <ul className="text-sm space-y-1">
+                {classroomActivity.map((line, i) => (
+                  <li key={`${item._id}-dp-ca-${i}`}>- {line}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-500 italic">None listed.</p>
+            ),
+          )}
+          {pickStr("exitTicket", "exit_ticket", "formative_check", "quick_assessment")
+            ? section(
+                "5. Quick Assessment / Exit Ticket",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("exitTicket", "exit_ticket", "formative_check", "quick_assessment")}
+                </p>,
+              )
+            : null}
+          {pickStr("differentiatedSupport", "differentiated_support", "differentiation", "udl_support")
+            ? section(
+                "6. Differentiated Support",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("differentiatedSupport", "differentiated_support", "differentiation", "udl_support")}
+                </p>,
+              )
+            : null}
+          {pickStr("homeworkFollowup", "homework_followup", "homework", "follow_up")
+            ? section(
+                "7. Homework / Follow-up",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("homeworkFollowup", "homework_followup", "homework", "follow_up")}
+                </p>,
+              )
+            : null}
+          {teachingAids.length > 0
+            ? section(
+                "8. Required Teaching Aids",
+                <ul className="text-sm space-y-1">
+                  {teachingAids.map((m, i) => (
+                    <li key={`${item._id}-dp-aid-${i}`}>- {m}</li>
+                  ))}
+                </ul>,
+              )
+            : null}
+          {pickStr("teacherReflectionNotes", "teacher_reflection_notes", "reflection", "teacher_notes")
+            ? section(
+                "9. Teacher Reflection Notes",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("teacherReflectionNotes", "teacher_reflection_notes", "reflection", "teacher_notes")}
+                </p>,
+              )
+            : null}
+          {timeSlots.length > 0
+            ? section(
+                "Period schedule",
+                <ul className="text-sm space-y-2">
+                  {timeSlots.map((ts, i) => {
+                    const time = String(ts?.time || "").trim();
+                    const activity = String(ts?.activity || "").trim();
+                    const type = String(ts?.type || "").trim();
+                    const label = [time, activity].filter(Boolean).join(": ") || activity || time;
+                    return (
+                      <li key={`${item._id}-dp-ts-${i}`} className="text-slate-800">
+                        - {label}
+                        {type ? <span className="text-slate-500"> ({type})</span> : null}
+                      </li>
+                    );
+                  })}
+                </ul>,
+              )
+            : timeline.length > 0
+              ? section(
+                  "Period schedule",
+                  <ul className="text-sm space-y-1">
+                    {timeline.map((t, i) => (
+                      <li key={`${item._id}-dp-tl-${i}`}>- {t}</li>
+                    ))}
+                  </ul>,
+                )
+              : null}
+          {!hasStructured && fallbackBody ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3">
+              <p className="text-xs font-semibold text-amber-900 mb-2">Extracted content (sections not mapped)</p>
+              <pre className="max-h-72 overflow-y-auto text-xs text-slate-800 whitespace-pre-wrap leading-relaxed font-sans">
+                {fallbackBody.slice(0, 120000)}
+              </pre>
+            </div>
+          ) : null}
+        </div>
+      );
+    }
+
+    const isLessonPlannerRecord = kind === "lessonPlan" || item.toolType === "lesson-planner";
 
     if (isLessonPlannerRecord) {
       const fb = fallback as Record<string, unknown>;
@@ -460,6 +1688,14 @@ export default function AIContentEngine() {
         return [];
       };
 
+      const pickStr = (...keys: string[]) => {
+        for (const k of keys) {
+          const v = rc[k] ?? fb[k];
+          if (v != null && String(v).trim()) return String(v).trim();
+        }
+        return "";
+      };
+
       const objectives = listFrom(
         rc.objectives,
         fb.objectives,
@@ -467,6 +1703,10 @@ export default function AIContentEngine() {
         fb.learningObjectives,
         fb.goals,
       );
+      const ncfRaw = rc.ncfAlignment ?? fb.ncf_competency_alignment ?? fb.competencies;
+      const ncfText = Array.isArray(ncfRaw)
+        ? ncfRaw.map((x) => String(x ?? "").trim()).filter(Boolean).join("; ")
+        : String(ncfRaw || "").trim();
       const activities = listFrom(
         rc.activities,
         fb.activities,
@@ -475,7 +1715,15 @@ export default function AIContentEngine() {
         fb.step_by_step_procedure,
         fb.steps,
       );
+      const teacherTalk = listFrom(rc.teacherTalkPoints, fb.teacher_talk_points, fb.teacher_instructions);
+      const studentTasks = listFrom(rc.studentTasks, fb.student_tasks, fb.student_instructions);
+      const formativeQs = listFrom(
+        rc.formativeAssessmentQuestions,
+        fb.formative_assessment_questions,
+        fb.formative_questions,
+      );
       const materials = listFrom(rc.materials, fb.materials_required, fb.materials);
+      const teachingAids = listFrom(rc.teachingAids, fb.teaching_aids_required, fb.teaching_aids);
       let timeline = listFrom(rc.timeline, fb.timeline, fb.schedule, fb.duration_plan);
       if (!timeline.length && Array.isArray(fb.time_slots)) {
         timeline = (fb.time_slots as { time?: string; activity?: string }[])
@@ -487,9 +1735,9 @@ export default function AIContentEngine() {
           })
           .filter(Boolean);
       }
-      const assessment = String(rc.assessment || fb.assessment || "").trim();
+      const assessment = pickStr("assessment", "evaluation", "summative_assessment");
       const displayLessonTitle = activityTitleForDisplay(
-        String(rc.title || fb.lesson_name || fb.title || fb.name || "Lesson plan").trim(),
+        pickStr("title", "lesson_name", "name") || "Lesson plan",
         item,
       );
 
@@ -501,17 +1749,33 @@ export default function AIContentEngine() {
       );
 
       const fallbackBody = String(item.generatedContent || "").trim();
-      const emptyLessonCore =
-        !objectives.length && !activities.length && !materials.length && !timeline.length && !assessment;
+      const hasStructured = Boolean(
+        objectives.length ||
+          ncfText ||
+          pickStr("priorKnowledgeDiagnostic", "prior_knowledge_diagnostic") ||
+          pickStr("introductionWarmup", "introduction_warmup", "warmup") ||
+          pickStr("teachingStrategy", "teaching_strategy") ||
+          activities.length ||
+          teacherTalk.length ||
+          studentTasks.length ||
+          formativeQs.length ||
+          pickStr("differentiationPlan", "differentiation_plan", "differentiation") ||
+          pickStr("homeworkPractice", "homework_practice", "homework") ||
+          materials.length ||
+          teachingAids.length ||
+          pickStr("closureExitTicket", "closure_exit_ticket") ||
+          timeline.length ||
+          assessment,
+      );
 
       return (
         <div className="space-y-3">
           <div className="space-y-0.5">
             {renderSectionHeader(<CalendarDays className="h-4 w-4" />, displayLessonTitle)}
-            <p className="text-xs text-slate-500 pl-9">Lesson planner — structured fields (objectives, materials, steps, timeline)</p>
+            <p className="text-xs text-slate-500 pl-9">Lesson planner — 14-section template</p>
           </div>
           {section(
-            "2. Learning objectives",
+            "2. Learning Objectives",
             objectives.length > 0 ? (
               <ul className="text-sm space-y-1">
                 {objectives.map((line, i) => (
@@ -522,20 +1786,37 @@ export default function AIContentEngine() {
               <p className="text-xs text-slate-500 italic">None listed.</p>
             ),
           )}
+          {ncfText
+            ? section("3. NCF Competency / Learning Outcome Alignment", (
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">{ncfText}</p>
+              ))
+            : null}
+          {pickStr("priorKnowledgeDiagnostic", "prior_knowledge_diagnostic", "diagnostic_question")
+            ? section(
+                "4. Prior Knowledge / Diagnostic Question",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("priorKnowledgeDiagnostic", "prior_knowledge_diagnostic", "diagnostic_question")}
+                </p>,
+              )
+            : null}
+          {pickStr("introductionWarmup", "introduction_warmup", "warmup")
+            ? section(
+                "5. Introduction / Warm-up",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("introductionWarmup", "introduction_warmup", "warmup")}
+                </p>,
+              )
+            : null}
+          {pickStr("teachingStrategy", "teaching_strategy", "pedagogy")
+            ? section(
+                "6. Teaching Strategy",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("teachingStrategy", "teaching_strategy", "pedagogy")}
+                </p>,
+              )
+            : null}
           {section(
-            "3. Materials required",
-            materials.length > 0 ? (
-              <ul className="text-sm space-y-1">
-                {materials.map((m, i) => (
-                  <li key={`${item._id}-lp-m-${i}`}>- {m}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-xs text-slate-500 italic">None listed.</p>
-            ),
-          )}
-          {section(
-            "4. Teaching steps / activities",
+            "7. Classroom Activities",
             activities.length > 0 ? (
               <ol className="text-sm space-y-1 list-decimal list-inside">
                 {activities.map((s, i) => (
@@ -546,28 +1827,89 @@ export default function AIContentEngine() {
               <p className="text-xs text-slate-500 italic">None listed.</p>
             ),
           )}
-          {section(
-            "5. Timeline / sequence",
-            timeline.length > 0 ? (
-              <ul className="text-sm space-y-1">
-                {timeline.map((t, i) => (
-                  <li key={`${item._id}-lp-t-${i}`}>- {t}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-xs text-slate-500 italic">None listed.</p>
-            ),
-          )}
+          {teacherTalk.length > 0
+            ? section(
+                "8. Teacher Talk Points",
+                <ul className="text-sm space-y-1">
+                  {teacherTalk.map((t, i) => (
+                    <li key={`${item._id}-lp-tt-${i}`}>- {t}</li>
+                  ))}
+                </ul>,
+              )
+            : null}
+          {studentTasks.length > 0
+            ? section(
+                "9. Student Tasks",
+                <ul className="text-sm space-y-1">
+                  {studentTasks.map((t, i) => (
+                    <li key={`${item._id}-lp-st-${i}`}>- {t}</li>
+                  ))}
+                </ul>,
+              )
+            : null}
+          {formativeQs.length > 0
+            ? section(
+                "10. Formative Assessment Questions",
+                <ul className="text-sm space-y-1">
+                  {formativeQs.map((t, i) => (
+                    <li key={`${item._id}-lp-fq-${i}`}>- {t}</li>
+                  ))}
+                </ul>,
+              )
+            : null}
+          {pickStr("differentiationPlan", "differentiation_plan", "differentiation")
+            ? section(
+                "11. Differentiation Plan",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("differentiationPlan", "differentiation_plan", "differentiation")}
+                </p>,
+              )
+            : null}
+          {pickStr("homeworkPractice", "homework_practice", "homework")
+            ? section(
+                "12. Homework / Practice",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("homeworkPractice", "homework_practice", "homework")}
+                </p>,
+              )
+            : null}
+          {materials.length > 0 || teachingAids.length > 0
+            ? section(
+                "13. Teaching Aids Required",
+                <ul className="text-sm space-y-1">
+                  {(teachingAids.length ? teachingAids : materials).map((m, i) => (
+                    <li key={`${item._id}-lp-aid-${i}`}>- {m}</li>
+                  ))}
+                </ul>,
+              )
+            : null}
+          {pickStr("closureExitTicket", "closure_exit_ticket", "exit_ticket") || timeline.length > 0
+            ? section(
+                "14. Closure / Exit Ticket",
+                <div className="space-y-2 text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("closureExitTicket", "closure_exit_ticket", "exit_ticket") ? (
+                    <p>{pickStr("closureExitTicket", "closure_exit_ticket", "exit_ticket")}</p>
+                  ) : null}
+                  {timeline.length > 0 ? (
+                    <ul className="space-y-1">
+                      {timeline.map((t, i) => (
+                        <li key={`${item._id}-lp-t-${i}`}>- {t}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>,
+              )
+            : null}
           {assessment
             ? section(
-                "6. Assessment",
+                "Assessment (general)",
                 <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{assessment}</p>,
               )
             : null}
-          {emptyLessonCore && fallbackBody ? (
+          {!hasStructured && fallbackBody ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3">
-              <p className="text-xs font-semibold text-amber-900 mb-2">Saved text (structured fields were empty)</p>
-              <pre className="max-h-72 overflow-y-auto text-xs text-slate-800 whitespace-pre-wrap leading-relaxed font-mono">
+              <p className="text-xs font-semibold text-amber-900 mb-2">Extracted content (sections not mapped)</p>
+              <pre className="max-h-72 overflow-y-auto text-xs text-slate-800 whitespace-pre-wrap leading-relaxed font-sans">
                 {fallbackBody.slice(0, 120000)}
               </pre>
             </div>
@@ -576,37 +1918,286 @@ export default function AIContentEngine() {
       );
     }
 
-    if (kind === "rubric" || fallback.criteria || fallback.gradingScale) {
-      const criteria = Array.isArray(content.criteria) ? content.criteria : fallback.criteria || [];
-      const scale = Array.isArray(content.gradingScale) ? content.gradingScale : fallback.gradingScale || [];
+    if (
+      item.toolType === "rubrics-evaluation-generator" ||
+      kind === "rubric" ||
+      Array.isArray((content as Record<string, unknown>).criteriaRows) ||
+      (Array.isArray(fallback.criteria) && item.toolType === "rubrics-evaluation-generator")
+    ) {
+      const fb = fallback as Record<string, unknown>;
+      const rc = content as Record<string, unknown>;
+      const pickStr = (...keys: string[]) => {
+        for (const k of keys) {
+          const v = rc[k] ?? fb[k];
+          if (v != null && String(v).trim()) return String(v).trim();
+        }
+        return "";
+      };
+      const rawCriteria = (rc.criteriaRows ?? fb.criteria ?? rc.criteria ?? []) as unknown[];
+      const criteriaRows: {
+        name: string;
+        excellent: string;
+        good: string;
+        satisfactory: string;
+        needs_improvement: string;
+      }[] = [];
+      for (const entry of rawCriteria) {
+        if (typeof entry === "string" && entry.trim()) {
+          criteriaRows.push({
+            name: entry.trim(),
+            excellent: "",
+            good: "",
+            satisfactory: "",
+            needs_improvement: "",
+          });
+          continue;
+        }
+        if (entry && typeof entry === "object") {
+          const o = entry as Record<string, unknown>;
+          criteriaRows.push({
+            name: String(o.name || o.criterion || "").trim() || "Criterion",
+            excellent: String(o.excellent || "").trim(),
+            good: String(o.good || "").trim(),
+            satisfactory: String(o.satisfactory || "").trim(),
+            needs_improvement: String(o.needs_improvement || o.needsImprovement || "").trim(),
+          });
+        }
+      }
+      const rubricTitle = pickStr("title", "rubric_title", "name") || "Rubric & Evaluation";
+      const section = (label: string, children: ReactNode) => (
+        <div className="rounded-xl border bg-white p-3 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500">{label}</p>
+          <div className="mt-2">{children}</div>
+        </div>
+      );
+      const fallbackBody = String(item.generatedContent || "").trim();
+      const hasStructured = Boolean(
+        pickStr("assessmentPurpose", "assessment_purpose") ||
+          pickStr("competencyAssessed", "competency_assessed") ||
+          criteriaRows.length ||
+          pickStr("gradingCriteria", "grading_criteria") ||
+          pickStr("strengthsObserved", "strengths_observed") ||
+          pickStr("areasForImprovement", "areas_for_improvement") ||
+          pickStr("teacherRemarks", "teacher_remarks") ||
+          pickStr("actionableSuggestions", "actionable_suggestions") ||
+          pickStr("parentFriendlyFeedback", "parent_friendly_feedback") ||
+          pickStr("nextStepRemedialEnrichment", "next_step_remedial_enrichment"),
+      );
+
       return (
         <div className="space-y-3">
-          {renderSectionHeader(<BarChart3 className="h-4 w-4" />, "Rubric & Evaluation")}
-          <table className="w-full text-sm border-collapse rounded-xl overflow-hidden">
-            <thead><tr className="bg-slate-100"><th className="border p-2 text-left">Criteria</th><th className="border p-2 text-left">Grading scale</th></tr></thead>
-            <tbody>
-              {Array.from({ length: Math.max(criteria.length, scale.length) }).map((_, i) => (
-                <tr key={`${item._id}-rubric-${i}`} className="bg-white"><td className="border p-2">{String(criteria[i] || "-")}</td><td className="border p-2">{String(scale[i] || "-")}</td></tr>
-              ))}
-            </tbody>
-          </table>
+          {renderSectionHeader(<BarChart3 className="h-4 w-4" />, rubricTitle)}
+          {pickStr("assessmentPurpose", "assessment_purpose")
+            ? section(
+                "1. Assessment Purpose",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("assessmentPurpose", "assessment_purpose")}
+                </p>,
+              )
+            : null}
+          {pickStr("competencyAssessed", "competency_assessed")
+            ? section(
+                "2. Competency / Learning Outcome Assessed",
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("competencyAssessed", "competency_assessed")}
+                </p>,
+              )
+            : null}
+          {criteriaRows.length > 0
+            ? section(
+                "3. Evaluation Rubric with 4 Performance Levels",
+                <div className="space-y-4 text-sm text-slate-800">
+                  {criteriaRows.map((row, i) => {
+                    const levels = [
+                      { label: "Excellent", value: row.excellent },
+                      { label: "Good", value: row.good },
+                      { label: "Satisfactory", value: row.satisfactory },
+                      { label: "Needs Improvement", value: row.needs_improvement },
+                    ].filter((l) => String(l.value || "").trim());
+                    return (
+                      <div
+                        key={`${item._id}-rub-row-${i}`}
+                        className="rounded-lg border border-slate-100 bg-slate-50/50 p-3 space-y-1.5"
+                      >
+                        <p className="font-semibold text-slate-900">{row.name}</p>
+                        {levels.length > 0 ? (
+                          <ul className="space-y-1 pl-1">
+                            {levels.map((l) => (
+                              <li key={`${item._id}-rub-${i}-${l.label}`}>
+                                <span className="font-medium text-slate-600">{l.label}:</span> {l.value}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-xs text-slate-500 italic">No performance levels listed.</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>,
+              )
+            : null}
+          {pickStr("gradingCriteria", "grading_criteria")
+            ? section("4. Grading Criteria", (
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("gradingCriteria", "grading_criteria")}
+                </p>
+              ))
+            : null}
+          {pickStr("strengthsObserved", "strengths_observed")
+            ? section("5. Strengths Observed", (
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("strengthsObserved", "strengths_observed")}
+                </p>
+              ))
+            : null}
+          {pickStr("areasForImprovement", "areas_for_improvement")
+            ? section("6. Areas for Improvement", (
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("areasForImprovement", "areas_for_improvement")}
+                </p>
+              ))
+            : null}
+          {pickStr("teacherRemarks", "teacher_remarks")
+            ? section("7. Teacher Remarks", (
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("teacherRemarks", "teacher_remarks")}
+                </p>
+              ))
+            : null}
+          {pickStr("actionableSuggestions", "actionable_suggestions")
+            ? section("8. Actionable Improvement Suggestions", (
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("actionableSuggestions", "actionable_suggestions")}
+                </p>
+              ))
+            : null}
+          {pickStr("parentFriendlyFeedback", "parent_friendly_feedback")
+            ? section("9. Parent-friendly Feedback", (
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("parentFriendlyFeedback", "parent_friendly_feedback")}
+                </p>
+              ))
+            : null}
+          {pickStr("nextStepRemedialEnrichment", "next_step_remedial_enrichment")
+            ? section("10. Next-step Remedial / Enrichment Activity", (
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("nextStepRemedialEnrichment", "next_step_remedial_enrichment")}
+                </p>
+              ))
+            : null}
+          {!hasStructured && fallbackBody ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3">
+              <p className="text-xs font-semibold text-amber-900 mb-2">Extracted content (sections not mapped)</p>
+              <pre className="max-h-72 overflow-y-auto text-xs text-slate-800 whitespace-pre-wrap leading-relaxed font-sans">
+                {fallbackBody.slice(0, 120000)}
+              </pre>
+            </div>
+          ) : null}
         </div>
       );
     }
 
-    if (kind === "examPaper" || Array.isArray(fallback.sections)) {
-      const sections = Array.isArray(content.sections) ? content.sections : fallback.sections || [];
+    if (item.toolType === "exam-question-paper-generator" || kind === "examPaper") {
+      const fb = fallback as Record<string, unknown>;
+      const rc = content as Record<string, unknown>;
+      const pickStr = (...keys: string[]) => {
+        for (const k of keys) {
+          const v = rc[k] ?? fb[k];
+          if (v != null && String(v).trim()) return String(v).trim();
+        }
+        return "";
+      };
+      let sections = Array.isArray(content.sections)
+        ? (content.sections as { sectionName?: string; title?: string; questions?: unknown[] }[])
+        : (fallback.sections as { sectionName?: string; title?: string; questions?: unknown[] }[]) || [];
+      if (!sections.length && String(fb.question || "").trim()) {
+        sections = [{ sectionName: String(fb.section || "Questions"), questions: [fb] }];
+      }
+      const examTitle =
+        pickStr("paperTitle", "paper_title", "title") || activityTitleForDisplay("Exam Paper", item);
       return (
         <div className="space-y-3">
-          {renderSectionHeader(<ScrollText className="h-4 w-4" />, "Exam Paper")}
+          <div className="space-y-0.5">
+            {renderSectionHeader(<ScrollText className="h-4 w-4" />, examTitle)}
+            <p className="text-xs text-slate-500 pl-9">Exam question paper — 11-section template</p>
+          </div>
+          {pickStr("instructions", "general_instructions") ? (
+            <div className="rounded-xl border bg-white p-3 shadow-sm">
+              <p className="text-xs font-semibold text-slate-500">1. Paper Title and General Instructions</p>
+              <p className="text-sm text-slate-800 whitespace-pre-wrap mt-2">
+                {pickStr("instructions", "general_instructions")}
+              </p>
+            </div>
+          ) : null}
+          {pickStr("blueprint", "design_grid") ? (
+            <div className="rounded-xl border bg-white p-3 shadow-sm">
+              <p className="text-xs font-semibold text-slate-500">2. Blueprint / Design Grid</p>
+              <p className="text-sm text-slate-800 whitespace-pre-wrap mt-2">{pickStr("blueprint", "design_grid")}</p>
+            </div>
+          ) : null}
           {sections.map((section: any, sIdx: number) => (
             <div key={`${item._id}-sec-${sIdx}`} className="rounded-xl border bg-white p-4 shadow-sm">
               <p className="text-sm font-semibold">{String(section?.sectionName || section?.title || `Section ${sIdx + 1}`)}</p>
-              {toQuestionArray(section?.questions || []).map((q, qIdx) => (
-                <p key={`${item._id}-sec-${sIdx}-q-${qIdx}`} className="text-sm mt-1">Q{qIdx + 1}. {q.question}</p>
-              ))}
+              {toQuestionArray(section?.questions || []).map((q, qIdx) => {
+                const qx = q as { question_number?: number; marks?: number };
+                return (
+                <div key={`${item._id}-sec-${sIdx}-q-${qIdx}`} className="rounded-lg border border-slate-100 p-3 mt-2 space-y-2">
+                  <p className="text-sm font-medium">
+                    Q{qx.question_number != null ? String(qx.question_number) : qIdx + 1}. {q.question}
+                  </p>
+                  {q.options.length > 0 && (
+                    <ul className="text-sm space-y-1 text-slate-700">
+                      {q.options.map((opt: string, idx: number) => (
+                        <li key={`${item._id}-sec-${sIdx}-q-${qIdx}-o-${idx}`}>- {opt}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {q.answer ? (
+                    <p className="text-xs text-emerald-700">
+                      <span className="font-medium">Answer:</span> {q.answer}
+                    </p>
+                  ) : null}
+                  {qx.marks != null && !Number.isNaN(Number(qx.marks)) ? (
+                    <p className="text-xs text-slate-500">Marks: {String(qx.marks)}</p>
+                  ) : null}
+                </div>
+              );
+              })}
             </div>
           ))}
+          {pickStr("internalChoices", "internal_choices") ? (
+            <div className="rounded-xl border bg-white p-3 shadow-sm">
+              <p className="text-xs font-semibold text-slate-500">8. Internal Choices</p>
+              <p className="text-sm text-slate-800 whitespace-pre-wrap mt-2">
+                {pickStr("internalChoices", "internal_choices")}
+              </p>
+            </div>
+          ) : null}
+          {pickStr("answerKey", "answer_key") ? (
+            <div className="rounded-xl border bg-white p-3 shadow-sm">
+              <p className="text-xs font-semibold text-slate-500">9. Complete Answer Key</p>
+              <pre className="text-xs text-slate-800 whitespace-pre-wrap mt-2 font-sans leading-relaxed">
+                {pickStr("answerKey", "answer_key")}
+              </pre>
+            </div>
+          ) : null}
+          {pickStr("markingScheme", "marking_scheme") ? (
+            <div className="rounded-xl border bg-white p-3 shadow-sm">
+              <p className="text-xs font-semibold text-slate-500">10. Detailed Marking Scheme</p>
+              <p className="text-sm text-slate-800 whitespace-pre-wrap mt-2">
+                {pickStr("markingScheme", "marking_scheme")}
+              </p>
+            </div>
+          ) : null}
+          {pickStr("openEndedRubric", "open_ended_rubric") ? (
+            <div className="rounded-xl border bg-white p-3 shadow-sm">
+              <p className="text-xs font-semibold text-slate-500">11. Rubric for Open-ended Questions</p>
+              <p className="text-sm text-slate-800 whitespace-pre-wrap mt-2">
+                {pickStr("openEndedRubric", "open_ended_rubric")}
+              </p>
+            </div>
+          ) : null}
         </div>
       );
     }
@@ -642,9 +2233,16 @@ export default function AIContentEngine() {
       };
       const title = String(rc.title || fb.title || "Activity").trim();
       const displayTitle = activityTitleForDisplay(title, item);
+      const subtopicLink = String(rc.subtopicLink || fb.subtopic_link_prior_knowledge || "").trim();
+      const ncfRaw = rc.ncfAlignment ?? fb.ncf_competency_alignment;
+      const ncfAlignment = Array.isArray(ncfRaw)
+        ? ncfRaw.map((x) => String(x ?? "").trim()).filter(Boolean)
+        : String(ncfRaw || "").trim();
       const learningObjectives = pickLines(rc.learningObjectives, fb.learning_objectives, fb.learningObjectives);
       let materials = pickLines(rc.materials, fb.materials_required, fb.materials);
       let steps = pickLines(rc.steps, fb.step_by_step_procedure, fb.steps);
+      const differentiation = String(rc.differentiation || fb.differentiation || "").trim();
+      const reflectionExit = String(rc.reflectionExitTicket || fb.reflection_exit_ticket || "").trim();
       const modelPlaceholder = /No structured steps were returned from the model/i;
       if (steps.length && steps.every((s) => modelPlaceholder.test(String(s)))) {
         const fbSteps = coalesceLines(fb.steps || fb.step_by_step_procedure);
@@ -684,8 +2282,13 @@ export default function AIContentEngine() {
             {renderSectionHeader(<FlaskConical className="h-4 w-4" />, displayTitle)}
             <p className="text-xs text-slate-500 pl-9">Activity &amp; Project — section 1 (title)</p>
           </div>
+          {subtopicLink
+            ? section("2. Subtopic Link and Prior Knowledge Required", (
+                <p className="text-sm text-slate-800 whitespace-pre-wrap">{subtopicLink}</p>
+              ))
+            : null}
           {section(
-            "2. Learning Objectives",
+            "3. Learning Objectives",
             learningObjectives.length > 0 ? (
               <ul className="text-sm space-y-1">
                 {learningObjectives.map((line: string, i: number) => (
@@ -696,8 +2299,22 @@ export default function AIContentEngine() {
               <p className="text-xs text-slate-500 italic">None listed.</p>
             ),
           )}
+          {ncfAlignment
+            ? section(
+                "4. NCF Competency / Learning Outcome Alignment",
+                Array.isArray(ncfAlignment) ? (
+                  <ul className="text-sm space-y-1">
+                    {(ncfAlignment as string[]).map((line: string, i: number) => (
+                      <li key={`${item._id}-ncf-${i}`}>- {line}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-slate-800 whitespace-pre-wrap">{ncfAlignment as string}</p>
+                ),
+              )
+            : null}
           {section(
-            "3. Materials Required",
+            "5. Materials Required",
             materials.length > 0 ? (
               <ul className="text-sm space-y-1">
                 {materials.map((m: string, i: number) => (
@@ -709,7 +2326,7 @@ export default function AIContentEngine() {
             ),
           )}
           {section(
-            "4. Step-by-step Procedure",
+            "6. Step-by-step Procedure",
             stepsVisible.length > 0 ? (
               <ol className="text-sm space-y-1 list-decimal list-inside">
                 {stepsVisible.map((s: string, i: number) => (
@@ -724,7 +2341,7 @@ export default function AIContentEngine() {
           )}
           {teacherInstructions.length > 0
             ? section(
-                "5. Teacher Instructions",
+                "7. Teacher Instructions",
                 <ul className="text-sm space-y-1">
                   {teacherInstructions.map((t: string, i: number) => (
                     <li key={`${item._id}-ti-${i}`}>- {t}</li>
@@ -733,7 +2350,7 @@ export default function AIContentEngine() {
               )
             : null}
           {section(
-            "6. Student Instructions",
+            "8. Student Instructions",
             studentInstructions.length > 0 ? (
               <ul className="text-sm space-y-1">
                 {studentInstructions.map((t: string, i: number) => (
@@ -744,12 +2361,12 @@ export default function AIContentEngine() {
               <p className="text-xs text-slate-500 italic">None listed.</p>
             ),
           )}
-          {expectedOutcomes
-            ? section("7. Expected Learning Outcomes", <p className="text-sm text-slate-800 whitespace-pre-wrap">{expectedOutcomes}</p>)
+          {differentiation
+            ? section("9. Differentiation", <p className="text-sm text-slate-800 whitespace-pre-wrap">{differentiation}</p>)
             : null}
           {assessmentRubric.length > 0
             ? section(
-                "8. Assessment Criteria (Rubric)",
+                "10. Assessment Rubric",
                 <ul className="text-sm space-y-1">
                   {assessmentRubric.map((row: string, i: number) => (
                     <li key={`${item._id}-ar-${i}`}>- {row}</li>
@@ -757,8 +2374,14 @@ export default function AIContentEngine() {
                 </ul>,
               )
             : null}
+          {expectedOutcomes
+            ? section("11. Expected Learning Outcomes", <p className="text-sm text-slate-800 whitespace-pre-wrap">{expectedOutcomes}</p>)
+            : null}
           {realLifeApplication
-            ? section("9. Real-life Application", <p className="text-sm text-slate-800 whitespace-pre-wrap">{realLifeApplication}</p>)
+            ? section("12. Real-life Application", <p className="text-sm text-slate-800 whitespace-pre-wrap">{realLifeApplication}</p>)
+            : null}
+          {reflectionExit
+            ? section("13. Reflection / Exit Ticket", <p className="text-sm text-slate-800 whitespace-pre-wrap">{reflectionExit}</p>)
             : null}
         </div>
       );
@@ -784,9 +2407,19 @@ export default function AIContentEngine() {
       </div>
     );
   };
+  const visiblePdfItems = useMemo(
+    () =>
+      items.filter(
+        (item) =>
+          !isDeprecatedAiToolIdentifier(item.toolType) &&
+          !isDeprecatedAiToolIdentifier(item.contentType),
+      ),
+    [items],
+  );
+
   const groupedHierarchy = useMemo(() => {
     const byTool = new Map<string, Map<string, { classLabel: string; board: string; subjects: Map<string, Map<string, Map<string, PdfItem[]>>> }>>();
-    for (const item of items) {
+    for (const item of visiblePdfItems) {
       const tool = getToolLabel(item.toolType) || "-";
       const classKey = String(item.classLabel || "-").trim() || "-";
       const boardKey = canonicalCurriculumBoardLabel(String(item.board || "").trim() || "-");
@@ -806,11 +2439,36 @@ export default function AIContentEngine() {
       if (!subtopicMap.has(subtopicKey)) subtopicMap.set(subtopicKey, []);
       subtopicMap.get(subtopicKey)!.push(item);
     }
+    const countNestedRecords = (
+      classes: Array<{
+        subjects: Array<{
+          topics: Array<{
+            subtopics: Array<{ records: PdfItem[] }>;
+          }>;
+        }>;
+      }>,
+    ) =>
+      classes.reduce(
+        (toolSum, classNode) =>
+          toolSum +
+          classNode.subjects.reduce(
+            (classSum, subjectNode) =>
+              classSum +
+              subjectNode.topics.reduce(
+                (subjectSum, topicNode) =>
+                  subjectSum +
+                  topicNode.subtopics.reduce((topicSum, subtopicNode) => topicSum + subtopicNode.records.length, 0),
+                0,
+              ),
+            0,
+          ),
+        0,
+      );
+
     return Array.from(byTool.entries())
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([tool, classMap]) => ({
-        tool,
-        classes: Array.from(classMap.entries())
+      .map(([tool, classMap]) => {
+        const classes = Array.from(classMap.entries())
           .sort(([a], [b]) => a.localeCompare(b))
           .map(([, classEntry]) => ({
             classLabel: classEntry.classLabel,
@@ -833,9 +2491,14 @@ export default function AIContentEngine() {
                       })),
                   })),
               })),
-          })),
-      }));
-  }, [items, toolOptions]);
+          }));
+        return {
+          tool,
+          recordCount: countNestedRecords(classes),
+          classes,
+        };
+      });
+  }, [visiblePdfItems, toolOptions]);
 
   const pdfContentViewRecord = useMemo(
     () => (pdfContentViewId ? items.find((x) => x._id === pdfContentViewId) ?? null : null),
@@ -938,19 +2601,32 @@ export default function AIContentEngine() {
   const fetchList = async () => {
     setIsLoading(true);
     try {
-      const qs = new URLSearchParams();
-      qs.set("page", "1");
-      qs.set("limit", "300");
-      if (recordsBoardFilter && recordsBoardFilter !== "__all__") {
-        qs.set("board", recordsBoardFilter);
-      }
-      const res = await fetch(`${API_BASE_URL}/api/pdf/list?${qs.toString()}`, { headers: authHeaders() });
-      const json = await res.json();
-      setItems(json?.data || []);
-    } catch {
+      const allRows: PdfItem[] = [];
+      let page = 1;
+      let totalPages = 1;
+      do {
+        const qs = new URLSearchParams();
+        qs.set("page", String(page));
+        qs.set("limit", "100");
+        if (recordsBoardFilter && recordsBoardFilter !== "__all__") {
+          qs.set("board", recordsBoardFilter);
+        }
+        const res = await fetch(`${API_BASE_URL}/api/pdf/list?${qs.toString()}`, { headers: authHeaders() });
+        const json = await res.json();
+        if (!res.ok || json?.success === false) {
+          throw new Error(json?.message || "Could not load PDF list");
+        }
+        const batch = Array.isArray(json?.data) ? json.data : [];
+        allRows.push(...batch);
+        totalPages = Math.max(1, Number(json?.pagination?.totalPages) || 1);
+        page += 1;
+      } while (page <= totalPages);
+      setItems(allRows);
+    } catch (error: unknown) {
+      setItems([]);
       toast({
         title: "Failed",
-        description: "Could not load PDF list",
+        description: error instanceof Error ? error.message : "Could not load PDF list",
         variant: "destructive",
       });
     } finally {
@@ -1462,6 +3138,19 @@ export default function AIContentEngine() {
                 <span className="font-medium text-slate-700">
                   {recordsBoardFilter === "__all__" ? "All boards" : recordsBoardFilter}
                 </span>
+                {!isLoading && visiblePdfItems.length > 0 ? (
+                  <>
+                    {" "}
+                    ·{" "}
+                    <span className="font-medium text-slate-700">
+                      {visiblePdfItems.length} record{visiblePdfItems.length !== 1 ? "s" : ""} in{" "}
+                      {groupedHierarchy.length} tool{groupedHierarchy.length !== 1 ? "s" : ""}
+                    </span>
+                  </>
+                ) : null}
+              </p>
+              <p className="text-xs text-slate-500">
+                Expand each tool to browse class, subject, topic, and subtopic.
               </p>
             </div>
             <div className="flex flex-col gap-1.5 sm:w-64">
@@ -1484,7 +3173,12 @@ export default function AIContentEngine() {
           {isLoading ? (
             <p className="text-sm text-gray-600">Loading hierarchy...</p>
           ) : groupedHierarchy.length === 0 ? (
-            <p className="text-sm text-gray-600">No saved AI content records yet.</p>
+            <p className="text-sm text-gray-600">
+              No saved AI content records
+              {recordsBoardFilter !== "__all__"
+                ? ` for board “${recordsBoardFilter}”. Try “All boards” in the filter above.`
+                : " yet."}
+            </p>
           ) : (
             <Accordion type="multiple" className="w-full space-y-2 max-lg:space-y-1.5">
               {groupedHierarchy.map((toolNode) => (
@@ -1497,7 +3191,10 @@ export default function AIContentEngine() {
                     <div className="flex min-w-0 flex-1 items-center gap-2 text-left">
                       <Wrench className="h-4 w-4 shrink-0 text-orange-600" />
                       <Badge className="shrink-0 bg-orange-500 hover:bg-orange-500">Tool</Badge>
-                      <span className="min-w-0 break-words font-medium text-sm">{toolNode.tool}</span>
+                      <span className="min-w-0 flex-1 break-words font-medium text-sm">{toolNode.tool}</span>
+                      <Badge className="shrink-0" variant="outline">
+                        {toolNode.recordCount} generation{toolNode.recordCount !== 1 ? "s" : ""}
+                      </Badge>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="space-y-2">
@@ -1655,8 +3352,7 @@ export default function AIContentEngine() {
                                                             </div>
                                                           </div>
                                                           <p className="border-l-2 border-blue-100 pl-3 text-xs leading-relaxed text-slate-500 max-lg:text-[0.8125rem]">
-                                                            Open <span className="font-medium text-slate-600">View</span> for the full
-                                                            lesson layout — objectives, materials, steps, and rubrics.
+                                                            {pdfRecordViewHint(record)}
                                                           </p>
                                                         </div>
                                                       </div>

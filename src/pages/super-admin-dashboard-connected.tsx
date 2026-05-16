@@ -72,7 +72,7 @@ export default function SuperAdminDashboard() {
       setUser(JSON.parse(superAdminUser));
     } else {
       // Redirect to login if not authenticated
-      window.location.href = '/super-admin/login';
+      window.location.href = '/signin';
     }
   }, []);
 
@@ -148,7 +148,7 @@ export default function SuperAdminDashboard() {
   const handleLogout = () => {
     localStorage.removeItem('superAdminToken');
     localStorage.removeItem('superAdminUser');
-    window.location.href = '/super-admin/login';
+    window.location.href = '/signin';
   };
 
   const handleExportData = async () => {

@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
-import { Link, useRoute } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { ArrowLeft, Loader2, School } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { API_BASE_URL } from "@/lib/api-config";
 import { useToast } from "@/hooks/use-toast";
+import { queueSuperAdminViewRestore } from "@/lib/super-admin-nav";
 
-const SCHOOL_MANAGEMENT_HREF = "/super-admin/dashboard?view=admins";
+const SUPER_ADMIN_DASHBOARD_HREF = "/super-admin/dashboard";
 
 const resolveLogoUrl = (logoUrl?: string): string => {
   if (!logoUrl) return "";
@@ -84,8 +85,14 @@ type BillingSubscription = {
 
 export default function SuperAdminSchoolDetail() {
   const [, params] = useRoute("/super-admin/schools/:id");
+  const [, setLocation] = useLocation();
   const id = params?.id;
   const { toast } = useToast();
+
+  const backToSchoolManagement = () => {
+    queueSuperAdminViewRestore("admins");
+    setLocation(SUPER_ADMIN_DASHBOARD_HREF);
+  };
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [stats, setStats] = useState({ students: 0, teachers: 0 });
@@ -149,12 +156,10 @@ export default function SuperAdminSchoolDetail() {
   if (!profile) {
     return (
       <div className="min-h-screen bg-slate-50 p-6">
-        <Link href={SCHOOL_MANAGEMENT_HREF}>
-          <Button variant="outline" className="mb-6 gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back to School Management
-          </Button>
-        </Link>
+        <Button variant="outline" className="mb-6 gap-2" onClick={backToSchoolManagement}>
+          <ArrowLeft className="h-4 w-4" />
+          Back to School Management
+        </Button>
         <p className="text-slate-600">School could not be loaded.</p>
       </div>
     );
@@ -165,12 +170,10 @@ export default function SuperAdminSchoolDetail() {
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-5xl px-4 py-8">
-        <Link href={SCHOOL_MANAGEMENT_HREF}>
-          <Button variant="outline" className="mb-6 gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back to School Management
-          </Button>
-        </Link>
+        <Button variant="outline" className="mb-6 gap-2" onClick={backToSchoolManagement}>
+          <ArrowLeft className="h-4 w-4" />
+          Back to School Management
+        </Button>
 
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-4">

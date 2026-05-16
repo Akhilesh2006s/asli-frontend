@@ -11,7 +11,7 @@ export default function SuperAdminDashboard() {
     // Check if user is authenticated
     const token = localStorage.getItem('authToken');
     if (!token) {
-      window.location.href = '/super-admin/login';
+      window.location.href = '/signin';
     } else {
       setIsLoading(false);
     }

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState, useEffect } from "react";
+import { Suspense, lazy, useState, useEffect, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { SuperAdminSidebar, type SuperAdminView } from "@/components/dashboard/SuperAdminSidebar";
 const AdminManagement = lazy(() => import("@/components/admin/AdminManagement"));
@@ -42,7 +42,11 @@ import { API_BASE_URL } from "@/lib/api-config";
 import { cn } from "@/lib/utils";
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import { useSuperAdminDrawerNav } from "@/hooks/use-mobile";
-import { useSearch } from "wouter";
+import {
+  clearSuperAdminDashboardQueryFromUrl,
+  consumeSuperAdminViewRestore,
+} from "@/lib/super-admin-nav";
+import { useResetOnTabVisible } from "@/hooks/use-reset-on-tab-visible";
 import { VidyaAnalyticsCard } from "@/components/super-admin/VidyaAnalyticsCard";
 
 const lazySectionFallback = (
@@ -57,12 +61,7 @@ const lazySectionFallback = (
 export default function SuperAdminDashboard() {
   const { toast } = useToast();
   const superAdminDrawerNav = useSuperAdminDrawerNav();
-  const search = useSearch();
-  const [currentView, setCurrentView] = useState<SuperAdminView>(() => {
-    if (typeof window === "undefined") return "dashboard";
-    const v = new URLSearchParams(window.location.search).get("view");
-    return v === "admins" ? "admins" : "dashboard";
-  });
+  const [currentView, setCurrentView] = useState<SuperAdminView>("dashboard");
   const [user] = useState({ 
     fullName: 'Super Admin', 
     role: 'super-admin',
@@ -99,13 +98,38 @@ export default function SuperAdminDashboard() {
   >("balanced");
 
   const VIDYA_PREFS_KEY = "superAdminVidyaPrefs";
+  const skipTabResetOnceRef = useRef(false);
+
+  const resetToHomeDashboard = useCallback(() => {
+    setCurrentView("dashboard");
+    setSelectedBoard(null);
+    setBoardData(null);
+    setBoardError(null);
+  }, []);
 
   useEffect(() => {
-    const view = new URLSearchParams(search).get("view");
-    if (view === "admins") {
+    clearSuperAdminDashboardQueryFromUrl();
+    const restore = consumeSuperAdminViewRestore();
+    if (restore === "admins") {
+      skipTabResetOnceRef.current = true;
       setCurrentView("admins");
+      return;
     }
-  }, [search]);
+    resetToHomeDashboard();
+  }, [resetToHomeDashboard]);
+
+  useResetOnTabVisible(() => {
+    if (skipTabResetOnceRef.current) {
+      skipTabResetOnceRef.current = false;
+      return;
+    }
+    resetToHomeDashboard();
+  });
+
+  const handleViewChange = (view: SuperAdminView) => {
+    setCurrentView(view);
+    clearSuperAdminDashboardQueryFromUrl();
+  };
 
   // Fetch real dashboard stats
   useEffect(() => {
@@ -1086,7 +1110,7 @@ export default function SuperAdminDashboard() {
       {/* Fixed sidebar */}
       <SuperAdminSidebar
         currentView={currentView}
-        onViewChange={setCurrentView}
+        onViewChange={handleViewChange}
         user={user}
         onLogout={handleLogout}
       />

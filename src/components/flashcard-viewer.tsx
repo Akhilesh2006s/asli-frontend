@@ -37,6 +37,11 @@ interface Flashcard {
   back: string;
   options?: string[];
   type?: CardType;
+  memoryCue?: string;
+  skillFocus?: string;
+  exampleUse?: string;
+  peerPrompt?: string;
+  reflection?: string;
 }
 
 interface FlashcardViewerProps {
@@ -378,9 +383,44 @@ export function FlashcardViewer({ content }: FlashcardViewerProps) {
       </div>
 
       {/* Card counter */}
-      <div className="text-sm text-gray-600">
+      <motion.div className="text-sm text-gray-600">
         {currentIndex + 1} / {cards.length} cards
-      </div>
+      </motion.div>
+
+      {(currentCard.memoryCue ||
+        currentCard.skillFocus ||
+        currentCard.exampleUse ||
+        currentCard.peerPrompt ||
+        currentCard.reflection) && (
+        <motion.div className="w-full max-w-2xl rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-left space-y-2 text-sm text-slate-700">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Card details</p>
+          {currentCard.memoryCue ? (
+            <p>
+              <span className="font-medium text-slate-600">Memory Cue:</span> {currentCard.memoryCue}
+            </p>
+          ) : null}
+          {currentCard.skillFocus ? (
+            <p>
+              <span className="font-medium text-slate-600">Skill Focus:</span> {currentCard.skillFocus}
+            </p>
+          ) : null}
+          {currentCard.exampleUse ? (
+            <p>
+              <span className="font-medium text-slate-600">Example Use:</span> {currentCard.exampleUse}
+            </p>
+          ) : null}
+          {currentCard.peerPrompt ? (
+            <p>
+              <span className="font-medium text-slate-600">Peer Prompt:</span> {currentCard.peerPrompt}
+            </p>
+          ) : null}
+          {currentCard.reflection ? (
+            <p>
+              <span className="font-medium text-slate-600">Reflection:</span> {currentCard.reflection}
+            </p>
+          ) : null}
+        </motion.div>
+      )}
     </div>
   );
 }
@@ -408,7 +448,24 @@ function cardFromLooseObject(item: Record<string, unknown>): Flashcard | null {
     typeRaw === 'note' || typeRaw === 'fact' || typeRaw === 'question'
       ? (typeRaw as CardType)
       : 'question';
-  return { front: stripMdBold(String(front)), back: stripMdBold(String(back)), type };
+  return {
+    front: stripMdBold(String(front)),
+    back: stripMdBold(String(back)),
+    type,
+    memoryCue: stripMdBold(
+      String(item.memory_cue || item.memoryCue || item.hint || ''),
+    ),
+    skillFocus: stripMdBold(
+      String(item.skill_focus || item.skillFocus || item.bloom_level || ''),
+    ),
+    exampleUse: stripMdBold(
+      String(item.example_use || item.exampleUse || item.real_life_link || ''),
+    ),
+    peerPrompt: stripMdBold(String(item.peer_prompt || item.peerPrompt || '')),
+    reflection: stripMdBold(
+      String(item.reflection || item.reflection_prompt || item.self_check || ''),
+    ),
+  };
 }
 
 /** JSON shapes: { raw: { flashcards } }, { cards }, { flashcards: [] }, etc. */

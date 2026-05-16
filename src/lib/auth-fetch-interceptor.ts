@@ -4,8 +4,7 @@ import { clearAuthData } from "@/lib/auth-utils";
 let redirectScheduled = false;
 
 function loginPathForCurrentApp(): string {
-  if (typeof window === "undefined") return "/signin";
-  return window.location.pathname.startsWith("/super-admin") ? "/super-admin/login" : "/signin";
+  return "/signin";
 }
 
 function shouldIgnoreUrlForSessionExpiry(urlString: string): boolean {
