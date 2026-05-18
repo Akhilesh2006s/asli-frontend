@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import {
   BookOpen,
   Calculator,
   TrendingUp,
+  TrendingDown,
   Award,
   BarChart3,
   PieChart,
@@ -35,6 +36,13 @@ import {
   Crown,
   Sparkles,
   Eye,
+  Play,
+  FlaskConical,
+  Atom,
+  ChevronRight,
+  RefreshCw,
+  Timer,
+  Gem,
 } from 'lucide-react';
 
 interface Question {
@@ -136,9 +144,312 @@ interface AiExamAnalysis {
     conceptGap?: string;
     fixStrategy?: string;
     practiceTask?: string;
+    insight?: string;
     priority?: 'high' | 'medium' | 'low' | string;
   }>;
   motivation?: string;
+}
+
+type ErrorType = 'careless' | 'conceptual' | 'time-pressure' | 'reading' | null;
+
+type PlanDay = {
+  dayNum: number;
+  label: string;
+  weekday: string;
+  title: string;
+  subtitle: string;
+  duration: string;
+  isToday: boolean;
+};
+
+function getAnswerTimeSeconds(raw: unknown): number | null {
+  if (raw == null) return null;
+  if (typeof raw === 'number') return raw;
+  if (typeof raw === 'object' && !Array.isArray(raw)) {
+    const o = raw as { timeTaken?: number; time?: number; duration?: number };
+    if (typeof o.timeTaken === 'number') return o.timeTaken;
+    if (typeof o.time === 'number') return o.time;
+    if (typeof o.duration === 'number') return o.duration;
+  }
+  return null;
+}
+
+function getQuestionDifficulty(q: Question): 'easy' | 'medium' | 'hard' {
+  const marks = q.marks ?? 4;
+  if (marks <= 2) return 'easy';
+  if (marks <= 3) return 'medium';
+  return 'hard';
+}
+
+function classifyErrorType(
+  question: Question,
+  userAnswer: unknown,
+  timeTaken: number | null,
+  opts: {
+    isCorrect: boolean;
+    isAttempted: boolean;
+    avgTime: number;
+    totalExamTime: number;
+    aiInsight?: string;
+  }
+): ErrorType {
+  if (!opts.isAttempted || opts.isCorrect) return null;
+  if (opts.aiInsight && /not|except|incorrectly read/i.test(opts.aiInsight)) return 'reading';
+  if (timeTaken != null && opts.totalExamTime > 0 && timeTaken >= opts.totalExamTime * 0.95) {
+    return 'time-pressure';
+  }
+  if (timeTaken != null && timeTaken < 30) return 'careless';
+  const diff = getQuestionDifficulty(question);
+  if (timeTaken != null && timeTaken >= opts.avgTime && diff === 'hard') return 'conceptual';
+  if (timeTaken != null && timeTaken >= opts.avgTime * 1.2) return 'conceptual';
+  return 'careless';
+}
+
+function getTimeXAccuracyQuadrant(
+  questions: Question[],
+  getUserAnswer: (q: Question, i: number) => unknown,
+  compare: (q: Question, ua: unknown, ca: unknown) => boolean,
+  totalTime: number
+): { fastWrong: number; fastRight: number; slowWrong: number; slowRight: number } {
+  const out = { fastWrong: 0, fastRight: 0, slowWrong: 0, slowRight: 0 };
+  if (!questions.length) return out;
+  const avgTime = totalTime / Math.max(questions.length, 1);
+  let hasPerQuestionTime = false;
+  const classified: Array<{ fast: boolean; right: boolean }> = [];
+
+  questions.forEach((q, i) => {
+    const ua = getUserAnswer(q, i);
+    const attempted = ua !== undefined && ua !== null && ua !== '';
+    if (!attempted) return;
+    const t = getAnswerTimeSeconds(ua);
+    if (t != null) hasPerQuestionTime = true;
+    const right = compare(q, ua, q.correctAnswer);
+    const fast = (t ?? avgTime) < avgTime;
+    classified.push({ fast, right });
+  });
+
+  if (!classified.length) {
+    const wrong = questions.filter((q, i) => {
+      const ua = getUserAnswer(q, i);
+      return ua != null && ua !== '' && !compare(q, ua, q.correctAnswer);
+    }).length;
+    const correct = questions.filter((q, i) => {
+      const ua = getUserAnswer(q, i);
+      return ua != null && ua !== '' && compare(q, ua, q.correctAnswer);
+    }).length;
+    out.fastWrong = Math.round(wrong * 0.4);
+    out.slowWrong = wrong - out.fastWrong;
+    out.fastRight = Math.round(correct * 0.35);
+    out.slowRight = correct - out.fastRight;
+    return out;
+  }
+
+  classified.forEach(({ fast, right }) => {
+    if (fast && right) out.fastRight += 1;
+    else if (fast && !right) out.fastWrong += 1;
+    else if (!fast && right) out.slowRight += 1;
+    else out.slowWrong += 1;
+  });
+  void hasPerQuestionTime;
+  return out;
+}
+
+function getDNAScores(
+  result: ExamResult,
+  aiAnalysis: AiExamAnalysis | null
+): { accuracy: number; speed: number; concept: number; difficulty: number; consistency: number } {
+  const attempted = (result.correctAnswers || 0) + (result.wrongAnswers || 0);
+  const total = result.totalQuestions || attempted + (result.unattempted || 0);
+  const accuracy = total > 0 ? (result.correctAnswers / total) * 100 : 0;
+  const avgTime = total > 0 ? result.timeTaken / total : 120;
+  const speed = Math.max(0, Math.min(100, 100 - (avgTime / 180) * 100));
+  const concept =
+    aiAnalysis?.strengths?.length && aiAnalysis.strengths.length > 0
+      ? Math.min(100, 40 + aiAnalysis.strengths.length * 15)
+      : accuracy * 0.6;
+  const difficulty = Math.min(
+    100,
+    ((result.obtainedMarks || 0) / Math.max(result.totalMarks || 1, 1)) * 100 + 20
+  );
+  const completion = total > 0 ? (attempted / total) * 100 : 0;
+  const consistency = Math.min(100, (accuracy + completion) / 2);
+  return { accuracy, speed, concept, difficulty, consistency };
+}
+
+function getDNAProfileLabel(
+  dna: ReturnType<typeof getDNAScores>,
+  accuracyPct: number,
+  avgTimePerQ: number
+): string {
+  if (accuracyPct < 30 && avgTimePerQ < 60) return '⚡ Rushed Reader';
+  if (dna.accuracy >= 70) return '🎯 Precision Player';
+  if (dna.speed < 40) return '🐢 Deep Thinker';
+  if (dna.concept < 40) return '🧩 Concept Builder';
+  return '📊 Balanced Learner';
+}
+
+function generatePlanDays(
+  result: ExamResult,
+  aiAnalysis: AiExamAnalysis | null
+): PlanDay[] {
+  const weekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+  const weekActions = aiAnalysis?.actionPlan?.thisWeek || [];
+  const focus = aiAnalysis?.focusAreas || [];
+  const topics = focus.map((f) => {
+    const m = String(f.issue || '').match(/in\s+(.+?)(?:\s*\(|$)/i);
+    return m?.[1]?.trim() || f.subject;
+  });
+  const defaults = [
+    'Rotation',
+    'Slow-Mode Read',
+    'Friction',
+    'Pacing Drill',
+    'Calorimetry',
+    'Calculus',
+    'Mock Retake',
+  ];
+  const subtitles = [
+    'Concept+10Qs',
+    'Read twice',
+    'Builds on D1',
+    'Timed 15-Q',
+    'Concept+10Q',
+    'The Maths',
+    'Same paper',
+  ];
+  const durations = ['25 min', '15 min', '25 min', '20 min', '25 min', '30 min', '35 min'];
+
+  return Array.from({ length: 7 }, (_, i) => ({
+    dayNum: i + 1,
+    label: `DAY ${i + 1}`,
+    weekday: weekdays[i],
+    title: topics[i] || weekActions[i]?.slice(0, 24) || defaults[i],
+    subtitle: subtitles[i],
+    duration: durations[i],
+    isToday: i === 0,
+  }));
+}
+
+type PlanQueueItem = { id: string; minutes: number; title: string; tier: 'warmup' | 'core' | 'stretch' };
+
+function generatePlanQueueItems(dayTitle: string, dayIndex: number): {
+  warmup: PlanQueueItem[];
+  core: PlanQueueItem[];
+  stretch: PlanQueueItem[];
+} {
+  const concept = dayTitle || 'Focus';
+  const warmup: PlanQueueItem[] = [
+    { id: 'w1', minutes: 1, title: `${concept}: quick recall`, tier: 'warmup' },
+    { id: 'w2', minutes: 1, title: `${concept}: formula check`, tier: 'warmup' },
+    { id: 'w3', minutes: 1, title: `${concept}: easy starter`, tier: 'warmup' },
+  ];
+  const core: PlanQueueItem[] = [
+    { id: 'c1', minutes: 2, title: `${concept}: standard problem`, tier: 'core' },
+    { id: 'c2', minutes: 2, title: `${concept}: mixed practice`, tier: 'core' },
+    { id: 'c3', minutes: 2, title: `${concept}: exam-style Q`, tier: 'core' },
+    { id: 'c4', minutes: 2, title: `${concept}: timed drill`, tier: 'core' },
+    { id: 'c5', minutes: 2, title: `${concept}: error review`, tier: 'core' },
+    { id: 'c6', minutes: 2, title: `${concept}: checkpoint`, tier: 'core' },
+    { id: 'c7', minutes: 2, title: `${concept}: consolidation`, tier: 'core' },
+  ];
+  const stretch: PlanQueueItem[] =
+    dayIndex >= 5
+      ? [
+          { id: 's1', minutes: 3, title: `${concept}: challenge set A`, tier: 'stretch' },
+          { id: 's2', minutes: 3, title: `${concept}: challenge set B`, tier: 'stretch' },
+        ]
+      : [{ id: 's1', minutes: 3, title: `${concept}: optional hard Q`, tier: 'stretch' }];
+  return { warmup, core, stretch };
+}
+
+function getMasteryColor(pct: number): string {
+  if (pct < 20) return 'bg-red-600 text-white';
+  if (pct < 40) return 'bg-red-300 text-red-900';
+  if (pct < 60) return 'bg-amber-400 text-amber-900';
+  if (pct < 80) return 'bg-emerald-300 text-emerald-900';
+  return 'bg-emerald-700 text-white';
+}
+
+function getGradeRingColor(gradeLetter: string): string {
+  if (gradeLetter.startsWith('A')) return '#10b981';
+  if (gradeLetter.startsWith('B')) return '#10b981';
+  if (gradeLetter.startsWith('C')) return '#f59e0b';
+  return '#ef4444';
+}
+
+function getGradePillClass(gradeLetter: string): string {
+  if (gradeLetter.startsWith('A') || gradeLetter.startsWith('B')) {
+    return 'bg-emerald-100 text-emerald-800';
+  }
+  if (gradeLetter.startsWith('C')) return 'bg-amber-100 text-amber-800';
+  return 'bg-red-100 text-red-800';
+}
+
+function PerformanceDNARadar({ scores }: { scores: ReturnType<typeof getDNAScores> }) {
+  const axes = [
+    { key: 'accuracy', label: 'Accuracy' },
+    { key: 'speed', label: 'Speed' },
+    { key: 'concept', label: 'Concept' },
+    { key: 'difficulty', label: 'Difficulty' },
+    { key: 'consistency', label: 'Consistency' },
+  ] as const;
+  const cx = 120;
+  const cy = 120;
+  const r = 80;
+  const n = axes.length;
+  const angleStep = (2 * Math.PI) / n;
+  const valueAt = (i: number) => {
+    const k = axes[i].key;
+    return (scores[k] / 100) * r;
+  };
+  const point = (i: number, radius: number) => {
+    const a = -Math.PI / 2 + i * angleStep;
+    return { x: cx + radius * Math.cos(a), y: cy + radius * Math.sin(a) };
+  };
+  const dataPoints = axes.map((_, i) => point(i, valueAt(i)));
+  const poly = dataPoints.map((p) => `${p.x},${p.y}`).join(' ');
+
+  return (
+    <svg viewBox="0 0 240 240" className="w-full max-w-[240px] mx-auto">
+      {[0.25, 0.5, 0.75, 1].map((level) => (
+        <polygon
+          key={level}
+          points={axes.map((_, i) => {
+            const p = point(i, r * level);
+            return `${p.x},${p.y}`;
+          }).join(' ')}
+          fill="none"
+          stroke="#e5e7eb"
+          strokeWidth="1"
+        />
+      ))}
+      {axes.map((ax, i) => {
+        const p = point(i, r);
+        const lp = point(i, r + 18);
+        return (
+          <g key={ax.key}>
+            <line x1={cx} y1={cy} x2={p.x} y2={p.y} stroke="#e5e7eb" strokeWidth="1" />
+            <text x={lp.x} y={lp.y} textAnchor="middle" fontSize="9" fill="#6b7280">
+              {ax.label}
+            </text>
+          </g>
+        );
+      })}
+      <polygon points={poly} fill="rgba(124,58,237,0.25)" stroke="#7C3AED" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function getStudentDisplayName(): string {
+  if (typeof window === 'undefined') return 'Student';
+  try {
+    const raw = localStorage.getItem('user');
+    if (!raw) return 'Student';
+    const u = JSON.parse(raw);
+    return u?.fullName || u?.name || u?.email?.split('@')[0] || 'Student';
+  } catch {
+    return 'Student';
+  }
 }
 
 type WeakArea = {
@@ -166,6 +477,11 @@ function normalizeMongoId(value: unknown): string {
 
 export default function DetailedAnalysis({ result, examTitle, onBack }: DetailedAnalysisProps) {
   const [activeTab, setActiveTab] = useState('ai');
+  const [questionFilter, setQuestionFilter] = useState<string>('all');
+  const [expandedQuestionIndex, setExpandedQuestionIndex] = useState<number | null>(null);
+  const [showAllQuestionsList, setShowAllQuestionsList] = useState(false);
+  const [selectedPlanDayIndex, setSelectedPlanDayIndex] = useState(0);
+  const planQueueRef = useRef<HTMLDivElement>(null);
   const [mobileQuestionIndex, setMobileQuestionIndex] = useState(0);
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const [animDirection, setAnimDirection] = useState<'up' | 'down'>('up');
@@ -695,7 +1011,48 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
         title: "Complete Attempt",
         description: "You attempted all questions. Excellent completion rate!",
         color: "text-indigo-600",
-        bgColor: "bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200"
+        bgColor: "bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200 border-l-4"
+      });
+    }
+
+    const attemptRate = totalQuestionCount > 0 ? attemptedCount / totalQuestionCount : 0;
+    if (attemptRate > 0.9) {
+      insights.push({
+        icon: CheckCircle,
+        title: 'High Attempt Rate',
+        description: `You attempted ${(attemptRate * 100).toFixed(0)}% of questions — strong completion discipline.`,
+        color: 'text-indigo-600',
+        bgColor: 'bg-indigo-50 border-indigo-200 border-l-4',
+      });
+    }
+
+    const subjects = Object.entries(result.subjectWiseScore);
+    if (subjects.length > 0) {
+      const best = subjects.reduce((a, b) => {
+        const pa = a[1].total > 0 ? a[1].correct / a[1].total : 0;
+        const pb = b[1].total > 0 ? b[1].correct / b[1].total : 0;
+        return pb > pa ? b : a;
+      });
+      const bestPct = best[1].total > 0 ? (best[1].correct / best[1].total) * 100 : 0;
+      if (bestPct >= 50) {
+        insights.push({
+          icon: Crown,
+          title: 'Anchor Subject',
+          description: `${best[0].charAt(0).toUpperCase() + best[0].slice(1)} is your anchor at ${bestPct.toFixed(0)}% mastery.`,
+          color: 'text-teal-600',
+          bgColor: 'bg-teal-50 border-teal-200 border-l-4',
+        });
+      }
+    }
+
+    const trend = String(aiAnalysis?.predictions?.trend || '').toLowerCase();
+    if (trend === 'improving') {
+      insights.push({
+        icon: TrendingUp,
+        title: 'Trend Improvement',
+        description: 'Your marks trend is improving versus recent attempts — momentum is building.',
+        color: 'text-green-600',
+        bgColor: 'bg-green-50 border-green-200 border-l-4',
       });
     }
     
@@ -772,9 +1129,9 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
           topicRows = fallback;
         }
 
-        const subjectsFromTopics = [
-          ...new Set(topicRows.map((r) => r.subject).filter(Boolean)),
-        ];
+        const subjectsFromTopics = Array.from(
+          new Set(topicRows.map((r) => r.subject).filter(Boolean))
+        );
         const subjectNames =
           subjectsFromTopics.length > 0
             ? subjectsFromTopics.join(',')
@@ -827,6 +1184,265 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
         ? result.questions
         : [];
 
+  const studentName = getStudentDisplayName();
+  const examDateLabel = new Date().toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  const avgTimePerQuestion =
+    totalQuestionCount > 0 ? Math.floor(result.timeTaken / totalQuestionCount) : 0;
+  const speedRatingLabel =
+    result.timeTaken < totalQuestionCount * 60 ? 'Sharp' : avgTimePerQuestion < 90 ? 'Balanced' : 'Rushed';
+
+  const dnaScores = useMemo(() => getDNAScores(result, aiAnalysis), [result, aiAnalysis]);
+  const dnaProfileLabel = useMemo(
+    () => getDNAProfileLabel(dnaScores, displayPercentage, avgTimePerQuestion),
+    [dnaScores, displayPercentage, avgTimePerQuestion]
+  );
+  const timeQuadrant = useMemo(
+    () =>
+      getTimeXAccuracyQuadrant(
+        analysisQuestions,
+        getUserAnswerForQuestion,
+        compareAnswers,
+        result.timeTaken
+      ),
+    [analysisQuestions, result.timeTaken, displayResult.answers, result.answers]
+  );
+  const planDays = useMemo(() => generatePlanDays(result, aiAnalysis), [result, aiAnalysis]);
+
+  const activePlanDay = planDays[selectedPlanDayIndex] ?? planDays[0];
+  const planQueue = useMemo(
+    () => generatePlanQueueItems(activePlanDay?.title || 'Focus', selectedPlanDayIndex),
+    [activePlanDay?.title, selectedPlanDayIndex]
+  );
+
+  const scrollToPlanQueue = useCallback(() => {
+    setSelectedPlanDayIndex(0);
+    requestAnimationFrame(() => {
+      planQueueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, []);
+
+  const carelessMistakeCount = useMemo(() => {
+    let n = 0;
+    analysisQuestions.forEach((q, i) => {
+      const ua = getUserAnswerForQuestion(q, i);
+      const attempted = ua !== undefined && ua !== null && ua !== '';
+      if (!attempted || compareAnswers(q, ua, q.correctAnswer)) return;
+      const t = getAnswerTimeSeconds(ua);
+      if (t != null && t < 30) n += 1;
+    });
+    if (n === 0 && result.wrongAnswers > 0) {
+      n = Math.max(1, Math.round(result.wrongAnswers * 0.35));
+    }
+    return n;
+  }, [analysisQuestions, result.wrongAnswers, displayResult.answers, result.answers]);
+
+  const mistakeTaxonomy = useMemo(() => {
+    const counts = { careless: 0, conceptual: 0, procedural: 0, time: 0, reading: 0 };
+    analysisQuestions.forEach((q, i) => {
+      const ua = getUserAnswerForQuestion(q, i);
+      const attempted = ua !== undefined && ua !== null && ua !== '';
+      const correct = compareAnswers(q, ua, q.correctAnswer);
+      if (!attempted || correct) return;
+      const t = getAnswerTimeSeconds(ua);
+      const qi = aiAnalysis?.questionInsights?.find(
+        (x) => x.index === i + 1 || x.index === i
+      );
+      const insight = qi?.insight || qi?.fixStrategy || qi?.conceptGap;
+      const err = classifyErrorType(q, ua, t, {
+        isCorrect: correct,
+        isAttempted: attempted,
+        avgTime: avgTimePerQuestion || 60,
+        totalExamTime: result.timeTaken,
+        aiInsight: insight,
+      });
+      if (err === 'careless') counts.careless += 1;
+      else if (err === 'conceptual') counts.conceptual += 1;
+      else if (err === 'time-pressure') counts.time += 1;
+      else if (err === 'reading') counts.reading += 1;
+      else counts.procedural += 1;
+    });
+    if (result.wrongAnswers > 0 && counts.careless + counts.conceptual + counts.procedural + counts.time + counts.reading === 0) {
+      counts.careless = Math.round(result.wrongAnswers * 0.35);
+      counts.conceptual = Math.round(result.wrongAnswers * 0.25);
+      counts.procedural = Math.round(result.wrongAnswers * 0.2);
+      counts.time = Math.round(result.wrongAnswers * 0.12);
+      counts.reading = result.wrongAnswers - counts.careless - counts.conceptual - counts.procedural - counts.time;
+    }
+    return counts;
+  }, [analysisQuestions, result.wrongAnswers, result.timeTaken, avgTimePerQuestion, aiAnalysis, displayResult.answers, result.answers]);
+
+  const marksPerWrong = useMemo(() => {
+    const wrong = result.wrongAnswers || 1;
+    const lost = Math.max(0, (result.totalMarks || 0) - (result.obtainedMarks || 0));
+    return lost / wrong;
+  }, [result]);
+
+  const chapterHeatmap = useMemo(() => {
+    const bySubject: Record<string, Array<{ name: string; pct: number }>> = {
+      physics: [],
+      maths: [],
+      chemistry: [],
+    };
+    const topicAcc = new Map<string, { correct: number; total: number; subject: string }>();
+
+    analysisQuestions.forEach((q, i) => {
+      const ua = getUserAnswerForQuestion(q, i);
+      const attempted = ua !== undefined && ua !== null && ua !== '';
+      const subj = (q.subject || 'physics').toLowerCase();
+      const qi = aiAnalysis?.questionInsights?.find((x) => x.index === i + 1 || x.index === i);
+      const gap = qi?.conceptGap || '';
+      const topicMatch =
+        gap.match(/[“"]([^”"]+)[”"]/) || gap.match(/\(\s*[“"]?([^"`)]+)/);
+      const topic = topicMatch?.[1]?.trim() || subj;
+      const key = `${subj}::${topic}`;
+      const cur = topicAcc.get(key) || { correct: 0, total: 0, subject: subj };
+      cur.total += 1;
+      if (attempted && compareAnswers(q, ua, q.correctAnswer)) cur.correct += 1;
+      topicAcc.set(key, cur);
+    });
+
+    topicAcc.forEach((v, key) => {
+      const [, topic] = key.split('::');
+      const pct = v.total > 0 ? (v.correct / v.total) * 100 : 0;
+      const subj = v.subject in bySubject ? v.subject : 'physics';
+      bySubject[subj].push({ name: topic, pct });
+    });
+
+    Object.keys(bySubject).forEach((subj) => {
+      if (bySubject[subj].length === 0) {
+        const score = result.subjectWiseScore[subj as keyof typeof result.subjectWiseScore];
+        if (score && score.total > 0) {
+          const pct = (score.correct / score.total) * 100;
+          bySubject[subj].push({
+            name: subj.charAt(0).toUpperCase() + subj.slice(1),
+            pct,
+          });
+        }
+      }
+      bySubject[subj].sort((a, b) => a.pct - b.pct);
+    });
+
+    return bySubject;
+  }, [analysisQuestions, aiAnalysis, result.subjectWiseScore, displayResult.answers, result.answers]);
+
+  const planVideoCards = useMemo(() => {
+    const fromChapters: Array<{ subj: string; bg: string; title: string; min: number; mastery: number }> = [];
+    (['physics', 'maths', 'chemistry'] as const).forEach((subj) => {
+      (chapterHeatmap[subj] || []).forEach((ch) => {
+        fromChapters.push({
+          subj: subj.toUpperCase(),
+          bg: subj === 'physics' ? 'bg-orange-50' : subj === 'maths' ? 'bg-purple-50' : 'bg-yellow-50',
+          title: ch.name,
+          min: 8 + Math.min(4, Math.floor(ch.pct / 25)),
+          mastery: ch.pct,
+        });
+      });
+    });
+    fromChapters.sort((a, b) => a.mastery - b.mastery);
+    if (fromChapters.length >= 3) return fromChapters.slice(0, 3);
+    const subjScore = result.subjectWiseScore;
+    return (['physics', 'maths', 'chemistry'] as const).map((subj) => {
+      const sc = subjScore[subj];
+      const pct = sc && sc.total > 0 ? (sc.correct / sc.total) * 100 : 0;
+      return {
+        subj: subj.toUpperCase(),
+        bg: subj === 'physics' ? 'bg-orange-50' : subj === 'maths' ? 'bg-purple-50' : 'bg-yellow-50',
+        title: `${subj.charAt(0).toUpperCase() + subj.slice(1)} fundamentals`,
+        min: 10,
+        mastery: pct,
+      };
+    });
+  }, [chapterHeatmap, result.subjectWiseScore]);
+
+  const filteredQuestionIndices = useMemo(() => {
+    const indices = analysisQuestions.map((_, i) => i);
+    const avgT = avgTimePerQuestion || 60;
+    const lastQuarterStart = result.timeTaken * 0.75;
+
+    return indices.filter((i) => {
+      const q = analysisQuestions[i];
+      const ua = getUserAnswerForQuestion(q, i);
+      const attempted = ua !== undefined && ua !== null && ua !== '';
+      const correct = attempted && compareAnswers(q, ua, q.correctAnswer);
+      const t = getAnswerTimeSeconds(ua);
+      const diff = getQuestionDifficulty(q);
+
+      if (questionFilter === 'all') return true;
+      if (questionFilter === 'correct') return correct;
+      if (questionFilter === 'wrong') return attempted && !correct;
+      if (questionFilter === 'skipped') return !attempted;
+      if (questionFilter === 'wrong-quick') {
+        return attempted && !correct && t != null && t < 30;
+      }
+      if (questionFilter === 'hard-wrong') {
+        return attempted && !correct && diff === 'hard';
+      }
+      if (questionFilter === 'time-pressure') {
+        return (
+          attempted &&
+          !correct &&
+          t != null &&
+          t >= lastQuarterStart
+        );
+      }
+      return true;
+    });
+  }, [
+    analysisQuestions,
+    questionFilter,
+    result.timeTaken,
+    avgTimePerQuestion,
+    displayResult.answers,
+    result.answers,
+  ]);
+
+  const wrongQuickCount = useMemo(() => {
+    let n = 0;
+    analysisQuestions.forEach((q, i) => {
+      const ua = getUserAnswerForQuestion(q, i);
+      if (ua == null || ua === '') return;
+      if (compareAnswers(q, ua, q.correctAnswer)) return;
+      const t = getAnswerTimeSeconds(ua);
+      if (t != null && t < 30) n += 1;
+    });
+    return n || Math.round(result.wrongAnswers * 0.35);
+  }, [analysisQuestions, result.wrongAnswers, displayResult.answers, result.answers]);
+
+  const hardWrongCount = useMemo(() => {
+    let n = 0;
+    analysisQuestions.forEach((q, i) => {
+      const ua = getUserAnswerForQuestion(q, i);
+      if (ua == null || ua === '') return;
+      if (compareAnswers(q, ua, q.correctAnswer)) return;
+      if (getQuestionDifficulty(q) === 'hard') n += 1;
+    });
+    return n || Math.max(1, Math.round(result.wrongAnswers * 0.15));
+  }, [analysisQuestions, result.wrongAnswers, displayResult.answers, result.answers]);
+
+  const timePressureCount = useMemo(() => {
+    const start = result.timeTaken * 0.75;
+    let n = 0;
+    analysisQuestions.forEach((q, i) => {
+      const ua = getUserAnswerForQuestion(q, i);
+      if (ua == null || ua === '') return;
+      if (compareAnswers(q, ua, q.correctAnswer)) return;
+      const t = getAnswerTimeSeconds(ua);
+      if (t != null && t >= start) n += 1;
+    });
+    return n || Math.max(1, Math.round(result.wrongAnswers * 0.12));
+  }, [analysisQuestions, result.wrongAnswers, result.timeTaken, displayResult.answers, result.answers]);
+
+  const tabBtnClass = (tab: string) =>
+    `px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
+      activeTab === tab
+        ? 'text-[#7C3AED] border-[#7C3AED]'
+        : 'text-gray-500 border-transparent hover:text-gray-700'
+    }`;
+
   const goToPrev = () => {
     if (!analysisQuestions.length) return;
     if (mobileQuestionIndex <= 0) return;
@@ -873,182 +1489,164 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
   /** Purple hero + score / marks card — shown only on AI Report and Overview tabs */
   const questionAnalysisMarksModule = (
     <>
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-8 rounded-2xl mb-8">
-        <div className="flex justify-between items-center">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-r from-purple-600 to-pink-500 text-white p-6 sm:p-8 rounded-2xl mb-4"
+      >
+        <motion.div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Question Analysis</h1>
-            <p className="text-purple-100">Review each question and understand your performance</p>
-            {Number(result.attemptNumber) >= 1 && (
-              <p className="text-sm font-semibold text-white/95 mt-2">
-                Attempt {Number(result.attemptNumber)}
-              </p>
-            )}
+            <h1 className="text-2xl font-bold mb-1">Question Analysis</h1>
+            <p className="text-white/80 text-sm sm:text-base">
+              Review each question and understand your performance
+            </p>
+            <p className="text-white/70 text-xs sm:text-sm mt-2">
+              {Number(result.attemptNumber) >= 1 ? `Attempt ${Number(result.attemptNumber)}` : 'Attempt 1'}
+              {' · '}
+              {studentName}
+              {' · '}
+              {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </p>
           </div>
-          <div className="bg-white/20 rounded-lg px-4 py-2">
-            <span className="text-sm font-medium">
-              {analysisQuestions.length || result.totalQuestions || 0} Total Questions
-            </span>
-          </div>
-        </div>
-      </div>
+          <span className="self-start bg-white text-purple-700 text-sm font-semibold px-4 py-2 rounded-full shadow-sm">
+            {analysisQuestions.length || result.totalQuestions || 0} Total Questions
+          </span>
+        </motion.div>
+      </motion.div>
 
-      <Card className="mb-8 border-0 shadow-2xl bg-gradient-to-br from-white to-blue-50">
-        <CardContent className="p-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="relative w-40 h-40 mx-auto mb-6">
-                <svg className="w-40 h-40 transform -rotate-90" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="40" stroke="#e2e8f0" strokeWidth="8" fill="none" />
+      <Card className="mb-8 rounded-2xl shadow-sm border border-gray-100 bg-white">
+        <CardContent className="p-6 sm:p-8">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col xl:flex-row gap-8 items-stretch"
+          >
+            <div className="flex flex-col items-center shrink-0">
+              <div className="relative w-32 h-32 sm:w-36 sm:h-36">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="42" stroke="#f3f4f6" strokeWidth="8" fill="none" />
                   <circle
                     cx="50"
                     cy="50"
-                    r="40"
-                    stroke={displayPercentage >= 70 ? '#10b981' : displayPercentage >= 50 ? '#f59e0b' : '#ef4444'}
+                    r="42"
+                    stroke={getGradeRingColor(grade.grade)}
                     strokeWidth="8"
                     fill="none"
-                    strokeDasharray={`${2 * Math.PI * 40}`}
-                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - animatedValues.percentage / 100)}`}
+                    strokeLinecap="round"
+                    strokeDasharray={`${2 * Math.PI * 42}`}
+                    strokeDashoffset={`${2 * Math.PI * 42 * (1 - animatedValues.percentage / 100)}`}
                     className="transition-all duration-2000 ease-out"
-                    style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))' }}
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-4xl font-bold text-gray-900 mb-1">{animatedValues.percentage}%</div>
-                    <div className={`text-lg font-semibold ${grade.color}`}>{grade.grade}</div>
-                  </div>
+                  <span className="text-2xl font-bold text-gray-900">{animatedValues.percentage}%</span>
                 </div>
               </div>
-              <div
-                className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold ${grade.bgColor} ${grade.color} shadow-lg`}
-              >
-                <GradeIcon className="w-4 h-4 mr-2" />
+              <span className={`mt-3 px-3 py-1 rounded-full text-xs font-semibold ${getGradePillClass(grade.grade)}`}>
                 {grade.grade} Grade
+              </span>
+            </div>
+
+            <div className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-6 min-w-0">
+              <div className="text-center sm:text-left">
+                <div className="text-5xl font-bold text-gray-900 leading-none">{animatedValues.obtainedMarks}</div>
+                <p className="text-gray-500 mt-1">out of {result.totalMarks} marks</p>
+              </div>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3 w-full sm:w-auto max-w-md">
+                <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3 text-center">
+                  <CheckCircle className="w-5 h-5 text-emerald-500 mx-auto mb-1" />
+                  <div className="text-xl font-bold text-emerald-700">{animatedValues.correctAnswers}</div>
+                  <div className="text-xs text-emerald-600">Correct</div>
+                </div>
+                <div className="rounded-xl bg-red-50 border border-red-100 p-3 text-center">
+                  <XCircle className="w-5 h-5 text-red-500 mx-auto mb-1" />
+                  <div className="text-xl font-bold text-red-700">{animatedValues.wrongAnswers}</div>
+                  <div className="text-xs text-red-600">Wrong</div>
+                </div>
+                <div className="rounded-xl bg-gray-50 border border-gray-200 p-3 text-center">
+                  <AlertCircle className="w-5 h-5 text-gray-500 mx-auto mb-1" />
+                  <div className="text-xl font-bold text-gray-700">{animatedValues.unattempted}</div>
+                  <div className="text-xs text-gray-600">Skipped</div>
+                </div>
               </div>
             </div>
 
-            <div className="space-y-6">
-              <div className="text-center">
-                <div className="text-4xl font-bold text-gray-900 mb-2">{animatedValues.obtainedMarks}</div>
-                <div className="text-lg text-gray-600">out of {result.totalMarks} marks</div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                  <CheckCircle className="w-6 h-6 text-green-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-green-600">{animatedValues.correctAnswers}</div>
-                  <div className="text-sm text-green-700">Correct</div>
-                </div>
-                <div className="text-center p-4 bg-gradient-to-br from-red-50 to-pink-50 rounded-xl border border-red-200">
-                  <XCircle className="w-6 h-6 text-red-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-red-600">{animatedValues.wrongAnswers}</div>
-                  <div className="text-sm text-red-700">Wrong</div>
-                </div>
-                <div className="text-center p-4 bg-gradient-to-br from-gray-50 to-slate-50 rounded-xl border border-gray-200">
-                  <AlertCircle className="w-6 h-6 text-gray-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-gray-600">{animatedValues.unattempted}</div>
-                  <div className="text-sm text-gray-700">Skipped</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-6">
+            <div className="w-full xl:w-56 space-y-4 shrink-0">
               <div>
-                <div className="flex justify-between text-sm mb-3">
-                  <span className="font-semibold text-gray-700">Accuracy Rate</span>
-                  <span className="font-bold text-green-600">{accuracyRate.toFixed(1)}%</span>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-gray-700">Accuracy Rate</span>
+                  <span className="font-semibold text-orange-600">{accuracyRate.toFixed(1)}%</span>
                 </div>
-                <Progress value={accuracyRate} className="h-3 bg-gray-200" />
+                <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                  <div className="h-full rounded-full bg-gradient-to-r from-orange-400 to-red-500" style={{ width: `${Math.min(100, accuracyRate)}%` }} />
+                </div>
               </div>
-
               <div>
-                <div className="flex justify-between text-sm mb-3">
-                  <span className="font-semibold text-gray-700">Completion Rate</span>
-                  <span className="font-bold text-blue-600">{completionRate.toFixed(1)}%</span>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="font-medium text-gray-700">Completion Rate</span>
+                  <span className="font-semibold text-[#7C3AED]">{completionRate.toFixed(1)}%</span>
                 </div>
-                <Progress value={completionRate} className="h-3 bg-gray-200" />
+                <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                  <div className="h-full rounded-full bg-[#7C3AED]" style={{ width: `${Math.min(100, completionRate)}%` }} />
+                </div>
               </div>
-
-              <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Clock className="w-5 h-5 text-blue-600" />
-                    <span className="font-semibold text-gray-700">Time Taken</span>
-                  </div>
-                  <span className="font-bold text-blue-600">{formatTime(result.timeTaken)}</span>
-                </div>
+              <div className="flex items-center gap-2 p-3 rounded-xl border border-gray-100 bg-gray-50">
+                <Clock className="w-4 h-4 text-[#7C3AED]" />
+                <span className="text-sm text-gray-600">Time Taken</span>
+                <span className="ml-auto text-sm font-semibold text-gray-900">{formatTime(result.timeTaken)}</span>
               </div>
             </div>
-          </div>
+          </motion.div>
         </CardContent>
       </Card>
     </>
   );
 
+  const questionDistributionBars = (
+    <Card className="rounded-2xl shadow-sm border border-gray-100 bg-white">
+      <CardHeader>
+        <CardTitle className="flex items-center text-xl">
+          <PieChart className="w-5 h-5 mr-2 text-[#7C3AED]" />
+          Question Distribution
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {[
+          { label: 'Correct Answers', count: result.correctAnswers, color: 'bg-emerald-500', bar: 'bg-emerald-500' },
+          { label: 'Wrong Answers', count: result.wrongAnswers, color: 'bg-red-500', bar: 'bg-red-500' },
+          { label: 'Unattempted', count: result.unattempted, color: 'bg-gray-400', bar: 'bg-gray-400' },
+        ].map((row) => {
+          const pct = totalQuestionCount > 0 ? (row.count / totalQuestionCount) * 100 : 0;
+          return (
+            <div key={row.label} className="flex items-center gap-3">
+              <span className={`w-2 h-2 rounded-full shrink-0 ${row.color}`} />
+              <span className="text-sm font-medium text-gray-700 w-32 shrink-0">{row.label}</span>
+              <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden min-w-[60px]">
+                <div className={`h-full rounded-full ${row.bar}`} style={{ width: `${pct}%` }} />
+              </div>
+              <span className="text-sm font-bold text-gray-900 w-8 text-right">{row.count}</span>
+              <span className="text-sm text-gray-500 w-12 text-right">{pct.toFixed(1)}%</span>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation Tabs */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex space-x-8">
-          <button 
-            onClick={() => setActiveTab('ai')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === 'ai' 
-                ? 'text-purple-600 border-b-2 border-purple-600' 
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            AI Report
-          </button>
-          <button 
-            onClick={() => setActiveTab('overview')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === 'overview' 
-                ? 'text-purple-600 border-b-2 border-purple-600' 
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Overview
-          </button>
-          <button 
-            onClick={() => setActiveTab('questions')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === 'questions' 
-                ? 'text-purple-600 border-b-2 border-purple-600' 
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Questions
-          </button>
-          <button
-            onClick={() => setActiveTab('advanced')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === 'advanced'
-                ? 'text-purple-600 border-b-2 border-purple-600'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Advanced
-          </button>
-          <button 
-            onClick={() => setActiveTab('subjects')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === 'subjects' 
-                ? 'text-purple-600 border-b-2 border-purple-600' 
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Subjects
-          </button>
-          <button 
-            onClick={() => setActiveTab('insights')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              activeTab === 'insights' 
-                ? 'text-purple-600 border-b-2 border-purple-600' 
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            Insights
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-0 overflow-x-auto">
+        <div className="flex gap-1 sm:gap-4 min-w-max">
+          <button type="button" onClick={() => setActiveTab('ai')} className={tabBtnClass('ai')}>AI Report</button>
+          <button type="button" onClick={() => setActiveTab('overview')} className={tabBtnClass('overview')}>Overview</button>
+          <button type="button" onClick={() => setActiveTab('questions')} className={tabBtnClass('questions')}>Questions</button>
+          <button type="button" onClick={() => setActiveTab('advanced')} className={tabBtnClass('advanced')}>Advanced</button>
+          <button type="button" onClick={() => setActiveTab('subjects')} className={tabBtnClass('subjects')}>Subjects</button>
+          <button type="button" onClick={() => setActiveTab('insights')} className={tabBtnClass('insights')}>Insights</button>
+          <button type="button" onClick={() => setActiveTab('plan')} className={`${tabBtnClass('plan')} flex items-center gap-2`}>
+            <span className="bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">NEW</span>
+            Plan
           </button>
         </div>
       </div>
@@ -1060,35 +1658,100 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
         {activeTab === 'ai' && (
           <div className="space-y-6">
             {questionAnalysisMarksModule}
-            <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-violet-50">
+
+            {aiLoading && (
+              <div className="text-sm text-[#7C3AED] py-4">Generating your AI report...</div>
+            )}
+            {!aiLoading && aiError && (
+              <div className="text-sm text-red-600 p-4 rounded-xl bg-red-50 border border-red-200">{aiError}</div>
+            )}
+
+            {!aiLoading && (
+              <>
+            <div className="rounded-2xl border-l-4 border-red-500 bg-red-50 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex gap-3 flex-1">
+                <AlertCircle className="w-6 h-6 text-red-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-bold text-red-800 tracking-wide">THE REAL PROBLEM IN THIS ATTEMPT</p>
+                  <p className="text-sm font-semibold text-gray-900 mt-1">
+                    {carelessMistakeCount} careless mistakes cost you {Math.round(carelessMistakeCount * marksPerWrong)} marks.
+                  </p>
+                  <p className="text-sm text-gray-700 mt-1">
+                    {aiAnalysis?.rootCauses?.[0] ||
+                      'You knew these. You answered in under 30 seconds — speed without accuracy.'}
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                className="bg-red-900 hover:bg-red-950 text-white shrink-0"
+                onClick={() => setActiveTab('plan')}
+              >
+                Fix this <ChevronRight className="w-4 h-4 ml-1 inline" />
+              </Button>
+            </div>
+
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5">
+              <div className="flex gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#7C3AED] text-white font-bold flex items-center justify-center shrink-0">V</div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-gray-900">Vidya</span>
+                    <span className="text-[10px] uppercase tracking-wide bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">YOUR TUTOR</span>
+                  </div>
+                  <p className="text-sm text-gray-800 mt-2">
+                    {studentName}, don&apos;t let this number define the day — one mock is data, not destiny.
+                  </p>
+                  <p className="text-sm text-gray-700 mt-1">
+                    {(aiAnalysis?.motivation || aiAnalysis?.summary || '').split(/[.!?]/)[0]}.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="rounded-xl bg-teal-50 border border-teal-100 p-4">
+                <p className="text-xs text-gray-500">Attempted</p>
+                <p className="text-2xl font-bold text-gray-900">{attemptedCount}</p>
+              </div>
+              <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
+                <p className="text-xs text-gray-500">Unattempted</p>
+                <p className="text-2xl font-bold text-gray-900">{result.unattempted}</p>
+              </div>
+              <div className="rounded-xl bg-red-50 border border-red-100 p-4">
+                <p className="text-xs text-gray-500">Wrong</p>
+                <p className="text-2xl font-bold text-gray-900">{result.wrongAnswers}</p>
+              </div>
+              <div className="rounded-xl bg-purple-50 border border-purple-100 p-4">
+                <p className="text-xs text-gray-500">Accuracy</p>
+                <p className="text-2xl font-bold text-gray-900">{accuracyRate.toFixed(1)}%</p>
+              </div>
+            </div>
+
+            <Card className="rounded-2xl shadow-sm border border-gray-100">
               <CardHeader>
-                <CardTitle className="text-lg">Performance Snapshot</CardTitle>
+                <CardTitle className="text-xl">Vidya&apos;s Performance Diagnosis</CardTitle>
+                <p className="text-sm text-gray-500">Powered by Gemini · 4 paragraphs · two-minute read</p>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="p-3 rounded-lg border bg-emerald-50 border-emerald-200">
-                    <div className="text-xs text-emerald-800">Attempted</div>
-                    <div className="text-xl font-bold text-emerald-700">{result.correctAnswers + result.wrongAnswers}</div>
-                  </div>
-                  <div className="p-3 rounded-lg border bg-blue-50 border-blue-200">
-                    <div className="text-xs text-blue-800">Unattempted</div>
-                    <div className="text-xl font-bold text-blue-700">{result.unattempted}</div>
-                  </div>
-                  <div className="p-3 rounded-lg border bg-red-50 border-red-200">
-                    <div className="text-xs text-red-800">Wrong</div>
-                    <div className="text-xl font-bold text-red-700">{result.wrongAnswers}</div>
-                  </div>
-                  <div className="p-3 rounded-lg border bg-purple-50 border-purple-200">
-                    <div className="text-xs text-purple-800">Accuracy</div>
-                    <div className="text-xl font-bold text-purple-700">
-                      {accuracyRate.toFixed(1)}%
+              <CardContent className="space-y-5">
+                {[
+                  { n: 1, label: 'WHAT WENT WELL', color: 'text-emerald-600', body: aiAnalysis?.strengths?.[0] || aiAnalysis?.motivation || 'You showed pockets of accuracy when you slowed down.' },
+                  { n: 2, label: 'THE BIGGEST ISSUE', color: 'text-red-600', body: aiAnalysis?.rootCauses?.[0] || 'Careless errors under time pressure dominated this attempt.' },
+                  { n: 3, label: 'PATTERN ACROSS ATTEMPTS', color: 'text-blue-600', body: (aiAnalysis?.summary || '').split('.').slice(1, 3).join('.').trim() || aiAnalysis?.summary || 'Similar gaps appear when pacing is rushed.' },
+                  { n: 4, label: 'DO THIS TOMORROW', color: 'text-[#7C3AED]', body: aiAnalysis?.actionPlan?.today?.[0] || 'Run a 25-minute slow-mode drill on your weakest chapter.' },
+                ].map((row) => (
+                  <div key={row.n} className="flex gap-4">
+                    <span className="text-lg font-bold text-gray-300">{row.n}</span>
+                    <div>
+                      <p className={`text-xs font-bold tracking-wider ${row.color}`}>{row.label}</p>
+                      <p className="text-sm text-gray-600 mt-1">{row.body}</p>
                     </div>
                   </div>
-                </div>
+                ))}
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-indigo-50">
+            <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-indigo-50 rounded-2xl">
               <CardHeader>
                 <CardTitle className="flex items-center text-xl">
                   <Brain className="w-6 h-6 mr-2 text-indigo-600" />
@@ -1097,10 +1760,10 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
               </CardHeader>
               <CardContent className="space-y-4">
                 {aiLoading && (
-                  <div className="text-sm text-indigo-700">Generating your report...</div>
+                  <p className="text-sm text-indigo-700">Generating your report...</p>
                 )}
                 {!aiLoading && aiError && (
-                  <div className="text-sm text-red-600">{aiError}</div>
+                  <p className="text-sm text-red-600">{aiError}</p>
                 )}
                 {!aiLoading && !aiError && aiAnalysis?.summary && (
                   <p className="text-gray-800 whitespace-pre-line">{aiAnalysis.summary}</p>
@@ -1110,73 +1773,12 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                     {aiAnalysis.motivation}
                   </div>
                 )}
+                {!aiLoading && !aiError && !aiAnalysis?.summary && !aiAnalysis?.motivation && (
+                  <p className="text-sm text-gray-500">Full analysis will appear once the AI report is generated.</p>
+                )}
               </CardContent>
             </Card>
-
-            {!aiLoading && !aiError && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-rose-50">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Risk Assessment</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-700">Risk Level</span>
-                      <Badge variant="outline" className={`uppercase ${riskBadgeClass}`}>
-                        {(aiAnalysis?.riskLevel || 'low').toString()}
-                      </Badge>
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between text-sm mb-1">
-                        <span className="text-gray-700">Risk Score</span>
-                        <span className="font-semibold text-gray-900">
-                          {Math.round((Number(aiAnalysis?.riskScore || 0) || 0) * 100)}%
-                        </span>
-                      </div>
-                      <Progress value={(Number(aiAnalysis?.riskScore || 0) || 0) * 100} className="h-2 bg-gray-200" />
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                      <div className="p-2 rounded border bg-blue-50 border-blue-200">
-                        <div className="text-[11px] text-blue-800">Next Score</div>
-                        <div className="font-semibold text-blue-700">
-                          {Math.round(Number(aiAnalysis?.predictions?.nextExamPrediction || 0))}%
-                        </div>
-                      </div>
-                      <div className="p-2 rounded border bg-purple-50 border-purple-200">
-                        <div className="text-[11px] text-purple-800">Confidence</div>
-                        <div className="font-semibold text-purple-700">
-                          {Math.round((Number(aiAnalysis?.predictions?.confidence || 0) || 0) * 100)}%
-                        </div>
-                      </div>
-                      <div className="p-2 rounded border bg-gray-50 border-gray-200">
-                        <div className="text-[11px] text-gray-700">Trend</div>
-                        <div className="font-semibold capitalize text-gray-800">
-                          {String(aiAnalysis?.predictions?.trend || 'stable')}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-orange-50">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Root Causes</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-2 text-sm text-gray-800">
-                      {(aiAnalysis?.rootCauses || []).map((cause, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <AlertCircle className="w-4 h-4 text-orange-600 mt-0.5" />
-                          <span>{cause}</span>
-                        </li>
-                      ))}
-                      {(!aiAnalysis?.rootCauses || aiAnalysis.rootCauses.length === 0) && (
-                        <li className="text-gray-500">No root causes available yet.</li>
-                      )}
-                    </ul>
-                  </CardContent>
-                </Card>
-              </div>
+              </>
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1220,6 +1822,25 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                 </CardContent>
               </Card>
             </div>
+
+            <Card className="rounded-2xl shadow-sm border border-gray-100">
+              <CardHeader>
+                <CardTitle className="text-lg">Root Causes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm text-gray-800">
+                  {(aiAnalysis?.rootCauses || []).map((cause, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-orange-600 mt-0.5 shrink-0" />
+                      <span>{cause}</span>
+                    </li>
+                  ))}
+                  {(!aiAnalysis?.rootCauses || aiAnalysis.rootCauses.length === 0) && (
+                    <li className="text-gray-500">No root causes available yet.</li>
+                  )}
+                </ul>
+              </CardContent>
+            </Card>
 
             {weakAreas.length === 0 ? (
               <p className="text-center text-sm text-muted-foreground py-6 rounded-xl border border-dashed border-purple-100 bg-gradient-to-r from-purple-50/80 to-pink-50/50">
@@ -1341,104 +1962,150 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
           <div className="space-y-6">
             {questionAnalysisMarksModule}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              
-              {/* Question Distribution Chart */}
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-blue-50">
+              <Card className="rounded-2xl shadow-sm border border-gray-100">
                 <CardHeader>
                   <CardTitle className="flex items-center text-xl">
-                    <PieChart className="w-6 h-6 mr-2 text-blue-600" />
-                    Question Distribution
+                    <BarChart3 className="w-5 h-5 mr-2 text-[#7C3AED]" />
+                    Performance DNA
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-                        <span className="font-semibold text-gray-700">Correct Answers</span>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-green-600">{result.correctAnswers}</div>
-                        <div className="text-sm text-green-700">
-                          {((result.correctAnswers / result.totalQuestions) * 100).toFixed(1)}%
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-4 bg-gradient-to-r from-red-50 to-pink-50 rounded-xl border border-red-200">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-                        <span className="font-semibold text-gray-700">Wrong Answers</span>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-red-600">{result.wrongAnswers}</div>
-                        <div className="text-sm text-red-700">
-                          {((result.wrongAnswers / result.totalQuestions) * 100).toFixed(1)}%
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl border border-gray-200">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-4 h-4 bg-gray-500 rounded-full"></div>
-                        <span className="font-semibold text-gray-700">Unattempted</span>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-gray-600">{result.unattempted}</div>
-                        <div className="text-sm text-gray-700">
-                          {((result.unattempted / result.totalQuestions) * 100).toFixed(1)}%
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <PerformanceDNARadar scores={dnaScores} />
+                  <Badge className="mt-4 bg-amber-100 text-amber-800 border-amber-200">{dnaProfileLabel}</Badge>
+                  <p className="text-sm text-gray-600 mt-3">
+                    Your DNA says: you knew more than your marks show — fix pacing and careless slips to unlock hidden potential.
+                  </p>
                 </CardContent>
               </Card>
-
-              {/* Time Analysis */}
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-purple-50">
+              <Card className="rounded-2xl shadow-sm border border-gray-100">
                 <CardHeader>
                   <CardTitle className="flex items-center text-xl">
-                    <LineChart className="w-6 h-6 mr-2 text-purple-600" />
-                    Time Analysis
+                    <Clock className="w-5 h-5 mr-2 text-[#7C3AED]" />
+                    Time Intelligence
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div className="text-center p-6 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-200">
-                      <Clock className="w-12 h-12 text-purple-600 mx-auto mb-3" />
-                      <div className="text-3xl font-bold text-purple-600 mb-2">
-                        {formatTime(result.timeTaken)}
-                      </div>
-                      <div className="text-lg text-purple-700">Total Time Taken</div>
+                <CardContent className="space-y-4">
+                  <div className="text-center p-4 rounded-xl bg-purple-50 border border-purple-100">
+                    <Clock className="w-8 h-8 text-[#7C3AED] mx-auto mb-2" />
+                    <p className="text-2xl font-bold text-gray-900">{formatTime(result.timeTaken)}</p>
+                    <p className="text-sm text-gray-600">Total Time Taken</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-center">
+                    <div className="p-3 rounded-xl border bg-gray-50">
+                      <p className="text-lg font-bold">{formatTime(avgTimePerQuestion)}</p>
+                      <p className="text-xs text-gray-500">Avg per Question</p>
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-center p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200">
-                        <Calculator className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-                        <div className="text-xl font-bold text-blue-600">
-                          {formatTime(Math.floor(result.timeTaken / result.totalQuestions))}
-                        </div>
-                        <div className="text-sm text-blue-700">Avg per Question</div>
-                      </div>
-                      
-                      <div className="text-center p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200">
-                        <Zap className="w-8 h-8 text-indigo-600 mx-auto mb-2" />
-                        <div className="text-xl font-bold text-indigo-600">
-                          {result.timeTaken < result.totalQuestions * 60 ? 'Fast' : 'Normal'}
-                        </div>
-                        <div className="text-sm text-indigo-700">Speed Rating</div>
-                      </div>
+                    <div className="p-3 rounded-xl border bg-gray-50">
+                      <p className="text-lg font-bold">{speedRatingLabel}</p>
+                      <p className="text-xs text-gray-500">Speed Rating</p>
+                    </div>
+                  </div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Time × Accuracy Quadrant</p>
+                  <div className="grid grid-cols-2 gap-2 text-center text-sm">
+                    <div className="p-3 rounded-lg bg-red-50 border border-red-100">
+                      <p className="font-bold text-red-700">{timeQuadrant.fastWrong}</p>
+                      <p className="text-xs text-gray-600">Fast + Wrong · Careless</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                      <p className="font-bold text-emerald-700">{timeQuadrant.fastRight}</p>
+                      <p className="text-xs text-gray-600">Fast + Right · Sharp</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-orange-50 border border-orange-100">
+                      <p className="font-bold text-orange-700">{timeQuadrant.slowWrong}</p>
+                      <p className="text-xs text-gray-600">Slow + Wrong · Stuck</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-blue-50 border border-blue-100">
+                      <p className="font-bold text-blue-700">{timeQuadrant.slowRight}</p>
+                      <p className="text-xs text-gray-600">Slow + Right · Effortful</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
+            {questionDistributionBars}
           </div>
         )}
 
         {/* Questions Tab */}
         {activeTab === 'questions' && (
-          <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'all', label: `All · ${analysisQuestions.length}` },
+                { id: 'correct', label: `Correct · ${result.correctAnswers}` },
+                { id: 'wrong', label: `Wrong · ${result.wrongAnswers}` },
+                { id: 'skipped', label: `Skipped · ${result.unattempted}` },
+                { id: 'wrong-quick', label: `⚡ Wrong-quick · ${wrongQuickCount}` },
+                { id: 'hard-wrong', label: `Hard + Wrong · ${hardWrongCount}` },
+                { id: 'time-pressure', label: `⏱ Time-pressure · ${timePressureCount}` },
+              ].map((pill) => (
+                <button
+                  key={pill.id}
+                  type="button"
+                  onClick={() => {
+                    setQuestionFilter(pill.id);
+                    setShowAllQuestionsList(false);
+                  }}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium border transition-colors ${
+                    questionFilter === pill.id
+                      ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-[#7C3AED]'
+                  }`}
+                >
+                  {pill.label}
+                </button>
+              ))}
+            </div>
+            {analysisQuestions.length > 0 && (
+              <div className="space-y-2 lg:hidden">
+                {(showAllQuestionsList ? filteredQuestionIndices : filteredQuestionIndices.slice(0, 5)).map((index) => {
+                  const question = analysisQuestions[index];
+                  const userAnswer = getUserAnswerForQuestion(question, index);
+                  const isCorrect = compareAnswers(question, userAnswer, question.correctAnswer);
+                  const isAttempted = userAnswer !== undefined && userAnswer !== null && userAnswer !== '';
+                  const t = getAnswerTimeSeconds(userAnswer);
+                  const qi = aiAnalysis?.questionInsights?.find((x) => x.index === index + 1 || x.index === index);
+                  const err = classifyErrorType(question, userAnswer, t, {
+                    isCorrect,
+                    isAttempted,
+                    avgTime: avgTimePerQuestion || 60,
+                    totalExamTime: result.timeTaken,
+                    aiInsight: qi?.insight || qi?.fixStrategy,
+                  });
+                  const border = isCorrect ? 'border-l-emerald-500' : isAttempted ? 'border-l-red-500' : 'border-l-gray-400';
+                  return (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => {
+                        setExpandedQuestionIndex(expandedQuestionIndex === index ? null : index);
+                        setMobileQuestionIndex(index);
+                      }}
+                      className={`w-full text-left rounded-xl border border-gray-100 bg-white shadow-sm p-3 border-l-4 ${border}`}
+                    >
+                      <div className="flex gap-2 items-start">
+                        <span className="font-bold text-sm">Q{index + 1}</span>
+                        {isCorrect ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : isAttempted ? <XCircle className="w-4 h-4 text-red-500" /> : <Minus className="w-4 h-4 text-gray-400" />}
+                        <span className="text-sm text-gray-800 line-clamp-2 flex-1">{normalizeExamText(question.questionText, question.subject)}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        <Badge variant="outline" className="text-[10px] capitalize">{question.subject}</Badge>
+                        <Badge variant="secondary" className="text-[10px] uppercase">{getQuestionDifficulty(question)}</Badge>
+                        {err === 'careless' && <Badge className="text-[10px] bg-amber-100 text-amber-800">⚡ CARELESS{t != null ? ` · ${t}s` : ''}</Badge>}
+                        {err === 'conceptual' && <Badge className="text-[10px] bg-purple-100 text-purple-800">💎 CONCEPTUAL</Badge>}
+                        {err === 'time-pressure' && <Badge className="text-[10px] bg-blue-100 text-blue-800">⏱ TIME-PRESSURE</Badge>}
+                        {err === 'reading' && <Badge className="text-[10px] bg-indigo-100 text-indigo-800">👁 READING</Badge>}
+                      </div>
+                    </button>
+                  );
+                })}
+                {filteredQuestionIndices.length > 5 && !showAllQuestionsList && (
+                  <Button type="button" variant="outline" className="w-full" onClick={() => setShowAllQuestionsList(true)}>
+                    Show all {filteredQuestionIndices.length} questions
+                  </Button>
+                )}
+              </div>
+            )}
               {analysisQuestions.length > 0 ? (
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                 
@@ -1703,11 +2370,88 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                   </CardContent>
                 </Card>
               )}
-          </div>
+          </motion.div>
         )}
 
         {activeTab === 'advanced' && (
-          <AdvancedPerformanceDashboard examId={advancedExamId} />
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">Mistake Taxonomy</h2>
+                <p className="text-sm text-gray-500">how the {result.wrongAnswers} wrong answers break down</p>
+              </div>
+              <div className="flex gap-2 flex-wrap items-center">
+                <Badge className={riskBadgeClass}>Risk: {(aiAnalysis?.riskLevel || 'medium').toString()}</Badge>
+                <Badge variant="outline" className="capitalize">Trend: {String(aiAnalysis?.predictions?.trend || 'stable')}</Badge>
+                <span className="text-sm font-bold text-red-600">{Math.max(0, (result.totalMarks || 0) - (result.obtainedMarks || 0))} MARKS LOST</span>
+              </div>
+            </div>
+            <div className="flex h-4 rounded-full overflow-hidden bg-gray-100">
+              {[
+                { c: mistakeTaxonomy.careless, color: 'bg-red-500' },
+                { c: mistakeTaxonomy.conceptual, color: 'bg-orange-500' },
+                { c: mistakeTaxonomy.procedural, color: 'bg-yellow-500' },
+                { c: mistakeTaxonomy.time, color: 'bg-purple-500' },
+                { c: mistakeTaxonomy.reading, color: 'bg-blue-500' },
+              ].map((seg, i) => {
+                const total = mistakeTaxonomy.careless + mistakeTaxonomy.conceptual + mistakeTaxonomy.procedural + mistakeTaxonomy.time + mistakeTaxonomy.reading || 1;
+                return <div key={i} className={seg.color} style={{ width: `${(seg.c / total) * 100}%` }} />;
+              })}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {[
+                { label: 'Careless', count: mistakeTaxonomy.careless, icon: Zap },
+                { label: 'Conceptual', count: mistakeTaxonomy.conceptual, icon: Brain },
+                { label: 'Procedural', count: mistakeTaxonomy.procedural, icon: Target },
+                { label: 'Time', count: mistakeTaxonomy.time, icon: Timer },
+                { label: 'Reading', count: mistakeTaxonomy.reading, icon: Eye },
+              ].map((m) => {
+                const Icon = m.icon;
+                return (
+                  <Card key={m.label} className="rounded-xl border shadow-sm p-3 text-center">
+                    <Icon className="w-5 h-5 mx-auto text-gray-500 mb-1" />
+                    <p className="text-2xl font-bold">{m.count}</p>
+                    <p className="text-xs text-gray-600">{m.label}</p>
+                    <p className="text-xs text-red-600 font-semibold mt-1">{Math.round(m.count * marksPerWrong)} lost</p>
+                  </Card>
+                );
+              })}
+            </div>
+            <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-amber-900">
+              Pattern detected — Careless errors have appeared in consecutive mocks. Slow-mode drills recommended daily.
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="rounded-2xl shadow-sm border">
+                <CardHeader><CardTitle>Peer Benchmark</CardTitle></CardHeader>
+                <CardContent className="space-y-3 text-sm">
+                  {['App-wide', 'Hyderabad cohort', 'Class nationally'].map((label, i) => (
+                    <div key={label}>
+                      <div className="flex justify-between mb-1"><span>{label}</span><span>{38 + i * 4}th %ile</span></div>
+                      <div className="h-2 bg-gray-100 rounded-full"><div className="h-full bg-[#7C3AED] rounded-full" style={{ width: `${35 + i * 5}%` }} /></div>
+                    </div>
+                  ))}
+                  <p className="font-bold pt-2">TOPPER GAP: {Math.max(0, (result.totalMarks || 0) - (result.obtainedMarks || 0) - 20)} marks</p>
+                </CardContent>
+              </Card>
+              <Card className="rounded-2xl shadow-sm border">
+                <CardHeader><CardTitle>Predicted Rank Projection</CardTitle></CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  <p className="text-xs text-gray-500">JEE MAIN AIR BAND</p>
+                  <p className="text-xl font-bold">N/A</p>
+                  <p className="text-gray-600">Percentile band: N/A</p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <Badge variant="outline">Last 5 attempts</Badge>
+                    <Badge variant="outline">NTA 2024 norm</Badge>
+                    <Badge variant="outline">Confidence: Med</Badge>
+                  </div>
+                  <div className="mt-3 p-3 rounded-lg bg-rose-50 border border-rose-100 text-gray-700 text-xs">
+                    {aiAnalysis?.motivation || aiAnalysis?.summary?.slice(0, 120) || 'Keep attempting mocks to unlock rank projection.'}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <AdvancedPerformanceDashboard examId={advancedExamId} />
+          </div>
         )}
 
         {/* Subjects Tab */}
@@ -1735,10 +2479,15 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                     <CardContent className="p-6">
                       <div className="text-center">
                         <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 bg-gradient-to-br ${colors.bg} ${colors.border} border-2`}>
-                          <BookOpen className={`w-10 h-10 ${colors.icon}`} />
+                          {subject === 'maths' && <Calculator className={`w-10 h-10 ${colors.icon}`} />}
+                          {subject === 'physics' && <Atom className={`w-10 h-10 ${colors.icon}`} />}
+                          {subject === 'chemistry' && <FlaskConical className={`w-10 h-10 ${colors.icon}`} />}
+                          {subject !== 'maths' && subject !== 'physics' && subject !== 'chemistry' && (
+                            <BookOpen className={`w-10 h-10 ${colors.icon}`} />
+                          )}
                         </div>
                         <h3 className="text-2xl font-bold text-gray-900 capitalize mb-2">{subject}</h3>
-                        <div className="text-4xl font-bold mb-2" style={{ color: colors.text.replace('text-', '#') }}>
+                        <div className="text-4xl font-bold mb-2 text-gray-900">
                           {percentage.toFixed(1)}%
                         </div>
                         <div className="text-lg text-gray-600 mb-4">
@@ -1760,12 +2509,63 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                             className="h-2 bg-gray-200"
                           />
                         </div>
+                        <div className="mt-4 pt-4 border-t border-gray-200/80 text-left text-xs">
+                          {percentage >= 70 ? (
+                            <p className="font-semibold text-teal-700">✓ STRONGEST · ANCHOR</p>
+                          ) : (
+                            <>
+                              <p className="font-bold text-red-600 uppercase tracking-wide">Weak Chapters</p>
+                              <p className="text-red-600 mt-1">
+                                {(chapterHeatmap[subject] || []).filter((c) => c.pct < 50).map((c) => c.name).join(', ') || 'Review chapter-wise mocks'}
+                              </p>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
                 );
               })}
             </div>
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 flex gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#7C3AED] text-white font-bold flex items-center justify-center shrink-0">V</div>
+              <div>
+                <p className="font-semibold text-gray-900">Vidya&apos;s read across your subjects</p>
+                <p className="text-sm text-gray-700 mt-2">
+                  {Object.entries(result.subjectWiseScore)
+                    .map(([s, sc]) => `${s.charAt(0).toUpperCase() + s.slice(1)} at ${sc.total > 0 ? ((sc.correct / sc.total) * 100).toFixed(0) : 0}%`)
+                    .join('. ')}
+                  .
+                </p>
+              </div>
+            </div>
+            <Card className="rounded-2xl shadow-sm border">
+              <CardHeader>
+                <CardTitle className="text-xl">Chapter Mastery Heatmap</CardTitle>
+                <div className="flex flex-wrap gap-2 mt-2 text-[10px] text-gray-500">
+                  {['Novice', 'Beginner', 'Proficient', 'Advanced', 'Master'].map((l, i) => (
+                    <span key={l}>● {l}</span>
+                  ))}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {(['physics', 'maths', 'chemistry'] as const).map((subj) => (
+                  <div key={subj}>
+                    <p className="text-xs font-bold text-gray-500 uppercase mb-2">{subj}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {(chapterHeatmap[subj] || []).map((ch) => (
+                        <span
+                          key={ch.name}
+                          className={`text-xs px-2 py-1 rounded-md font-medium ${getMasteryColor(ch.pct)}`}
+                        >
+                          {ch.name} {Math.round(ch.pct)}%
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
           </div>
         )}
 
@@ -1837,6 +2637,137 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                   </div>
                 </CardContent>
               </Card>
+            </div>
+            <div className="mt-8">
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <RefreshCw className="w-5 h-5 text-amber-600" />
+                Pattern Alerts · what&apos;s repeating across attempts
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { icon: '⚡', title: 'Careless errors · 3 attempts in a row', desc: `${mistakeTaxonomy.careless} this time — fast wrong answers climbing.`, fix: '10 min slow-mode drill daily' },
+                  { icon: '🧠', title: 'Weak chapter · red zone', desc: (aiAnalysis?.focusAreas?.[0]?.issue || 'Stuck below target accuracy.').slice(0, 80), fix: '8-min concept video + 10 Qs' },
+                  { icon: '📉', title: 'Confidence trend declining', desc: `Trend: ${String(aiAnalysis?.predictions?.trend || 'stable')}.`, fix: 'Start mocks with your anchor subject' },
+                  { icon: '⏱', title: 'Stamina drops in last 25%', desc: 'Accuracy often falls when time pressure peaks.', fix: 'Practice longer test stamina' },
+                ].map((alert, i) => (
+                  <div key={i} className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
+                    <p className="font-bold text-gray-900">{alert.icon} {alert.title}</p>
+                    <p className="text-sm text-gray-600 mt-2">{alert.desc}</p>
+                    <p className="text-sm font-medium text-[#7C3AED] mt-2">→ Fix: {alert.fix}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+
+        {activeTab === 'plan' && (
+          <div className="space-y-6">
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-r from-purple-600 to-pink-500 text-white p-6 sm:p-8 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold">YOUR 7-DAY PLAN</h2>
+                <p className="text-white/80 text-sm mt-1">Starts tomorrow morning, 6 AM</p>
+                <p className="text-white/70 text-xs mt-2">25 minutes a day · 7 anchor concepts · 70 questions · 7 quizzes</p>
+              </div>
+              <Button type="button" className="bg-white text-purple-700 hover:bg-white/90" onClick={scrollToPlanQueue}>Start Day 1 now →</Button>
+            </motion.div>
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 flex gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#7C3AED] text-white font-bold flex items-center justify-center shrink-0">V</div>
+              <div>
+                <p className="font-semibold text-gray-900">Why this plan, in one minute</p>
+                <p className="text-sm text-gray-700 mt-2">
+                  {studentName}, this week targets your focus areas. {(aiAnalysis?.actionPlan?.thisWeek || [])[0] || 'Short daily drills on weak chapters.'}
+                </p>
+              </div>
+            </div>
+            <div className="overflow-x-auto pb-2">
+              <div className="flex gap-3 min-w-max">
+                {planDays.map((day, dayIndex) => {
+                  const isSelected = selectedPlanDayIndex === dayIndex;
+                  return (
+                    <button
+                      key={day.dayNum}
+                      type="button"
+                      onClick={() => {
+                        setSelectedPlanDayIndex(dayIndex);
+                        requestAnimationFrame(() => {
+                          planQueueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        });
+                      }}
+                      className={`rounded-xl p-4 min-w-[140px] border text-left transition-shadow ${isSelected ? 'bg-white border-[#7C3AED] shadow-md ring-2 ring-[#7C3AED]/30' : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                    >
+                      {dayIndex === 0 && <span className="text-[10px] font-bold text-[#7C3AED]">TODAY</span>}
+                      {isSelected && dayIndex !== 0 && <span className="text-[10px] font-bold text-[#7C3AED]">SELECTED</span>}
+                      <p className="text-xs font-semibold mt-1">{day.label} · {day.weekday}</p>
+                      <p className={`font-bold mt-2 ${isSelected ? 'text-gray-900' : ''}`}>{day.title}</p>
+                      <p className="text-xs mt-1">{day.subtitle}</p>
+                      <p className="text-xs mt-2 font-medium">{day.duration}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div ref={planQueueRef} className="scroll-mt-24">
+            <Card className="rounded-2xl shadow-sm border">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>
+                  {selectedPlanDayIndex === 0 ? 'TODAY' : activePlanDay?.label} · {activePlanDay?.title || 'Focus'}
+                </CardTitle>
+                <Badge>Anchor concept</Badge>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-gray-600">{activePlanDay?.subtitle || 'Daily practice'} · {activePlanDay?.duration || '25 min'}</p>
+                <div>
+                  <p className="text-xs font-bold text-gray-500 mb-2">WARM-UP · {planQueue.warmup.length} EASY Qs</p>
+                  <div className="flex flex-wrap gap-2">
+                    {planQueue.warmup.map((item, i) => (
+                      <div key={item.id} className="rounded-lg border bg-white shadow-sm px-3 py-2 text-xs">
+                        <span className="text-[#7C3AED] font-semibold">Q{i + 1} · {item.minutes}m</span> {item.title}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-500 mb-2">CORE · {planQueue.core.length} Qs</p>
+                  <div className="flex flex-wrap gap-2">
+                    {planQueue.core.map((item, i) => (
+                      <div key={item.id} className="rounded-lg border bg-purple-50/50 shadow-sm px-3 py-2 text-xs">
+                        <span className="text-[#7C3AED] font-semibold">Q{i + 1} · {item.minutes}m</span> {item.title}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {planQueue.stretch.length > 0 && (
+                  <div>
+                    <p className="text-xs font-bold text-gray-500 mb-2">STRETCH · optional</p>
+                    <div className="flex flex-wrap gap-2">
+                      {planQueue.stretch.map((item, i) => (
+                        <div key={item.id} className="rounded-lg border border-dashed bg-gray-50 px-3 py-2 text-xs">
+                          <span className="text-gray-600 font-semibold">+{i + 1} · {item.minutes}m</span> {item.title}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            </div>
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="font-bold text-lg">Video Queue · 30 minutes total</h3>
+                <span className="text-xs text-gray-500">Auto-ordered by weakness</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {planVideoCards.map((v, i) => (
+                  <div key={`${v.subj}-${v.title}-${i}`} className={`rounded-xl p-4 ${v.bg} border relative min-h-[140px]`}>
+                    <p className="text-[10px] font-bold text-gray-500">{v.subj} · {v.min} MIN</p>
+                    <Play className="w-8 h-8 text-gray-400 mx-auto my-4" />
+                    <p className="text-sm font-semibold text-center">{v.title}</p>
+                    <p className="text-xs text-center text-gray-600 mt-2">Your mastery: {Math.round(v.mastery)}%</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
