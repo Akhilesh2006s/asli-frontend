@@ -54,7 +54,7 @@ const SubjectManagement = () => {
   const [filterByDepartment, setFilterByDepartment] = useState<string>('all');
   const [filterByGrade, setFilterByGrade] = useState<string>('all');
   const [filterByTeacher, setFilterByTeacher] = useState<string>('all');
-  const [filterByStatus, setFilterByStatus] = useState<string>('all');
+  const [filterByStatus, setFilterByStatus] = useState<string>('active');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -91,10 +91,15 @@ const SubjectManagement = () => {
       const data = await response.json();
       // Normalize backend payloads: {_id, fullName, ...} -> UI shape.
       const subjectsData = data.data || data.subjects || data || [];
+      const displaySubjectName = (raw: string) =>
+        String(raw || '').split('__deleted__')[0].trim();
+
       const normalized = Array.isArray(subjectsData)
-        ? subjectsData.map((s: any) => ({
+        ? subjectsData
+            .filter((s: any) => s.isActive !== false)
+            .map((s: any) => ({
             id: String(s.id || s._id || ''),
-            name: s.name || '',
+            name: displaySubjectName(s.name || ''),
             code: s.code || '',
             description: s.description || '',
             teacher: s.teacher
@@ -106,7 +111,7 @@ const SubjectManagement = () => {
               : undefined,
             grade: s.grade || s.classNumber || '',
             department: s.department || '',
-            isActive: s.isActive !== false,
+            isActive: s.isActive === true,
             createdAt: s.createdAt || new Date().toISOString(),
           }))
         : [];
@@ -250,6 +255,7 @@ const SubjectManagement = () => {
         });
 
         if (response.ok) {
+          setSubjects((prev) => prev.filter((s) => s.id !== subjectId));
           fetchSubjects();
           alert(`${subjectName} has been deleted successfully.`);
         } else {

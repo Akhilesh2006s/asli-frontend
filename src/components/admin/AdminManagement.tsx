@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { UsersIcon, UserPlusIcon, EditIcon, TrashIcon, CrownIcon, GraduationCapIcon, BookOpenIcon, SearchIcon, Loader2, XIcon, EyeIcon } from "lucide-react";
+import { UsersIcon, UserPlusIcon, EditIcon, TrashIcon, CrownIcon, GraduationCapIcon, BookOpenIcon, SearchIcon, Loader2, XIcon, EyeIcon, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
 import { cn } from "@/lib/utils";
@@ -92,6 +92,14 @@ const resolveLogoUrl = (logoUrl?: string): string => {
   if (!logoUrl) return "";
   if (/^https?:\/\//i.test(logoUrl)) return logoUrl;
   return `${API_BASE_URL}${logoUrl.startsWith("/") ? logoUrl : `/${logoUrl}`}`;
+};
+
+/** Phone fields: digits only, maximum 10 (Indian mobile). */
+const sanitizePhoneInput = (value: string) => value.replace(/\D/g, "").slice(0, 10);
+
+const isValidOptionalPhone = (phone: string) => {
+  const digits = sanitizePhoneInput(phone);
+  return digits.length === 0 || digits.length === 10;
 };
 
 /** Admin portal modules — `id` must match backend `ALLOWED_SCHOOL_PORTAL_PERMISSIONS` in superAdminValidator.js */
@@ -218,7 +226,6 @@ export default function AdminManagement() {
   const [isUpdatingAdmin, setIsUpdatingAdmin] = useState(false);
   const [isDeletingAdmin, setIsDeletingAdmin] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const isMutationBusy = isAddingAdmin || isUpdatingAdmin || isDeletingAdmin;
   const DEFAULT_CURRICULUM_BOARD = "CBSE";
 
   const emptySchoolDetails = (): SchoolDetailsForm => ({
@@ -252,6 +259,21 @@ export default function AdminManagement() {
     accessMode: 'unlimited' as 'unlimited' | 'limited',
     limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS] as string[],
   });
+  const [showNewAdminPassword, setShowNewAdminPassword] = useState(false);
+  const [showEditPasswordChange, setShowEditPasswordChange] = useState(false);
+  const [editNewPassword, setEditNewPassword] = useState("");
+  const [showEditNewPassword, setShowEditNewPassword] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+
+  const resetEditPasswordUi = () => {
+    setShowEditPasswordChange(false);
+    setEditNewPassword("");
+    setShowEditNewPassword(false);
+  };
+
+  const isMutationBusy =
+    isAddingAdmin || isUpdatingAdmin || isDeletingAdmin || isSavingPassword;
+
   const [editAdmin, setEditAdmin] = useState({
     name: '',
     email: '',
@@ -513,15 +535,23 @@ export default function AdminManagement() {
       return;
     }
 
+    if (!isValidOptionalPhone(newAdmin.phone) || !isValidOptionalPhone(newAdmin.secondaryContactPhone)) {
+      toast({
+        title: "Invalid phone number",
+        description: "Primary and secondary contact numbers must be exactly 10 digits (or leave empty).",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsAddingAdmin(true);
     try {
       const token = localStorage.getItem('authToken');
       
-      // Prepare payload - backend expects: name, email, board, state, schoolName, permissions
-      // Note: Backend sets default password 'admin123', so we don't send password
       const payload = {
         name: newAdmin.name,
         email: newAdmin.email,
+        password: newAdmin.password,
         board: newAdmin.board,
         isAsliPrepExclusive: newAdmin.isAsliPrepExclusive,
         state: newAdmin.state,
@@ -529,9 +559,9 @@ export default function AdminManagement() {
         schoolName: newAdmin.schoolName,
         schoolLogo: newAdmin.schoolLogo,
         contactPerson: newAdmin.contactPerson?.trim() || '',
-        phone: newAdmin.phone?.trim() || '',
+        phone: sanitizePhoneInput(newAdmin.phone),
         secondaryContactPerson: newAdmin.secondaryContactPerson?.trim() || '',
-        secondaryContactPhone: newAdmin.secondaryContactPhone?.trim() || '',
+        secondaryContactPhone: sanitizePhoneInput(newAdmin.secondaryContactPhone),
         pin: newAdmin.pin?.trim() || '',
         permissions: resolvePortalPermissions(newAdmin.accessMode, newAdmin.limitedFeatures),
         schoolDetails: {
@@ -585,6 +615,7 @@ export default function AdminManagement() {
           accessMode: "unlimited",
           limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS],
         });
+        setShowNewAdminPassword(false);
         setIsAddDialogOpen(false);
         toast({
           title: "Success",
@@ -624,7 +655,58 @@ export default function AdminManagement() {
     }
   };
 
+  const handleSaveEditPassword = async () => {
+    if (!editingAdmin?.id || isSavingPassword) return;
+
+    const plainPassword = editNewPassword.trim();
+    if (plainPassword.length < 6) {
+      toast({
+        title: "Invalid password",
+        description: "New password must be at least 6 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSavingPassword(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await fetch(
+        `${API_BASE_URL}/api/super-admin/admins/${editingAdmin.id}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ password: plainPassword }),
+        }
+      );
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to update password");
+      }
+
+      toast({
+        title: "Password updated",
+        description: "The school administrator can sign in with the new password.",
+      });
+      resetEditPasswordUi();
+    } catch (error) {
+      console.error("Save password error:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingPassword(false);
+    }
+  };
+
   const handleEditClick = (admin: Admin) => {
+    resetEditPasswordUi();
     setEditingAdmin(admin);
     const sd = admin.schoolDetails || emptySchoolDetails();
     const perms = admin.permissions || [];
@@ -643,11 +725,11 @@ export default function AdminManagement() {
       state: normalizeStateValue(admin.state || admin.place || sd.state),
       schoolName: admin.schoolName || '',
       schoolLogo: admin.schoolLogo || '',
-      phone: admin.phone || '',
+      phone: sanitizePhoneInput(admin.phone || ''),
       pin: admin.pin || '',
       contactPerson: admin.contactPerson || '',
       secondaryContactPerson: admin.secondaryContactPerson || '',
-      secondaryContactPhone: admin.secondaryContactPhone || '',
+      secondaryContactPhone: sanitizePhoneInput(admin.secondaryContactPhone || ''),
       schoolDetails: { ...emptySchoolDetails(), ...sd },
       isActive: admin.status === 'active' || admin.status === 'Active',
       accessMode: unlimited ? "unlimited" : "limited",
@@ -700,6 +782,15 @@ export default function AdminManagement() {
       return;
     }
 
+    if (!isValidOptionalPhone(editAdmin.phone) || !isValidOptionalPhone(editAdmin.secondaryContactPhone)) {
+      toast({
+        title: "Invalid phone number",
+        description: "Primary and secondary contact numbers must be exactly 10 digits (or leave empty).",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsUpdatingAdmin(true);
     try {
       const token = localStorage.getItem('authToken');
@@ -719,9 +810,9 @@ export default function AdminManagement() {
           schoolName: editAdmin.schoolName,
           schoolLogo: editAdmin.schoolLogo,
           contactPerson: editAdmin.contactPerson?.trim() || '',
-          phone: editAdmin.phone?.trim() || '',
+          phone: sanitizePhoneInput(editAdmin.phone),
           secondaryContactPerson: editAdmin.secondaryContactPerson?.trim() || '',
-          secondaryContactPhone: editAdmin.secondaryContactPhone?.trim() || '',
+          secondaryContactPhone: sanitizePhoneInput(editAdmin.secondaryContactPhone),
           pin: editAdmin.pin?.trim() || '',
           schoolDetails: {
             ...esd,
@@ -896,7 +987,13 @@ export default function AdminManagement() {
           <p className="text-gray-600">Manage schools and their associated data</p>
         </div>
         
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <Dialog
+          open={isAddDialogOpen}
+          onOpenChange={(open) => {
+            setIsAddDialogOpen(open);
+            if (!open) setShowNewAdminPassword(false);
+          }}
+        >
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-700">
               <UserPlusIcon className="h-4 w-4 mr-2" />
@@ -939,14 +1036,30 @@ export default function AdminManagement() {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="password">Password *</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={newAdmin.password}
-                    onChange={(e) => setNewAdmin({ ...newAdmin, password: e.target.value })}
-                    placeholder="Temporary password"
-                    className={SCHOOL_FORM_FIELD_CLASS}
-                  />
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showNewAdminPassword ? "text" : "password"}
+                      value={newAdmin.password}
+                      onChange={(e) => setNewAdmin({ ...newAdmin, password: e.target.value })}
+                      placeholder="Admin login password"
+                      className={cn(SCHOOL_FORM_FIELD_CLASS, "pr-10")}
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewAdminPassword((prev) => !prev)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-500 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/40"
+                      aria-label={showNewAdminPassword ? "Hide password" : "Show password"}
+                      tabIndex={0}
+                    >
+                      {showNewAdminPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="contactPerson">Primary contact name</Label>
@@ -963,11 +1076,15 @@ export default function AdminManagement() {
                   <Input
                     id="phone"
                     type="tel"
-                    inputMode="tel"
+                    inputMode="numeric"
                     autoComplete="tel"
+                    maxLength={10}
+                    pattern="[0-9]{10}"
                     value={newAdmin.phone}
-                    onChange={(e) => setNewAdmin({ ...newAdmin, phone: e.target.value })}
-                    placeholder="Phone / WhatsApp"
+                    onChange={(e) =>
+                      setNewAdmin({ ...newAdmin, phone: sanitizePhoneInput(e.target.value) })
+                    }
+                    placeholder="10-digit mobile number"
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
@@ -986,10 +1103,18 @@ export default function AdminManagement() {
                   <Input
                     id="secondaryContactPhone"
                     type="tel"
-                    inputMode="tel"
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    maxLength={10}
+                    pattern="[0-9]{10}"
                     value={newAdmin.secondaryContactPhone}
-                    onChange={(e) => setNewAdmin({ ...newAdmin, secondaryContactPhone: e.target.value })}
-                    placeholder="Alternate phone"
+                    onChange={(e) =>
+                      setNewAdmin({
+                        ...newAdmin,
+                        secondaryContactPhone: sanitizePhoneInput(e.target.value),
+                      })
+                    }
+                    placeholder="10-digit mobile number"
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
@@ -1441,7 +1566,16 @@ export default function AdminManagement() {
         </Dialog>
 
         {/* Edit Admin Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <Dialog
+          open={isEditDialogOpen}
+          onOpenChange={(open) => {
+            setIsEditDialogOpen(open);
+            if (!open) {
+              setEditingAdmin(null);
+              resetEditPasswordUi();
+            }
+          }}
+        >
           <DialogContent
             className="flex max-h-[min(100dvh,100svh)] w-[min(96vw,80rem)] max-w-none translate-x-[-50%] translate-y-[-50%] flex-col gap-0 overflow-hidden p-0 sm:max-h-[94vh] sm:max-w-none"
             onOpenAutoFocus={(e) => e.preventDefault()}
@@ -1476,6 +1610,72 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
+                <div className="space-y-1.5 lg:col-span-1">
+                  <Label htmlFor="edit-password-mask">Password</Label>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Input
+                      id="edit-password-mask"
+                      type="password"
+                      value="••••••••"
+                      readOnly
+                      disabled
+                      className={cn(SCHOOL_FORM_FIELD_CLASS, "sm:flex-1")}
+                      autoComplete="off"
+                      aria-label="Current password is hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="shrink-0"
+                      onClick={() => {
+                        if (showEditPasswordChange) {
+                          resetEditPasswordUi();
+                        } else {
+                          setShowEditPasswordChange(true);
+                        }
+                      }}
+                    >
+                      {showEditPasswordChange ? "Cancel" : "Change password"}
+                    </Button>
+                  </div>
+                  {showEditPasswordChange && (
+                    <div className="mt-2 space-y-2 rounded-md border border-slate-200 bg-slate-50/80 p-3">
+                      <Label htmlFor="edit-new-password">New password</Label>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <div className="relative sm:flex-1">
+                          <Input
+                            id="edit-new-password"
+                            type={showEditNewPassword ? "text" : "password"}
+                            value={editNewPassword}
+                            onChange={(e) => setEditNewPassword(e.target.value)}
+                            placeholder="At least 6 characters"
+                            className={cn(SCHOOL_FORM_FIELD_CLASS, "pr-10")}
+                            autoComplete="new-password"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowEditNewPassword((prev) => !prev)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-500 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/40"
+                            aria-label={showEditNewPassword ? "Hide password" : "Show password"}
+                          >
+                            {showEditNewPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={handleSaveEditPassword}
+                          disabled={isSavingPassword || !editNewPassword.trim()}
+                        >
+                          {isSavingPassword ? "Saving..." : "Save password"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="edit-contactPerson">Primary contact name</Label>
                   <Input
@@ -1491,11 +1691,15 @@ export default function AdminManagement() {
                   <Input
                     id="edit-phone"
                     type="tel"
-                    inputMode="tel"
+                    inputMode="numeric"
                     autoComplete="tel"
+                    maxLength={10}
+                    pattern="[0-9]{10}"
                     value={editAdmin.phone}
-                    onChange={(e) => setEditAdmin({ ...editAdmin, phone: e.target.value })}
-                    placeholder="Phone / WhatsApp"
+                    onChange={(e) =>
+                      setEditAdmin({ ...editAdmin, phone: sanitizePhoneInput(e.target.value) })
+                    }
+                    placeholder="10-digit mobile number"
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
@@ -1514,10 +1718,18 @@ export default function AdminManagement() {
                   <Input
                     id="edit-secondaryContactPhone"
                     type="tel"
-                    inputMode="tel"
+                    inputMode="numeric"
+                    autoComplete="tel"
+                    maxLength={10}
+                    pattern="[0-9]{10}"
                     value={editAdmin.secondaryContactPhone}
-                    onChange={(e) => setEditAdmin({ ...editAdmin, secondaryContactPhone: e.target.value })}
-                    placeholder="Alternate phone"
+                    onChange={(e) =>
+                      setEditAdmin({
+                        ...editAdmin,
+                        secondaryContactPhone: sanitizePhoneInput(e.target.value),
+                      })
+                    }
+                    placeholder="10-digit mobile number"
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
@@ -1966,6 +2178,7 @@ export default function AdminManagement() {
                 onClick={() => {
                   setIsEditDialogOpen(false);
                   setEditingAdmin(null);
+                  resetEditPasswordUi();
                 }}
               >
                 Cancel
