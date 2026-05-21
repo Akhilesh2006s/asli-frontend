@@ -937,7 +937,7 @@ const ClassDashboard = () => {
                       placeholder="Search classes..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 w-64 rounded-xl bg-white/70 border-gray-200 text-gray-900 backdrop-blur-sm"
+                      className="px-0 pl-10 sm:pl-11 w-64 rounded-xl bg-white/70 border-gray-200 text-gray-900 backdrop-blur-sm"
                     />
                   </div>
                   

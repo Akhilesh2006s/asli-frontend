@@ -194,7 +194,7 @@ const ClassManagement = () => {
                 placeholder="Search classes..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-80"
+                className="px-0 pl-10 sm:pl-11 w-80"
               />
             </div>
             <Button variant="outline" size="sm" className="border-gray-300 text-gray-700 hover:bg-gray-50">

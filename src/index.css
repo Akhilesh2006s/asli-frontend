@@ -119,6 +119,29 @@
 }
 
 
+@layer components {
+  /* Inputs with a left icon sibling — avoid placeholder/text under the icon */
+  .relative > svg ~ input,
+  .relative > .absolute ~ input:not([type='checkbox']):not([type='radio']) {
+    padding-left: 2.5rem;
+  }
+  @media (min-width: 640px) {
+    .relative > svg ~ input,
+    .relative > .absolute ~ input:not([type='checkbox']):not([type='radio']) {
+      padding-left: 2.75rem;
+    }
+  }
+  /* Wider left inset when icon uses left-4 */
+  .relative > .absolute.left-4 ~ input {
+    padding-left: 3rem;
+  }
+  @media (min-width: 640px) {
+    .relative > .absolute.left-4 ~ input {
+      padding-left: 3.25rem;
+    }
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

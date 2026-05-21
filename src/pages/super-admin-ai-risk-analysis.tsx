@@ -187,7 +187,7 @@ export default function SuperAdminAIRiskAnalysis() {
               placeholder="Search by name, email, or class..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="px-0 pl-10 sm:pl-11"
             />
           </div>
         </CardContent>

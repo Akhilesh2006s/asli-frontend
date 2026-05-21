@@ -889,7 +889,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                 placeholder="Search teachers..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-12 w-full sm:w-64 border-orange-200 focus:border-orange-400 bg-white/80 rounded-xl"
+                className="px-0 pl-12 sm:pl-12 w-full sm:w-64 border-orange-200 focus:border-orange-400 bg-white/80 rounded-xl"
               />
             </div>
             <Button variant="outline" className="border-orange-200 text-orange-700 hover:bg-orange-50 rounded-xl">

@@ -2664,7 +2664,7 @@ const TeacherDashboard = () => {
                             placeholder="Search students by name, email, or phone..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 w-full rounded-xl bg-white/70 border-gray-200 text-gray-900 backdrop-blur-sm"
+                            className="px-0 pl-10 sm:pl-11 w-full rounded-xl bg-white/70 border-gray-200 text-gray-900 backdrop-blur-sm"
                           />
                         </div>
                       </div>
@@ -2979,7 +2979,7 @@ const TeacherDashboard = () => {
                               placeholder="Search students by name, email, or phone..."
                               value={searchTerm}
                               onChange={(e) => setSearchTerm(e.target.value)}
-                              className="pl-10 w-full rounded-xl bg-white/70 border-gray-200 text-gray-900 backdrop-blur-sm"
+                              className="px-0 pl-10 sm:pl-11 w-full rounded-xl bg-white/70 border-gray-200 text-gray-900 backdrop-blur-sm"
                             />
                           </div>
                           
@@ -4137,7 +4137,7 @@ const TeacherDashboard = () => {
                           placeholder="Search videos by title..."
                           value={eduottSearchTerm}
                           onChange={(e) => setEduottSearchTerm(e.target.value)}
-                          className="pl-10 w-full"
+                          className="px-0 pl-10 sm:pl-11 w-full"
                         />
                       </div>
                       <div className="space-y-1.5 w-full sm:w-auto">
@@ -4331,7 +4331,7 @@ const TeacherDashboard = () => {
                               placeholder="Search live sessions..."
                               value={sessionSearchTerm}
                               onChange={(e) => setSessionSearchTerm(e.target.value)}
-                              className="pl-10 w-full"
+                              className="px-0 pl-10 sm:pl-11 w-full"
                             />
                           </div>
                           <div className="space-y-1.5 w-full sm:w-auto">

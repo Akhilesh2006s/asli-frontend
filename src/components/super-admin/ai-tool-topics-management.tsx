@@ -462,7 +462,7 @@ export default function AiToolTopicsManagement() {
             <div className="relative w-full lg:max-w-md">
               <Search className="absolute left-3 top-1/2 h-3 w-3 sm:h-4 sm:w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                className="pl-9"
+                className="px-0 pl-9 sm:pl-10"
                 placeholder="Search label / topic / sub topic"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}

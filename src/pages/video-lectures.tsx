@@ -185,7 +185,7 @@ export default function VideoLectures() {
                   placeholder="Search videos by title or topic..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="px-0 pl-10 sm:pl-11"
                 />
               </div>
               

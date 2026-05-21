@@ -445,7 +445,7 @@ const TeacherAssessmentManagement = () => {
               placeholder="Search assessments..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="px-0 pl-10 sm:pl-11"
             />
           </div>
         </div>

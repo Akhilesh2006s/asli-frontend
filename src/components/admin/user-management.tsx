@@ -940,7 +940,7 @@ const UserManagement = () => {
                   placeholder="Search students by name, email, or class..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-12 h-12 bg-white/70 border-gray-200 text-gray-900 placeholder-gray-600 focus:border-blue-400 focus:ring-blue-400/20 rounded-xl backdrop-blur-sm"
+                  className="px-0 pl-12 sm:pl-12 h-12 bg-white/70 border-gray-200 text-gray-900 placeholder-gray-600 focus:border-blue-400 focus:ring-blue-400/20 rounded-xl backdrop-blur-sm"
                 />
               </div>
             </div>

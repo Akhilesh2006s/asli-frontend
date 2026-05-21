@@ -362,7 +362,7 @@ export default function AdminEduOTT() {
                   placeholder="Search videos..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="px-0 pl-10 sm:pl-11"
                 />
               </div>
               <div className="space-y-1.5 w-full sm:w-auto">
@@ -500,7 +500,7 @@ export default function AdminEduOTT() {
                   placeholder="Search live sessions..."
                   value={sessionSearchTerm}
                   onChange={(e) => setSessionSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="px-0 pl-10 sm:pl-11"
                 />
               </div>
               <div className="space-y-1.5 w-full sm:w-auto">
