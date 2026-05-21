@@ -263,7 +263,7 @@ const Login = () => {
                     <div className="relative group">
                       <div className="absolute inset-0 bg-gradient-to-r from-sky-300/20 to-blue-300/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 z-10 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 group-hover:text-indigo-600 transition-colors pointer-events-none" />
+                        <Mail className="absolute left-3 sm:left-4 top-1/2 z-10 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 group-hover:text-indigo-600 transition-colors pointer-events-none" />
                         <Input
                           id="email"
                           name="email"
@@ -271,7 +271,7 @@ const Login = () => {
                           value={formData.email}
                           onChange={handleChange}
                           placeholder="Enter your email"
-                          className="pl-12 pr-4 h-12 border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                          className="h-11 sm:h-12 px-0 pl-10 sm:pl-12 pr-4 text-sm sm:text-base border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-white/50 backdrop-blur-sm"
                           required
                         />
                       </div>
@@ -291,7 +291,7 @@ const Login = () => {
                     <div className="relative group">
                       <div className="absolute inset-0 bg-gradient-to-r from-sky-300/20 to-blue-300/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <div className="relative">
-                        <Lock className="absolute left-4 top-1/2 z-10 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 group-hover:text-indigo-600 transition-colors pointer-events-none" />
+                        <Lock className="absolute left-3 sm:left-4 top-1/2 z-10 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 group-hover:text-indigo-600 transition-colors pointer-events-none" />
                         <Input
                           id="password"
                           name="password"
@@ -299,13 +299,13 @@ const Login = () => {
                           value={formData.password}
                           onChange={handleChange}
                           placeholder="Enter your password"
-                          className="pl-12 pr-12 h-12 border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                          className="h-11 sm:h-12 px-0 pl-10 sm:pl-12 pr-10 sm:pr-12 text-sm sm:text-base border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-white/50 backdrop-blur-sm"
                           required
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-4 top-1/2 z-10 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition-colors"
+                          className="absolute right-3 sm:right-4 top-1/2 z-10 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition-colors"
                         >
                           {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
                         </button>
