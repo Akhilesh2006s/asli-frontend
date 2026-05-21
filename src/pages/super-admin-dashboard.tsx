@@ -1,6 +1,7 @@
 import { Suspense, lazy, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { SuperAdminSidebar, type SuperAdminView } from "@/components/dashboard/SuperAdminSidebar";
+import SuperAdminSidebar from "@/components/dashboard/SuperAdminSidebar";
+import type { SuperAdminView } from "@/lib/super-admin-views";
 const AdminManagement = lazy(() => import("@/components/admin/AdminManagement"));
 const CombinedSuperAdminAnalytics = lazy(() => import("./combined-super-admin-analytics"));
 const BoardComparisonCharts = lazy(() => import("@/components/admin/board-comparison-charts"));

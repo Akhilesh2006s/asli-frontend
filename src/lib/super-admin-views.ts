@@ -1,0 +1,23 @@
+/** Super admin dashboard section ids (sidebar + main content switch). */
+export type SuperAdminView =
+  | 'dashboard'
+  | 'admins'
+  | 'analytics'
+  | 'ai-analytics'
+  | 'subscriptions'
+  | 'settings'
+  | 'board-comparison'
+  | 'content'
+  | 'board'
+  | 'subjects'
+  | 'subjects-and-content'
+  | 'exams'
+  | 'iq-rank-boost'
+  | 'vidya-ai'
+  | 'ai-tool-generations'
+  | 'ai-tool-topics'
+  | 'courses'
+  | 'add-admin'
+  | 'calendar'
+  | 'ai-content-engine'
+  | 'ai-generator';

@@ -25,7 +25,9 @@ import {
   Upload,
   Download,
   FileSpreadsheet,
-  Loader2
+  Loader2,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 interface Teacher {
@@ -75,6 +77,7 @@ const TeacherManagement = () => {
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showNewTeacherPassword, setShowNewTeacherPassword] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [assigningTeacher, setAssigningTeacher] = useState<Teacher | null>(null);
@@ -84,6 +87,7 @@ const TeacherManagement = () => {
   const [newTeacher, setNewTeacher] = useState({
     fullName: '',
     email: '',
+    password: '',
     phone: '',
     department: '',
     qualifications: '',
@@ -299,8 +303,13 @@ const TeacherManagement = () => {
     e.preventDefault();
     
     // Validate required fields
-    if (!newTeacher.fullName || !newTeacher.email || !newTeacher.department || newTeacher.subjects.length === 0) {
-      alert('Please fill in all required fields: Name, Email, Department, and at least one subject.');
+    if (!newTeacher.fullName || !newTeacher.email || !newTeacher.password || !newTeacher.department || newTeacher.subjects.length === 0) {
+      alert('Please fill in all required fields: Name, Email, Password, Department, and at least one subject.');
+      return;
+    }
+
+    if (newTeacher.password.length < 6) {
+      alert('Password must be at least 6 characters long.');
       return;
     }
     
@@ -326,7 +335,8 @@ const TeacherManagement = () => {
       }
       
       if (response.ok && (responseData.success === true || responseData.success === undefined)) {
-        setNewTeacher({ fullName: '', email: '', phone: '', department: '', qualifications: '', subjects: [] });
+        setNewTeacher({ fullName: '', email: '', password: '', phone: '', department: '', qualifications: '', subjects: [] });
+        setShowNewTeacherPassword(false);
         setIsAddDialogOpen(false);
         fetchTeachers();
         alert('Teacher added successfully!');
@@ -454,7 +464,6 @@ const TeacherManagement = () => {
         if (newSubjects > 0) {
           message += `\n${newSubjects} new subject(s) added to Subject Management.`;
         }
-        message += '\nDefault password: Password123';
 
         if (result.errors && result.errors.length > 0) {
           message += `\n\nErrors:\n${result.errors.slice(0, 10).join('\n')}`;
@@ -504,9 +513,9 @@ const TeacherManagement = () => {
   };
 
   const downloadTemplate = () => {
-    const csvContent = `name,email,phone,department,qualifications,subjects
-John Doe,john.doe@school.edu,+1234567890,Mathematics,PhD in Mathematics,Mathematics,Physics
-Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,Biology`;
+    const csvContent = `name,email,password,phone,department,qualifications,subjects
+John Doe,john.doe@school.edu,TeacherPass1,1234567890,Mathematics,PhD in Mathematics,Mathematics,Physics
+Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistry,Chemistry,Biology`;
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -962,9 +971,9 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                   </div>
                   <div className="bg-blue-50 border border-orange-200 rounded-xl p-3">
                     <p className="text-xs text-blue-800">
-                      <strong>Required columns:</strong> name, email<br />
+                      <strong>Required columns:</strong> name, email, password (min 6 characters)<br />
                       <strong>Optional columns:</strong> phone, department, qualifications, subjects (comma-separated)<br />
-                      <strong>Note:</strong> Subjects must exist in the system before uploading. Default password: Password123
+                      <strong>Note:</strong> CSV must include a <code className="text-xs">password</code> column (min 6 characters) for each teacher. Extra subject columns after <code className="text-xs">subjects</code> are supported.
                     </p>
                   </div>
                 </div>
@@ -1008,7 +1017,13 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                 </div>
               </DialogContent>
             </Dialog>
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <Dialog
+              open={isAddDialogOpen}
+              onOpenChange={(open) => {
+                setIsAddDialogOpen(open);
+                if (!open) setShowNewTeacherPassword(false);
+              }}
+            >
               <DialogTrigger asChild>
                 <Button className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 text-white rounded-xl px-4 sm:px-6 lg:px-8 py-3 shadow-xl hover:shadow-2xl transition-all duration-300">
                   <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
@@ -1066,6 +1081,36 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                       className="border-orange-200 focus:border-orange-400 rounded-xl"
                       required
                     />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="password" className="text-gray-700 font-medium">
+                      Password <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showNewTeacherPassword ? 'text' : 'password'}
+                        value={newTeacher.password}
+                        onChange={(e) => setNewTeacher({ ...newTeacher, password: e.target.value })}
+                        className="border-orange-200 focus:border-orange-400 rounded-xl px-0 pl-3 pr-10 sm:pr-12"
+                        placeholder="Minimum 6 characters"
+                        minLength={6}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewTeacherPassword((prev) => !prev)}
+                        className="absolute right-3 top-1/2 z-10 -translate-y-1/2 text-gray-400 hover:text-orange-600"
+                        aria-label={showNewTeacherPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showNewTeacherPassword ? (
+                          <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" />
+                        ) : (
+                          <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Teacher will use this password to sign in.</p>
                   </div>
                 </div>
                 <div>

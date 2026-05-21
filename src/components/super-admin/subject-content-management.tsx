@@ -17,6 +17,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import {
+  getCurriculumClassLabels,
+  saveCurriculumClass,
+} from '@/lib/super-admin-curriculum-classes';
+import {
   BookOpen,
   ChevronRight,
   File,
@@ -148,20 +152,63 @@ const extractPlainSubjectName = (name: string): string => {
   return match ? match[1] : name;
 };
 
+/** Compare class numbers consistently ("8", "08", Class 8). */
+function normalizeClassNumber(value: string | null | undefined): string {
+  const trimmed = value != null ? String(value).trim() : '';
+  if (!trimmed) return '';
+  const parsed = parseInt(trimmed, 10);
+  if (!Number.isNaN(parsed)) return String(parsed);
+  return trimmed;
+}
+
+function isValidGradeClassNumber(value: string | null | undefined): boolean {
+  const n = normalizeClassNumber(value);
+  if (!n) return false;
+  const parsed = parseInt(n, 10);
+  return !Number.isNaN(parsed) && parsed >= 1 && parsed <= 12;
+}
+
+function getContentSubjectId(item: ContentItem): string | null {
+  const subj = item.subject as { _id?: string } | string | null | undefined;
+  if (!subj) return null;
+  if (typeof subj === 'string') return subj;
+  return subj._id ? String(subj._id) : null;
+}
+
+function inferSubjectLabelFromContent(item: ContentItem): string {
+  const text = `${item.title || ''} ${item.description || ''} ${item.topic || ''}`.toLowerCase();
+  if (/ganita|mathematics|maths|\bmath\b/.test(text)) return 'Mathematics';
+  if (/science|curiosity|physics|chemistry|biology/.test(text)) return 'Science';
+  if (/english/.test(text)) return 'English';
+  if (/social|history|geography/.test(text)) return 'Social Studies';
+  if (/hindi/.test(text)) return 'Hindi';
+  if (/telugu/.test(text)) return 'Telugu';
+  const fromTitle = String(item.title || '')
+    .replace(/\s+(vol\s*\d+\s*)?class\s*\d+.*$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return fromTitle || 'General';
+}
+
+function isCatalogSubjectId(id: string | null, catalog: SubjectItem[]): boolean {
+  if (!id || id.startsWith('inferred-')) return false;
+  return catalog.some((s) => String(s._id) === String(id));
+}
+
 /** Prefer content.classNumber; else derive from linked subject (matches selected class in UI). */
 function effectiveContentClass(
   item: ContentItem,
   subjects: SubjectItem[]
 ): string | null {
   if (item.classNumber != null && String(item.classNumber).trim() !== '') {
-    return String(item.classNumber).trim();
+    return normalizeClassNumber(item.classNumber);
   }
   const sid = item.subject?._id;
   if (!sid) return null;
   const subj = subjects.find((s) => String(s._id) === String(sid));
   if (!subj) return null;
   if (subj.classNumber != null && String(subj.classNumber).trim() !== '') {
-    return String(subj.classNumber).trim();
+    return normalizeClassNumber(subj.classNumber);
   }
   return extractClassNumberFromSubjectName(subj.name);
 }
@@ -259,6 +306,10 @@ export default function SubjectContentManagement() {
 
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
 
+  const [isAddClassOpen, setIsAddClassOpen] = useState(false);
+  const [newClassNumber, setNewClassNumber] = useState('');
+  const [newClassDescription, setNewClassDescription] = useState('');
+
   const [isAddSubjectOpen, setIsAddSubjectOpen] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState('');
   const [newSubjectSyllabus, setNewSubjectSyllabus] = useState<SyllabusBoard>('ASLI_EXCLUSIVE_SCHOOLS');
@@ -303,72 +354,147 @@ export default function SubjectContentManagement() {
     fetchContents();
   }, []);
 
-  // Unique class labels derived from subject data, e.g. "Class 6"
+  // Class labels from subjects, linked content, and manual entries
   const classOptions = useMemo(() => {
     const classSet = new Set<string>();
+    const addClassNum = (num: string | null | undefined) => {
+      if (!isValidGradeClassNumber(num)) return;
+      classSet.add(`Class ${normalizeClassNumber(num)}`);
+    };
+
     subjects.forEach((subj) => {
-      // Prefer explicit classNumber if present
       if (subj.classNumber) {
-        classSet.add(`Class ${subj.classNumber}`);
+        addClassNum(subj.classNumber);
         return;
       }
-      // Fallback: derive from subject.name suffix (e.g. "Chemistry_10")
-      const classNum = extractClassNumberFromSubjectName(subj.name);
-      if (classNum) {
-        classSet.add(`Class ${classNum}`);
-      }
+      addClassNum(extractClassNumberFromSubjectName(subj.name));
     });
+
+    contents.forEach((item) => {
+      addClassNum(effectiveContentClass(item, subjects));
+    });
+
     return Array.from(classSet).sort((a, b) => {
+      const aNum = parseInt(a.replace('Class ', ''), 10);
+      const bNum = parseInt(b.replace('Class ', ''), 10);
+      if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) return aNum - bNum;
+      return a.localeCompare(b);
+    });
+  }, [subjects, contents]);
+
+  const [selectedClassLabel, setSelectedClassLabel] = useState<string | null>(null);
+  /** Classes added manually before any subject exists (unblocks first subject). */
+  const [manualClassLabels, setManualClassLabels] = useState<string[]>([]);
+
+  useEffect(() => {
+    setManualClassLabels(getCurriculumClassLabels());
+  }, []);
+
+  const displayClassOptions = useMemo(() => {
+    const merged = new Set([...classOptions, ...manualClassLabels]);
+    return Array.from(merged).sort((a, b) => {
       const aNum = parseInt(a.replace('Class ', ''), 10);
       const bNum = parseInt(b.replace('Class ', ''), 10);
       if (Number.isNaN(aNum) || Number.isNaN(bNum)) return a.localeCompare(b);
       return aNum - bNum;
     });
-  }, [subjects]);
-
-  const [selectedClassLabel, setSelectedClassLabel] = useState<string | null>(null);
+  }, [classOptions, manualClassLabels]);
 
   // When subjects load, auto-select first class (for auto page load UX)
   useEffect(() => {
-    if (!selectedClassLabel && classOptions.length > 0) {
-      setSelectedClassLabel(classOptions[0]);
+    if (!selectedClassLabel && displayClassOptions.length > 0) {
+      setSelectedClassLabel(displayClassOptions[0]);
     }
-  }, [classOptions, selectedClassLabel]);
+  }, [displayClassOptions, selectedClassLabel]);
 
-  const selectedClassNumber =
-    selectedClassLabel?.startsWith('Class ')
-      ? selectedClassLabel.replace('Class ', '')
-      : '';
+  const selectedClassNumber = selectedClassLabel?.startsWith('Class ')
+    ? normalizeClassNumber(selectedClassLabel.replace('Class ', ''))
+    : '';
 
-  const filteredSubjects = useMemo(() => {
+  /** Subjects from catalog + groups inferred from content (orphan / deleted subject refs). */
+  const subjectsForClass = useMemo(() => {
     if (!selectedClassNumber) return [];
-    return subjects.filter((subj) => {
-      if (subj.classNumber && subj.classNumber === selectedClassNumber) return true;
-      const fromName = extractClassNumberFromSubjectName(subj.name);
-      return fromName === selectedClassNumber;
+    const normClass = normalizeClassNumber(selectedClassNumber);
+    const map = new Map<string, SubjectItem>();
+
+    subjects.forEach((subj) => {
+      const subjClass = subj.classNumber
+        ? normalizeClassNumber(subj.classNumber)
+        : normalizeClassNumber(extractClassNumberFromSubjectName(subj.name) || '');
+      const linkedViaContent = contents.some((item) => {
+        if (normalizeClassNumber(effectiveContentClass(item, subjects) || '') !== normClass) {
+          return false;
+        }
+        const sid = getContentSubjectId(item);
+        return sid != null && String(sid) === String(subj._id);
+      });
+      if (subjClass === normClass || linkedViaContent) {
+        map.set(String(subj._id), subj);
+      }
     });
-  }, [subjects, selectedClassNumber]);
+
+    contents.forEach((item) => {
+      if (normalizeClassNumber(effectiveContentClass(item, subjects) || '') !== normClass) {
+        return;
+      }
+      const sid = getContentSubjectId(item);
+      const label = item.subject?.name
+        ? extractPlainSubjectName(item.subject.name)
+        : inferSubjectLabelFromContent(item);
+      const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      const key =
+        sid && subjects.some((s) => String(s._id) === String(sid))
+          ? String(sid)
+          : `inferred-${slug}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          _id: key,
+          name: label,
+          board: item.board || BOARD_CODE,
+        });
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) =>
+      extractPlainSubjectName(a.name).localeCompare(extractPlainSubjectName(b.name))
+    );
+  }, [subjects, selectedClassNumber, contents]);
+
+  // Auto-select first subject when class changes or subject list loads
+  useEffect(() => {
+    if (!selectedClassNumber || subjectsForClass.length === 0) return;
+    const stillValid = subjectsForClass.some(
+      (s) => String(s._id) === String(selectedSubjectId)
+    );
+    if (!stillValid) {
+      setSelectedSubjectId(subjectsForClass[0]._id);
+    }
+  }, [selectedClassNumber, subjectsForClass, selectedSubjectId]);
 
   const filteredContents = useMemo(() => {
     if (!selectedSubjectId || !selectedClassNumber) return [];
 
-    const selectedSubject = subjects.find((s) => s._id === selectedSubjectId);
-    if (!selectedSubject) return [];
-
-    const selectedPlain = extractPlainSubjectName(selectedSubject.name).toLowerCase();
+    const selectedRow = subjectsForClass.find((s) => String(s._id) === String(selectedSubjectId));
+    const selectedPlain = selectedRow
+      ? extractPlainSubjectName(selectedRow.name).toLowerCase()
+      : '';
 
     return contents.filter((item) => {
       const effClass = effectiveContentClass(item, subjects);
-      if (effClass !== selectedClassNumber) return false;
+      if (normalizeClassNumber(effClass || '') !== selectedClassNumber) return false;
 
+      const sid = getContentSubjectId(item);
+      if (sid && String(sid) === String(selectedSubjectId)) return true;
       if (String(item.subject?._id) === String(selectedSubjectId)) return true;
 
-      const itemPlain = item.subject?.name
-        ? extractPlainSubjectName(item.subject.name).toLowerCase()
-        : '';
-      return itemPlain === selectedPlain;
+      const itemPlain = (
+        item.subject?.name
+          ? extractPlainSubjectName(item.subject.name)
+          : inferSubjectLabelFromContent(item)
+      ).toLowerCase();
+      return selectedPlain !== '' && itemPlain === selectedPlain;
     });
-  }, [contents, selectedSubjectId, selectedClassNumber, subjects]);
+  }, [contents, selectedSubjectId, selectedClassNumber, subjects, subjectsForClass]);
 
   /** Subject that owns the content in Add/Edit Content dialog (syllabus/state always follow this). */
   const linkedSubjectForContent = useMemo((): SubjectItem | null => {
@@ -471,11 +597,57 @@ export default function SubjectContentManagement() {
     }
   };
 
+  const handleOpenAddClass = () => {
+    setNewClassNumber('');
+    setNewClassDescription('');
+    setIsAddClassOpen(true);
+  };
+
+  const handleSaveClass = () => {
+    const num = newClassNumber.trim().replace(/^class\s*/i, '');
+    if (!num || !/^\d{1,2}$/.test(num)) {
+      toast({
+        title: 'Enter a class number',
+        description: 'Use a number like 6, 7, 10, or 12.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const label = `Class ${num}`;
+    const alreadyListed =
+      classOptions.includes(label) || manualClassLabels.includes(label);
+    if (!alreadyListed) {
+      const saved = saveCurriculumClass({
+        classNumber: num,
+        description: newClassDescription.trim(),
+        label,
+      });
+      if (!saved) {
+        toast({
+          title: 'Class already exists',
+          description: `${label} is already in the list.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+    setManualClassLabels((prev) => (prev.includes(label) ? prev : [...prev, label]));
+    setSelectedClassLabel(label);
+    setSelectedSubjectId(null);
+    setIsAddClassOpen(false);
+    setNewClassNumber('');
+    setNewClassDescription('');
+    toast({
+      title: 'Class added',
+      description: `${label} selected. Use Add Subject to add subjects for this class.`,
+    });
+  };
+
   const handleOpenAddSubject = () => {
     if (!selectedClassNumber) {
       toast({
         title: 'Select a class',
-        description: 'Please select a class before adding a subject.',
+        description: 'Add or select a class on the left before adding a subject.',
         variant: 'destructive',
       });
       return;
@@ -1007,20 +1179,31 @@ export default function SubjectContentManagement() {
         <div className="grid grid-cols-1 lg:grid-cols-[300px,minmax(0,1fr)] gap-5">
           {/* Left: Classes */}
           <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Classes</span>
-              {isLoadingSubjects && <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />}
-            </CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <span>Classes</span>
+                {isLoadingSubjects && <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />}
+              </CardTitle>
+            </div>
+            <Button
+              size="sm"
+              onClick={handleOpenAddClass}
+              className="bg-gradient-to-r from-orange-400 to-sky-400 hover:from-orange-500 hover:to-sky-500 text-white shrink-0"
+            >
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+              Add Class
+            </Button>
           </CardHeader>
           <CardContent className="space-y-3">
-            {classOptions.length === 0 && !isLoadingSubjects ? (
-              <p className="text-xs sm:text-sm text-gray-500">
-                No classes found yet. Create a subject first to populate classes.
+            {displayClassOptions.length === 0 && !isLoadingSubjects ? (
+              <p className="text-xs sm:text-sm text-gray-500 py-4 text-center">
+                No classes yet. Click <strong>Add Class</strong> above to create a grade
+                level, then use <strong>Add Subject</strong> on the right.
               </p>
             ) : (
               <div className="space-y-2 max-h-[480px] overflow-auto pr-1">
-                {classOptions.map((label) => {
+                {displayClassOptions.map((label) => {
                   const isActive = label === selectedClassLabel;
                   return (
                     <button
@@ -1075,16 +1258,17 @@ export default function SubjectContentManagement() {
               <p className="text-xs sm:text-sm text-gray-500">
                 Select a class from the left to view its subjects.
               </p>
-            ) : filteredSubjects.length === 0 ? (
+            ) : subjectsForClass.length === 0 ? (
               <div className="py-4 sm:py-6 lg:py-8 text-center text-xs sm:text-sm text-gray-500">
                 No subjects found for this class. Use &quot;Add Subject&quot; to
                 create one.
               </div>
             ) : (
               <div className="space-y-2 max-h-[480px] overflow-auto pr-1">
-                {filteredSubjects.map((subj) => {
+                {subjectsForClass.map((subj) => {
                   const isActive = selectedSubjectId === subj._id;
                   const Icon = BookOpen;
+                  const inCatalog = isCatalogSubjectId(subj._id, subjects);
                   return (
                     <div
                       key={subj._id}
@@ -1109,6 +1293,11 @@ export default function SubjectContentManagement() {
                             <Badge variant="outline" className="text-[10px] font-normal">
                               {syllabusLabel(subj.board)}
                             </Badge>
+                            {!inCatalog && (
+                              <Badge variant="secondary" className="text-[10px] font-normal">
+                                From content
+                              </Badge>
+                            )}
                             {subj.board === 'STATE' && subj.stateName && (
                               <Badge variant="secondary" className="text-[10px] font-normal">
                                 {subj.stateName}
@@ -1122,30 +1311,32 @@ export default function SubjectContentManagement() {
                           )}
                         </div>
                       </button>
-                      <div className="flex items-center gap-1 ml-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleOpenEditSubject(subj)}
-                          className="text-sky-600 hover:text-sky-700 hover:bg-sky-50"
-                          title="Edit subject"
-                        >
-                          <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteSubject(subj._id)}
-                          disabled={deletingSubjectId === subj._id}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          {deletingSubjectId === subj._id ? (
-                            <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                          )}
-                        </Button>
-                      </div>
+                      {inCatalog ? (
+                        <div className="flex items-center gap-1 ml-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleOpenEditSubject(subj)}
+                            className="text-sky-600 hover:text-sky-700 hover:bg-sky-50"
+                            title="Edit subject"
+                          >
+                            <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteSubject(subj._id)}
+                            disabled={deletingSubjectId === subj._id}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            {deletingSubjectId === subj._id ? (
+                              <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                            )}
+                          </Button>
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })}
@@ -1169,7 +1360,11 @@ export default function SubjectContentManagement() {
             <Button
               size="sm"
               onClick={handleOpenAddContent}
-              disabled={!selectedSubjectId || !selectedClassNumber}
+              disabled={
+                !selectedSubjectId ||
+                !selectedClassNumber ||
+                !isCatalogSubjectId(selectedSubjectId, subjects)
+              }
               className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
             >
               <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
@@ -1378,6 +1573,58 @@ export default function SubjectContentManagement() {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={isAddClassOpen} onOpenChange={setIsAddClassOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add Class</DialogTitle>
+            <DialogDescription>
+              Add a grade level (e.g. Class 6) so you can attach subjects and content.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="add-class-number-dialog">Class number</Label>
+              <Input
+                id="add-class-number-dialog"
+                type="text"
+                inputMode="numeric"
+                placeholder="e.g. 10"
+                value={newClassNumber}
+                onChange={(e) =>
+                  setNewClassNumber(e.target.value.replace(/\D/g, '').slice(0, 2))
+                }
+              />
+            </div>
+            <div>
+              <Label htmlFor="add-class-description-dialog">Description (optional)</Label>
+              <Textarea
+                id="add-class-description-dialog"
+                placeholder="e.g. Middle school — grade 6"
+                value={newClassDescription}
+                onChange={(e) => setNewClassDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddClassOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSaveClass}
+                className="bg-gradient-to-r from-orange-400 to-sky-400 hover:from-orange-500 hover:to-sky-500 text-white"
+              >
+                Add Class
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isAddSubjectOpen} onOpenChange={setIsAddSubjectOpen}>
         <DialogContent className="sm:max-w-lg">

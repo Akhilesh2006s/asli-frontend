@@ -23,29 +23,9 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useSuperAdminDrawerNav } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import type { SuperAdminView } from "@/lib/super-admin-views";
 
-export type SuperAdminView =
-  | 'dashboard'
-  | 'admins'
-  | 'analytics'
-  | 'ai-analytics'
-  | 'subscriptions'
-  | 'settings'
-  | 'board-comparison'
-  | 'content'
-  | 'board'
-  | 'subjects'
-  | 'subjects-and-content'
-  | 'exams'
-  | 'iq-rank-boost'
-  | 'vidya-ai'
-  | 'ai-tool-generations'
-  | 'ai-tool-topics'
-  | 'courses'
-  | 'add-admin'
-  | 'calendar'
-  | 'ai-content-engine'
-  | 'ai-generator';
+export type { SuperAdminView };
 
 interface SuperAdminSidebarProps {
   currentView: SuperAdminView;
@@ -233,3 +213,5 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
     </aside>
   );
 }
+
+export default SuperAdminSidebar;

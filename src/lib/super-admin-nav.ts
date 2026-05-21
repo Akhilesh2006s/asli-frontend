@@ -1,4 +1,4 @@
-import type { SuperAdminView } from "@/components/dashboard/SuperAdminSidebar";
+import type { SuperAdminView } from "@/lib/super-admin-views";
 
 const RESTORE_VIEW_KEY = "superAdminRestoreView";
 
