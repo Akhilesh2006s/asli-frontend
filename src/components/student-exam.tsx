@@ -425,8 +425,8 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-xl font-semibold text-gray-900">{exam.title}</h1>
-              <p className="text-sm text-gray-600">{exam.examType.toUpperCase()} Exam</p>
+              <h1 className="text-lg sm:text-xl font-semibold text-gray-900">{exam.title}</h1>
+              <p className="text-xs sm:text-sm text-gray-600">{exam.examType.toUpperCase()} Exam</p>
             </div>
             
             <div className="flex items-center space-x-6">
@@ -434,15 +434,15 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
               <div className={`flex items-center space-x-2 px-4 py-2 rounded-lg ${
                 timeLeft < 300 ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
               }`}>
-                <Clock className="w-4 h-4" />
-                <span className="font-mono text-lg font-semibold">
+                <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="font-mono text-base sm:text-lg font-semibold">
                   {formatTime(timeLeft)}
                 </span>
               </div>
 
               {/* Progress */}
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">
+                <span className="text-xs sm:text-sm text-gray-600">
                   {currentQuestionIndex + 1} of {exam.questions.length}
                 </span>
                 <div className="w-32">
@@ -471,15 +471,15 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:p-6 lg:p-8">
           
           {/* Question Navigation Sidebar - Modern Grid Layout */}
           <div className="lg:col-span-1">
             <Card className="sticky top-24">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-purple-600" />
+                <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
+                  <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" />
                   Questions
                 </CardTitle>
                 <p className="text-xs text-gray-500 mt-1">
@@ -489,7 +489,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
               <CardContent className="pt-0">
                 {/* Question Numbers Grid - 5 columns, 5-6 rows */}
                 <div className="bg-gradient-to-br from-gray-50 to-purple-50/30 rounded-xl p-4 border border-gray-200">
-                  <div className="grid grid-cols-5 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
                     {exam.questions.map((_: Question, index: number) => {
                       const questionId = exam.questions[index]._id;
                       const isAnswered = answers[questionId] !== undefined;
@@ -502,7 +502,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                           onClick={() => setCurrentQuestionIndex(index)}
                           className={`
                             group relative
-                            w-11 h-11 rounded-xl font-bold text-sm
+                            w-11 h-11 rounded-xl font-bold text-xs sm:text-sm
                             transition-all duration-300 ease-out
                             flex items-center justify-center
                             border-2
@@ -541,23 +541,23 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                   <p className="text-xs font-semibold text-gray-700 mb-3">Status Legend</p>
                   <div className="space-y-2.5">
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded-lg bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 border-2 border-purple-400 ring-2 ring-purple-200"></div>
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-lg bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 border-2 border-purple-400 ring-2 ring-purple-200"></div>
                       <span className="text-xs text-gray-600">Current</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 border-2 border-emerald-400 relative">
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 border-2 border-emerald-400 relative">
                         <CheckCircle className="absolute -bottom-0.5 -right-0.5 w-2 h-2 text-white" />
                       </div>
                       <span className="text-xs text-gray-600">Answered</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded-lg bg-gradient-to-br from-yellow-300 to-yellow-400 border-2 border-yellow-400 relative">
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-lg bg-gradient-to-br from-yellow-300 to-yellow-400 border-2 border-yellow-400 relative">
                         <Flag className="absolute -top-0.5 -right-0.5 w-2 h-2 text-yellow-900" fill="currentColor" />
                       </div>
                       <span className="text-xs text-gray-600">Flagged</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded-lg bg-white border-2 border-gray-300"></div>
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-lg bg-white border-2 border-gray-300"></div>
                       <span className="text-xs text-gray-600">Not Answered</span>
                     </div>
                   </div>
@@ -569,7 +569,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
           {/* Main Question Area */}
           <div className="lg:col-span-3">
             <Card>
-              <CardContent className="p-8">
+              <CardContent className="p-4 sm:p-6 lg:p-8">
                 {/* Question Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center space-x-4">
@@ -592,7 +592,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                     onClick={() => handleFlagQuestion(currentQuestionIndex)}
                     className={flaggedQuestions.has(currentQuestionIndex) ? 'bg-yellow-100 border-yellow-400' : ''}
                   >
-                    <Flag className="w-4 h-4 mr-2" />
+                    <Flag className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     {flaggedQuestions.has(currentQuestionIndex) ? 'Flagged' : 'Flag'}
                   </Button>
                 </div>
@@ -600,12 +600,12 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                 {/* Question Content */}
                 <div className="mb-8">
                   <div className="flex items-start space-x-3 mb-4">
-                    <span className="text-lg font-semibold text-gray-900">
+                    <span className="text-base sm:text-lg font-semibold text-gray-900">
                       Q{currentQuestionIndex + 1}.
                     </span>
                     <div className="flex-1">
                       {currentQuestion.questionText && (
-                        <p className="text-lg text-gray-900 mb-4">
+                        <p className="text-base sm:text-lg text-gray-900 mb-4">
                           {normalizeAndFormatExamDisplayText(
                             currentQuestion.questionText,
                             currentQuestion.subject
@@ -638,7 +638,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                         </svg>
                                         <p>Image not available</p>
-                                        <p class="text-sm">${imageUrl}</p>
+                                        <p class="text-xs sm:text-sm">${imageUrl}</p>
                                       </div>
                                     `;
                                     e.currentTarget.parentNode?.appendChild(placeholder);
@@ -656,7 +656,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                       {!currentQuestion.questionText && !currentQuestion.questionImage && (
                         <div className="w-full h-32 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500">
                           <div className="text-center">
-                            <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <p>No question content available</p>
@@ -683,7 +683,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                         return (
                           <div key={index} className="flex items-center space-x-3">
                             <RadioGroupItem value={optionValue} id={`option-${index}`} />
-                            <Label htmlFor={`option-${index}`} className="text-base cursor-pointer">
+                            <Label htmlFor={`option-${index}`} className="text-sm sm:text-base cursor-pointer">
                               {optionText}
                             </Label>
                           </div>
@@ -715,7 +715,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                                 }
                               }}
                             />
-                            <Label htmlFor={`option-${index}`} className="text-base cursor-pointer">
+                            <Label htmlFor={`option-${index}`} className="text-sm sm:text-base cursor-pointer">
                               {optionText}
                             </Label>
                           </div>
@@ -737,7 +737,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                         onFocus={(e) => console.log('Input focused')}
                         onBlur={(e) => console.log('Input blurred')}
                         onClick={(e) => console.log('Input clicked')}
-                        className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-lg ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-text"
+                        className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-base sm:text-lg ring-offset-background file:border-0 file:bg-transparent file:text-xs sm:text-sm file:font-medium file:text-foreground placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-text"
                         autoFocus
                         style={{ zIndex: 1000 }}
                       />
@@ -753,7 +753,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                     disabled={currentQuestionIndex === 0}
                     className="flex items-center space-x-2"
                   >
-                    <ArrowLeft className="w-4 h-4" />
+                    <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>Previous</span>
                   </Button>
 
@@ -765,7 +765,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                       className="flex items-center space-x-2"
                     >
                       <span>Next</span>
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
                     </Button>
                     
                     {currentQuestionIndex === exam.questions.length - 1 && (
@@ -791,7 +791,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
           <Card className="max-w-md w-full mx-4">
             <CardHeader>
               <div className="flex items-center space-x-3">
-                <AlertTriangle className="w-6 h-6 text-yellow-500" />
+                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-yellow-500" />
                 <CardTitle>Submit Exam?</CardTitle>
               </div>
             </CardHeader>

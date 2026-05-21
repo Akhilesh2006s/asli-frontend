@@ -164,13 +164,13 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center space-x-3">
         <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shrink-0">
-          <Brain className="w-6 h-6 text-white" />
+          <Brain className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
         </div>
         <div>
-          <CardTitle className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent text-2xl">
+          <CardTitle className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent text-xl sm:text-2xl">
             Adaptive Learning
           </CardTitle>
-          <p className="text-sm text-gray-600">
+          <p className="text-xs sm:text-sm text-gray-600">
             Personalized resources from your performance — only content available in your library
           </p>
         </div>
@@ -187,7 +187,7 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
       <Card className="bg-gradient-to-br from-purple-50 via-blue-50 to-teal-50 border-2 border-purple-200 shadow-xl">
         <CardHeader>{headerBlock}</CardHeader>
         <CardContent className="flex items-center justify-center gap-2 py-12 text-gray-600">
-          <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+          <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 animate-spin text-purple-600" />
           <span>Analyzing your weak topics and matching library content…</span>
         </CardContent>
       </Card>
@@ -200,13 +200,13 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
         <CardHeader>{headerBlock}</CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-start gap-2 rounded-lg border border-red-100 bg-white/90 p-4 text-red-800">
-            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 shrink-0 mt-0.5" />
             <div>
               <p className="font-medium">{error}</p>
               <button
                 type="button"
                 onClick={fetchAdaptive}
-                className="mt-2 text-sm text-purple-700 underline underline-offset-2 hover:text-purple-900"
+                className="mt-2 text-xs sm:text-sm text-purple-700 underline underline-offset-2 hover:text-purple-900"
               >
                 Try again
               </button>
@@ -222,9 +222,9 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
       <Card className="bg-gradient-to-br from-purple-50 via-blue-50 to-teal-50 border-2 border-purple-200 shadow-xl">
         <CardHeader>{headerBlock}</CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 border border-purple-100 text-center">
+          <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 sm:p-4 lg:p-6 border border-purple-100 text-center">
             <p className="text-gray-600 mb-2">No adaptive recommendations yet.</p>
-            <p className="text-sm text-gray-500">
+            <p className="text-xs sm:text-sm text-gray-500">
               Attempt exams so we can infer weak chapters and topics, then map them to notes, videos,
               quizzes, and papers in your class library.
             </p>
@@ -237,7 +237,7 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
   return (
     <Card className="bg-gradient-to-br from-purple-50 via-blue-50 to-teal-50 border-2 border-purple-200 shadow-xl">
       <CardHeader>{headerBlock}</CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
         {cards.map((rec) => {
           const hasContent = rec.recommendedContent?.length > 0;
           return (
@@ -289,9 +289,9 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
                           <button
                             type="button"
                             onClick={() => openResource(item)}
-                            className="flex items-center gap-2 text-sm text-left w-full px-3 py-2.5 hover:bg-purple-50/80 text-gray-800 transition-colors"
+                            className="flex items-center gap-2 text-xs sm:text-sm text-left w-full px-3 py-2.5 hover:bg-purple-50/80 text-gray-800 transition-colors"
                           >
-                            <Icon className="w-4 h-4 text-purple-600 shrink-0" />
+                            <Icon className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600 shrink-0" />
                             <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                               <span className="truncate w-full text-left">{item.title}</span>
                               {item.topicHint ? (
@@ -305,9 +305,9 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
                             </Badge>
                             {item.navigatePath || item.fileUrl ? (
                               item.kind === 'quiz' || item.kind === 'exam' ? (
-                                <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />
+                                <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 shrink-0" />
                               ) : (
-                                <ExternalLink className="w-4 h-4 text-gray-400 shrink-0" />
+                                <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 shrink-0" />
                               )
                             ) : null}
                           </button>
@@ -333,7 +333,7 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
               ) : null}
 
               {!hasContent && !rec.gapsWithoutContent?.length ? (
-                <p className="text-sm text-gray-500 italic mt-1">
+                <p className="text-xs sm:text-sm text-gray-500 italic mt-1">
                   No recommended content available for your weak topics in this subject yet.
                 </p>
               ) : null}

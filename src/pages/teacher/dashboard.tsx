@@ -1686,9 +1686,9 @@ const TeacherDashboard = () => {
       <div className="min-h-screen bg-sky-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 bg-gradient-to-r from-pink-600 to-pink-700 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
-            <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-pink-700 bg-clip-text text-transparent mb-2">Loading...</h2>
+          <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-pink-600 to-pink-700 bg-clip-text text-transparent mb-2">Loading...</h2>
           <p className="text-gray-600">Preparing your teacher dashboard</p>
         </div>
       </div>
@@ -1705,20 +1705,20 @@ const TeacherDashboard = () => {
       
       {/* Header - Student Dashboard Theme */}
       <div className="bg-gradient-to-r from-sky-400 via-sky-500 to-teal-500 text-white shadow-xl border-b-0 rounded-b-3xl sticky top-0 z-50 relative">
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-xl">
-                <GraduationCap className="w-6 h-6 text-white" />
+                <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold">ASLILEARN AI</h1>
+                <h1 className="text-lg sm:text-xl font-bold">ASLILEARN AI</h1>
                 <p className="text-xs text-white/80 font-medium">Teacher Portal</p>
               </div>
             </div>
             <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto space-x-3 sm:space-x-4">
               <div className="text-left sm:text-right">
-                <p className="text-sm font-medium text-white">{teacherEmail || localStorage.getItem('userEmail') || 'Teacher'}</p>
+                <p className="text-xs sm:text-sm font-medium text-white">{teacherEmail || localStorage.getItem('userEmail') || 'Teacher'}</p>
                 <p className="text-xs text-white/80">Welcome back!</p>
               </div>
               <Button 
@@ -1727,7 +1727,7 @@ const TeacherDashboard = () => {
                 onClick={handleLogout}
                 className="bg-white/90 text-sky-600 hover:bg-white rounded-full border-2 border-teal-400 backdrop-blur-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 w-auto"
               >
-                <LogOut className="w-4 h-4 mr-2" />
+                <LogOut className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Logout
               </Button>
             </div>
@@ -1736,7 +1736,7 @@ const TeacherDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 relative z-10">
         {/* Welcome Message */}
         <div className="mb-8">
           <h1 className="text-responsive-xl font-bold bg-gradient-to-r from-orange-500 to-teal-500 bg-clip-text text-transparent capitalize">
@@ -1746,7 +1746,7 @@ const TeacherDashboard = () => {
         </div>
 
         {/* Dashboard Content */}
-        <div className="space-y-8">
+        <div className="space-y-4 sm:space-y-6 lg:space-y-8">
           {/* Dashboard Sub-Tabs */}
               <div className="bg-gradient-to-b from-orange-400 to-orange-500 rounded-3xl p-4 shadow-xl border border-orange-300">
                 <div className="flex items-center space-x-2 overflow-x-auto pb-1">
@@ -1755,7 +1755,7 @@ const TeacherDashboard = () => {
                     className={`${dashboardSubTab === 'ai-classes' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} whitespace-nowrap`}
                     onClick={() => setDashboardSubTab('ai-classes')}
                   >
-                    <Sparkles className="w-4 h-4 mr-2" />
+                    <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     Dashboard
                   </Button>
                   <Button
@@ -1763,7 +1763,7 @@ const TeacherDashboard = () => {
                     className={`${dashboardSubTab === 'students' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} whitespace-nowrap`}
                     onClick={() => setDashboardSubTab('students')}
                   >
-                    <Users className="w-4 h-4 mr-2" />
+                    <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     My Students
                   </Button>
                   <Button
@@ -1771,7 +1771,7 @@ const TeacherDashboard = () => {
                     className={dashboardSubTab === 'eduott' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'}
                     onClick={() => setDashboardSubTab('eduott')}
                   >
-                    <VideoIcon className="w-4 h-4 mr-2" />
+                    <VideoIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     EduOTT
                   </Button>
                   <Button
@@ -1782,7 +1782,7 @@ const TeacherDashboard = () => {
                       localStorage.removeItem('teacherDashboardTab'); // Clear saved tab when manually selected
                     }}
                   >
-                    <Sparkles className="w-4 h-4 mr-2" />
+                    <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     Vidya AI
                   </Button>
                 </div>
@@ -1802,12 +1802,12 @@ const TeacherDashboard = () => {
                 >
                   {isLoading ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-orange-600 border-t-transparent rounded-full animate-spin mr-2"></div>
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-orange-600 border-t-transparent rounded-full animate-spin mr-2"></div>
                       Loading...
                     </>
                   ) : (
                     <>
-                      <ArrowRight className="w-4 h-4 mr-2" />
+                      <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       Refresh Data
                     </>
                   )}
@@ -1829,7 +1829,7 @@ const TeacherDashboard = () => {
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-4">
                       <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                        <Users className="w-8 h-8 text-white" />
+                        <Users className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                       </div>
                       <div className="text-right">
                         <p className="text-white/90 text-responsive-xs font-medium">Total Students</p>
@@ -1851,7 +1851,7 @@ const TeacherDashboard = () => {
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-4">
                       <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                        <GraduationCap className="w-8 h-8 text-white" />
+                        <GraduationCap className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                       </div>
                       <div className="text-right">
                         <p className="text-white/90 text-responsive-xs font-medium">Active Classes</p>
@@ -1873,7 +1873,7 @@ const TeacherDashboard = () => {
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-4">
                       <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                        <Play className="w-8 h-8 text-white" />
+                        <Play className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                       </div>
                       <div className="text-right">
                         <p className="text-white/90 text-responsive-xs font-medium">Videos</p>
@@ -1895,7 +1895,7 @@ const TeacherDashboard = () => {
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-4">
                       <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                        <Target className="w-8 h-8 text-white" />
+                        <Target className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                       </div>
                       <div className="text-right">
                         <p className="text-white/90 text-responsive-xs font-medium">Assessments</p>
@@ -1919,9 +1919,9 @@ const TeacherDashboard = () => {
                 <div className="mb-5 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 shadow-sm ring-4 ring-indigo-600/10">
-                      <Users className="h-5 w-5 text-white" />
+                      <Users className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                     </div>
-                    <h3 className="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">
+                    <h3 className="text-lg sm:text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">
                       My Classes
                     </h3>
                   </div>
@@ -1977,11 +1977,11 @@ const TeacherDashboard = () => {
                           );
                         })
                       ) : (
-                        <div className="col-span-full rounded-2xl border border-dashed border-gray-200 bg-white p-8 text-center shadow-sm">
+                        <div className="col-span-full rounded-2xl border border-dashed border-gray-200 bg-white p-4 sm:p-6 lg:p-8 text-center shadow-sm">
                           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100 text-gray-400">
-                            <Users className="h-8 w-8" />
+                            <Users className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8" />
                           </div>
-                          <h3 className="mb-2 text-xl font-semibold text-gray-900">
+                          <h3 className="mb-2 text-lg sm:text-xl font-semibold text-gray-900">
                             No classes assigned
                           </h3>
                           <p className="mb-4 text-gray-600">
@@ -2008,21 +2008,21 @@ const TeacherDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
-                className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
               >
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-gradient-to-r from-violet-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
-                      <BookOpen className="w-5 h-5 text-white" />
+                      <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
-                    <h3 className="text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">Learning Paths</h3>
+                    <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">Learning Paths</h3>
                   </div>
                 </div>
 
                 {isLoadingSubjects ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
                     {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="bg-gray-100 rounded-xl p-6 animate-pulse">
+                      <div key={i} className="bg-gray-100 rounded-xl p-3 sm:p-4 lg:p-6 animate-pulse">
                         <div className="h-32 bg-gray-200 rounded-lg mb-4"></div>
                         <div className="h-4 bg-gray-200 rounded mb-2"></div>
                         <div className="h-4 bg-gray-200 rounded w-2/3"></div>
@@ -2032,11 +2032,11 @@ const TeacherDashboard = () => {
                 ) : subjectsWithContent.length === 0 ? (
                   <div className="text-center py-12">
                     <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No Subjects Available</h3>
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Subjects Available</h3>
                     <p className="text-gray-500">No subjects have been assigned to you yet.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
                     {subjectsWithContent.map((subject: any) => {
                       const getSubjectIcon = (subjectName: string) => {
                         if (subjectName.toLowerCase().includes('math')) return Target;
@@ -2050,37 +2050,37 @@ const TeacherDashboard = () => {
                       return (
                         <div
                           key={subject._id || subject.id}
-                          className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-200 hover:scale-105 h-full flex flex-col"
+                          className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-200 hover:scale-105 h-full flex flex-col"
                         >
                           <div className="flex items-center justify-between mb-4">
                             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                              <Icon className="w-6 h-6 text-white" />
+                              <Icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                             </div>
                             <Badge variant="secondary" className="text-xs">
                               {subject.totalContent || 0} items
                             </Badge>
                           </div>
-                          <h4 className="text-lg font-bold text-gray-900 mb-2 break-words leading-tight">
+                          <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-2 break-words leading-tight">
                             {subject.name}
                           </h4>
-                          <p className="text-gray-600 text-sm mb-4 min-h-[40px] line-clamp-2">
+                          <p className="text-gray-600 text-xs sm:text-sm mb-4 min-h-[40px] line-clamp-2">
                             {subject.description || `Content for ${subject.name}`}
                           </p>
                           
                           {/* Content Stats */}
-                          <div className="grid grid-cols-3 gap-2 text-center mb-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-center mb-4">
                             <div className="bg-blue-50 rounded-lg p-2">
-                              <Play className="w-4 h-4 text-blue-600 mx-auto mb-1" />
+                              <Play className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 mx-auto mb-1" />
                               <p className="text-xs font-medium text-blue-800">{subject.videos?.length || 0}</p>
                               <p className="text-xs text-blue-600">Videos</p>
                             </div>
                             <div className="bg-green-50 rounded-lg p-2">
-                              <FileText className="w-4 h-4 text-green-600 mx-auto mb-1" />
+                              <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 mx-auto mb-1" />
                               <p className="text-xs font-medium text-green-800">{subject.assessments?.length || 0}</p>
                               <p className="text-xs text-green-600">Quizzes</p>
                             </div>
                             <div className="bg-orange-50 rounded-lg p-2">
-                              <BarChart3 className="w-4 h-4 text-orange-600 mx-auto mb-1" />
+                              <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 mx-auto mb-1" />
                               <p className="text-xs font-medium text-orange-800">{subject.asliPrepContent?.length || 0}</p>
                               <p className="text-xs text-orange-600">Content</p>
                             </div>
@@ -2112,7 +2112,7 @@ const TeacherDashboard = () => {
                             onClick={() => setLocation(`/teacher/subject/${subject._id || subject.id}`)}
                           >
                             View Content
-                            <ArrowRight className="w-4 h-4 ml-2" />
+                            <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2" />
                           </Button>
                         </div>
                       );
@@ -2131,7 +2131,7 @@ const TeacherDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
               >
                 <div className="flex items-center space-x-3 mb-6">
                   <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
@@ -2141,7 +2141,7 @@ const TeacherDashboard = () => {
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">Vidya AI</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">Vidya AI</h3>
                 </div>
 
                 {/* Tabs for Teacher Tools and Chat */}
@@ -2149,24 +2149,24 @@ const TeacherDashboard = () => {
                   <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
                     <button
                       onClick={() => setVidyaAiTab('teacher-tools')}
-                      className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                      className={`flex-1 px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
                         vidyaAiTab === 'teacher-tools'
                           ? 'bg-white text-gray-900 shadow-sm border border-gray-300'
                           : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
-                      <Wrench className="w-4 h-4 inline mr-2" />
+                      <Wrench className="w-3 h-3 sm:w-4 sm:h-4 inline mr-2" />
                       Teacher Tools
                     </button>
                     <button
                       onClick={() => setVidyaAiTab('chat')}
-                      className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                      className={`flex-1 px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
                         vidyaAiTab === 'chat'
                           ? 'bg-white text-gray-900 shadow-sm border border-gray-300'
                           : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
-                      <MessageCircle className="w-4 h-4 inline mr-2" />
+                      <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 inline mr-2" />
                       Chat
                     </button>
                   </div>
@@ -2174,87 +2174,87 @@ const TeacherDashboard = () => {
 
                 {/* Teacher Tools Content */}
                 {vidyaAiTab === 'teacher-tools' && (
-                  <div className="space-y-8">
+                  <div className="space-y-4 sm:space-y-6 lg:space-y-8">
                     {/* Header */}
                     <div>
-                      <h2 className="text-3xl font-bold text-gray-900 mb-2">Teacher Tools</h2>
+                      <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Teacher Tools</h2>
                       <p className="text-gray-600">AI-powered tools to enhance your teaching experience</p>
                     </div>
 
                     {/* Stats Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:p-4 lg:p-6">
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
-                        className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl p-6 shadow-lg"
+                        className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl p-3 sm:p-4 lg:p-6 shadow-lg"
                       >
                         <div className="flex items-center justify-between mb-4">
                           <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                            <Sparkles className="w-6 h-6 text-white" />
+                            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                       </div>
-                          <p className="text-3xl font-bold text-white">15</p>
+                          <p className="text-2xl sm:text-3xl font-bold text-white">15</p>
                     </div>
                         <h3 className="text-white font-semibold mb-1">Total Tools</h3>
-                        <p className="text-white/90 text-sm">AI-powered features</p>
+                        <p className="text-white/90 text-xs sm:text-sm">AI-powered features</p>
                       </motion.div>
 
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
-                        className="bg-gradient-to-br from-sky-400 to-sky-500 rounded-xl p-6 shadow-lg"
+                        className="bg-gradient-to-br from-sky-400 to-sky-500 rounded-xl p-3 sm:p-4 lg:p-6 shadow-lg"
                       >
                         <div className="flex items-center justify-between mb-4">
                           <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                            <TrendingUp className="w-6 h-6 text-white" />
+                            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                       </div>
-                          <p className="text-3xl font-bold text-white">50%</p>
+                          <p className="text-2xl sm:text-3xl font-bold text-white">50%</p>
                     </div>
                         <h3 className="text-white font-semibold mb-1">Time Saved</h3>
-                        <p className="text-white/90 text-sm">Average per week</p>
+                        <p className="text-white/90 text-xs sm:text-sm">Average per week</p>
                       </motion.div>
 
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
-                        className="bg-gradient-to-br from-teal-400 to-teal-500 rounded-xl p-6 shadow-lg"
+                        className="bg-gradient-to-br from-teal-400 to-teal-500 rounded-xl p-3 sm:p-4 lg:p-6 shadow-lg"
                       >
                         <div className="flex items-center justify-between mb-4">
                           <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                            <FileText className="w-6 h-6 text-white" />
+                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                       </div>
-                          <p className="text-3xl font-bold text-white">1000+</p>
+                          <p className="text-2xl sm:text-3xl font-bold text-white">1000+</p>
                     </div>
                         <h3 className="text-white font-semibold mb-1">Resources Created</h3>
-                        <p className="text-white/90 text-sm">This month</p>
+                        <p className="text-white/90 text-xs sm:text-sm">This month</p>
                       </motion.div>
                     </div>
 
                     {/* Available Tools Section */}
                       <div>
-                      <h3 className="text-2xl font-bold text-gray-900 mb-2">Available Tools</h3>
+                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Available Tools</h3>
                       <p className="text-gray-600 mb-6">Select a tool to get started. All tools use Gemini AI to generate content based on your input.</p>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
                         {/* Tool 1: Activity & Project Generator */}
                         <motion.div
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.4 }}
-                          className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
                           onClick={() => {
                             setLocation('/teacher/tools/activity-project-generator');
                           }}
                         >
                           <div className="flex items-start space-x-4">
                             <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <Sparkles className="w-6 h-6 text-orange-600" />
+                              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-orange-600" />
                       </div>
                       <div>
                               <h4 className="font-bold text-gray-900 mb-1">Activity & Project Generator</h4>
-                              <p className="text-sm text-gray-600">Create engaging activities and projects tailored to your curriculum.</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Create engaging activities and projects tailored to your curriculum.</p>
                             </div>
                           </div>
                         </motion.div>
@@ -2264,18 +2264,18 @@ const TeacherDashboard = () => {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.5 }}
-                          className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
                           onClick={() => {
                             setLocation('/teacher/tools/worksheet-mcq-generator');
                           }}
                         >
                           <div className="flex items-start space-x-4">
                             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <FileText className="w-6 h-6 text-blue-600" />
+                              <FileText className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-600" />
                       </div>
                       <div>
                               <h4 className="font-bold text-gray-900 mb-1">Worksheet & MCQ Generator</h4>
-                              <p className="text-sm text-gray-600">Design custom worksheets and MCQs with various question types.</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Design custom worksheets and MCQs with various question types.</p>
                       </div>
                       </div>
                         </motion.div>
@@ -2285,18 +2285,18 @@ const TeacherDashboard = () => {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.6 }}
-                          className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
                           onClick={() => {
                             setLocation('/teacher/tools/concept-mastery-helper');
                           }}
                         >
                           <div className="flex items-start space-x-4">
                             <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <Lightbulb className="w-6 h-6 text-teal-600" />
+                              <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-teal-600" />
                       </div>
                             <div>
                               <h4 className="font-bold text-gray-900 mb-1">Concept Mastery Helper</h4>
-                              <p className="text-sm text-gray-600">Break down complex concepts into digestible lessons.</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Break down complex concepts into digestible lessons.</p>
                         </div>
                       </div>
                         </motion.div>
@@ -2306,18 +2306,18 @@ const TeacherDashboard = () => {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.7 }}
-                          className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
                           onClick={() => {
                             setLocation('/teacher/tools/lesson-planner');
                           }}
                         >
                           <div className="flex items-start space-x-4">
                             <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <Calendar className="w-6 h-6 text-orange-600" />
+                              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-orange-600" />
                           </div>
                             <div>
                               <h4 className="font-bold text-gray-900 mb-1">Lesson Planner</h4>
-                              <p className="text-sm text-gray-600">Plan structured lessons with objectives and activities.</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Plan structured lessons with objectives and activities.</p>
                                   </div>
                           </div>
                         </motion.div>
@@ -2327,18 +2327,18 @@ const TeacherDashboard = () => {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.8 }}
-                          className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
                           onClick={() => {
                             setLocation('/teacher/tools/exam-question-paper-generator');
                           }}
                         >
                           <div className="flex items-start space-x-4">
                             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <FileQuestion className="w-6 h-6 text-blue-600" />
+                              <FileQuestion className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-600" />
                                           </div>
                             <div>
                               <h4 className="font-bold text-gray-900 mb-1">Exam Question Paper Generator</h4>
-                              <p className="text-sm text-gray-600">Create comprehensive exam papers with varying difficulty.</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Create comprehensive exam papers with varying difficulty.</p>
                                     </div>
                           </div>
                         </motion.div>
@@ -2348,18 +2348,18 @@ const TeacherDashboard = () => {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.9 }}
-                          className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
                           onClick={() => {
                             setLocation('/teacher/tools/daily-class-plan-maker');
                           }}
                         >
                           <div className="flex items-start space-x-4">
                             <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <CheckSquare className="w-6 h-6 text-teal-600" />
+                              <CheckSquare className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-teal-600" />
                                     </div>
                             <div>
                               <h4 className="font-bold text-gray-900 mb-1">Daily Class Plan Maker</h4>
-                              <p className="text-sm text-gray-600">Organize your daily teaching schedule efficiently.</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Organize your daily teaching schedule efficiently.</p>
                                 </div>
                             </div>
                         </motion.div>
@@ -2369,18 +2369,18 @@ const TeacherDashboard = () => {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 1.0 }}
-                          className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
                           onClick={() => {
                             setLocation('/teacher/tools/homework-creator');
                           }}
                         >
                           <div className="flex items-start space-x-4">
                             <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <Rocket className="w-6 h-6 text-orange-600" />
+                              <Rocket className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-orange-600" />
                                 </div>
                             <div>
                               <h4 className="font-bold text-gray-900 mb-1">Homework Creator</h4>
-                              <p className="text-sm text-gray-600">Generate meaningful homework assignments.</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Generate meaningful homework assignments.</p>
                               </div>
                             </div>
                         </motion.div>
@@ -2390,18 +2390,18 @@ const TeacherDashboard = () => {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 1.1 }}
-                          className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
                           onClick={() => {
                             setLocation('/teacher/tools/rubrics-evaluation-generator');
                           }}
                         >
                           <div className="flex items-start space-x-4">
                             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <Scale className="w-6 h-6 text-blue-600" />
+                              <Scale className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-600" />
                             </div>
                             <div>
                               <h4 className="font-bold text-gray-900 mb-1">Rubrics, Evaluation & Report Card Generator</h4>
-                              <p className="text-sm text-gray-600">Create assessment criteria, rubrics, and comprehensive student progress reports with feedback.</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Create assessment criteria, rubrics, and comprehensive student progress reports with feedback.</p>
                         </div>
                       </div>
               </motion.div>
@@ -2411,18 +2411,18 @@ const TeacherDashboard = () => {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 1.3 }}
-                          className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
                           onClick={() => {
                             setLocation('/teacher/tools/story-passage-creator');
                           }}
                         >
                           <div className="flex items-start space-x-4">
                             <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <BookOpen className="w-6 h-6 text-orange-600" />
+                              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-orange-600" />
                         </div>
                             <div>
                               <h4 className="font-bold text-gray-900 mb-1">Story & Passage Creator</h4>
-                              <p className="text-sm text-gray-600">Generate engaging stories and reading passages.</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Generate engaging stories and reading passages.</p>
                           </div>
                           </div>
                         </motion.div>
@@ -2432,18 +2432,18 @@ const TeacherDashboard = () => {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 1.4 }}
-                          className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
                             onClick={() => {
                             setLocation('/teacher/tools/short-notes-summaries-maker');
                           }}
                         >
                           <div className="flex items-start space-x-4">
                             <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <Layers className="w-6 h-6 text-teal-600" />
+                              <Layers className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-teal-600" />
                         </div>
                             <div>
                               <h4 className="font-bold text-gray-900 mb-1">Short Notes & Summaries Maker</h4>
-                              <p className="text-sm text-gray-600">Condense complex topics into concise notes.</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Condense complex topics into concise notes.</p>
                       </div>
                 </div>
               </motion.div>
@@ -2453,18 +2453,18 @@ const TeacherDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 1.5 }}
-                          className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
+                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
                           onClick={() => {
                             setLocation('/teacher/tools/flashcard-generator');
                           }}
                         >
                           <div className="flex items-start space-x-4">
                             <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <CreditCard className="w-6 h-6 text-orange-600" />
+                              <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-orange-600" />
                     </div>
                             <div>
                               <h4 className="font-bold text-gray-900 mb-1">Flashcard Generator</h4>
-                              <p className="text-sm text-gray-600">Build study flashcards for quick revision.</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Build study flashcards for quick revision.</p>
                   </div>
                 </div>
                         </motion.div>
@@ -2483,7 +2483,7 @@ const TeacherDashboard = () => {
                           ? 'bg-gradient-to-r from-emerald-300 via-teal-400 to-green-400'
                           : 'bg-gradient-to-r from-orange-300 via-amber-400 to-orange-400'
                     }`}>
-                      <h2 className="text-2xl font-bold text-white">
+                      <h2 className="text-xl sm:text-2xl font-bold text-white">
                         {teacherChatFocusTab === 'lesson-planning'
                           ? 'Lesson Planning Assistant'
                           : teacherChatFocusTab === 'assessments'
@@ -2502,7 +2502,7 @@ const TeacherDashboard = () => {
                     <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => setTeacherChatFocusTab('lesson-planning')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                           teacherChatFocusTab === 'lesson-planning'
                             ? 'bg-sky-600 text-white shadow-sm ring-2 ring-sky-200'
                             : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
@@ -2512,7 +2512,7 @@ const TeacherDashboard = () => {
                       </button>
                       <button
                         onClick={() => setTeacherChatFocusTab('assessments')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                           teacherChatFocusTab === 'assessments'
                             ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-200'
                             : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
@@ -2522,7 +2522,7 @@ const TeacherDashboard = () => {
                       </button>
                       <button
                         onClick={() => setTeacherChatFocusTab('classroom-help')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                           teacherChatFocusTab === 'classroom-help'
                             ? 'bg-orange-600 text-white shadow-sm ring-2 ring-orange-200'
                             : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
@@ -2612,7 +2612,7 @@ const TeacherDashboard = () => {
 
               {/* My Students Tab */}
               {dashboardSubTab === 'students' && (
-                <div className="space-y-8">
+                <div className="space-y-4 sm:space-y-6 lg:space-y-8">
                   {/* Students Sub-Tabs */}
                   <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-4 shadow-xl border border-white/20">
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -2622,7 +2622,7 @@ const TeacherDashboard = () => {
                         className={studentsSubTab === 'list' ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50'}
                         onClick={() => setStudentsSubTab('list')}
                       >
-                        <Users className="w-4 h-4 mr-2" />
+                        <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         Student List
                       </Button>
                       <Button
@@ -2630,7 +2630,7 @@ const TeacherDashboard = () => {
                         className={studentsSubTab === 'track-progress' ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50'}
                         onClick={() => setStudentsSubTab('track-progress')}
                       >
-                        <BarChart3 className="w-4 h-4 mr-2" />
+                        <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         Track Progress
                       </Button>
                       <Button
@@ -2638,7 +2638,7 @@ const TeacherDashboard = () => {
                         className={studentsSubTab === 'submissions' ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50'}
                         onClick={() => setStudentsSubTab('submissions')}
                       >
-                        <FileText className="w-4 h-4 mr-2" />
+                        <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         Submissions
                       </Button>
                       <Button
@@ -2646,7 +2646,7 @@ const TeacherDashboard = () => {
                         className={studentsSubTab === 'diary' ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50'}
                         onClick={() => setStudentsSubTab('diary')}
                       >
-                        <BookMarked className="w-4 h-4 mr-2" />
+                        <BookMarked className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         Diary
                       </Button>
                     </div>
@@ -2657,9 +2657,9 @@ const TeacherDashboard = () => {
                   {studentsSubTab === 'list' && (
                     <>
                       {/* Search Bar */}
-                      <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
+                      <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-3 h-3 sm:w-4 sm:h-4" />
                           <Input
                             placeholder="Search students by name, email, or phone..."
                             value={searchTerm}
@@ -2669,7 +2669,7 @@ const TeacherDashboard = () => {
                         </div>
                       </div>
 
-                  <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
+                  <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead>
@@ -2696,15 +2696,15 @@ const TeacherDashboard = () => {
                                   <td className="py-3 px-4">
                                     <div>
                                       <p className="font-medium text-gray-900">{student.name || student.fullName}</p>
-                                      <p className="text-sm text-gray-600">{student.email}</p>
+                                      <p className="text-xs sm:text-sm text-gray-600">{student.email}</p>
                                     </div>
                                   </td>
                                   <td className="py-3 px-4">
                                     <div>
                                       {student.phone ? (
-                                        <p className="text-sm text-gray-900">{student.phone}</p>
+                                        <p className="text-xs sm:text-sm text-gray-900">{student.phone}</p>
                                       ) : (
-                                        <p className="text-sm text-gray-400">No phone</p>
+                                        <p className="text-xs sm:text-sm text-gray-400">No phone</p>
                                       )}
                                     </div>
                                   </td>
@@ -2720,7 +2720,7 @@ const TeacherDashboard = () => {
                                     {perf.overallProgress !== null && perf.overallProgress !== undefined && perf.overallProgress > 0 ? (
                                       <div>
                                         <div className="flex items-center space-x-2 mb-2">
-                                          <span className="text-sm font-medium text-gray-900">Overall Progress:</span>
+                                          <span className="text-xs sm:text-sm font-medium text-gray-900">Overall Progress:</span>
                                           <Badge className={perf.overallProgress >= 70 ? 'bg-green-100 text-green-800' : 
                                                            perf.overallProgress >= 50 ? 'bg-yellow-100 text-yellow-800' : 
                                                            'bg-red-100 text-red-800'}>
@@ -2767,7 +2767,7 @@ const TeacherDashboard = () => {
                                       </div>
                                     ) : (
                                       <div>
-                                        <span className="text-sm text-gray-400">No progress data</span>
+                                        <span className="text-xs sm:text-sm text-gray-400">No progress data</span>
                                         {perf.totalExams === 0 && (
                                           <p className="text-xs text-gray-400 mt-1">No exams taken</p>
                                         )}
@@ -2780,19 +2780,19 @@ const TeacherDashboard = () => {
                                   <td className="py-3 px-4">
                                     {perf.totalExams > 0 ? (
                                       <div>
-                                        <span className="text-sm font-medium text-gray-900">
+                                        <span className="text-xs sm:text-sm font-medium text-gray-900">
                                           {perf.averageMarks?.toFixed(1) || '0'}
                                         </span>
                                         <p className="text-xs text-gray-500">{perf.totalExams} exam{perf.totalExams !== 1 ? 's' : ''}</p>
                                       </div>
                                     ) : (
-                                      <span className="text-sm text-gray-400">-</span>
+                                      <span className="text-xs sm:text-sm text-gray-400">-</span>
                                     )}
                                   </td>
                                   <td className="py-3 px-4">
                                     {student.lastLogin ? (
                                       <div>
-                                        <p className="text-sm text-gray-900">
+                                        <p className="text-xs sm:text-sm text-gray-900">
                                           {new Date(student.lastLogin).toLocaleDateString()}
                                         </p>
                                         <p className="text-xs text-gray-500">
@@ -2800,7 +2800,7 @@ const TeacherDashboard = () => {
                                         </p>
                                       </div>
                                     ) : (
-                                      <span className="text-sm text-gray-400">Never</span>
+                                      <span className="text-xs sm:text-sm text-gray-400">Never</span>
                                     )}
                                   </td>
                                   <td className="py-3 px-4">
@@ -2813,7 +2813,7 @@ const TeacherDashboard = () => {
                                         setIsRemarkDialogOpen(true);
                                       }}
                                     >
-                                      <MessageSquare className="w-4 h-4 mr-1" />
+                                      <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                                       Add Remark
                                     </Button>
                                   </td>
@@ -2829,7 +2829,7 @@ const TeacherDashboard = () => {
                   <Dialog open={isRemarkDialogOpen} onOpenChange={setIsRemarkDialogOpen}>
                     <DialogContent className="sm:max-w-[500px]">
                       <DialogHeader>
-                        <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                        <DialogTitle className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                           Add Remark for {selectedStudentForRemark?.name || selectedStudentForRemark?.fullName}
                         </DialogTitle>
                         <DialogDescription>
@@ -2955,26 +2955,26 @@ const TeacherDashboard = () => {
 
                   {/* Track Progress Sub-Tab */}
                   {studentsSubTab === 'track-progress' && (
-                    <div id="teacher-student-progress" className="space-y-8 scroll-mt-24">
+                    <div id="teacher-student-progress" className="space-y-4 sm:space-y-6 lg:space-y-8 scroll-mt-24">
                       {/* Header */}
-                      <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
+                      <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
                         <div className="flex items-center gap-3 mb-6">
                           <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
-                            <BarChart3 className="w-6 h-6 text-white" />
+                            <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                           </div>
                           <div>
-                            <h2 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Track Student Progress</h2>
+                            <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Track Student Progress</h2>
                             <p className="text-gray-600">Monitor and analyze student performance over time</p>
                           </div>
                         </div>
                       </div>
 
                       {/* Search Bar and Filters */}
-                      <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
+                      <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
                         <div className="space-y-4">
                           {/* Search Bar */}
                           <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-3 h-3 sm:w-4 sm:h-4" />
                             <Input
                               placeholder="Search students by name, email, or phone..."
                               value={searchTerm}
@@ -2987,7 +2987,7 @@ const TeacherDashboard = () => {
                           <div className="flex flex-wrap items-center gap-4">
                             {/* Filter by Class */}
                             <div className="flex items-center gap-2">
-                              <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">Filter by Class:</Label>
+                              <Label className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">Filter by Class:</Label>
                               <Select value={filterByClass} onValueChange={setFilterByClass}>
                                 <SelectTrigger className="w-[180px] rounded-xl bg-white/70 border-gray-200">
                                   <SelectValue placeholder="All Classes" />
@@ -3014,7 +3014,7 @@ const TeacherDashboard = () => {
 
                             {/* Filter by Student */}
                             <div className="flex items-center gap-2">
-                              <Label className="text-sm font-medium text-gray-700 whitespace-nowrap">Filter by Student:</Label>
+                              <Label className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">Filter by Student:</Label>
                               <Select value={filterByStudent} onValueChange={setFilterByStudent}>
                                 <SelectTrigger className="w-[200px] rounded-xl bg-white/70 border-gray-200">
                                   <SelectValue placeholder="All Students" />
@@ -3049,7 +3049,7 @@ const TeacherDashboard = () => {
                                 }}
                                 className="rounded-xl border-gray-300 text-gray-700 hover:bg-gray-50"
                               >
-                                <X className="w-4 h-4 mr-1" />
+                                <X className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                                 Clear Filters
                               </Button>
                             )}
@@ -3247,23 +3247,23 @@ const TeacherDashboard = () => {
                         ];
 
                         return (
-                          <div id="teacher-progress-analytics" className="space-y-8 scroll-mt-24">
+                          <div id="teacher-progress-analytics" className="space-y-4 sm:space-y-6 lg:space-y-8 scroll-mt-24">
                             {/* Class Performance Summary */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:p-4 lg:p-6">
                               <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
                               >
                                 <div className="flex items-center justify-between mb-4">
                                   <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl">
-                                    <Target className="w-6 h-6 text-white" />
+                                    <Target className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                                   </div>
                                   <div className="text-right">
-                                    <p className="text-2xl font-bold text-gray-900">
+                                    <p className="text-xl sm:text-2xl font-bold text-gray-900">
                                       {avgExamScore.toFixed(1)}%
                                     </p>
-                                    <p className="text-sm text-gray-600">Avg Exam Score</p>
+                                    <p className="text-xs sm:text-sm text-gray-600">Avg Exam Score</p>
                                   </div>
                                 </div>
                                 <p className="text-xs text-gray-500">
@@ -3275,17 +3275,17 @@ const TeacherDashboard = () => {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.1 }}
-                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
                               >
                                 <div className="flex items-center justify-between mb-4">
                                   <div className="p-3 bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl">
-                                    <TrendingUp className="w-6 h-6 text-white" />
+                                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                                   </div>
                                   <div className="text-right">
-                                    <p className="text-2xl font-bold text-gray-900">
+                                    <p className="text-xl sm:text-2xl font-bold text-gray-900">
                                       {avgProgress.toFixed(1)}%
                                     </p>
-                                    <p className="text-sm text-gray-600">Avg Progress</p>
+                                    <p className="text-xs sm:text-sm text-gray-600">Avg Progress</p>
                                   </div>
                                 </div>
                                 <p className="text-xs text-gray-500">
@@ -3297,17 +3297,17 @@ const TeacherDashboard = () => {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.2 }}
-                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
                               >
                                 <div className="flex items-center justify-between mb-4">
                                   <div className="p-3 bg-gradient-to-br from-purple-400 to-pink-400 rounded-xl">
-                                    <Clock className="w-6 h-6 text-white" />
+                                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                                   </div>
                                   <div className="text-right">
-                                    <p className="text-2xl font-bold text-gray-900">
+                                    <p className="text-xl sm:text-2xl font-bold text-gray-900">
                                       {avgWatchTime.toFixed(1)} min
                                     </p>
-                                    <p className="text-sm text-gray-600">Avg Watch Time</p>
+                                    <p className="text-xs sm:text-sm text-gray-600">Avg Watch Time</p>
                                   </div>
                                 </div>
                                 <p className="text-xs text-gray-500">
@@ -3317,15 +3317,15 @@ const TeacherDashboard = () => {
                             </div>
 
                             {/* Charts Grid */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
                               {/* Exam Performance Distribution */}
                               <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
                               >
-                                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                  <BarChart3 className="w-5 h-5 text-emerald-600" />
+                                <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                  <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
                                   Exam Performance Distribution
                                 </h3>
                                 <ChartContainer
@@ -3352,7 +3352,7 @@ const TeacherDashboard = () => {
                                     </Bar>
                                   </BarChart>
                                 </ChartContainer>
-                                <div className="mt-4 text-sm text-gray-600">
+                                <div className="mt-4 text-xs sm:text-sm text-gray-600">
                                   <p>Total students with exams: {students.filter(s => (s.performance || {}).totalExams > 0).length}</p>
                                 </div>
                               </motion.div>
@@ -3362,10 +3362,10 @@ const TeacherDashboard = () => {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.1 }}
-                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
                               >
-                                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                  <Target className="w-5 h-5 text-emerald-600" />
+                                <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                  <Target className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
                                   Overall Progress Distribution
                                 </h3>
                                 <ChartContainer
@@ -3393,7 +3393,7 @@ const TeacherDashboard = () => {
                                     <ChartTooltip content={<ChartTooltipContent />} />
                                   </PieChart>
                                 </ChartContainer>
-                                <div className="mt-4 text-sm text-gray-600">
+                                <div className="mt-4 text-xs sm:text-sm text-gray-600">
                                   <p>Total students: {students.length}</p>
                                 </div>
                               </motion.div>
@@ -3403,10 +3403,10 @@ const TeacherDashboard = () => {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.2 }}
-                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
                               >
-                                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                  <Clock className="w-5 h-5 text-emerald-600" />
+                                <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
                                   Daily Watch Time Distribution
                                 </h3>
                                 <ChartContainer
@@ -3430,7 +3430,7 @@ const TeacherDashboard = () => {
                                     </Bar>
                                   </BarChart>
                                 </ChartContainer>
-                                <div className="mt-4 text-sm text-gray-600">
+                                <div className="mt-4 text-xs sm:text-sm text-gray-600">
                                   <p>Students with watch data: {students.filter(s => (s.performance || {}).dailyAverageWatchTime).length}</p>
                                 </div>
                               </motion.div>
@@ -3441,10 +3441,10 @@ const TeacherDashboard = () => {
                                   initial={{ opacity: 0, y: 20 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   transition={{ delay: 0.3 }}
-                                  className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                                  className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
                                 >
-                                  <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                    <TrendingUp className="w-5 h-5 text-emerald-600" />
+                                  <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
                                     Top 10 Watch Time Leaders
                                   </h3>
                                   <ChartContainer
@@ -3474,24 +3474,24 @@ const TeacherDashboard = () => {
                       })()}
 
                       {/* Progress Overview Cards */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:p-4 lg:p-6">
                         <motion.div
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                          className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
                         >
                           <div className="flex items-center justify-between mb-4">
                             <div className="p-3 bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl">
-                              <TrendingUp className="w-6 h-6 text-white" />
+                              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                             </div>
                             <div className="text-right">
-                              <p className="text-2xl font-bold text-gray-900">
+                              <p className="text-xl sm:text-2xl font-bold text-gray-900">
                                 {students.filter(s => {
                                   const perf = s.performance || {};
                                   return perf.overallProgress && perf.overallProgress >= 70;
                                 }).length}
                               </p>
-                              <p className="text-sm text-gray-600">High Performers</p>
+                              <p className="text-xs sm:text-sm text-gray-600">High Performers</p>
                             </div>
                           </div>
                           <p className="text-xs text-gray-500">Students with ≥70% progress</p>
@@ -3501,20 +3501,20 @@ const TeacherDashboard = () => {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.1 }}
-                          className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                          className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
                         >
                           <div className="flex items-center justify-between mb-4">
                             <div className="p-3 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-xl">
-                              <Target className="w-6 h-6 text-white" />
+                              <Target className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                             </div>
                             <div className="text-right">
-                              <p className="text-2xl font-bold text-gray-900">
+                              <p className="text-xl sm:text-2xl font-bold text-gray-900">
                                 {students.filter(s => {
                                   const perf = s.performance || {};
                                   return perf.overallProgress && perf.overallProgress >= 50 && perf.overallProgress < 70;
                                 }).length}
                               </p>
-                              <p className="text-sm text-gray-600">Average Performers</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Average Performers</p>
                             </div>
                           </div>
                           <p className="text-xs text-gray-500">Students with 50-69% progress</p>
@@ -3524,20 +3524,20 @@ const TeacherDashboard = () => {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.2 }}
-                          className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20"
+                          className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
                         >
                           <div className="flex items-center justify-between mb-4">
                             <div className="p-3 bg-gradient-to-br from-red-400 to-pink-400 rounded-xl">
-                              <AlertCircle className="w-6 h-6 text-white" />
+                              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                             </div>
                             <div className="text-right">
-                              <p className="text-2xl font-bold text-gray-900">
+                              <p className="text-xl sm:text-2xl font-bold text-gray-900">
                                 {students.filter(s => {
                                   const perf = s.performance || {};
                                   return !perf.overallProgress || perf.overallProgress < 50;
                                 }).length}
                               </p>
-                              <p className="text-sm text-gray-600">Need Attention</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Need Attention</p>
                             </div>
                           </div>
                           <p className="text-xs text-gray-500">Students with &lt;50% progress</p>
@@ -3545,10 +3545,10 @@ const TeacherDashboard = () => {
                       </div>
 
                       {/* Student Progress Table */}
-                      <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
+                      <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
                         <div className="mb-6">
-                          <h3 className="text-xl font-bold text-gray-900 mb-2">Detailed Progress Report</h3>
-                          <p className="text-sm text-gray-600">View individual student progress and performance metrics</p>
+                          <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Detailed Progress Report</h3>
+                          <p className="text-xs sm:text-sm text-gray-600">View individual student progress and performance metrics</p>
                         </div>
                         <div className="overflow-x-auto">
                           <table className="w-full">
@@ -3609,7 +3609,7 @@ const TeacherDashboard = () => {
                                       <td className="py-3 px-4">
                                         <div>
                                           <p className="font-medium text-gray-900">{student.name || student.fullName}</p>
-                                          <p className="text-sm text-gray-600">{student.email}</p>
+                                          <p className="text-xs sm:text-sm text-gray-600">{student.email}</p>
                                         </div>
                                       </td>
                                       <td className="py-3 px-4">
@@ -3618,7 +3618,7 @@ const TeacherDashboard = () => {
                                       <td className="py-3 px-4">
                                         <div className="space-y-2">
                                           <div className="flex items-center justify-between">
-                                            <span className="text-sm font-medium text-gray-900">{progress.toFixed(1)}%</span>
+                                            <span className="text-xs sm:text-sm font-medium text-gray-900">{progress.toFixed(1)}%</span>
                                             <Badge className={
                                               progress >= 70 ? 'bg-green-100 text-green-800' : 
                                               progress >= 50 ? 'bg-yellow-100 text-yellow-800' : 
@@ -3645,7 +3645,7 @@ const TeacherDashboard = () => {
                                           return learningProgress > 0 ? (
                                             <div className="space-y-2">
                                               <div className="flex items-center justify-between">
-                                                <span className="text-sm font-medium text-gray-900">{learningProgress.toFixed(1)}%</span>
+                                                <span className="text-xs sm:text-sm font-medium text-gray-900">{learningProgress.toFixed(1)}%</span>
                                                 <Badge className={
                                                   learningProgress >= 70 ? 'bg-blue-100 text-blue-800' : 
                                                   learningProgress >= 50 ? 'bg-yellow-100 text-yellow-800' : 
@@ -3667,26 +3667,26 @@ const TeacherDashboard = () => {
                                               <p className="text-xs text-gray-500">Content Completion</p>
                                             </div>
                                           ) : (
-                                            <span className="text-sm text-gray-400">No data</span>
+                                            <span className="text-xs sm:text-sm text-gray-400">No data</span>
                                           );
                                         })()}
                                       </td>
                                       <td className="py-3 px-4">
                                         {examsTaken > 0 ? (
                                           <div>
-                                            <span className="text-sm font-medium text-gray-900">
+                                            <span className="text-xs sm:text-sm font-medium text-gray-900">
                                               {avgScore.toFixed(1)}%
                                             </span>
                                             <p className="text-xs text-gray-500">Average Score</p>
                                           </div>
                                         ) : (
-                                          <span className="text-sm text-gray-400">No data</span>
+                                          <span className="text-xs sm:text-sm text-gray-400">No data</span>
                                         )}
                                       </td>
                                       <td className="py-3 px-4">
                                         <div className="flex items-center space-x-2">
-                                          <ClipboardCheck className="w-4 h-4 text-gray-500" />
-                                          <span className="text-sm font-medium text-gray-900">{examsTaken}</span>
+                                          <ClipboardCheck className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
+                                          <span className="text-xs sm:text-sm font-medium text-gray-900">{examsTaken}</span>
                                           {examsTaken > 0 && (
                                             <span className="text-xs text-gray-500">exam{examsTaken !== 1 ? 's' : ''}</span>
                                           )}
@@ -3695,22 +3695,22 @@ const TeacherDashboard = () => {
                                       <td className="py-3 px-4">
                                         {watchTime !== null && watchTime !== undefined && watchTime > 0 ? (
                                           <div className="flex items-center space-x-2">
-                                            <Clock className="w-4 h-4 text-gray-500" />
-                                            <span className="text-sm font-medium text-gray-900">
+                                            <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
+                                            <span className="text-xs sm:text-sm font-medium text-gray-900">
                                               {watchTime.toFixed(1)} min
                                             </span>
                                           </div>
                                         ) : (
                                           <div className="flex items-center space-x-2">
-                                            <Clock className="w-4 h-4 text-gray-400" />
-                                            <span className="text-sm text-gray-400">0 min</span>
+                                            <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
+                                            <span className="text-xs sm:text-sm text-gray-400">0 min</span>
                                           </div>
                                         )}
                                       </td>
                                       <td className="py-3 px-4">
                                         {student.lastLogin ? (
                                           <div>
-                                            <p className="text-sm text-gray-900">
+                                            <p className="text-xs sm:text-sm text-gray-900">
                                               {new Date(student.lastLogin).toLocaleDateString()}
                                             </p>
                                             <p className="text-xs text-gray-500">
@@ -3718,7 +3718,7 @@ const TeacherDashboard = () => {
                                             </p>
                                           </div>
                                         ) : (
-                                          <span className="text-sm text-gray-400">Never</span>
+                                          <span className="text-xs sm:text-sm text-gray-400">Never</span>
                                         )}
                                       </td>
                                       <td className="py-3 px-4">
@@ -3779,16 +3779,16 @@ const TeacherDashboard = () => {
 
                   {/* Submissions Sub-Tab */}
                   {studentsSubTab === 'submissions' && (
-                    <div className="space-y-8">
+                    <div className="space-y-4 sm:space-y-6 lg:space-y-8">
                       {/* Header */}
-                      <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
+                      <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
                         <div className="flex items-center justify-between mb-6">
                           <div className="flex items-center gap-3">
                             <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg flex items-center justify-center">
-                              <FileText className="w-6 h-6 text-white" />
+                              <FileText className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                             </div>
                             <div>
-                              <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Homework Submissions</h2>
+                              <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Homework Submissions</h2>
                               <p className="text-gray-600">View and manage student homework submissions</p>
                             </div>
                           </div>
@@ -3796,7 +3796,7 @@ const TeacherDashboard = () => {
                             onClick={() => setIsHomeworkModalOpen(true)}
                             className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg"
                           >
-                            <Plus className="w-4 h-4 mr-2" />
+                            <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                             Create Homework
                           </Button>
                         </div>
@@ -3810,11 +3810,11 @@ const TeacherDashboard = () => {
                           </div>
                         </div>
                       ) : (
-                        <div className="space-y-8">
+                        <div className="space-y-4 sm:space-y-6 lg:space-y-8">
                           {/* Homework Submissions Section */}
-                          <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
-                            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                              <FileText className="w-5 h-5 text-purple-600" />
+                          <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
+                            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                              <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
                               Homework Submissions
                             </h3>
                             <div className="space-y-4">
@@ -3862,7 +3862,7 @@ const TeacherDashboard = () => {
                                                   <Badge className="bg-yellow-100 text-yellow-800">Active</Badge>
                                                 )}
                                               </div>
-                                              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                                              <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-gray-600">
                                                 <span className="font-medium">Subject: {homework.subject?.name || homework.subject || 'N/A'}</span>
                                                 {homework.classNumber && (
                                                   <Badge variant="outline" className="bg-gray-50">
@@ -3879,7 +3879,7 @@ const TeacherDashboard = () => {
                                                 )}
                                               </div>
                                               {homework.description && (
-                                                <p className="text-sm text-gray-600 mt-2 italic">{homework.description}</p>
+                                                <p className="text-xs sm:text-sm text-gray-600 mt-2 italic">{homework.description}</p>
                                               )}
                                               {homework.fileUrl && (
                                                 <div className="mt-2">
@@ -3892,14 +3892,14 @@ const TeacherDashboard = () => {
                                                     }}
                                                     className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
                                                   >
-                                                    <FileText className="w-4 h-4 mr-1" />
+                                                    <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                                                     View Homework File
                                                   </Button>
                                                 </div>
                                               )}
                                             </div>
                                             <ChevronDown
-                                              className={`w-5 h-5 text-gray-500 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
+                                              className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-500 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
                                             />
                                           </div>
                                         </div>
@@ -3922,11 +3922,11 @@ const TeacherDashboard = () => {
                                                             </Badge>
                                                           )}
                                                         </div>
-                                                        <p className="text-sm text-gray-600 mb-2">
+                                                        <p className="text-xs sm:text-sm text-gray-600 mb-2">
                                                           {submission.studentId?.email || ''}
                                                         </p>
                                                         {submission.description && (
-                                                          <p className="text-sm text-gray-700 mb-2">{submission.description}</p>
+                                                          <p className="text-xs sm:text-sm text-gray-700 mb-2">{submission.description}</p>
                                                         )}
                                                         <div className="flex items-center gap-4 text-xs text-gray-500">
                                                           <span>Submitted: {new Date(submission.submittedAt).toLocaleString()}</span>
@@ -3945,7 +3945,7 @@ const TeacherDashboard = () => {
                                                           }}
                                                           className="bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200"
                                                         >
-                                                          <Eye className="w-4 h-4 mr-1" />
+                                                          <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                                                           View Submission
                                                         </Button>
                                                       </div>
@@ -3954,11 +3954,11 @@ const TeacherDashboard = () => {
                                                 ))}
                                               </div>
                                             ) : (
-                                              <div className="text-center py-8 text-gray-500">
+                                              <div className="text-center py-4 sm:py-6 lg:py-8 text-gray-500">
                                                 <FileText className="w-12 h-12 mx-auto mb-2 text-gray-400" />
                                                 <p>No submissions yet for this homework</p>
                                                 {deadline && deadline < new Date() && (
-                                                  <p className="text-sm text-red-600 mt-2">This homework is overdue</p>
+                                                  <p className="text-xs sm:text-sm text-red-600 mt-2">This homework is overdue</p>
                                                 )}
                                               </div>
                                             )}
@@ -3977,9 +3977,9 @@ const TeacherDashboard = () => {
                           </div>
 
                           {/* Submissions by Students Section */}
-                          <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
-                            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                              <Users className="w-5 h-5 text-purple-600" />
+                          <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
+                            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
                               Submissions by Students
                             </h3>
                             <div className="space-y-2">
@@ -4020,13 +4020,13 @@ const TeacherDashboard = () => {
                                                 </Badge>
                                               )}
                                             </div>
-                                            <p className="text-sm text-gray-600 mt-1">{student.email || ''}</p>
+                                            <p className="text-xs sm:text-sm text-gray-600 mt-1">{student.email || ''}</p>
                                             <Badge className={`mt-2 ${studentSubmissions.length > 0 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}`}>
                                               {studentSubmissions.length} homework{studentSubmissions.length !== 1 ? 's' : ''} submitted
                                             </Badge>
                                           </div>
                                           <ChevronDown
-                                            className={`w-5 h-5 text-gray-500 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
+                                            className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-500 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
                                           />
                                         </div>
                                       </div>
@@ -4041,14 +4041,14 @@ const TeacherDashboard = () => {
                                                       <h5 className="font-medium text-gray-900 mb-2">
                                                         {submission.homeworkId?.title || 'Untitled Homework'}
                                                       </h5>
-                                                      <div className="flex items-center gap-4 mb-2 text-sm text-gray-600">
+                                                      <div className="flex items-center gap-4 mb-2 text-xs sm:text-sm text-gray-600">
                                                         <span>Subject: {submission.subjectId?.name || submission.subjectId || 'N/A'}</span>
                                                         {submission.homeworkId?.deadline && (
                                                           <span>Deadline: {new Date(submission.homeworkId.deadline).toLocaleDateString()}</span>
                                                         )}
                                                       </div>
                                                       {submission.description && (
-                                                        <p className="text-sm text-gray-700 mb-2">{submission.description}</p>
+                                                        <p className="text-xs sm:text-sm text-gray-700 mb-2">{submission.description}</p>
                                                       )}
                                                       <div className="flex items-center gap-4 text-xs text-gray-500">
                                                         <span>Submitted: {new Date(submission.submittedAt).toLocaleString()}</span>
@@ -4067,7 +4067,7 @@ const TeacherDashboard = () => {
                                                         }}
                                                         className="bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200"
                                                       >
-                                                        <Eye className="w-4 h-4 mr-1" />
+                                                        <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                                                         View
                                                       </Button>
                                                     </div>
@@ -4076,7 +4076,7 @@ const TeacherDashboard = () => {
                                               ))}
                                             </div>
                                           ) : (
-                                            <div className="text-center py-8 text-gray-500">
+                                            <div className="text-center py-4 sm:py-6 lg:py-8 text-gray-500">
                                               <FileText className="w-12 h-12 mx-auto mb-2 text-gray-400" />
                                               <p>No submissions from this student</p>
                                             </div>
@@ -4106,32 +4106,32 @@ const TeacherDashboard = () => {
 
               {/* EduOTT Tab */}
               {dashboardSubTab === 'eduott' && (
-                <div className="space-y-8">
+                <div className="space-y-4 sm:space-y-6 lg:space-y-8">
                   {/* Header */}
-                  <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
+                  <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
                     <div className="flex items-center gap-3 mb-6">
                       <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg flex items-center justify-center">
-                        <VideoIcon className="w-6 h-6 text-white" />
+                        <VideoIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                       </div>
                       <div>
-                        <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">EduOTT</h2>
+                        <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">EduOTT</h2>
                         <p className="text-gray-600">Educational videos and live sessions</p>
                       </div>
                     </div>
 
                     {/* Tabs */}
-                    <Tabs value={eduottActiveTab} onValueChange={(value) => setEduottActiveTab(value as 'videos' | 'live-sessions')} className="space-y-6">
-                      <TabsList className="grid w-full grid-cols-2">
+                    <Tabs value={eduottActiveTab} onValueChange={(value) => setEduottActiveTab(value as 'videos' | 'live-sessions')} className="space-y-3 sm:space-y-4 lg:space-y-6">
+                      <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2">
                         <TabsTrigger value="videos">Videos</TabsTrigger>
                         <TabsTrigger value="live-sessions">Live Sessions</TabsTrigger>
                       </TabsList>
 
                       {/* Videos Tab */}
-                      <TabsContent value="videos" className="space-y-6">
+                      <TabsContent value="videos" className="space-y-3 sm:space-y-4 lg:space-y-6">
                         {/* Search and Filter */}
                         <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end">
                       <div className="flex-1 min-w-[200px] relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
                         <Input
                           type="text"
                           placeholder="Search videos by title..."
@@ -4166,7 +4166,7 @@ const TeacherDashboard = () => {
                           onValueChange={(value) => preserveScrollOnFilterChange(setEduottSubjectFilter, value)}
                         >
                           <SelectTrigger className="w-full md:w-[200px] bg-white">
-                            <Filter className="w-4 h-4 mr-2 shrink-0" />
+                            <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2 shrink-0" />
                             <SelectValue placeholder="All subjects" />
                           </SelectTrigger>
                           <SelectContent>
@@ -4183,14 +4183,14 @@ const TeacherDashboard = () => {
 
                     {/* Results Count */}
                     <div className="mt-4">
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs sm:text-sm text-gray-600">
                         Showing {filteredEduottVideos.length} of {eduottVideos.length} videos
                       </p>
                     </div>
 
                     {/* Videos Grid */}
                     {isLoadingEduott ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6 mt-6">
                         {Array.from({ length: 6 }).map((_, i) => (
                           <Card key={i} className="overflow-hidden">
                             <div className="w-full h-48 bg-gray-200 animate-pulse" />
@@ -4210,7 +4210,7 @@ const TeacherDashboard = () => {
                         return (
                           <div className="text-center py-16 bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 mt-6">
                             <VideoIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold text-gray-600 mb-2">
+                            <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">
                               {eduottVideos.length === 0 ? 'No Videos Available' : 'No Videos Found'}
                             </h3>
                             <p className="text-gray-500">
@@ -4223,7 +4223,7 @@ const TeacherDashboard = () => {
                       }
 
                       return (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6 mt-6">
                           {filteredEduottVideos.map((video) => (
                             <Card 
                               key={video._id || video.id} 
@@ -4256,7 +4256,7 @@ const TeacherDashboard = () => {
                                 {/* Play Overlay */}
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                   <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
-                                    <Play className="w-8 h-8 text-purple-600 ml-1" fill="currentColor" />
+                                    <Play className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-purple-600 ml-1" fill="currentColor" />
                                   </div>
                                 </div>
 
@@ -4271,7 +4271,7 @@ const TeacherDashboard = () => {
 
                               <CardHeader>
                                 <div className="flex items-start justify-between gap-2">
-                                  <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-2 flex-1">
+                                  <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 line-clamp-2 flex-1">
                                     {video.title}
                                   </CardTitle>
                                 </div>
@@ -4299,13 +4299,13 @@ const TeacherDashboard = () => {
 
                               <CardContent>
                                 {video.description && (
-                                  <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                                  <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 mb-3">
                                     {video.description}
                                   </p>
                                 )}
                                 <div className="flex items-center justify-between text-xs text-gray-500">
                                   <div className="flex items-center gap-1">
-                                    <Eye className="w-4 h-4" />
+                                    <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                                     <span>{video.views || 0} views</span>
                                   </div>
                                   {video.createdAt && (
@@ -4321,11 +4321,11 @@ const TeacherDashboard = () => {
                       </TabsContent>
 
                       {/* Live Sessions Tab */}
-                      <TabsContent value="live-sessions" className="space-y-6">
+                      <TabsContent value="live-sessions" className="space-y-3 sm:space-y-4 lg:space-y-6">
                         {/* Search and Filter */}
                         <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end">
                           <div className="flex-1 min-w-[200px] relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
                             <Input
                               type="text"
                               placeholder="Search live sessions..."
@@ -4379,7 +4379,7 @@ const TeacherDashboard = () => {
                               onValueChange={(value) => preserveScrollOnFilterChange(setFilterStatus, value)}
                             >
                               <SelectTrigger className="w-full md:w-[160px] bg-white">
-                                <Filter className="w-4 h-4 mr-2 shrink-0" />
+                                <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2 shrink-0" />
                                 <SelectValue placeholder="Filter by status" />
                               </SelectTrigger>
                               <SelectContent>
@@ -4405,7 +4405,7 @@ const TeacherDashboard = () => {
                         ) : filteredLiveSessions.length === 0 ? (
                           <div className="text-center py-16 bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20">
                             <Radio className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-lg font-semibold text-gray-600 mb-2">
+                            <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">
                               {liveSessions.length === 0 ? 'No Live Sessions Available' : 'No Live Sessions Found'}
                             </h3>
                             <p className="text-gray-500">
@@ -4434,11 +4434,11 @@ const TeacherDashboard = () => {
 
                               return (
                                 <Card key={session._id || session.id} className="hover:shadow-lg transition-shadow">
-                                  <CardContent className="p-6">
+                                  <CardContent className="p-3 sm:p-4 lg:p-6">
                                     <div className="flex items-start justify-between">
                                       <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2">
-                                          <h3 className="text-lg font-semibold text-gray-900">{session.title}</h3>
+                                          <h3 className="text-base sm:text-lg font-semibold text-gray-900">{session.title}</h3>
                                           <Badge className={getStatusColor(session.status)}>
                                             {session.status?.toUpperCase() || 'UNKNOWN'}
                                           </Badge>
@@ -4446,16 +4446,16 @@ const TeacherDashboard = () => {
                                         {session.description && (
                                           <p className="text-gray-600 mb-4">{session.description}</p>
                                         )}
-                                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                                        <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-gray-600">
                                           {session.streamer?.fullName || session.streamer?.email ? (
                                             <div className="flex items-center gap-1">
-                                              <Users className="w-4 h-4" />
+                                              <Users className="w-3 h-3 sm:w-4 sm:h-4" />
                                               <span>{session.streamer?.fullName || session.streamer?.email}</span>
                                             </div>
                                           ) : null}
                                           {session.subject?.name && (
                                             <div className="flex items-center gap-1">
-                                              <BookOpen className="w-4 h-4" />
+                                              <BookOpen className="w-3 h-3 sm:w-4 sm:h-4" />
                                               <span>{extractPlainSubjectName(session.subject.name)}</span>
                                             </div>
                                           )}
@@ -4472,12 +4472,12 @@ const TeacherDashboard = () => {
                                             </Badge>
                                           ) : null}
                                           <div className="flex items-center gap-1">
-                                            <Eye className="w-4 h-4" />
+                                            <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                                             <span>{session.viewerCount || 0} viewers</span>
                                           </div>
                                           {(session.scheduledTime || session.scheduledStartTime) && (
                                             <div className="flex items-center gap-1">
-                                              <Calendar className="w-4 h-4" />
+                                              <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                                               <span>
                                                 {new Date(session.scheduledTime || session.scheduledStartTime || '').toLocaleString()}
                                               </span>
@@ -4495,7 +4495,7 @@ const TeacherDashboard = () => {
                                             }
                                           }}
                                         >
-                                          <Play className="w-4 h-4 mr-2" />
+                                          <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                                           Watch Live
                                         </Button>
                                       )}
@@ -4517,7 +4517,7 @@ const TeacherDashboard = () => {
         <Dialog open={isAddVideoModalOpen} onOpenChange={setIsAddVideoModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-gray-800">Add New Video</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-800">Add New Video</DialogTitle>
             <DialogDescription>
               Create a new educational video for your students.
             </DialogDescription>
@@ -4560,7 +4560,7 @@ const TeacherDashboard = () => {
               <Label htmlFor="video-subject" className="text-gray-700 font-medium">Subject *</Label>
               {teacherSubjects.length === 0 && (
                 <div className="mt-1 mb-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm text-yellow-800">
+                  <p className="text-xs sm:text-sm text-yellow-800">
                     <strong>No subjects assigned:</strong> You need to be assigned subjects by an admin before creating videos. 
                     Please contact your administrator to assign subjects to your account.
                   </p>
@@ -4627,7 +4627,7 @@ const TeacherDashboard = () => {
       <Dialog open={isVideoViewerOpen} onOpenChange={setIsVideoViewerOpen}>
         <DialogContent className="sm:max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-gray-800">
+            <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-800">
               {selectedVideo?.title || 'Video Viewer'}
             </DialogTitle>
             <DialogDescription>
@@ -4657,7 +4657,7 @@ const TeacherDashboard = () => {
               </div>
               
               {/* Video Details */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
                 <div>
                   <span className="font-medium text-gray-700">Subject:</span>
                   <span className="ml-2 text-gray-900">{selectedVideo.subject}</span>
@@ -4690,7 +4690,7 @@ const TeacherDashboard = () => {
       <Dialog open={isHomeworkModalOpen} onOpenChange={setIsHomeworkModalOpen}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Create Homework</DialogTitle>
+            <DialogTitle className="text-xl sm:text-2xl font-bold">Create Homework</DialogTitle>
             <DialogDescription>
               Create homework assignment for your assigned classes and students
             </DialogDescription>
@@ -4720,7 +4720,7 @@ const TeacherDashboard = () => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="homework-subject">Subject *</Label>
                 <Select
@@ -4772,7 +4772,7 @@ const TeacherDashboard = () => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="homework-date">Date *</Label>
                 <Input
@@ -4866,7 +4866,7 @@ const TeacherDashboard = () => {
               >
                 {isCreatingHomework || isUploadingHomeworkFile ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-white mr-2"></div>
                     {isUploadingHomeworkFile ? 'Uploading...' : 'Creating...'}
                   </>
                 ) : (

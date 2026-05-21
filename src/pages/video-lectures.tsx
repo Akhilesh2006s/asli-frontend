@@ -171,16 +171,16 @@ export default function VideoLectures() {
         
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Video Lectures</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Video Lectures</h1>
           <p className="text-gray-600">Interactive video content with AI-enhanced features</p>
         </div>
 
         {/* Search and Filters */}
         <Card className="mb-8">
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3 sm:w-4 sm:h-4" />
                 <Input
                   placeholder="Search videos by title or topic..."
                   value={searchQuery}
@@ -220,7 +220,7 @@ export default function VideoLectures() {
 
         {/* Video Grid */}
         {videosLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-3 sm:p-4 lg:p-6">
             {Array.from({ length: 6 }).map((_, i) => (
               <Card key={i}>
                 <Skeleton className="h-48 w-full rounded-t-lg" />
@@ -235,7 +235,7 @@ export default function VideoLectures() {
           <Card>
             <CardContent className="p-12 text-center">
               <BookOpen className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No videos found</h3>
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No videos found</h3>
               <p className="text-gray-600">
                 {searchQuery || selectedSubject !== "all" || selectedDifficulty !== "all" 
                   ? "Try adjusting your search or filters." 
@@ -244,7 +244,7 @@ export default function VideoLectures() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-3 sm:p-4 lg:p-6">
             {filteredVideos.map((video, index) => (
               <Card 
                 key={video._id} 
@@ -264,10 +264,10 @@ export default function VideoLectures() {
                 {/* SPARKLING PARTICLES */}
                 <div className="absolute top-2 right-2 w-2 h-2 bg-white rounded-full animate-ping opacity-70 shadow-lg"></div>
                 <div className="absolute top-4 right-6 w-1 h-1 bg-white rounded-full animate-pulse opacity-60 shadow-md" style={{animationDelay: '0.5s'}}></div>
-                <div className="absolute top-6 right-3 w-1.5 h-1.5 bg-white rounded-full animate-bounce opacity-80 shadow-lg" style={{animationDelay: '1s'}}></div>
+                <div className="absolute top-3 sm:p-4 lg:p-6 right-3 w-1.5 h-1.5 bg-white rounded-full animate-bounce opacity-80 shadow-lg" style={{animationDelay: '1s'}}></div>
                 <div className="absolute bottom-4 left-3 w-1 h-1 bg-yellow-300 rounded-full animate-ping opacity-90 shadow-lg" style={{animationDelay: '1.5s'}}></div>
-                <div className="absolute bottom-6 right-4 w-1.5 h-1.5 bg-cyan-300 rounded-full animate-pulse opacity-70 shadow-md" style={{animationDelay: '2s'}}></div>
-                <div className="absolute top-8 left-4 w-1 h-1 bg-pink-300 rounded-full animate-bounce opacity-80 shadow-lg" style={{animationDelay: '0.8s'}}></div>
+                <div className="absolute bottom-3 sm:m-4 lg:m-6 right-4 w-1.5 h-1.5 bg-cyan-300 rounded-full animate-pulse opacity-70 shadow-md" style={{animationDelay: '2s'}}></div>
+                <div className="absolute top-4 sm:p-6 lg:p-8 left-4 w-1 h-1 bg-pink-300 rounded-full animate-bounce opacity-80 shadow-lg" style={{animationDelay: '0.8s'}}></div>
                 
                 {/* SHIMMERING OVERLAY */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
@@ -279,7 +279,7 @@ export default function VideoLectures() {
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-t-lg flex items-center justify-center">
                     <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
-                      <Play className="w-8 h-8 text-primary ml-1" fill="currentColor" />
+                      <Play className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-primary ml-1" fill="currentColor" />
                     </div>
                   </div>
                   
@@ -312,7 +312,7 @@ export default function VideoLectures() {
                   </h3>
                   
                   {video.description && (
-                    <p className="text-sm text-white/90 mb-3 line-clamp-2 drop-shadow-md group-hover:text-white transition-all duration-500">
+                    <p className="text-xs sm:text-sm text-white/90 mb-3 line-clamp-2 drop-shadow-md group-hover:text-white transition-all duration-500">
                       {video.description}
                     </p>
                   )}
@@ -354,38 +354,38 @@ export default function VideoLectures() {
         <Card className="mt-8">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <Zap className="w-5 h-5 mr-2 text-primary" />
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" />
               AI-Enhanced Learning Features
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:p-4 lg:p-6">
               <div className="text-center">
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <FileText className="w-6 h-6 text-blue-600" />
+                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-600" />
                 </div>
                 <h4 className="font-medium mb-2">Auto-Generated Notes</h4>
-                <p className="text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-gray-600">
                   AI extracts key concepts and formulas from every lecture automatically
                 </p>
               </div>
               
               <div className="text-center">
                 <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <Map className="w-6 h-6 text-green-600" />
+                  <Map className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-green-600" />
                 </div>
                 <h4 className="font-medium mb-2">Visual Memory Maps</h4>
-                <p className="text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-gray-600">
                   Interactive mind maps showing relationships between concepts
                 </p>
               </div>
               
               <div className="text-center">
                 <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <Zap className="w-6 h-6 text-purple-600" />
+                  <Zap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-purple-600" />
                 </div>
                 <h4 className="font-medium mb-2">Voice-Enabled Q&A</h4>
-                <p className="text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-gray-600">
                   Ask questions about the lecture using voice or text input
                 </p>
               </div>

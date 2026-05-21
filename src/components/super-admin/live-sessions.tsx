@@ -372,7 +372,7 @@ export default function LiveSessions() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-3 sm:space-y-4 lg:space-y-6">
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-96 w-full" />
       </div>
@@ -380,15 +380,15 @@ export default function LiveSessions() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Live Sessions</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Live Sessions</h1>
           <p className="text-gray-600 mt-1">Manage and monitor live streaming sessions</p>
         </div>
         <Button onClick={() => setIsCreateModalOpen(true)} className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white">
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
           Create Session
         </Button>
       </div>
@@ -399,7 +399,7 @@ export default function LiveSessions() {
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                 <Input
                   placeholder="Search sessions..."
                   value={searchTerm}
@@ -410,7 +410,7 @@ export default function LiveSessions() {
             </div>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="w-48">
-                <Filter className="w-4 h-4 mr-2" />
+                <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -435,7 +435,7 @@ export default function LiveSessions() {
           {filteredSessions.length === 0 ? (
             <div className="text-center py-12">
               <Video className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-600 mb-2">No Sessions Found</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Sessions Found</h3>
               <p className="text-gray-500">Create a new live session to get started</p>
             </div>
           ) : (
@@ -472,7 +472,7 @@ export default function LiveSessions() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Eye className="w-4 h-4 text-gray-500" />
+                        <Eye className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
                         {session.viewerCount || 0}
                       </div>
                     </TableCell>
@@ -489,7 +489,7 @@ export default function LiveSessions() {
                             variant="outline"
                             onClick={() => handleStartStream(session._id)}
                           >
-                            <Play className="w-4 h-4" />
+                            <Play className="w-3 h-3 sm:w-4 sm:h-4" />
                           </Button>
                         )}
                         {session.status === 'live' && (
@@ -498,7 +498,7 @@ export default function LiveSessions() {
                             variant="outline"
                             onClick={() => handleStopStream(session._id)}
                           >
-                            <Square className="w-4 h-4" />
+                            <Square className="w-3 h-3 sm:w-4 sm:h-4" />
                           </Button>
                         )}
                         <Button
@@ -519,14 +519,14 @@ export default function LiveSessions() {
                             setIsEditModalOpen(true);
                           }}
                         >
-                          <Edit className="w-4 h-4" />
+                          <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleDelete(session._id)}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -567,7 +567,7 @@ export default function LiveSessions() {
                 rows={3}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="scheduledTime">Scheduled Time</Label>
                 <Input
@@ -593,7 +593,7 @@ export default function LiveSessions() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="board">Board</Label>
                 <Select value={formData.board} onValueChange={(value) => setFormData({ ...formData, board: value })}>
@@ -678,7 +678,7 @@ export default function LiveSessions() {
                 rows={3}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-scheduledTime">Scheduled Time</Label>
                 <Input
@@ -704,7 +704,7 @@ export default function LiveSessions() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-board">Board</Label>
                 <Select value={formData.board} onValueChange={(value) => setFormData({ ...formData, board: value })}>

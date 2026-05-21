@@ -131,14 +131,14 @@ export function GeneratedRecordBody({
     .filter((l) => l.trim().length > 0);
 
   if (lines.length === 0) {
-    return <p className="text-sm text-slate-500 italic">No content to display.</p>;
+    return <p className="text-xs sm:text-sm text-slate-500 italic">No content to display.</p>;
   }
 
   const segments = parseSegments(lines);
 
   if (segments.length === 0) {
     return (
-      <div className={`space-y-2 text-sm leading-relaxed text-slate-800 ${className}`}>
+      <div className={`space-y-2 text-xs sm:text-sm leading-relaxed text-slate-800 ${className}`}>
         {lines.map((ln, j) => (
           <p key={j}>{ln}</p>
         ))}
@@ -153,7 +153,7 @@ export function GeneratedRecordBody({
           return (
             <h2
               key={`h1-${idx}`}
-              className="text-lg font-bold tracking-tight text-slate-900 border-b border-slate-200 pb-2 scroll-mt-4"
+              className="text-base sm:text-lg font-bold tracking-tight text-slate-900 border-b border-slate-200 pb-2 scroll-mt-4"
             >
               {seg.title}
             </h2>
@@ -161,14 +161,14 @@ export function GeneratedRecordBody({
         }
         if (seg.kind === "h2") {
           return (
-            <h3 key={`h2-${idx}`} className="text-base font-semibold text-slate-800 mt-1 -mb-1">
+            <h3 key={`h2-${idx}`} className="text-sm sm:text-base font-semibold text-slate-800 mt-1 -mb-1">
               {seg.title}
             </h3>
           );
         }
         if (seg.kind === "bullets") {
           return (
-            <ul key={`ul-${idx}`} className="list-disc pl-6 space-y-1.5 text-sm leading-relaxed">
+            <ul key={`ul-${idx}`} className="list-disc pl-6 space-y-1.5 text-xs sm:text-sm leading-relaxed">
               {seg.items.map((it, j) => (
                 <li key={j}>{it}</li>
               ))}
@@ -178,7 +178,7 @@ export function GeneratedRecordBody({
         if (seg.kind === "materialsTable") {
           return (
             <div key={`tbl-${idx}`} className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
-              <table className="w-full text-sm">
+              <table className="w-full text-xs sm:text-sm">
                 <thead>
                   <tr className="bg-slate-100">
                     <th className="px-3 py-2.5 text-left font-semibold text-slate-800 w-12 border-b border-slate-200">
@@ -206,7 +206,7 @@ export function GeneratedRecordBody({
           );
         }
         return (
-          <div key={`p-${idx}`} className="space-y-2 text-sm leading-relaxed text-slate-800">
+          <div key={`p-${idx}`} className="space-y-2 text-xs sm:text-sm leading-relaxed text-slate-800">
             {seg.lines.map((ln, j) => (
               <p key={j}>{ln}</p>
             ))}

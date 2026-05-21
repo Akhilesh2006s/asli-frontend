@@ -269,11 +269,11 @@ export default function SubjectManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">Subject Management</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Subject Management</h2>
           <p className="text-gray-600 mt-1">Create and manage subjects for each board</p>
         </div>
         <div className="flex gap-2">
@@ -281,7 +281,7 @@ export default function SubjectManagement() {
             onClick={() => setIsAddModalOpen(true)}
             className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             Add Subject
           </Button>
         </div>
@@ -356,17 +356,17 @@ export default function SubjectManagement() {
       {/* Subjects List */}
       {isLoading ? (
         <div className="text-center py-12">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading subjects...</p>
         </div>
       ) : subjects.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
             <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Subjects Yet</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No Subjects Yet</h3>
             <p className="text-gray-600 mb-4">Start creating subjects for {BOARDS.find(b => b.value === selectedBoard)?.label} board</p>
             <Button onClick={() => setIsAddModalOpen(true)} className="bg-gradient-to-r from-orange-400 to-sky-400 hover:from-orange-500 hover:to-sky-500 text-white">
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Create First Subject
             </Button>
           </CardContent>
@@ -375,7 +375,7 @@ export default function SubjectManagement() {
         <Card>
           <CardContent className="p-12 text-center">
             <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Subjects Match Filters</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No Subjects Match Filters</h3>
             <p className="text-gray-600 mb-4">Try adjusting your filter criteria</p>
             <Button 
               onClick={() => {
@@ -389,7 +389,7 @@ export default function SubjectManagement() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
           {filteredSubjects.map((subject, index) => {
             // Randomly assign one of the three dashboard colors
             const colorSchemes = [
@@ -404,14 +404,14 @@ export default function SubjectManagement() {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-lg mb-1 text-gray-900">{subject.name}</CardTitle>
+                      <CardTitle className="text-base sm:text-lg mb-1 text-gray-900">{subject.name}</CardTitle>
                       {subject.code && (
                         <Badge className={`mb-2 ${colorScheme.badge} border-0`}>
                           {subject.code}
                         </Badge>
                       )}
                       {subject.description && (
-                        <p className={`text-sm ${colorScheme.text}/90 mt-2 line-clamp-2`}>{subject.description}</p>
+                        <p className={`text-xs sm:text-sm ${colorScheme.text}/90 mt-2 line-clamp-2`}>{subject.description}</p>
                       )}
                     </div>
                     <Button
@@ -421,26 +421,26 @@ export default function SubjectManagement() {
                       disabled={isDeleting === subject._id}
                       className="text-white hover:text-white/80 hover:bg-white/20"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent>
                   {subject.classNumber && (
-                    <div className="flex items-center justify-between text-sm mb-2">
+                    <div className="flex items-center justify-between text-xs sm:text-sm mb-2">
                       <span className={colorScheme.text + '/90'}>Class:</span>
                       <Badge className={`${colorScheme.badge} border-0`}>
                         Class {subject.classNumber}
                       </Badge>
                     </div>
                   )}
-                  <div className={`flex items-center justify-between text-sm ${subject.classNumber ? 'mb-2' : ''}`}>
+                  <div className={`flex items-center justify-between text-xs sm:text-sm ${subject.classNumber ? 'mb-2' : ''}`}>
                     <span className={colorScheme.text + '/90'}>Board:</span>
                     <Badge className="bg-orange-600 text-white border-2 border-white/50 shadow-lg font-semibold">
                       Asli Exclusive Schools
                     </Badge>
                   </div>
-                  <div className="flex items-center justify-between text-sm mt-2">
+                  <div className="flex items-center justify-between text-xs sm:text-sm mt-2">
                     <span className={colorScheme.text + '/90'}>Status:</span>
                     <Badge className={subject.isActive ? 'bg-teal-600 text-white border-2 border-white/50 shadow-lg font-semibold' : 'bg-gray-600 text-white border-2 border-white/50 shadow-lg font-semibold'}>
                       {subject.isActive ? 'Active' : 'Inactive'}
@@ -476,7 +476,7 @@ export default function SubjectManagement() {
       }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Create New Subject</DialogTitle>
+            <DialogTitle className="text-xl sm:text-2xl font-bold">Create New Subject</DialogTitle>
             <DialogDescription>
               Add a new subject for {BOARDS.find(b => b.value === selectedBoard)?.label} board
             </DialogDescription>
@@ -538,8 +538,8 @@ export default function SubjectManagement() {
 
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
               <div className="flex items-start space-x-2">
-                <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5" />
-                <div className="text-sm text-yellow-800">
+                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 mt-0.5" />
+                <div className="text-xs sm:text-sm text-yellow-800">
                   <p className="font-medium">Note:</p>
                   <p>This subject will be created for <strong>{BOARDS.find(b => b.value === formData.board)?.label}</strong> board. Make sure this is correct before proceeding.</p>
                 </div>
@@ -551,7 +551,7 @@ export default function SubjectManagement() {
                 Cancel
               </Button>
               <Button type="submit" className="bg-gradient-to-r from-orange-400 to-sky-400 hover:from-orange-500 hover:to-sky-500 text-white">
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Create Subject
               </Button>
             </div>

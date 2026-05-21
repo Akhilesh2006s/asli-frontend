@@ -147,7 +147,7 @@ export default function SuperAdminSchoolDetail() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-slate-600">
           <Loader2 className="h-10 w-10 animate-spin text-orange-500" />
-          <p className="text-sm">Loading school details…</p>
+          <p className="text-xs sm:text-sm">Loading school details…</p>
         </div>
       </div>
     );
@@ -155,9 +155,9 @@ export default function SuperAdminSchoolDetail() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-slate-50 p-6">
+      <div className="min-h-screen bg-slate-50 p-3 sm:p-4 lg:p-6">
         <Button variant="outline" className="mb-6 gap-2" onClick={backToSchoolManagement}>
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
           Back to School Management
         </Button>
         <p className="text-slate-600">School could not be loaded.</p>
@@ -169,9 +169,9 @@ export default function SuperAdminSchoolDetail() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mx-auto max-w-5xl px-4 py-4 sm:py-6 lg:py-8">
         <Button variant="outline" className="mb-6 gap-2" onClick={backToSchoolManagement}>
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" />
           Back to School Management
         </Button>
 
@@ -189,7 +189,7 @@ export default function SuperAdminSchoolDetail() {
               )}
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900">
                 {profile.schoolName || profile.name || "School"}
               </h1>
               <p className="text-slate-600">{profile.email}</p>
@@ -205,11 +205,11 @@ export default function SuperAdminSchoolDetail() {
           <Card className="sm:w-64 border-orange-100 bg-white shadow-sm">
             <CardContent className="p-4">
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">On platform</p>
-              <div className="mt-2 flex justify-between text-sm">
+              <div className="mt-2 flex justify-between text-xs sm:text-sm">
                 <span className="text-slate-600">Students</span>
                 <span className="font-semibold text-slate-900">{stats.students}</span>
               </div>
-              <div className="mt-1 flex justify-between text-sm">
+              <div className="mt-1 flex justify-between text-xs sm:text-sm">
                 <span className="text-slate-600">Teachers</span>
                 <span className="font-semibold text-slate-900">{stats.teachers}</span>
               </div>
@@ -217,12 +217,12 @@ export default function SuperAdminSchoolDetail() {
           </Card>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-3 sm:p-4 lg:p-6 md:grid-cols-2">
           <Card className="border-slate-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg">Administrator</CardTitle>
+              <CardTitle className="text-base sm:text-lg">Administrator</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
+            <CardContent className="space-y-2 text-xs sm:text-sm">
               <DetailRow label="Name" value={profile.name} />
               <DetailRow label="Email" value={profile.email} />
               <DetailRow label="Contact person" value={profile.contactPerson} />
@@ -236,9 +236,9 @@ export default function SuperAdminSchoolDetail() {
 
           <Card className="border-slate-200 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg">Address & school</CardTitle>
+              <CardTitle className="text-base sm:text-lg">Address & school</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm">
+            <CardContent className="space-y-2 text-xs sm:text-sm">
               <DetailRow label="Door no." value={sd.doorNo} />
               <DetailRow label="Street" value={sd.street} />
               <DetailRow label="Area" value={sd.area} />
@@ -264,13 +264,13 @@ export default function SuperAdminSchoolDetail() {
 
         <Card className="mt-6 border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg">Admin portal access</CardTitle>
-            <p className="text-sm text-slate-500">
+            <CardTitle className="text-base sm:text-lg">Admin portal access</CardTitle>
+            <p className="text-xs sm:text-sm text-slate-500">
               Modules enabled for this school&apos;s admin dashboard. Edit the school in School Management to change
               access.
             </p>
           </CardHeader>
-          <CardContent className="text-sm">
+          <CardContent className="text-xs sm:text-sm">
             {isFullPortalAccess(profile.permissions) ? (
               <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-900">
                 <span className="font-medium">Full portal access</span> — all modules are enabled.
@@ -293,30 +293,30 @@ export default function SuperAdminSchoolDetail() {
 
         <Card className="mt-6 border-slate-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg">Subscription & billing (Razorpay)</CardTitle>
-            <p className="text-sm text-slate-500">
+            <CardTitle className="text-base sm:text-lg">Subscription & billing (Razorpay)</CardTitle>
+            <p className="text-xs sm:text-sm text-slate-500">
               Payments match this school&apos;s admin email. Subscriptions match when the Razorpay customer uses the
               same email.
             </p>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
             {!billing?.razorpayConfigured && (
-              <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              <p className="rounded-md bg-amber-50 px-3 py-2 text-xs sm:text-sm text-amber-900">
                 Razorpay is not configured on the server. Set <code className="text-xs">RAZORPAY_KEY_ID</code> and{" "}
                 <code className="text-xs">RAZORPAY_KEY_SECRET</code> to load live billing data.
               </p>
             )}
             {billing?.razorpayError && (
-              <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">{billing.razorpayError}</p>
+              <p className="rounded-md bg-red-50 px-3 py-2 text-xs sm:text-sm text-red-800">{billing.razorpayError}</p>
             )}
 
             <div>
-              <h3 className="mb-2 text-sm font-semibold text-slate-800">Subscriptions</h3>
+              <h3 className="mb-2 text-xs sm:text-sm font-semibold text-slate-800">Subscriptions</h3>
               {!billing?.subscriptions?.length ? (
-                <p className="text-sm text-slate-500">No matching subscriptions for this admin email.</p>
+                <p className="text-xs sm:text-sm text-slate-500">No matching subscriptions for this admin email.</p>
               ) : (
                 <div className="overflow-x-auto rounded-md border">
-                  <table className="w-full text-left text-sm">
+                  <table className="w-full text-left text-xs sm:text-sm">
                     <thead className="bg-slate-100 text-slate-700">
                       <tr>
                         <th className="px-3 py-2">ID</th>
@@ -348,12 +348,12 @@ export default function SuperAdminSchoolDetail() {
             </div>
 
             <div>
-              <h3 className="mb-2 text-sm font-semibold text-slate-800">Payments</h3>
+              <h3 className="mb-2 text-xs sm:text-sm font-semibold text-slate-800">Payments</h3>
               {!billing?.payments?.length ? (
-                <p className="text-sm text-slate-500">No matching payments for this admin email.</p>
+                <p className="text-xs sm:text-sm text-slate-500">No matching payments for this admin email.</p>
               ) : (
                 <div className="overflow-x-auto rounded-md border">
-                  <table className="w-full text-left text-sm">
+                  <table className="w-full text-left text-xs sm:text-sm">
                     <thead className="bg-slate-100 text-slate-700">
                       <tr>
                         <th className="px-3 py-2">Date</th>

@@ -270,11 +270,11 @@ export default function AIAnalyticsDashboard() {
 
   const getInsightIcon = (type: string) => {
     switch (type) {
-      case 'prediction': return <BrainCircuitIcon className="w-5 h-5" />;
-      case 'recommendation': return <LightbulbIcon className="w-5 h-5" />;
-      case 'alert': return <AlertTriangleIcon className="w-5 h-5" />;
-      case 'optimization': return <RocketIcon className="w-5 h-5" />;
-      default: return <BrainIcon className="w-5 h-5" />;
+      case 'prediction': return <BrainCircuitIcon className="w-4 h-4 sm:w-5 sm:h-5" />;
+      case 'recommendation': return <LightbulbIcon className="w-4 h-4 sm:w-5 sm:h-5" />;
+      case 'alert': return <AlertTriangleIcon className="w-4 h-4 sm:w-5 sm:h-5" />;
+      case 'optimization': return <RocketIcon className="w-4 h-4 sm:w-5 sm:h-5" />;
+      default: return <BrainIcon className="w-4 h-4 sm:w-5 sm:h-5" />;
     }
   };
 
@@ -298,12 +298,12 @@ export default function AIAnalyticsDashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* AI Analytics Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            <BrainCircuitIcon className="w-8 h-8 mr-3 text-purple-600" />
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center">
+            <BrainCircuitIcon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 mr-3 text-purple-600" />
             AI-Powered Analytics
           </h1>
           <p className="text-gray-600 mt-2">Advanced machine learning insights and predictions</p>
@@ -313,9 +313,9 @@ export default function AIAnalyticsDashboard() {
                     onClick={() => setLocation('/super-admin/detailed-analytics')}
                     className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                   >
-            <ChartBarIcon className="w-4 h-4 mr-2" />
+            <ChartBarIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             Detailed Analytics
-            <ArrowRightIcon className="w-4 h-4 ml-2" />
+            <ArrowRightIcon className="w-3 h-3 sm:w-4 sm:h-4 ml-2" />
           </Button>
           <Button 
             onClick={analyzeWithAI} 
@@ -324,12 +324,12 @@ export default function AIAnalyticsDashboard() {
           >
             {isAnalyzing ? (
               <>
-                <CpuIcon className="w-4 h-4 mr-2 animate-spin" />
+                <CpuIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
                 AI Analyzing...
               </>
             ) : (
               <>
-                <SparklesIcon className="w-4 h-4 mr-2" />
+                <SparklesIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Run AI Analysis
               </>
             )}
@@ -338,14 +338,14 @@ export default function AIAnalyticsDashboard() {
       </div>
 
       {/* AI Metrics Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:p-4 lg:p-6">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-blue-600">AI Predictions</p>
-                <p className="text-3xl font-bold text-blue-900">{aiMetrics.totalPredictions}</p>
-                <p className="text-sm text-blue-600">Total generated</p>
+                <p className="text-xs sm:text-sm font-medium text-blue-600">AI Predictions</p>
+                <p className="text-2xl sm:text-3xl font-bold text-blue-900">{aiMetrics.totalPredictions}</p>
+                <p className="text-xs sm:text-sm text-blue-600">Total generated</p>
               </div>
               <BrainCircuitIcon className="h-12 w-12 text-blue-500" />
             </div>
@@ -353,12 +353,12 @@ export default function AIAnalyticsDashboard() {
         </Card>
 
         <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-green-600">Accuracy Rate</p>
-                <p className="text-3xl font-bold text-green-900">{aiMetrics.accuracyRate}%</p>
-                <p className="text-sm text-green-600">Prediction accuracy</p>
+                <p className="text-xs sm:text-sm font-medium text-green-600">Accuracy Rate</p>
+                <p className="text-2xl sm:text-3xl font-bold text-green-900">{aiMetrics.accuracyRate}%</p>
+                <p className="text-xs sm:text-sm text-green-600">Prediction accuracy</p>
               </div>
               <TargetIcon className="h-12 w-12 text-green-500" />
             </div>
@@ -366,12 +366,12 @@ export default function AIAnalyticsDashboard() {
         </Card>
 
         <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-purple-600">AI Insights</p>
-                <p className="text-3xl font-bold text-purple-900">{aiMetrics.insightsGenerated}</p>
-                <p className="text-sm text-purple-600">Generated today</p>
+                <p className="text-xs sm:text-sm font-medium text-purple-600">AI Insights</p>
+                <p className="text-2xl sm:text-3xl font-bold text-purple-900">{aiMetrics.insightsGenerated}</p>
+                <p className="text-xs sm:text-sm text-purple-600">Generated today</p>
               </div>
               <LightbulbIcon className="h-12 w-12 text-purple-500" />
             </div>
@@ -379,12 +379,12 @@ export default function AIAnalyticsDashboard() {
         </Card>
 
         <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-orange-600">Adoption Rate</p>
-                <p className="text-3xl font-bold text-orange-900">{aiMetrics.recommendationsAccepted}</p>
-                <p className="text-sm text-orange-600">Recommendations accepted</p>
+                <p className="text-xs sm:text-sm font-medium text-orange-600">Adoption Rate</p>
+                <p className="text-2xl sm:text-3xl font-bold text-orange-900">{aiMetrics.recommendationsAccepted}</p>
+                <p className="text-xs sm:text-sm text-orange-600">Recommendations accepted</p>
               </div>
               <CheckCircleIcon className="h-12 w-12 text-orange-500" />
             </div>
@@ -394,7 +394,7 @@ export default function AIAnalyticsDashboard() {
 
       {/* AI Insights Tabs */}
       <Tabs defaultValue="insights" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
           <TabsTrigger value="insights">AI Insights</TabsTrigger>
           <TabsTrigger value="predictions">Predictions</TabsTrigger>
           <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
@@ -404,7 +404,7 @@ export default function AIAnalyticsDashboard() {
 
         {/* AI Insights Tab */}
         <TabsContent value="insights" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
             {aiInsights.map((insight) => (
               <Card key={insight.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
@@ -423,12 +423,12 @@ export default function AIAnalyticsDashboard() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div className="flex items-center">
-                        <GaugeIcon className="w-4 h-4 mr-1 text-gray-500" />
-                        <span className="text-sm font-medium">{insight.confidence}% confidence</span>
+                        <GaugeIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-gray-500" />
+                        <span className="text-xs sm:text-sm font-medium">{insight.confidence}% confidence</span>
                       </div>
                       <div className="flex items-center">
                         <div className={`w-3 h-3 rounded-full ${getImpactColor(insight.impact)} mr-1`}></div>
-                        <span className="text-sm text-gray-500">{insight.impact} impact</span>
+                        <span className="text-xs sm:text-sm text-gray-500">{insight.impact} impact</span>
                       </div>
                     </div>
                     <Badge variant="outline">{insight.category}</Badge>
@@ -444,7 +444,7 @@ export default function AIAnalyticsDashboard() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <BrainCircuitIcon className="w-5 h-5 mr-2" />
+                <BrainCircuitIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Student Performance Predictions
               </CardTitle>
             </CardHeader>
@@ -459,7 +459,7 @@ export default function AIAnalyticsDashboard() {
                           {prediction.predictedScore}% predicted
                         </Badge>
                       </div>
-                      <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm text-gray-600">
                         <div>
                           <p><strong>Learning Style:</strong> {prediction.learningStyle}</p>
                           <p><strong>Optimal Study Time:</strong> {prediction.optimalStudyTime}</p>
@@ -470,8 +470,8 @@ export default function AIAnalyticsDashboard() {
                         </div>
                       </div>
                       <div className="mt-2">
-                        <p className="text-sm font-medium text-gray-700">AI Recommendations:</p>
-                        <ul className="text-sm text-gray-600 list-disc list-inside">
+                        <p className="text-xs sm:text-sm font-medium text-gray-700">AI Recommendations:</p>
+                        <ul className="text-xs sm:text-sm text-gray-600 list-disc list-inside">
                           {prediction.recommendations.map((rec, index) => (
                             <li key={index}>{rec}</li>
                           ))}
@@ -490,7 +490,7 @@ export default function AIAnalyticsDashboard() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <LightbulbIcon className="w-5 h-5 mr-2" />
+                <LightbulbIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 AI Content Recommendations
               </CardTitle>
             </CardHeader>
@@ -524,31 +524,31 @@ export default function AIAnalyticsDashboard() {
 
         {/* Learning Patterns Tab */}
         <TabsContent value="patterns" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <ActivityIcon className="w-5 h-5 mr-2" />
+                  <ActivityIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Engagement Patterns
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Peak Learning Hours</span>
-                    <span className="text-sm text-gray-500">6-8 AM, 7-9 PM</span>
+                    <span className="text-xs sm:text-sm font-medium">Peak Learning Hours</span>
+                    <span className="text-xs sm:text-sm text-gray-500">6-8 AM, 7-9 PM</span>
                   </div>
                   <Progress value={85} className="h-2" />
                   
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Video Engagement</span>
-                    <span className="text-sm text-gray-500">92% completion rate</span>
+                    <span className="text-xs sm:text-sm font-medium">Video Engagement</span>
+                    <span className="text-xs sm:text-sm text-gray-500">92% completion rate</span>
                   </div>
                   <Progress value={92} className="h-2" />
                   
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Assessment Participation</span>
-                    <span className="text-sm text-gray-500">78% active participation</span>
+                    <span className="text-xs sm:text-sm font-medium">Assessment Participation</span>
+                    <span className="text-xs sm:text-sm text-gray-500">78% active participation</span>
                   </div>
                   <Progress value={78} className="h-2" />
                 </div>
@@ -558,27 +558,27 @@ export default function AIAnalyticsDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <NetworkIcon className="w-5 h-5 mr-2" />
+                  <NetworkIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Learning Style Distribution
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Visual Learners</span>
-                    <span className="text-sm text-gray-500">45%</span>
+                    <span className="text-xs sm:text-sm font-medium">Visual Learners</span>
+                    <span className="text-xs sm:text-sm text-gray-500">45%</span>
                   </div>
                   <Progress value={45} className="h-2" />
                   
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Auditory Learners</span>
-                    <span className="text-sm text-gray-500">30%</span>
+                    <span className="text-xs sm:text-sm font-medium">Auditory Learners</span>
+                    <span className="text-xs sm:text-sm text-gray-500">30%</span>
                   </div>
                   <Progress value={30} className="h-2" />
                   
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Kinesthetic Learners</span>
-                    <span className="text-sm text-gray-500">25%</span>
+                    <span className="text-xs sm:text-sm font-medium">Kinesthetic Learners</span>
+                    <span className="text-xs sm:text-sm text-gray-500">25%</span>
                   </div>
                   <Progress value={25} className="h-2" />
                 </div>
@@ -589,26 +589,26 @@ export default function AIAnalyticsDashboard() {
 
         {/* Optimization Tab */}
         <TabsContent value="optimization" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <RocketIcon className="w-5 h-5 mr-2" />
+                  <RocketIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Performance Optimization
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="p-3 bg-blue-50 rounded-lg">
-                    <p className="text-sm font-medium">AI-Recommended Study Schedule</p>
+                    <p className="text-xs sm:text-sm font-medium">AI-Recommended Study Schedule</p>
                     <p className="text-xs text-gray-600">Optimized for maximum retention</p>
                   </div>
                   <div className="p-3 bg-green-50 rounded-lg">
-                    <p className="text-sm font-medium">Personalized Learning Paths</p>
+                    <p className="text-xs sm:text-sm font-medium">Personalized Learning Paths</p>
                     <p className="text-xs text-gray-600">Adaptive content delivery</p>
                   </div>
                   <div className="p-3 bg-purple-50 rounded-lg">
-                    <p className="text-sm font-medium">Smart Assessment Timing</p>
+                    <p className="text-xs sm:text-sm font-medium">Smart Assessment Timing</p>
                     <p className="text-xs text-gray-600">Optimal test scheduling</p>
                   </div>
                 </div>
@@ -618,22 +618,22 @@ export default function AIAnalyticsDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <ShieldIcon className="w-5 h-5 mr-2" />
+                  <ShieldIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Risk Mitigation
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="p-3 bg-red-50 rounded-lg">
-                    <p className="text-sm font-medium">Early Warning System</p>
+                    <p className="text-xs sm:text-sm font-medium">Early Warning System</p>
                     <p className="text-xs text-gray-600">Identifies at-risk students</p>
                   </div>
                   <div className="p-3 bg-yellow-50 rounded-lg">
-                    <p className="text-sm font-medium">Intervention Strategies</p>
+                    <p className="text-xs sm:text-sm font-medium">Intervention Strategies</p>
                     <p className="text-xs text-gray-600">AI-powered support plans</p>
                   </div>
                   <div className="p-3 bg-blue-50 rounded-lg">
-                    <p className="text-sm font-medium">Engagement Monitoring</p>
+                    <p className="text-xs sm:text-sm font-medium">Engagement Monitoring</p>
                     <p className="text-xs text-gray-600">Real-time activity tracking</p>
                   </div>
                 </div>
@@ -643,22 +643,22 @@ export default function AIAnalyticsDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <LayersIcon className="w-5 h-5 mr-2" />
+                  <LayersIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Content Intelligence
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="p-3 bg-green-50 rounded-lg">
-                    <p className="text-sm font-medium">Content Effectiveness</p>
+                    <p className="text-xs sm:text-sm font-medium">Content Effectiveness</p>
                     <p className="text-xs text-gray-600">AI analyzes content performance</p>
                   </div>
                   <div className="p-3 bg-purple-50 rounded-lg">
-                    <p className="text-sm font-medium">Gap Analysis</p>
+                    <p className="text-xs sm:text-sm font-medium">Gap Analysis</p>
                     <p className="text-xs text-gray-600">Identifies learning gaps</p>
                   </div>
                   <div className="p-3 bg-orange-50 rounded-lg">
-                    <p className="text-sm font-medium">Adaptive Recommendations</p>
+                    <p className="text-xs sm:text-sm font-medium">Adaptive Recommendations</p>
                     <p className="text-xs text-gray-600">Dynamic content suggestions</p>
                   </div>
                 </div>

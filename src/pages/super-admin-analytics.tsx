@@ -98,19 +98,19 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <BarChart3Icon className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-lg font-semibold">Loading Analytics...</p>
+          <p className="text-base sm:text-lg font-semibold">Loading Analytics...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            <BarChart3Icon className="w-8 h-8 mr-3 text-blue-600" />
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center">
+            <BarChart3Icon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 mr-3 text-blue-600" />
             Analytics Dashboard
           </h1>
           <p className="text-gray-600 mt-2">Comprehensive platform analytics and insights</p>
@@ -118,15 +118,15 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
       </div>
 
       {/* Analytics Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:p-4 lg:p-6">
         {/* Total Admins - Orange (matching admin dashboard) */}
         <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-white/90">Total Admins</p>
-                <p className="text-3xl font-bold text-white">{analytics?.length || 0}</p>
-                <p className="text-sm text-white/90">Active administrators</p>
+                <p className="text-xs sm:text-sm font-medium text-white/90">Total Admins</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white">{analytics?.length || 0}</p>
+                <p className="text-xs sm:text-sm text-white/90">Active administrators</p>
               </div>
               <CrownIcon className="h-12 w-12 text-white" />
             </div>
@@ -135,14 +135,14 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
 
         {/* Total Students - Sky Blue (matching admin dashboard) */}
         <Card className="bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-white/90">Total Students</p>
-                <p className="text-3xl font-bold text-white">
+                <p className="text-xs sm:text-sm font-medium text-white/90">Total Students</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white">
                   {analytics?.reduce((sum, admin) => sum + (admin.stats?.students || 0), 0) || 0}
                 </p>
-                <p className="text-sm text-white/90">Across all admins</p>
+                <p className="text-xs sm:text-sm text-white/90">Across all admins</p>
               </div>
               <UsersIcon className="h-12 w-12 text-white" />
             </div>
@@ -151,14 +151,14 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
 
         {/* Total Teachers - Teal (matching admin dashboard) */}
         <Card className="bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-white/90">Total Teachers</p>
-                <p className="text-3xl font-bold text-white">
+                <p className="text-xs sm:text-sm font-medium text-white/90">Total Teachers</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white">
                   {analytics?.reduce((sum, admin) => sum + (admin.stats?.teachers || 0), 0) || 0}
                 </p>
-                <p className="text-sm text-white/90">Active educators</p>
+                <p className="text-xs sm:text-sm text-white/90">Active educators</p>
               </div>
               <AwardIcon className="h-12 w-12 text-white" />
             </div>
@@ -167,14 +167,14 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
 
         {/* Total Content - Orange (matching admin dashboard) */}
         <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-white/90">Total Content</p>
-                <p className="text-3xl font-bold text-white">
+                <p className="text-xs sm:text-sm font-medium text-white/90">Total Content</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white">
                   {totalContentDisplay}
                 </p>
-                <p className="text-sm text-white/90">Videos, assessments, exams</p>
+                <p className="text-xs sm:text-sm text-white/90">Videos, assessments, exams</p>
               </div>
               <BookIcon className="h-12 w-12 text-white" />
             </div>
@@ -189,7 +189,7 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
         <div className="absolute inset-0 bg-white/5 pointer-events-none"></div>
         <CardHeader className="relative z-10">
           <CardTitle className="flex items-center text-gray-900">
-            <TrendingUpIcon className="w-5 h-5 mr-2" />
+            <TrendingUpIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
             Admin Performance Overview
           </CardTitle>
         </CardHeader>
@@ -235,7 +235,7 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
                 >
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <h3 className="font-semibold text-lg text-gray-900">{admin.name}</h3>
+                      <h3 className="font-semibold text-base sm:text-lg text-gray-900">{admin.name}</h3>
                       <p className="text-gray-600">{admin.email}</p>
                       {interactive && (
                         <p className="text-xs text-teal-700 font-medium mt-1">
@@ -254,21 +254,21 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
                     </Badge>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs sm:text-sm">
                     <div className="text-center">
-                      <p className="font-semibold text-gray-900 text-lg">{admin.stats?.students || 0}</p>
+                      <p className="font-semibold text-gray-900 text-base sm:text-lg">{admin.stats?.students || 0}</p>
                       <p className="text-gray-600">Students</p>
                     </div>
                     <div className="text-center">
-                      <p className="font-semibold text-gray-900 text-lg">{admin.stats?.teachers || 0}</p>
+                      <p className="font-semibold text-gray-900 text-base sm:text-lg">{admin.stats?.teachers || 0}</p>
                       <p className="text-gray-600">Teachers</p>
                     </div>
                     <div className="text-center">
-                      <p className="font-semibold text-gray-900 text-lg">{admin.stats?.videos || 0}</p>
+                      <p className="font-semibold text-gray-900 text-base sm:text-lg">{admin.stats?.videos || 0}</p>
                       <p className="text-gray-600">Videos</p>
                     </div>
                     <div className="text-center">
-                      <p className="font-semibold text-gray-900 text-lg">{admin.stats?.assessments || 0}</p>
+                      <p className="font-semibold text-gray-900 text-base sm:text-lg">{admin.stats?.assessments || 0}</p>
                       <p className="text-gray-600">Assessments</p>
                     </div>
                   </div>

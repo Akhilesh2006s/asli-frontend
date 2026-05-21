@@ -224,23 +224,23 @@ const QuizManagement = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-          <h2 className="text-2xl font-bold text-gray-900">Quiz Management</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Quiz Management</h2>
           <p className="text-gray-600">Create and manage quizzes for students</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
             <Button className="bg-sky-600 hover:bg-sky-700">
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Create Quiz
                 </Button>
               </DialogTrigger>
@@ -271,7 +271,7 @@ const QuizManagement = () => {
                   rows={3}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                   <Label htmlFor="subject">Subject</Label>
                   <Select value={newQuiz.subject} onValueChange={(value) => setNewQuiz({ ...newQuiz, subject: value })}>
@@ -299,7 +299,7 @@ const QuizManagement = () => {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="duration">Duration (minutes)</Label>
                       <Input
@@ -336,7 +336,7 @@ const QuizManagement = () => {
       <div className="flex items-center space-x-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3 sm:w-4 sm:h-4" />
             <Input
               placeholder="Search quizzes..."
               value={searchTerm}
@@ -359,7 +359,7 @@ const QuizManagement = () => {
       </div>
 
       {/* Quizzes Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
         {filteredQuizzes.map((quiz) => (
           <motion.div
             key={quiz.id}
@@ -371,10 +371,10 @@ const QuizManagement = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                 <div className="flex-1">
-                    <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-2">
+                    <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 line-clamp-2">
                       {quiz.title}
                     </CardTitle>
-                    <p className="text-sm text-gray-600 mt-1">{quiz.subject}</p>
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1">{quiz.subject}</p>
                   </div>
                   <Badge 
                     variant={quiz.isActive ? "default" : "secondary"}
@@ -385,16 +385,16 @@ const QuizManagement = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-sm text-gray-600 line-clamp-2">{quiz.description}</p>
+                <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">{quiz.description}</p>
                 
-                <div className="flex items-center justify-between text-sm text-gray-500">
+                <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500">
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center">
-                      <Clock className="w-4 h-4 mr-1" />
+                      <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                       {quiz.duration}min
                 </div>
                     <div className="flex items-center">
-                      <BookOpen className="w-4 h-4 mr-1" />
+                      <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                       {quiz.questions} Q
               </div>
                   </div>
@@ -420,14 +420,14 @@ const QuizManagement = () => {
                         setIsEditDialogOpen(true);
                       }}
                     >
-                      <Edit className="w-4 h-4" />
+                      <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => toggleQuizStatus(quiz)}
                     >
-                      {quiz.isActive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                      {quiz.isActive ? <Pause className="w-3 h-3 sm:w-4 sm:h-4" /> : <Play className="w-3 h-3 sm:w-4 sm:h-4" />}
                     </Button>
                     <Button
                       size="sm"
@@ -435,11 +435,11 @@ const QuizManagement = () => {
                       onClick={() => handleDeleteQuiz(quiz.id)}
                       className="text-red-600 hover:text-red-700"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                     </Button>
                   </div>
                   <Button size="sm" variant="outline">
-                    <Eye className="w-4 h-4 mr-1" />
+                    <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                     View
                   </Button>
                 </div>
@@ -477,7 +477,7 @@ const QuizManagement = () => {
                   rows={3}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-subject">Subject</Label>
                   <Select value={editingQuiz.subject} onValueChange={(value) => setEditingQuiz({ ...editingQuiz, subject: value })}>
@@ -505,7 +505,7 @@ const QuizManagement = () => {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-duration">Duration (minutes)</Label>
                   <Input

@@ -122,13 +122,13 @@ export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
       <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md ring-4 ring-indigo-600/15">
-            <BookMarked className="h-5 w-5" aria-hidden />
+            <BookMarked className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
           </div>
           <div>
-            <h3 className="text-lg font-bold tracking-tight text-gray-900 sm:text-xl">
+            <h3 className="text-base sm:text-lg font-bold tracking-tight text-gray-900 sm:text-xl">
               Daily work diary
             </h3>
-            <p className="text-sm text-gray-600">
+            <p className="text-xs sm:text-sm text-gray-600">
               Log what you covered today — visible to your students and school admin.
             </p>
           </div>
@@ -177,26 +177,26 @@ export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
             className="h-11 w-full rounded-xl bg-indigo-600 font-semibold hover:bg-indigo-700 sm:w-auto"
           >
             {saving ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
             ) : (
-              <Save className="mr-2 h-4 w-4" />
+              <Save className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
             )}
             Save entry
           </Button>
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          {error ? <p className="text-xs sm:text-sm text-red-600">{error}</p> : null}
         </div>
       </div>
 
       <div className="pt-5">
-        <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
+        <h4 className="mb-3 text-xs sm:text-sm font-semibold uppercase tracking-wide text-gray-500">
           Recent entries
         </h4>
         {loading ? (
           <div className="flex items-center justify-center py-10 text-gray-500">
-            <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+            <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 animate-spin text-indigo-500" />
           </div>
         ) : entries.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-gray-200 bg-white/80 px-4 py-8 text-center text-sm text-gray-500">
+          <p className="rounded-xl border border-dashed border-gray-200 bg-white/80 px-4 py-4 sm:py-6 lg:py-8 text-center text-xs sm:text-sm text-gray-500">
             No diary entries yet. Add one above — it will show for students linked to your classes and
             for your school administrator.
           </p>
@@ -215,7 +215,7 @@ export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
                     {e.title ? (
                       <p className="mt-1 font-semibold text-gray-900">{e.title}</p>
                     ) : null}
-                    <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{e.content}</p>
+                    <p className="mt-2 whitespace-pre-wrap text-xs sm:text-sm text-gray-700">{e.content}</p>
                   </div>
                   <Button
                     type="button"
@@ -225,7 +225,7 @@ export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
                     onClick={() => handleDelete(e._id)}
                     aria-label="Delete entry"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
                 </div>
               </li>

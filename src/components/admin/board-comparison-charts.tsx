@@ -140,7 +140,7 @@ export default function BoardComparisonCharts() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span className="flex items-center">
-              <BarChart3 className="h-5 w-5 mr-2" />
+              <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
               {title}
             </span>
             <Button
@@ -149,7 +149,7 @@ export default function BoardComparisonCharts() {
               disabled={exportingKey === dataKey}
               onClick={() => exportChartData(title, dataKey)}
             >
-              <Download className="h-4 w-4 mr-2" />
+              <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
               {exportingKey === dataKey ? 'Exporting...' : 'Export'}
             </Button>
           </CardTitle>
@@ -163,7 +163,7 @@ export default function BoardComparisonCharts() {
               
               return (
                 <div key={idx} className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
                     <span className="font-medium text-gray-700">{item.board}</span>
                     <span className="font-bold text-gray-900">
                       {typeof value === 'string' ? value : value.toLocaleString()}
@@ -312,13 +312,13 @@ export default function BoardComparisonCharts() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-gray-600 mt-1">Compare performance across all boards</p>
         </div>
         <Button onClick={fetchBoardAnalytics} variant="outline">
-          <TrendingUp className="h-4 w-4 mr-2" />
+          <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
           Refresh
         </Button>
       </div>
@@ -326,12 +326,12 @@ export default function BoardComparisonCharts() {
       {/* Summary Cards */}
       {analytics.length === 0 ? (
         <Card>
-          <CardContent className="p-8 text-center">
+          <CardContent className="p-4 sm:p-6 lg:p-8 text-center">
             <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Board Data Available</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No Board Data Available</h3>
             <p className="text-gray-600 mb-4">There is no data to display for board comparison.</p>
             <Button onClick={fetchBoardAnalytics} variant="outline">
-              <TrendingUp className="h-4 w-4 mr-2" />
+              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
               Try Again
             </Button>
           </CardContent>
@@ -346,8 +346,8 @@ export default function BoardComparisonCharts() {
               return (
                 <Card key={idx} className={`border-l-4 ${color.replace('bg-', 'border-')}`}>
                   <CardContent className="p-4">
-                    <p className="text-sm font-medium text-gray-600 mb-1">{item.board}</p>
-                    <p className="text-2xl font-bold text-gray-900">{item.students}</p>
+                    <p className="text-xs sm:text-sm font-medium text-gray-600 mb-1">{item.board}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">{item.students}</p>
                     <p className="text-xs text-gray-500">Students</p>
                     <div className="mt-2 pt-2 border-t">
                       <p className="text-xs text-gray-600">Avg Score: <span className="font-semibold">{item.averageScore}%</span></p>
@@ -360,7 +360,7 @@ export default function BoardComparisonCharts() {
           </div>
 
           {/* Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
             {renderBarChart('Number of Students', 'students', 'bg-gradient-to-r from-blue-500 to-blue-600')}
             {renderBarChart('Average Score (%)', 'averageScore', 'bg-gradient-to-r from-green-500 to-green-600', 100)}
             {renderBarChart('Total Exam Attempts', 'totalAttempts', 'bg-gradient-to-r from-purple-500 to-purple-600')}

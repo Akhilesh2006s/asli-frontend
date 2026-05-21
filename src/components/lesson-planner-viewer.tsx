@@ -131,14 +131,14 @@ export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewer
     if (markdownFallback) {
       return (
         <div className="space-y-4 w-full max-w-4xl mx-auto">
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs sm:text-sm text-amber-950">
             <p className="font-medium m-0">Showing saved lesson as text</p>
             <p className="mt-1 mb-0 text-amber-900/90">
               Interactive lesson cards were not detected (e.g. plain Markdown from AI or database fallback). The full plan is below.
             </p>
           </div>
           <div
-            className="prose prose-sm max-w-none max-h-[80vh] overflow-y-auto rounded-lg border border-gray-200 bg-white p-6 shadow-sm prose-headings:text-gray-900 prose-p:text-gray-700"
+            className="prose prose-sm max-w-none max-h-[80vh] overflow-y-auto rounded-lg border border-gray-200 bg-white p-3 sm:p-4 lg:p-6 shadow-sm prose-headings:text-gray-900 prose-p:text-gray-700"
             dangerouslySetInnerHTML={{ __html: renderMarkdown(markdownFallback) }}
           />
         </div>
@@ -159,7 +159,7 @@ export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewer
     }}>
       {/* Header */}
       <div className="mb-6 text-center">
-        <h1 className="text-4xl font-bold mb-2" style={{
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2" style={{
           background: 'linear-gradient(90deg, #00f5ff, #ff00ff, #00ff00)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
@@ -169,17 +169,17 @@ export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewer
           📚 Lesson Planner
         </h1>
         {bookName && (
-          <p className="text-xl text-white/80">
+          <p className="text-lg sm:text-xl text-white/80">
             {className && `Class ${className} • `}{bookName}
           </p>
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6 max-w-7xl mx-auto">
         {/* Left Side: Lesson List */}
         <div className="space-y-4">
           <div className="text-white mb-4">
-            <h2 className="text-2xl font-semibold mb-2" style={{
+            <h2 className="text-xl sm:text-2xl font-semibold mb-2" style={{
               textShadow: '0 0 20px rgba(0, 245, 255, 0.6)'
             }}>
               Lessons ({lessons.length})
@@ -213,8 +213,8 @@ export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewer
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <BookOpen className="w-5 h-5 text-cyan-400" style={{ filter: 'drop-shadow(0 0 5px rgba(0, 245, 255, 0.8))' }} />
-                      <h3 className="text-lg font-semibold text-white">
+                      <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" style={{ filter: 'drop-shadow(0 0 5px rgba(0, 245, 255, 0.8))' }} />
+                      <h3 className="text-base sm:text-lg font-semibold text-white">
                         {index + 1}. {lesson.lesson_name}
                       </h3>
                     </div>
@@ -224,8 +224,8 @@ export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewer
                       </span>
                     )}
                     {lesson.duration && (
-                      <div className="flex items-center gap-1 text-sm text-white/70">
-                        <Clock className="w-4 h-4" />
+                      <div className="flex items-center gap-1 text-xs sm:text-sm text-white/70">
+                        <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
                         <span>
                           {lesson.duration.periods} periods × {lesson.duration.minutes_per_period} min
                         </span>
@@ -248,7 +248,7 @@ export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewer
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
-                className="p-6 rounded-xl"
+                className="p-3 sm:p-4 lg:p-6 rounded-xl"
                 style={{
                   background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05))',
                   backdropFilter: 'blur(20px)',
@@ -260,19 +260,19 @@ export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewer
               >
                 {/* Lesson Header */}
                 <div className="mb-6 pb-4 border-b border-white/20">
-                  <h2 className="text-3xl font-bold text-white mb-2" style={{
+                  <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2" style={{
                     textShadow: '0 0 20px rgba(0, 245, 255, 0.6)'
                   }}>
                     {selectedLesson.lesson_name}
                   </h2>
                   {selectedLesson.subject_area && (
-                    <span className="inline-block px-3 py-1 text-sm rounded-full text-white bg-gradient-to-r from-cyan-500 to-purple-500 mb-2">
+                    <span className="inline-block px-3 py-1 text-xs sm:text-sm rounded-full text-white bg-gradient-to-r from-cyan-500 to-purple-500 mb-2">
                       {selectedLesson.subject_area}
                     </span>
                   )}
                   {selectedLesson.duration && (
                     <div className="flex items-center gap-2 text-white/80">
-                      <Clock className="w-5 h-5 text-cyan-400" style={{ filter: 'drop-shadow(0 0 5px rgba(0, 245, 255, 0.8))' }} />
+                      <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" style={{ filter: 'drop-shadow(0 0 5px rgba(0, 245, 255, 0.8))' }} />
                       <span>
                         {selectedLesson.duration.periods} periods × {selectedLesson.duration.minutes_per_period} minutes each
                       </span>
@@ -283,14 +283,14 @@ export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewer
                 {/* Learning Objectives */}
                 {selectedLesson.learning_objectives && selectedLesson.learning_objectives.length > 0 && (
                   <SectionCard
-                    icon={<Target className="w-6 h-6" />}
+                    icon={<Target className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
                     title="Learning Objectives"
                     color="from-cyan-400 to-blue-500"
                   >
                     <ul className="space-y-2">
                       {selectedLesson.learning_objectives.map((obj, idx) => (
                         <li key={idx} className="flex items-start gap-2 text-white/90">
-                          <CheckCircle className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" style={{ filter: 'drop-shadow(0 0 5px rgba(0, 245, 255, 0.8))' }} />
+                          <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400 flex-shrink-0 mt-0.5" style={{ filter: 'drop-shadow(0 0 5px rgba(0, 245, 255, 0.8))' }} />
                           <span>{obj}</span>
                         </li>
                       ))}
@@ -301,14 +301,14 @@ export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewer
                 {/* Teaching Materials */}
                 {selectedLesson.teaching_learning_materials && selectedLesson.teaching_learning_materials.length > 0 && (
                   <SectionCard
-                    icon={<GraduationCap className="w-6 h-6" />}
+                    icon={<GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
                     title="Teaching Materials"
                     color="from-purple-400 to-pink-500"
                   >
                     <ul className="space-y-2">
                       {selectedLesson.teaching_learning_materials.map((material, idx) => (
                         <li key={idx} className="flex items-start gap-2 text-white/90">
-                          <FileText className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" style={{ filter: 'drop-shadow(0 0 5px rgba(168, 85, 247, 0.8))' }} />
+                          <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0 mt-0.5" style={{ filter: 'drop-shadow(0 0 5px rgba(168, 85, 247, 0.8))' }} />
                           <span>{material}</span>
                         </li>
                       ))}
@@ -319,7 +319,7 @@ export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewer
                 {/* Prerequisites */}
                 {selectedLesson.previous_knowledge && selectedLesson.previous_knowledge.length > 0 && (
                   <SectionCard
-                    icon={<Lightbulb className="w-6 h-6" />}
+                    icon={<Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
                     title="Prerequisites"
                     color="from-yellow-400 to-orange-500"
                   >
@@ -337,7 +337,7 @@ export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewer
                 {/* Introduction */}
                 {selectedLesson.introduction && (
                   <SectionCard
-                    icon={<Lightbulb className="w-6 h-6" />}
+                    icon={<Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
                     title={`Introduction (${selectedLesson.introduction.time_minutes || 5} minutes)`}
                     color="from-green-400 to-emerald-500"
                   >
@@ -357,7 +357,7 @@ export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewer
                 {/* Presentation */}
                 {selectedLesson.presentation && (
                   <SectionCard
-                    icon={<BookOpen className="w-6 h-6" />}
+                    icon={<BookOpen className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
                     title={`Presentation (${selectedLesson.presentation.time_minutes || 15} minutes)`}
                     color="from-blue-400 to-indigo-500"
                   >
@@ -378,7 +378,7 @@ export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewer
                           {selectedLesson.presentation.key_vocabulary.map((vocab, idx) => (
                             <span
                               key={idx}
-                              className="px-3 py-1 rounded-full text-sm text-white bg-gradient-to-r from-blue-500 to-indigo-600"
+                              className="px-3 py-1 rounded-full text-xs sm:text-sm text-white bg-gradient-to-r from-blue-500 to-indigo-600"
                               style={{
                                 boxShadow: '0 0 10px rgba(96, 165, 250, 0.5)'
                               }}
@@ -395,7 +395,7 @@ export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewer
                 {/* Explanation & Discussion */}
                 {selectedLesson.explanation_discussion && (
                   <SectionCard
-                    icon={<Award className="w-6 h-6" />}
+                    icon={<Award className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
                     title={`Explanation & Discussion (${selectedLesson.explanation_discussion.time_minutes || 10} minutes)`}
                     color="from-pink-400 to-rose-500"
                   >
@@ -415,7 +415,7 @@ export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewer
                 {/* Activities */}
                 {selectedLesson.activities && (
                   <SectionCard
-                    icon={<Award className="w-6 h-6" />}
+                    icon={<Award className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
                     title={`Activities (${selectedLesson.activities.time_minutes || 5} minutes)`}
                     color="from-violet-400 to-purple-500"
                   >
@@ -435,7 +435,7 @@ export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewer
                 {/* Values & Moral */}
                 {selectedLesson.values_and_moral && selectedLesson.values_and_moral.length > 0 && (
                   <SectionCard
-                    icon={<Award className="w-6 h-6" />}
+                    icon={<Award className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
                     title="Values & Moral"
                     color="from-amber-400 to-yellow-500"
                   >
@@ -443,7 +443,7 @@ export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewer
                       {selectedLesson.values_and_moral.map((value, idx) => (
                         <span
                           key={idx}
-                          className="px-3 py-1 rounded-full text-sm text-white bg-gradient-to-r from-amber-500 to-yellow-600"
+                          className="px-3 py-1 rounded-full text-xs sm:text-sm text-white bg-gradient-to-r from-amber-500 to-yellow-600"
                           style={{
                             boxShadow: '0 0 10px rgba(245, 158, 11, 0.5)'
                           }}
@@ -458,7 +458,7 @@ export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewer
                 {/* Homework */}
                 {selectedLesson.homework && selectedLesson.homework.length > 0 && (
                   <SectionCard
-                    icon={<FileText className="w-6 h-6" />}
+                    icon={<FileText className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
                     title="Homework"
                     color="from-teal-400 to-cyan-500"
                   >
@@ -476,14 +476,14 @@ export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewer
                 {/* Evaluation */}
                 {selectedLesson.evaluation && selectedLesson.evaluation.length > 0 && (
                   <SectionCard
-                    icon={<CheckCircle className="w-6 h-6" />}
+                    icon={<CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
                     title="Evaluation"
                     color="from-red-400 to-pink-500"
                   >
                     <ul className="space-y-2">
                       {selectedLesson.evaluation.map((evalItem, idx) => (
                         <li key={idx} className="flex items-start gap-2 text-white/90">
-                          <CheckCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" style={{ filter: 'drop-shadow(0 0 5px rgba(248, 113, 113, 0.8))' }} />
+                          <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-400 flex-shrink-0 mt-0.5" style={{ filter: 'drop-shadow(0 0 5px rgba(248, 113, 113, 0.8))' }} />
                           <span>{evalItem}</span>
                         </li>
                       ))}
@@ -516,7 +516,7 @@ function SectionCard({ icon, title, color, children }: { icon: React.ReactNode; 
         }}>
           {icon}
         </div>
-        <h3 className="text-xl font-semibold text-white" style={{
+        <h3 className="text-lg sm:text-xl font-semibold text-white" style={{
           textShadow: '0 0 10px rgba(255, 255, 255, 0.3)'
         }}>
           {title}

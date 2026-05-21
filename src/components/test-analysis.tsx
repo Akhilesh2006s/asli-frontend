@@ -39,48 +39,48 @@ export default function TestAnalysis({ attempt, aiAnalysis }: TestAnalysisProps)
 
   const getPerformanceIcon = (percentage: number) => {
     return percentage >= 50 ? 
-      <TrendingUp className="w-4 h-4" /> : 
-      <TrendingDown className="w-4 h-4" />;
+      <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" /> : 
+      <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4" />;
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Overall Performance */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Target className="w-5 h-5 mr-2" />
+            <Target className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
             Overall Performance
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:p-4 lg:p-6">
             <div className="text-center">
-              <div className="text-3xl font-bold text-gray-900 mb-1">
+              <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
                 {attempt.score}/{attempt.totalQuestions}
               </div>
-              <p className="text-sm text-gray-600">Score</p>
+              <p className="text-xs sm:text-sm text-gray-600">Score</p>
             </div>
             
             <div className="text-center">
-              <div className={`text-3xl font-bold mb-1 ${accuracy >= 75 ? 'text-green-600' : accuracy >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+              <div className={`text-2xl sm:text-3xl font-bold mb-1 ${accuracy >= 75 ? 'text-green-600' : accuracy >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
                 {accuracy}%
               </div>
-              <p className="text-sm text-gray-600">Accuracy</p>
+              <p className="text-xs sm:text-sm text-gray-600">Accuracy</p>
             </div>
             
             <div className="text-center">
-              <div className="text-3xl font-bold text-gray-900 mb-1">
+              <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
                 {Math.floor((attempt.timeSpent || 0) / 60)}m
               </div>
-              <p className="text-sm text-gray-600">Time Taken</p>
+              <p className="text-xs sm:text-sm text-gray-600">Time Taken</p>
             </div>
             
             <div className="text-center">
-              <div className="text-3xl font-bold text-gray-900 mb-1">
+              <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
                 {timePerQuestion}s
               </div>
-              <p className="text-sm text-gray-600">Per Question</p>
+              <p className="text-xs sm:text-sm text-gray-600">Per Question</p>
             </div>
           </div>
 
@@ -89,10 +89,10 @@ export default function TestAnalysis({ attempt, aiAnalysis }: TestAnalysisProps)
               <Separator className="my-6" />
               <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                 <h4 className="font-medium text-blue-900 mb-2 flex items-center">
-                  <Lightbulb className="w-4 h-4 mr-2" />
+                  <Lightbulb className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   AI Analysis
                 </h4>
-                <p className="text-sm text-blue-800">{aiAnalysis.overallAnalysis}</p>
+                <p className="text-xs sm:text-sm text-blue-800">{aiAnalysis.overallAnalysis}</p>
               </div>
             </>
           )}
@@ -103,29 +103,29 @@ export default function TestAnalysis({ attempt, aiAnalysis }: TestAnalysisProps)
       <Card>
         <CardContent className="p-0">
           <Tabs defaultValue="subjects" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 rounded-none border-b">
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 rounded-none border-b">
               <TabsTrigger value="subjects" className="flex items-center">
-                <BarChart3 className="w-4 h-4 mr-2" />
+                <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Subjects
               </TabsTrigger>
               <TabsTrigger value="topics" className="flex items-center">
-                <PieChart className="w-4 h-4 mr-2" />
+                <PieChart className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Topics
               </TabsTrigger>
               <TabsTrigger value="timing" className="flex items-center">
-                <Clock className="w-4 h-4 mr-2" />
+                <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Timing
               </TabsTrigger>
               <TabsTrigger value="recommendations" className="flex items-center">
-                <BookOpen className="w-4 h-4 mr-2" />
+                <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Recommendations
               </TabsTrigger>
             </TabsList>
 
-            <div className="p-6">
+            <div className="p-3 sm:p-4 lg:p-6">
               <TabsContent value="subjects" className="mt-0">
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Subject-wise Performance</h3>
+                  <h3 className="font-semibold text-base sm:text-lg">Subject-wise Performance</h3>
                   {attempt.analysis?.subjectWise.map((subject, index) => {
                     const percentage = Math.round((subject.correct / subject.total) * 100);
                     return (
@@ -137,7 +137,7 @@ export default function TestAnalysis({ attempt, aiAnalysis }: TestAnalysisProps)
                               {getPerformanceIcon(percentage)}
                               {percentage}%
                             </Badge>
-                            <span className="text-sm text-gray-600">
+                            <span className="text-xs sm:text-sm text-gray-600">
                               {subject.correct}/{subject.total}
                             </span>
                           </div>
@@ -151,7 +151,7 @@ export default function TestAnalysis({ attempt, aiAnalysis }: TestAnalysisProps)
 
               <TabsContent value="topics" className="mt-0">
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Topic-wise Performance</h3>
+                  <h3 className="font-semibold text-base sm:text-lg">Topic-wise Performance</h3>
                   {attempt.analysis?.topicWise.map((topic, index) => {
                     const percentage = Math.round((topic.correct / topic.total) * 100);
                     return (
@@ -163,7 +163,7 @@ export default function TestAnalysis({ attempt, aiAnalysis }: TestAnalysisProps)
                               {getPerformanceIcon(percentage)}
                               {percentage}%
                             </Badge>
-                            <span className="text-sm text-gray-600">
+                            <span className="text-xs sm:text-sm text-gray-600">
                               {topic.correct}/{topic.total}
                             </span>
                           </div>
@@ -177,36 +177,36 @@ export default function TestAnalysis({ attempt, aiAnalysis }: TestAnalysisProps)
 
               <TabsContent value="timing" className="mt-0">
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-lg">Time Analysis</h3>
+                  <h3 className="font-semibold text-base sm:text-lg">Time Analysis</h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Card>
                       <CardContent className="p-4 text-center">
-                        <Clock className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-                        <div className="text-2xl font-bold text-gray-900">
+                        <Clock className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 mx-auto mb-2 text-blue-600" />
+                        <div className="text-xl sm:text-2xl font-bold text-gray-900">
                           {Math.floor((attempt.timeSpent || 0) / 60)}m {((attempt.timeSpent || 0) % 60)}s
                         </div>
-                        <p className="text-sm text-gray-600">Total Time</p>
+                        <p className="text-xs sm:text-sm text-gray-600">Total Time</p>
                       </CardContent>
                     </Card>
                     
                     <Card>
                       <CardContent className="p-4 text-center">
-                        <Target className="w-8 h-8 mx-auto mb-2 text-green-600" />
-                        <div className="text-2xl font-bold text-gray-900">
+                        <Target className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 mx-auto mb-2 text-green-600" />
+                        <div className="text-xl sm:text-2xl font-bold text-gray-900">
                           {timePerQuestion}s
                         </div>
-                        <p className="text-sm text-gray-600">Avg per Question</p>
+                        <p className="text-xs sm:text-sm text-gray-600">Avg per Question</p>
                       </CardContent>
                     </Card>
                     
                     <Card>
                       <CardContent className="p-4 text-center">
-                        <CheckCircle className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-                        <div className="text-2xl font-bold text-gray-900">
+                        <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 mx-auto mb-2 text-purple-600" />
+                        <div className="text-xl sm:text-2xl font-bold text-gray-900">
                           {attempt.responses?.length || 0}
                         </div>
-                        <p className="text-sm text-gray-600">Questions Attempted</p>
+                        <p className="text-xs sm:text-sm text-gray-600">Questions Attempted</p>
                       </CardContent>
                     </Card>
                   </div>
@@ -214,7 +214,7 @@ export default function TestAnalysis({ attempt, aiAnalysis }: TestAnalysisProps)
                   {/* Time distribution would go here */}
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h4 className="font-medium mb-2">Time Distribution</h4>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-xs sm:text-sm text-gray-600">
                       Detailed timing analysis per question would be displayed here.
                     </p>
                   </div>
@@ -223,17 +223,17 @@ export default function TestAnalysis({ attempt, aiAnalysis }: TestAnalysisProps)
 
               <TabsContent value="recommendations" className="mt-0">
                 {aiAnalysis ? (
-                  <div className="space-y-6">
+                  <div className="space-y-3 sm:space-y-4 lg:space-y-6">
                     <div>
-                      <h3 className="font-semibold text-lg text-green-800 mb-3 flex items-center">
-                        <CheckCircle className="w-5 h-5 mr-2" />
+                      <h3 className="font-semibold text-base sm:text-lg text-green-800 mb-3 flex items-center">
+                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                         Strengths
                       </h3>
                       <ul className="space-y-2">
                         {aiAnalysis.strengths.map((strength, index) => (
                           <li key={index} className="flex items-start">
-                            <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm">{strength}</span>
+                            <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                            <span className="text-xs sm:text-sm">{strength}</span>
                           </li>
                         ))}
                       </ul>
@@ -242,15 +242,15 @@ export default function TestAnalysis({ attempt, aiAnalysis }: TestAnalysisProps)
                     <Separator />
 
                     <div>
-                      <h3 className="font-semibold text-lg text-red-800 mb-3 flex items-center">
-                        <XCircle className="w-5 h-5 mr-2" />
+                      <h3 className="font-semibold text-base sm:text-lg text-red-800 mb-3 flex items-center">
+                        <XCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                         Areas for Improvement
                       </h3>
                       <ul className="space-y-2">
                         {aiAnalysis.weaknesses.map((weakness, index) => (
                           <li key={index} className="flex items-start">
-                            <XCircle className="w-4 h-4 text-red-600 mr-2 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm">{weakness}</span>
+                            <XCircle className="w-3 h-3 sm:w-4 sm:h-4 text-red-600 mr-2 mt-0.5 flex-shrink-0" />
+                            <span className="text-xs sm:text-sm">{weakness}</span>
                           </li>
                         ))}
                       </ul>
@@ -259,22 +259,22 @@ export default function TestAnalysis({ attempt, aiAnalysis }: TestAnalysisProps)
                     <Separator />
 
                     <div>
-                      <h3 className="font-semibold text-lg text-blue-800 mb-3 flex items-center">
-                        <Lightbulb className="w-5 h-5 mr-2" />
+                      <h3 className="font-semibold text-base sm:text-lg text-blue-800 mb-3 flex items-center">
+                        <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                         Recommendations
                       </h3>
                       <ul className="space-y-2">
                         {aiAnalysis.recommendations.map((recommendation, index) => (
                           <li key={index} className="flex items-start">
-                            <Lightbulb className="w-4 h-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm">{recommendation}</span>
+                            <Lightbulb className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+                            <span className="text-xs sm:text-sm">{recommendation}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-8">
+                  <div className="text-center py-4 sm:py-6 lg:py-8">
                     <BookOpen className="w-12 h-12 mx-auto text-gray-400 mb-4" />
                     <p className="text-gray-600">AI analysis not available for this test.</p>
                   </div>

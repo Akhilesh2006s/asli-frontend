@@ -332,32 +332,32 @@ export default function AdminEduOTT() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
+      <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-12 h-12 bg-gradient-to-br from-sky-400 to-teal-500 rounded-lg flex items-center justify-center">
-            <VideoIcon className="w-6 h-6 text-white" />
+            <VideoIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">EduOTT</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">EduOTT</h2>
             <p className="text-gray-600">Educational content and live sessions</p>
           </div>
         </div>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2">
             <TabsTrigger value="videos">Videos</TabsTrigger>
             <TabsTrigger value="live-sessions">Live Sessions</TabsTrigger>
           </TabsList>
 
           {/* Videos Tab */}
-          <TabsContent value="videos" className="space-y-6 mt-6">
+          <TabsContent value="videos" className="space-y-3 sm:space-y-4 lg:space-y-6 mt-6">
             {/* Search and Filter */}
             <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end">
               <div className="flex-1 min-w-[200px] relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                 <Input
                   placeholder="Search videos..."
                   value={searchTerm}
@@ -385,7 +385,7 @@ export default function AdminEduOTT() {
                 <Label className="text-xs text-gray-500">Subject</Label>
                 <Select value={videoSubjectFilter} onValueChange={setVideoSubjectFilter}>
                   <SelectTrigger className="w-full md:w-[200px] bg-white">
-                    <Filter className="w-4 h-4 mr-2 shrink-0" />
+                    <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2 shrink-0" />
                     <SelectValue placeholder="All subjects" />
                   </SelectTrigger>
                   <SelectContent>
@@ -402,7 +402,7 @@ export default function AdminEduOTT() {
 
             {/* Videos Grid */}
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Skeleton key={i} className="h-64 w-full" />
                 ))}
@@ -411,12 +411,12 @@ export default function AdminEduOTT() {
               <Card>
                 <CardContent className="py-16 text-center">
                   <VideoIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-600 mb-2">No Videos Found</h3>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Videos Found</h3>
                   <p className="text-gray-500">No videos match your search criteria.</p>
                 </CardContent>
               </Card>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
                 {filteredVideos.map((video) => (
                   <Card
                     key={video._id}
@@ -449,7 +449,7 @@ export default function AdminEduOTT() {
                       )}
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
-                          <Play className="w-8 h-8 text-sky-600 ml-1" />
+                          <Play className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-sky-600 ml-1" />
                         </div>
                       </div>
                       <div className="absolute bottom-2 right-2">
@@ -481,7 +481,7 @@ export default function AdminEduOTT() {
                         ) : null}
                       </div>
                       {video.description && (
-                        <p className="text-sm text-gray-600 line-clamp-2">{video.description}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">{video.description}</p>
                       )}
                     </CardContent>
                   </Card>
@@ -491,11 +491,11 @@ export default function AdminEduOTT() {
           </TabsContent>
 
           {/* Live Sessions Tab */}
-          <TabsContent value="live-sessions" className="space-y-6 mt-6">
+          <TabsContent value="live-sessions" className="space-y-3 sm:space-y-4 lg:space-y-6 mt-6">
             {/* Search and Filter */}
             <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end">
               <div className="flex-1 min-w-[200px] relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                 <Input
                   placeholder="Search live sessions..."
                   value={sessionSearchTerm}
@@ -539,7 +539,7 @@ export default function AdminEduOTT() {
                 <Label className="text-xs text-gray-500">Status</Label>
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
                   <SelectTrigger className="w-full md:w-[160px] bg-white">
-                    <Filter className="w-4 h-4 mr-2 shrink-0" />
+                    <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2 shrink-0" />
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -564,7 +564,7 @@ export default function AdminEduOTT() {
               <Card>
                 <CardContent className="py-16 text-center">
                   <Radio className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-600 mb-2">No Live Sessions Found</h3>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Live Sessions Found</h3>
                   <p className="text-gray-500">No live sessions match your search criteria.</p>
                 </CardContent>
               </Card>
@@ -572,11 +572,11 @@ export default function AdminEduOTT() {
               <div className="space-y-4">
                 {filteredSessions.map((session) => (
                   <Card key={session._id} className="hover:shadow-lg transition-shadow">
-                    <CardContent className="p-6">
+                    <CardContent className="p-3 sm:p-4 lg:p-6">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900">{session.title}</h3>
+                            <h3 className="text-base sm:text-lg font-semibold text-gray-900">{session.title}</h3>
                             <Badge className={getStatusColor(session.status)}>
                               {session.status.toUpperCase()}
                             </Badge>
@@ -584,14 +584,14 @@ export default function AdminEduOTT() {
                           {session.description && (
                             <p className="text-gray-600 mb-4">{session.description}</p>
                           )}
-                          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                          <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-gray-600">
                             <div className="flex items-center gap-1">
-                              <Users className="w-4 h-4" />
+                              <Users className="w-3 h-3 sm:w-4 sm:h-4" />
                               <span>{session.streamer?.fullName || session.streamer?.email || 'Unknown'}</span>
                             </div>
                             {session.subject?.name && (
                               <div className="flex items-center gap-1">
-                                <BookOpen className="w-4 h-4" />
+                                <BookOpen className="w-3 h-3 sm:w-4 sm:h-4" />
                                 <span>{extractPlainSubjectName(session.subject.name)}</span>
                               </div>
                             )}
@@ -608,12 +608,12 @@ export default function AdminEduOTT() {
                               </Badge>
                             ) : null}
                             <div className="flex items-center gap-1">
-                              <Eye className="w-4 h-4" />
+                              <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                               <span>{session.viewerCount || 0} viewers</span>
                             </div>
                             {(session.scheduledTime || session.scheduledStartTime) && (
                               <div className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
+                                <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                                 <span>
                                   {new Date(session.scheduledTime || session.scheduledStartTime || '').toLocaleString()}
                                 </span>
@@ -628,7 +628,7 @@ export default function AdminEduOTT() {
                               window.open(session.hlsUrl, '_blank');
                             }}
                           >
-                            <Play className="w-4 h-4 mr-2" />
+                            <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                             Watch Live
                           </Button>
                         )}

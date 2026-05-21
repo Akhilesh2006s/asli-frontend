@@ -170,8 +170,8 @@ export default function PracticeTests() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">{selectedTest.title}</h1>
-                <p className="text-sm text-gray-600">
+                <h1 className="text-lg sm:text-xl font-semibold text-gray-900">{selectedTest.title}</h1>
+                <p className="text-xs sm:text-sm text-gray-600">
                   Question {currentQuestion + 1} of {testQuestions.length}
                 </p>
               </div>
@@ -194,11 +194,11 @@ export default function PracticeTests() {
         </div>
 
         {/* Question Content */}
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           <Card>
             <CardHeader>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <CardTitle className="text-lg">
+                <CardTitle className="text-base sm:text-lg">
                   Question {currentQuestion + 1}
                 </CardTitle>
                 <Badge className={getDifficultyColor(currentQ.difficulty || 'Medium')}>
@@ -206,8 +206,8 @@ export default function PracticeTests() {
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="text-gray-900 text-lg leading-relaxed">
+            <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
+              <div className="text-gray-900 text-base sm:text-lg leading-relaxed">
                 {currentQ.questionText}
               </div>
 
@@ -238,7 +238,7 @@ export default function PracticeTests() {
                 >
                   Previous
                 </Button>
-                <div className="text-sm text-gray-500">
+                <div className="text-xs sm:text-sm text-gray-500">
                   {Object.keys(answers).length} of {testQuestions.length} answered
                 </div>
                 {currentQuestion === testQuestions.length - 1 ? (
@@ -267,7 +267,7 @@ export default function PracticeTests() {
     return (
       <>
         <Navigation />
-        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 py-8 ${isMobile ? 'pb-20' : ''}`}>
+        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 py-4 sm:py-6 lg:py-8 ${isMobile ? 'pb-20' : ''}`}>
           <div className="mb-6">
             <Button 
               variant="outline" 
@@ -276,7 +276,7 @@ export default function PracticeTests() {
             >
               ← Back to Tests
             </Button>
-            <h1 className="text-3xl font-bold text-gray-900">Test Results</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Test Results</h1>
           </div>
           <TestAnalysis 
             attempt={testResult.attempt} 
@@ -290,19 +290,19 @@ export default function PracticeTests() {
   return (
     <>
       <Navigation />
-      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 py-8 ${isMobile ? 'pb-20' : ''}`}>
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 py-4 sm:py-6 lg:py-8 ${isMobile ? 'pb-20' : ''}`}>
         
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Practice Tests & Assessments</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Practice Tests & Assessments</h1>
           <p className="text-gray-600">Board-mapped practice tests with instant AI evaluation</p>
         </div>
 
         {/* Filter */}
         <Card className="mb-8">
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-              <label className="text-sm font-medium text-gray-700">Filter by Exam Type:</label>
+              <label className="text-xs sm:text-sm font-medium text-gray-700">Filter by Exam Type:</label>
               <Select value={selectedExamType} onValueChange={setSelectedExamType}>
                 <SelectTrigger className="w-full sm:w-48">
                   <SelectValue placeholder="All Exam Types" />
@@ -320,11 +320,11 @@ export default function PracticeTests() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:p-6 lg:p-8">
           
           {/* Available Tests */}
           <div className="lg:col-span-2">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Available Tests</h2>
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-6">Available Tests</h2>
             
             {testsLoading ? (
               <div className="space-y-4">
@@ -336,7 +336,7 @@ export default function PracticeTests() {
               <Card>
                 <CardContent className="p-12 text-center">
                   <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No tests found</h3>
+                  <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No tests found</h3>
                   <p className="text-gray-600">
                     No practice tests are available for the selected exam type.
                   </p>
@@ -346,15 +346,15 @@ export default function PracticeTests() {
               <div className="space-y-4">
                 {filteredTests.map((test) => (
                   <Card key={test.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
+                    <CardContent className="p-3 sm:p-4 lg:p-6">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-start sm:items-center space-x-4">
                           <div className="w-12 h-12 gradient-accent rounded-lg flex items-center justify-center">
-                            <FileText className="w-6 h-6 text-white" />
+                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                           </div>
                           <div>
                             <h3 className="font-semibold text-gray-900">{test.title}</h3>
-                            <p className="text-sm text-gray-600 mb-2">{test.description}</p>
+                            <p className="text-xs sm:text-sm text-gray-600 mb-2">{test.description}</p>
                             <div className="flex items-center space-x-4 text-xs text-gray-500">
                               <span className="flex items-center">
                                 <FileText className="w-3 h-3 mr-1" />
@@ -384,7 +384,7 @@ export default function PracticeTests() {
                           onClick={() => startTest(test)}
                           className="bg-primary text-white hover:bg-primary/90 w-full sm:w-auto"
                         >
-                          <Play className="w-4 h-4 mr-2" />
+                          <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                           Start Test
                         </Button>
                       </div>
@@ -396,13 +396,13 @@ export default function PracticeTests() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-3 sm:space-y-4 lg:space-y-6">
             
             {/* Recent Test Results */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <BarChart3 className="w-5 h-5 mr-2" />
+                  <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Recent Results
                 </CardTitle>
               </CardHeader>
@@ -415,7 +415,7 @@ export default function PracticeTests() {
                     return (
                       <div key={attempt.id} className="p-3 border rounded-lg">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-900">Test Result</span>
+                          <span className="text-xs sm:text-sm font-medium text-gray-900">Test Result</span>
                           <Badge className={accuracy >= 75 ? 'bg-green-100 text-green-800' : 
                                          accuracy >= 50 ? 'bg-yellow-100 text-yellow-800' : 
                                          'bg-red-100 text-red-800'}>
@@ -439,32 +439,32 @@ export default function PracticeTests() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Target className="w-5 h-5 mr-2" />
+                  <Target className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Performance Stats
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-900">
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900">
                     {attempts.length}
                   </div>
-                  <p className="text-sm text-gray-600">Tests Taken</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Tests Taken</p>
                 </div>
                 
                 {attempts.length > 0 && (
                   <>
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">
+                      <div className="text-xl sm:text-2xl font-bold text-green-600">
                         {Math.round(attempts.reduce((sum, attempt) => sum + (attempt.score / attempt.totalQuestions), 0) / attempts.length * 100)}%
                       </div>
-                      <p className="text-sm text-gray-600">Average Score</p>
+                      <p className="text-xs sm:text-sm text-gray-600">Average Score</p>
                     </div>
                     
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">
+                      <div className="text-xl sm:text-2xl font-bold text-blue-600">
                         {Math.max(...attempts.map(attempt => Math.round((attempt.score / attempt.totalQuestions) * 100)))}%
                       </div>
-                      <p className="text-sm text-gray-600">Best Score</p>
+                      <p className="text-xs sm:text-sm text-gray-600">Best Score</p>
                     </div>
                   </>
                 )}
@@ -475,26 +475,26 @@ export default function PracticeTests() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <Trophy className="w-5 h-5 mr-2" />
+                  <Trophy className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Test Taking Tips
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2 text-sm text-gray-600">
+                <ul className="space-y-2 text-xs sm:text-sm text-gray-600">
                   <li className="flex items-start">
-                    <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
                     Read questions carefully before answering
                   </li>
                   <li className="flex items-start">
-                    <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
                     Manage your time effectively
                   </li>
                   <li className="flex items-start">
-                    <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
                     Review your answers before submission
                   </li>
                   <li className="flex items-start">
-                    <CheckCircle className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
                     Use elimination method for difficult questions
                   </li>
                 </ul>

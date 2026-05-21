@@ -657,10 +657,10 @@ export default function LearningPaths() {
     return (
       <>
         <Navigation />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="space-y-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+          <div className="space-y-4 sm:space-y-6 lg:space-y-8">
             <Skeleton className="h-48 w-full rounded-2xl" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Skeleton key={i} className="h-64 w-full" />
               ))}
@@ -682,7 +682,7 @@ export default function LearningPaths() {
         <div className="mb-8">
           <div className="gradient-primary rounded-2xl p-5 sm:p-8 text-white relative overflow-hidden">
             <div className="relative z-10">
-              <h1 className="text-2xl sm:text-3xl font-bold mb-2 break-words">
+              <h1 className="text-xl sm:text-2xl sm:text-3xl font-bold mb-2 break-words">
                 Learning Paths for {user?.email || 'Student'}
               </h1>
               <p className="text-blue-100 mb-6">
@@ -704,7 +704,7 @@ export default function LearningPaths() {
           <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-6 overflow-x-auto">
             <button
               onClick={() => setActiveTab('subjects')}
-              className={`flex-1 min-w-[140px] px-4 sm:px-6 py-3 text-sm font-medium rounded-md transition-all ${
+              className={`flex-1 min-w-[140px] px-4 sm:px-6 py-3 text-xs sm:text-sm font-medium rounded-md transition-all ${
                 activeTab === 'subjects'
                   ? 'bg-white text-gray-900 shadow-sm border border-gray-300'
                   : 'text-gray-600 hover:text-gray-900'
@@ -714,7 +714,7 @@ export default function LearningPaths() {
             </button>
             <button
               onClick={() => setActiveTab('quizzes')}
-              className={`flex-1 min-w-[140px] px-4 sm:px-6 py-3 text-sm font-medium rounded-md transition-all ${
+              className={`flex-1 min-w-[140px] px-4 sm:px-6 py-3 text-xs sm:text-sm font-medium rounded-md transition-all ${
                 activeTab === 'quizzes'
                   ? 'bg-white text-gray-900 shadow-sm border border-gray-300'
                   : 'text-gray-600 hover:text-gray-900'
@@ -728,8 +728,8 @@ export default function LearningPaths() {
         {/* Browse by Subject Tab */}
         {activeTab === 'subjects' && (
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Browse by Subject</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Browse by Subject</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:p-4 lg:p-6">
             {isLoadingSubjects ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <Skeleton key={i} className="h-64 w-full" />
@@ -737,7 +737,7 @@ export default function LearningPaths() {
             ) : subjects.length === 0 ? (
               <div className="col-span-full text-center py-12">
                 <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">No Subjects Available</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Subjects Available</h3>
                 <p className="text-gray-500">Check back later for new learning content.</p>
               </div>
             ) : (
@@ -768,11 +768,11 @@ export default function LearningPaths() {
                     className="hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200"
                         onClick={() => setLocation(`/subject/${subject._id || subject.id}`)}
                   >
-                    <CardContent className="p-6 flex flex-col items-center text-center">
+                    <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
                       <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md mb-4">
                         <Icon className="w-10 h-10 text-white" />
                       </div>
-                      <CardTitle className="text-lg font-semibold text-gray-900">{subject.name}</CardTitle>
+                      <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">{subject.name}</CardTitle>
                     </CardContent>
                   </Card>
                 );
@@ -785,9 +785,9 @@ export default function LearningPaths() {
         {/* My Quizzes Tab */}
         {activeTab === 'quizzes' && (
         <div className="mb-8 max-w-7xl mx-auto">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">My Quizzes</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">My Quizzes</h2>
           {isLoadingQuizzes ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
               {Array.from({ length: 3 }).map((_, i) => (
                 <Skeleton key={i} className="h-64 w-full" />
               ))}
@@ -795,17 +795,17 @@ export default function LearningPaths() {
           ) : quizzes.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
               <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-600 mb-2">No Quizzes Assigned</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Quizzes Assigned</h3>
               <p className="text-gray-500">Your teacher hasn't assigned any quizzes yet. Check back later!</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
               {quizzes.map((quiz: any) => (
                         <Card key={quiz._id} className="hover:shadow-lg transition-shadow duration-200">
                     <CardHeader>
                       <div className="flex items-center justify-between mb-2">
                       <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg">
-                        <FileText className="w-6 h-6 text-white" />
+                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                         </div>
                       {quiz.hasAttempted && (
                         <Badge className="bg-green-100 text-green-700 border-green-300">
@@ -814,18 +814,18 @@ export default function LearningPaths() {
                         </Badge>
                       )}
                       </div>
-                    <CardTitle className="text-lg">{quiz.title}</CardTitle>
-                    <p className="text-gray-600 text-sm">{quiz.description || `Quiz on ${quiz.subject}`}</p>
+                    <CardTitle className="text-base sm:text-lg">{quiz.title}</CardTitle>
+                    <p className="text-gray-600 text-xs sm:text-sm">{quiz.description || `Quiz on ${quiz.subject}`}</p>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-2 text-center">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-center">
                       <div className="bg-blue-50 rounded-lg p-2">
-                        <Clock className="w-4 h-4 text-blue-600 mx-auto mb-1" />
+                        <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 mx-auto mb-1" />
                         <p className="text-xs font-medium text-blue-800">{quiz.duration} min</p>
                         <p className="text-xs text-blue-600">Duration</p>
                       </div>
                       <div className="bg-blue-50 rounded-lg p-2">
-                        <Target className="w-4 h-4 text-blue-600 mx-auto mb-1" />
+                        <Target className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 mx-auto mb-1" />
                         <p className="text-xs font-medium text-blue-800">{quiz.questionCount}</p>
                         <p className="text-xs text-blue-600">Questions</p>
                       </div>
@@ -834,8 +834,8 @@ export default function LearningPaths() {
                     {quiz.hasAttempted && quiz.bestScore !== null && (
                       <div className="bg-green-50 rounded-lg p-3 border border-green-200">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-green-800">Best Score:</span>
-                          <span className="text-lg font-bold text-green-900">{quiz.bestScore}/{quiz.totalPoints}</span>
+                          <span className="text-xs sm:text-sm font-medium text-green-800">Best Score:</span>
+                          <span className="text-base sm:text-lg font-bold text-green-900">{quiz.bestScore}/{quiz.totalPoints}</span>
                         </div>
                         {quiz.completedAt && (
                           <p className="text-xs text-green-600 mt-1">
@@ -857,7 +857,7 @@ export default function LearningPaths() {
                     <Link href={`/student-exams?quiz=${quiz._id}`}>
                       <Button className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg">
                         {quiz.hasAttempted ? 'Retake Quiz' : 'Start Quiz'}
-                        <ArrowRight className="w-4 h-4 ml-2" />
+                        <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2" />
                       </Button>
                     </Link>
                   </CardContent>
@@ -873,10 +873,10 @@ export default function LearningPaths() {
           console.log('Digital Library section rendering - visible on page');
           return null;
         })()}
-        <div className="mb-8 max-w-7xl mx-auto px-4 bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Digital Library</h2>
-          <h3 className="text-xl font-semibold text-gray-700 mb-4">Browse by Type</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="mb-8 max-w-7xl mx-auto px-4 bg-white rounded-2xl p-3 sm:p-4 lg:p-6 shadow-sm border border-gray-200">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Digital Library</h2>
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-4">Browse by Type</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6 mb-8">
             {/* TextBook Card */}
             <Card 
               className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
@@ -884,12 +884,12 @@ export default function LearningPaths() {
               }`}
               onClick={() => setSelectedContentType(selectedContentType === 'TextBook' ? null : 'TextBook')}
             >
-              <CardContent className="p-6 flex flex-col items-center text-center">
+              <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
                 <div className="w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md mb-4">
                   <BookOpen className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                 </div>
-                <CardTitle className="text-lg font-semibold text-gray-900 mb-1">TextBook</CardTitle>
-                <p className="text-sm text-gray-500">
+                <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">TextBook</CardTitle>
+                <p className="text-xs sm:text-sm text-gray-500">
                   {isLoadingContentCounts ? '...' : `${contentTypeCounts.TextBook} files`}
                 </p>
               </CardContent>
@@ -902,12 +902,12 @@ export default function LearningPaths() {
               }`}
               onClick={() => setSelectedContentType(selectedContentType === 'Workbook' ? null : 'Workbook')}
             >
-              <CardContent className="p-6 flex flex-col items-center text-center">
+              <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
                 <div className="w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md mb-4">
                   <FileTextIcon className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                 </div>
-                <CardTitle className="text-lg font-semibold text-gray-900 mb-1">Workbook</CardTitle>
-                <p className="text-sm text-gray-500">
+                <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Workbook</CardTitle>
+                <p className="text-xs sm:text-sm text-gray-500">
                   {isLoadingContentCounts ? '...' : `${contentTypeCounts.Workbook} files`}
                 </p>
               </CardContent>
@@ -920,12 +920,12 @@ export default function LearningPaths() {
               }`}
               onClick={() => setSelectedContentType(selectedContentType === 'Material' ? null : 'Material')}
             >
-              <CardContent className="p-6 flex flex-col items-center text-center">
+              <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
                 <div className="w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md mb-4">
                   <File className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                 </div>
-                <CardTitle className="text-lg font-semibold text-gray-900 mb-1">Material</CardTitle>
-                <p className="text-sm text-gray-500">
+                <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Material</CardTitle>
+                <p className="text-xs sm:text-sm text-gray-500">
                   {isLoadingContentCounts ? '...' : `${contentTypeCounts.Material} files`}
                 </p>
               </CardContent>
@@ -938,12 +938,12 @@ export default function LearningPaths() {
               }`}
               onClick={() => setSelectedContentType(selectedContentType === 'Audio' ? null : 'Audio')}
             >
-              <CardContent className="p-6 flex flex-col items-center text-center">
+              <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
                 <div className="w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md mb-4">
                   <Headphones className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                 </div>
-                <CardTitle className="text-lg font-semibold text-gray-900 mb-1">Audio</CardTitle>
-                <p className="text-sm text-gray-500">
+                <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Audio</CardTitle>
+                <p className="text-xs sm:text-sm text-gray-500">
                   {isLoadingContentCounts ? '...' : `${contentTypeCounts.Audio} files`}
                 </p>
               </CardContent>
@@ -956,12 +956,12 @@ export default function LearningPaths() {
               }`}
               onClick={() => setSelectedContentType(selectedContentType === 'Homework' ? null : 'Homework')}
             >
-              <CardContent className="p-6 flex flex-col items-center text-center">
+              <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
                 <div className="w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md mb-4">
                   <ClipboardList className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                 </div>
-                <CardTitle className="text-lg font-semibold text-gray-900 mb-1">Homework</CardTitle>
-                <p className="text-sm text-gray-500">
+                <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Homework</CardTitle>
+                <p className="text-xs sm:text-sm text-gray-500">
                   {isLoadingContentCounts ? '...' : `${contentTypeCounts.Homework} files`}
                 </p>
               </CardContent>
@@ -972,7 +972,7 @@ export default function LearningPaths() {
           {selectedContentType && (
             <div className="mt-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-gray-900">
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
                   All {selectedContentType}
                 </h3>
                 <Button
@@ -980,13 +980,13 @@ export default function LearningPaths() {
                   onClick={() => setSelectedContentType(null)}
                   className="flex items-center space-x-2"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span>Clear Filter</span>
                 </Button>
                               </div>
 
               {isLoadingFilteredContent ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
                   {Array.from({ length: 6 }).map((_, i) => (
                     <Skeleton key={i} className="h-48 w-full" />
                   ))}
@@ -994,53 +994,53 @@ export default function LearningPaths() {
               ) : filteredContent.length === 0 ? (
                 <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
                   <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-600 mb-2">No Content Found</h3>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Content Found</h3>
                   <p className="text-gray-500">No {selectedContentType} available at the moment.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6 items-stretch">
                   {filteredContent.map((content: any) => (
                     <Card key={content._id} className="hover:shadow-lg transition-shadow duration-200 h-full flex flex-col">
                       <CardHeader>
                         <div className="flex items-center justify-between mb-2">
                           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg">
                             {selectedContentType === 'TextBook' ? (
-                              <BookOpen className="w-6 h-6 text-white" />
+                              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                             ) : selectedContentType === 'Workbook' ? (
-                              <FileTextIcon className="w-6 h-6 text-white" />
+                              <FileTextIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                             ) : selectedContentType === 'Material' ? (
-                              <File className="w-6 h-6 text-white" />
+                              <File className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                             ) : selectedContentType === 'Audio' ? (
-                              <Headphones className="w-6 h-6 text-white" />
+                              <Headphones className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                             ) : selectedContentType === 'Homework' ? (
-                              <ClipboardList className="w-6 h-6 text-white" />
+                              <ClipboardList className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                             ) : (
-                              <FileTextIcon className="w-6 h-6 text-white" />
+                              <FileTextIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                             )}
                           </div>
                           <Badge variant="outline" className="text-xs">
                             {content.type}
                           </Badge>
                         </div>
-                        <CardTitle className="text-lg">{content.title}</CardTitle>
+                        <CardTitle className="text-base sm:text-lg">{content.title}</CardTitle>
                         {content.description && (
-                          <p className="text-gray-600 text-sm mt-2">{content.description}</p>
+                          <p className="text-gray-600 text-xs sm:text-sm mt-2">{content.description}</p>
                         )}
                       </CardHeader>
                       <CardContent className="space-y-3 flex-1 flex flex-col">
                         <div className="space-y-3 flex-1">
                         {content.subject && (
                           <div className="flex items-center space-x-2">
-                            <BookOpen className="w-4 h-4 text-gray-500" />
-                            <span className="text-sm text-gray-600">
+                            <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
+                            <span className="text-xs sm:text-sm text-gray-600">
                               {typeof content.subject === 'object' ? content.subject.name : 'Subject'}
                             </span>
                           </div>
                         )}
                         {content.date && (
                           <div className="flex items-center space-x-2">
-                            <Clock className="w-4 h-4 text-gray-500" />
-                            <span className="text-sm text-gray-600">
+                            <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
+                            <span className="text-xs sm:text-sm text-gray-600">
                               {new Date(content.date).toLocaleDateString()}
                             </span>
                           </div>
@@ -1058,7 +1058,7 @@ export default function LearningPaths() {
                             }}
                             disabled={!content.fileUrl}
                           >
-                            <Eye className="w-4 h-4 mr-2" />
+                            <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                             View
                         </Button>
                           {content.fileUrl && (
@@ -1072,7 +1072,7 @@ export default function LearningPaths() {
                                 }}
                                 title="Preview in this page"
                               >
-                                <ExternalLink className="w-4 h-4" />
+                                <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
                               </Button>
                             ) : (
                               <Button
@@ -1082,7 +1082,7 @@ export default function LearningPaths() {
                                 title="Download file"
                                 disabled={downloadingContentId === String(content._id || content.id || content.title || "")}
                               >
-                                <Download className="w-4 h-4" />
+                                <Download className="w-3 h-3 sm:w-4 sm:h-4" />
                               </Button>
                             )
                           )}
@@ -1098,8 +1098,8 @@ export default function LearningPaths() {
 
         {/* Recommended Learning Paths */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Recommended for You</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Recommended for You</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:p-4 lg:p-6">
             {recommendedPaths.map((path) => {
               const Icon = path.icon;
               return (
@@ -1107,7 +1107,7 @@ export default function LearningPaths() {
                   <CardHeader>
                     <div className="flex items-center justify-between mb-2">
                       <div className={`w-10 h-10 ${path.color} rounded-lg flex items-center justify-center`}>
-                        <Icon className="w-5 h-5" />
+                        <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                       </div>
                       {path.isComingSoon ? (
                         <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 border-blue-300">
@@ -1119,14 +1119,14 @@ export default function LearningPaths() {
                         </Badge>
                       )}
                     </div>
-                    <CardTitle className="text-lg">{path.title}</CardTitle>
-                    <p className="text-gray-600 text-sm">{path.description}</p>
+                    <CardTitle className="text-base sm:text-lg">{path.title}</CardTitle>
+                    <p className="text-gray-600 text-xs sm:text-sm">{path.description}</p>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Subjects - Hide for Coming Soon */}
                     {!path.isComingSoon && (
                       <div>
-                        <p className="text-sm font-medium text-gray-700 mb-2">Subjects</p>
+                        <p className="text-xs sm:text-sm font-medium text-gray-700 mb-2">Subjects</p>
                         <div className="flex flex-wrap gap-1">
                           {path.subjects.map((subject, index) => (
                             <Badge key={index} variant="outline" className="text-xs">
@@ -1140,22 +1140,22 @@ export default function LearningPaths() {
                     {/* Stats - Show Coming Soon message or stats */}
                     {path.isComingSoon ? (
                       <div className="text-center py-4">
-                        <p className="text-sm text-gray-500 italic">
+                        <p className="text-xs sm:text-sm text-gray-500 italic">
                           Exciting educational games are on the way! Stay tuned for updates.
                         </p>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-between text-sm text-gray-600">
+                      <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600">
                         <div className="flex items-center space-x-1">
-                          <Clock className="w-4 h-4" />
+                          <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
                           <span>{path.duration}</span>
                         </div>
                         <div className="flex items-center space-x-1">
-                          <Users className="w-4 h-4" />
+                          <Users className="w-3 h-3 sm:w-4 sm:h-4" />
                           <span>{path.students.toLocaleString()}</span>
                         </div>
                         <div className="flex items-center space-x-1">
-                          <Star className="w-4 h-4 text-yellow-500" />
+                          <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500" />
                           <span>{path.rating}</span>
                         </div>
                       </div>
@@ -1164,13 +1164,13 @@ export default function LearningPaths() {
                     {path.isComingSoon ? (
                       <Button variant="outline" className="w-full" disabled>
                         Coming Soon
-                        <ArrowRight className="w-4 h-4 ml-2 opacity-50" />
+                        <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2 opacity-50" />
                       </Button>
                     ) : (
                       <Link href={`/subject/${path.id}`}>
                         <Button variant="outline" className="w-full">
                           Start Learning
-                          <ArrowRight className="w-4 h-4 ml-2" />
+                          <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2" />
                         </Button>
                       </Link>
                     )}
@@ -1191,7 +1191,7 @@ export default function LearningPaths() {
         }}
       >
         <DialogContent className="w-[90vw] h-[95vh] max-w-none bg-white rounded-2xl overflow-hidden flex flex-col p-0">
-          <DialogHeader className="px-8 pt-5 pb-3 border-b border-gray-200">
+          <DialogHeader className="px-4 sm:px-6 lg:px-8 pt-5 pb-3 border-b border-gray-200">
             <DialogTitle className="pl-2 pt-1">{previewContent?.title || "Content Preview"}</DialogTitle>
           </DialogHeader>
           <div className="flex-1 min-h-0 overflow-hidden px-4 py-4">
@@ -1209,7 +1209,7 @@ export default function LearningPaths() {
             const isGoogleDrive = lower.includes("drive.google.com");
 
             if (!fileUrl) {
-              return <p className="text-sm text-gray-500">No preview URL available.</p>;
+              return <p className="text-xs sm:text-sm text-gray-500">No preview URL available.</p>;
             }
 
             if (isYouTube && youtubeEmbedUrl) {
@@ -1253,7 +1253,7 @@ export default function LearningPaths() {
 
             if (isAudio) {
               return (
-                <div className="w-full rounded-lg bg-gray-100 p-8">
+                <div className="w-full rounded-lg bg-gray-100 p-4 sm:p-6 lg:p-8">
                   <audio src={fileUrl} controls className="w-full" />
                 </div>
               );
@@ -1277,7 +1277,7 @@ export default function LearningPaths() {
             }
 
             return (
-              <div className="text-sm text-gray-600 bg-gray-50 rounded-lg p-4">
+              <div className="text-xs sm:text-sm text-gray-600 bg-gray-50 rounded-lg p-4">
                 Preview is not available for this file type.
               </div>
             );

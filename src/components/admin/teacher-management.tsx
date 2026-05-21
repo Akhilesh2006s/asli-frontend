@@ -787,14 +787,14 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50 overflow-x-hidden">
-      <div className="space-y-6 p-3 sm:space-y-8 sm:p-4 lg:p-6">
+      <div className="space-y-3 sm:space-y-4 lg:space-y-6 p-3 sm:space-y-8 sm:p-4 lg:p-6">
         {/* Hero Section with Vibrant Stats */}
         <div className="relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 opacity-20 rounded-3xl"></div>
           <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:rounded-3xl sm:p-6 lg:p-8 shadow-2xl border border-white/20">
             <div className="flex items-center justify-between mb-6 sm:mb-8">
               <div>
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl leading-tight font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent break-words">
+                <h1 className="text-2xl sm:text-3xl sm:text-4xl lg:text-5xl leading-tight font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent break-words">
                   Teacher Management
                 </h1>
                 <p className="text-gray-700 mt-2 sm:mt-3 text-sm sm:text-base lg:text-xl font-medium">Manage teachers and their subject assignments with style</p>
@@ -807,25 +807,25 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
             </div>
 
             {/* Vibrant Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:p-4 lg:p-6">
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-2xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-2xl transition-all duration-300"
               >
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                      <Users className="w-8 h-8 text-white" />
+                      <Users className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                     </div>
                     <div className="text-right">
-                      <p className="text-white/90 text-sm font-medium">Total Teachers</p>
-                      <p className="text-3xl sm:text-4xl font-bold text-white">{totalTeachers}</p>
+                      <p className="text-white/90 text-xs sm:text-sm font-medium">Total Teachers</p>
+                      <p className="text-2xl sm:text-3xl sm:text-4xl font-bold text-white">{totalTeachers}</p>
                     </div>
                   </div>
-                  <div className="flex items-center text-white/80 text-sm">
-                    <GraduationCap className="w-4 h-4 mr-2" />
+                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
+                    <GraduationCap className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     <span>Faculty members</span>
                   </div>
                 </div>
@@ -835,19 +835,19 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-2xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-2xl transition-all duration-300"
               >
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                      <CheckCircle className="w-8 h-8 text-white" />
+                      <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                     </div>
                     <div className="text-right">
-                      <p className="text-white/90 text-sm font-medium">Active Teachers</p>
-                      <p className="text-3xl sm:text-4xl font-bold text-white">{activeTeachers}</p>
+                      <p className="text-white/90 text-xs sm:text-sm font-medium">Active Teachers</p>
+                      <p className="text-2xl sm:text-3xl sm:text-4xl font-bold text-white">{activeTeachers}</p>
                     </div>
                   </div>
-                  <div className="flex items-center text-white/80 text-sm">
+                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
                     <div className="w-3 h-3 bg-white rounded-full mr-2 animate-pulse"></div>
                     <span>Currently teaching</span>
                   </div>
@@ -858,20 +858,20 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-2xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-2xl transition-all duration-300"
               >
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                      <BookOpen className="w-8 h-8 text-white" />
+                      <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                     </div>
                     <div className="text-right">
-                      <p className="text-white/90 text-sm font-medium">Total Subjects</p>
-                      <p className="text-3xl sm:text-4xl font-bold text-white">{totalSubjects}</p>
+                      <p className="text-white/90 text-xs sm:text-sm font-medium">Total Subjects</p>
+                      <p className="text-2xl sm:text-3xl sm:text-4xl font-bold text-white">{totalSubjects}</p>
                     </div>
                   </div>
-                  <div className="flex items-center text-white/80 text-sm">
-                    <BookOpen className="w-4 h-4 mr-2" />
+                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
+                    <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     <span>Subject assignments</span>
                   </div>
                 </div>
@@ -884,7 +884,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white/70 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-xl border border-white/20">
           <div className="flex flex-col sm:flex-row gap-4 items-center">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-600 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-600 w-4 h-4 sm:w-5 sm:h-5" />
               <Input
                 placeholder="Search teachers..."
                 value={searchTerm}
@@ -893,7 +893,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
               />
             </div>
             <Button variant="outline" className="border-orange-200 text-orange-700 hover:bg-orange-50 rounded-xl">
-              <Filter className="w-4 h-4 mr-2" />
+              <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Filter
             </Button>
           </div>
@@ -902,26 +902,26 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
             <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="border-orange-200 text-orange-700 hover:bg-orange-50 rounded-xl">
-                  <Upload className="w-4 h-4 mr-2" />
+                  <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Upload CSV
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md bg-white/95 border-orange-200 backdrop-blur-xl">
                 <DialogHeader>
-                  <DialogTitle className="text-xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
+                  <DialogTitle className="text-lg sm:text-xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
                     Upload Teachers CSV
                   </DialogTitle>
-                  <DialogDescription className="text-gray-600 text-sm">
+                  <DialogDescription className="text-gray-600 text-xs sm:text-sm">
                     Upload a CSV file to bulk import teachers. Download the template for the correct format.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200">
                     <div className="flex items-center gap-3">
-                      <FileSpreadsheet className="w-8 h-8 text-orange-600" />
+                      <FileSpreadsheet className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-orange-600" />
                       <div>
                         <p className="font-medium text-gray-900">CSV Template</p>
-                        <p className="text-sm text-gray-600">Download the template file</p>
+                        <p className="text-xs sm:text-sm text-gray-600">Download the template file</p>
                       </div>
                     </div>
                     <Button
@@ -930,7 +930,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                       onClick={downloadTemplate}
                       className="border-orange-200 text-orange-700 hover:bg-orange-50"
                     >
-                      <Download className="w-4 h-4 mr-2" />
+                      <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       Download
                     </Button>
                   </div>
@@ -953,8 +953,8 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                     />
                     {selectedFile && (
                       <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
-                        <p className="text-sm text-green-800">
-                          <FileSpreadsheet className="w-4 h-4 inline mr-2" />
+                        <p className="text-xs sm:text-sm text-green-800">
+                          <FileSpreadsheet className="w-3 h-3 sm:w-4 sm:h-4 inline mr-2" />
                           {selectedFile.name} ({(selectedFile.size / 1024).toFixed(2)} KB)
                         </p>
                       </div>
@@ -995,12 +995,12 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                   >
                     {isUploading ? (
                       <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
                         Uploading...
                       </>
                     ) : (
                       <>
-                        <Upload className="w-4 h-4 mr-2" />
+                        <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         Upload Teachers
                       </>
                     )}
@@ -1010,15 +1010,15 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
             </Dialog>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 text-white rounded-xl px-8 py-3 shadow-xl hover:shadow-2xl transition-all duration-300">
-                  <Plus className="w-5 h-5 mr-2" />
+                <Button className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 text-white rounded-xl px-4 sm:px-6 lg:px-8 py-3 shadow-xl hover:shadow-2xl transition-all duration-300">
+                  <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Add Teacher
                 </Button>
               </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] bg-white/95 border-orange-200 backdrop-blur-xl flex flex-col">
               <DialogHeader className="flex-shrink-0">
-                <DialogTitle className="text-xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">Add New Teacher</DialogTitle>
-                <DialogDescription className="text-gray-600 text-sm">
+                <DialogTitle className="text-lg sm:text-xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">Add New Teacher</DialogTitle>
+                <DialogDescription className="text-gray-600 text-xs sm:text-sm">
                   Create a new teacher account and assign subjects.
                 </DialogDescription>
               </DialogHeader>
@@ -1083,11 +1083,11 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                     Assign Subjects <span className="text-red-500">*</span>
                   </Label>
                   {subjects.length === 0 ? (
-                    <div className="text-sm text-gray-500 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                    <div className="text-xs sm:text-sm text-gray-500 p-4 bg-gray-50 rounded-xl border border-gray-200">
                       No subjects available. Please add subjects first.
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 border border-orange-200 rounded-xl bg-gray-50">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 border border-orange-200 rounded-xl bg-gray-50">
                       {subjects.map(subject => {
                         const subjectId = subject.id || subject._id;
                         const isSelected = newTeacher.subjects.includes(subjectId);
@@ -1126,7 +1126,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                                   )}
                                 </div>
                                 {isSelected && (
-                                  <CheckCircle className="w-4 h-4 text-white ml-1 flex-shrink-0" />
+                                  <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white ml-1 flex-shrink-0" />
                                 )}
                               </div>
                             </CardContent>
@@ -1166,7 +1166,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                     </div>
                   )}
                   {newTeacher.subjects.length === 0 && (
-                    <p className="text-sm text-red-500 mt-2">Please select at least one subject</p>
+                    <p className="text-xs sm:text-sm text-red-500 mt-2">Please select at least one subject</p>
                   )}
                 </div>
                 </form>
@@ -1185,7 +1185,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
         </div>
 
         {/* Teachers Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
           {filteredTeachers.map((teacher, index) => {
             const gradientColors = [
               'from-orange-500 to-orange-400',
@@ -1203,17 +1203,17 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="group relative overflow-hidden bg-white/80 backdrop-blur-xl rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all duration-300 border border-white/20"
+                className="group relative overflow-hidden bg-white/80 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 border border-white/20"
               >
                 <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-5 group-hover:opacity-10 transition-opacity duration-300`}></div>
                 <div className="relative z-10">
                   <div className="flex items-start justify-between mb-6">
                     <div className="flex items-center space-x-4">
-                      <div className={`w-16 h-16 bg-gradient-to-r ${gradient} rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg`}>
+                      <div className={`w-16 h-16 bg-gradient-to-r ${gradient} rounded-2xl flex items-center justify-center text-white font-bold text-lg sm:text-xl shadow-lg`}>
                         {teacher.fullName.split(' ').map(n => n[0]).join('')}
                       </div>
                       <div>
-                        <h3 className="font-bold text-gray-900 text-base sm:text-xl break-words">{teacher.fullName}</h3>
+                        <h3 className="font-bold text-gray-900 text-sm sm:text-base sm:text-xl break-words">{teacher.fullName}</h3>
                         <p className="text-gray-600 text-xs sm:text-sm break-all">{teacher.email}</p>
                       </div>
                     </div>
@@ -1224,27 +1224,27 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
 
                   <div className="space-y-4 mb-6">
                     {teacher.phone && (
-                      <div className="flex items-center text-sm text-gray-700 bg-white/50 rounded-xl p-3">
-                        <Phone className="w-4 h-4 mr-3 text-orange-600" />
+                      <div className="flex items-center text-xs sm:text-sm text-gray-700 bg-white/50 rounded-xl p-3">
+                        <Phone className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-orange-600" />
                         <span className="font-medium">{teacher.phone}</span>
                       </div>
                     )}
                     {teacher.department && (
-                      <div className="flex items-center text-sm text-gray-700 bg-white/50 rounded-xl p-3">
-                        <GraduationCap className="w-4 h-4 mr-3 text-orange-600" />
+                      <div className="flex items-center text-xs sm:text-sm text-gray-700 bg-white/50 rounded-xl p-3">
+                        <GraduationCap className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-orange-600" />
                         <span className="font-medium">{teacher.department}</span>
                       </div>
                     )}
                     {teacher.qualifications && (
-                      <div className="flex items-center text-sm text-gray-700 bg-white/50 rounded-xl p-3">
-                        <BookOpen className="w-4 h-4 mr-3 text-emerald-600" />
+                      <div className="flex items-center text-xs sm:text-sm text-gray-700 bg-white/50 rounded-xl p-3">
+                        <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-emerald-600" />
                         <span className="truncate font-medium">{teacher.qualifications}</span>
                       </div>
                     )}
                   </div>
 
                   <div className="mb-6">
-                    <h4 className="font-bold text-gray-900 text-sm mb-3">Subjects:</h4>
+                    <h4 className="font-bold text-gray-900 text-xs sm:text-sm mb-3">Subjects:</h4>
                     <div className="flex flex-wrap gap-2">
                       {teacher.subjects.map(subject => (
                         <Badge key={subject.id} className={`bg-gradient-to-r ${gradient} text-white border-0 rounded-lg px-3 py-1 text-xs font-medium`}>
@@ -1258,7 +1258,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                   </div>
 
                   <div className="mb-6">
-                    <h4 className="font-bold text-gray-900 text-sm mb-3">Assigned Classes:</h4>
+                    <h4 className="font-bold text-gray-900 text-xs sm:text-sm mb-3">Assigned Classes:</h4>
                     <div className="space-y-2">
                       {teacher.assignedClassIds && teacher.assignedClassIds.length > 0 ? (
                         teacher.assignedClassIds.map((classId) => {
@@ -1299,7 +1299,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                         onClick={() => openAssignClassDialog(teacher)}
                         title="Assign Class"
                       >
-                        <Users className="w-4 h-4" />
+                        <Users className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
                       <Button 
                         size="sm" 
@@ -1307,7 +1307,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                         className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl"
                         onClick={() => openAssignDialog(teacher)}
                       >
-                        <BookOpen className="w-4 h-4" />
+                        <BookOpen className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
                       <Button 
                         size="sm" 
@@ -1315,7 +1315,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                         className="border-red-200 text-red-700 hover:bg-red-50 rounded-xl"
                         onClick={() => handleDeleteTeacher(teacher.id, teacher.fullName)}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
                     </div>
                   </div>
@@ -1330,8 +1330,8 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
             <div className="w-24 h-24 bg-gradient-to-r from-orange-500 to-orange-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
               <Users className="w-12 h-12 text-white" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-3">No teachers found</h3>
-            <p className="text-gray-600 text-lg">Try adjusting your search criteria or add a new teacher.</p>
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3">No teachers found</h3>
+            <p className="text-gray-600 text-base sm:text-lg">Try adjusting your search criteria or add a new teacher.</p>
           </div>
         )}
 
@@ -1339,16 +1339,16 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
         <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
           <DialogContent className="max-w-2xl bg-white/95 border-orange-200 backdrop-blur-xl">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
+              <DialogTitle className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
                 Assign Subjects to {assigningTeacher?.fullName}
               </DialogTitle>
-              <DialogDescription className="text-gray-600 text-lg">
+              <DialogDescription className="text-gray-600 text-base sm:text-lg">
                 Select the subjects this teacher will teach.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleAssignDialogSubmit} className="space-y-6">
+            <form onSubmit={handleAssignDialogSubmit} className="space-y-3 sm:space-y-4 lg:space-y-6">
               <div>
-                <Label className="text-gray-700 font-medium text-lg">Available Subjects</Label>
+                <Label className="text-gray-700 font-medium text-base sm:text-lg">Available Subjects</Label>
                 <div className="mt-3 space-y-3 max-h-60 overflow-y-auto">
                   {subjects.map(subject => {
                     const subjectId = subject._id || subject.id;
@@ -1365,11 +1365,11 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                               setSelectedSubjects(selectedSubjects.filter(id => id !== subjectId));
                             }
                           }}
-                          className="w-5 h-5 text-orange-600 border-purple-300 rounded focus:ring-purple-500"
+                          className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 border-purple-300 rounded focus:ring-purple-500"
                         />
                         <label htmlFor={`subject-${subjectId}`} className="flex-1 cursor-pointer">
-                          <div className="font-bold text-gray-900 text-lg">{subject.name}</div>
-                          <div className="text-sm text-gray-600">{subject.code} - {subject.description}</div>
+                          <div className="font-bold text-gray-900 text-base sm:text-lg">{subject.name}</div>
+                          <div className="text-xs sm:text-sm text-gray-600">{subject.code} - {subject.description}</div>
                         </label>
                       </div>
                     );
@@ -1392,7 +1392,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
         <Dialog open={isAssignClassDialogOpen} onOpenChange={setIsAssignClassDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-semibold text-gray-800">
+              <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-800">
                 Assign Classes to {assigningClassTeacher?.fullName}
               </DialogTitle>
               <DialogDescription>
@@ -1420,7 +1420,7 @@ Jane Smith,jane.smith@school.edu,+1234567891,Science,MSc in Chemistry,Chemistry,
                         />
                         <div className="flex-1">
                           <div className="font-medium text-gray-900">{classItem.name}</div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-xs sm:text-sm text-gray-500">
                             {classItem.subject} • {classItem.schedule} • {classItem.room}
                           </div>
                           <div className="text-xs text-gray-400">

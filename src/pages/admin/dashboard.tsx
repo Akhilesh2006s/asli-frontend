@@ -57,7 +57,7 @@ const AdminTeacherDiaryFeed = lazy(() =>
 const AIChat = lazy(() => import('@/components/ai-chat'));
 
 const lazySectionFallback = (
-  <div className="rounded-xl border border-sky-100 bg-white p-6 text-sm text-slate-600 shadow-sm">
+  <div className="rounded-xl border border-sky-100 bg-white p-3 sm:p-4 lg:p-6 text-xs sm:text-sm text-slate-600 shadow-sm">
     Loading section...
   </div>
 );
@@ -278,9 +278,9 @@ const AdminDashboard = () => {
       <div className="min-h-screen bg-sky-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 bg-gradient-to-r from-sky-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
-            <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent mb-2">Loading...</h2>
+          <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-sky-600 to-blue-600 bg-clip-text text-transparent mb-2">Loading...</h2>
           <p className="text-gray-600">Preparing your admin dashboard</p>
         </div>
       </div>
@@ -310,7 +310,7 @@ const AdminDashboard = () => {
     }, [messages.length]);
     
     return (
-      <div className={`${isMobile ? 'fixed bottom-4 right-3 z-40' : 'fixed bottom-6 left-4 z-50'}`}>
+      <div className={`${isMobile ? 'fixed bottom-4 right-3 z-40' : 'fixed bottom-3 sm:m-4 lg:m-6 left-4 z-50'}`}>
         {/* Message Popup */}
         {!isMobile && (
         <div className="relative mb-2 animate-fade-in">
@@ -359,7 +359,7 @@ const AdminDashboard = () => {
         <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 backdrop-blur-xl border-b border-white/30 md:hidden">
           <div className="flex items-center justify-between p-responsive">
             <div className="flex items-center space-x-responsive">
-              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-white/20 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-responsive-sm">AS</span>
               </div>
               <div>
@@ -370,7 +370,7 @@ const AdminDashboard = () => {
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm">
-                  <Menu className="w-4 h-4" />
+                  <Menu className="w-3 h-3 sm:w-4 sm:h-4" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-64 bg-gradient-to-b from-orange-400 to-orange-500">
@@ -387,121 +387,121 @@ const AdminDashboard = () => {
                   <nav className="space-y-1">
                     <button
                       onClick={() => handleMobileTabChange('overview')}
-                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'overview' 
                           ? 'bg-white text-orange-600 shadow-md' 
                           : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <BarChart3 className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <BarChart3 className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                       <span className="truncate">Dashboard</span>
                     </button>
                     
                     <button
                       onClick={() => handleMobileTabChange('students')}
-                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'students' 
                           ? 'bg-white text-orange-600 shadow-md' 
                           : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <Users className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <Users className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                       <span className="truncate">Students</span>
                     </button>
                     
                     <button
                       onClick={() => handleMobileTabChange('classes')}
-                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'classes' 
                           ? 'bg-white text-orange-600 shadow-md' 
                           : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <GraduationCap className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <GraduationCap className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                       <span className="truncate">Classes</span>
                     </button>
                     
                     <button
                       onClick={() => handleMobileTabChange('teachers')}
-                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'teachers' 
                           ? 'bg-white text-orange-600 shadow-md' 
                           : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <Users className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <Users className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                       <span className="truncate">Teachers</span>
                     </button>
                     
                     <button
                       onClick={() => handleMobileTabChange('subjects')}
-                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'subjects' 
                           ? 'bg-white text-orange-600 shadow-md' 
                           : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <BookOpen className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <BookOpen className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                       <span className="truncate">Subjects</span>
                     </button>
                     
                     <button
                       onClick={() => handleMobileTabChange('exams')}
-                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'exams' 
                           ? 'bg-white text-orange-600 shadow-md' 
                           : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <FileText className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <FileText className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                       <span className="truncate">Exams</span>
                     </button>
                     
                     <button
                       onClick={() => handleMobileTabChange('learning-paths')}
-                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'learning-paths' 
                           ? 'bg-white text-orange-600 shadow-md' 
                           : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <Target className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <Target className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                       <span className="truncate">Learning Paths</span>
                     </button>
                     
                     <button
                       onClick={() => handleMobileTabChange('eduott')}
-                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'eduott' 
                           ? 'bg-white text-orange-600 shadow-md' 
                           : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <Play className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <Play className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                       <span className="truncate">EduOTT</span>
                     </button>
 
                     <button
                       onClick={() => handleMobileTabChange('calendar')}
-                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'calendar' 
                           ? 'bg-white text-orange-600 shadow-md' 
                           : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <CalendarIcon className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <CalendarIcon className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                       <span className="truncate">Calendar</span>
                     </button>
 
                     <button
                       onClick={() => handleMobileTabChange('vidya-ai')}
-                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'vidya-ai' 
                           ? 'bg-white text-orange-600 shadow-md' 
                           : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <Sparkles className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <Sparkles className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                       <span className="truncate">Vidya AI</span>
                     </button>
                     
@@ -542,7 +542,7 @@ const AdminDashboard = () => {
                       }}
                       className="w-full flex items-center space-x-responsive px-responsive py-responsive rounded-responsive text-left transition-all duration-200 backdrop-blur-sm text-responsive-sm text-gray-700 hover:bg-red-50 hover:text-red-900"
                     >
-                      <LogOut className="w-4 h-4" />
+                      <LogOut className="w-3 h-3 sm:w-4 sm:h-4" />
                       <span className="font-medium">Logout</span>
                     </button>
                   </nav>
@@ -557,13 +557,13 @@ const AdminDashboard = () => {
       {!isMobile && (
         <div className="hidden md:flex md:flex-col md:sticky md:top-0 md:h-screen w-64 bg-gradient-to-b from-orange-400 to-orange-500 shadow-2xl border-r border-orange-300 relative z-10">
         {/* Logo Section */}
-        <div className="p-6 border-b border-orange-300/50">
+        <div className="p-3 sm:p-4 lg:p-6 border-b border-orange-300/50">
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center shadow-xl">
-              <span className="text-white font-bold text-xl">AS</span>
+              <span className="text-white font-bold text-lg sm:text-xl">AS</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">ASLILEARN AI</h1>
+              <h1 className="text-lg sm:text-xl font-bold text-white">ASLILEARN AI</h1>
               <p className="text-xs text-white/90 font-medium">Admin Panel</p>
             </div>
           </div>
@@ -573,121 +573,121 @@ const AdminDashboard = () => {
         <nav className="flex-1 overflow-y-auto p-4 space-y-1 hide-scrollbar">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+            className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
               activeTab === 'overview' 
                 ? 'bg-white text-orange-600 shadow-md' 
                 : 'text-white hover:bg-orange-600/50'
             }`}
           >
-            <BarChart3 className="mr-3 h-5 w-5 flex-shrink-0" />
+            <BarChart3 className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
             <span className="truncate">Dashboard</span>
           </button>
           
           <button
             onClick={() => setActiveTab('students')}
-            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+            className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
               activeTab === 'students' 
                 ? 'bg-white text-orange-600 shadow-md' 
                 : 'text-white hover:bg-orange-600/50'
             }`}
           >
-            <Users className="mr-3 h-5 w-5 flex-shrink-0" />
+            <Users className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
             <span className="truncate">Students</span>
           </button>
           
           <button
             onClick={() => setActiveTab('classes')}
-            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+            className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
               activeTab === 'classes' 
                 ? 'bg-white text-orange-600 shadow-md' 
                 : 'text-white hover:bg-orange-600/50'
             }`}
           >
-            <GraduationCap className="mr-3 h-5 w-5 flex-shrink-0" />
+            <GraduationCap className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
             <span className="truncate">Classes</span>
           </button>
           
           <button
             onClick={() => setActiveTab('teachers')}
-            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+            className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
               activeTab === 'teachers' 
                 ? 'bg-white text-orange-600 shadow-md' 
                 : 'text-white hover:bg-orange-600/50'
             }`}
           >
-            <Users className="mr-3 h-5 w-5 flex-shrink-0" />
+            <Users className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
             <span className="truncate">Teachers</span>
           </button>
           
           <button
             onClick={() => setActiveTab('subjects')}
-            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+            className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
               activeTab === 'subjects' 
                 ? 'bg-white text-orange-600 shadow-md' 
                 : 'text-white hover:bg-orange-600/50'
             }`}
           >
-            <BookOpen className="mr-3 h-5 w-5 flex-shrink-0" />
+            <BookOpen className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
             <span className="truncate">Subjects</span>
           </button>
           
           <button
             onClick={() => setActiveTab('exams')}
-            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+            className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
               activeTab === 'exams' 
                 ? 'bg-white text-orange-600 shadow-md' 
                 : 'text-white hover:bg-orange-600/50'
             }`}
           >
-            <FileText className="mr-3 h-5 w-5 flex-shrink-0" />
+            <FileText className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
             <span className="truncate">Exams</span>
           </button>
           
           <button
             onClick={() => setActiveTab('learning-paths')}
-            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+            className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
               activeTab === 'learning-paths' 
                 ? 'bg-white text-orange-600 shadow-md' 
                 : 'text-white hover:bg-orange-600/50'
             }`}
           >
-            <Target className="mr-3 h-5 w-5 flex-shrink-0" />
+            <Target className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
             <span className="truncate">Learning Paths</span>
           </button>
           
                     <button
                       onClick={() => setActiveTab('eduott')}
-                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'eduott' 
                           ? 'bg-white text-orange-600 shadow-md' 
                           : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <Play className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <Play className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                       <span className="truncate">EduOTT</span>
                     </button>
                     
                     <button
                       onClick={() => setActiveTab('calendar')}
-                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'calendar' 
                           ? 'bg-white text-orange-600 shadow-md' 
                           : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <CalendarIcon className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <CalendarIcon className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                       <span className="truncate">Calendar</span>
                     </button>
                     
                     <button
                       onClick={() => setActiveTab('vidya-ai')}
-                      className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'vidya-ai' 
                           ? 'bg-white text-orange-600 shadow-md' 
                           : 'text-white hover:bg-orange-600/50'
                       }`}
                     >
-                      <Sparkles className="mr-3 h-5 w-5 flex-shrink-0" />
+                      <Sparkles className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                       <span className="truncate">Vidya AI</span>
                     </button>
           
@@ -698,7 +698,7 @@ const AdminDashboard = () => {
         {/* Main Content Area */}
         <div className="flex-1 w-full min-w-0 flex flex-col relative z-10 md:h-screen md:overflow-y-auto hide-scrollbar">
           {/* Top Header - Student Dashboard Theme */}
-          <div className="bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 shadow-xl border-b-0 rounded-b-3xl md:rounded-b-3xl rounded-b-2xl px-responsive py-6 relative z-10">
+          <div className="bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 shadow-xl border-b-0 rounded-b-3xl md:rounded-b-3xl rounded-b-2xl px-responsive py-3 sm:py-4 lg:py-6 relative z-10">
             <div className="flex-responsive-col items-center sm:items-start justify-between space-y-responsive sm:space-y-0">
               <div className="text-center sm:text-left">
                 <p className="text-xs uppercase tracking-[0.3em] text-gray-900 mb-2">Admin Control Center</p>
@@ -706,10 +706,10 @@ const AdminDashboard = () => {
                 <p className="text-gray-900 text-responsive-sm font-medium">Manage your learning platform with style</p>
                 {userData && (
                   <div className="mt-2">
-                    <p className="text-gray-800 text-sm font-medium">
+                    <p className="text-gray-800 text-xs sm:text-sm font-medium">
                       {userData.email} ::: {userData.schoolName || userData.fullName || 'School'}
                     </p>
-                    <p className="text-gray-900 text-base font-semibold mt-1">
+                    <p className="text-gray-900 text-sm sm:text-base font-semibold mt-1">
                       Welcome {userData.schoolName || userData.fullName || 'Admin'}
                     </p>
                   </div>
@@ -755,7 +755,7 @@ const AdminDashboard = () => {
                     }}
                     className="bg-white/90 text-gray-900 hover:bg-white rounded-full border-2 border-gray-300 backdrop-blur-sm font-semibold shadow-lg"
                   >
-                    <LogOut className="w-4 h-4 mr-responsive" />
+                    <LogOut className="w-3 h-3 sm:w-4 sm:h-4 mr-responsive" />
                     Logout
                   </Button>
                 </div>
@@ -766,7 +766,7 @@ const AdminDashboard = () => {
           {/* Content Area */}
           <div className={`flex-1 w-full p-responsive ${isMobile ? 'pt-20 pb-24' : ''} relative z-10`}>
           {activeTab === 'overview' && (
-            <div className="space-y-8">
+            <div className="space-y-4 sm:space-y-6 lg:space-y-8">
             {/* Colorful Stats Cards */}
             <div className="grid-responsive-4 gap-responsive">
               <motion.div
@@ -778,7 +778,7 @@ const AdminDashboard = () => {
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                      <Users className="w-8 h-8 text-white" />
+                      <Users className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                     </div>
                     <div className="text-right">
                       <p className="text-white/90 text-responsive-xs font-medium">Total Students</p>
@@ -799,7 +799,7 @@ const AdminDashboard = () => {
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                      <GraduationCap className="w-8 h-8 text-white" />
+                      <GraduationCap className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                     </div>
                     <div className="text-right">
                       <p className="text-white/90 text-responsive-xs font-medium">Active Classes</p>
@@ -820,7 +820,7 @@ const AdminDashboard = () => {
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                      <Activity className="w-8 h-8 text-white" />
+                      <Activity className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                     </div>
                     <div className="text-right">
                       <p className="text-white/90 text-responsive-xs font-medium">Active Users</p>
@@ -841,7 +841,7 @@ const AdminDashboard = () => {
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                      <Users className="w-8 h-8 text-white" />
+                      <Users className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                     </div>
                     <div className="text-right">
                       <p className="text-white/90 text-responsive-xs font-medium">Teachers</p>
@@ -862,7 +862,7 @@ const AdminDashboard = () => {
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                      <Play className="w-8 h-8 text-white" />
+                      <Play className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                     </div>
                     <div className="text-right">
                       <p className="text-white/90 text-responsive-xs font-medium">Videos</p>
@@ -883,7 +883,7 @@ const AdminDashboard = () => {
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                      <Target className="w-8 h-8 text-white" />
+                      <Target className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                     </div>
                     <div className="text-right">
                       <p className="text-white/90 text-responsive-xs font-medium">Assessments</p>
@@ -913,7 +913,7 @@ const AdminDashboard = () => {
                 <div className="relative z-10">
                 <div className="flex items-center space-x-3 mb-6">
                   <div className="p-3 bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl shadow-lg">
-                    <BarChart3 className="w-8 h-8 text-white" />
+                    <BarChart3 className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                   </div>
                   <div>
                     <h3 className="text-responsive-lg font-bold text-orange-600">Detailed School Analysis</h3>
@@ -922,27 +922,27 @@ const AdminDashboard = () => {
                 </div>
 
                 {isLoadingAnalytics ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+                  <div className="flex items-center justify-center py-4 sm:py-6 lg:py-8">
+                    <div className="animate-spin rounded-full h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 border-b-2 border-orange-600"></div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
                     {/* Class Distribution */}
                     <div className="bg-white rounded-lg p-4 shadow-md border border-gray-200">
                       <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
-                        <GraduationCap className="w-5 h-5 mr-2 text-orange-600" />
+                        <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-orange-600" />
                         Class Distribution
                       </h4>
                       <div className="space-y-2">
                         {topClassDistribution.length > 0 ? (
                           topClassDistribution.map((item: any, idx: number) => (
-                            <div key={idx} className="flex justify-between items-center text-sm">
+                            <div key={idx} className="flex justify-between items-center text-xs sm:text-sm">
                               <span className="text-gray-700">{item.className || item.class || 'Unknown'}</span>
                               <span className="font-semibold text-orange-600">{item.count || 0} students</span>
                             </div>
                           ))
                         ) : (
-                          <div className="text-sm text-gray-500">No class data available</div>
+                          <div className="text-xs sm:text-sm text-gray-500">No class data available</div>
                         )}
                       </div>
                     </div>
@@ -950,26 +950,26 @@ const AdminDashboard = () => {
                     {/* Performance Metrics */}
                     <div className="bg-white rounded-lg p-4 shadow-md border border-gray-200">
                       <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
-                        <TrendingUp className="w-5 h-5 mr-2 text-green-600" />
+                        <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-green-600" />
                         Performance Metrics
                       </h4>
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Average Score</span>
-                          <span className="text-lg font-bold text-green-600">
+                          <span className="text-xs sm:text-sm text-gray-600">Average Score</span>
+                          <span className="text-base sm:text-lg font-bold text-green-600">
                             {studentAnalytics.performanceMetrics?.averageScore || 0}%
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-gray-600">Total Exams Taken</span>
-                          <span className="text-lg font-bold text-orange-600">
+                          <span className="text-xs sm:text-sm text-gray-600">Total Exams Taken</span>
+                          <span className="text-base sm:text-lg font-bold text-orange-600">
                             {studentAnalytics.performanceMetrics?.totalExamsTaken || 0}
                           </span>
                         </div>
                         {studentAnalytics.performanceMetrics?.topPerformers && studentAnalytics.performanceMetrics.topPerformers.length > 0 && (
                           <div className="pt-2 border-t">
                             <p className="text-xs text-gray-500 mb-1">Top Performer</p>
-                            <p className="text-sm font-semibold text-gray-900">
+                            <p className="text-xs sm:text-sm font-semibold text-gray-900">
                               {studentAnalytics.performanceMetrics.topPerformers[0]?.studentName || 'N/A'}
                             </p>
                             <p className="text-xs text-gray-600">
@@ -983,13 +983,13 @@ const AdminDashboard = () => {
                     {/* Subject Performance */}
                     <div className="bg-white rounded-lg p-4 shadow-md border border-gray-200">
                       <h4 className="font-semibold text-gray-900 mb-3 flex items-center">
-                        <BookOpen className="w-5 h-5 mr-2 text-orange-600" />
+                        <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-orange-600" />
                         Subject Performance
                       </h4>
                       <div className="space-y-2">
                         {topSubjectPerformance.length > 0 ? (
                           topSubjectPerformance.map((subject: any, idx: number) => (
-                            <div key={idx} className="flex justify-between items-center text-sm">
+                            <div key={idx} className="flex justify-between items-center text-xs sm:text-sm">
                               <span className="text-gray-700 capitalize">{subject.subject || subject.name || 'Unknown'}</span>
                               <div className="flex items-center space-x-2">
                                 <span className="font-semibold text-orange-600">{subject.averageScore || 0}%</span>
@@ -1003,7 +1003,7 @@ const AdminDashboard = () => {
                             </div>
                           ))
                         ) : (
-                          <div className="text-sm text-gray-500">No subject data available</div>
+                          <div className="text-xs sm:text-sm text-gray-500">No subject data available</div>
                         )}
                       </div>
                     </div>
@@ -1025,7 +1025,7 @@ const AdminDashboard = () => {
                 <div className="relative z-10">
                   <div className="flex items-center space-x-3 mb-6">
                     <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                      <Users className="w-8 h-8 text-white" />
+                      <Users className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                     </div>
                     <h3 className="text-responsive-lg font-bold text-white">Your Students</h3>
                   </div>
@@ -1051,19 +1051,19 @@ const AdminDashboard = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 }}
                 onClick={() => setActiveTab('teachers')}
-                className="relative overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-3xl p-8 shadow-xl cursor-pointer hover:scale-105 transition-all duration-300"
+                className="relative overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl cursor-pointer hover:scale-105 transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                 <div className="relative z-10">
                   <div className="flex items-center space-x-3 mb-6">
                     <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                      <GraduationCap className="w-8 h-8 text-white" />
+                      <GraduationCap className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                     </div>
-                    <h3 className="text-2xl font-bold text-white">Your Teachers</h3>
+                    <h3 className="text-xl sm:text-2xl font-bold text-white">Your Teachers</h3>
                   </div>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-white/90 text-lg font-medium">Total Teachers Assigned</span>
+                      <span className="text-white/90 text-base sm:text-lg font-medium">Total Teachers Assigned</span>
                       <span className="text-responsive-xl font-bold text-white">
                         {isLoadingStats ? '...' : (stats.totalTeachers || 0)}
                       </span>
@@ -1125,21 +1125,21 @@ const AdminDashboard = () => {
             </Suspense>
           )}
           {activeTab === 'vidya-ai' && (
-            <div className="space-y-6">
+            <div className="space-y-3 sm:space-y-4 lg:space-y-6">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
                 className="space-y-5"
               >
-                <div className="rounded-2xl bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 p-6 shadow-lg border border-white/40">
+                <div className="rounded-2xl bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 p-3 sm:p-4 lg:p-6 shadow-lg border border-white/40">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="w-11 h-11 rounded-xl bg-white/25 backdrop-blur-sm flex items-center justify-center border border-white/40">
-                      <Sparkles className="w-5 h-5 text-white" />
+                      <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
                     <Badge className="bg-white text-sky-700 hover:bg-white">School Operations</Badge>
                   </div>
-                  <h2 className="text-3xl font-bold text-white">School AI Assistant</h2>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-white">School AI Assistant</h2>
                   <p className="text-white/90 mt-1">Manage students, teachers, and academic workflows</p>
                 </div>
 
@@ -1159,9 +1159,9 @@ const AdminDashboard = () => {
                       >
                         <CardContent className="p-4">
                           <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-sky-100 to-teal-100 flex items-center justify-center mb-3">
-                            <Icon className="w-4 h-4 text-sky-700" />
+                            <Icon className="w-3 h-3 sm:w-4 sm:h-4 text-sky-700" />
                           </div>
-                          <h3 className="text-sm font-semibold text-slate-900">{action.title}</h3>
+                          <h3 className="text-xs sm:text-sm font-semibold text-slate-900">{action.title}</h3>
                           <p className="text-xs text-slate-600 mt-1">{action.description}</p>
                         </CardContent>
                       </Card>
@@ -1172,19 +1172,19 @@ const AdminDashboard = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="rounded-xl bg-white border border-sky-100 px-4 py-3 shadow-sm">
                     <p className="text-xs uppercase tracking-wide text-slate-500">Total Students</p>
-                    <p className="text-2xl font-bold text-sky-700 mt-1">{isLoadingStats ? "..." : stats.totalStudents}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-sky-700 mt-1">{isLoadingStats ? "..." : stats.totalStudents}</p>
                   </div>
                   <div className="rounded-xl bg-white border border-teal-100 px-4 py-3 shadow-sm">
                     <p className="text-xs uppercase tracking-wide text-slate-500">Active Classes</p>
-                    <p className="text-2xl font-bold text-teal-700 mt-1">{isLoadingStats ? "..." : stats.totalClasses}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-teal-700 mt-1">{isLoadingStats ? "..." : stats.totalClasses}</p>
                   </div>
                   <div className="rounded-xl bg-white border border-cyan-100 px-4 py-3 shadow-sm">
                     <p className="text-xs uppercase tracking-wide text-slate-500">Exams Scheduled</p>
-                    <p className="text-2xl font-bold text-cyan-700 mt-1">{isLoadingStats ? "..." : stats.totalAssessments}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-cyan-700 mt-1">{isLoadingStats ? "..." : stats.totalAssessments}</p>
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-sky-100 bg-gradient-to-r from-sky-50 to-teal-50 px-4 py-3 text-sm text-slate-700">
+                <div className="rounded-xl border border-sky-100 bg-gradient-to-r from-sky-50 to-teal-50 px-4 py-3 text-xs sm:text-sm text-slate-700">
                   AI assists with administrative tasks and reporting
                 </div>
 
@@ -1192,7 +1192,7 @@ const AdminDashboard = () => {
 
                 <div className="w-full max-w-5xl mx-auto rounded-2xl bg-gradient-to-b from-sky-50 via-cyan-50 to-teal-50 p-4 border border-white/70 shadow-xl">
                   <div className="rounded-t-2xl border-b border-sky-100 bg-white/90 px-5 py-4">
-                    <h3 className="text-base font-semibold text-gray-800">Chat with Vidya AI</h3>
+                    <h3 className="text-sm sm:text-base font-semibold text-gray-800">Chat with Vidya AI</h3>
                     <p className="text-xs text-gray-500 mt-0.5">
                       Ask about your school&apos;s students, attendance, exams, and performance data.
                     </p>

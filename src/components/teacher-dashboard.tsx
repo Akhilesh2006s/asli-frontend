@@ -467,7 +467,7 @@ const TeacherDashboard = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600 mx-auto mb-4"></div>
           <p className="text-sky-700">Loading teacher dashboard...</p>
-          <p className="text-sky-600 text-sm mt-2">If you're not logged in, you'll be redirected to the login page.</p>
+          <p className="text-sky-600 text-xs sm:text-sm mt-2">If you're not logged in, you'll be redirected to the login page.</p>
         </div>
       </div>
     );
@@ -489,8 +489,8 @@ const TeacherDashboard = () => {
                 {teacher?.fullName?.split(' ').map(n => n[0]).join('') || 'T'}
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-sky-900">Teacher Dashboard</h1>
-                <p className="text-sm text-sky-700">Welcome back, {teacher?.fullName || 'Teacher'}!</p>
+                <h1 className="text-lg sm:text-xl font-semibold text-sky-900">Teacher Dashboard</h1>
+                <p className="text-xs sm:text-sm text-sky-700">Welcome back, {teacher?.fullName || 'Teacher'}!</p>
                 <p className="text-xs text-sky-600">
                   Email: {teacher?.email || 'Not loaded'}
                 </p>
@@ -507,29 +507,29 @@ const TeacherDashboard = () => {
               variant="outline" 
               className="border-sky-200 text-sky-700 hover:bg-sky-50"
             >
-              <LogOut className="w-4 h-4 mr-2" />
+              <LogOut className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Logout
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:p-4 lg:p-6 mb-8">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white/70 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-sky-200"
+            className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg border border-sky-200"
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sky-700 text-sm font-medium">Total Quizzes</p>
-                <p className="text-3xl font-bold text-sky-900">{totalQuizzes}</p>
+                <p className="text-sky-700 text-xs sm:text-sm font-medium">Total Quizzes</p>
+                <p className="text-2xl sm:text-3xl font-bold text-sky-900">{totalQuizzes}</p>
               </div>
               <div className="p-3 bg-sky-100 rounded-xl">
-                <FileText className="w-6 h-6 text-sky-600" />
+                <FileText className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-sky-600" />
               </div>
             </div>
           </motion.div>
@@ -538,15 +538,15 @@ const TeacherDashboard = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-white/70 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-sky-200"
+            className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg border border-sky-200"
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sky-700 text-sm font-medium">Total Videos</p>
-                <p className="text-3xl font-bold text-sky-900">{totalVideos}</p>
+                <p className="text-sky-700 text-xs sm:text-sm font-medium">Total Videos</p>
+                <p className="text-2xl sm:text-3xl font-bold text-sky-900">{totalVideos}</p>
               </div>
               <div className="p-3 bg-sky-100 rounded-xl">
-                <Play className="w-6 h-6 text-sky-600" />
+                <Play className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-sky-600" />
               </div>
             </div>
           </motion.div>
@@ -555,15 +555,15 @@ const TeacherDashboard = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-white/70 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-sky-200"
+            className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg border border-sky-200"
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sky-700 text-sm font-medium">Total Assessments</p>
-                <p className="text-3xl font-bold text-sky-900">{totalAssessments}</p>
+                <p className="text-sky-700 text-xs sm:text-sm font-medium">Total Assessments</p>
+                <p className="text-2xl sm:text-3xl font-bold text-sky-900">{totalAssessments}</p>
               </div>
               <div className="p-3 bg-sky-100 rounded-xl">
-                <BarChart3 className="w-6 h-6 text-sky-600" />
+                <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-sky-600" />
               </div>
             </div>
           </motion.div>
@@ -572,22 +572,22 @@ const TeacherDashboard = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-white/70 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-sky-200"
+            className="bg-white/70 backdrop-blur-xl rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg border border-sky-200"
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sky-700 text-sm font-medium">Active Content</p>
-                <p className="text-3xl font-bold text-sky-900">{activeContent}</p>
+                <p className="text-sky-700 text-xs sm:text-sm font-medium">Active Content</p>
+                <p className="text-2xl sm:text-3xl font-bold text-sky-900">{activeContent}</p>
               </div>
               <div className="p-3 bg-sky-100 rounded-xl">
-                <CheckCircle className="w-6 h-6 text-sky-600" />
+                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-sky-600" />
               </div>
             </div>
           </motion.div>
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3 sm:space-y-4 lg:space-y-6">
           <TabsList className="bg-white/40 backdrop-blur-xl border border-sky-200">
             <TabsTrigger value="overview" className="data-[state=active]:bg-sky-100 data-[state=active]:text-sky-900">
               Overview
@@ -600,19 +600,19 @@ const TeacherDashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview" className="space-y-6">
+          <TabsContent value="overview" className="space-y-3 sm:space-y-4 lg:space-y-6">
             {/* Teacher Profile Section */}
             <Card className="bg-gradient-to-r from-sky-50 to-blue-50 border-sky-200">
                 <CardHeader>
                   <CardTitle className="text-sky-900 flex items-center">
-                  <Users className="w-5 h-5 mr-2" />
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Teacher Profile
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:p-4 lg:p-6">
                         <div>
-                    <h3 className="text-lg font-semibold text-sky-900 mb-2">Personal Information</h3>
+                    <h3 className="text-base sm:text-lg font-semibold text-sky-900 mb-2">Personal Information</h3>
                     <div className="space-y-2">
                       <p><span className="font-medium">Name:</span> {teacher?.fullName || 'Loading...'}</p>
                       <p><span className="font-medium">Email:</span> {teacher?.email || 'Loading...'}</p>
@@ -620,7 +620,7 @@ const TeacherDashboard = () => {
                         </div>
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-sky-900 mb-2">Assigned Subjects</h3>
+                    <h3 className="text-base sm:text-lg font-semibold text-sky-900 mb-2">Assigned Subjects</h3>
                     <div className="flex flex-wrap gap-2">
                       {teacher?.subjects?.length && teacher.subjects.length > 0 ? (
                         teacher.subjects.map(subject => (
@@ -638,52 +638,52 @@ const TeacherDashboard = () => {
               </Card>
 
             {/* Content Statistics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:p-4 lg:p-6">
               <Card className="bg-white/70 backdrop-blur-xl border-sky-200">
-                <CardContent className="p-6">
+                <CardContent className="p-3 sm:p-4 lg:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-sky-600">Total Videos</p>
-                      <p className="text-2xl font-bold text-sky-900">{videos.length}</p>
+                      <p className="text-xs sm:text-sm font-medium text-sky-600">Total Videos</p>
+                      <p className="text-xl sm:text-2xl font-bold text-sky-900">{videos.length}</p>
                     </div>
-                    <Play className="w-8 h-8 text-sky-500" />
+                    <Play className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-sky-500" />
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="bg-white/70 backdrop-blur-xl border-sky-200">
-                <CardContent className="p-6">
+                <CardContent className="p-3 sm:p-4 lg:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-sky-600">Total Quizzes</p>
-                      <p className="text-2xl font-bold text-sky-900">{quizzes.length}</p>
+                      <p className="text-xs sm:text-sm font-medium text-sky-600">Total Quizzes</p>
+                      <p className="text-xl sm:text-2xl font-bold text-sky-900">{quizzes.length}</p>
                     </div>
-                    <FileText className="w-8 h-8 text-sky-500" />
+                    <FileText className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-sky-500" />
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="bg-white/70 backdrop-blur-xl border-sky-200">
-                <CardContent className="p-6">
+                <CardContent className="p-3 sm:p-4 lg:p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-sky-600">Total Assessments</p>
-                      <p className="text-2xl font-bold text-sky-900">{assessments.length}</p>
+                      <p className="text-xs sm:text-sm font-medium text-sky-600">Total Assessments</p>
+                      <p className="text-xl sm:text-2xl font-bold text-sky-900">{assessments.length}</p>
                     </div>
-                    <BarChart3 className="w-8 h-8 text-sky-500" />
+                    <BarChart3 className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-sky-500" />
                   </div>
                 </CardContent>
               </Card>
             </div>
 
             {/* Recent Content */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
               {/* Recent Videos */}
               <Card className="bg-white/70 backdrop-blur-xl border-sky-200">
                 <CardHeader>
                   <CardTitle className="text-sky-900 flex items-center justify-between">
                     <div className="flex items-center">
-                    <Play className="w-5 h-5 mr-2" />
+                    <Play className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                     Recent Videos
                     </div>
                     <Button 
@@ -695,14 +695,14 @@ const TeacherDashboard = () => {
                         if (videosTab) videosTab.click();
                       }}
                     >
-                      <Plus className="w-4 h-4 mr-1" />
+                      <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                       Add Video
                     </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {videos.length === 0 ? (
-                    <div className="text-center py-6">
+                    <div className="text-center py-3 sm:py-4 lg:py-6">
                       <Play className="w-12 h-12 text-sky-300 mx-auto mb-3" />
                       <p className="text-sky-600 mb-3">No videos uploaded yet</p>
                       <Button 
@@ -712,7 +712,7 @@ const TeacherDashboard = () => {
                           if (videosTab) videosTab.click();
                         }}
                       >
-                        <Upload className="w-4 h-4 mr-2" />
+                        <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         Upload Your First Video
                       </Button>
                     </div>
@@ -722,15 +722,15 @@ const TeacherDashboard = () => {
                         <div key={video.id} className="flex items-center justify-between p-3 bg-sky-50 rounded-lg hover:bg-sky-100 transition-colors">
                           <div className="flex-1">
                           <p className="font-medium text-sky-900">{video.title}</p>
-                          <p className="text-sm text-sky-600">{video.subject}</p>
+                          <p className="text-xs sm:text-sm text-sky-600">{video.subject}</p>
                             <p className="text-xs text-sky-500">{video.duration} min</p>
                         </div>
                           <div className="flex gap-2">
                             <Button size="sm" variant="outline" className="text-sky-600 border-sky-300">
-                              <Eye className="w-4 h-4" />
+                              <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                             </Button>
                             <Button size="sm" variant="outline" className="text-sky-600 border-sky-300">
-                              <Edit className="w-4 h-4" />
+                              <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                             </Button>
                           </div>
                       </div>
@@ -759,7 +759,7 @@ const TeacherDashboard = () => {
                 <CardHeader>
                   <CardTitle className="text-sky-900 flex items-center justify-between">
                     <div className="flex items-center">
-                      <FileText className="w-5 h-5 mr-2" />
+                      <FileText className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                       Recent Quizzes
                     </div>
                     <Button 
@@ -770,14 +770,14 @@ const TeacherDashboard = () => {
                         if (quizzesTab) quizzesTab.click();
                       }}
                     >
-                      <Plus className="w-4 h-4 mr-1" />
+                      <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                     Create Quiz
                   </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {quizzes.length === 0 ? (
-                    <div className="text-center py-6">
+                    <div className="text-center py-3 sm:py-4 lg:py-6">
                       <FileText className="w-12 h-12 text-sky-300 mx-auto mb-3" />
                       <p className="text-sky-600 mb-3">No quizzes created yet</p>
                       <Button 
@@ -787,7 +787,7 @@ const TeacherDashboard = () => {
                           if (quizzesTab) quizzesTab.click();
                         }}
                       >
-                        <Plus className="w-4 h-4 mr-2" />
+                        <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         Create Your First Quiz
                       </Button>
                       </div>
@@ -797,15 +797,15 @@ const TeacherDashboard = () => {
                         <div key={quiz.id} className="flex items-center justify-between p-3 bg-sky-50 rounded-lg hover:bg-sky-100 transition-colors">
                           <div className="flex-1">
                             <p className="font-medium text-sky-900">{quiz.title}</p>
-                            <p className="text-sm text-sky-600">{quiz.subject}</p>
+                            <p className="text-xs sm:text-sm text-sky-600">{quiz.subject}</p>
                             <p className="text-xs text-sky-500">{quiz.questions?.length || 0} questions</p>
                       </div>
                           <div className="flex gap-2">
                             <Button size="sm" variant="outline" className="text-sky-600 border-sky-300">
-                              <Eye className="w-4 h-4" />
+                              <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                             </Button>
                             <Button size="sm" variant="outline" className="text-sky-600 border-sky-300">
-                              <Edit className="w-4 h-4" />
+                              <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                             </Button>
                     </div>
                       </div>
@@ -835,7 +835,7 @@ const TeacherDashboard = () => {
               <CardHeader>
                 <CardTitle className="text-green-900 flex items-center justify-between">
                   <div className="flex items-center">
-                    <FileText className="w-5 h-5 mr-2" />
+                    <FileText className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                     Quiz Management
                   </div>
                   <Button 
@@ -846,7 +846,7 @@ const TeacherDashboard = () => {
                       window.open('/admin/dashboard', '_blank');
                     }}
                   >
-                    <FileText className="w-4 h-4 mr-1" />
+                    <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                     Manage Quizzes
                       </Button>
                 </CardTitle>
@@ -854,9 +854,9 @@ const TeacherDashboard = () => {
               <CardContent>
                 <div className="bg-white/60 rounded-lg p-4">
                   <div className="flex items-center space-x-3">
-                    <FileText className="w-8 h-8 text-green-600" />
+                    <FileText className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-green-600" />
                     <div>
-                      <p className="text-sm font-medium text-green-900">Create and manage quiz questions</p>
+                      <p className="text-xs sm:text-sm font-medium text-green-900">Create and manage quiz questions</p>
                       <p className="text-xs text-green-600">Access the admin dashboard to create quizzes for your subjects</p>
                     </div>
             </div>
@@ -869,7 +869,7 @@ const TeacherDashboard = () => {
                   <CardHeader>
                 <CardTitle className="text-sky-900 flex items-center justify-between">
                   <div className="flex items-center">
-                    <BarChart3 className="w-5 h-5 mr-2" />
+                    <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                     Recent Assessments
                   </div>
                   <Button 
@@ -880,14 +880,14 @@ const TeacherDashboard = () => {
                       if (assessmentsTab) assessmentsTab.click();
                     }}
                   >
-                    <Plus className="w-4 h-4 mr-1" />
+                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                     Create Assessment
                   </Button>
                 </CardTitle>
                   </CardHeader>
                   <CardContent>
                 {assessments.length === 0 ? (
-                  <div className="text-center py-6">
+                  <div className="text-center py-3 sm:py-4 lg:py-6">
                     <BarChart3 className="w-12 h-12 text-sky-300 mx-auto mb-3" />
                     <p className="text-sky-600 mb-3">No assessments created yet</p>
                     <Button 
@@ -897,7 +897,7 @@ const TeacherDashboard = () => {
                         if (assessmentsTab) assessmentsTab.click();
                       }}
                     >
-                      <Plus className="w-4 h-4 mr-2" />
+                      <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       Create Your First Assessment
                     </Button>
                       </div>
@@ -907,15 +907,15 @@ const TeacherDashboard = () => {
                       <div key={assessment.id} className="flex items-center justify-between p-3 bg-sky-50 rounded-lg hover:bg-sky-100 transition-colors">
                         <div className="flex-1">
                           <p className="font-medium text-sky-900">{assessment.title}</p>
-                          <p className="text-sm text-sky-600">{assessment.subject}</p>
+                          <p className="text-xs sm:text-sm text-sky-600">{assessment.subject}</p>
                           <p className="text-xs text-sky-500">{assessment.duration} min • {assessment.totalPoints} points</p>
                       </div>
                         <div className="flex gap-2">
                           <Button size="sm" variant="outline" className="text-sky-600 border-sky-300">
-                            <Eye className="w-4 h-4" />
+                            <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                           </Button>
                           <Button size="sm" variant="outline" className="text-sky-600 border-sky-300">
-                            <Edit className="w-4 h-4" />
+                            <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                           </Button>
                       </div>
                     </div>
@@ -941,17 +941,17 @@ const TeacherDashboard = () => {
           </TabsContent>
 
 
-          <TabsContent value="videos" className="space-y-6">
+          <TabsContent value="videos" className="space-y-3 sm:space-y-4 lg:space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Video Management</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Video Management</h2>
                 <p className="text-gray-600">Upload and manage educational videos</p>
               </div>
               <Dialog open={isVideoDialogOpen} onOpenChange={setIsVideoDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-sky-600 hover:bg-sky-700">
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     Upload Video
                   </Button>
                 </DialogTrigger>
@@ -982,7 +982,7 @@ const TeacherDashboard = () => {
                         rows={3}
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="subject">Learning Path</Label>
                         <Select value={newVideo.subjectId} onValueChange={(value) => {
@@ -1031,7 +1031,7 @@ const TeacherDashboard = () => {
                           onChange={(e) => setNewVideo({ ...newVideo, isYouTubeVideo: e.target.checked })}
                           className="rounded"
                         />
-                        <Label htmlFor="isYouTubeVideo" className="text-sm font-medium">
+                        <Label htmlFor="isYouTubeVideo" className="text-xs sm:text-sm font-medium">
                           This is a YouTube Video
                         </Label>
                       </div>
@@ -1090,7 +1090,7 @@ const TeacherDashboard = () => {
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3 sm:w-4 sm:h-4" />
                   <Input
                     placeholder="Search videos..."
                     className="pl-10"
@@ -1119,20 +1119,20 @@ const TeacherDashboard = () => {
             {videos.length === 0 ? (
               <div className="text-center py-12">
                 <div className="w-16 h-16 bg-sky-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Play className="w-8 h-8 text-sky-600" />
+                  <Play className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-sky-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-sky-900 mb-2">No Videos Yet</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-sky-900 mb-2">No Videos Yet</h3>
                 <p className="text-sky-600 mb-4">Upload your first video lecture for your assigned subjects.</p>
                 <Button 
                   onClick={() => setIsVideoDialogOpen(true)}
                   className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Upload Your First Video
                 </Button>
               </div>
             ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
                 {videos
                   .filter(video => {
                     const matchesSearch = video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1162,10 +1162,10 @@ const TeacherDashboard = () => {
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-2">
+                          <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 line-clamp-2">
                             {video.title}
                           </CardTitle>
-                          <p className="text-sm text-gray-600 mt-1">{video.description || video.subject || ''}</p>
+                          <p className="text-xs sm:text-sm text-gray-600 mt-1">{video.description || video.subject || ''}</p>
                         </div>
                         <Badge 
                           variant="outline" 
@@ -1182,14 +1182,14 @@ const TeacherDashboard = () => {
                     
                     <CardContent className="pt-0">
                       {/* Metadata */}
-                      <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                      <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500 mb-4">
                         <div className="flex items-center space-x-4">
                           <div className="flex items-center">
-                            <Clock className="w-4 h-4 mr-1" />
+                            <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                             <span>{video.duration}min</span>
                           </div>
                           <div className="flex items-center">
-                            <Eye className="w-4 h-4 mr-1" />
+                            <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                             <span>{video.views || 0} views</span>
                           </div>
                         </div>
@@ -1199,8 +1199,8 @@ const TeacherDashboard = () => {
                       {video.driveLink && (
                         <div className="mb-3 p-2 bg-blue-50 rounded-lg">
                           <div className="flex items-center space-x-2">
-                            <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                            <span className="text-sm text-blue-700">Google Drive Document</span>
+                            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-500 rounded"></div>
+                            <span className="text-xs sm:text-sm text-blue-700">Google Drive Document</span>
                           </div>
                           <div className="mt-1 flex items-center space-x-2">
                             <span className="text-xs text-gray-600">{video.title}</span>
@@ -1218,7 +1218,7 @@ const TeacherDashboard = () => {
                       {video.programmingLink && (
                         <div className="mb-3 p-2 bg-green-50 rounded-lg">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-green-700">Programiz Online Java Compiler</span>
+                            <span className="text-xs sm:text-sm text-green-700">Programiz Online Java Compiler</span>
                             <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white text-xs h-6">
                               Programiz PRO
                             </Button>
@@ -1238,17 +1238,17 @@ const TeacherDashboard = () => {
                               setIsEditVideoDialogOpen(true);
                             }}
                           >
-                            <Edit className="w-4 h-4" />
+                            <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                           </Button>
                           <Button size="sm" variant="outline" className="p-2">
-                            <Play className="w-4 h-4" />
+                            <Play className="w-3 h-3 sm:w-4 sm:h-4" />
                           </Button>
                           <Button size="sm" variant="outline" className="p-2 text-red-600 hover:bg-red-50">
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                           </Button>
                         </div>
                         <Button size="sm" variant="outline" className="flex items-center space-x-1">
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                           <span>View</span>
                         </Button>
                       </div>
@@ -1259,17 +1259,17 @@ const TeacherDashboard = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="assessments" className="space-y-6">
+          <TabsContent value="assessments" className="space-y-3 sm:space-y-4 lg:space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Assessment Management</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Assessment Management</h2>
                 <p className="text-gray-600">Create and manage assessments for your students</p>
               </div>
               <Dialog open={isAssessmentDialogOpen} onOpenChange={setIsAssessmentDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-sky-600 hover:bg-sky-700">
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     Create Assessment
                   </Button>
                 </DialogTrigger>
@@ -1300,7 +1300,7 @@ const TeacherDashboard = () => {
                         rows={3}
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="subject">Subject</Label>
                         <Select value={newAssessment.subject} onValueChange={(value) => setNewAssessment({ ...newAssessment, subject: value })}>
@@ -1329,7 +1329,7 @@ const TeacherDashboard = () => {
                         </Select>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="difficulty">Difficulty</Label>
                         <Select value={newAssessment.difficulty} onValueChange={(value: 'beginner' | 'intermediate' | 'advanced') => setNewAssessment({ ...newAssessment, difficulty: value })}>
@@ -1353,7 +1353,7 @@ const TeacherDashboard = () => {
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div>
                         <Label htmlFor="totalMarks">Total Marks</Label>
                         <Input
@@ -1393,7 +1393,7 @@ const TeacherDashboard = () => {
                           onChange={(e) => setNewAssessment({ ...newAssessment, isDriveQuiz: e.target.checked })}
                           className="rounded"
                         />
-                        <Label htmlFor="isDriveQuiz" className="text-sm font-medium">
+                        <Label htmlFor="isDriveQuiz" className="text-xs sm:text-sm font-medium">
                           This is a Google Drive Quiz/Exam
                         </Label>
                       </div>
@@ -1431,7 +1431,7 @@ const TeacherDashboard = () => {
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3 sm:w-4 sm:h-4" />
                   <Input
                     placeholder="Search assessments..."
                     className="pl-10"
@@ -1460,20 +1460,20 @@ const TeacherDashboard = () => {
             {assessments.length === 0 ? (
               <div className="text-center py-12">
                 <div className="w-16 h-16 bg-sky-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <BarChart3 className="w-8 h-8 text-sky-600" />
+                  <BarChart3 className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-sky-600" />
                 </div>
-                <h3 className="text-lg font-semibold text-sky-900 mb-2">No Assessments Yet</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-sky-900 mb-2">No Assessments Yet</h3>
                 <p className="text-sky-600 mb-4">Create your first assessment for your assigned subjects.</p>
                 <Button 
                   onClick={() => setIsAssessmentDialogOpen(true)}
                   className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Create Your First Assessment
                 </Button>
               </div>
             ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
                 {assessments
                   .filter(assessment => {
                     const matchesSearch = assessment.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1486,10 +1486,10 @@ const TeacherDashboard = () => {
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-2">
+                          <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 line-clamp-2">
                             {assessment.title}
                           </CardTitle>
-                          <p className="text-sm text-gray-600 mt-1">{assessment.description || assessment.subject || ''}</p>
+                          <p className="text-xs sm:text-sm text-gray-600 mt-1">{assessment.description || assessment.subject || ''}</p>
                         </div>
                         <div className="flex flex-col space-y-1 ml-2">
                           <Badge variant="secondary" className="bg-gray-100 text-gray-600 text-xs">
@@ -1511,32 +1511,32 @@ const TeacherDashboard = () => {
                     
                     <CardContent className="pt-0">
                       {/* Assessment Details */}
-                      <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+                      <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500 mb-4">
                         <div className="flex items-center space-x-4">
                           <div className="flex items-center">
-                            <Clock className="w-4 h-4 mr-1" />
+                            <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                             <span>{assessment.duration}min</span>
                       </div>
                           <div className="flex items-center">
-                            <FileText className="w-4 h-4 mr-1" />
+                            <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                             <span>Q</span>
                       </div>
                           <div className="flex items-center">
-                            <Users className="w-4 h-4 mr-1" />
+                            <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                             <span>attempts</span>
                       </div>
                     </div>
                       </div>
                       
                       {/* Total Marks and Passing */}
-                      <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                         <div>
-                          <span className="text-sm text-gray-600">Total Marks:</span>
-                          <span className="ml-2 text-sm font-medium">{assessment.totalPoints || 0}</span>
+                          <span className="text-xs sm:text-sm text-gray-600">Total Marks:</span>
+                          <span className="ml-2 text-xs sm:text-sm font-medium">{assessment.totalPoints || 0}</span>
                         </div>
                         <div>
-                          <span className="text-sm text-gray-600">Passing:</span>
-                          <span className="ml-2 text-sm font-medium">{Math.floor((assessment.totalPoints || 0) * 0.6)}</span>
+                          <span className="text-xs sm:text-sm text-gray-600">Passing:</span>
+                          <span className="ml-2 text-xs sm:text-sm font-medium">{Math.floor((assessment.totalPoints || 0) * 0.6)}</span>
                         </div>
                       </div>
                       
@@ -1544,8 +1544,8 @@ const TeacherDashboard = () => {
                       {assessment.driveLink && (
                         <div className="mb-3 p-2 bg-blue-50 rounded-lg">
                           <div className="flex items-center space-x-2">
-                            <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                            <span className="text-sm text-blue-700">Google Drive Document</span>
+                            <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-500 rounded"></div>
+                            <span className="text-xs sm:text-sm text-blue-700">Google Drive Document</span>
                           </div>
                           <div className="mt-1 flex items-center space-x-2">
                             <span className="text-xs text-gray-600">{assessment.title}</span>
@@ -1563,7 +1563,7 @@ const TeacherDashboard = () => {
                       {assessment.programmingLink && (
                         <div className="mb-3 p-2 bg-green-50 rounded-lg">
                           <div className="flex items-center justify-between">
-                            <span className="text-sm text-green-700">Programiz Online Java Compiler</span>
+                            <span className="text-xs sm:text-sm text-green-700">Programiz Online Java Compiler</span>
                             <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white text-xs h-6">
                               Programiz PRO
                             </Button>
@@ -1575,17 +1575,17 @@ const TeacherDashboard = () => {
                       <div className="flex items-center justify-between">
                     <div className="flex space-x-2">
                           <Button size="sm" variant="outline" className="p-2">
-                            <Edit className="w-4 h-4" />
+                            <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
                           <Button size="sm" variant="outline" className="p-2">
-                            <Play className="w-4 h-4" />
+                            <Play className="w-3 h-3 sm:w-4 sm:h-4" />
                           </Button>
                           <Button size="sm" variant="outline" className="p-2 text-red-600 hover:bg-red-50">
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                           </Button>
                         </div>
                         <Button size="sm" variant="outline" className="flex items-center space-x-1">
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                           <span>View</span>
                       </Button>
                     </div>
@@ -1626,7 +1626,7 @@ const TeacherDashboard = () => {
                   rows={3}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-subject">Subject</Label>
                   <Select value={editingVideo.subject} onValueChange={(value) => setEditingVideo({ ...editingVideo, subject: value })}>

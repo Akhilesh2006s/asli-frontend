@@ -26,7 +26,7 @@ function sanitizeFileName(s: string) {
 
 function addMetaRow(container: HTMLElement, label: string, value: string) {
   const p = document.createElement("p");
-  p.className = "text-sm mb-1.5 leading-relaxed";
+  p.className = "text-xs sm:text-sm mb-1.5 leading-relaxed";
   const strong = document.createElement("span");
   strong.className = "font-semibold text-gray-900";
   strong.textContent = `${label} `;
@@ -113,7 +113,7 @@ export async function downloadGenerationsPdf(title: string, records: PdfRecord[]
   wrapper.style.pointerEvents = "none";
 
   const titleEl = document.createElement("h1");
-  titleEl.className = "text-xl font-bold text-gray-900 mb-6 pb-2 border-b border-gray-200";
+  titleEl.className = "text-lg sm:text-xl font-bold text-gray-900 mb-6 pb-2 border-b border-gray-200";
   titleEl.textContent = title;
   wrapper.appendChild(titleEl);
 
@@ -152,7 +152,7 @@ export async function downloadGenerationsPdf(title: string, records: PdfRecord[]
 
   if (records.length === 0) {
     const empty = document.createElement("p");
-    empty.className = "text-sm text-gray-600";
+    empty.className = "text-xs sm:text-sm text-gray-600";
     empty.textContent = "No records in this export.";
     wrapper.appendChild(empty);
   }

@@ -311,18 +311,18 @@ export default function ExamViewOnly() {
   };
 
   if (isLoading) {
-    return <div className="p-6">Loading exams...</div>;
+    return <div className="p-3 sm:p-4 lg:p-6">Loading exams...</div>;
   }
 
   if (selectedExam) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-3 sm:space-y-4 lg:space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <Button variant="outline" onClick={() => setSelectedExam(null)}>
               ← Back to Exams
             </Button>
-            <h2 className="text-2xl font-bold mt-4">{selectedExam.title}</h2>
+            <h2 className="text-xl sm:text-2xl font-bold mt-4">{selectedExam.title}</h2>
           </div>
         </div>
 
@@ -330,7 +330,7 @@ export default function ExamViewOnly() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <Filter className="h-5 w-5 mr-2" />
+              <Filter className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
               Filter Results
             </CardTitle>
           </CardHeader>
@@ -399,7 +399,7 @@ export default function ExamViewOnly() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[0, 1, 2, 3].map((i) => (
               <Card key={i}>
-                <CardContent className="p-6 animate-pulse">
+                <CardContent className="p-3 sm:p-4 lg:p-6 animate-pulse">
                   <div className="h-4 w-24 bg-gray-200 rounded mb-3" />
                   <div className="h-8 w-16 bg-gray-200 rounded" />
                 </CardContent>
@@ -409,46 +409,46 @@ export default function ExamViewOnly() {
         ) : analytics ? (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Total Students</p>
-                    <p className="text-2xl font-bold">{analytics.totalStudents}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Total Students</p>
+                    <p className="text-xl sm:text-2xl font-bold">{analytics.totalStudents}</p>
                   </div>
-                  <Users className="h-8 w-8 text-blue-500" />
+                  <Users className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-blue-500" />
                 </div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Attempted</p>
-                    <p className="text-2xl font-bold">{analytics.attemptedCount}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Attempted</p>
+                    <p className="text-xl sm:text-2xl font-bold">{analytics.attemptedCount}</p>
                   </div>
-                  <TrendingUp className="h-8 w-8 text-green-500" />
+                  <TrendingUp className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-green-500" />
                 </div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Not Attempted</p>
-                    <p className="text-2xl font-bold">{analytics.notAttemptedCount}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Not Attempted</p>
+                    <p className="text-xl sm:text-2xl font-bold">{analytics.notAttemptedCount}</p>
                   </div>
-                  <Clock className="h-8 w-8 text-orange-500" />
+                  <Clock className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-orange-500" />
                 </div>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Average Score</p>
-                    <p className="text-2xl font-bold">{analytics.averageScore}%</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Average Score</p>
+                    <p className="text-xl sm:text-2xl font-bold">{analytics.averageScore}%</p>
                   </div>
-                  <BarChart3 className="h-8 w-8 text-purple-500" />
+                  <BarChart3 className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-purple-500" />
                 </div>
               </CardContent>
             </Card>
@@ -466,7 +466,7 @@ export default function ExamViewOnly() {
                 {analytics.topPerformers.map((performer: any, idx: number) => (
                   <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded">
                     <div className="flex items-center space-x-4">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+                      <div className={`w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center font-bold ${
                         idx === 0 ? 'bg-yellow-500 text-white' :
                         idx === 1 ? 'bg-gray-400 text-white' :
                         idx === 2 ? 'bg-orange-500 text-white' :
@@ -476,14 +476,14 @@ export default function ExamViewOnly() {
                       </div>
                       <div>
                         <p className="font-medium">{performer.studentName}</p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-xs sm:text-sm text-gray-600">
                           {performer.studentEmail} • Class {normalizeClassNumberForDisplay(performer.classNumber)}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-green-600">{getPerformerPercentage(performer)}%</p>
-                      <p className="text-sm text-gray-600">{performer.marks}</p>
+                      <p className="text-xs sm:text-sm text-gray-600">{performer.marks}</p>
                     </div>
                   </div>
                 ))}
@@ -502,7 +502,7 @@ export default function ExamViewOnly() {
                 size="sm"
                 onClick={() => exportToCSV()}
               >
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                 Export CSV
               </Button>
             </CardTitle>
@@ -528,7 +528,7 @@ export default function ExamViewOnly() {
                         <td className="py-3 px-4">
                           <div>
                             <p className="font-medium">{result.userId.fullName}</p>
-                            <p className="text-sm text-gray-600">{result.userId.email}</p>
+                            <p className="text-xs sm:text-sm text-gray-600">{result.userId.email}</p>
                           </div>
                         </td>
                         <td className="py-3 px-4">{normalizeClassNumberForDisplay(result.userId.classNumber)}</td>
@@ -549,7 +549,7 @@ export default function ExamViewOnly() {
                             );
                           })()}
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">
+                        <td className="py-3 px-4 text-xs sm:text-sm text-gray-600">
                           {new Date(result.completedAt).toLocaleString()}
                         </td>
                       </tr>
@@ -558,7 +558,7 @@ export default function ExamViewOnly() {
                 </table>
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-4 sm:py-6 lg:py-8 text-gray-500">
                 No results found for this exam.
               </div>
             )}
@@ -569,14 +569,14 @@ export default function ExamViewOnly() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Exams (View Only)</h2>
+          <h2 className="text-xl sm:text-2xl font-bold">Exams (View Only)</h2>
           <p className="text-gray-600 mt-1">View exams created by Super Admin for your board</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Label className="text-sm text-gray-600 whitespace-nowrap">Class</Label>
+          <Label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Class</Label>
           <Select value={listClassFilter} onValueChange={setListClassFilter}>
             <SelectTrigger className="w-[200px] bg-white">
               <SelectValue placeholder="All classes" />
@@ -610,7 +610,7 @@ export default function ExamViewOnly() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
           {filteredExams.map((exam, index) => {
             const status = getExamStatus(exam);
             const classLabels = getExamClassStrings(exam);
@@ -630,7 +630,7 @@ export default function ExamViewOnly() {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-lg mb-2 text-gray-900 break-words leading-tight">
+                      <CardTitle className="text-base sm:text-lg mb-2 text-gray-900 break-words leading-tight">
                         {exam.title}
                       </CardTitle>
                       <div className="flex flex-wrap items-center gap-2 mt-2 min-h-[2.25rem]">
@@ -655,21 +655,21 @@ export default function ExamViewOnly() {
                     </div>
                   </div>
                   {exam.description && (
-                    <p className={`text-sm text-white/90 mt-2 line-clamp-2`}>{exam.description}</p>
+                    <p className={`text-xs sm:text-sm text-white/90 mt-2 line-clamp-2`}>{exam.description}</p>
                   )}
                 </CardHeader>
                 <CardContent className="pt-0 flex-1 flex flex-col">
-                  <div className="space-y-2 text-sm text-white">
+                  <div className="space-y-2 text-xs sm:text-sm text-white">
                     <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2 text-white" />
+                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-2 text-white" />
                       <span className="text-white">{exam.duration} minutes</span>
                     </div>
                     <div className="flex items-center">
-                      <BookOpen className="h-4 w-4 mr-2 text-white" />
+                      <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-2 text-white" />
                       <span className="text-white">{exam.totalQuestions} questions • {exam.totalMarks} marks</span>
                     </div>
                     <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2 text-white" />
+                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-2 text-white" />
                       <span className="text-xs text-white">
                         {new Date(exam.startDate).toLocaleDateString()} - {new Date(exam.endDate).toLocaleDateString()}
                       </span>
@@ -684,7 +684,7 @@ export default function ExamViewOnly() {
                     className="w-full mt-auto pt-4 bg-white/90 text-gray-900 border-white/30 hover:bg-white hover:text-gray-900" 
                     onClick={() => handleViewExam(exam)}
                   >
-                    <Eye className="h-4 w-4 mr-2" />
+                    <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                     View Results & Analytics
                   </Button>
                 </CardContent>

@@ -132,64 +132,64 @@ const ClassManagement = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Modern Header with Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-br from-pink-600 to-pink-700 rounded-xl p-6 shadow-sm">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:p-4 lg:p-6">
+        <div className="bg-gradient-to-br from-pink-600 to-pink-700 rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-white/90">Total Classes</p>
-              <p className="text-2xl font-bold text-white">{classes.length}</p>
+              <p className="text-xs sm:text-sm font-medium text-white/90">Total Classes</p>
+              <p className="text-xl sm:text-2xl font-bold text-white">{classes.length}</p>
             </div>
             <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-6 h-6 text-white" />
+              <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
             </div>
           </div>
         </div>
         
-        <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl p-6 shadow-sm">
+        <div className="bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-white/90">Active Classes</p>
-              <p className="text-2xl font-bold text-white">{classes.filter(c => c.status === 'active').length}</p>
+              <p className="text-xs sm:text-sm font-medium text-white/90">Active Classes</p>
+              <p className="text-xl sm:text-2xl font-bold text-white">{classes.filter(c => c.status === 'active').length}</p>
             </div>
             <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-white" />
+              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
             </div>
           </div>
         </div>
         
-        <div className="bg-gradient-to-br from-orange-600 to-orange-700 rounded-xl p-6 shadow-sm">
+        <div className="bg-gradient-to-br from-orange-600 to-orange-700 rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-white/90">Total Students</p>
-              <p className="text-2xl font-bold text-white">{classes.reduce((sum, c) => sum + (c.studentCount || 0), 0)}</p>
+              <p className="text-xs sm:text-sm font-medium text-white/90">Total Students</p>
+              <p className="text-xl sm:text-2xl font-bold text-white">{classes.reduce((sum, c) => sum + (c.studentCount || 0), 0)}</p>
             </div>
             <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-              <Users className="w-6 h-6 text-white" />
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
             </div>
           </div>
         </div>
         
-        <div className="bg-gradient-to-br from-sky-600 to-sky-700 rounded-xl p-6 shadow-sm">
+        <div className="bg-gradient-to-br from-sky-600 to-sky-700 rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-white/90">Total Videos</p>
-              <p className="text-2xl font-bold text-white">{classes.reduce((sum, c) => sum + (c.videoCount || 0), 0)}</p>
+              <p className="text-xs sm:text-sm font-medium text-white/90">Total Videos</p>
+              <p className="text-xl sm:text-2xl font-bold text-white">{classes.reduce((sum, c) => sum + (c.videoCount || 0), 0)}</p>
             </div>
             <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-              <Video className="w-6 h-6 text-white" />
+              <Video className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Action Bar */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+      <div className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm border border-gray-200">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3 sm:w-4 sm:h-4" />
               <Input
                 placeholder="Search classes..."
                 value={searchTerm}
@@ -198,7 +198,7 @@ const ClassManagement = () => {
               />
             </div>
             <Button variant="outline" size="sm" className="border-gray-300 text-gray-700 hover:bg-gray-50">
-              <Filter className="w-4 h-4 mr-2" />
+              <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Filter
             </Button>
           </div>
@@ -206,7 +206,7 @@ const ClassManagement = () => {
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Add Class
                 </Button>
               </DialogTrigger>
@@ -258,18 +258,18 @@ const ClassManagement = () => {
       </div>
 
       {/* Modern Classes Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
         {filteredClasses.map((classItem) => (
           <div key={classItem.id} className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
-            <div className="p-6">
+            <div className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-                    <GraduationCap className="w-6 h-6 text-white" />
+                    <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">{classItem.className || 'Unnamed Class'}</h3>
-                    <p className="text-sm text-gray-600">Class {classItem.classNumber || 'N/A'}</p>
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">{classItem.className || 'Unnamed Class'}</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">Class {classItem.classNumber || 'N/A'}</p>
                   </div>
                 </div>
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -286,28 +286,28 @@ const ClassManagement = () => {
                 </span>
               </div>
               
-              <p className="text-sm text-gray-600 mb-4">{classItem.description || 'No description available'}</p>
+              <p className="text-xs sm:text-sm text-gray-600 mb-4">{classItem.description || 'No description available'}</p>
               
               {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                 <div className="bg-blue-50 rounded-lg p-3 text-center">
-                  <Users className="w-5 h-5 text-blue-600 mx-auto mb-1" />
-                  <p className="text-lg font-semibold text-blue-900">{classItem.studentCount || 0}</p>
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mx-auto mb-1" />
+                  <p className="text-base sm:text-lg font-semibold text-blue-900">{classItem.studentCount || 0}</p>
                   <p className="text-xs text-blue-600">Students</p>
                 </div>
                 <div className="bg-purple-50 rounded-lg p-3 text-center">
-                  <Video className="w-5 h-5 text-purple-600 mx-auto mb-1" />
-                  <p className="text-lg font-semibold text-purple-900">{classItem.videoCount || 0}</p>
+                  <Video className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 mx-auto mb-1" />
+                  <p className="text-base sm:text-lg font-semibold text-purple-900">{classItem.videoCount || 0}</p>
                   <p className="text-xs text-purple-600">Videos</p>
                 </div>
                 <div className="bg-orange-50 rounded-lg p-3 text-center">
-                  <Target className="w-5 h-5 text-orange-600 mx-auto mb-1" />
-                  <p className="text-lg font-semibold text-orange-900">{classItem.quizCount || 0}</p>
+                  <Target className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 mx-auto mb-1" />
+                  <p className="text-base sm:text-lg font-semibold text-orange-900">{classItem.quizCount || 0}</p>
                   <p className="text-xs text-orange-600">Quizzes</p>
                 </div>
                 <div className="bg-red-50 rounded-lg p-3 text-center">
-                  <Award className="w-5 h-5 text-red-600 mx-auto mb-1" />
-                  <p className="text-lg font-semibold text-red-900">{classItem.assessmentCount || 0}</p>
+                  <Award className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 mx-auto mb-1" />
+                  <p className="text-base sm:text-lg font-semibold text-red-900">{classItem.assessmentCount || 0}</p>
                   <p className="text-xs text-red-600">Assessments</p>
                 </div>
               </div>
@@ -316,13 +316,13 @@ const ClassManagement = () => {
               <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                 <div className="flex items-center space-x-2">
                   <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                    <Eye className="w-4 h-4" />
+                    <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                   </Button>
                   <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900">
-                    <Edit className="w-4 h-4" />
+                    <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                   </Button>
                   <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                   </Button>
                 </div>
                 <div className="text-xs text-gray-500">
@@ -339,13 +339,13 @@ const ClassManagement = () => {
         <Card>
           <CardContent className="p-12 text-center">
             <GraduationCap className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Classes Found</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No Classes Found</h3>
             <p className="text-gray-600 mb-4">
               {searchTerm ? 'No classes match your search criteria.' : 'Get started by creating your first class.'}
             </p>
             {!searchTerm && (
               <Button onClick={() => setIsAddDialogOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Create First Class
               </Button>
             )}

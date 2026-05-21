@@ -192,17 +192,17 @@ export default function IQRankBoostSubjects() {
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4">
               <Link href="/dashboard">
                 <Button variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Back to Dashboard
                 </Button>
               </Link>
             </div>
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-pink-500 rounded-lg flex items-center justify-center">
-                <Zap className="w-6 h-6 text-white" />
+                <Zap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">IQ/Rank Boost Practice</h1>
+                <h1 className="text-xl sm:text-2xl sm:text-3xl font-bold text-gray-900">IQ/Rank Boost Practice</h1>
                 <p className="text-gray-600">
                   {studentClass ? `Practice questions for Class ${studentClass}` : 'Practice questions to boost your IQ and rank'}
                 </p>
@@ -212,7 +212,7 @@ export default function IQRankBoostSubjects() {
 
           {/* Subjects Grid */}
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Card key={i}>
                   <CardHeader>
@@ -229,7 +229,7 @@ export default function IQRankBoostSubjects() {
             <Card>
               <CardContent className="py-16 text-center">
                 <Brain className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">No Quizzes Available</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Quizzes Available</h3>
                 <p className="text-gray-500">
                   {studentClass 
                     ? `No IQ/Rank Boost quizzes have been generated for Class ${studentClass} yet.`
@@ -238,17 +238,17 @@ export default function IQRankBoostSubjects() {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-3 sm:space-y-4 lg:space-y-6">
               {subjects.map((subject) => (
                 <Card key={subject._id} className="hover:shadow-lg transition-shadow duration-200">
                   <CardHeader>
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-pink-500 rounded-lg flex items-center justify-center">
-                          <BookOpen className="w-5 h-5 text-white" />
+                          <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                         </div>
                         <div>
-                          <CardTitle className="text-xl">{subject.name}</CardTitle>
+                          <CardTitle className="text-lg sm:text-xl">{subject.name}</CardTitle>
                           <CardDescription>
                             {subject.totalQuizzes} {subject.totalQuizzes === 1 ? 'Quiz' : 'Quizzes'} • {subject.totalQuestions} {subject.totalQuestions === 1 ? 'Question' : 'Questions'}
                           </CardDescription>
@@ -257,7 +257,7 @@ export default function IQRankBoostSubjects() {
                       {subject.latestScore !== undefined && (
                         <div className="p-3 bg-gradient-to-r from-blue-500 to-pink-500 rounded-lg text-white">
                           <div className="flex items-center gap-2">
-                            <Trophy className="w-5 h-5" />
+                            <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
                             <span className="font-semibold">Latest: {subject.latestScore}%</span>
                           </div>
                         </div>
@@ -276,7 +276,7 @@ export default function IQRankBoostSubjects() {
                               <div className="flex items-center justify-between">
                                 <div className="flex-1">
                                   <h4 className="font-semibold text-gray-900">{quiz.title}</h4>
-                                  <p className="text-sm text-gray-600 mt-1">
+                                  <p className="text-xs sm:text-sm text-gray-600 mt-1">
                                     {quiz.totalQuestions} questions • {quiz.difficulty.charAt(0).toUpperCase() + quiz.difficulty.slice(1)} difficulty
                                   </p>
                                   {quiz.description && (
@@ -286,7 +286,7 @@ export default function IQRankBoostSubjects() {
                                 <div className="flex items-center gap-3 ml-4">
                                   {isCompleted && quizResult && (
                                     <div className="text-right">
-                                      <p className="text-sm font-semibold text-green-600">{quizResult.score}%</p>
+                                      <p className="text-xs sm:text-sm font-semibold text-green-600">{quizResult.score}%</p>
                                       <p className="text-xs text-gray-500">Completed</p>
                                     </div>
                                   )}
@@ -298,7 +298,7 @@ export default function IQRankBoostSubjects() {
                                         : "bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600 text-white"
                                       }
                                     >
-                                      <Target className="w-4 h-4 mr-2" />
+                                      <Target className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                                       {isCompleted ? 'Retake' : 'Start Quiz'}
                                     </Button>
                                   </Link>

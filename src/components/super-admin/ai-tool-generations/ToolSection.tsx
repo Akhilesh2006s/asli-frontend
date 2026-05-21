@@ -33,7 +33,7 @@ export function ToolSection({
       <Collapsible open={open} onOpenChange={setOpen} className="w-full min-w-0">
         <CollapsibleTrigger className="flex w-full items-start gap-3 text-left px-4 py-4 md:px-5 md:py-4 hover:bg-white/60 transition-colors">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white shadow-sm shadow-orange-500/25">
-            <Sparkles className="h-4 w-4" />
+            <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
           </span>
           <div className="min-w-0 flex-1 pt-0.5">
             <div className="flex flex-wrap items-center gap-2">

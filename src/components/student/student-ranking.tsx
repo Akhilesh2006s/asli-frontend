@@ -84,9 +84,9 @@ export default function StudentRanking() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Your Performance Rankings</h2>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Your Performance Rankings</h2>
         <p className="text-gray-600 mt-1">Your rank and percentile across all exams</p>
       </div>
 
@@ -110,22 +110,22 @@ export default function StudentRanking() {
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <CardTitle className="text-base font-semibold leading-snug truncate">
+                        <CardTitle className="text-sm sm:text-base font-semibold leading-snug truncate">
                           {ranking.examTitle || 'Exam'}
                         </CardTitle>
                         <p className="text-xs text-white/80 mt-1">
                           {att != null ? `Attempt ${att}` : `Result #${idx + 1}`}
                         </p>
                       </div>
-                      <Icon className={`h-5 w-5 ${iconColor} bg-white rounded-full p-0.5`} />
+                      <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${iconColor} bg-white rounded-full p-0.5`} />
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-end justify-between">
-                      <p className="text-3xl font-bold">#{ranking.rank}</p>
+                      <p className="text-2xl sm:text-3xl font-bold">#{ranking.rank}</p>
                       <Badge className={`${percentileBadge.color} border-0`}>{percentileBadge.label}</Badge>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
                       <div className="rounded-lg bg-white/15 p-2">
                         <p className="text-white/80 text-xs">Score</p>
                         <p className="font-semibold">{ranking.percentage.toFixed(1)}%</p>
@@ -143,7 +143,7 @@ export default function StudentRanking() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Leaderboard</CardTitle>
+              <CardTitle className="text-base sm:text-lg">Leaderboard</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {sortedRankings.map((ranking, idx) => {
@@ -179,25 +179,25 @@ export default function StudentRanking() {
         <Card className="bg-gradient-to-br from-purple-50 to-pink-50">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <BarChart3 className="h-5 w-5 mr-2" />
+              <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
               Overall Performance Summary
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center p-4 bg-white rounded-lg">
-                <p className="text-sm text-gray-600 mb-1">Average Percentile</p>
-                <p className="text-3xl font-bold text-purple-900">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1">Average Percentile</p>
+                <p className="text-2xl sm:text-3xl font-bold text-purple-900">
                   {Math.round(sortedRankings.reduce((sum, r) => sum + r.percentile, 0) / sortedRankings.length)}
                 </p>
               </div>
               <div className="text-center p-4 bg-white rounded-lg">
-                <p className="text-sm text-gray-600 mb-1">Exams Completed</p>
-                <p className="text-3xl font-bold text-purple-900">{sortedRankings.length}</p>
+                <p className="text-xs sm:text-sm text-gray-600 mb-1">Exams Completed</p>
+                <p className="text-2xl sm:text-3xl font-bold text-purple-900">{sortedRankings.length}</p>
               </div>
               <div className="text-center p-4 bg-white rounded-lg">
-                <p className="text-sm text-gray-600 mb-1">Average Score</p>
-                <p className="text-3xl font-bold text-purple-900">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1">Average Score</p>
+                <p className="text-2xl sm:text-3xl font-bold text-purple-900">
                   {(sortedRankings.reduce((sum, r) => sum + r.percentage, 0) / sortedRankings.length).toFixed(1)}%
                 </p>
               </div>

@@ -722,13 +722,13 @@ export default function StudentExams() {
     const used = Math.max(counted, fromThisResult);
     const attemptsRemaining = Math.max(0, maxA - used);
     return (
-      <div className="min-h-screen bg-sky-50 px-4 py-6">
+      <div className="min-h-screen bg-sky-50 px-4 py-3 sm:py-4 lg:py-6">
         {postExamVidyaPrompt && (
           <div className="mx-auto mt-4 max-w-5xl rounded-xl border border-sky-300 bg-sky-50 p-4">
             <div className="flex items-start gap-3">
               <img src="/Vidya-ai.jpg" className="h-9 w-9 rounded-full object-cover" alt="Vidya" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-sky-800">{postExamVidyaPrompt}</p>
+                <p className="text-xs sm:text-sm font-medium text-sky-800">{postExamVidyaPrompt}</p>
                 <button
                   onClick={() => {
                     apiFetch('/api/vidya/student/proactive/delivered', {
@@ -763,9 +763,9 @@ export default function StudentExams() {
       <div className="min-h-screen bg-sky-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
-            <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent mb-2">Loading...</h2>
+          <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent mb-2">Loading...</h2>
           <p className="text-gray-600">Checking authentication...</p>
         </div>
       </div>
@@ -778,10 +778,10 @@ export default function StudentExams() {
         <div className="text-center">
           <div className="text-red-500 mb-4">
             <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-3 sm:m-4 lg:m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Authentication Required</h3>
+          <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">Authentication Required</h3>
           <p className="text-gray-600 mb-4">Please log in to access exams</p>
           <button 
             onClick={() => setLocation('/signin')} 
@@ -799,9 +799,9 @@ export default function StudentExams() {
       <div className="min-h-screen bg-sky-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
-            <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
           </div>
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent mb-2">Loading...</h2>
+          <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent mb-2">Loading...</h2>
           <p className="text-gray-600">Loading exams...</p>
         </div>
       </div>
@@ -814,10 +814,10 @@ export default function StudentExams() {
         <div className="text-center">
           <div className="text-red-500 mb-4">
             <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-3 sm:m-4 lg:m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Exams</h3>
+          <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">Error Loading Exams</h3>
           <p className="text-gray-600 mb-4">{error.message}</p>
           <button 
             onClick={() => window.location.reload()} 
@@ -839,10 +839,10 @@ export default function StudentExams() {
         
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent mb-2">Exams</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent mb-2">Exams</h1>
           <p className="text-gray-600">Take practice exams and track your progress</p>
           <div className="flex flex-wrap items-center gap-2 mt-4">
-            <Label htmlFor="exam-class-filter" className="text-sm text-gray-600 whitespace-nowrap">
+            <Label htmlFor="exam-class-filter" className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">
               Class
             </Label>
             <Select
@@ -864,7 +864,7 @@ export default function StudentExams() {
                 ))}
               </SelectContent>
             </Select>
-            <Label htmlFor="exam-subject-filter" className="text-sm text-gray-600 whitespace-nowrap sm:ml-2">
+            <Label htmlFor="exam-subject-filter" className="text-xs sm:text-sm text-gray-600 whitespace-nowrap sm:ml-2">
               Subject
             </Label>
             <Select
@@ -886,8 +886,8 @@ export default function StudentExams() {
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3 sm:space-y-4 lg:space-y-6">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
             <TabsTrigger value="available">Available Exams</TabsTrigger>
             <TabsTrigger value="attempted">Attempted Exams</TabsTrigger>
             <TabsTrigger value="ranking">My Rankings</TabsTrigger>
@@ -895,8 +895,8 @@ export default function StudentExams() {
           </TabsList>
 
           {/* Available Exams */}
-          <TabsContent value="available" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <TabsContent value="available" className="space-y-3 sm:space-y-4 lg:space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
               {availableActiveExams.map((exam: Exam, index: number) => {
                 const status = getExamStatus(exam);
                 // Randomly assign one of the three dashboard colors
@@ -918,9 +918,9 @@ export default function StudentExams() {
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <CardTitle className="text-lg mb-2 text-gray-900">{exam.title}</CardTitle>
+                          <CardTitle className="text-base sm:text-lg mb-2 text-gray-900">{exam.title}</CardTitle>
                           {exam.description && (
-                            <p className={`text-sm ${colorScheme.text}/90 mb-3 line-clamp-2`}>{exam.description}</p>
+                            <p className={`text-xs sm:text-sm ${colorScheme.text}/90 mb-3 line-clamp-2`}>{exam.description}</p>
                           )}
                           <div className="flex flex-wrap gap-2 mt-2">
                             <Badge className={`${colorScheme.badge} border-0`}>
@@ -946,23 +946,23 @@ export default function StudentExams() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className={`space-y-2 text-sm ${colorScheme.text} mb-4`}>
+                      <div className={`space-y-2 text-xs sm:text-sm ${colorScheme.text} mb-4`}>
                         <div className="flex items-center">
-                          <Clock className="h-4 w-4 mr-2" />
+                          <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                           <span>{exam.duration} minutes</span>
                         </div>
                         <div className="flex items-center">
-                          <BookOpen className="h-4 w-4 mr-2" />
+                          <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                           <span>{hydratedQuestionCount} questions • {exam.totalMarks} marks</span>
                         </div>
                         <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-2" />
+                          <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                           <span className="text-xs">
                             {new Date(exam.startDate).toLocaleDateString()} - {new Date(exam.endDate).toLocaleDateString()}
                           </span>
                         </div>
                         <div className="flex items-center text-xs font-medium">
-                          <Target className="h-4 w-4 mr-2" />
+                          <Target className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                           <span>
                             Attempts: {attemptCountByExamId.get(String(exam._id)) || 0} /{' '}
                             {getMaxAttemptsForExam(exam)}
@@ -976,7 +976,7 @@ export default function StudentExams() {
                         className="w-full bg-white/90 text-gray-900 border-white/30 hover:bg-white hover:text-gray-900 shadow-lg"
                         disabled={status.status === 'ended' || startingExamId === exam._id}
                       >
-                        <Play className="w-4 h-4 mr-2" />
+                        <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         {startingExamId === exam._id
                           ? 'Checking...'
                           : status.status === 'active'
@@ -994,7 +994,7 @@ export default function StudentExams() {
             {availableActiveExams.length === 0 && (
               <div className="text-center py-12">
                 <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Available Exams</h3>
+                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No Available Exams</h3>
                 <p className="text-gray-600">
                   No active exams are available right now. Check Upcoming for scheduled exams.
                 </p>
@@ -1003,8 +1003,8 @@ export default function StudentExams() {
           </TabsContent>
 
           {/* Attempted Exams */}
-          <TabsContent value="attempted" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <TabsContent value="attempted" className="space-y-3 sm:space-y-4 lg:space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
               {attemptedResultRows.map((result: any, index: number) => {
                 const examIdStr = getExamIdFromResult(result);
                 if (!examIdStr) return null;
@@ -1038,9 +1038,9 @@ export default function StudentExams() {
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <CardTitle className="text-lg mb-2 text-gray-900">{exam.title}</CardTitle>
+                          <CardTitle className="text-base sm:text-lg mb-2 text-gray-900">{exam.title}</CardTitle>
                           {exam.description && (
-                            <p className={`text-sm ${colorScheme.text}/90 mb-3 line-clamp-2`}>{exam.description}</p>
+                            <p className={`text-xs sm:text-sm ${colorScheme.text}/90 mb-3 line-clamp-2`}>{exam.description}</p>
                           )}
                           <div className="flex flex-wrap gap-2 mt-2">
                             <Badge className={`${colorScheme.badge} border-0`}>
@@ -1065,16 +1065,16 @@ export default function StudentExams() {
                       <div className="space-y-4">
                         {/* Score Display */}
                         <div className="text-center p-4 bg-white/90 rounded-lg">
-                          <div className="text-3xl font-bold text-gray-900 mb-1">
+                          <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
                             {displayPercentage.toFixed(1)}%
                           </div>
-                          <div className="text-sm text-gray-700 font-medium">
+                          <div className="text-xs sm:text-sm text-gray-700 font-medium">
                             {result.obtainedMarks || 0}/{result.totalMarks || exam.totalMarks} marks
                           </div>
                         </div>
 
                         {/* Performance Breakdown */}
-                        <div className={`space-y-2 text-sm ${colorScheme.text}`}>
+                        <div className={`space-y-2 text-xs sm:text-sm ${colorScheme.text}`}>
                           <div className="flex items-center justify-between">
                             <span>Correct Answers</span>
                             <span className="font-medium">{result.correctAnswers || 0}</span>
@@ -1201,7 +1201,7 @@ export default function StudentExams() {
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                           }}
                         >
-                          <Eye className="w-4 h-4 mr-2" />
+                          <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                           View Details
                         </Button>
                       </div>
@@ -1214,7 +1214,7 @@ export default function StudentExams() {
             {attemptedResultRows.length === 0 && (
               <div className="text-center py-12">
                 <CheckCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Attempted Exams</h3>
+                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No Attempted Exams</h3>
                 <p className="text-gray-600">Start taking exams to see your results here</p>
               </div>
             )}
@@ -1223,13 +1223,13 @@ export default function StudentExams() {
 
 
           {/* Student Rankings */}
-          <TabsContent value="ranking" className="space-y-6">
+          <TabsContent value="ranking" className="space-y-3 sm:space-y-4 lg:space-y-6">
             <StudentRanking />
           </TabsContent>
 
           {/* Upcoming Exams */}
-          <TabsContent value="upcoming" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <TabsContent value="upcoming" className="space-y-3 sm:space-y-4 lg:space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
               {subjectFilteredExams.filter((exam: Exam) => getExamStatus(exam).status === 'upcoming').map((exam: Exam, index: number) => {
                 // Randomly assign one of the three dashboard colors
                 const colorSchemes = [
@@ -1245,9 +1245,9 @@ export default function StudentExams() {
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <CardTitle className="text-lg mb-2 text-gray-900">{exam.title}</CardTitle>
+                          <CardTitle className="text-base sm:text-lg mb-2 text-gray-900">{exam.title}</CardTitle>
                           {exam.description && (
-                            <p className={`text-sm ${colorScheme.text}/90 mb-3 line-clamp-2`}>{exam.description}</p>
+                            <p className={`text-xs sm:text-sm ${colorScheme.text}/90 mb-3 line-clamp-2`}>{exam.description}</p>
                           )}
                           <div className="flex flex-wrap gap-2 mt-2">
                             <Badge className={`${colorScheme.badge} border-0`}>
@@ -1269,23 +1269,23 @@ export default function StudentExams() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className={`space-y-2 text-sm ${colorScheme.text} mb-4`}>
+                      <div className={`space-y-2 text-xs sm:text-sm ${colorScheme.text} mb-4`}>
                         <div className="flex items-center">
-                          <Clock className="h-4 w-4 mr-2" />
+                          <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                           <span>{exam.duration} minutes</span>
                         </div>
                         <div className="flex items-center">
-                          <BookOpen className="h-4 w-4 mr-2" />
+                          <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                           <span>{exam.totalQuestions} questions • {exam.totalMarks} marks</span>
                         </div>
                         <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-2" />
+                          <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                           <span className="text-xs">
                             Starts: {new Date(exam.startDate).toLocaleDateString()}
                           </span>
                         </div>
                         <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-2" />
+                          <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                           <span className="text-xs">
                             Ends: {new Date(exam.endDate).toLocaleDateString()}
                           </span>
@@ -1297,7 +1297,7 @@ export default function StudentExams() {
                         className="w-full bg-white/90 text-gray-900 border-white/30 hover:bg-white hover:text-gray-900"
                         disabled
                       >
-                        <Calendar className="w-4 h-4 mr-2" />
+                        <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         Not Yet Available
                       </Button>
                     </CardContent>
@@ -1309,7 +1309,7 @@ export default function StudentExams() {
             {subjectFilteredExams.filter((exam: Exam) => getExamStatus(exam).status === 'upcoming').length === 0 && (
               <div className="text-center py-12">
                 <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Upcoming Exams</h3>
+                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No Upcoming Exams</h3>
                 <p className="text-gray-600">Check back later for scheduled exams</p>
               </div>
             )}

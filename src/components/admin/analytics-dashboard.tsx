@@ -160,20 +160,20 @@ const AnalyticsDashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Analytics Dashboard</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Analytics Dashboard</h2>
           <p className="text-gray-600">Comprehensive insights into your learning platform</p>
         </div>
         <div className="flex items-center space-x-3">
           <Button variant="outline" size="sm" onClick={fetchAnalytics}>
-            <RefreshCw className="w-4 h-4 mr-2" />
+            <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             Refresh
           </Button>
           <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" />
+            <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             Export Report
           </Button>
         </div>
@@ -181,25 +181,25 @@ const AnalyticsDashboard = () => {
 
       {/* Key Metrics */}
       <motion.div 
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:p-4 lg:p-6"
         variants={staggerChildren}
         initial="hidden"
         animate="visible"
       >
         <motion.div variants={fadeInUp}>
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-700">Total Students</p>
-                  <p className="text-3xl font-bold text-blue-900">{analytics.totalStudents}</p>
-                  <p className="text-sm text-blue-600 flex items-center mt-1">
+                  <p className="text-xs sm:text-sm font-medium text-blue-700">Total Students</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-blue-900">{analytics.totalStudents}</p>
+                  <p className="text-xs sm:text-sm text-blue-600 flex items-center mt-1">
                     <TrendingUp className="w-3 h-3 mr-1" />
                     +12% this month
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg">
-                  <Users className="w-6 h-6 text-white" />
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -208,18 +208,18 @@ const AnalyticsDashboard = () => {
 
         <motion.div variants={fadeInUp}>
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-green-700">Active Students</p>
-                  <p className="text-3xl font-bold text-green-900">{analytics.activeStudents}</p>
-                  <p className="text-sm text-green-600 flex items-center mt-1">
+                  <p className="text-xs sm:text-sm font-medium text-green-700">Active Students</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-green-900">{analytics.activeStudents}</p>
+                  <p className="text-xs sm:text-sm text-green-600 flex items-center mt-1">
                     <Activity className="w-3 h-3 mr-1" />
                     {Math.round((analytics.activeStudents / analytics.totalStudents) * 100)}% active
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center shadow-lg">
-                  <CheckCircle className="w-6 h-6 text-white" />
+                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -228,18 +228,18 @@ const AnalyticsDashboard = () => {
 
         <motion.div variants={fadeInUp}>
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-purple-700">Average Score</p>
-                  <p className="text-3xl font-bold text-purple-900">{analytics.averageScore}%</p>
-                  <p className="text-sm text-purple-600 flex items-center mt-1">
+                  <p className="text-xs sm:text-sm font-medium text-purple-700">Average Score</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-purple-900">{analytics.averageScore}%</p>
+                  <p className="text-xs sm:text-sm text-purple-600 flex items-center mt-1">
                     <Star className="w-3 h-3 mr-1" />
                     Across all assessments
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center shadow-lg">
-                  <Award className="w-6 h-6 text-white" />
+                  <Award className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -248,18 +248,18 @@ const AnalyticsDashboard = () => {
 
         <motion.div variants={fadeInUp}>
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-orange-700">Completion Rate</p>
-                  <p className="text-3xl font-bold text-orange-900">{analytics.completionRate}%</p>
-                  <p className="text-sm text-orange-600 flex items-center mt-1">
+                  <p className="text-xs sm:text-sm font-medium text-orange-700">Completion Rate</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-orange-900">{analytics.completionRate}%</p>
+                  <p className="text-xs sm:text-sm text-orange-600 flex items-center mt-1">
                     <Target className="w-3 h-3 mr-1" />
                     Course completion
                   </p>
                 </div>
                 <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg">
-                  <BarChart3 className="w-6 h-6 text-white" />
+                  <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -268,13 +268,13 @@ const AnalyticsDashboard = () => {
       </motion.div>
 
       {/* Charts and Detailed Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
         {/* Class Performance */}
         <motion.div variants={fadeInUp} initial="hidden" animate="visible">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <GraduationCap className="w-5 h-5 mr-2" />
+                <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Class Performance
               </CardTitle>
             </CardHeader>
@@ -288,16 +288,16 @@ const AnalyticsDashboard = () => {
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">Class {classData.classNumber}</p>
-                        <p className="text-sm text-gray-600">{classData.students} students</p>
+                        <p className="text-xs sm:text-sm text-gray-600">{classData.students} students</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-gray-900">{classData.averageScore}%</p>
-                      <p className="text-sm text-gray-600">avg score</p>
+                      <p className="text-xs sm:text-sm text-gray-600">avg score</p>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-gray-900">{classData.completionRate}%</p>
-                      <p className="text-sm text-gray-600">completion</p>
+                      <p className="text-xs sm:text-sm text-gray-600">completion</p>
                     </div>
                   </div>
                 ))}
@@ -311,7 +311,7 @@ const AnalyticsDashboard = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
-                <Star className="w-5 h-5 mr-2" />
+                <Star className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Top Performers
               </CardTitle>
             </CardHeader>
@@ -320,17 +320,17 @@ const AnalyticsDashboard = () => {
                 {(analytics.topPerformers || []).map((performer, index) => (
                   <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm">
                         {performer.rank}
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">{performer.name}</p>
-                        <p className="text-sm text-gray-600">Class {performer.class}</p>
+                        <p className="text-xs sm:text-sm text-gray-600">Class {performer.class}</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-gray-900">{performer.score}%</p>
-                      <p className="text-sm text-gray-600">score</p>
+                      <p className="text-xs sm:text-sm text-gray-600">score</p>
                     </div>
                   </div>
                 ))}
@@ -345,7 +345,7 @@ const AnalyticsDashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <Activity className="w-5 h-5 mr-2" />
+              <Activity className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
               Recent Activity
             </CardTitle>
           </CardHeader>
@@ -354,23 +354,23 @@ const AnalyticsDashboard = () => {
               {(analytics.recentActivity || []).map((activity) => (
                 <div key={activity.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    <div className={`w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center ${
                       activity.type === 'video' ? 'bg-blue-100' :
                       activity.type === 'quiz' ? 'bg-orange-100' :
                       activity.type === 'assessment' ? 'bg-red-100' :
                       'bg-green-100'
                     }`}>
-                      {activity.type === 'video' ? <Video className="w-4 h-4 text-blue-600" /> :
-                       activity.type === 'quiz' ? <Target className="w-4 h-4 text-orange-600" /> :
-                       activity.type === 'assessment' ? <Award className="w-4 h-4 text-red-600" /> :
-                       <Users className="w-4 h-4 text-green-600" />}
+                      {activity.type === 'video' ? <Video className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" /> :
+                       activity.type === 'quiz' ? <Target className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600" /> :
+                       activity.type === 'assessment' ? <Award className="w-3 h-3 sm:w-4 sm:h-4 text-red-600" /> :
+                       <Users className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />}
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{activity.action}</p>
-                      <p className="text-sm text-gray-600">by {activity.user}</p>
+                      <p className="text-xs sm:text-sm text-gray-600">by {activity.user}</p>
                     </div>
                   </div>
-                  <div className="text-sm text-gray-500">{activity.time}</div>
+                  <div className="text-xs sm:text-sm text-gray-500">{activity.time}</div>
                 </div>
               ))}
             </div>

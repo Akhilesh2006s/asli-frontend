@@ -449,7 +449,7 @@ export default function AiToolTopicsManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>AI Tool Topics Management</CardTitle>
@@ -460,7 +460,7 @@ export default function AiToolTopicsManagement() {
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative w-full lg:max-w-md">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 h-3 w-3 sm:h-4 sm:w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="pl-9"
                 placeholder="Search label / topic / sub topic"
@@ -470,7 +470,7 @@ export default function AiToolTopicsManagement() {
             </div>
             <div className="flex items-center justify-end">
               <Button onClick={openCreate}>
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                 Add Topic
               </Button>
             </div>
@@ -485,7 +485,7 @@ export default function AiToolTopicsManagement() {
                     key={board}
                     type="button"
                     variant="outline"
-                    className={`rounded-full border px-5 py-2 text-sm font-medium transition-all ${
+                    className={`rounded-full border px-5 py-2 text-xs sm:text-sm font-medium transition-all ${
                       isActive
                         ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
                         : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50/40'
@@ -516,7 +516,7 @@ export default function AiToolTopicsManagement() {
                   key={column.title}
                   className="flex h-[340px] flex-col rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
                 >
-                  <h3 className="mb-3 text-sm font-semibold text-slate-800">{column.title}</h3>
+                  <h3 className="mb-3 text-xs sm:text-sm font-semibold text-slate-800">{column.title}</h3>
                   <div className="space-y-2 overflow-y-auto pr-1">
                     {column.items.length === 0 ? (
                       <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
@@ -529,7 +529,7 @@ export default function AiToolTopicsManagement() {
                           <button
                             key={item}
                             type="button"
-                            className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition ${
+                            className={`w-full rounded-lg border px-3 py-2 text-left text-xs sm:text-sm transition ${
                               isActive
                                 ? 'border-blue-500 bg-blue-50 text-blue-700'
                                 : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50/40'
@@ -569,7 +569,7 @@ export default function AiToolTopicsManagement() {
                 disabled={!selectedBoard || !selectedClass || bulkDeleting !== null}
                 onClick={() => bulkDelete('class')}
               >
-                <Trash2 className="mr-2 h-4 w-4" />
+                <Trash2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                 {bulkDeleting === 'class' ? 'Deleting Class...' : 'Delete Selected Class'}
               </Button>
               <Button
@@ -579,7 +579,7 @@ export default function AiToolTopicsManagement() {
                 disabled={!selectedBoard || !selectedClass || !selectedSubject || bulkDeleting !== null}
                 onClick={() => bulkDelete('subject')}
               >
-                <Trash2 className="mr-2 h-4 w-4" />
+                <Trash2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                 {bulkDeleting === 'subject' ? 'Deleting Subject...' : 'Delete Selected Subject'}
               </Button>
             </div>
@@ -615,10 +615,10 @@ export default function AiToolTopicsManagement() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Button size="icon" variant="outline" onClick={() => openEdit(row)}>
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
                           <Button size="icon" variant="outline" onClick={() => remove(row._id)}>
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -628,7 +628,7 @@ export default function AiToolTopicsManagement() {
               </TableBody>
             </Table>
           </div>
-          <p className="text-sm text-muted-foreground">Total records: {total}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Total records: {total}</p>
         </CardContent>
       </Card>
 
@@ -757,7 +757,7 @@ export default function AiToolTopicsManagement() {
               )}
             </div>
             <div className="space-y-1 md:col-span-2">
-              <p className="text-sm font-semibold">Topic</p>
+              <p className="text-xs sm:text-sm font-semibold">Topic</p>
             </div>
             <div className="space-y-2">
               <Label>Label (Optional)</Label>

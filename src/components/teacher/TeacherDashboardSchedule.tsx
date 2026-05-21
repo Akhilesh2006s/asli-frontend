@@ -291,10 +291,10 @@ export function TeacherDashboardSchedule({
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">Add timetable slot</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg font-semibold">Add timetable slot</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <p className="text-sm text-gray-600">
+            <p className="text-xs sm:text-sm text-gray-600">
               Date:{' '}
               <span className="font-medium text-gray-900">
                 {dateKey && selectedDate && isValid(selectedDate)
@@ -312,7 +312,7 @@ export function TeacherDashboardSchedule({
                 className="rounded-xl border-gray-200"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="tt-start">Start</Label>
                 <Input
@@ -378,7 +378,7 @@ export function TeacherDashboardSchedule({
                   : 'Class details'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 text-sm text-gray-700">
+          <div className="space-y-2 text-xs sm:text-sm text-gray-700">
             <p>
               <span className="font-semibold text-gray-900">Time:</span>{' '}
               {selectedEntry?.startTime} - {selectedEntry?.endTime}

@@ -147,9 +147,9 @@ export function ShortNotesViewer({ content }: ShortNotesViewerProps) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[700px] space-y-6 relative w-full">
+    <div className="flex flex-col items-center justify-center min-h-[700px] space-y-3 sm:space-y-4 lg:space-y-6 relative w-full">
       {/* Instructions */}
-      <div className="text-sm text-gray-600 text-center mb-2">
+      <div className="text-xs sm:text-sm text-gray-600 text-center mb-2">
         <p>Use <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">←</kbd> / <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">→</kbd> to turn pages</p>
       </div>
 
@@ -218,7 +218,7 @@ export function ShortNotesViewer({ content }: ShortNotesViewerProps) {
                     boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
                   }}
                 >
-                  <h2 className="text-white text-2xl font-bold mb-0" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+                  <h2 className="text-white text-xl sm:text-2xl font-bold mb-0" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
                     🎯 {currentNote.concept_name}
                   </h2>
                 </div>
@@ -228,7 +228,7 @@ export function ShortNotesViewer({ content }: ShortNotesViewerProps) {
                   {/* Summary Section - Rectangle Card */}
                   {currentNote.summary && (
                     <div 
-                      className="bg-white p-6 shadow-md border-l-4 mb-4"
+                      className="bg-white p-3 sm:p-4 lg:p-6 shadow-md border-l-4 mb-4"
                       style={{ 
                         borderColor: '#667eea',
                         borderRadius: '8px',
@@ -241,9 +241,9 @@ export function ShortNotesViewer({ content }: ShortNotesViewerProps) {
                           className="w-10 h-10 rounded-lg flex items-center justify-center mr-3 shadow-sm"
                           style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
                         >
-                          <span className="text-xl">📋</span>
+                          <span className="text-lg sm:text-xl">📋</span>
                         </div>
-                        <h3 className="text-lg font-semibold m-0" style={{ color: '#667eea' }}>Summary</h3>
+                        <h3 className="text-base sm:text-lg font-semibold m-0" style={{ color: '#667eea' }}>Summary</h3>
                       </div>
                       <div
                         className="short-notes-markdown prose prose-sm max-w-none text-gray-700 leading-relaxed m-0"
@@ -258,7 +258,7 @@ export function ShortNotesViewer({ content }: ShortNotesViewerProps) {
                   {/* Importance Section - Rectangle Card */}
                   {currentNote.importance && (
                     <div 
-                      className="bg-white p-6 shadow-md border-l-4 mb-4"
+                      className="bg-white p-3 sm:p-4 lg:p-6 shadow-md border-l-4 mb-4"
                       style={{ 
                         borderColor: '#f59e0b',
                         borderRadius: '8px',
@@ -271,9 +271,9 @@ export function ShortNotesViewer({ content }: ShortNotesViewerProps) {
                           className="w-10 h-10 rounded-lg flex items-center justify-center mr-3 shadow-sm"
                           style={{ background: 'linear-gradient(135deg, #f59e0b, #f97316)' }}
                         >
-                          <span className="text-xl">⭐</span>
+                          <span className="text-lg sm:text-xl">⭐</span>
                         </div>
-                        <h3 className="text-lg font-semibold m-0" style={{ color: '#f59e0b' }}>Importance</h3>
+                        <h3 className="text-base sm:text-lg font-semibold m-0" style={{ color: '#f59e0b' }}>Importance</h3>
                       </div>
                       <div
                         className="short-notes-markdown prose prose-sm max-w-none text-gray-700 leading-relaxed m-0"
@@ -288,7 +288,7 @@ export function ShortNotesViewer({ content }: ShortNotesViewerProps) {
                   {/* Quick Facts Section - Rectangle Card */}
                   {currentNote.quick_facts && currentNote.quick_facts.length > 0 && (
                     <div 
-                      className="bg-white p-6 shadow-md border-l-4"
+                      className="bg-white p-3 sm:p-4 lg:p-6 shadow-md border-l-4"
                       style={{ 
                         borderColor: '#10b981',
                         borderRadius: '8px',
@@ -301,9 +301,9 @@ export function ShortNotesViewer({ content }: ShortNotesViewerProps) {
                           className="w-10 h-10 rounded-lg flex items-center justify-center mr-3 shadow-sm"
                           style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
                         >
-                          <span className="text-xl">⚡</span>
+                          <span className="text-lg sm:text-xl">⚡</span>
                         </div>
-                        <h3 className="text-lg font-semibold m-0" style={{ color: '#10b981' }}>Quick Facts</h3>
+                        <h3 className="text-base sm:text-lg font-semibold m-0" style={{ color: '#10b981' }}>Quick Facts</h3>
                       </div>
                       <ul className="list-none p-0 m-0 space-y-2">
                         {currentNote.quick_facts.map((fact, factIndex) => (
@@ -317,7 +317,7 @@ export function ShortNotesViewer({ content }: ShortNotesViewerProps) {
                             }}
                           >
                             <span 
-                              className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-semibold mr-3 mt-0.5"
+                              className="flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 rounded-full flex items-center justify-center text-white text-xs font-semibold mr-3 mt-0.5"
                               style={{ background: '#10b981' }}
                             >
                               {factIndex + 1}
@@ -335,7 +335,7 @@ export function ShortNotesViewer({ content }: ShortNotesViewerProps) {
               
               {/* Page number indicator */}
               <div 
-                className="absolute bottom-4 right-8 text-sm text-gray-500"
+                className="absolute bottom-4 right-8 text-xs sm:text-sm text-gray-500"
                 style={{ fontFamily: 'serif' }}
               >
                 Page {currentIndex + 1}
@@ -352,10 +352,10 @@ export function ShortNotesViewer({ content }: ShortNotesViewerProps) {
           size="lg"
           onClick={handlePrevious}
           disabled={currentIndex === 0 || isTurning}
-          className="rounded-lg px-6 py-3 shadow-md hover:shadow-lg transition-shadow"
+          className="rounded-lg px-3 sm:px-4 lg:px-6 py-3 shadow-md hover:shadow-lg transition-shadow"
           type="button"
         >
-          <ChevronLeft className="w-5 h-5 mr-2" />
+          <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
           Previous Page
         </Button>
 
@@ -374,16 +374,16 @@ export function ShortNotesViewer({ content }: ShortNotesViewerProps) {
           size="lg"
           onClick={handleNext}
           disabled={currentIndex === notes.length - 1 || isTurning}
-          className="rounded-lg px-6 py-3 shadow-md hover:shadow-lg transition-shadow"
+          className="rounded-lg px-3 sm:px-4 lg:px-6 py-3 shadow-md hover:shadow-lg transition-shadow"
           type="button"
         >
           Next Page
-          <ChevronRight className="w-5 h-5 ml-2" />
+          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
         </Button>
       </div>
 
       {/* Page counter */}
-      <div className="text-sm text-gray-600 font-medium">
+      <div className="text-xs sm:text-sm text-gray-600 font-medium">
         Page {currentIndex + 1} of {notes.length}
       </div>
     </div>

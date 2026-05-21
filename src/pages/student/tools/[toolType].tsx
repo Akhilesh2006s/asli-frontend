@@ -110,7 +110,7 @@ const renderMarkdown = (text: string) => {
     if (hasMathBlock) {
       closeList();
       line = line.replace(/__MATH_BLOCK__(.*?)__MATH_BLOCK__/g, '<div class="my-4 overflow-x-auto">$1</div>');
-      line = line.replace(/__MATH_ERROR__(.*?)__MATH_ERROR__/g, '<div class="my-4 p-2 bg-red-50 border border-red-200 rounded text-red-800 text-sm">Math Error: $1</div>');
+      line = line.replace(/__MATH_ERROR__(.*?)__MATH_ERROR__/g, '<div class="my-4 p-2 bg-red-50 border border-red-200 rounded text-red-800 text-xs sm:text-sm">Math Error: $1</div>');
       html += line;
       continue;
     }
@@ -139,28 +139,28 @@ const renderMarkdown = (text: string) => {
         inList = false;
         listType = null;
       }
-      html += `<h4 class="text-base font-bold text-gray-900 mt-4 mb-2">${formatInline(trimmed.substring(5))}</h4>`;
+      html += `<h4 class="text-sm sm:text-base font-bold text-gray-900 mt-4 mb-2">${formatInline(trimmed.substring(5))}</h4>`;
     } else if (trimmed.startsWith('### ')) {
       if (inList) {
         html += listType === 'ul' ? '</ul>' : '</ol>';
         inList = false;
         listType = null;
       }
-      html += `<h3 class="text-lg font-bold text-gray-900 mt-6 mb-3">${formatInline(trimmed.substring(4))}</h3>`;
+      html += `<h3 class="text-base sm:text-lg font-bold text-gray-900 mt-6 mb-3">${formatInline(trimmed.substring(4))}</h3>`;
     } else if (trimmed.startsWith('## ')) {
       if (inList) {
         html += listType === 'ul' ? '</ul>' : '</ol>';
         inList = false;
         listType = null;
       }
-      html += `<h2 class="text-xl font-bold text-gray-900 mt-8 mb-4 border-b border-gray-200 pb-2">${formatInline(trimmed.substring(3))}</h2>`;
+      html += `<h2 class="text-lg sm:text-xl font-bold text-gray-900 mt-8 mb-4 border-b border-gray-200 pb-2">${formatInline(trimmed.substring(3))}</h2>`;
     } else if (trimmed.startsWith('# ')) {
       if (inList) {
         html += listType === 'ul' ? '</ul>' : '</ol>';
         inList = false;
         listType = null;
       }
-      html += `<h1 class="text-2xl font-bold text-gray-900 mt-8 mb-4">${formatInline(trimmed.substring(2))}</h1>`;
+      html += `<h1 class="text-xl sm:text-2xl font-bold text-gray-900 mt-8 mb-4">${formatInline(trimmed.substring(2))}</h1>`;
     } else if (/^\d+\.\s+/.test(trimmed)) {
       if (!inList || listType !== 'ol') {
         if (inList) {
@@ -232,18 +232,18 @@ const renderMarkdown = (text: string) => {
         });
         return rendered;
       } catch (e) {
-        return `<span class="text-red-600 text-sm">Math Error: ${mathContent}</span>`;
+        return `<span class="text-red-600 text-xs sm:text-sm">Math Error: ${mathContent}</span>`;
       }
     });
     
     // Code blocks
-    formatted = formatted.replace(/```([\s\S]*?)```/g, '<pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto mb-2 text-sm font-mono"><code>$1</code></pre>');
+    formatted = formatted.replace(/```([\s\S]*?)```/g, '<pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto mb-2 text-xs sm:text-sm font-mono"><code>$1</code></pre>');
     
     // Inline code (but not if it's part of math)
     formatted = formatted.replace(/`([^`]+)`/g, (match, codeContent) => {
       // Check if this is inside a math expression
       if (match.includes('$')) return match;
-      return `<code class="bg-gray-100 px-2 py-1 rounded text-sm font-mono text-gray-800">${codeContent}</code>`;
+      return `<code class="bg-gray-100 px-2 py-1 rounded text-xs sm:text-sm font-mono text-gray-800">${codeContent}</code>`;
     });
     
     // Bold
@@ -668,7 +668,7 @@ export default function StudentToolPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Tool Not Found</h1>
+          <h1 className="text-xl sm:text-2xl font-bold mb-4">Tool Not Found</h1>
           <Button onClick={() => setLocation('/ai-tutor')}>Go Back</Button>
         </div>
       </div>
@@ -1680,22 +1680,22 @@ export default function StudentToolPage() {
             onClick={() => setLocation('/ai-tutor')}
             className="mb-4"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             Back
           </Button>
           
           <div className="flex items-center space-x-3 mb-4 min-w-0">
             <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
-              <Icon className="w-6 h-6 text-white" />
+              <Icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">{config.name}</h1>
+              <h1 className="text-xl sm:text-2xl sm:text-3xl font-bold text-gray-900 break-words">{config.name}</h1>
               <p className="text-gray-600">{config.description}</p>
             </div>
           </div>
         </motion.div>
 
-        <div className={`grid grid-cols-1 ${toolType === 'flashcard-generator' ? 'lg:grid-cols-3' : (toolType === 'short-notes-summaries-maker' || toolType === 'concept-mastery-helper' || toolType === 'lesson-planner') ? 'grid-cols-1' : 'lg:grid-cols-2'} gap-6`}>
+        <div className={`grid grid-cols-1 ${toolType === 'flashcard-generator' ? 'lg:grid-cols-3' : (toolType === 'short-notes-summaries-maker' || toolType === 'concept-mastery-helper' || toolType === 'lesson-planner') ? 'grid-cols-1' : 'lg:grid-cols-2'} gap-3 sm:p-4 lg:p-6`}>
           {/* Left Panel: Tool Parameters */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -1809,7 +1809,7 @@ export default function StudentToolPage() {
                     <div key={field.name}>
                       <Label htmlFor={field.name} className="flex items-center gap-2">
                         {field.label}
-                        {loadingDropdown && <Loader2 className="h-4 w-4 animate-spin text-blue-600" aria-hidden />}
+                        {loadingDropdown && <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-blue-600" aria-hidden />}
                       </Label>
                       {fieldUsesCurriculumSelect(field) ? (
                         <Select
@@ -1828,7 +1828,7 @@ export default function StudentToolPage() {
                                 </SelectItem>
                               ))
                             ) : (
-                              <div className="px-2 py-1.5 text-sm text-gray-500">
+                              <div className="px-2 py-1.5 text-xs sm:text-sm text-gray-500">
                                 {field.isNCERT &&
                                 (field.name === 'topic' ||
                                   field.name === 'concept' ||
@@ -1871,12 +1871,12 @@ export default function StudentToolPage() {
                 >
                   {isGenerating ? (
                     <>
-                      <Sparkles className="w-4 h-4 mr-2 animate-spin" />
+                      <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
                       Generating...
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-4 h-4 mr-2" />
+                      <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       Generate
                     </>
                   )}
@@ -1936,7 +1936,7 @@ export default function StudentToolPage() {
                         size="sm"
                         onClick={handleCopy}
                       >
-                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                        {copied ? <Check className="w-3 h-3 sm:w-4 sm:h-4" /> : <Copy className="w-3 h-3 sm:w-4 sm:h-4" />}
                       </Button>
                       {/* Download removed from Tools pages */}
                     </div>
@@ -1945,16 +1945,16 @@ export default function StudentToolPage() {
               </CardHeader>
               <CardContent>
                 {isGenerating ? (
-                  <div className="flex flex-col items-center justify-center py-20 space-y-6">
+                  <div className="flex flex-col items-center justify-center py-20 space-y-3 sm:space-y-4 lg:space-y-6">
                     <div className="relative">
                       <div className="w-20 h-20 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <Sparkles className="w-8 h-8 text-blue-600 animate-pulse" />
+                        <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-blue-600 animate-pulse" />
                       </div>
                     </div>
                     <div className="text-center space-y-2">
-                      <h3 className="text-lg font-semibold text-gray-900">Generating Content...</h3>
-                      <p className="text-sm text-gray-600">Please wait while we prepare your content</p>
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">Generating Content...</h3>
+                      <p className="text-xs sm:text-sm text-gray-600">Please wait while we prepare your content</p>
                       <div className="flex items-center justify-center space-x-1 mt-4">
                         <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                         <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -1978,7 +1978,7 @@ export default function StudentToolPage() {
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="bg-white border border-gray-200 rounded-lg p-6 max-h-[80vh] overflow-y-auto shadow-sm"
+                        className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 lg:p-6 max-h-[80vh] overflow-y-auto shadow-sm"
                       >
                         <div
                           className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900"
@@ -1990,7 +1990,7 @@ export default function StudentToolPage() {
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-white border border-gray-200 rounded-lg p-6 max-h-[80vh] overflow-y-auto shadow-sm"
+                      className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 lg:p-6 max-h-[80vh] overflow-y-auto shadow-sm"
                     >
                       <div
                         className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-code:text-gray-800 prose-img:rounded-lg prose-img:shadow-md prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-gray-300 prose-th:bg-gray-50 prose-th:p-2 prose-td:border prose-td:border-gray-300 prose-td:p-2"

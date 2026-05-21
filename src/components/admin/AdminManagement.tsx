@@ -987,10 +987,10 @@ export default function AdminManagement() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">School Management</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">School Management</h2>
           <p className="text-gray-600">Manage schools and their associated data</p>
         </div>
         
@@ -1003,7 +1003,7 @@ export default function AdminManagement() {
         >
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-700">
-              <UserPlusIcon className="h-4 w-4 mr-2" />
+              <UserPlusIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
               Add New School
             </Button>
           </DialogTrigger>
@@ -1011,14 +1011,14 @@ export default function AdminManagement() {
             className="flex max-h-[min(100dvh,100svh)] w-[min(96vw,80rem)] max-w-none translate-x-[-50%] translate-y-[-50%] flex-col gap-0 overflow-hidden p-0 sm:max-h-[94vh] sm:max-w-none"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
-            <DialogHeader className="shrink-0 space-y-1 border-b px-6 py-4 text-left">
+            <DialogHeader className="shrink-0 space-y-1 border-b px-3 sm:px-4 lg:px-6 py-4 text-left">
               <DialogTitle>Add New School</DialogTitle>
               <DialogDescription>
                 Scroll on small screens to see all fields. Three columns on large screens. Pick the curriculum board the school follows, then use the toggle for normal usage vs Asli Prep (like Limited vs Unlimited below).
               </DialogDescription>
             </DialogHeader>
-            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-6 py-4 pb-8 [-webkit-overflow-scrolling:touch]">
-              <p className="mb-3 text-sm font-semibold text-gray-900">Administrator</p>
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 sm:px-4 lg:px-6 py-4 pb-8 [-webkit-overflow-scrolling:touch]">
+              <p className="mb-3 text-xs sm:text-sm font-semibold text-gray-900">Administrator</p>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="name">Full Name *</Label>
@@ -1061,9 +1061,9 @@ export default function AdminManagement() {
                       tabIndex={0}
                     >
                       {showNewAdminPassword ? (
-                        <EyeOff className="h-4 w-4" />
+                        <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" />
                       ) : (
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                       )}
                     </button>
                   </div>
@@ -1127,7 +1127,7 @@ export default function AdminManagement() {
                 </div>
               </div>
 
-              <p className="mb-3 mt-8 text-sm font-semibold text-gray-900">School Information</p>
+              <p className="mb-3 mt-8 text-xs sm:text-sm font-semibold text-gray-900">School Information</p>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
                   <Label htmlFor="schoolName">School Name *</Label>
@@ -1264,7 +1264,7 @@ export default function AdminManagement() {
                   <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-3">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="space-y-1">
-                        <p className="text-sm text-gray-800">School program</p>
+                        <p className="text-xs sm:text-sm text-gray-800">School program</p>
                         <p className="text-xs text-gray-600">
                           Normal schools use the curriculum board only. Turn on Asli Prep for schools on the Asli Prep track (same pattern as Limited vs Unlimited below).
                         </p>
@@ -1272,7 +1272,7 @@ export default function AdminManagement() {
                       <div className="flex shrink-0 items-center gap-3">
                         <span
                           className={cn(
-                            "text-sm",
+                            "text-xs sm:text-sm",
                             !newAdmin.isAsliPrepExclusive ? "font-semibold text-gray-900" : "text-gray-500"
                           )}
                         >
@@ -1287,7 +1287,7 @@ export default function AdminManagement() {
                         />
                         <span
                           className={cn(
-                            "text-sm",
+                            "text-xs sm:text-sm",
                             newAdmin.isAsliPrepExclusive ? "font-semibold text-orange-800" : "text-gray-500"
                           )}
                         >
@@ -1396,7 +1396,7 @@ export default function AdminManagement() {
                     accept="image/*"
                     className={cn(
                       SCHOOL_FORM_FIELD_CLASS,
-                      "cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-orange-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-orange-700 hover:file:bg-orange-100"
+                      "cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-orange-50 file:px-3 file:py-1.5 file:text-xs sm:text-sm file:font-medium file:text-orange-700 hover:file:bg-orange-100"
                     )}
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
@@ -1434,22 +1434,22 @@ export default function AdminManagement() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 shrink-0 text-slate-600 hover:bg-red-50 hover:text-red-600"
+                        className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 shrink-0 text-slate-600 hover:bg-red-50 hover:text-red-600"
                         onClick={() => setNewAdmin({ ...newAdmin, schoolLogo: "" })}
                         aria-label="Remove school logo"
                       >
-                        <XIcon className="h-4 w-4" />
+                        <XIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
                     </div>
                   )}
                 </div>
               </div>
 
-              <p className="mb-3 mt-8 text-sm font-semibold text-gray-900">Admin portal access</p>
+              <p className="mb-3 mt-8 text-xs sm:text-sm font-semibold text-gray-900">Admin portal access</p>
               <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-1">
-                    <p className="text-sm text-gray-800">Limited vs unlimited</p>
+                    <p className="text-xs sm:text-sm text-gray-800">Limited vs unlimited</p>
                     <p className="text-xs text-gray-600">
                       Unlimited turns on every admin portal module. Limited lets you choose which modules this school can use.
                     </p>
@@ -1457,7 +1457,7 @@ export default function AdminManagement() {
                   <div className="flex shrink-0 items-center gap-3">
                     <span
                       className={cn(
-                        "text-sm",
+                        "text-xs sm:text-sm",
                         newAdmin.accessMode === "limited" ? "font-semibold text-gray-900" : "text-gray-500"
                       )}
                     >
@@ -1480,7 +1480,7 @@ export default function AdminManagement() {
                     />
                     <span
                       className={cn(
-                        "text-sm",
+                        "text-xs sm:text-sm",
                         newAdmin.accessMode === "unlimited" ? "font-semibold text-orange-800" : "text-gray-500"
                       )}
                     >
@@ -1545,7 +1545,7 @@ export default function AdminManagement() {
                                     }}
                                   />
                                   <div className="min-w-0 flex-1 space-y-0.5">
-                                    <Label htmlFor={cid} className="cursor-pointer text-sm font-medium text-slate-900">
+                                    <Label htmlFor={cid} className="cursor-pointer text-xs sm:text-sm font-medium text-slate-900">
                                       {mod.title}
                                     </Label>
                                     <p className="text-xs leading-snug text-slate-600">{mod.description}</p>
@@ -1561,7 +1561,7 @@ export default function AdminManagement() {
                 )}
               </div>
             </div>
-            <div className="flex shrink-0 justify-end gap-2 border-t bg-background px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="flex shrink-0 justify-end gap-2 border-t bg-background px-3 sm:px-4 lg:px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                 Cancel
               </Button>
@@ -1587,14 +1587,14 @@ export default function AdminManagement() {
             className="flex max-h-[min(100dvh,100svh)] w-[min(96vw,80rem)] max-w-none translate-x-[-50%] translate-y-[-50%] flex-col gap-0 overflow-hidden p-0 sm:max-h-[94vh] sm:max-w-none"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
-            <DialogHeader className="shrink-0 space-y-1 border-b px-6 py-4 text-left">
+            <DialogHeader className="shrink-0 space-y-1 border-b px-3 sm:px-4 lg:px-6 py-4 text-left">
               <DialogTitle>Edit School</DialogTitle>
               <DialogDescription>
                 Scroll on small screens to see all fields. Three columns on large screens. Pick the curriculum board the school follows, then use the toggle for normal usage vs Asli Prep (like Limited vs Unlimited below).
               </DialogDescription>
             </DialogHeader>
-            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-6 py-4 pb-8 [-webkit-overflow-scrolling:touch]">
-              <p className="mb-3 text-sm font-semibold text-gray-900">Administrator</p>
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 sm:px-4 lg:px-6 py-4 pb-8 [-webkit-overflow-scrolling:touch]">
+              <p className="mb-3 text-xs sm:text-sm font-semibold text-gray-900">Administrator</p>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="edit-name">Full Name *</Label>
@@ -1666,9 +1666,9 @@ export default function AdminManagement() {
                             aria-label={showEditNewPassword ? "Hide password" : "Show password"}
                           >
                             {showEditNewPassword ? (
-                              <EyeOff className="h-4 w-4" />
+                              <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" />
                             ) : (
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                             )}
                           </button>
                         </div>
@@ -1754,7 +1754,7 @@ export default function AdminManagement() {
                 </div>
               </div>
 
-              <p className="mb-3 mt-8 text-sm font-semibold text-gray-900">School Information</p>
+              <p className="mb-3 mt-8 text-xs sm:text-sm font-semibold text-gray-900">School Information</p>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
                   <Label htmlFor="edit-schoolName">School Name *</Label>
@@ -1885,7 +1885,7 @@ export default function AdminManagement() {
                   <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-3">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="space-y-1">
-                        <p className="text-sm text-gray-800">School program</p>
+                        <p className="text-xs sm:text-sm text-gray-800">School program</p>
                         <p className="text-xs text-gray-600">
                           Normal schools use the curriculum board only. Turn on Asli Prep for the Asli Prep track.
                         </p>
@@ -1893,7 +1893,7 @@ export default function AdminManagement() {
                       <div className="flex shrink-0 items-center gap-3">
                         <span
                           className={cn(
-                            "text-sm",
+                            "text-xs sm:text-sm",
                             !editAdmin.isAsliPrepExclusive ? "font-semibold text-gray-900" : "text-gray-500"
                           )}
                         >
@@ -1908,7 +1908,7 @@ export default function AdminManagement() {
                         />
                         <span
                           className={cn(
-                            "text-sm",
+                            "text-xs sm:text-sm",
                             editAdmin.isAsliPrepExclusive ? "font-semibold text-orange-800" : "text-gray-500"
                           )}
                         >
@@ -2014,7 +2014,7 @@ export default function AdminManagement() {
                     accept="image/*"
                     className={cn(
                       SCHOOL_FORM_FIELD_CLASS,
-                      "cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-orange-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-orange-700 hover:file:bg-orange-100"
+                      "cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-orange-50 file:px-3 file:py-1.5 file:text-xs sm:text-sm file:font-medium file:text-orange-700 hover:file:bg-orange-100"
                     )}
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
@@ -2052,22 +2052,22 @@ export default function AdminManagement() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 shrink-0 text-slate-600 hover:bg-red-50 hover:text-red-600"
+                        className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 shrink-0 text-slate-600 hover:bg-red-50 hover:text-red-600"
                         onClick={() => setEditAdmin({ ...editAdmin, schoolLogo: "" })}
                         aria-label="Remove school logo"
                       >
-                        <XIcon className="h-4 w-4" />
+                        <XIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
                     </div>
                   )}
                 </div>
               </div>
 
-              <p className="mb-3 mt-8 text-sm font-semibold text-gray-900">Admin portal access</p>
+              <p className="mb-3 mt-8 text-xs sm:text-sm font-semibold text-gray-900">Admin portal access</p>
               <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-1">
-                    <p className="text-sm text-gray-800">Limited vs unlimited</p>
+                    <p className="text-xs sm:text-sm text-gray-800">Limited vs unlimited</p>
                     <p className="text-xs text-gray-600">
                       Unlimited turns on every admin portal module. Limited lets you choose which modules this school can use.
                     </p>
@@ -2075,7 +2075,7 @@ export default function AdminManagement() {
                   <div className="flex shrink-0 items-center gap-3">
                     <span
                       className={cn(
-                        "text-sm",
+                        "text-xs sm:text-sm",
                         editAdmin.accessMode === "limited" ? "font-semibold text-gray-900" : "text-gray-500"
                       )}
                     >
@@ -2098,7 +2098,7 @@ export default function AdminManagement() {
                     />
                     <span
                       className={cn(
-                        "text-sm",
+                        "text-xs sm:text-sm",
                         editAdmin.accessMode === "unlimited" ? "font-semibold text-orange-800" : "text-gray-500"
                       )}
                     >
@@ -2163,7 +2163,7 @@ export default function AdminManagement() {
                                     }}
                                   />
                                   <div className="min-w-0 flex-1 space-y-0.5">
-                                    <Label htmlFor={cid} className="cursor-pointer text-sm font-medium text-slate-900">
+                                    <Label htmlFor={cid} className="cursor-pointer text-xs sm:text-sm font-medium text-slate-900">
                                       {mod.title}
                                     </Label>
                                     <p className="text-xs leading-snug text-slate-600">{mod.description}</p>
@@ -2179,7 +2179,7 @@ export default function AdminManagement() {
                 )}
               </div>
             </div>
-            <div className="flex shrink-0 justify-end gap-2 border-t bg-background px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="flex shrink-0 justify-end gap-2 border-t bg-background px-3 sm:px-4 lg:px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -2201,7 +2201,7 @@ export default function AdminManagement() {
       {/* Search Bar */}
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-md">
-          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
           <Input
             type="text"
             placeholder="Search by school, contact, email, state, board, or Asli Prep…"
@@ -2222,14 +2222,14 @@ export default function AdminManagement() {
       </div>
 
       {/* Admin Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:p-4 lg:p-6">
         {/* Total Schools - Orange (matching Asli Exclusive Schools) */}
         <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-white/90">Total Schools</p>
-                <p className="text-3xl font-bold text-white">{admins?.length || 0}</p>
+                <p className="text-xs sm:text-sm font-medium text-white/90">Total Schools</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white">{admins?.length || 0}</p>
               </div>
               <CrownIcon className="h-12 w-12 text-white/80" />
             </div>
@@ -2238,11 +2238,11 @@ export default function AdminManagement() {
 
         {/* Total Students - Sky Blue (matching Content Management) */}
         <Card className="bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-white/90">Total Students</p>
-                <p className="text-3xl font-bold text-white">
+                <p className="text-xs sm:text-sm font-medium text-white/90">Total Students</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white">
                   {admins?.reduce((sum, admin) => sum + (admin?.stats?.students || 0), 0) || 0}
                 </p>
               </div>
@@ -2253,11 +2253,11 @@ export default function AdminManagement() {
 
         {/* Total Teachers - Teal (matching AI Analytics) */}
         <Card className="bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-white/90">Total Teachers</p>
-                <p className="text-3xl font-bold text-white">
+                <p className="text-xs sm:text-sm font-medium text-white/90">Total Teachers</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white">
                   {admins?.reduce((sum, admin) => sum + (admin?.stats?.teachers || 0), 0) || 0}
                 </p>
               </div>
@@ -2292,7 +2292,7 @@ export default function AdminManagement() {
         return (
           <>
             {filteredAdmins && filteredAdmins.length > 0 ? (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6 items-stretch">
                 {filteredAdmins.map((admin) => (
           <Card key={admin?.id || Math.random().toString()} className="hover:shadow-lg transition-shadow h-full flex flex-col">
             <CardHeader className="flex-1">
@@ -2308,21 +2308,21 @@ export default function AdminManagement() {
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <CrownIcon className="h-5 w-5 text-orange-600" />
+                      <CrownIcon className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <CardTitle className="text-base sm:text-lg leading-tight break-words">
+                    <CardTitle className="text-sm sm:text-base sm:text-lg leading-tight break-words">
                       {admin?.schoolName || admin?.name || 'Unknown School'}
                     </CardTitle>
                     {admin?.name && admin?.schoolName && (
-                      <p className="text-sm text-gray-600 break-words leading-snug">Contact: {admin.name}</p>
+                      <p className="text-xs sm:text-sm text-gray-600 break-words leading-snug">Contact: {admin.name}</p>
                     )}
                     {!admin?.schoolName && (
-                    <p className="text-sm text-gray-600 break-all leading-snug">{admin?.email || 'No email'}</p>
+                    <p className="text-xs sm:text-sm text-gray-600 break-all leading-snug">{admin?.email || 'No email'}</p>
                     )}
                     {admin?.schoolName && (
-                      <p className="text-sm text-gray-500 break-all leading-snug">{admin?.email || 'No email'}</p>
+                      <p className="text-xs sm:text-sm text-gray-500 break-all leading-snug">{admin?.email || 'No email'}</p>
                     )}
                     <div className="mt-1 flex flex-wrap gap-1">
                       {isUnlimitedPortalAccess(admin.permissions) ? (
@@ -2371,23 +2371,23 @@ export default function AdminManagement() {
             </CardHeader>
             <CardContent className="mt-auto">
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Students - Orange gradient */}
                   <div className="text-center p-3 bg-gradient-to-br from-orange-300 to-orange-400 rounded-lg text-white">
-                    <UsersIcon className="h-6 w-6 text-white/80 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-white">{admin?.stats?.students || 0}</p>
-                    <p className="text-sm text-white/90">Students</p>
+                    <UsersIcon className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-white/80 mx-auto mb-2" />
+                    <p className="text-xl sm:text-2xl font-bold text-white">{admin?.stats?.students || 0}</p>
+                    <p className="text-xs sm:text-sm text-white/90">Students</p>
                   </div>
                   {/* Teachers - Teal gradient */}
                   <div className="text-center p-3 bg-gradient-to-br from-teal-400 to-teal-500 rounded-lg text-white">
-                    <GraduationCapIcon className="h-6 w-6 text-white/80 mx-auto mb-2" />
-                    <p className="text-2xl font-bold text-white">{admin?.stats?.teachers || 0}</p>
-                    <p className="text-sm text-white/90">Teachers</p>
+                    <GraduationCapIcon className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-white/80 mx-auto mb-2" />
+                    <p className="text-xl sm:text-2xl font-bold text-white">{admin?.stats?.teachers || 0}</p>
+                    <p className="text-xs sm:text-sm text-white/90">Teachers</p>
                   </div>
                 </div>
                 
                 <div className="flex justify-between items-center pt-4 border-t">
-                  <span className="text-sm text-gray-500">
+                  <span className="text-xs sm:text-sm text-gray-500">
                     Added: {admin?.joinDate ? new Date(admin.joinDate).toLocaleDateString() : 'Unknown'}
                   </span>
                   <div className="flex flex-wrap justify-end gap-2">
@@ -2398,7 +2398,7 @@ export default function AdminManagement() {
                       className="hover:bg-orange-50 hover:text-orange-900"
                       title="View full details"
                     >
-                      <EyeIcon className="h-4 w-4" />
+                      <EyeIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                     <Button 
                       size="sm" 
@@ -2406,7 +2406,7 @@ export default function AdminManagement() {
                       onClick={() => handleEditClick(admin)}
                       className="hover:bg-orange-50 hover:text-orange-900"
                     >
-                      <EditIcon className="h-4 w-4" />
+                      <EditIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                     <Button 
                       size="sm" 
@@ -2414,7 +2414,7 @@ export default function AdminManagement() {
                       onClick={() => handleDeleteAdmin(admin?.id || '', admin?.schoolId)}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
-                      <TrashIcon className="h-4 w-4" />
+                      <TrashIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                   </div>
                 </div>
@@ -2427,7 +2427,7 @@ export default function AdminManagement() {
               <Card>
                 <CardContent className="p-12 text-center">
                   <SearchIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Schools Found</h3>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No Schools Found</h3>
                   <p className="text-gray-600 mb-4">No schools match your search query "{searchQuery}"</p>
                   <Button variant="outline" onClick={() => setSearchQuery('')}>
                     Clear Search
@@ -2443,10 +2443,10 @@ export default function AdminManagement() {
         <Card>
           <CardContent className="p-12 text-center">
             <CrownIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Schools Found</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No Schools Found</h3>
             <p className="text-gray-600 mb-4">Get started by adding your first school</p>
             <Button onClick={() => setIsAddDialogOpen(true)}>
-              <UserPlusIcon className="h-4 w-4 mr-2" />
+              <UserPlusIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
               Add First School
             </Button>
           </CardContent>
@@ -2460,9 +2460,9 @@ export default function AdminManagement() {
           aria-live="polite"
           aria-busy="true"
         >
-          <div className="flex flex-col items-center gap-3 rounded-lg border bg-background px-10 py-8 shadow-lg">
+          <div className="flex flex-col items-center gap-3 rounded-lg border bg-background px-10 py-4 sm:py-6 lg:py-8 shadow-lg">
             <Loader2 className="h-10 w-10 animate-spin text-primary" aria-hidden />
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               {isAddingAdmin
                 ? "Adding school…"
                 : isUpdatingAdmin

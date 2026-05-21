@@ -521,17 +521,17 @@ export default function ContentManagement() {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'Video':
-        return <Video className="w-4 h-4" />;
+        return <Video className="w-3 h-3 sm:w-4 sm:h-4" />;
       case 'TextBook':
-        return <FileText className="w-4 h-4" />;
+        return <FileText className="w-3 h-3 sm:w-4 sm:h-4" />;
       case 'Workbook':
-        return <File className="w-4 h-4" />;
+        return <File className="w-3 h-3 sm:w-4 sm:h-4" />;
       case 'Material':
-        return <File className="w-4 h-4" />;
+        return <File className="w-3 h-3 sm:w-4 sm:h-4" />;
       case 'Audio':
-        return <File className="w-4 h-4" />;
+        return <File className="w-3 h-3 sm:w-4 sm:h-4" />;
       default:
-        return <File className="w-4 h-4" />;
+        return <File className="w-3 h-3 sm:w-4 sm:h-4" />;
     }
   };
 
@@ -793,11 +793,11 @@ export default function ContentManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">Content Management</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Content Management</h2>
           <p className="text-gray-600 mt-1">Upload videos and notes for AsliLearn Exclusive</p>
         </div>
         <div className="flex gap-2">
@@ -807,14 +807,14 @@ export default function ContentManagement() {
             variant="outline"
             className="border-red-500 text-red-600 hover:bg-red-50"
           >
-            <Trash2 className={`w-4 h-4 mr-2 ${isDeletingAll ? 'animate-spin' : ''}`} />
+            <Trash2 className={`w-3 h-3 sm:w-4 sm:h-4 mr-2 ${isDeletingAll ? 'animate-spin' : ''}`} />
             {isDeletingAll ? 'Deleting All...' : 'Delete All'}
           </Button>
           <Button
             onClick={() => setIsUploadModalOpen(true)}
             className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
           >
-            <Upload className="w-4 h-4 mr-2" />
+            <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             Upload Content
           </Button>
         </div>
@@ -912,7 +912,7 @@ export default function ContentManagement() {
                   onClick={() => setViewMode('grid')}
                   className={`rounded-none ${viewMode === 'grid' ? 'bg-sky-500 text-white hover:bg-sky-600' : ''}`}
                 >
-                  <Grid3x3 className="w-4 h-4 mr-1" />
+                  <Grid3x3 className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                   Grid
                 </Button>
                 <Button
@@ -921,7 +921,7 @@ export default function ContentManagement() {
                   onClick={() => setViewMode('calendar')}
                   className={`rounded-none ${viewMode === 'calendar' ? 'bg-sky-500 text-white hover:bg-sky-600' : ''}`}
                 >
-                  <Calendar className="w-4 h-4 mr-1" />
+                  <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                   Calendar
                 </Button>
               </div>
@@ -933,17 +933,17 @@ export default function ContentManagement() {
       {/* Content View */}
       {isLoading ? (
         <div className="text-center py-12">
-          <div className="w-8 h-8 border-4 border-blue-700 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 border-4 border-blue-700 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Loading content...</p>
         </div>
       ) : contents.length === 0 ? (
         <Card>
           <CardContent className="p-12 text-center">
             <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Content Yet</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No Content Yet</h3>
             <p className="text-gray-600 mb-4">Start uploading exclusive content for {BOARDS.find(b => b.value === selectedBoard)?.label} students</p>
             <Button onClick={() => setIsUploadModalOpen(true)} className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white">
-              <Upload className="w-4 h-4 mr-2" />
+              <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Upload First Content
             </Button>
           </CardContent>
@@ -952,7 +952,7 @@ export default function ContentManagement() {
         <Card>
           <CardContent className="p-12 text-center">
             <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No Content Matches Filters</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No Content Matches Filters</h3>
             <p className="text-gray-600 mb-4">Try adjusting your filter criteria</p>
             <Button 
               onClick={() => {
@@ -967,7 +967,7 @@ export default function ContentManagement() {
           </CardContent>
         </Card>
       ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
           {filteredContents.map((content) => (
             <Card key={content._id} className="hover:shadow-xl transition-all duration-300 border-0 overflow-hidden" style={{
               background: 'linear-gradient(135deg, #7dd3fc 0%, #7dd3fc 20%, #2dd4bf 60%, #14b8a6 100%)'
@@ -975,7 +975,7 @@ export default function ContentManagement() {
               <CardHeader className="bg-white/10 backdrop-blur-sm">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <CardTitle className="text-lg mb-2 text-gray-900 font-semibold">{content.title}</CardTitle>
+                    <CardTitle className="text-base sm:text-lg mb-2 text-gray-900 font-semibold">{content.title}</CardTitle>
                     <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
                       {getTypeIcon(content.type)}
                       <span className="ml-1 capitalize">{content.type}</span>
@@ -988,15 +988,15 @@ export default function ContentManagement() {
                     disabled={isDeleting === content._id}
                     className="text-white hover:text-white hover:bg-white/20"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                   </Button>
                 </div>
                 {content.description && (
-                  <p className="text-sm text-white/90 mt-2 line-clamp-2">{content.description}</p>
+                  <p className="text-xs sm:text-sm text-white/90 mt-2 line-clamp-2">{content.description}</p>
                 )}
               </CardHeader>
               <CardContent className="bg-white/5">
-                <div className="space-y-2 text-sm">
+                <div className="space-y-2 text-xs sm:text-sm">
                   <div className="flex items-center text-white">
                     <span className="font-medium mr-2">Subject:</span>
                     <span>{content.subject?.name || 'N/A'}</span>
@@ -1039,7 +1039,7 @@ export default function ContentManagement() {
                             setViewingContent(contentWithUrl);
                           }}
                         >
-                          <Eye className="w-4 h-4 mr-2" />
+                          <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                           <span className="truncate flex-1">Link {index + 1}</span>
                         </Button>
                       ))}
@@ -1051,7 +1051,7 @@ export default function ContentManagement() {
                       className="w-full bg-white/90 text-gray-900 border-white/50 hover:bg-white hover:text-gray-900"
                       onClick={() => setViewingContent(content)}
                     >
-                      <Eye className="w-4 h-4 mr-1" />
+                      <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                       View
                     </Button>
                   )}
@@ -1070,7 +1070,7 @@ export default function ContentManagement() {
                 <Card>
                   <CardContent className="p-12 text-center">
                     <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No content available</h3>
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No content available</h3>
                     <p className="text-gray-600">Content will appear here once it's uploaded.</p>
                   </CardContent>
                 </Card>
@@ -1095,9 +1095,9 @@ export default function ContentManagement() {
                         {week.contents.length} item{week.contents.length !== 1 ? 's' : ''}
                       </Badge>
                       {isExpanded ? (
-                        <ChevronUp className="w-4 h-4 text-gray-500" />
+                        <ChevronUp className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
                       ) : (
-                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                        <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
                       )}
                     </div>
                   </button>
@@ -1119,7 +1119,7 @@ export default function ContentManagement() {
                           >
                             <div className="flex items-center space-x-4 flex-1 min-w-0">
                               <div className="p-3 bg-gradient-to-br from-sky-100 to-teal-100 rounded-lg group-hover:from-sky-200 group-hover:to-teal-200 transition-colors">
-                                <Icon className="w-5 h-5 text-sky-600" />
+                                <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600" />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center space-x-2 mb-1">
@@ -1132,8 +1132,8 @@ export default function ContentManagement() {
                                     </Badge>
                                   )}
                                 </div>
-                                <h4 className="font-semibold text-gray-900 text-base mb-1 truncate">{content.title}</h4>
-                                <div className="flex items-center gap-3 text-sm text-gray-600">
+                                <h4 className="font-semibold text-gray-900 text-sm sm:text-base mb-1 truncate">{content.title}</h4>
+                                <div className="flex items-center gap-3 text-xs sm:text-sm text-gray-600">
                                   <span className="flex items-center gap-1">
                                     <BookOpen className="w-3 h-3" />
                                     {extractSubjectName(subjectName)}
@@ -1171,7 +1171,7 @@ export default function ContentManagement() {
                                 }}
                                 className="bg-sky-50 hover:bg-sky-100 border-sky-200 text-sky-700"
                               >
-                                <Eye className="w-4 h-4 mr-1" />
+                                <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                                 View
                               </Button>
                               <Button
@@ -1184,7 +1184,7 @@ export default function ContentManagement() {
                                 disabled={isDeleting === content._id}
                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                               </Button>
                             </div>
                           </div>
@@ -1209,13 +1209,13 @@ export default function ContentManagement() {
       }}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Upload New Content</DialogTitle>
+            <DialogTitle className="text-xl sm:text-2xl font-bold">Upload New Content</DialogTitle>
             <DialogDescription>
               Upload exclusive videos and notes for AsliLearn students
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpload} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="board">Board *</Label>
                 <Select
@@ -1278,7 +1278,7 @@ export default function ContentManagement() {
               <Label htmlFor="subject">Subject *</Label>
               {formData.board === ALL_BOARDS_VALUE ? (
                 isLoadingAllBoardSubjects ? (
-                  <div className="text-sm text-gray-600">Loading subjects across boards...</div>
+                  <div className="text-xs sm:text-sm text-gray-600">Loading subjects across boards...</div>
                 ) : allBoardSubjectOptions.length === 0 ? (
                   <p className="text-xs text-yellow-600">
                     ⚠️ No common subjects exist across every board. Please create matching subjects for each board to use this option.
@@ -1335,7 +1335,7 @@ export default function ContentManagement() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="date">Date *</Label>
                 <Input
@@ -1370,7 +1370,7 @@ export default function ContentManagement() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="topic">Topic (Optional)</Label>
                 <Input
@@ -1423,7 +1423,7 @@ export default function ContentManagement() {
                       id="content-file"
                       type="file"
                       accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
-                      className="text-sm"
+                      className="text-xs sm:text-sm"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
@@ -1495,7 +1495,7 @@ export default function ContentManagement() {
                           setUploadedFileName(null);
                         }}
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
                     </div>
                   )}
@@ -1526,7 +1526,7 @@ export default function ContentManagement() {
                       }}
                       disabled={!formData.fileUrl.trim()}
                     >
-                      <Plus className="h-4 w-4" />
+                      <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                   </div>
                   
@@ -1534,7 +1534,7 @@ export default function ContentManagement() {
                     <div className="space-y-2 mt-2">
                       {formData.fileUrls.map((url, index) => (
                         <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded-md border">
-                          <span className="flex-1 text-sm text-gray-700 truncate">{url}</span>
+                          <span className="flex-1 text-xs sm:text-sm text-gray-700 truncate">{url}</span>
                           <Button
                             type="button"
                             variant="ghost"
@@ -1547,7 +1547,7 @@ export default function ContentManagement() {
                             }}
                             className="text-red-600 hover:text-red-700"
                           >
-                            <X className="h-4 w-4" />
+                            <X className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
                         </div>
                       ))}
@@ -1570,7 +1570,7 @@ export default function ContentManagement() {
                 type="submit" 
                 className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
               >
-                <Upload className="w-4 h-4 mr-2" />
+                <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Upload Content
               </Button>
             </div>
@@ -1587,10 +1587,10 @@ export default function ContentManagement() {
         }
       }}>
         <DialogContent className="max-w-[96vw] w-full h-[90vh] max-h-[90vh] overflow-hidden flex flex-col p-0 rounded-2xl shadow-2xl">
-          <DialogHeader className="px-6 pt-5 pb-3 flex-shrink-0 border-b bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
+          <DialogHeader className="px-3 sm:px-4 lg:px-6 pt-5 pb-3 flex-shrink-0 border-b bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <DialogTitle className="text-xl font-semibold truncate max-w-[60vw]">
+                <DialogTitle className="text-lg sm:text-xl font-semibold truncate max-w-[60vw]">
                   {viewingContent?.title || 'Content'}
                 </DialogTitle>
                 <DialogDescription className="text-slate-200/80">
@@ -1607,9 +1607,9 @@ export default function ContentManagement() {
           </DialogHeader>
           
           {viewingContent && (
-            <div className="flex-1 flex flex-col overflow-hidden px-6 pb-5 pt-3 bg-slate-50">
+            <div className="flex-1 flex flex-col overflow-hidden px-3 sm:px-4 lg:px-6 pb-5 pt-3 bg-slate-50">
               {/* Compact meta row above viewer */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs mb-3 text-slate-600">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-xs mb-3 text-slate-600">
                 <div><span className="font-semibold">Board:</span> {getBoardLabel(viewingContent.board)}</div>
                 {viewingContent.topic && (
                   <div><span className="font-semibold">Topic:</span> {viewingContent.topic}</div>
@@ -1720,7 +1720,7 @@ export default function ContentManagement() {
                           <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
                             <div className="text-center">
                               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                              <p className="text-sm text-gray-600">Loading content...</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Loading content...</p>
                               {isFlipbook && (
                                 <p className="text-xs text-gray-500 mt-2">Using proxy to load flipbook...</p>
                               )}
@@ -1729,10 +1729,10 @@ export default function ContentManagement() {
                         )}
                         {iframeError ? (
                           <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-10">
-                            <div className="text-center p-6">
+                            <div className="text-center p-3 sm:p-4 lg:p-6">
                               <div className="text-red-500 mb-4">
                                 <File className="w-16 h-16 mx-auto mb-2" />
-                                <p className="text-sm font-medium">Failed to load content</p>
+                                <p className="text-xs sm:text-sm font-medium">Failed to load content</p>
                                 <p className="text-xs text-gray-500 mt-1">{iframeError}</p>
                               </div>
                               <Button

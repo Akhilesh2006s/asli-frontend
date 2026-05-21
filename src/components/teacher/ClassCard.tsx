@@ -34,7 +34,7 @@ export type ClassCardProps = {
 /** Split schedule like "Mon, Wed, Fri" into chips */
 function ScheduleChips({ schedule }: { schedule: string }) {
   if (!schedule?.trim()) {
-    return <span className="text-sm text-gray-500">—</span>;
+    return <span className="text-xs sm:text-sm text-gray-500">—</span>;
   }
   const parts = schedule
     .split(',')
@@ -42,7 +42,7 @@ function ScheduleChips({ schedule }: { schedule: string }) {
     .filter(Boolean);
 
   if (parts.length === 0) {
-    return <span className="text-sm text-gray-700">{schedule}</span>;
+    return <span className="text-xs sm:text-sm text-gray-700">{schedule}</span>;
   }
 
   return (
@@ -81,11 +81,11 @@ export function ClassCard({
     >
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h3 className="text-xl font-bold leading-tight tracking-tight text-gray-900 sm:text-2xl">
+          <h3 className="text-lg sm:text-xl font-bold leading-tight tracking-tight text-gray-900 sm:text-2xl">
             {name}
           </h3>
-          <p className="mt-1.5 flex items-center gap-1.5 text-sm font-medium text-gray-600">
-            <BookOpen className="h-4 w-4 shrink-0 text-indigo-500" aria-hidden />
+          <p className="mt-1.5 flex items-center gap-1.5 text-xs sm:text-sm font-medium text-gray-600">
+            <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-indigo-500" aria-hidden />
             <span className="truncate">{subject}</span>
           </p>
         </div>
@@ -95,17 +95,17 @@ export function ClassCard({
       </div>
 
       <div className="space-y-3 border-t border-gray-100 pt-4">
-        <div className="flex items-center justify-between gap-3 text-sm">
+        <div className="flex items-center justify-between gap-3 text-xs sm:text-sm">
           <span className="flex items-center gap-2 text-gray-500">
-            <Users className="h-4 w-4 shrink-0 text-gray-400" aria-hidden />
+            <Users className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-gray-400" aria-hidden />
             Students
           </span>
           <span className="font-semibold tabular-nums text-gray-900">{studentCount}</span>
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          <span className="flex shrink-0 items-center gap-2 text-sm text-gray-500">
-            <CalendarRange className="h-4 w-4 text-gray-400" aria-hidden />
+          <span className="flex shrink-0 items-center gap-2 text-xs sm:text-sm text-gray-500">
+            <CalendarRange className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400" aria-hidden />
             Schedule
           </span>
           <div className="min-w-0 sm:text-right">
@@ -113,9 +113,9 @@ export function ClassCard({
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3 text-sm">
+        <div className="flex items-center justify-between gap-3 text-xs sm:text-sm">
           <span className="flex items-center gap-2 text-gray-500">
-            <DoorOpen className="h-4 w-4 shrink-0 text-gray-400" aria-hidden />
+            <DoorOpen className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-gray-400" aria-hidden />
             Room
           </span>
           <span className="truncate font-medium text-gray-900">{room}</span>
@@ -134,7 +134,7 @@ export function ClassCard({
                 className="flex items-center justify-between gap-2 rounded-lg bg-white px-3 py-2 shadow-sm ring-1 ring-gray-100"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-gray-900">{student.name}</p>
+                  <p className="truncate text-xs sm:text-sm font-medium text-gray-900">{student.name}</p>
                   <p className="truncate text-xs text-gray-500">{student.email}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1.5">
@@ -179,12 +179,12 @@ export function ClassCard({
         >
           {expanded ? (
             <>
-              <ChevronUp className="mr-2 h-4 w-4" aria-hidden />
+              <ChevronUp className="mr-2 h-3 w-3 sm:h-4 sm:w-4" aria-hidden />
               Hide Students
             </>
           ) : (
             <>
-              <ChevronDown className="mr-2 h-4 w-4" aria-hidden />
+              <ChevronDown className="mr-2 h-3 w-3 sm:h-4 sm:w-4" aria-hidden />
               View Students
             </>
           )}

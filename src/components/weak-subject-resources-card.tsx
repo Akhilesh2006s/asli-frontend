@@ -107,9 +107,9 @@ export function WeakSubjectResourcesCard({
       <Card className="border-0 shadow-xl overflow-hidden bg-gradient-to-br from-white via-purple-50/60 to-pink-50 ring-1 ring-purple-100">
         <div className="h-1.5 bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500" aria-hidden />
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex flex-col gap-1">
+          <CardTitle className="text-base sm:text-lg flex flex-col gap-1">
             <span>📚 Study Resources for Weak Subjects</span>
-            <span className="text-sm font-normal text-muted-foreground">
+            <span className="text-xs sm:text-sm font-normal text-muted-foreground">
               Based on your exam performance, here are platform materials to help you improve
             </span>
           </CardTitle>
@@ -131,7 +131,7 @@ export function WeakSubjectResourcesCard({
                 return (
                   <TabsContent key={key} value={key} className="mt-0">
                     {items.length === 0 ? (
-                      <p className="text-sm text-muted-foreground py-6 text-center rounded-lg border border-dashed border-purple-200/80 bg-white/60">
+                      <p className="text-xs sm:text-sm text-muted-foreground py-3 sm:py-4 lg:py-6 text-center rounded-lg border border-dashed border-purple-200/80 bg-white/60">
                         No {label} matched your weak topics from this exam yet. Ask your teacher to upload materials with the same topic names.
                       </p>
                     ) : (
@@ -180,7 +180,7 @@ export function WeakSubjectResourcesCard({
                                   )}
                                 </div>
                               )}
-                              <h4 className="font-semibold text-gray-900 line-clamp-2 text-sm leading-snug">{item.title}</h4>
+                              <h4 className="font-semibold text-gray-900 line-clamp-2 text-xs sm:text-sm leading-snug">{item.title}</h4>
                               <div className="mt-2 flex flex-wrap items-center gap-2">
                                 <Badge variant="secondary" className="capitalize text-xs font-normal">
                                   {plainDisplaySubject(item.subject.name)}
@@ -225,7 +225,7 @@ export function WeakSubjectResourcesCard({
         }}
       >
         <DialogContent className="w-[90vw] h-[95vh] max-w-none bg-white rounded-2xl overflow-hidden flex flex-col p-0">
-          <DialogHeader className="px-8 pt-5 pb-3 border-b border-gray-200">
+          <DialogHeader className="px-4 sm:px-6 lg:px-8 pt-5 pb-3 border-b border-gray-200">
             <DialogTitle className="pl-2 pt-1">{previewItem?.title || 'Preview'}</DialogTitle>
           </DialogHeader>
           <div className="flex-1 min-h-0 overflow-hidden px-4 py-4">
@@ -240,7 +240,7 @@ export function WeakSubjectResourcesCard({
               ? `https://www.youtube.com/embed/${(fileUrl.match(/^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/) || [])[2] || ''}`
               : '';
 
-            if (!fileUrl || fileUrl === '#') return <p className="text-sm text-gray-500">No preview URL available.</p>;
+            if (!fileUrl || fileUrl === '#') return <p className="text-xs sm:text-sm text-gray-500">No preview URL available.</p>;
 
             if (isVideo && youtubeEmbed) {
               return <iframe src={youtubeEmbed} className="w-full h-full min-h-[85vh] border-0 rounded-lg bg-white block" title={previewItem?.title || 'Video'} allowFullScreen />;
@@ -265,7 +265,7 @@ export function WeakSubjectResourcesCard({
             if (isAudio) {
               return <audio src={fileUrl} controls className="w-full" />;
             }
-            return <p className="text-sm text-gray-500">Preview is not available for this file type.</p>;
+            return <p className="text-xs sm:text-sm text-gray-500">Preview is not available for this file type.</p>;
           })()}
           </div>
         </DialogContent>

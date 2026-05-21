@@ -40,7 +40,7 @@ function ToolCard({
             <div
               className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-white shadow-lg`}
             >
-              <Icon className="h-5 w-5" />
+              <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             {badge && (
               <Badge
@@ -51,13 +51,13 @@ function ToolCard({
               </Badge>
             )}
           </div>
-          <CardTitle className="text-lg font-semibold tracking-tight text-slate-900">
+          <CardTitle className="text-base sm:text-lg font-semibold tracking-tight text-slate-900">
             {title}
           </CardTitle>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm leading-relaxed text-slate-600">{description}</p>
+        <p className="text-xs sm:text-sm leading-relaxed text-slate-600">{description}</p>
         <Button
           size="sm"
           className="group/button mt-2 inline-flex items-center gap-1 rounded-full bg-sky-600 px-4 text-xs font-medium text-white shadow-sm hover:bg-sky-700"
@@ -79,34 +79,34 @@ export default function AIToolsDashboard() {
     <>
       <Navigation />
       <div className="min-h-screen bg-gradient-to-br from-sky-50 via-slate-50 to-sky-100">
-        <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 md:py-10 lg:py-12">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:p-6 lg:p-8 px-4 py-4 sm:py-6 lg:py-8 md:py-10 lg:py-12">
           <header className="space-y-3">
             <Badge className="rounded-full bg-sky-100 text-xs font-medium text-sky-800 ring-1 ring-sky-200">
               Central AI Tools Hub
             </Badge>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
               All AI tools in{" "}
               <span className="bg-gradient-to-r from-sky-600 to-cyan-600 bg-clip-text text-transparent">
                 one dashboard
               </span>
             </h1>
-            <p className="max-w-2xl text-sm text-slate-600 md:text-base">
+            <p className="max-w-2xl text-xs sm:text-sm text-slate-600 md:text-base">
               Quickly access every AI experience we provide — from student AI
               tutor to teacher analytics and super-admin risk monitoring —
               through a single shareable page.
             </p>
           </header>
 
-          <section className="grid gap-6 md:grid-cols-[2fr,3fr]">
+          <section className="grid gap-3 sm:p-4 lg:p-6 md:grid-cols-[2fr,3fr]">
             <div className="space-y-4">
               <Card className="border border-sky-100 bg-white/90 shadow-sm">
                 <CardHeader className="space-y-2">
-                  <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
-                    <Sparkles className="h-4 w-4 text-sky-500" />
+                  <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-semibold text-slate-900">
+                    <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-sky-500" />
                     What&apos;s inside this folder?
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2 text-sm text-slate-600">
+                <CardContent className="space-y-2 text-xs sm:text-sm text-slate-600">
                   <p>
                     This `ai-tools-dashboard` page is self-contained on the
                     frontend: you can{" "}
@@ -157,8 +157,8 @@ export default function AIToolsDashboard() {
           <section className="grid gap-4 md:grid-cols-3">
             <Card className="border border-slate-200/80 bg-white/90">
               <CardHeader className="space-y-1">
-                <CardTitle className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                  <MessageCircle className="h-4 w-4 text-sky-500" />
+                <CardTitle className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-900">
+                  <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4 text-sky-500" />
                   Student AI experiences
                 </CardTitle>
               </CardHeader>
@@ -173,8 +173,8 @@ export default function AIToolsDashboard() {
 
             <Card className="border border-slate-200/80 bg-white/90">
               <CardHeader className="space-y-1">
-                <CardTitle className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                  <BarChart3 className="h-4 w-4 text-sky-500" />
+                <CardTitle className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-900">
+                  <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 text-sky-500" />
                   Teacher & admin tooling
                 </CardTitle>
               </CardHeader>
@@ -188,8 +188,8 @@ export default function AIToolsDashboard() {
 
             <Card className="border border-slate-200/80 bg-white/90">
               <CardHeader className="space-y-1">
-                <CardTitle className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                  <Shield className="h-4 w-4 text-sky-500" />
+                <CardTitle className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-900">
+                  <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-sky-500" />
                   Governance & safety
                 </CardTitle>
               </CardHeader>

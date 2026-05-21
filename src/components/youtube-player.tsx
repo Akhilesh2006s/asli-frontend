@@ -36,7 +36,7 @@ const YouTubePlayer = ({ videoUrl, title, className = '' }: YouTubePlayerProps) 
       <div className={`bg-gray-100 rounded-lg flex items-center justify-center h-64 ${className}`}>
         <div className="text-center">
           <p className="text-gray-500 mb-2">Invalid YouTube URL</p>
-          <p className="text-sm text-gray-400">Please provide a valid YouTube video URL</p>
+          <p className="text-xs sm:text-sm text-gray-400">Please provide a valid YouTube video URL</p>
         </div>
       </div>
     );

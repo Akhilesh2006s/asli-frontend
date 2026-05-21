@@ -84,17 +84,17 @@ export default function AdvancedPerformanceDashboard({ examId }: Props) {
   if (isLoading) {
     return (
       <Card className={sectionCard}>
-        <CardContent className="p-8 text-center text-slate-600">Loading advanced intelligence...</CardContent>
+        <CardContent className="p-4 sm:p-6 lg:p-8 text-center text-slate-600">Loading advanced intelligence...</CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       <div className="sticky top-2 z-10 rounded-xl border border-sky-100 bg-white/95 backdrop-blur p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">Advanced Performance Intelligence Dashboard</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-slate-900">Advanced Performance Intelligence Dashboard</h3>
             <p className="text-xs text-slate-600">
               Deep exam analytics with time, concept, chapter and AI strategy intelligence.
             </p>
@@ -111,7 +111,7 @@ export default function AdvancedPerformanceDashboard({ examId }: Props) {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs sm:text-sm text-amber-700">
           {error}. Showing fallback mock analytics snapshot.
         </div>
       )}
@@ -120,10 +120,10 @@ export default function AdvancedPerformanceDashboard({ examId }: Props) {
         <CardHeader>
           <CardTitle>Difficulty + Time Intelligence</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6 overflow-x-auto">
+        <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6 overflow-x-auto">
           <div>
-            <p className="mb-2 text-sm font-medium text-slate-700">Correct Answered</p>
-            <table className="w-full min-w-[820px] text-sm">
+            <p className="mb-2 text-xs sm:text-sm font-medium text-slate-700">Correct Answered</p>
+            <table className="w-full min-w-[820px] text-xs sm:text-sm">
               <thead>
                 <tr className="text-left text-slate-600">
                   <th className="pb-2">Difficulty</th>
@@ -150,8 +150,8 @@ export default function AdvancedPerformanceDashboard({ examId }: Props) {
           </div>
 
           <div>
-            <p className="mb-2 text-sm font-medium text-slate-700">Wrong Answered</p>
-            <table className="w-full min-w-[820px] text-sm">
+            <p className="mb-2 text-xs sm:text-sm font-medium text-slate-700">Wrong Answered</p>
+            <table className="w-full min-w-[820px] text-xs sm:text-sm">
               <thead>
                 <tr className="text-left text-slate-600">
                   <th className="pb-2">Difficulty</th>
@@ -212,7 +212,7 @@ export default function AdvancedPerformanceDashboard({ examId }: Props) {
           <CardTitle>Concept vs Application Analysis</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          <table className="w-full min-w-[860px] text-sm">
+          <table className="w-full min-w-[860px] text-xs sm:text-sm">
             <thead>
               <tr className="text-left text-slate-600">
                 <th className="pb-2">Type</th>
@@ -246,7 +246,7 @@ export default function AdvancedPerformanceDashboard({ examId }: Props) {
           <CardTitle>Chapter-wise Weakness Detection</CardTitle>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          <table className="w-full min-w-[820px] text-sm">
+          <table className="w-full min-w-[820px] text-xs sm:text-sm">
             <thead>
               <tr className="text-left text-slate-600">
                 <th className="pb-2">Chapter</th>
@@ -277,13 +277,13 @@ export default function AdvancedPerformanceDashboard({ examId }: Props) {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
         <Card className={sectionCard}>
           <CardHeader>
             <CardTitle>AI Observations</CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2 text-sm text-slate-700">
+            <ul className="space-y-2 text-xs sm:text-sm text-slate-700">
               {analytics.aiObservations.map((item, idx) => (
                 <li key={`${idx}-${item}`} className="rounded-lg bg-sky-50 border border-sky-100 px-3 py-2">
                   {item}
@@ -297,7 +297,7 @@ export default function AdvancedPerformanceDashboard({ examId }: Props) {
           <CardHeader>
             <CardTitle>Time Efficiency Intelligence</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-slate-700">
+          <CardContent className="space-y-3 text-xs sm:text-sm text-slate-700">
             {analytics.timeEfficiency.avgTimePerSubject.map((item) => (
               <div key={item.subject} className="flex items-center justify-between rounded border border-slate-200 px-3 py-2">
                 <span className="capitalize font-medium">{item.subject}</span>
@@ -314,13 +314,13 @@ export default function AdvancedPerformanceDashboard({ examId }: Props) {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 sm:p-4 lg:p-6">
         <Card className={sectionCard}>
           <CardHeader>
             <CardTitle>Heatmap (Chapter vs Accuracy)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 sm:grid-cols-3 gap-2">
               {analytics.visuals.chapterHeatmap.slice(0, 18).map((cell, idx) => (
                 <div key={`${cell.chapter}-${idx}`} className={`rounded p-2 text-xs ${heatmapCellClass(cell.accuracy)}`}>
                   <p className="font-semibold truncate">{cell.chapter}</p>
@@ -396,7 +396,7 @@ export default function AdvancedPerformanceDashboard({ examId }: Props) {
         <CardHeader>
           <CardTitle>AI Recommendation Engine</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm">
+        <CardContent className="space-y-3 text-xs sm:text-sm">
           <div className="flex flex-wrap gap-2">
             <Badge className="bg-rose-100 text-rose-700 border-rose-200">
               Risk Level: {analytics.recommendation?.riskLevel || 'N/A'}

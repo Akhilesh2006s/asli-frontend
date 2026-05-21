@@ -144,7 +144,7 @@ export default function AdminSubjectContent() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Loading subject content...</p>
@@ -156,7 +156,7 @@ export default function AdminSubjectContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Header */}
         <div className="mb-6">
           <Button
@@ -164,12 +164,12 @@ export default function AdminSubjectContent() {
             onClick={() => setLocation('/admin/dashboard')}
             className="mb-4"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             Back to Dashboard
           </Button>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{subject?.name || 'Subject'}</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{subject?.name || 'Subject'}</h1>
               {subject?.description && (
                 <p className="text-gray-600 mt-2">{subject.description}</p>
               )}
@@ -181,14 +181,14 @@ export default function AdminSubjectContent() {
         <Card className="bg-white/80 backdrop-blur-xl shadow-xl border border-white/20">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-2xl font-bold">Content Calendar</CardTitle>
+              <CardTitle className="text-xl sm:text-2xl font-bold">Content Calendar</CardTitle>
               {getContentTypeOptions().length > 0 && (
                 <div className="flex items-center space-x-2">
-                  <Filter className="w-4 h-4 text-gray-500" />
+                  <Filter className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
                   <select
                     value={selectedContentType || ''}
                     onChange={(e) => setSelectedContentType(e.target.value || null)}
-                    className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="px-3 py-1 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">All Content Types</option>
                     {getContentTypeOptions().map(type => (
@@ -202,7 +202,7 @@ export default function AdminSubjectContent() {
                       onClick={() => setSelectedContentType(null)}
                       className="flex items-center space-x-1"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3 h-3 sm:w-4 sm:h-4" />
                       <span>Clear</span>
                     </Button>
                   )}

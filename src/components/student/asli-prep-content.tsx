@@ -116,12 +116,12 @@ export default function AsliPrepContent() {
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'Video': return <Video className="h-5 w-5" />;
-      case 'TextBook': return <BookOpen className="h-5 w-5" />;
-      case 'Workbook': return <FileText className="h-5 w-5" />;
-      case 'Material': return <File className="h-5 w-5" />;
-      case 'Audio': return <File className="h-5 w-5" />;
-      default: return <File className="h-5 w-5" />;
+      case 'Video': return <Video className="h-4 w-4 sm:h-5 sm:w-5" />;
+      case 'TextBook': return <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />;
+      case 'Workbook': return <FileText className="h-4 w-4 sm:h-5 sm:w-5" />;
+      case 'Material': return <File className="h-4 w-4 sm:h-5 sm:w-5" />;
+      case 'Audio': return <File className="h-4 w-4 sm:h-5 sm:w-5" />;
+      default: return <File className="h-4 w-4 sm:h-5 sm:w-5" />;
     }
   };
 
@@ -187,14 +187,14 @@ export default function AsliPrepContent() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="flex items-center space-x-3 mb-2">
             <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center shadow-lg">
-              <BookOpen className="w-6 h-6 text-white" />
+              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
             </div>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
               AsliLearn Exclusive
             </h2>
           </div>
@@ -206,7 +206,7 @@ export default function AsliPrepContent() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <Filter className="h-5 w-5 mr-2" />
+            <Filter className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Filter Content
           </CardTitle>
         </CardHeader>
@@ -269,14 +269,14 @@ export default function AsliPrepContent() {
             <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-pink-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <BookOpen className="h-10 w-10 text-purple-600" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">No Content Available Yet</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">No Content Available Yet</h3>
             <p className="text-gray-600 max-w-md mx-auto">
               Exclusive premium content will appear here once uploaded by Super Admin for your board.
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
           {contents.map((content, index) => (
             <Card 
               key={content._id} 
@@ -285,7 +285,7 @@ export default function AsliPrepContent() {
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between mb-2">
-                  <CardTitle className="text-lg flex-1 font-bold text-gray-900 group-hover:text-purple-700 transition-colors">
+                  <CardTitle className="text-base sm:text-lg flex-1 font-bold text-gray-900 group-hover:text-purple-700 transition-colors">
                     {content.title}
                   </CardTitle>
                   <Badge className={`${getTypeColor(content.type)} border-2 border-white shadow-sm`}>
@@ -296,35 +296,35 @@ export default function AsliPrepContent() {
                   </Badge>
                 </div>
                 {content.description && (
-                  <p className="text-sm text-gray-600 mt-2 line-clamp-2 leading-relaxed">{content.description}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-2 line-clamp-2 leading-relaxed">{content.description}</p>
                 )}
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
                     <span className="text-gray-600">Subject:</span>
                     <Badge variant="outline">{content.subject?.name || 'N/A'}</Badge>
                   </div>
                   {content.topic && (
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between text-xs sm:text-sm">
                       <span className="text-gray-600">Topic:</span>
                       <span>{content.topic}</span>
                     </div>
                   )}
                   {(content.type === 'Video' || content.type === 'Audio') && content.duration && (
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between text-xs sm:text-sm">
                       <span className="text-gray-600">Duration:</span>
                       <span>{formatDuration(content.duration)}</span>
                     </div>
                   )}
                   {(content.type === 'TextBook' || content.type === 'Workbook' || content.type === 'Material') && content.size && (
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between text-xs sm:text-sm">
                       <span className="text-gray-600">Size:</span>
                       <span>{formatFileSize(content.size)}</span>
                     </div>
                   )}
                   {(content.views !== undefined || content.downloadCount !== undefined) && (
-                    <div className="flex items-center justify-between text-sm text-gray-500">
+                    <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500">
                       <span>
                         {content.views !== undefined && `${content.views} views`}
                         {content.downloadCount !== undefined && ` • ${content.downloadCount} downloads`}
@@ -341,7 +341,7 @@ export default function AsliPrepContent() {
                         setIsPreviewOpen(true);
                       }}
                     >
-                      <Play className="h-4 w-4 mr-2" />
+                      <Play className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                       Watch Video
                     </Button>
                   ) : content.type === 'Audio' ? (
@@ -352,7 +352,7 @@ export default function AsliPrepContent() {
                         setIsPreviewOpen(true);
                       }}
                     >
-                      <Play className="h-4 w-4 mr-2" />
+                      <Play className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                       Play Audio
                     </Button>
                   ) : (
@@ -400,7 +400,7 @@ export default function AsliPrepContent() {
         }}
       >
         <DialogContent className="w-[90vw] h-[95vh] max-w-none bg-white rounded-2xl overflow-hidden flex flex-col p-0">
-          <DialogHeader className="px-8 pt-5 pb-3 border-b border-gray-200">
+          <DialogHeader className="px-4 sm:px-6 lg:px-8 pt-5 pb-3 border-b border-gray-200">
             <DialogTitle className="pl-2 pt-1">{previewContent?.title || 'Content Preview'}</DialogTitle>
           </DialogHeader>
           <div className="flex-1 min-h-0 overflow-hidden px-4 py-4">
@@ -414,7 +414,7 @@ export default function AsliPrepContent() {
             const isVideo = /\.(mp4|webm|ogg|mov|avi|mkv)$/.test(lower) || previewContent?.type === 'Video';
             const youtubeEmbedUrl = getYouTubeEmbedUrl(fileUrl);
 
-            if (!fileUrl) return <p className="text-sm text-gray-500">No preview URL available.</p>;
+            if (!fileUrl) return <p className="text-xs sm:text-sm text-gray-500">No preview URL available.</p>;
 
             if (youtubeEmbedUrl) {
               return (
@@ -462,7 +462,7 @@ export default function AsliPrepContent() {
               );
             }
 
-            return <p className="text-sm text-gray-500">Preview not available for this file type.</p>;
+            return <p className="text-xs sm:text-sm text-gray-500">Preview not available for this file type.</p>;
           })()}
           </div>
         </DialogContent>

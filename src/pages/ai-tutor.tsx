@@ -377,9 +377,9 @@ export default function AITutor() {
         <div className="min-h-screen bg-sky-50 flex items-center justify-center">
           <div className="text-center">
             <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
-              <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
             </div>
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent mb-2">Loading...</h2>
+            <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-600 bg-clip-text text-transparent mb-2">Loading...</h2>
             <p className="text-gray-600">Preparing Vidya AI...</p>
           </div>
         </div>
@@ -422,13 +422,13 @@ export default function AITutor() {
       <>
         <Navigation />
         <div className="h-screen overflow-hidden bg-gradient-to-br from-teal-100 via-teal-50 to-teal-100">
-          <div className={`container mx-auto flex h-full min-h-0 flex-col px-4 pt-20 sm:pt-24 py-6 ${isMobile ? 'pb-20' : ''}`}>
+          <div className={`container mx-auto flex h-full min-h-0 flex-col px-4 pt-20 sm:pt-24 py-3 sm:py-4 lg:py-6 ${isMobile ? 'pb-20' : ''}`}>
             <Button
               variant="outline"
               onClick={() => setSelectedTool(null)}
               className="mb-4"
             >
-              <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
+              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 mr-2 rotate-180" />
               Back to Tools
             </Button>
             <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md">
@@ -455,7 +455,7 @@ export default function AITutor() {
     <>
       <Navigation />
       <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-teal-50">
-        <div className={`container mx-auto px-4 pt-20 sm:pt-24 py-8 ${isMobile ? 'pb-20' : ''}`}>
+        <div className={`container mx-auto px-4 pt-20 sm:pt-24 py-4 sm:py-6 lg:py-8 ${isMobile ? 'pb-20' : ''}`}>
           {/* Header */}
           <div className="mb-8 rounded-2xl border border-sky-100 bg-white/90 backdrop-blur-sm shadow-sm p-5 sm:p-7">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -463,12 +463,12 @@ export default function AITutor() {
                 <p className="inline-flex items-center rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold tracking-wide text-sky-700 mb-3">
                   ASLILEARN AI ASSISTANTS
                 </p>
-                <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent mb-2">
+                <h1 className="text-xl sm:text-2xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent mb-2">
                   AI Tools
                 </h1>
                 <p className="text-gray-600">Select a tool to get started with AI-powered learning</p>
               </div>
-              <div className="rounded-xl border border-teal-100 bg-gradient-to-r from-sky-50 to-teal-50 px-4 py-3 text-sm text-gray-700">
+              <div className="rounded-xl border border-teal-100 bg-gradient-to-r from-sky-50 to-teal-50 px-4 py-3 text-xs sm:text-sm text-gray-700">
                 <span className="font-semibold text-gray-900">{studentTools.length}</span> tools available
               </div>
             </div>
@@ -488,21 +488,21 @@ export default function AITutor() {
                   <div className="relative z-10">
                     <div className="mb-3 flex items-center justify-between">
                       <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-r ${tool.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
-                        <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                        <Icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 sm:w-7 sm:h-7 text-white" />
                       </div>
                       <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-medium text-sky-700">
                         AI Powered
                       </span>
                     </div>
-                    <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors leading-snug">
+                    <h3 className="text-sm sm:text-base sm:text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors leading-snug">
                       {tool.name}
                     </h3>
-                    <p className="text-sm text-gray-600 line-clamp-2 min-h-[38px] sm:min-h-[40px]">
+                    <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 min-h-[38px] sm:min-h-[40px]">
                       {tool.description || 'Click to use this AI tool'}
                     </p>
                     <div className="mt-4 sm:mt-5 flex items-center text-blue-600 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all">
-                      <span className="text-sm font-semibold">Get Started</span>
-                      <ArrowRight className="w-4 h-4 ml-2" />
+                      <span className="text-xs sm:text-sm font-semibold">Get Started</span>
+                      <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2" />
                     </div>
                   </div>
                 </button>

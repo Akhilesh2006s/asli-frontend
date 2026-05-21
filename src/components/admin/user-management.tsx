@@ -689,15 +689,15 @@ const UserManagement = () => {
       <div className="flex items-start justify-between gap-2 mb-3">
         <div className="flex items-center space-x-3 min-w-0 flex-1">
           <div className="relative">
-            <div className="w-11 h-11 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md">
+            <div className="w-11 h-11 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow-md">
               {(student.name || 'U').charAt(0).toUpperCase()}
             </div>
-            <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
+            <div className={`absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 border-white ${
               (student.status || 'inactive') === 'active' ? 'bg-green-500' : 'bg-gray-400'
             }`} />
           </div>
           <div className="min-w-0">
-            <h4 className="font-semibold text-sky-900 text-sm leading-tight break-words">
+            <h4 className="font-semibold text-sky-900 text-xs sm:text-sm leading-tight break-words">
               {student.name || 'Unknown Student'}
             </h4>
             <p className="text-sky-700 text-xs break-all">{student.email || 'No email'}</p>
@@ -726,32 +726,32 @@ const UserManagement = () => {
           <Button
             variant="ghost"
             size="sm"
-            className="text-sky-600 hover:text-blue-700 hover:bg-blue-100/50 rounded-lg h-8 w-8 p-0"
+            className="text-sky-600 hover:text-blue-700 hover:bg-blue-100/50 rounded-lg h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 p-0"
             onClick={() => handleEditStudent(student)}
             title="Edit Details"
           >
-            <Edit className="w-4 h-4" />
+            <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="text-sky-600 hover:text-red-700 hover:bg-red-100/50 rounded-lg h-8 w-8 p-0"
+            className="text-sky-600 hover:text-red-700 hover:bg-red-100/50 rounded-lg h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 p-0"
             onClick={() => handleDeleteStudent(student.id, student.name || 'Unknown Student')}
             title="Delete"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="text-orange-600 hover:text-orange-700 hover:bg-orange-100/50 rounded-lg h-8 w-8 p-0"
+            className="text-orange-600 hover:text-orange-700 hover:bg-orange-100/50 rounded-lg h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 p-0"
             onClick={() => {
               setSelectedStudentForAnalysis(student);
               setIsRiskAnalysisModalOpen(true);
             }}
             title="AI Risk Analysis"
           >
-            <Brain className="w-4 h-4" />
+            <Brain className="w-3 h-3 sm:w-4 sm:h-4" />
           </Button>
         </div>
         <Button
@@ -772,17 +772,17 @@ const UserManagement = () => {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50">
-      <div className="space-y-6 p-3 sm:p-4 lg:space-y-8 lg:p-6">
+      <div className="space-y-3 sm:space-y-4 lg:space-y-6 p-3 sm:p-4 lg:space-y-8 lg:p-6">
         {/* Hero Section with Vibrant Student Stats */}
         <div className="relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-500 opacity-20 rounded-3xl"></div>
           <div className="relative rounded-2xl border border-white/20 bg-white/80 p-4 shadow-2xl backdrop-blur-xl sm:rounded-3xl sm:p-6 lg:p-8">
             <div className="mb-6 flex items-center justify-between gap-3 sm:mb-8">
               <div>
-                <h1 className="bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-500 bg-clip-text text-3xl font-bold text-transparent sm:text-4xl lg:text-5xl">
+                <h1 className="bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-500 bg-clip-text text-2xl sm:text-3xl font-bold text-transparent sm:text-4xl lg:text-5xl">
                   Student Management
                 </h1>
-                <p className="mt-2 text-sm font-medium text-gray-700 sm:mt-3 sm:text-base lg:text-xl">Manage students and their academic progress with style</p>
+                <p className="mt-2 text-xs sm:text-sm font-medium text-gray-700 sm:mt-3 sm:text-base lg:text-xl">Manage students and their academic progress with style</p>
               </div>
               <div className="hidden lg:block">
                 <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center shadow-xl">
@@ -792,7 +792,7 @@ const UserManagement = () => {
             </div>
         
             {/* Enhanced Stats Grid */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 lg:gap-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 lg:gap-3 sm:p-4 lg:p-6">
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -803,15 +803,15 @@ const UserManagement = () => {
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl shadow-lg">
-                      <Users className="w-6 h-6 text-white" />
+                      <Users className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                     </div>
                     <div className="text-right">
-                      <p className="text-white/90 text-sm font-medium">Total Students</p>
-                      <p className="text-3xl font-bold text-white">{students.length}</p>
+                      <p className="text-white/90 text-xs sm:text-sm font-medium">Total Students</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-white">{students.length}</p>
                     </div>
                   </div>
-                  <div className="flex items-center text-white/80 text-sm">
-                    <TrendingUp className="w-4 h-4 mr-1" />
+                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
+                    <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                     <span>+12% this month</span>
                   </div>
                 </div>
@@ -827,14 +827,14 @@ const UserManagement = () => {
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl shadow-lg">
-                      <CheckCircle className="w-6 h-6 text-white" />
+                      <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                     </div>
                     <div className="text-right">
-                      <p className="text-white/90 text-sm font-medium">Active Students</p>
-                      <p className="text-3xl font-bold text-white">{students.filter(s => s.status === 'active').length}</p>
+                      <p className="text-white/90 text-xs sm:text-sm font-medium">Active Students</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-white">{students.filter(s => s.status === 'active').length}</p>
                     </div>
                   </div>
-                  <div className="flex items-center text-white/80 text-sm">
+                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
                     <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></div>
                     <span>Online now</span>
                   </div>
@@ -851,15 +851,15 @@ const UserManagement = () => {
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl shadow-lg">
-                      <GraduationCap className="w-6 h-6 text-white" />
+                      <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                     </div>
                     <div className="text-right">
-                      <p className="text-white/90 text-sm font-medium">Active Classes</p>
-                      <p className="text-3xl font-bold text-white">{new Set(students.map(s => s.classNumber)).size}</p>
+                      <p className="text-white/90 text-xs sm:text-sm font-medium">Active Classes</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-white">{new Set(students.map(s => s.classNumber)).size}</p>
                     </div>
                   </div>
-                  <div className="flex items-center text-white/80 text-sm">
-                    <BookOpen className="w-4 h-4 mr-1" />
+                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
+                    <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                     <span>Classes running</span>
                   </div>
                 </div>
@@ -875,14 +875,14 @@ const UserManagement = () => {
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl shadow-lg">
-                      <TrendingUp className="w-6 h-6 text-white" />
+                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                     </div>
                     <div className="text-right">
-                      <p className="text-white/90 text-sm font-medium">New This Month</p>
-                      <p className="text-3xl font-bold text-white">12</p>
+                      <p className="text-white/90 text-xs sm:text-sm font-medium">New This Month</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-white">12</p>
                     </div>
                   </div>
-                  <div className="flex items-center text-white/80 text-sm">
+                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
                     <span>+25% growth</span>
                   </div>
                 </div>
@@ -935,7 +935,7 @@ const UserManagement = () => {
               </div>
 
               <div className="relative w-full xl:w-[360px] xl:ml-auto">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4 sm:w-5 sm:h-5" />
                 <Input
                   placeholder="Search students by name, email, or class..."
                   value={searchTerm}
@@ -981,7 +981,7 @@ const UserManagement = () => {
                   className="rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 px-4 text-white shadow-lg hover:from-orange-600 hover:to-orange-500 sm:px-6"
                   onClick={handleExportStudents}
                 >
-                  <Download className="w-4 h-4 mr-2" />
+                  <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Export
                 </Button>
             <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
@@ -989,22 +989,22 @@ const UserManagement = () => {
                 <Button 
                   className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 px-4 text-white shadow-lg hover:from-green-600 hover:to-emerald-600 sm:px-6"
                 >
-                  <Upload className="w-4 h-4 mr-2" />
+                  <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Upload CSV
                 </Button>
               </DialogTrigger>
                 <DialogContent className="max-w-md bg-white/80 border-sky-200 backdrop-blur-xl">
                   <DialogHeader>
-                    <DialogTitle className="text-xl font-semibold text-sky-900">Upload Students CSV</DialogTitle>
+                    <DialogTitle className="text-lg sm:text-xl font-semibold text-sky-900">Upload Students CSV</DialogTitle>
                     <DialogDescription className="text-sky-700">
                       Upload a CSV with student details. Each row must include its own password (min 6 characters) and section.
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-6">
-                    <div className="border-2 border-dashed border-sky-300 rounded-xl p-8 text-center hover:border-sky-400 transition-colors bg-sky-50 backdrop-blur-sm">
+                  <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+                    <div className="border-2 border-dashed border-sky-300 rounded-xl p-4 sm:p-6 lg:p-8 text-center hover:border-sky-400 transition-colors bg-sky-50 backdrop-blur-sm">
                       <FileSpreadsheet className="w-16 h-16 text-sky-600 mx-auto mb-4" />
                       <p className="text-sky-800 mb-2 font-medium">Drop your CSV file here</p>
-                      <p className="text-sm text-sky-700 mb-4">CSV Format (comma-separated):</p>
+                      <p className="text-xs sm:text-sm text-sky-700 mb-4">CSV Format (comma-separated):</p>
                       <div className="bg-white/70 rounded-lg p-4 mb-4 text-left">
                         <p className="text-xs text-sky-600 mb-2 font-medium">Required columns:</p>
                         <p className="text-xs text-sky-700">name, email, classnumber, section, phone, password</p>
@@ -1046,8 +1046,8 @@ const UserManagement = () => {
                   
                   {selectedFile && (
                     <div className="mt-4 p-3 bg-sky-50 rounded-lg border border-sky-200">
-                      <p className="text-sm text-sky-700 mb-2">Selected file:</p>
-                      <p className="text-sm font-medium text-sky-900">{selectedFile.name}</p>
+                      <p className="text-xs sm:text-sm text-sky-700 mb-2">Selected file:</p>
+                      <p className="text-xs sm:text-sm font-medium text-sky-900">{selectedFile.name}</p>
                     </div>
                   )}
                   
@@ -1078,12 +1078,12 @@ const UserManagement = () => {
                     >
                       {isUploading ? (
                         <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
                           Uploading...
                         </>
                       ) : (
                         <>
-                          <Upload className="w-4 h-4 mr-2" />
+                          <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                           Upload Students
                         </>
                       )}
@@ -1099,21 +1099,21 @@ const UserManagement = () => {
             <Button 
               className="rounded-xl bg-gradient-to-r from-orange-500 to-teal-500 px-4 text-white shadow-lg transition-all duration-300 hover:from-orange-600 hover:to-teal-600 hover:shadow-xl sm:px-8"
             >
-              <UserPlus className="w-4 h-4 mr-2" />
+              <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Add New Student
             </Button>
           </DialogTrigger>
                 <DialogContent className="max-w-lg bg-white/80 border-sky-200 backdrop-blur-xl">
                   <DialogHeader>
-                    <DialogTitle className="text-xl font-semibold text-sky-900">Add New Student</DialogTitle>
+                    <DialogTitle className="text-lg sm:text-xl font-semibold text-sky-900">Add New Student</DialogTitle>
                     <DialogDescription className="text-sky-700">
                       Add a student with class, section, and their own login password (min 6 characters).
                     </DialogDescription>
                   </DialogHeader>
-                  <form onSubmit={handleAddStudent} className="space-y-6">
+                  <form onSubmit={handleAddStudent} className="space-y-3 sm:space-y-4 lg:space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="name" className="text-sm font-medium text-sky-800">
+                        <Label htmlFor="name" className="text-xs sm:text-sm font-medium text-sky-800">
                           Full Name <span className="text-red-500">*</span>
                         </Label>
                   <Input
@@ -1125,7 +1125,7 @@ const UserManagement = () => {
                   />
                 </div>
                       <div className="space-y-2">
-                        <Label htmlFor="email" className="text-sm font-medium text-sky-800">
+                        <Label htmlFor="email" className="text-xs sm:text-sm font-medium text-sky-800">
                           Email <span className="text-red-500">*</span>
                         </Label>
                   <Input
@@ -1140,7 +1140,7 @@ const UserManagement = () => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="classNumber" className="text-sm font-medium text-sky-800">
+                        <Label htmlFor="classNumber" className="text-xs sm:text-sm font-medium text-sky-800">
                           Class Number <span className="text-red-500">*</span>
                         </Label>
                   <Input
@@ -1153,7 +1153,7 @@ const UserManagement = () => {
                   />
                 </div>
                       <div className="space-y-2">
-                        <Label htmlFor="section" className="text-sm font-medium text-sky-800">
+                        <Label htmlFor="section" className="text-xs sm:text-sm font-medium text-sky-800">
                           Section <span className="text-red-500">*</span>
                         </Label>
                   <Input
@@ -1174,7 +1174,7 @@ const UserManagement = () => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="phone" className="text-sm font-medium text-sky-800">Phone (Optional)</Label>
+                        <Label htmlFor="phone" className="text-xs sm:text-sm font-medium text-sky-800">Phone (Optional)</Label>
                   <Input
                     id="phone"
                     type="tel"
@@ -1192,7 +1192,7 @@ const UserManagement = () => {
                   />
                 </div>
                       <div className="space-y-2">
-                        <Label htmlFor="password" className="text-sm font-medium text-sky-800">
+                        <Label htmlFor="password" className="text-xs sm:text-sm font-medium text-sky-800">
                           Password <span className="text-red-500">*</span>
                         </Label>
                         <div className="relative">
@@ -1214,9 +1214,9 @@ const UserManagement = () => {
                             aria-label={showNewStudentPassword ? 'Hide password' : 'Show password'}
                           >
                             {showNewStudentPassword ? (
-                              <EyeOff className="h-4 w-4" />
+                              <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" />
                             ) : (
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                             )}
                           </button>
                         </div>
@@ -1250,13 +1250,13 @@ const UserManagement = () => {
                   variant="destructive"
                   className="rounded-xl bg-gradient-to-r from-red-500 to-red-600 px-4 text-white backdrop-blur-sm hover:from-red-600 hover:to-red-700 sm:px-6"
                 >
-                  <Trash2 className="w-4 h-4 mr-2" />
+                  <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Delete All Students
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md bg-white/80 border-red-200 backdrop-blur-xl">
                 <DialogHeader>
-                  <DialogTitle className="text-xl font-semibold text-red-900">
+                  <DialogTitle className="text-lg sm:text-xl font-semibold text-red-900">
                     {deleteAllConfirmStep === 1 ? 'Delete All Students' : 'Final Confirmation'}
                   </DialogTitle>
                   <DialogDescription className="text-red-700">
@@ -1271,7 +1271,7 @@ const UserManagement = () => {
                     <>
                       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                         <div className="flex items-center space-x-2 text-red-800">
-                          <XCircle className="w-5 h-5" />
+                          <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                           <span className="font-medium">Warning: This will delete {students.length} students</span>
                         </div>
                       </div>
@@ -1297,7 +1297,7 @@ const UserManagement = () => {
                     <>
                       <div className="bg-red-100 border-2 border-red-300 rounded-lg p-4">
                         <div className="flex items-center space-x-2 text-red-900">
-                          <XCircle className="w-6 h-6" />
+                          <XCircle className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
                           <span className="font-bold">FINAL WARNING</span>
                         </div>
                         <p className="text-red-800 mt-2">
@@ -1319,7 +1319,7 @@ const UserManagement = () => {
                           onClick={handleDeleteAllStudents}
                           className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-xl backdrop-blur-sm"
                         >
-                          <Trash2 className="w-4 h-4 mr-2" />
+                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                           DELETE ALL STUDENTS
                         </Button>
                       </div>
@@ -1341,10 +1341,10 @@ const UserManagement = () => {
           transition={{ delay: 0.6 }}
           className="overflow-hidden rounded-2xl border border-sky-200 bg-white/60 shadow-lg backdrop-blur-xl"
         >
-          <div className="p-6 border-b border-sky-200">
+          <div className="p-3 sm:p-4 lg:p-6 border-b border-sky-200">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h3 className="text-2xl font-bold text-sky-900">Students Directory</h3>
+                <h3 className="text-xl sm:text-2xl font-bold text-sky-900">Students Directory</h3>
                 <p className="text-sky-700 mt-1">{filteredStudents.length} students found</p>
               </div>
               <div className="flex items-center space-x-3">
@@ -1352,7 +1352,7 @@ const UserManagement = () => {
                   className="rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 px-4 text-white backdrop-blur-sm hover:from-sky-600 hover:to-blue-700 sm:px-6"
                   onClick={handleExportStudents}
                 >
-                <Download className="w-4 h-4 mr-2" />
+                <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Export Data
               </Button>
             </div>
@@ -1360,7 +1360,7 @@ const UserManagement = () => {
         </div>
         
           {filteredStudents.length > 0 ? (
-            <div className="p-6 space-y-6">
+            <div className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 lg:space-y-6">
               {studentViewMode === 'all' && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                   {filteredStudents.map((student, index) => renderStudentCard(student, index))}
@@ -1379,7 +1379,7 @@ const UserManagement = () => {
                           className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-sky-50/70 rounded-xl"
                         >
                           <div className="flex items-center gap-2">
-                            {isClassCollapsed ? <ChevronRight className="w-4 h-4 text-sky-700" /> : <ChevronDown className="w-4 h-4 text-sky-700" />}
+                            {isClassCollapsed ? <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-sky-700" /> : <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 text-sky-700" />}
                             <span className="font-semibold text-sky-900">{classKey}</span>
                           </div>
                           <Badge className="bg-sky-100 text-sky-700 border border-sky-200">
@@ -1400,7 +1400,7 @@ const UserManagement = () => {
                                     className="w-full flex items-center justify-between text-left"
                                   >
                                     <div className="flex items-center gap-2">
-                                      {isSectionCollapsed ? <ChevronRight className="w-4 h-4 text-teal-700" /> : <ChevronDown className="w-4 h-4 text-teal-700" />}
+                                      {isSectionCollapsed ? <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-teal-700" /> : <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 text-teal-700" />}
                                       <span className="font-medium text-sky-900">{sectionKey}</span>
                                     </div>
                                     <Badge className="bg-teal-100 text-teal-700 border border-teal-200">
@@ -1435,7 +1435,7 @@ const UserManagement = () => {
                           className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-teal-50/70 rounded-xl"
                         >
                           <div className="flex items-center gap-2">
-                            {isSectionCollapsed ? <ChevronRight className="w-4 h-4 text-teal-700" /> : <ChevronDown className="w-4 h-4 text-teal-700" />}
+                            {isSectionCollapsed ? <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-teal-700" /> : <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 text-teal-700" />}
                             <span className="font-semibold text-teal-900">{sectionKey}</span>
                           </div>
                           <Badge className="bg-teal-100 text-teal-700 border border-teal-200">
@@ -1473,13 +1473,13 @@ const UserManagement = () => {
               <div className="w-24 h-24 bg-sky-100 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-sm">
                 <Users className="w-12 h-12 text-sky-600" />
               </div>
-              <h3 className="text-xl font-semibold text-sky-900 mb-2">No students found</h3>
+              <h3 className="text-lg sm:text-xl font-semibold text-sky-900 mb-2">No students found</h3>
               <p className="text-sky-700 mb-6">Try adjusting your search criteria or add new students</p>
               <Button 
                 onClick={() => setIsAddDialogOpen(true)}
-                className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white rounded-xl px-6 backdrop-blur-sm"
+                className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white rounded-xl px-3 sm:px-4 lg:px-6 backdrop-blur-sm"
               >
-                <UserPlus className="w-4 h-4 mr-2" />
+                <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Add First Student
               </Button>
         </div>
@@ -1491,14 +1491,14 @@ const UserManagement = () => {
       <Dialog open={isAssignClassDialogOpen} onOpenChange={setIsAssignClassDialogOpen}>
         <DialogContent className="max-w-md bg-white/80 border-sky-200 backdrop-blur-xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-sky-900">Assign Class to Student</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl font-semibold text-sky-900">Assign Class to Student</DialogTitle>
             <DialogDescription className="text-sky-700">
               {selectedStudentForClass && `Assign a class to ${selectedStudentForClass.name}`}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             {availableClasses.length === 0 ? (
-              <div className="text-center py-8">
+              <div className="text-center py-4 sm:py-6 lg:py-8">
                 <GraduationCap className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">No classes available. Please create a class first.</p>
               </div>
@@ -1546,14 +1546,14 @@ const UserManagement = () => {
                       <div>
                         <p className="font-semibold text-sky-900">{classItem.name}</p>
                         {classItem.description && (
-                          <p className="text-sm text-sky-600">{classItem.description}</p>
+                          <p className="text-xs sm:text-sm text-sky-600">{classItem.description}</p>
                         )}
                         <p className="text-xs text-sky-500 mt-1">
                           {classItem.studentCount || 0} students
                         </p>
                       </div>
                       {selectedStudentForClass?.assignedClass === classItem.id && (
-                        <CheckCircle className="w-5 h-5 text-sky-600" />
+                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600" />
                       )}
                     </div>
                   </div>
@@ -1580,7 +1580,7 @@ const UserManagement = () => {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-md bg-white/80 border-sky-200 backdrop-blur-xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-sky-900">Edit Student Details</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl font-semibold text-sky-900">Edit Student Details</DialogTitle>
             <DialogDescription className="text-sky-700">
               {selectedStudentForEdit && `Update information for ${selectedStudentForEdit.name}`}
             </DialogDescription>

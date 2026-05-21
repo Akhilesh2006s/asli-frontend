@@ -180,7 +180,7 @@ export function FlashcardViewer({ content }: FlashcardViewerProps) {
   const cardStyles = getCardStyles(currentCard.type);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[500px] space-y-6 relative">
+    <div className="flex flex-col items-center justify-center min-h-[500px] space-y-3 sm:space-y-4 lg:space-y-6 relative">
       {/* Type Filter Buttons */}
       <div className="flex gap-2 mb-4">
         <Button
@@ -225,7 +225,7 @@ export function FlashcardViewer({ content }: FlashcardViewerProps) {
       </div>
 
       {/* Instructions */}
-      <div className="text-sm text-gray-600 text-center">
+      <div className="text-xs sm:text-sm text-gray-600 text-center">
         <p>Press <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">Space</kbd> to flip, <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">←</kbd> / <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">→</kbd> to navigate</p>
       </div>
 
@@ -243,7 +243,7 @@ export function FlashcardViewer({ content }: FlashcardViewerProps) {
           >
             {/* Front of card */}
             <motion.div
-              className={`absolute inset-0 w-full h-full bg-gradient-to-br ${cardStyles.front} rounded-2xl shadow-xl border-2 p-6 sm:p-8 flex flex-col items-center justify-between cursor-pointer overflow-hidden`}
+              className={`absolute inset-0 w-full h-full bg-gradient-to-br ${cardStyles.front} rounded-2xl shadow-xl border-2 p-3 sm:p-4 lg:p-6 sm:p-8 flex flex-col items-center justify-between cursor-pointer overflow-hidden`}
               onClick={() => setIsFlipped(!isFlipped)}
               style={{ 
                 backfaceVisibility: 'hidden',
@@ -257,7 +257,7 @@ export function FlashcardViewer({ content }: FlashcardViewerProps) {
                 <div className={`text-xs font-semibold ${cardStyles.label} uppercase tracking-wider shrink-0`}>
                   {cardStyles.labelText}
                 </div>
-                <div className="text-lg sm:text-xl font-medium text-gray-900 leading-relaxed w-full flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-1 [scrollbar-width:thin]">
+                <div className="text-base sm:text-lg sm:text-xl font-medium text-gray-900 leading-relaxed w-full flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-1 [scrollbar-width:thin]">
                   {currentCard.front}
                 </div>
                 {currentCard.options && currentCard.options.length > 0 && (
@@ -288,7 +288,7 @@ export function FlashcardViewer({ content }: FlashcardViewerProps) {
 
             {/* Back of card */}
             <motion.div
-              className={`absolute inset-0 w-full h-full bg-gradient-to-br ${cardStyles.back} rounded-2xl shadow-xl border-2 p-6 sm:p-8 flex flex-col items-center justify-between overflow-hidden`}
+              className={`absolute inset-0 w-full h-full bg-gradient-to-br ${cardStyles.back} rounded-2xl shadow-xl border-2 p-3 sm:p-4 lg:p-6 sm:p-8 flex flex-col items-center justify-between overflow-hidden`}
               style={{ 
                 backfaceVisibility: 'hidden',
                 WebkitBackfaceVisibility: 'hidden',
@@ -303,7 +303,7 @@ export function FlashcardViewer({ content }: FlashcardViewerProps) {
                   <div className={`text-xs font-semibold ${cardStyles.label} uppercase tracking-wider shrink-0 mb-2`}>
                     Answer
                   </div>
-                  <div className="text-lg sm:text-xl font-medium text-gray-900 leading-relaxed flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-1 [scrollbar-width:thin]">
+                  <div className="text-base sm:text-lg sm:text-xl font-medium text-gray-900 leading-relaxed flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-1 [scrollbar-width:thin]">
                     {currentCard.back}
                   </div>
                 </div>
@@ -319,7 +319,7 @@ export function FlashcardViewer({ content }: FlashcardViewerProps) {
                   className="bg-white/90 hover:bg-white border-violet-200 text-violet-800 shadow-md pointer-events-auto"
                   type="button"
                 >
-                  <RotateCcw className="w-4 h-4 mr-2" />
+                  <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Flip back
                 </Button>
               </div>
@@ -345,7 +345,7 @@ export function FlashcardViewer({ content }: FlashcardViewerProps) {
           className="rounded-full pointer-events-auto"
           type="button"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
         </Button>
 
         {/* Progress bar */}
@@ -378,12 +378,12 @@ export function FlashcardViewer({ content }: FlashcardViewerProps) {
           className="rounded-full pointer-events-auto"
           type="button"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
         </Button>
       </div>
 
       {/* Card counter */}
-      <motion.div className="text-sm text-gray-600">
+      <motion.div className="text-xs sm:text-sm text-gray-600">
         {currentIndex + 1} / {cards.length} cards
       </motion.div>
 
@@ -392,7 +392,7 @@ export function FlashcardViewer({ content }: FlashcardViewerProps) {
         currentCard.exampleUse ||
         currentCard.peerPrompt ||
         currentCard.reflection) && (
-        <motion.div className="w-full max-w-2xl rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-left space-y-2 text-sm text-slate-700">
+        <motion.div className="w-full max-w-2xl rounded-xl border border-slate-200 bg-slate-50/80 p-4 text-left space-y-2 text-xs sm:text-sm text-slate-700">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Card details</p>
           {currentCard.memoryCue ? (
             <p>

@@ -74,7 +74,7 @@ export default function Onboarding() {
 				</div>
 
 				{/* Content */}
-				<div className="px-6">
+				<div className="px-3 sm:px-4 lg:px-6">
 					<h1 className="text-[22px] leading-7 font-semibold text-[#2a2438] whitespace-pre-line">
 						{slide.title}
 					</h1>
@@ -90,7 +90,7 @@ export default function Onboarding() {
 						{slide.description.map((t, i) => (
 							<div key={i} className="bg-[#f5f2ff] border border-[#e8e4ff] text-[12px] rounded-xl px-4 py-3 shadow-sm">
 								<div className="font-semibold text-[#2a2438] flex items-center gap-2">
-									<span className="inline-block w-5 h-5 rounded-full bg-[#6c63ff] text-white text-[11px] flex items-center justify-center">{i + 1}</span>
+									<span className="inline-block w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#6c63ff] text-white text-[11px] flex items-center justify-center">{i + 1}</span>
 									<span>{t.split(' ')[0]} {t.slice(t.indexOf(' ') + 1)}</span>
 								</div>
 							</div>
@@ -126,7 +126,7 @@ export default function Onboarding() {
 								<div className="bg-white border text-[11px] rounded-xl shadow-lg px-4 py-2">
 									Try this formula by keeping velocity constant!
 								</div>
-								<div className="mt-2 w-6 h-6 rounded-full bg-[#6c63ff] text-white flex items-center justify-center shadow">
+								<div className="mt-2 w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 rounded-full bg-[#6c63ff] text-white flex items-center justify-center shadow">
 									<HelpCircle className="w-3 h-3" />
 								</div>
 							</motion.div>

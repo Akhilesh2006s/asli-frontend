@@ -365,7 +365,7 @@ export default function SuperAdminAiGenerator() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Available Tools</CardTitle>
@@ -379,10 +379,10 @@ export default function SuperAdminAiGenerator() {
             >
               <div className="flex items-start gap-3">
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
-                  <Sparkles className="h-4 w-4" />
+                  <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
                 </span>
                 <div>
-                  <p className="font-semibold text-sm">{tool.name}</p>
+                  <p className="font-semibold text-xs sm:text-sm">{tool.name}</p>
                   <p className="text-xs text-slate-600 mt-1">{tool.description}</p>
                 </div>
               </div>
@@ -514,12 +514,12 @@ export default function SuperAdminAiGenerator() {
         </CardHeader>
         <CardContent>
           {recordsLoading ? (
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <Loader2 className="h-4 w-4 animate-spin" />
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
+              <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
               Loading records...
             </div>
           ) : recordsTree.length === 0 ? (
-            <p className="text-sm text-slate-600">
+            <p className="text-xs sm:text-sm text-slate-600">
               No records found
               {recordsBoardFilter !== "__all__" ? ` for board “${recordsBoardFilter}”.` : "."}
             </p>
@@ -582,7 +582,7 @@ export default function SuperAdminAiGenerator() {
                                                       <div className="border-b border-slate-100/80 bg-white/80 px-4 py-3 flex items-center justify-between">
                                                         <div>
                                                           <p className="text-xs text-slate-500">RECORDS</p>
-                                                          <p className="text-sm font-semibold text-slate-900">
+                                                          <p className="text-xs sm:text-sm font-semibold text-slate-900">
                                                             {subtopicNode.records.length} generation{subtopicNode.records.length === 1 ? "" : "s"}
                                                           </p>
                                                         </div>
@@ -643,12 +643,12 @@ export default function SuperAdminAiGenerator() {
                                                                   <div className="space-y-3">
                                                                     {parsedMcqs.map((q, i) => (
                                                                   <div key={`${row._id}-mcq-${i}`} className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                                                                    <p className="text-sm font-medium text-slate-900 leading-relaxed">
+                                                                    <p className="text-xs sm:text-sm font-medium text-slate-900 leading-relaxed">
                                                                       Q{i + 1}. {q.question}
                                                                     </p>
                                                                     <ul className="mt-3 space-y-2.5 pl-0.5">
                                                                       {q.options.map((opt, j) => (
-                                                                        <li key={j} className="flex items-start gap-2.5 text-sm text-slate-700">
+                                                                        <li key={j} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700">
                                                                           <span className="mt-1.5 h-3.5 w-3.5 rounded-full border border-slate-400 shrink-0 bg-white" />
                                                                           <span>{opt}</span>
                                                                         </li>
@@ -670,7 +670,7 @@ export default function SuperAdminAiGenerator() {
                                                                 );
                                                               }
                                                               return (
-                                                              <p className="text-sm text-slate-700 line-clamp-4 leading-relaxed border-l-2 border-orange-200 pl-3">
+                                                              <p className="text-xs sm:text-sm text-slate-700 line-clamp-4 leading-relaxed border-l-2 border-orange-200 pl-3">
                                                                 {toDisplayPlainText(String(row.generatedContent || ""))}
                                                               </p>
                                                               );
@@ -709,7 +709,7 @@ export default function SuperAdminAiGenerator() {
           <DialogHeader>
             <DialogTitle>Generated Record</DialogTitle>
           </DialogHeader>
-          <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+          <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm">
             <GeneratedRecordBody content={String(activeRecord?.generatedContent || "")} />
           </div>
         </DialogContent>

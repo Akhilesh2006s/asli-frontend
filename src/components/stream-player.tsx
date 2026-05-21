@@ -174,8 +174,8 @@ export default function StreamPlayer({ stream, onClose }: StreamPlayerProps) {
             {error ? (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-900 text-white">
                 <div className="text-center">
-                  <p className="text-lg mb-2">{error}</p>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-base sm:text-lg mb-2">{error}</p>
+                  <p className="text-xs sm:text-sm text-gray-400">
                     {stream.status === 'scheduled' 
                       ? 'Stream has not started yet'
                       : 'Unable to load stream'}
@@ -217,8 +217,8 @@ export default function StreamPlayer({ stream, onClose }: StreamPlayerProps) {
           <div className="bg-gray-900 p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex-1">
-                <h3 className="text-white font-semibold text-lg">{stream.title}</h3>
-                <div className="flex items-center gap-4 mt-1 text-sm text-gray-400">
+                <h3 className="text-white font-semibold text-base sm:text-lg">{stream.title}</h3>
+                <div className="flex items-center gap-4 mt-1 text-xs sm:text-sm text-gray-400">
                   <span>{streamerName}</span>
                   {stream.subject && (
                     <>
@@ -236,7 +236,7 @@ export default function StreamPlayer({ stream, onClose }: StreamPlayerProps) {
             </div>
 
             {stream.description && (
-              <p className="text-gray-300 text-sm mb-3">{stream.description}</p>
+              <p className="text-gray-300 text-xs sm:text-sm mb-3">{stream.description}</p>
             )}
 
             <div className="flex items-center gap-4">
@@ -248,9 +248,9 @@ export default function StreamPlayer({ stream, onClose }: StreamPlayerProps) {
                 className="text-white hover:bg-gray-800"
               >
                 {isPlaying ? (
-                  <Pause className="w-5 h-5" />
+                  <Pause className="w-4 h-4 sm:w-5 sm:h-5" />
                 ) : (
-                  <Play className="w-5 h-5" />
+                  <Play className="w-4 h-4 sm:w-5 sm:h-5" />
                 )}
               </Button>
 
@@ -263,9 +263,9 @@ export default function StreamPlayer({ stream, onClose }: StreamPlayerProps) {
                   className="text-white hover:bg-gray-800"
                 >
                   {isMuted ? (
-                    <VolumeX className="w-5 h-5" />
+                    <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />
                   ) : (
-                    <Volume2 className="w-5 h-5" />
+                    <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
                   )}
                 </Button>
                 <input
@@ -286,7 +286,7 @@ export default function StreamPlayer({ stream, onClose }: StreamPlayerProps) {
                 onClick={toggleFullscreen}
                 className="text-white hover:bg-gray-800 ml-auto"
               >
-                <Maximize className="w-5 h-5" />
+                <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />
               </Button>
             </div>
           </div>

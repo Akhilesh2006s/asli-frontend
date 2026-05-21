@@ -106,6 +106,14 @@ const ClassDashboard = () => {
     section: '',
     description: ''
   });
+  const [isCustomSection, setIsCustomSection] = useState(false);
+  const [customSectionLetter, setCustomSectionLetter] = useState('');
+
+  const resetAddClassForm = () => {
+    setNewClass({ classNumber: '', section: '', description: '' });
+    setIsCustomSection(false);
+    setCustomSectionLetter('');
+  };
   // Assign Subjects state
   const [selectedClassForSubjects, setSelectedClassForSubjects] = useState<string>('');
   const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
@@ -431,9 +439,21 @@ const ClassDashboard = () => {
   const handleAddClass = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate required fields
-    if (!newClass.classNumber || !newClass.section) {
-      alert('Please fill in all required fields: Class Number and Section.');
+    const sectionValue = isCustomSection
+      ? customSectionLetter.trim().toUpperCase()
+      : newClass.section.trim();
+
+    if (!newClass.classNumber || !sectionValue) {
+      alert(
+        isCustomSection
+          ? 'Please fill in Class Number and enter a section letter.'
+          : 'Please fill in all required fields: Class Number and Section.'
+      );
+      return;
+    }
+
+    if (isCustomSection && !/^[A-Z0-9]{1,3}$/i.test(sectionValue)) {
+      alert('Section must be 1–3 letters or numbers (e.g. D, E1).');
       return;
     }
     
@@ -447,7 +467,7 @@ const ClassDashboard = () => {
         },
         body: JSON.stringify({
           classNumber: newClass.classNumber.trim(),
-          section: newClass.section,
+          section: sectionValue,
           description: newClass.description.trim()
         })
       });
@@ -455,7 +475,7 @@ const ClassDashboard = () => {
       const responseData = await response.json();
       
       if (response.ok && responseData.success !== false) {
-        setNewClass({ classNumber: '', section: '', description: '' });
+        resetAddClassForm();
         setIsAddClassDialogOpen(false);
         fetchClasses();
         toast({
@@ -763,17 +783,17 @@ const ClassDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-      <div className="space-y-8 p-6">
+      <div className="space-y-4 sm:space-y-6 lg:space-y-8 p-3 sm:p-4 lg:p-6">
         {/* Hero Section with Vibrant Class Stats */}
         <div className="relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 opacity-20 rounded-3xl"></div>
-          <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20">
+          <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl p-4 sm:p-6 lg:p-8 shadow-2xl border border-white/20">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-5xl font-bold bg-gradient-to-r from-sky-500 to-sky-600 bg-clip-text text-transparent">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-sky-500 to-sky-600 bg-clip-text text-transparent">
                   Class Management
                 </h1>
-                <p className="text-gray-700 mt-3 text-xl font-medium">Organize and manage your classes and students with style</p>
+                <p className="text-gray-700 mt-3 text-lg sm:text-xl font-medium">Organize and manage your classes and students with style</p>
               </div>
               <div className="hidden lg:block">
                 <div className="w-24 h-24 bg-gradient-to-r from-sky-400 to-sky-500 rounded-full flex items-center justify-center shadow-xl">
@@ -783,25 +803,25 @@ const ClassDashboard = () => {
             </div>
             
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:p-4 lg:p-6">
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-xl transition-all duration-300"
               >
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl shadow-lg">
-                      <GraduationCap className="w-6 h-6 text-white" />
+                      <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                     </div>
                     <div className="text-right">
-                      <p className="text-white/90 text-sm font-medium">Total Classes</p>
-                      <p className="text-3xl font-bold text-white">{classes.length}</p>
+                      <p className="text-white/90 text-xs sm:text-sm font-medium">Total Classes</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-white">{classes.length}</p>
                     </div>
                   </div>
-                  <div className="flex items-center text-white/80 text-sm">
-                    <BookOpen className="w-4 h-4 mr-1" />
+                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
+                    <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                     <span>Active classes</span>
                   </div>
                 </div>
@@ -811,20 +831,20 @@ const ClassDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-xl transition-all duration-300"
               >
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl shadow-lg">
-                      <Users className="w-6 h-6 text-white" />
+                      <Users className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                     </div>
                     <div className="text-right">
-                      <p className="text-white/90 text-sm font-medium">Total Students</p>
-                      <p className="text-3xl font-bold text-white">{classes.reduce((total, cls) => total + cls.studentCount, 0)}</p>
+                      <p className="text-white/90 text-xs sm:text-sm font-medium">Total Students</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-white">{classes.reduce((total, cls) => total + cls.studentCount, 0)}</p>
                     </div>
                   </div>
-                  <div className="flex items-center text-white/80 text-sm">
-                    <Users className="w-4 h-4 mr-1" />
+                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
+                    <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                     <span>Enrolled students</span>
                   </div>
                 </div>
@@ -834,22 +854,22 @@ const ClassDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-xl transition-all duration-300"
               >
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl shadow-lg">
-                      <BarChart3 className="w-6 h-6 text-white" />
+                      <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                     </div>
                     <div className="text-right">
-                      <p className="text-white/90 text-sm font-medium">Avg. Class Size</p>
-                      <p className="text-3xl font-bold text-white">
+                      <p className="text-white/90 text-xs sm:text-sm font-medium">Avg. Class Size</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-white">
                         {classes.length > 0 ? Math.round(classes.reduce((total, cls) => total + cls.studentCount, 0) / classes.length) : 0}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center text-white/80 text-sm">
-                    <TrendingUp className="w-4 h-4 mr-1" />
+                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
+                    <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                     <span>Students per class</span>
                   </div>
                 </div>
@@ -859,20 +879,20 @@ const ClassDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-xl transition-all duration-300"
               >
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-3 bg-white/20 rounded-xl shadow-lg">
-                      <Target className="w-6 h-6 text-white" />
+                      <Target className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                     </div>
                     <div className="text-right">
-                      <p className="text-white/90 text-sm font-medium">Subjects</p>
-                      <p className="text-3xl font-bold text-white">{classSubjects.length}</p>
+                      <p className="text-white/90 text-xs sm:text-sm font-medium">Subjects</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-white">{classSubjects.length}</p>
                     </div>
                   </div>
-                  <div className="flex items-center text-white/80 text-sm">
-                    <BookOpen className="w-4 h-4 mr-1" />
+                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
+                    <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                     <span>Different subjects</span>
                   </div>
                 </div>
@@ -882,37 +902,37 @@ const ClassDashboard = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="classes" className="space-y-6" onValueChange={(value) => {
+        <Tabs defaultValue="classes" className="space-y-3 sm:space-y-4 lg:space-y-6" onValueChange={(value) => {
           if (value === 'completed-students') {
             fetchCompletedStudents();
           }
         }}>
           <TabsList className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-3xl p-1">
             <TabsTrigger value="classes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white rounded-2xl">
-              <GraduationCap className="w-4 h-4 mr-2" />
+              <GraduationCap className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Classes
             </TabsTrigger>
             <TabsTrigger value="assign-subjects" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white rounded-2xl">
-              <BookOpen className="w-4 h-4 mr-2" />
+              <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Assign Subjects
             </TabsTrigger>
             <TabsTrigger value="promote-class" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white rounded-2xl">
-              <ArrowUp className="w-4 h-4 mr-2" />
+              <ArrowUp className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Promote Class
             </TabsTrigger>
             <TabsTrigger value="completed-students" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white rounded-2xl">
-              <CheckCircle2 className="w-4 h-4 mr-2" />
+              <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Completed Students
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="classes" className="space-y-6">
+          <TabsContent value="classes" className="space-y-3 sm:space-y-4 lg:space-y-6">
             {/* Action Bar */}
-            <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 shadow-xl border border-white/20">
+            <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
               <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div className="flex flex-col md:flex-row gap-4 items-center">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-3 h-3 sm:w-4 sm:h-4" />
                     <Input
                       placeholder="Search classes..."
                       value={searchTerm}
@@ -941,14 +961,14 @@ const ClassDashboard = () => {
                           variant="destructive"
                           className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl"
                         >
-                          <Trash2 className="w-4 h-4 mr-2" />
+                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                           Delete All
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent className="bg-white">
                         <AlertDialogHeader>
                           <AlertDialogTitle className="flex items-center gap-2">
-                            <AlertTriangle className="w-5 h-5 text-red-500" />
+                            <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
                             Delete All Classes?
                           </AlertDialogTitle>
                           <AlertDialogDescription className="text-gray-600">
@@ -974,7 +994,7 @@ const ClassDashboard = () => {
                     onClick={() => setIsAddClassDialogOpen(true)}
                     className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white rounded-xl"
                   >
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     Add Class
                   </Button>
                 </div>
@@ -982,7 +1002,7 @@ const ClassDashboard = () => {
             </div>
 
             {/* Classes Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
           {filteredClasses.length > 0 ? (
             filteredClasses.map((classItem, index) => {
               const isExpanded = expandedClassId === classItem.id;
@@ -997,18 +1017,18 @@ const ClassDashboard = () => {
                 }`}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-sky-400/10 to-blue-500/10 backdrop-blur-sm"></div>
-                <div className="relative z-10 p-6">
+                <div className="relative z-10 p-3 sm:p-4 lg:p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
                       <div className="p-3 bg-white/40 rounded-xl backdrop-blur-sm">
-                        <GraduationCap className="w-6 h-6 text-sky-600" />
+                        <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-sky-600" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-sky-900 text-lg">
+                        <h3 className="font-bold text-sky-900 text-base sm:text-lg">
                           {classItem.name || `Class ${classItem.classNumber}${classItem.section || ''}`}
                         </h3>
                         {classItem.description && (
-                          <p className="text-sky-700 text-sm mt-1">{classItem.description}</p>
+                          <p className="text-sky-700 text-xs sm:text-sm mt-1">{classItem.description}</p>
                         )}
                       </div>
                     </div>
@@ -1016,17 +1036,17 @@ const ClassDashboard = () => {
                   </div>
                   
                   <div className="space-y-3 mb-6">
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between text-xs sm:text-sm">
                       <div className="flex items-center text-sky-700">
-                        <Users className="w-4 h-4 mr-3 text-sky-600" />
+                        <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600" />
                         <span>Students:</span>
                       </div>
                       <span className="font-medium text-sky-900">{classItem.studentCount || 0}</span>
                     </div>
                     {classItem.teachers && classItem.teachers.length > 0 && (
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-xs sm:text-sm">
                         <div className="flex items-center text-sky-700">
-                          <UserPlus className="w-4 h-4 mr-3 text-sky-600" />
+                          <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600" />
                           <span>Teachers:</span>
                         </div>
                         <span className="font-medium text-sky-900">
@@ -1035,36 +1055,36 @@ const ClassDashboard = () => {
                       </div>
                     )}
                     {(!classItem.teachers || classItem.teachers.length === 0) && (
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-xs sm:text-sm">
                         <div className="flex items-center text-sky-700">
-                          <UserPlus className="w-4 h-4 mr-3 text-sky-600" />
+                          <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600" />
                           <span>Teachers:</span>
                         </div>
                         <span className="font-medium text-sky-500 text-xs">No teachers assigned</span>
                       </div>
                     )}
                     {classItem.schedule && (
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-xs sm:text-sm">
                         <div className="flex items-center text-sky-700">
-                          <Calendar className="w-4 h-4 mr-3 text-sky-600" />
+                          <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600" />
                           <span>Schedule:</span>
                         </div>
                         <span className="font-medium text-sky-900">{classItem.schedule}</span>
                       </div>
                     )}
                     {classItem.room && (
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-xs sm:text-sm">
                         <div className="flex items-center text-sky-700">
-                          <BookOpen className="w-4 h-4 mr-3 text-sky-600" />
+                          <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600" />
                           <span>Room:</span>
                         </div>
                         <span className="font-medium text-sky-900">{classItem.room}</span>
                       </div>
                     )}
                     {classItem.section && (
-                      <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center justify-between text-xs sm:text-sm">
                         <div className="flex items-center text-sky-700">
-                          <GraduationCap className="w-4 h-4 mr-3 text-sky-600" />
+                          <GraduationCap className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600" />
                           <span>Section:</span>
                         </div>
                         <span className="font-medium text-sky-900">{classItem.section}</span>
@@ -1075,16 +1095,16 @@ const ClassDashboard = () => {
                   {/* Teachers List */}
                   {classItem.teachers && classItem.teachers.length > 0 && (
                     <div className="space-y-2 mb-4">
-                      <h4 className="font-semibold text-sky-900 text-sm">Assigned Teachers:</h4>
+                      <h4 className="font-semibold text-sky-900 text-xs sm:text-sm">Assigned Teachers:</h4>
                       <div className="space-y-2">
                         {classItem.teachers.map(teacher => (
                           <div key={teacher.id} className="flex items-center justify-between bg-sky-50 rounded-lg p-2 hover:bg-sky-100 transition-colors border border-sky-200">
                             <div className="flex items-center space-x-2">
-                              <div className="w-8 h-8 bg-gradient-to-br from-sky-400 to-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                              <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-gradient-to-br from-sky-400 to-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
                                 {teacher.name.charAt(0).toUpperCase()}
                               </div>
                               <div>
-                                <p className="text-sm font-medium text-sky-900">{teacher.name}</p>
+                                <p className="text-xs sm:text-sm font-medium text-sky-900">{teacher.name}</p>
                                 <p className="text-xs text-sky-600">{teacher.email}</p>
                               </div>
                             </div>
@@ -1099,7 +1119,7 @@ const ClassDashboard = () => {
                   
                   <div className="space-y-2">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-semibold text-sky-900 text-sm">Students List:</h4>
+                      <h4 className="font-semibold text-sky-900 text-xs sm:text-sm">Students List:</h4>
                       <Button
                         size="sm"
                         variant="outline"
@@ -1126,7 +1146,7 @@ const ClassDashboard = () => {
                         classItem.students.map(student => (
                         <div key={student.id} className="flex items-center justify-between bg-white/50 rounded-lg p-2 hover:bg-white/70 transition-colors">
                           <div>
-                            <p className="text-sm font-medium text-sky-900">{student.name}</p>
+                            <p className="text-xs sm:text-sm font-medium text-sky-900">{student.name}</p>
                             <p className="text-xs text-sky-600">{student.email}</p>
                           </div>
                           <div className="flex items-center gap-2">
@@ -1137,7 +1157,7 @@ const ClassDashboard = () => {
                               onClick={() => handleViewStudentAnalysis(student)}
                               title="View Student Analysis"
                             >
-                              <Eye className="w-4 h-4 text-sky-600" />
+                              <Eye className="w-3 h-3 sm:w-4 sm:h-4 text-sky-600" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -1149,7 +1169,7 @@ const ClassDashboard = () => {
                               }}
                               title="AI Risk Analysis"
                             >
-                              <Brain className="w-4 h-4 text-orange-600" />
+                              <Brain className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600" />
                             </Button>
                             <Badge variant="outline" className={`text-xs ${
                               student.status === 'active' 
@@ -1162,7 +1182,7 @@ const ClassDashboard = () => {
                         </div>
                         ))
                       ) : (
-                        <div className="text-sm text-sky-600 text-center py-2">
+                        <div className="text-xs sm:text-sm text-sky-600 text-center py-2">
                           No students assigned to this class
                         </div>
                       )}
@@ -1179,7 +1199,7 @@ const ClassDashboard = () => {
                         handleDeleteClass(classItem.id);
                       }}
                     >
-                      <Trash2 className="w-4 h-4 mr-1" />
+                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                       Delete
                     </Button>
                   </div>
@@ -1190,24 +1210,24 @@ const ClassDashboard = () => {
           ) : (
             <div className="col-span-full text-center py-12">
               <GraduationCap className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 text-lg mb-2">No classes found</p>
-              <p className="text-gray-500 text-sm">Create your first class by clicking the "Add Class" button above</p>
+              <p className="text-gray-600 text-base sm:text-lg mb-2">No classes found</p>
+              <p className="text-gray-500 text-xs sm:text-sm">Create your first class by clicking the "Add Class" button above</p>
             </div>
           )}
           </div>
           </TabsContent>
 
-          <TabsContent value="assign-subjects" className="space-y-6">
+          <TabsContent value="assign-subjects" className="space-y-3 sm:space-y-4 lg:space-y-6">
             <Card className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20">
               <CardHeader>
-                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 bg-clip-text text-transparent">
+                <CardTitle className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 bg-clip-text text-transparent">
                   Assign Subjects to Class
                 </CardTitle>
                 <p className="text-gray-600 mt-2">Select a class and assign subjects to all students in that class</p>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
                 <div>
-                  <Label htmlFor="class-select" className="text-base font-semibold mb-2 block">Select Class Number *</Label>
+                  <Label htmlFor="class-select" className="text-sm sm:text-base font-semibold mb-2 block">Select Class Number *</Label>
                   <Select value={selectedClassForSubjects} onValueChange={setSelectedClassForSubjects}>
                     <SelectTrigger id="class-select" className="w-full">
                       <SelectValue placeholder="Choose a class number" />
@@ -1237,16 +1257,16 @@ const ClassDashboard = () => {
                     </SelectContent>
                   </Select>
                   {selectedClassForSubjects && (
-                    <p className="text-sm text-gray-600 mt-2">
+                    <p className="text-xs sm:text-sm text-gray-600 mt-2">
                       Subjects will be assigned to all sections of Class {selectedClassForSubjects} (A, B, C)
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <Label className="text-base font-semibold mb-4 block">Select Subjects *</Label>
+                  <Label className="text-sm sm:text-base font-semibold mb-4 block">Select Subjects *</Label>
                   {subjects.length === 0 ? (
-                    <div className="text-center py-8 bg-gray-50 rounded-xl">
+                    <div className="text-center py-4 sm:py-6 lg:py-8 bg-gray-50 rounded-xl">
                       <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-600">No subjects available. Please create subjects first.</p>
                     </div>
@@ -1271,7 +1291,7 @@ const ClassDashboard = () => {
                           <div className="flex-1">
                             <p className="font-semibold text-gray-900">{subject.name}</p>
                             {subject.code && (
-                              <p className="text-sm text-gray-600">Code: {subject.code}</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Code: {subject.code}</p>
                             )}
                             {subject.description && (
                               <p className="text-xs text-gray-500 mt-1 line-clamp-2">{subject.description}</p>
@@ -1284,7 +1304,7 @@ const ClassDashboard = () => {
                   )}
                   {selectedSubjectIds.length > 0 && (
                     <div className="mt-4">
-                      <p className="text-sm text-gray-600 mb-2">
+                      <p className="text-xs sm:text-sm text-gray-600 mb-2">
                         <strong>{selectedSubjectIds.length}</strong> subject(s) selected
                       </p>
                       <div className="flex flex-wrap gap-2">
@@ -1324,19 +1344,19 @@ const ClassDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="promote-class" className="space-y-6">
+          <TabsContent value="promote-class" className="space-y-3 sm:space-y-4 lg:space-y-6">
             <Card className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20">
               <CardHeader>
-                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-500 bg-clip-text text-transparent">
+                <CardTitle className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-500 bg-clip-text text-transparent">
                   Promote Classes
                 </CardTitle>
                 <p className="text-gray-600 mt-2">Promote classes to the next grade level. Classes will move from Class 1 → Class 2 → ... → Class 12 → Finished Academic Career</p>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-start">
-                    <AlertTriangle className="w-5 h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
-                    <div className="text-sm text-blue-800">
+                    <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+                    <div className="text-xs sm:text-sm text-blue-800">
                       <p className="font-semibold mb-1">Important Notes:</p>
                       <ul className="list-disc list-inside space-y-1">
                         <li>Select classes to promote them to the next grade level</li>
@@ -1350,7 +1370,7 @@ const ClassDashboard = () => {
                 </div>
 
                 <div className="space-y-4">
-                  <Label className="text-base font-semibold">Select Classes to Promote</Label>
+                  <Label className="text-sm sm:text-base font-semibold">Select Classes to Promote</Label>
                   <div className="space-y-4 max-h-96 overflow-y-auto p-2 border border-gray-200 rounded-lg">
                     {(() => {
                       // Group classes by class number
@@ -1458,11 +1478,11 @@ const ClassDashboard = () => {
                                       />
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between mb-1">
-                                          <span className="font-semibold text-gray-900 text-sm">
+                                          <span className="font-semibold text-gray-900 text-xs sm:text-sm">
                                             Section {classItem.section || 'N/A'}
                                           </span>
                                           {isSelected && (
-                                            <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                                            <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 flex-shrink-0" />
                                           )}
                                         </div>
                                         <p className="text-xs text-gray-600 mb-1">
@@ -1496,10 +1516,10 @@ const ClassDashboard = () => {
                     const absClassNum = Math.abs(classNum);
                     return !isNaN(classNum) && absClassNum >= 1 && absClassNum <= 12;
                   }).length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
+                    <div className="text-center py-4 sm:py-6 lg:py-8 text-gray-500">
                       <GraduationCap className="w-12 h-12 mx-auto mb-2 text-gray-400" />
                       <p>No classes available for promotion</p>
-                      <p className="text-sm">Classes must be between Class 1 and Class 12</p>
+                      <p className="text-xs sm:text-sm">Classes must be between Class 1 and Class 12</p>
                     </div>
                   )}
                 </div>
@@ -1521,12 +1541,12 @@ const ClassDashboard = () => {
                   >
                     {isPromoting ? (
                       <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
                         Promoting...
                       </>
                     ) : (
                       <>
-                        <ArrowUp className="w-4 h-4 mr-2" />
+                        <ArrowUp className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         Promote {selectedClassesForPromotion.size} Class{selectedClassesForPromotion.size !== 1 ? 'es' : ''}
                       </>
                     )}
@@ -1536,12 +1556,12 @@ const ClassDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="completed-students" className="space-y-6">
+          <TabsContent value="completed-students" className="space-y-3 sm:space-y-4 lg:space-y-6">
             <Card className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-2xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-500 bg-clip-text text-transparent">
+                    <CardTitle className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-500 bg-clip-text text-transparent">
                       Completed Students
                     </CardTitle>
                     <p className="text-gray-600 mt-2">Students who have completed Class 12 and finished their academic career</p>
@@ -1553,19 +1573,19 @@ const ClassDashboard = () => {
                   >
                     {isLoadingCompletedStudents ? (
                       <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
                         Loading...
                       </>
                     ) : (
                       <>
-                        <Users className="w-4 h-4 mr-2" />
+                        <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         Refresh
                       </>
                     )}
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
                 {isLoadingCompletedStudents ? (
                   <div className="text-center py-12">
                     <Loader2 className="w-12 h-12 mx-auto mb-4 text-gray-400 animate-spin" />
@@ -1574,7 +1594,7 @@ const ClassDashboard = () => {
                 ) : completedStudents.length > 0 ? (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between mb-4">
-                      <Badge variant="outline" className="text-lg px-4 py-2">
+                      <Badge variant="outline" className="text-base sm:text-lg px-4 py-2">
                         Total: {completedStudents.length} student{completedStudents.length !== 1 ? 's' : ''}
                       </Badge>
                     </div>
@@ -1588,7 +1608,7 @@ const ClassDashboard = () => {
                         >
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex items-center space-x-3">
-                              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md">
+                              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-base sm:text-lg shadow-md">
                                 {student.name.charAt(0).toUpperCase()}
                               </div>
                               <div>
@@ -1601,18 +1621,18 @@ const ClassDashboard = () => {
                             </Badge>
                           </div>
                           <div className="space-y-2 mt-4 pt-4 border-t border-green-200">
-                            <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center justify-between text-xs sm:text-sm">
                               <span className="text-gray-600">Status:</span>
                               <span className="font-medium text-green-700">Finished Academic Career</span>
                             </div>
                             {student.phone && (
-                              <div className="flex items-center justify-between text-sm">
+                              <div className="flex items-center justify-between text-xs sm:text-sm">
                                 <span className="text-gray-600">Phone:</span>
                                 <span className="font-medium text-gray-900">{student.phone}</span>
                               </div>
                             )}
                             {student.createdAt && (
-                              <div className="flex items-center justify-between text-sm">
+                              <div className="flex items-center justify-between text-xs sm:text-sm">
                                 <span className="text-gray-600">Joined:</span>
                                 <span className="font-medium text-gray-900">
                                   {new Date(student.createdAt).toLocaleDateString()}
@@ -1627,13 +1647,13 @@ const ClassDashboard = () => {
                 ) : (
                   <div className="text-center py-12">
                     <CheckCircle2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 text-lg mb-2">No completed students found</p>
-                    <p className="text-gray-500 text-sm">Students who complete Class 12 will appear here</p>
+                    <p className="text-gray-600 text-base sm:text-lg mb-2">No completed students found</p>
+                    <p className="text-gray-500 text-xs sm:text-sm">Students who complete Class 12 will appear here</p>
                     <Button
                       onClick={fetchCompletedStudents}
                       className="mt-4 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white"
                     >
-                      <Users className="w-4 h-4 mr-2" />
+                      <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       Refresh List
                     </Button>
                   </div>
@@ -1644,7 +1664,13 @@ const ClassDashboard = () => {
         </Tabs>
 
         {/* Add Class Dialog */}
-        <Dialog open={isAddClassDialogOpen} onOpenChange={setIsAddClassDialogOpen}>
+        <Dialog
+          open={isAddClassDialogOpen}
+          onOpenChange={(open) => {
+            setIsAddClassDialogOpen(open);
+            if (!open) resetAddClassForm();
+          }}
+        >
           <DialogContent className="bg-white/90 backdrop-blur-xl border-sky-200">
             <DialogHeader>
               <DialogTitle className="text-sky-900">Add New Class</DialogTitle>
@@ -1655,7 +1681,7 @@ const ClassDashboard = () => {
             <form onSubmit={handleAddClass} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="classNumber" className="text-sm font-medium text-sky-800">
+                  <Label htmlFor="classNumber" className="text-xs sm:text-sm font-medium text-sky-800">
                     Class Number <span className="text-red-500">*</span>
                   </Label>
                   <Input
@@ -1668,13 +1694,21 @@ const ClassDashboard = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="section" className="text-sm font-medium text-sky-800">
+                  <Label htmlFor="section" className="text-xs sm:text-sm font-medium text-sky-800">
                     Section <span className="text-red-500">*</span>
                   </Label>
                   <Select
-                    value={newClass.section}
-                    onValueChange={(value) => setNewClass({ ...newClass, section: value })}
-                    required
+                    value={isCustomSection ? '__add__' : newClass.section}
+                    onValueChange={(value) => {
+                      if (value === '__add__') {
+                        setIsCustomSection(true);
+                        setNewClass({ ...newClass, section: '' });
+                      } else {
+                        setIsCustomSection(false);
+                        setCustomSectionLetter('');
+                        setNewClass({ ...newClass, section: value });
+                      }
+                    }}
                   >
                     <SelectTrigger className="rounded-xl bg-white/70 border-sky-200 text-sky-900 backdrop-blur-sm">
                       <SelectValue placeholder="Select section" />
@@ -1683,12 +1717,34 @@ const ClassDashboard = () => {
                       <SelectItem value="A">Section A</SelectItem>
                       <SelectItem value="B">Section B</SelectItem>
                       <SelectItem value="C">Section C</SelectItem>
+                      <SelectItem value="__add__">
+                        <span className="flex items-center gap-2">
+                          <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                          Add new section…
+                        </span>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
+                  {isCustomSection && (
+                    <Input
+                      id="customSection"
+                      value={customSectionLetter}
+                      onChange={(e) =>
+                        setCustomSectionLetter(
+                          e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 3)
+                        )
+                      }
+                      className="rounded-xl bg-white/70 border-sky-200 text-sky-900 backdrop-blur-sm mt-2"
+                      placeholder="Enter section letter (e.g. D)"
+                      maxLength={3}
+                      autoFocus
+                      required
+                    />
+                  )}
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description" className="text-sm font-medium text-sky-800">Description (Optional)</Label>
+                <Label htmlFor="description" className="text-xs sm:text-sm font-medium text-sky-800">Description (Optional)</Label>
                 <Textarea
                   id="description"
                   value={newClass.description}
@@ -1702,7 +1758,10 @@ const ClassDashboard = () => {
                 <Button 
                   type="button" 
                   variant="outline" 
-                  onClick={() => setIsAddClassDialogOpen(false)}
+                  onClick={() => {
+                    resetAddClassForm();
+                    setIsAddClassDialogOpen(false);
+                  }}
                   className="border-sky-200 text-sky-700 hover:bg-sky-50"
                 >
                   Cancel
@@ -1721,7 +1780,7 @@ const ClassDashboard = () => {
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-sky-600" />
+                <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600" />
                 Student Analysis - {selectedStudentForAnalysis?.name}
               </DialogTitle>
               <DialogDescription>
@@ -1731,41 +1790,41 @@ const ClassDashboard = () => {
             
             {isLoadingAnalysis ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
+                <Loader2 className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 animate-spin text-sky-600" />
                 <span className="ml-2 text-gray-600">Loading analysis...</span>
               </div>
             ) : studentAnalysis ? (
-              <div className="space-y-6">
+              <div className="space-y-3 sm:space-y-4 lg:space-y-6">
                 {/* Performance Summary */}
                 {studentAnalysis.performance && (
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Performance Summary</CardTitle>
+                      <CardTitle className="text-base sm:text-lg">Performance Summary</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                         {studentAnalysis.performance.totalExams > 0 && (
                           <div className="bg-blue-50 rounded-lg p-4">
-                            <p className="text-sm text-gray-600">Total Exams</p>
-                            <p className="text-2xl font-bold text-blue-700">{studentAnalysis.performance.totalExams}</p>
+                            <p className="text-xs sm:text-sm text-gray-600">Total Exams</p>
+                            <p className="text-xl sm:text-2xl font-bold text-blue-700">{studentAnalysis.performance.totalExams}</p>
                           </div>
                         )}
                         {studentAnalysis.performance.averageScore && (
                           <div className="bg-green-50 rounded-lg p-4">
-                            <p className="text-sm text-gray-600">Average Score</p>
-                            <p className="text-2xl font-bold text-green-700">{studentAnalysis.performance.averageScore}%</p>
+                            <p className="text-xs sm:text-sm text-gray-600">Average Score</p>
+                            <p className="text-xl sm:text-2xl font-bold text-green-700">{studentAnalysis.performance.averageScore}%</p>
                           </div>
                         )}
                         {studentAnalysis.performance.overallProgress && (
                           <div className="bg-purple-50 rounded-lg p-4">
-                            <p className="text-sm text-gray-600">Overall Progress</p>
-                            <p className="text-2xl font-bold text-purple-700">{studentAnalysis.performance.overallProgress}%</p>
+                            <p className="text-xs sm:text-sm text-gray-600">Overall Progress</p>
+                            <p className="text-xl sm:text-2xl font-bold text-purple-700">{studentAnalysis.performance.overallProgress}%</p>
                           </div>
                         )}
                         {studentAnalysis.performance.watchTime && (
                           <div className="bg-orange-50 rounded-lg p-4">
-                            <p className="text-sm text-gray-600">Watch Time</p>
-                            <p className="text-2xl font-bold text-orange-700">{Math.round(studentAnalysis.performance.watchTime / 60)}h</p>
+                            <p className="text-xs sm:text-sm text-gray-600">Watch Time</p>
+                            <p className="text-xl sm:text-2xl font-bold text-orange-700">{Math.round(studentAnalysis.performance.watchTime / 60)}h</p>
                           </div>
                         )}
                       </div>
@@ -1777,7 +1836,7 @@ const ClassDashboard = () => {
                 {studentAnalysis.recentActivity && studentAnalysis.recentActivity.length > 0 && (
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Recent Activity</CardTitle>
+                      <CardTitle className="text-base sm:text-lg">Recent Activity</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
@@ -1785,7 +1844,7 @@ const ClassDashboard = () => {
                           <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <div>
                               <p className="font-medium text-gray-900">{activity.title || activity.type}</p>
-                              <p className="text-sm text-gray-600">{activity.date || activity.createdAt}</p>
+                              <p className="text-xs sm:text-sm text-gray-600">{activity.date || activity.createdAt}</p>
                             </div>
                             {activity.score && (
                               <Badge className="bg-sky-100 text-sky-700">{activity.score}%</Badge>

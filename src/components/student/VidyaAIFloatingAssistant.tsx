@@ -40,7 +40,7 @@ export default function VidyaAIFloatingAssistant({
 
   return (
     <div
-      className="fixed bottom-4 right-3 z-30 flex max-w-[min(16rem,calc(100vw-1.25rem))] flex-col items-end gap-1.5 sm:bottom-6 sm:right-5"
+      className="fixed bottom-4 right-3 z-30 flex max-w-[min(16rem,calc(100vw-1.25rem))] flex-col items-end gap-1.5 sm:bottom-3 sm:m-4 lg:m-6 sm:right-5"
       style={{ pointerEvents: "none" }}
     >
       <div className="pointer-events-auto animate-fade-in">

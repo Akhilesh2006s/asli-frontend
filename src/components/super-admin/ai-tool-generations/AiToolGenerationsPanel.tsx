@@ -76,23 +76,23 @@ export default function AiToolGenerationsPanel() {
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50/80 flex flex-col">
-      <div className="w-full flex-1 px-5 sm:px-8 lg:px-10 xl:px-12 py-6 md:py-8 pb-12 space-y-8">
+      <div className="w-full flex-1 px-5 sm:px-8 lg:px-10 xl:px-12 py-3 sm:py-4 lg:py-6 md:py-8 pb-12 space-y-4 sm:space-y-6 lg:space-y-8">
         <header className="relative w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm shadow-slate-200/40">
           <div
             className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-400"
             aria-hidden
           />
-          <div className="px-6 py-7 md:px-10 md:py-8 space-y-6">
+          <div className="px-3 sm:px-4 lg:px-6 py-7 md:px-10 md:py-8 space-y-3 sm:space-y-4 lg:space-y-6">
             <div className="space-y-4 min-w-0">
               <div className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-xs font-medium text-orange-800 ring-1 ring-orange-200/60">
                 <Layers className="h-3.5 w-3.5" />
                 Super Admin · Saved AI output
               </div>
               <div>
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
                   AI tool data
                 </h1>
-                <p className="mt-2 text-sm md:text-base text-slate-600 leading-relaxed max-w-3xl">
+                <p className="mt-2 text-xs sm:text-sm md:text-base text-slate-600 leading-relaxed max-w-3xl">
                   Browse generations from teacher tools (this release onward). Open each tool to drill
                   down; use <span className="font-medium text-slate-700">PDF</span> on a subtopic to
                   export that slice.
@@ -104,7 +104,7 @@ export default function AiToolGenerationsPanel() {
               <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-orange-50/30 to-amber-50/20 p-5 md:p-6 shadow-sm ring-1 ring-slate-100/80">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white shadow-md shadow-orange-500/20">
-                    <FileStack className="h-5 w-5" />
+                    <FileStack className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                 </div>
                 <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -116,11 +116,11 @@ export default function AiToolGenerationsPanel() {
                 </p>
                 {loading ? (
                   <div className="mt-3 flex items-center gap-2 text-slate-500">
-                    <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
-                    <span className="text-sm">Loading…</span>
+                    <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 animate-spin text-orange-500" />
+                    <span className="text-xs sm:text-sm">Loading…</span>
                   </div>
                 ) : (
-                  <p className="mt-2 text-4xl md:text-5xl font-bold tabular-nums tracking-tight text-slate-900">
+                  <p className="mt-2 text-2xl sm:text-3xl lg:text-4xl md:text-5xl font-bold tabular-nums tracking-tight text-slate-900">
                     {metaTotal !== null ? metaTotal : "—"}
                   </p>
                 )}
@@ -129,7 +129,7 @@ export default function AiToolGenerationsPanel() {
               <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/80 to-orange-50/10 p-5 md:p-6 shadow-sm ring-1 ring-slate-100/80">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-800 text-white shadow-md">
-                    <Wrench className="h-5 w-5" />
+                    <Wrench className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                 </div>
                 <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -140,11 +140,11 @@ export default function AiToolGenerationsPanel() {
                 </p>
                 {loading ? (
                   <div className="mt-3 flex items-center gap-2 text-slate-500">
-                    <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
-                    <span className="text-sm">Loading…</span>
+                    <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 animate-spin text-orange-500" />
+                    <span className="text-xs sm:text-sm">Loading…</span>
                   </div>
                 ) : (
-                  <p className="mt-2 text-4xl md:text-5xl font-bold tabular-nums tracking-tight text-slate-900">
+                  <p className="mt-2 text-2xl sm:text-3xl lg:text-4xl md:text-5xl font-bold tabular-nums tracking-tight text-slate-900">
                     {sortedTools.length}
                   </p>
                 )}
@@ -153,7 +153,7 @@ export default function AiToolGenerationsPanel() {
               <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-indigo-50/20 to-slate-50 p-5 md:p-6 shadow-sm ring-1 ring-slate-100/80">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md shadow-indigo-500/20">
-                    <BookOpen className="h-5 w-5" />
+                    <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
                 </div>
                 <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -164,11 +164,11 @@ export default function AiToolGenerationsPanel() {
                 </p>
                 {loading ? (
                   <div className="mt-3 flex items-center gap-2 text-slate-500">
-                    <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
-                    <span className="text-sm">Loading…</span>
+                    <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 animate-spin text-orange-500" />
+                    <span className="text-xs sm:text-sm">Loading…</span>
                   </div>
                 ) : (
-                  <p className="mt-2 text-4xl md:text-5xl font-bold tabular-nums tracking-tight text-slate-900">
+                  <p className="mt-2 text-2xl sm:text-3xl lg:text-4xl md:text-5xl font-bold tabular-nums tracking-tight text-slate-900">
                     {metaTopicsCount !== null ? metaTopicsCount : "—"}
                   </p>
                 )}
@@ -202,7 +202,7 @@ export default function AiToolGenerationsPanel() {
           <div className="px-0.5">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500">
+                <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-slate-500">
                   By tool
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
@@ -230,21 +230,21 @@ export default function AiToolGenerationsPanel() {
               {loading && (
                 <div className="flex flex-col items-center justify-center py-20 text-slate-500 gap-3">
                   <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
-                  <p className="text-sm font-medium">Loading hierarchy…</p>
+                  <p className="text-xs sm:text-sm font-medium">Loading hierarchy…</p>
                 </div>
               )}
 
               {!loading && error && (
-                <div className="rounded-xl border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm">
+                <div className="rounded-xl border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-xs sm:text-sm">
                   {error}
                 </div>
               )}
 
               {!loading && !error && sortedTools.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-16 text-center">
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-3 sm:px-4 lg:px-6 py-16 text-center">
                   <Layers className="mx-auto h-10 w-10 text-slate-300 mb-3" />
                   <p className="font-semibold text-slate-800">No saved generations yet</p>
-                  <p className="text-sm text-slate-600 mt-2 max-w-md mx-auto leading-relaxed">
+                  <p className="text-xs sm:text-sm text-slate-600 mt-2 max-w-md mx-auto leading-relaxed">
                     When teachers generate content from AI tools, new runs are stored here automatically.
                   </p>
                 </div>

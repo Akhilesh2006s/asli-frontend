@@ -331,58 +331,58 @@ export default function SuperAdminDashboard() {
     return (
       <div>
         {/* Super Admin Stats Cards */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        <div className="grid grid-cols-1 gap-3 sm:p-4 lg:p-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setCurrentView('users')}>
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center">
                 <div className="p-3 rounded-lg bg-blue-100">
-                  <UsersIcon className="w-6 h-6 text-primary" />
+                  <UsersIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-primary" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-2xl font-semibold text-gray-900">{stats?.totalUsers || 0}</p>
-                  <p className="text-sm text-gray-600">Total Users</p>
+                  <p className="text-xl sm:text-2xl font-semibold text-gray-900">{stats?.totalUsers || 0}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Total Users</p>
                   <p className="text-xs text-blue-600 mt-1">Click to manage users →</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setCurrentView('analytics')}>
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center">
                 <div className="p-3 rounded-lg bg-green-100">
-                  <TrendingUpIcon className="w-6 h-6 text-secondary" />
+                  <TrendingUpIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-secondary" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-2xl font-semibold text-gray-900">₹{stats?.revenue || 0}</p>
-                  <p className="text-sm text-gray-600">Monthly Revenue</p>
+                  <p className="text-xl sm:text-2xl font-semibold text-gray-900">₹{stats?.revenue || 0}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Monthly Revenue</p>
                   <p className="text-xs text-green-600 mt-1">Click for analytics →</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setCurrentView('content')}>
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center">
                 <div className="p-3 rounded-lg bg-purple-100">
-                  <BookIcon className="w-6 h-6 text-accent" />
+                  <BookIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-accent" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-2xl font-semibold text-gray-900">{stats?.courses || 0}</p>
-                  <p className="text-sm text-gray-600">Total Courses</p>
+                  <p className="text-xl sm:text-2xl font-semibold text-gray-900">{stats?.courses || 0}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Total Courses</p>
                   <p className="text-xs text-purple-600 mt-1">Click to manage courses →</p>
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setCurrentView('admin-management')}>
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center">
                 <div className="p-3 rounded-lg bg-red-100">
-                  <ShieldIcon className="w-6 h-6 text-red-600" />
+                  <ShieldIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-red-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-2xl font-semibold text-gray-900">{stats?.admins || 0}</p>
-                  <p className="text-sm text-gray-600">Active Admins</p>
+                  <p className="text-xl sm:text-2xl font-semibold text-gray-900">{stats?.admins || 0}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Active Admins</p>
                   <p className="text-xs text-red-600 mt-1">Click to manage admins →</p>
                 </div>
               </div>
@@ -391,50 +391,50 @@ export default function SuperAdminDashboard() {
         </div>
 
         {/* Super Admin Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:p-4 lg:p-6 mb-8">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setShowAddAdminModal(true)}>
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center">
-                <ShieldIcon className="w-8 h-8 text-red-600 mr-4" />
+                <ShieldIcon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-red-600 mr-4" />
                 <div>
                   <h3 className="font-semibold text-gray-900">Add New Admin</h3>
-                  <p className="text-sm text-gray-600">Create admin accounts with permissions</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Create admin accounts with permissions</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setShowAddUserModal(true)}>
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center">
-                <UserPlusIcon className="w-8 h-8 text-primary mr-4" />
+                <UserPlusIcon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-primary mr-4" />
                 <div>
                   <h3 className="font-semibold text-gray-900">Add New User</h3>
-                  <p className="text-sm text-gray-600">Create student or teacher accounts</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Create student or teacher accounts</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => setShowCreateCourseModal(true)}>
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center">
-                <BookPlusIcon className="w-8 h-8 text-secondary mr-4" />
+                <BookPlusIcon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-secondary mr-4" />
                 <div>
                   <h3 className="font-semibold text-gray-900">Create Course</h3>
-                  <p className="text-sm text-gray-600">Add new educational content</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Add new educational content</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleExportData()}>
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center">
-                <DownloadIcon className="w-8 h-8 text-accent mr-4" />
+                <DownloadIcon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-accent mr-4" />
                 <div>
                   <h3 className="font-semibold text-gray-900">Export Data</h3>
-                  <p className="text-sm text-gray-600">Download platform analytics</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Download platform analytics</p>
                 </div>
               </div>
             </CardContent>
@@ -445,13 +445,13 @@ export default function SuperAdminDashboard() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
-              <BrainIcon className="w-6 h-6 text-purple-600 mr-2" />
-              <h2 className="text-xl font-bold text-gray-900">AI Insights & Recommendations</h2>
-              <SparklesIcon className="w-5 h-5 text-yellow-500 ml-2" />
+              <BrainIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-purple-600 mr-2" />
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900">AI Insights & Recommendations</h2>
+              <SparklesIcon className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500 ml-2" />
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-sm text-green-600 font-medium">AI Analysis Active</span>
+              <span className="text-xs sm:text-sm text-green-600 font-medium">AI Analysis Active</span>
             </div>
           </div>
 
@@ -461,11 +461,11 @@ export default function SuperAdminDashboard() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-purple-800">Next Month Revenue (AI Predicted)</p>
-                    <p className="text-2xl font-bold text-purple-900">₹289,450</p>
+                    <p className="text-xs sm:text-sm font-medium text-purple-800">Next Month Revenue (AI Predicted)</p>
+                    <p className="text-xl sm:text-2xl font-bold text-purple-900">₹289,450</p>
                     <p className="text-xs text-green-600">↗ +18.2% growth</p>
                   </div>
-                  <TrendingUpIcon className="w-8 h-8 text-purple-600" />
+                  <TrendingUpIcon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-purple-600" />
                 </div>
               </CardContent>
             </Card>
@@ -474,11 +474,11 @@ export default function SuperAdminDashboard() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-blue-800">Predicted New Students</p>
-                    <p className="text-2xl font-bold text-blue-900">89</p>
+                    <p className="text-xs sm:text-sm font-medium text-blue-800">Predicted New Students</p>
+                    <p className="text-xl sm:text-2xl font-bold text-blue-900">89</p>
                     <p className="text-xs text-blue-600">Next 30 days</p>
                   </div>
-                  <UsersIcon className="w-8 h-8 text-blue-600" />
+                  <UsersIcon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-blue-600" />
                 </div>
               </CardContent>
             </Card>
@@ -487,11 +487,11 @@ export default function SuperAdminDashboard() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-orange-800">Students at Churn Risk</p>
-                    <p className="text-2xl font-bold text-orange-900">12</p>
+                    <p className="text-xs sm:text-sm font-medium text-orange-800">Students at Churn Risk</p>
+                    <p className="text-xl sm:text-2xl font-bold text-orange-900">12</p>
                     <p className="text-xs text-orange-600">Needs attention</p>
                   </div>
-                  <AlertTriangleIcon className="w-8 h-8 text-orange-600" />
+                  <AlertTriangleIcon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-orange-600" />
                 </div>
               </CardContent>
             </Card>
@@ -500,11 +500,11 @@ export default function SuperAdminDashboard() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-green-800">AI Engagement Score</p>
-                    <p className="text-2xl font-bold text-green-900">92%</p>
+                    <p className="text-xs sm:text-sm font-medium text-green-800">AI Engagement Score</p>
+                    <p className="text-xl sm:text-2xl font-bold text-green-900">92%</p>
                     <p className="text-xs text-green-600">Excellent</p>
                   </div>
-                  <ZapIcon className="w-8 h-8 text-green-600" />
+                  <ZapIcon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-green-600" />
                 </div>
               </CardContent>
             </Card>
@@ -525,11 +525,11 @@ export default function SuperAdminDashboard() {
     }
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-3 sm:space-y-4 lg:space-y-6">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Admin Management</h2>
+          <h2 className="text-lg sm:text-xl font-semibold">Admin Management</h2>
           <Button onClick={() => setShowAddAdminModal(true)}>
-            <ShieldIcon className="w-4 h-4 mr-2" />
+            <ShieldIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             Add Admin
           </Button>
         </div>
@@ -609,11 +609,11 @@ export default function SuperAdminDashboard() {
     }
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-3 sm:space-y-4 lg:space-y-6">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">User Management</h2>
+          <h2 className="text-lg sm:text-xl font-semibold">User Management</h2>
           <Button onClick={() => setShowAddUserModal(true)}>
-            <UserPlusIcon className="w-4 h-4 mr-2" />
+            <UserPlusIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             Add User
           </Button>
         </div>
@@ -685,11 +685,11 @@ export default function SuperAdminDashboard() {
     }
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-3 sm:space-y-4 lg:space-y-6">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Content Management</h2>
+          <h2 className="text-lg sm:text-xl font-semibold">Content Management</h2>
           <Button onClick={() => setShowCreateCourseModal(true)}>
-            <BookPlusIcon className="w-4 h-4 mr-2" />
+            <BookPlusIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             Create Course
           </Button>
         </div>
@@ -759,63 +759,63 @@ export default function SuperAdminDashboard() {
     }
 
     return (
-      <div className="space-y-6">
-        <h2 className="text-xl font-semibold">Platform Analytics</h2>
+      <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+        <h2 className="text-lg sm:text-xl font-semibold">Platform Analytics</h2>
         
         {/* Active Users Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:p-4 lg:p-6">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Daily Active Users</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium">Daily Active Users</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-primary">{analytics?.dailyActive || 0}</div>
+              <div className="text-xl sm:text-2xl font-bold text-primary">{analytics?.dailyActive || 0}</div>
               <p className="text-xs text-green-600">↗ +5.2% from yesterday</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Weekly Active Users</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium">Weekly Active Users</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-secondary">{analytics?.weeklyActive || 0}</div>
+              <div className="text-xl sm:text-2xl font-bold text-secondary">{analytics?.weeklyActive || 0}</div>
               <p className="text-xs text-green-600">↗ +12.1% from last week</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Monthly Active Users</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium">Monthly Active Users</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-accent">{analytics?.monthlyActive || 0}</div>
+              <div className="text-xl sm:text-2xl font-bold text-accent">{analytics?.monthlyActive || 0}</div>
               <p className="text-xs text-green-600">↗ +{analytics?.userGrowth || 0}% growth</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">Avg Session Time</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium">Avg Session Time</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{analytics?.avgSessionTime || '0m'}</div>
+              <div className="text-xl sm:text-2xl font-bold text-orange-600">{analytics?.avgSessionTime || '0m'}</div>
               <p className="text-xs text-green-600">↗ +3.4% from last month</p>
             </CardContent>
           </Card>
         </div>
         
         {/* Performance Metrics */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
           <Card>
             <CardHeader>
               <CardTitle>Course Completion Rate</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="text-3xl font-bold text-primary">{analytics?.completionRate || 0}%</div>
+                <div className="text-2xl sm:text-3xl font-bold text-primary">{analytics?.completionRate || 0}%</div>
                 <Progress value={analytics?.completionRate || 0} className="w-full" />
-                <p className="text-sm text-gray-600">Students completing at least 80% of enrolled courses</p>
+                <p className="text-xs sm:text-sm text-gray-600">Students completing at least 80% of enrolled courses</p>
               </div>
             </CardContent>
           </Card>
@@ -826,9 +826,9 @@ export default function SuperAdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="text-3xl font-bold text-green-600">+{analytics?.revenueGrowth || 0}%</div>
+                <div className="text-2xl sm:text-3xl font-bold text-green-600">+{analytics?.revenueGrowth || 0}%</div>
                 <Progress value={analytics?.revenueGrowth || 0} className="w-full" />
-                <p className="text-sm text-gray-600">Month-over-month revenue increase</p>
+                <p className="text-xs sm:text-sm text-gray-600">Month-over-month revenue increase</p>
               </div>
             </CardContent>
           </Card>
@@ -847,15 +847,15 @@ export default function SuperAdminDashboard() {
     }
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-3 sm:space-y-4 lg:space-y-6">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Subscription Management</h2>
+          <h2 className="text-lg sm:text-xl font-semibold">Subscription Management</h2>
           <div className="flex space-x-4">
-            <div className="text-sm">
+            <div className="text-xs sm:text-sm">
               <span className="font-medium">Total MRR: </span>
               <span className="text-green-600 font-bold">₹89,450</span>
             </div>
-            <div className="text-sm">
+            <div className="text-xs sm:text-sm">
               <span className="font-medium">Active Subscriptions: </span>
               <span className="text-blue-600 font-bold">156</span>
             </div>
@@ -920,10 +920,10 @@ export default function SuperAdminDashboard() {
   };
 
   const renderSettingsContent = () => (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Platform Settings</h2>
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+      <h2 className="text-lg sm:text-xl font-semibold">Platform Settings</h2>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
         <Card>
           <CardHeader>
             <CardTitle>General Settings</CardTitle>
@@ -1012,8 +1012,8 @@ export default function SuperAdminDashboard() {
   );
 
   const renderSystemLogsContent = () => (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold">System Logs</h2>
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+      <h2 className="text-lg sm:text-xl font-semibold">System Logs</h2>
       
       <Card>
         <CardHeader>
@@ -1023,46 +1023,46 @@ export default function SuperAdminDashboard() {
           <div className="space-y-4">
             <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
               <div className="flex items-center">
-                <CheckCircleIcon className="w-5 h-5 text-green-600 mr-3" />
+                <CheckCircleIcon className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mr-3" />
                 <div>
                   <p className="font-medium">Admin Login</p>
-                  <p className="text-sm text-gray-600">Dr. Sarah Johnson logged in successfully</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Dr. Sarah Johnson logged in successfully</p>
                 </div>
               </div>
-              <span className="text-sm text-gray-500">2 minutes ago</span>
+              <span className="text-xs sm:text-sm text-gray-500">2 minutes ago</span>
             </div>
             
             <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
               <div className="flex items-center">
-                <UserPlusIcon className="w-5 h-5 text-blue-600 mr-3" />
+                <UserPlusIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mr-3" />
                 <div>
                   <p className="font-medium">New User Created</p>
-                  <p className="text-sm text-gray-600">Student account created for Rahul Sharma</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Student account created for Rahul Sharma</p>
                 </div>
               </div>
-              <span className="text-sm text-gray-500">15 minutes ago</span>
+              <span className="text-xs sm:text-sm text-gray-500">15 minutes ago</span>
             </div>
             
             <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
               <div className="flex items-center">
-                <AlertTriangleIcon className="w-5 h-5 text-yellow-600 mr-3" />
+                <AlertTriangleIcon className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 mr-3" />
                 <div>
                   <p className="font-medium">System Warning</p>
-                  <p className="text-sm text-gray-600">High server load detected</p>
+                  <p className="text-xs sm:text-sm text-gray-600">High server load detected</p>
                 </div>
               </div>
-              <span className="text-sm text-gray-500">1 hour ago</span>
+              <span className="text-xs sm:text-sm text-gray-500">1 hour ago</span>
             </div>
             
             <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
               <div className="flex items-center">
-                <BookPlusIcon className="w-5 h-5 text-purple-600 mr-3" />
+                <BookPlusIcon className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 mr-3" />
                 <div>
                   <p className="font-medium">Course Created</p>
-                  <p className="text-sm text-gray-600">New course "Advanced Mathematics" published</p>
+                  <p className="text-xs sm:text-sm text-gray-600">New course "Advanced Mathematics" published</p>
                 </div>
               </div>
-              <span className="text-sm text-gray-500">2 hours ago</span>
+              <span className="text-xs sm:text-sm text-gray-500">2 hours ago</span>
             </div>
           </div>
         </CardContent>
@@ -1099,10 +1099,10 @@ export default function SuperAdminDashboard() {
     <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50">
       {/* Super Admin Sidebar */}
       <div className="w-full lg:w-64 bg-white shadow-lg lg:min-h-screen">
-        <div className="p-6 border-b border-gray-200">
+        <div className="p-3 sm:p-4 lg:p-6 border-b border-gray-200">
           <div className="flex items-center">
-            <CrownIcon className="h-8 w-8 text-red-600 mr-2" />
-            <span className="font-bold text-lg text-red-600">Super Admin</span>
+            <CrownIcon className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-red-600 mr-2" />
+            <span className="font-bold text-base sm:text-lg text-red-600">Super Admin</span>
           </div>
         </div>
         
@@ -1130,7 +1130,7 @@ export default function SuperAdminDashboard() {
                   }`}
                   onClick={() => setCurrentView(item.id as SuperAdminView)}
                 >
-                  <Icon className="w-5 h-5 mr-3" />
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 mr-3" />
                   {item.label}
                 </Button>
               );
@@ -1141,10 +1141,10 @@ export default function SuperAdminDashboard() {
         <div className="lg:absolute lg:bottom-0 w-full lg:w-64 p-4 border-t border-gray-200">
           <div className="flex items-center">
             <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-              <CrownIcon className="w-6 h-6 text-red-600" />
+              <CrownIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-red-600" />
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-900">Super Admin</p>
+              <p className="text-xs sm:text-sm font-medium text-gray-900">Super Admin</p>
               <p className="text-xs text-red-600">Amenity</p>
             </div>
           </div>
@@ -1157,16 +1157,16 @@ export default function SuperAdminDashboard() {
         <header className="bg-white shadow-sm border-b border-gray-200">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-3 sm:px-6 py-4">
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{getPageTitle()}</h1>
-              <p className="text-sm text-gray-600">Welcome back, Super Admin!</p>
+              <h1 className="text-lg sm:text-xl sm:text-2xl font-bold text-gray-900">{getPageTitle()}</h1>
+              <p className="text-xs sm:text-sm text-gray-600">Welcome back, Super Admin!</p>
             </div>
             <div className="flex items-center flex-wrap gap-2 sm:gap-4">
               <Button variant="outline" size="sm" onClick={() => alert('Notifications feature - Would show recent platform activities')}>
-                <BellIcon className="w-4 h-4 mr-2" />
+                <BellIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Notifications
               </Button>
               <Button variant="outline" size="sm" onClick={handleLogout}>
-                <LogOutIcon className="w-4 h-4 mr-2" />
+                <LogOutIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Logout
               </Button>
             </div>
@@ -1284,7 +1284,7 @@ export default function SuperAdminDashboard() {
                             id={permission}
                             className="rounded"
                           />
-                          <Label htmlFor={permission} className="text-sm">{permission}</Label>
+                          <Label htmlFor={permission} className="text-xs sm:text-sm">{permission}</Label>
                         </div>
                       ))}
                     </div>

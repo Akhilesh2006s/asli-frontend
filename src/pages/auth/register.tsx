@@ -100,7 +100,7 @@ const Register = () => {
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">
             Account Created Successfully!
           </h2>
           <p className="text-gray-600 mb-6">
@@ -137,9 +137,9 @@ const Register = () => {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto"
             >
-              <Sparkles className="w-8 h-8 text-white" />
+              <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
             </motion.div>
-            <CardTitle className="text-2xl font-bold text-gray-900">
+            <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900">
               Create Your Account
             </CardTitle>
             <p className="text-gray-600">
@@ -162,11 +162,11 @@ const Register = () => {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="fullName" className="text-xs sm:text-sm font-medium text-gray-700">
                   Full Name
                 </Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                   <Input
                     id="fullName"
                     name="fullName"
@@ -181,11 +181,11 @@ const Register = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="email" className="text-xs sm:text-sm font-medium text-gray-700">
                   Email Address
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                   <Input
                     id="email"
                     name="email"
@@ -200,7 +200,7 @@ const Register = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="role" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="role" className="text-xs sm:text-sm font-medium text-gray-700">
                   Account Type
                 </Label>
                 <Select value={formData.role} onValueChange={handleRoleChange}>
@@ -215,11 +215,11 @@ const Register = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="password" className="text-xs sm:text-sm font-medium text-gray-700">
                   Password
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                   <Input
                     id="password"
                     name="password"
@@ -235,17 +235,17 @@ const Register = () => {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? <EyeOff className="w-3 h-3 sm:w-4 sm:h-4" /> : <Eye className="w-3 h-3 sm:w-4 sm:h-4" />}
                   </button>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
+                <Label htmlFor="confirmPassword" className="text-xs sm:text-sm font-medium text-gray-700">
                   Confirm Password
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                   <Input
                     id="confirmPassword"
                     name="confirmPassword"
@@ -261,7 +261,7 @@ const Register = () => {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showConfirmPassword ? <EyeOff className="w-3 h-3 sm:w-4 sm:h-4" /> : <Eye className="w-3 h-3 sm:w-4 sm:h-4" />}
                   </button>
                 </div>
               </div>
@@ -270,10 +270,10 @@ const Register = () => {
                 <input
                   id="terms"
                   type="checkbox"
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-1"
+                  className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-1"
                   required
                 />
-                <Label htmlFor="terms" className="text-sm text-gray-600 leading-6">
+                <Label htmlFor="terms" className="text-xs sm:text-sm text-gray-600 leading-6">
                   I agree to the{' '}
                   <Link href="/terms" className="text-blue-600 hover:text-blue-700">
                     Terms of Service
@@ -295,7 +295,7 @@ const Register = () => {
             </form>
 
             <div className="text-center">
-              <p className="text-sm text-gray-600">
+              <p className="text-xs sm:text-sm text-gray-600">
                 Already have an account?{' '}
                 <Link href="/auth/login" className="text-blue-600 hover:text-blue-700 font-medium">
                   Sign in here
@@ -304,8 +304,8 @@ const Register = () => {
             </div>
 
             <div className="text-center">
-              <Link href="/" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-800">
-                <ArrowLeft className="w-4 h-4 mr-1" />
+              <Link href="/" className="inline-flex items-center text-xs sm:text-sm text-gray-600 hover:text-gray-800">
+                <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                 Back to Home
               </Link>
             </div>

@@ -118,7 +118,7 @@ export default function ExamResults({
   const grade = getGrade(displayPercentage);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 py-4 sm:py-6 lg:py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}
@@ -126,10 +126,10 @@ export default function ExamResults({
           <div className="flex items-center justify-center mb-4">
             <Trophy className="w-12 h-12 text-yellow-500" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Exam Completed!</h1>
-          <p className="text-lg text-gray-600">{examTitle}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Exam Completed!</h1>
+          <p className="text-base sm:text-lg text-gray-600">{examTitle}</p>
           {Number(result.attemptNumber) >= 1 && (
-            <p className="text-sm font-medium text-indigo-600 mt-2">
+            <p className="text-xs sm:text-sm font-medium text-indigo-600 mt-2">
               Attempt {Number(result.attemptNumber)}
             </p>
           )}
@@ -141,7 +141,7 @@ export default function ExamResults({
             <CardTitle className="text-center">Your Performance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:p-4 lg:p-6">
               
               {/* Score Circle */}
               <div className="text-center">
@@ -169,13 +169,13 @@ export default function ExamResults({
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center">
-                      <div className="text-2xl font-bold text-gray-900">{displayPercentage.toFixed(1)}%</div>
-                      <div className={`text-sm font-medium ${grade.color}`}>{grade.grade}</div>
+                      <div className="text-xl sm:text-2xl font-bold text-gray-900">{displayPercentage.toFixed(1)}%</div>
+                      <div className={`text-xs sm:text-sm font-medium ${grade.color}`}>{grade.grade}</div>
                     </div>
                   </div>
                 </div>
-                <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${grade.bgColor} ${grade.color}`}>
-                  <Award className="w-4 h-4 mr-1" />
+                <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${grade.bgColor} ${grade.color}`}>
+                  <Award className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                   {grade.grade} Grade
                 </div>
               </div>
@@ -183,15 +183,15 @@ export default function ExamResults({
               {/* Marks */}
               <div className="space-y-4">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-gray-900">{result.obtainedMarks}</div>
-                  <div className="text-sm text-gray-600">out of {result.totalMarks} marks</div>
+                  <div className="text-2xl sm:text-3xl font-bold text-gray-900">{result.obtainedMarks}</div>
+                  <div className="text-xs sm:text-sm text-gray-600">out of {result.totalMarks} marks</div>
                 </div>
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-xs sm:text-sm">
                     <span className="text-green-600">Correct: {result.correctAnswers}</span>
                     <span className="text-red-600">Wrong: {result.wrongAnswers}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-xs sm:text-sm">
                     <span className="text-gray-600">Unattempted: {result.unattempted}</span>
                     <span className="text-gray-600">Time: {formatTime(result.timeTaken)}</span>
                   </div>
@@ -201,7 +201,7 @@ export default function ExamResults({
               {/* Progress Bar */}
               <div className="space-y-4">
                 <div>
-                  <div className="flex justify-between text-sm mb-2">
+                  <div className="flex justify-between text-xs sm:text-sm mb-2">
                     <span>Accuracy</span>
                     <span>{accuracyRate.toFixed(1)}%</span>
                   </div>
@@ -211,7 +211,7 @@ export default function ExamResults({
                   />
                 </div>
                 <div>
-                  <div className="flex justify-between text-sm mb-2">
+                  <div className="flex justify-between text-xs sm:text-sm mb-2">
                     <span>Completion</span>
                     <span>{completionRate.toFixed(1)}%</span>
                   </div>
@@ -231,7 +231,7 @@ export default function ExamResults({
             <CardTitle>Subject-wise Performance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:p-4 lg:p-6">
               {Object.entries(result.subjectWiseScore).map(([subject, score]) => {
                 const percentage = score.total > 0 ? (score.correct / score.total) * 100 : 0;
                 const subjectColors = {
@@ -244,14 +244,14 @@ export default function ExamResults({
                 return (
                   <div key={subject} className="text-center">
                     <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 ${subjectColors[subject as keyof typeof subjectColors] || 'bg-gray-100 text-gray-600'}`}>
-                      <BookOpen className="w-8 h-8" />
+                      <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
                     </div>
                     <h3 className="font-semibold text-gray-900 capitalize mb-2">{subject}</h3>
-                    <div className="text-2xl font-bold text-gray-900 mb-1">{percentage.toFixed(1)}%</div>
-                    <div className="text-sm text-gray-600 mb-3">
+                    <div className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">{percentage.toFixed(1)}%</div>
+                    <div className="text-xs sm:text-sm text-gray-600 mb-3">
                       {score.correct}/{score.total} correct
                     </div>
-                    <div className="text-sm font-medium text-gray-700">
+                    <div className="text-xs sm:text-sm font-medium text-gray-700">
                       {score.marks} marks
                     </div>
                   </div>
@@ -267,7 +267,7 @@ export default function ExamResults({
             <CardTitle>Detailed Analysis</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:p-4 lg:p-6">
               
               {/* Question Breakdown */}
               <div>
@@ -275,21 +275,21 @@ export default function ExamResults({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
                       <span className="text-gray-700">Correct Answers</span>
                     </div>
                     <span className="font-semibold text-green-600">{result.correctAnswers}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <XCircle className="w-5 h-5 text-red-500" />
+                      <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
                       <span className="text-gray-700">Wrong Answers</span>
                     </div>
                     <span className="font-semibold text-red-600">{result.wrongAnswers}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <AlertCircle className="w-5 h-5 text-gray-500" />
+                      <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
                       <span className="text-gray-700">Unattempted</span>
                     </div>
                     <span className="font-semibold text-gray-600">{result.unattempted}</span>
@@ -303,14 +303,14 @@ export default function ExamResults({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <Clock className="w-5 h-5 text-blue-500" />
+                      <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
                       <span className="text-gray-700">Time Taken</span>
                     </div>
                     <span className="font-semibold text-blue-600">{formatTime(result.timeTaken)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <Calculator className="w-5 h-5 text-purple-500" />
+                      <Calculator className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
                       <span className="text-gray-700">Avg. per Question</span>
                     </div>
                     <span className="font-semibold text-purple-600">
@@ -333,10 +333,10 @@ export default function ExamResults({
               {displayPercentage < 50 && (
                 <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
                   <div className="flex items-start space-x-3">
-                    <AlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                    <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 mt-0.5" />
                     <div>
                       <h4 className="font-semibold text-red-800">Need More Practice</h4>
-                      <p className="text-red-700 text-sm mt-1">
+                      <p className="text-red-700 text-xs sm:text-sm mt-1">
                         Focus on fundamental concepts and practice more questions in your weak areas.
                       </p>
                     </div>
@@ -347,10 +347,10 @@ export default function ExamResults({
               {displayPercentage >= 50 && displayPercentage < 70 && (
                 <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <div className="flex items-start space-x-3">
-                    <TrendingUp className="w-5 h-5 text-yellow-500 mt-0.5" />
+                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500 mt-0.5" />
                     <div>
                       <h4 className="font-semibold text-yellow-800">Good Progress</h4>
-                      <p className="text-yellow-700 text-sm mt-1">
+                      <p className="text-yellow-700 text-xs sm:text-sm mt-1">
                         You're on the right track! Focus on improving accuracy and speed.
                       </p>
                     </div>
@@ -361,10 +361,10 @@ export default function ExamResults({
               {displayPercentage >= 70 && (
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                   <div className="flex items-start space-x-3">
-                    <Trophy className="w-5 h-5 text-green-500 mt-0.5" />
+                    <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5" />
                     <div>
                       <h4 className="font-semibold text-green-800">Excellent Performance!</h4>
-                      <p className="text-green-700 text-sm mt-1">
+                      <p className="text-green-700 text-xs sm:text-sm mt-1">
                         Great job! Keep up the good work and aim for even higher scores.
                       </p>
                     </div>
@@ -375,10 +375,10 @@ export default function ExamResults({
               {result.unattempted > 0 && (
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-start space-x-3">
-                    <Target className="w-5 h-5 text-blue-500 mt-0.5" />
+                    <Target className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 mt-0.5" />
                     <div>
                       <h4 className="font-semibold text-blue-800">Time Management</h4>
-                      <p className="text-blue-700 text-sm mt-1">
+                      <p className="text-blue-700 text-xs sm:text-sm mt-1">
                         You had {result.unattempted} unattempted questions. Practice time management to attempt all questions.
                       </p>
                     </div>
@@ -408,7 +408,7 @@ export default function ExamResults({
             onClick={() => setShowDetailedAnalysis(true)}
             className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white border-0 shadow-lg"
           >
-            <Eye className="w-4 h-4 mr-2" />
+            <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             View Detailed Analysis
           </Button>
         </div>

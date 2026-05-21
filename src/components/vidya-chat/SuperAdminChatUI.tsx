@@ -19,7 +19,7 @@ export function SuperAdminChatUI({ model, className }: SuperAdminChatUIProps) {
   if (model.isLoading) {
     return (
       <div className={`${className ?? ""} flex h-full min-h-[320px] items-center justify-center bg-white`}>
-        <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
+        <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 animate-spin text-slate-500" />
       </div>
     );
   }
@@ -32,10 +32,10 @@ export function SuperAdminChatUI({ model, className }: SuperAdminChatUIProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
-              <Sparkles className="h-5 w-5 text-white" />
+              <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-white">AI System Control Panel</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-white">AI System Control Panel</h3>
               <p className="text-xs text-orange-100">
                 Database-backed control assistant: Gemini classifies intent; answers use live MongoDB aggregates.
               </p>
@@ -51,7 +51,7 @@ export function SuperAdminChatUI({ model, className }: SuperAdminChatUIProps) {
             <div className="border-b border-slate-200 px-4 py-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-semibold text-slate-900">Control Console</h4>
+                  <h4 className="text-xs sm:text-sm font-semibold text-slate-900">Control Console</h4>
                   <p className="text-xs text-slate-600">
                     Ask platform metrics; every number is computed server-side (not invented by the model).
                   </p>
@@ -74,14 +74,14 @@ export function SuperAdminChatUI({ model, className }: SuperAdminChatUIProps) {
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
               {model.displayMessages.length === 0 ? (
                 <div className="mx-auto max-w-4xl py-12 text-center">
-                  <h4 className="text-lg font-semibold text-slate-900">System Control Assistant Ready</h4>
-                  <p className="mt-1 text-sm text-slate-600">Run diagnostics, audits, and platform-wide AI checks.</p>
+                  <h4 className="text-base sm:text-lg font-semibold text-slate-900">System Control Assistant Ready</h4>
+                  <p className="mt-1 text-xs sm:text-sm text-slate-600">Run diagnostics, audits, and platform-wide AI checks.</p>
                   <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
                     {model.quickQuestions.map((question) => (
                       <button
                         key={question}
                         onClick={() => model.onPromptClick(question)}
-                        className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-medium text-slate-700 transition-colors hover:border-orange-200 hover:bg-orange-50"
+                        className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-xs sm:text-sm font-medium text-slate-700 transition-colors hover:border-orange-200 hover:bg-orange-50"
                       >
                         {question}
                       </button>
@@ -96,7 +96,7 @@ export function SuperAdminChatUI({ model, className }: SuperAdminChatUIProps) {
                       className={`flex items-start gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
                     >
                       <div
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                        className={`flex h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                           msg.role === "user" ? "bg-slate-700 text-white" : "bg-orange-100 text-orange-700"
                         }`}
                       >
@@ -104,7 +104,7 @@ export function SuperAdminChatUI({ model, className }: SuperAdminChatUIProps) {
                       </div>
                       <div className={msg.role === "user" ? "text-right" : ""}>
                         <div
-                          className={`inline-block rounded-2xl px-4 py-3 text-sm shadow-sm ${
+                          className={`inline-block rounded-2xl px-4 py-3 text-xs sm:text-sm shadow-sm ${
                             msg.role === "user" ? "bg-slate-700 text-white" : "bg-slate-50 text-slate-800"
                           }`}
                         >
@@ -125,20 +125,20 @@ export function SuperAdminChatUI({ model, className }: SuperAdminChatUIProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8"
                   onClick={() => model.fileInputRef.current?.click()}
                   disabled={model.isPending}
                 >
-                  <ImageIcon className="h-4 w-4 text-slate-500" />
+                  <ImageIcon className="h-3 w-3 sm:h-4 sm:w-4 text-slate-500" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8"
                   onClick={model.handleVoiceInput}
                   disabled={model.isPending || model.isListening}
                 >
-                  <Mic className={`h-4 w-4 ${model.isListening ? "text-red-500" : "text-slate-500"}`} />
+                  <Mic className={`h-3 w-3 sm:h-4 sm:w-4 ${model.isListening ? "text-red-500" : "text-slate-500"}`} />
                 </Button>
                 <input
                   ref={model.fileInputRef}
@@ -157,15 +157,15 @@ export function SuperAdminChatUI({ model, className }: SuperAdminChatUIProps) {
                     }
                   }}
                   placeholder={model.inputPlaceholder}
-                  className="min-h-[40px] max-h-28 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-sm outline-none"
+                  className="min-h-[40px] max-h-28 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-xs sm:text-sm outline-none"
                 />
                 <Button
                   size="icon"
-                  className="h-8 w-8 bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700"
+                  className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 bg-gradient-to-r from-orange-500 to-orange-600 text-white hover:from-orange-600 hover:to-orange-700"
                   onClick={model.handleSendMessage}
                   disabled={model.isPending || !model.message.trim()}
                 >
-                  {model.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  {model.isPending ? <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <Send className="h-3 w-3 sm:h-4 sm:w-4" />}
                 </Button>
               </div>
             </div>

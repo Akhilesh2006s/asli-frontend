@@ -22,11 +22,11 @@ export default function ProgressChart({ subjects, overallProgress, className }: 
   const getTrendIcon = (trend: "up" | "down" | "neutral") => {
     switch (trend) {
       case "up":
-        return <TrendingUp className="w-4 h-4 text-green-600" />;
+        return <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />;
       case "down":
-        return <TrendingDown className="w-4 h-4 text-red-600" />;
+        return <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4 text-red-600" />;
       case "neutral":
-        return <Minus className="w-4 h-4 text-gray-600" />;
+        return <Minus className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" />;
     }
   };
 
@@ -51,12 +51,12 @@ export default function ProgressChart({ subjects, overallProgress, className }: 
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
         {/* Overall Progress */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Overall Progress</span>
-            <span className="text-sm font-medium text-primary">{overallProgress}%</span>
+            <span className="text-xs sm:text-sm font-medium text-gray-700">Overall Progress</span>
+            <span className="text-xs sm:text-sm font-medium text-primary">{overallProgress}%</span>
           </div>
           <Progress value={overallProgress} className="h-3" />
         </div>
@@ -68,7 +68,7 @@ export default function ProgressChart({ subjects, overallProgress, className }: 
             <div key={subject.id || subject.name || `subject-${index}`} className="subject-progress-card">
               <div className="flex items-center space-x-3">
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${subject.color}`}>
-                  <span className="text-sm font-medium">
+                  <span className="text-xs sm:text-sm font-medium">
                     {subject.name.substring(0, 2).toUpperCase()}
                   </span>
                 </div>
@@ -82,7 +82,7 @@ export default function ProgressChart({ subjects, overallProgress, className }: 
                       </Badge>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-600 mb-2">{subject.currentTopic}</p>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-2">{subject.currentTopic}</p>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className="h-2 rounded-full transition-all duration-300 bg-gradient-to-r from-pink-500 to-purple-600"
@@ -100,7 +100,7 @@ export default function ProgressChart({ subjects, overallProgress, className }: 
         {/* Weekly Goals */}
         <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border border-blue-100">
           <h4 className="font-medium text-blue-900 mb-2">This Week's Goals</h4>
-          <ul className="space-y-1 text-sm text-blue-800">
+          <ul className="space-y-1 text-xs sm:text-sm text-blue-800">
             <li>• Complete 3 video lectures</li>
             <li>• Practice 50 questions daily</li>
             <li>• Take 1 mock test</li>

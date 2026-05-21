@@ -170,7 +170,7 @@ export default function SubjectManagement() {
     return (
       <>
         <Navigation />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           <div className="text-center">Loading subjects...</div>
         </div>
       </>
@@ -180,18 +180,18 @@ export default function SubjectManagement() {
   return (
     <>
       <Navigation />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Subject Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Subject Management</h1>
           <p className="text-gray-600">Manage learning paths and subjects for students</p>
         </div>
 
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold">Learning Paths</h2>
+          <h2 className="text-lg sm:text-xl font-semibold">Learning Paths</h2>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={resetForm} className="bg-purple-600 hover:bg-purple-700">
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Add New Subject
               </Button>
             </DialogTrigger>
@@ -202,7 +202,7 @@ export default function SubjectManagement() {
                 </DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="name">Subject Name</Label>
                     <Input
@@ -242,7 +242,7 @@ export default function SubjectManagement() {
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
                     <Label htmlFor="difficulty">Difficulty</Label>
                     <Select value={formData.difficulty} onValueChange={(value) => setFormData({ ...formData, difficulty: value })}>
@@ -323,7 +323,7 @@ export default function SubjectManagement() {
           </Dialog>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
           {subjects.map((subject) => {
             const Icon = iconMap[subject.icon as keyof typeof iconMap] || BookOpen;
             return (
@@ -331,7 +331,7 @@ export default function SubjectManagement() {
                 <CardHeader>
                   <div className="flex items-center justify-between mb-2">
                     <div className={`w-12 h-12 ${subject.color} rounded-lg flex items-center justify-center`}>
-                      <Icon className="w-6 h-6" />
+                      <Icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
                     </div>
                     <div className="flex space-x-2">
                       <Button
@@ -339,7 +339,7 @@ export default function SubjectManagement() {
                         variant="outline"
                         onClick={() => handleEdit(subject)}
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
                       <Button
                         size="sm"
@@ -347,12 +347,12 @@ export default function SubjectManagement() {
                         onClick={() => handleDelete(subject._id)}
                         className="text-red-600 hover:text-red-700"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
                     </div>
                   </div>
-                  <CardTitle className="text-lg">{subject.name}</CardTitle>
-                  <p className="text-gray-600 text-sm">{subject.description}</p>
+                  <CardTitle className="text-base sm:text-lg">{subject.name}</CardTitle>
+                  <p className="text-gray-600 text-xs sm:text-sm">{subject.description}</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -363,7 +363,7 @@ export default function SubjectManagement() {
                   </div>
 
                   <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">Subjects</p>
+                    <p className="text-xs sm:text-sm font-medium text-gray-700 mb-2">Subjects</p>
                     <div className="flex flex-wrap gap-1">
                       {subject.subjects.map((sub, index) => (
                         <Badge key={index} variant="outline" className="text-xs">
@@ -373,28 +373,28 @@ export default function SubjectManagement() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-sm text-gray-600">
+                  <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600">
                     <div className="flex items-center space-x-1">
-                      <Clock className="w-4 h-4" />
+                      <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
                       <span>{subject.duration}</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <Video className="w-4 h-4" />
+                      <Video className="w-3 h-3 sm:w-4 sm:h-4" />
                       <span>{subject.videos?.length || 0}</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <FileText className="w-4 h-4" />
+                      <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
                       <span>{subject.quizzes?.length || 0}</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-sm text-gray-600">
+                  <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600">
                     <div className="flex items-center space-x-1">
-                      <Users className="w-4 h-4" />
+                      <Users className="w-3 h-3 sm:w-4 sm:h-4" />
                       <span>{subject.students || 0}</span>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <Star className="w-4 h-4 text-yellow-500" />
+                      <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500" />
                       <span>{subject.rating || 0}</span>
                     </div>
                   </div>
@@ -407,10 +407,10 @@ export default function SubjectManagement() {
         {subjects.length === 0 && (
           <div className="text-center py-12">
             <BookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No subjects found</h3>
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No subjects found</h3>
             <p className="text-gray-600 mb-4">Create your first learning path to get started</p>
             <Button onClick={() => setIsDialogOpen(true)} className="bg-purple-600 hover:bg-purple-700">
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Add New Subject
             </Button>
           </div>

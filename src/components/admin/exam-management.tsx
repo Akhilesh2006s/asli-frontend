@@ -489,94 +489,94 @@ const ExamManagement = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Loading exams...</div>
+        <div className="text-base sm:text-lg">Loading exams...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Weekend Exam Management</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Weekend Exam Management</h2>
           <p className="text-gray-600">Create and manage weekend exams and questions</p>
         </div>
         <Button onClick={() => openExamDialog()} className="bg-blue-600 hover:bg-blue-700">
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
           Create Exam
         </Button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:p-4 lg:p-6">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Exams</p>
-                <p className="text-2xl font-bold text-gray-900">{Array.isArray(exams) ? exams.length : 0}</p>
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Total Exams</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">{Array.isArray(exams) ? exams.length : 0}</p>
               </div>
-              <BookOpen className="w-8 h-8 text-blue-600" />
+              <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Active Exams</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Active Exams</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">
                   {Array.isArray(exams) ? exams.filter(exam => exam.isActive).length : 0}
                 </p>
               </div>
-              <Calendar className="w-8 h-8 text-green-600" />
+              <Calendar className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Questions</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Total Questions</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">
                   {Array.isArray(exams) ? exams.reduce((total, exam) => total + (exam.questions?.length || 0), 0) : 0}
                 </p>
               </div>
-              <Users className="w-8 h-8 text-purple-600" />
+              <Users className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-purple-600" />
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Marks</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-xs sm:text-sm font-medium text-gray-600">Total Marks</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">
                   {Array.isArray(exams) ? exams.reduce((total, exam) => total + (exam.totalMarks || 0), 0) : 0}
                 </p>
               </div>
-              <Clock className="w-8 h-8 text-orange-600" />
+              <Clock className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-orange-600" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Main Content */}
-      <Tabs defaultValue="exams" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 bg-gray-100 p-1 rounded-lg">
+      <Tabs defaultValue="exams" className="space-y-3 sm:space-y-4 lg:space-y-6">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 bg-gray-100 p-1 rounded-lg">
           <TabsTrigger 
             value="exams" 
-            className="text-lg font-semibold py-3 px-6 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+            className="text-base sm:text-lg font-semibold py-3 px-3 sm:px-4 lg:px-6 data-[state=active]:bg-blue-600 data-[state=active]:text-white"
           >
             📋 EXAMS
           </TabsTrigger>
           <TabsTrigger 
             value="questions" 
-            className="text-lg font-semibold py-3 px-6 data-[state=active]:bg-green-600 data-[state=active]:text-white"
+            className="text-base sm:text-lg font-semibold py-3 px-3 sm:px-4 lg:px-6 data-[state=active]:bg-green-600 data-[state=active]:text-white"
           >
             ❓ QUESTIONS
           </TabsTrigger>
@@ -620,8 +620,8 @@ const ExamManagement = () => {
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
+                            <Button variant="outline" size="sm" className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 p-0">
+                              <MoreHorizontal className="h-3 w-3 sm:h-4 sm:w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -632,14 +632,14 @@ const ExamManagement = () => {
                               }}
                               className="text-green-700"
                             >
-                              <BookOpen className="mr-2 h-4 w-4" />
+                              <BookOpen className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                               Manage Questions
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => openExamDialog(exam)}
                               className="text-blue-700"
                             >
-                              <Edit className="mr-2 h-4 w-4" />
+                              <Edit className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                               Edit Exam
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
@@ -647,7 +647,7 @@ const ExamManagement = () => {
                               onClick={() => handleDeleteExam(exam._id)}
                               className="text-red-700"
                             >
-                              <Trash2 className="mr-2 h-4 w-4" />
+                              <Trash2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                               Delete Exam
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -656,7 +656,7 @@ const ExamManagement = () => {
                     </TableRow>
                   )) : (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                      <TableCell colSpan={5} className="text-center py-4 sm:py-6 lg:py-8 text-gray-500">
                         No exams found
                       </TableCell>
                     </TableRow>
@@ -671,35 +671,35 @@ const ExamManagement = () => {
           <Card>
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle className="text-2xl font-bold">
+                <CardTitle className="text-xl sm:text-2xl font-bold">
                   Questions {selectedExam && `- ${selectedExam.title}`}
                 </CardTitle>
                 {selectedExam && (
                   <Button 
                     onClick={() => openQuestionDialog()}
-                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 text-lg font-semibold"
+                    className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 lg:px-6 py-3 text-base sm:text-lg font-semibold"
                     size="lg"
                   >
-                    <Plus className="w-6 h-6 mr-3" />
+                    <Plus className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 mr-3" />
                     + ADD NEW QUESTION
                   </Button>
                 )}
               </div>
               {selectedExam && (
-                <div className="mt-6 p-6 bg-gradient-to-r from-blue-50 to-green-50 rounded-xl border-2 border-blue-200">
+                <div className="mt-6 p-3 sm:p-4 lg:p-6 bg-gradient-to-r from-blue-50 to-green-50 rounded-xl border-2 border-blue-200">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-xl font-bold text-blue-900">📝 QUESTION CREATION GUIDE</h4>
-                    <div className="text-lg font-semibold text-green-600">
+                    <h4 className="text-lg sm:text-xl font-bold text-blue-900">📝 QUESTION CREATION GUIDE</h4>
+                    <div className="text-base sm:text-lg font-semibold text-green-600">
                       {selectedExam.examType === 'mains' ? 'MAINS EXAM (+4/-1)' : 
                        selectedExam.examType === 'advanced' ? 'ADVANCED EXAM (+3/-1)' : 
                        'CUSTOM SCORING'}
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:p-4 lg:p-6">
                     <div className="bg-white p-4 rounded-lg border border-blue-200">
-                      <h5 className="font-bold text-blue-800 mb-3 text-lg">🎯 Question Types</h5>
-                      <div className="space-y-2 text-base">
+                      <h5 className="font-bold text-blue-800 mb-3 text-base sm:text-lg">🎯 Question Types</h5>
+                      <div className="space-y-2 text-sm sm:text-base">
                         <div className="flex items-center space-x-2">
                           <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
                           <span><strong>MCQ (Single Choice):</strong> One correct answer</span>
@@ -716,8 +716,8 @@ const ExamManagement = () => {
                     </div>
                     
                     <div className="bg-white p-4 rounded-lg border border-green-200">
-                      <h5 className="font-bold text-green-800 mb-3 text-lg">⚡ Scoring System</h5>
-                      <div className="space-y-2 text-base">
+                      <h5 className="font-bold text-green-800 mb-3 text-base sm:text-lg">⚡ Scoring System</h5>
+                      <div className="space-y-2 text-sm sm:text-base">
                         <div className="flex items-center space-x-2">
                           <span className="w-3 h-3 bg-red-500 rounded-full"></span>
                           <span><strong>Mains Exam:</strong> +4 correct, -1 wrong</span>
@@ -735,22 +735,22 @@ const ExamManagement = () => {
                   </div>
                   
                   <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <h5 className="font-bold text-yellow-800 mb-2 text-lg">🚀 Advanced Features</h5>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-base">
+                    <h5 className="font-bold text-yellow-800 mb-2 text-base sm:text-lg">🚀 Advanced Features</h5>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm sm:text-base">
                       <div className="flex items-center space-x-2">
-                        <span className="text-2xl">🖼️</span>
+                        <span className="text-xl sm:text-2xl">🖼️</span>
                         <span>Image Upload</span>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <span className="text-2xl">📊</span>
+                        <span className="text-xl sm:text-2xl">📊</span>
                         <span>Difficulty Levels</span>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <span className="text-2xl">📚</span>
+                        <span className="text-xl sm:text-2xl">📚</span>
                         <span>Subject Tags</span>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <span className="text-2xl">💡</span>
+                        <span className="text-xl sm:text-2xl">💡</span>
                         <span>Explanations</span>
                       </div>
                     </div>
@@ -795,21 +795,21 @@ const ExamManagement = () => {
                               size="sm"
                               onClick={() => openQuestionDialog(question)}
                             >
-                              <Edit className="w-4 h-4" />
+                              <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleDeleteQuestion(question._id || question.id)}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                             </Button>
                           </div>
                         </TableCell>
                       </TableRow>
                     )) : (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                        <TableCell colSpan={5} className="text-center py-4 sm:py-6 lg:py-8 text-gray-500">
                           No questions found for this exam
                         </TableCell>
                       </TableRow>
@@ -818,10 +818,10 @@ const ExamManagement = () => {
                 </Table>
               ) : (
                 <div className="text-center py-16">
-                  <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-8 border-2 border-yellow-200">
-                    <div className="text-6xl mb-4">📚</div>
-                    <h3 className="text-2xl font-bold text-gray-800 mb-4">No Exam Selected</h3>
-                    <p className="text-lg text-gray-600 mb-6">
+                  <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-4 sm:p-6 lg:p-8 border-2 border-yellow-200">
+                    <div className="text-3xl sm:text-5xl lg:text-6xl mb-4">📚</div>
+                    <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">No Exam Selected</h3>
+                    <p className="text-base sm:text-lg text-gray-600 mb-6">
                       To create and manage questions, you need to select an exam first.
                     </p>
                     <div className="bg-white p-4 rounded-lg border border-yellow-300">
@@ -855,7 +855,7 @@ const ExamManagement = () => {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="title">Title</Label>
                 <Input
@@ -895,7 +895,7 @@ const ExamManagement = () => {
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="duration">Duration (minutes)</Label>
                 <Input
@@ -925,7 +925,7 @@ const ExamManagement = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="startDate">Start Date</Label>
                 <Input
@@ -995,7 +995,7 @@ const ExamManagement = () => {
 
             <div>
               <Label htmlFor="questionImage">Question Image *</Label>
-              <p className="text-sm text-gray-600 mb-2">Either question text or image is required</p>
+              <p className="text-xs sm:text-sm text-gray-600 mb-2">Either question text or image is required</p>
               <div className="flex items-center space-x-2">
                 <Input
                   type="file"
@@ -1017,14 +1017,14 @@ const ExamManagement = () => {
                         setQuestionForm(prev => ({ ...prev, questionImage: '' }));
                       }}
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3 h-3 sm:w-4 sm:h-4" />
                     </Button>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="questionType">Question Type</Label>
                 <Select
@@ -1063,7 +1063,7 @@ const ExamManagement = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="marks">Marks</Label>
                 <Input
@@ -1110,7 +1110,7 @@ const ExamManagement = () => {
                 <div className="flex justify-between items-center mb-2">
                   <Label>Options</Label>
                   <Button type="button" variant="outline" size="sm" onClick={addOption}>
-                    <Plus className="w-4 h-4 mr-1" />
+                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                     Add Option
                   </Button>
                 </div>
@@ -1127,7 +1127,7 @@ const ExamManagement = () => {
                         checked={option.isCorrect}
                         onChange={(e) => updateOption(index, 'isCorrect', e.target.checked)}
                       />
-                      <span className="text-sm">Correct</span>
+                      <span className="text-xs sm:text-sm">Correct</span>
                     </label>
                     <Button
                       type="button"
@@ -1135,7 +1135,7 @@ const ExamManagement = () => {
                       size="sm"
                       onClick={() => removeOption(index)}
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3 h-3 sm:w-4 sm:h-4" />
                     </Button>
                   </div>
                 ))}

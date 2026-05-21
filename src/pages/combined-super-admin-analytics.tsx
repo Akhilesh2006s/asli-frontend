@@ -28,13 +28,13 @@ export default function CombinedSuperAdminAnalytics() {
         onValueChange={(v) => setMainTab(v as 'overview' | 'ai')}
         className="w-full"
       >
-        <TabsList className="grid w-full max-w-lg grid-cols-2 h-11">
+        <TabsList className="grid w-full max-w-lg grid-cols-1 sm:grid-cols-2 h-11">
           <TabsTrigger value="overview" className="gap-2">
-            <BarChart3 className="h-4 w-4" />
+            <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
             Platform overview
           </TabsTrigger>
           <TabsTrigger value="ai" className="gap-2">
-            <BrainCircuit className="h-4 w-4" />
+            <BrainCircuit className="h-3 w-3 sm:h-4 sm:w-4" />
             Exam &amp; AI insights
           </TabsTrigger>
         </TabsList>

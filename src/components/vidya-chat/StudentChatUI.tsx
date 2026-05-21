@@ -37,7 +37,7 @@ export function StudentChatUI({ model, className }: StudentChatUIProps) {
   if (model.isLoading) {
     return (
       <div className={`${className ?? ""} flex h-full min-h-[320px] items-center justify-center bg-white`}>
-        <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+        <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 animate-spin text-indigo-500" />
       </div>
     );
   }
@@ -52,10 +52,10 @@ export function StudentChatUI({ model, className }: StudentChatUIProps) {
             <div className="flex h-10 w-10 items-center justify-center rounded-full border border-indigo-200 bg-white shadow-sm">
               <img src="/Vidya-ai.jpg" alt="Vidya AI" className="h-full w-full rounded-full object-cover" />
             </div>
-            <span className="absolute -bottom-1 -right-1 text-sm">✨</span>
+            <span className="absolute -bottom-1 -right-1 text-xs sm:text-sm">✨</span>
           </div>
           <div>
-            <h3 className="text-base font-semibold text-slate-900">Your AI Study Buddy</h3>
+            <h3 className="text-sm sm:text-base font-semibold text-slate-900">Your AI Study Buddy</h3>
             <p className="text-xs text-slate-600">Ask anything, learn faster, and stay confident 🌟</p>
           </div>
         </div>
@@ -67,7 +67,7 @@ export function StudentChatUI({ model, className }: StudentChatUIProps) {
             {model.todayFocusAction && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
                 <p className="text-[11px] uppercase tracking-wide text-amber-700">Today Focus On This</p>
-                <p className="text-sm font-semibold text-amber-900">{model.todayFocusAction}</p>
+                <p className="text-xs sm:text-sm font-semibold text-amber-900">{model.todayFocusAction}</p>
                 {model.todayFocusReason ? <p className="text-xs text-amber-800">{model.todayFocusReason}</p> : null}
               </div>
             )}
@@ -87,7 +87,7 @@ export function StudentChatUI({ model, className }: StudentChatUIProps) {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div className="rounded-lg border border-indigo-100 bg-white px-3 py-2">
             <label htmlFor="vidya-subject-select" className="text-[11px] uppercase tracking-wide text-slate-500">
               Subject focus
@@ -95,7 +95,7 @@ export function StudentChatUI({ model, className }: StudentChatUIProps) {
             <Select value={model.currentSubject} onValueChange={model.setSelectedSubject}>
               <SelectTrigger
                 id="vidya-subject-select"
-                className="mt-1 h-9 border-indigo-200 bg-white text-left text-sm font-medium text-indigo-800"
+                className="mt-1 h-9 border-indigo-200 bg-white text-left text-xs sm:text-sm font-medium text-indigo-800"
               >
                 <SelectValue placeholder="Choose subject" />
               </SelectTrigger>
@@ -111,14 +111,14 @@ export function StudentChatUI({ model, className }: StudentChatUIProps) {
           </div>
           <div className="rounded-lg border border-emerald-100 bg-white px-3 py-2">
             <p className="text-[11px] uppercase tracking-wide text-slate-500">Learning Progress</p>
-            <p className="text-sm font-semibold text-emerald-700">{activeProgress}% complete 🚀</p>
+            <p className="text-xs sm:text-sm font-semibold text-emerald-700">{activeProgress}% complete 🚀</p>
           </div>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2 rounded-xl border border-indigo-100 bg-white p-2">
           <button
             onClick={() => setLearningMode("explain")}
-            className={`rounded-lg px-3 py-1.5 text-sm ${
+            className={`rounded-lg px-3 py-1.5 text-xs sm:text-sm ${
               learningMode === "explain" ? "bg-indigo-600 text-white" : "text-slate-700 hover:bg-slate-100"
             }`}
           >
@@ -126,7 +126,7 @@ export function StudentChatUI({ model, className }: StudentChatUIProps) {
           </button>
           <button
             onClick={() => setLearningMode("quiz")}
-            className={`rounded-lg px-3 py-1.5 text-sm ${
+            className={`rounded-lg px-3 py-1.5 text-xs sm:text-sm ${
               learningMode === "quiz" ? "bg-indigo-600 text-white" : "text-slate-700 hover:bg-slate-100"
             }`}
           >
@@ -134,7 +134,7 @@ export function StudentChatUI({ model, className }: StudentChatUIProps) {
           </button>
           <button
             onClick={() => setLearningMode("practice")}
-            className={`rounded-lg px-3 py-1.5 text-sm ${
+            className={`rounded-lg px-3 py-1.5 text-xs sm:text-sm ${
               learningMode === "practice" ? "bg-indigo-600 text-white" : "text-slate-700 hover:bg-slate-100"
             }`}
           >
@@ -163,20 +163,20 @@ export function StudentChatUI({ model, className }: StudentChatUIProps) {
             {model.displayMessages.length === 0 ? (
               <>
                 <div className="flex w-full flex-col items-start gap-1">
-                  <div className="max-w-[min(100%,28rem)] rounded-2xl border border-sky-200/90 bg-gradient-to-br from-sky-50 to-indigo-50/80 px-4 py-3 text-sm leading-relaxed text-slate-800 shadow-sm">
+                  <div className="max-w-[min(100%,28rem)] rounded-2xl border border-sky-200/90 bg-gradient-to-br from-sky-50 to-indigo-50/80 px-4 py-3 text-xs sm:text-sm leading-relaxed text-slate-800 shadow-sm">
                     {`Hi! I'm Vidya AI 👋 Ask me anything about ${model.currentSubject || "your subject"}.`}
                   </div>
                   <span className="pl-1 text-[10px] text-slate-400">Just now</span>
                 </div>
                 <div className="space-y-3">
-                  <h4 className="text-center text-sm font-semibold text-slate-700">What do you want to learn today? 📚</h4>
+                  <h4 className="text-center text-xs sm:text-sm font-semibold text-slate-700">What do you want to learn today? 📚</h4>
                   <p className="text-center text-xs text-slate-500">Tap a prompt to start the conversation.</p>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {model.quickQuestions.map((question, index) => (
                       <button
                         key={question}
                         onClick={() => model.onPromptClick(question)}
-                        className={`rounded-2xl border px-4 py-3 text-left text-sm font-medium shadow-sm transition ${
+                        className={`rounded-2xl border px-4 py-3 text-left text-xs sm:text-sm font-medium shadow-sm transition ${
                           index === 0
                             ? "border-pink-200 bg-pink-50 text-pink-800 hover:bg-pink-100"
                             : index === 1
@@ -209,20 +209,20 @@ export function StudentChatUI({ model, className }: StudentChatUIProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 shrink-0"
+              className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 shrink-0"
               onClick={() => model.fileInputRef.current?.click()}
               disabled={model.isPending}
             >
-              <ImageIcon className="h-4 w-4 text-slate-500" />
+              <ImageIcon className="h-3 w-3 sm:h-4 sm:w-4 text-slate-500" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 shrink-0"
+              className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 shrink-0"
               onClick={model.handleVoiceInput}
               disabled={model.isPending || model.isListening}
             >
-              <Mic className={`h-4 w-4 ${model.isListening ? "text-red-500" : "text-slate-500"}`} />
+              <Mic className={`h-3 w-3 sm:h-4 sm:w-4 ${model.isListening ? "text-red-500" : "text-slate-500"}`} />
             </Button>
             <input
               ref={model.fileInputRef}
@@ -241,16 +241,16 @@ export function StudentChatUI({ model, className }: StudentChatUIProps) {
                 }
               }}
               placeholder={model.inputPlaceholder}
-              className="min-h-[40px] max-h-28 min-w-0 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-sm outline-none"
+              className="min-h-[40px] max-h-28 min-w-0 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-xs sm:text-sm outline-none"
               rows={1}
             />
             <Button
               size="icon"
-              className="h-8 w-8 shrink-0 bg-gradient-to-r from-indigo-600 to-sky-600 text-white hover:from-indigo-700 hover:to-sky-700"
+              className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 shrink-0 bg-gradient-to-r from-indigo-600 to-sky-600 text-white hover:from-indigo-700 hover:to-sky-700"
               onClick={model.handleSendMessage}
               disabled={model.isPending || !model.message.trim()}
             >
-              {model.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {model.isPending ? <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <Send className="h-3 w-3 sm:h-4 sm:w-4" />}
             </Button>
           </div>
           <div className="mx-auto mt-2 max-w-2xl text-center text-[11px] text-slate-500">
@@ -269,7 +269,7 @@ function ChatBubble({ msg, model }: { msg: Message; model: UseVidyaChatResult })
   return (
     <div className={`flex w-full flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
       <div
-        className={`max-w-[min(85%,28rem)] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
+        className={`max-w-[min(85%,28rem)] rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed shadow-sm ${
           isUser
             ? "border border-indigo-200 bg-gradient-to-br from-indigo-500 to-sky-600 text-white"
             : "border border-sky-200/90 bg-gradient-to-br from-white to-sky-50/90 text-slate-800"

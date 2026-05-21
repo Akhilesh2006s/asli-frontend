@@ -456,7 +456,7 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
 
     if (isAudio) {
       return (
-        <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-lg p-8">
+        <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-lg p-4 sm:p-6 lg:p-8">
           <div className="text-center space-y-4">
             <div className="w-24 h-24 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
               <File className="w-12 h-12 text-blue-600" />
@@ -475,13 +475,13 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
 
     // Default preview for other file types
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-lg p-8">
+      <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-lg p-4 sm:p-6 lg:p-8">
         <div className="text-center space-y-4">
           <div className="w-24 h-24 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
             <File className="w-12 h-12 text-blue-600" />
           </div>
           <p className="text-gray-600">Preview not available for this file type</p>
-          <p className="text-sm text-gray-500">File extension: {fileExtension || 'unknown'}</p>
+          <p className="text-xs sm:text-sm text-gray-500">File extension: {fileExtension || 'unknown'}</p>
         </div>
       </div>
     );
@@ -533,7 +533,7 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
       {weeks.length === 0 ? (
         <div className="text-center py-12">
           <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No content available</h3>
+          <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No content available</h3>
           <p className="text-gray-600">Content will appear here once it's uploaded.</p>
         </div>
       ) : (
@@ -552,9 +552,9 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
                   {formatDateRange(week.weekStart, week.weekEnd)}
                 </span>
                 {isExpanded ? (
-                  <ChevronUp className="w-4 h-4 text-gray-500" />
+                  <ChevronUp className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
                 ) : (
-                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                  <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
                 )}
               </button>
 
@@ -574,7 +574,7 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
                       >
                         <div className="flex items-center space-x-3 flex-1">
                           <div className="p-2 bg-blue-100 rounded-lg">
-                            <Icon className="w-5 h-5 text-blue-600" />
+                            <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2 mb-1">
@@ -582,7 +582,7 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
                                 {contentTypeLabel}
                               </span>
                             </div>
-                            <h4 className="font-medium text-gray-900 text-sm">{content.title}</h4>
+                            <h4 className="font-medium text-gray-900 text-xs sm:text-sm">{content.title}</h4>
                             {content.description && (
                               <p className="text-xs text-gray-500 mt-1">{content.description}</p>
                             )}
@@ -599,7 +599,7 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
                                   handleMarkAsDone(content._id);
                                 }}
                               >
-                                <CheckCircle className="w-4 h-4 mr-1" />
+                                <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                                 Done
                               </Button>
                             ) : (
@@ -636,7 +636,7 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">{selectedContent?.title}</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl font-semibold">{selectedContent?.title}</DialogTitle>
             <DialogDescription>
               {selectedContent?.description || 'Content preview'}
             </DialogDescription>
@@ -651,9 +651,9 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
 
               {/* Content Info */}
               <div className="flex items-center justify-between pt-4 border-t">
-                <div className="flex items-center space-x-4 text-sm text-gray-600">
+                <div className="flex items-center space-x-4 text-xs sm:text-sm text-gray-600">
                   <span className="flex items-center space-x-1">
-                    <FileText className="w-4 h-4" />
+                    <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>{getContentTypeLabel(selectedContent.type)}</span>
                   </span>
                   {selectedContent.date && (
@@ -672,8 +672,8 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
       <Dialog open={isSubmissionOpen} onOpenChange={setIsSubmissionOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold flex items-center gap-2">
-              <FileText className="w-5 h-5" />
+            <DialogTitle className="text-lg sm:text-xl font-semibold flex items-center gap-2">
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
               {selectedHomework?.title}
             </DialogTitle>
             <DialogDescription>
@@ -682,17 +682,17 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
           </DialogHeader>
           
           {selectedHomework && (
-            <div className="space-y-6">
+            <div className="space-y-3 sm:space-y-4 lg:space-y-6">
               {/* Reference File Section */}
               <div className="space-y-2">
-                <Label className="text-sm font-semibold text-gray-700">Reference File</Label>
+                <Label className="text-xs sm:text-sm font-semibold text-gray-700">Reference File</Label>
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-blue-600" />
+                      <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                       <div>
                         <p className="font-medium text-gray-900">{selectedHomework.title}</p>
-                        <p className="text-sm text-gray-500">Reference material</p>
+                        <p className="text-xs sm:text-sm text-gray-500">Reference material</p>
                       </div>
                     </div>
                     <Button
@@ -700,7 +700,7 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
                       size="sm"
                       onClick={() => handleDownload(selectedHomework)}
                     >
-                      <Download className="w-4 h-4 mr-2" />
+                      <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       Download
                     </Button>
                   </div>
@@ -710,7 +710,7 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
               {/* Deadline */}
               {selectedHomework.deadline && (
                 <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                  <p className="text-sm text-orange-800">
+                  <p className="text-xs sm:text-sm text-orange-800">
                     <span className="font-semibold">Deadline:</span>{' '}
                     {new Date(selectedHomework.deadline).toLocaleString()}
                   </p>
@@ -721,10 +721,10 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
               {existingSubmission && (
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                   <div className="flex items-center gap-2 text-green-800">
-                    <CheckCircle2 className="w-5 h-5" />
+                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
                     <span className="font-semibold">Already Submitted</span>
                   </div>
-                  <p className="text-sm text-green-700 mt-1">
+                  <p className="text-xs sm:text-sm text-green-700 mt-1">
                     Submitted on {new Date(existingSubmission.submittedAt).toLocaleString()}
                   </p>
                 </div>
@@ -733,7 +733,7 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
               {/* Submission Form */}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="submissionFile" className="text-sm font-semibold text-gray-700">
+                  <Label htmlFor="submissionFile" className="text-xs sm:text-sm font-semibold text-gray-700">
                     Upload Homework File <span className="text-red-500">*</span>
                   </Label>
                   <Input
@@ -749,7 +749,7 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="submissionDescription" className="text-sm font-semibold text-gray-700">
+                  <Label htmlFor="submissionDescription" className="text-xs sm:text-sm font-semibold text-gray-700">
                     Description (Optional)
                   </Label>
                   <Textarea
@@ -764,7 +764,7 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
 
                 {existingSubmission && (
                   <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-800">
+                    <p className="text-xs sm:text-sm text-blue-800">
                       <span className="font-semibold">Your Submission:</span>{' '}
                       <a
                         href={existingSubmission.submissionLink}
@@ -776,7 +776,7 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
                       </a>
                     </p>
                     {existingSubmission.description && (
-                      <p className="text-sm text-blue-700 mt-2">
+                      <p className="text-xs sm:text-sm text-blue-700 mt-2">
                         <span className="font-semibold">Description:</span>{' '}
                         {existingSubmission.description}
                       </p>
@@ -802,12 +802,12 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
                     >
                       {isSubmitting ? (
                         <>
-                          <Upload className="w-4 h-4 mr-2 animate-spin" />
+                          <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
                           Submitting...
                         </>
                       ) : (
                         <>
-                          <Upload className="w-4 h-4 mr-2" />
+                          <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                           Submit & Mark as Done
                         </>
                       )}

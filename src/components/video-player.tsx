@@ -40,9 +40,9 @@ export default function VideoPlayer({ video, onClose }: VideoPlayerProps) {
     <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl w-full max-w-6xl h-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="flex items-center justify-between p-3 sm:p-4 lg:p-6 border-b">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{video.title}</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{video.title}</h1>
             <div className="flex items-center space-x-4 mt-2">
               <Badge variant="secondary">
                 <Clock className="w-3 h-3 mr-1" />
@@ -76,7 +76,7 @@ export default function VideoPlayer({ video, onClose }: VideoPlayerProps) {
               ) : (
                 <div className="text-white text-center">
                   <Play className="w-24 h-24 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg opacity-50">Video Player</p>
+                  <p className="text-base sm:text-lg opacity-50">Video Player</p>
                 </div>
               )}
               
@@ -88,9 +88,9 @@ export default function VideoPlayer({ video, onClose }: VideoPlayerProps) {
                   onClick={() => setIsPlaying(!isPlaying)}
                 >
                   {isPlaying ? (
-                    <Pause className="w-8 h-8 text-white" />
+                    <Pause className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                   ) : (
-                    <Play className="w-8 h-8 text-white ml-1" />
+                    <Play className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white ml-1" />
                   )}
                 </Button>
               </div>
@@ -121,17 +121,17 @@ export default function VideoPlayer({ video, onClose }: VideoPlayerProps) {
                     onClick={() => setIsPlaying(!isPlaying)}
                     className="text-white hover:bg-white/10"
                   >
-                    {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                    {isPlaying ? <Pause className="w-4 h-4 sm:w-5 sm:h-5" /> : <Play className="w-4 h-4 sm:w-5 sm:h-5" />}
                   </Button>
                   <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
-                    <Volume2 className="w-5 h-5" />
+                    <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
                   </Button>
-                  <span className="text-white text-sm">{formatTime(currentTime)} / {formatTime(duration)}</span>
+                  <span className="text-white text-xs sm:text-sm">{formatTime(currentTime)} / {formatTime(duration)}</span>
                 </div>
 
                 <div className="flex items-center space-x-2">
                   <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
-                    <Settings className="w-5 h-5" />
+                    <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
                   </Button>
                 </div>
               </div>
@@ -141,17 +141,17 @@ export default function VideoPlayer({ video, onClose }: VideoPlayerProps) {
           {/* Side Panel */}
           <div className="w-96 border-l bg-gray-50 flex flex-col">
             <Tabs defaultValue="notes" className="flex-1">
-              <TabsList className="grid w-full grid-cols-3 m-4">
+              <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 m-4">
                 <TabsTrigger value="notes" className="flex items-center">
-                  <FileText className="w-4 h-4 mr-1" />
+                  <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                   Notes
                 </TabsTrigger>
                 <TabsTrigger value="mindmap" className="flex items-center">
-                  <Map className="w-4 h-4 mr-1" />
+                  <Map className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                   Mind Map
                 </TabsTrigger>
                 <TabsTrigger value="qa" className="flex items-center">
-                  <MessageCircle className="w-4 h-4 mr-1" />
+                  <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                   Q&A
                 </TabsTrigger>
               </TabsList>
@@ -160,8 +160,8 @@ export default function VideoPlayer({ video, onClose }: VideoPlayerProps) {
                 <TabsContent value="notes" className="mt-0">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg flex items-center">
-                        <FileText className="w-5 h-5 mr-2" />
+                      <CardTitle className="text-base sm:text-lg flex items-center">
+                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                         Auto-Generated Notes
                       </CardTitle>
                     </CardHeader>
@@ -170,7 +170,7 @@ export default function VideoPlayer({ video, onClose }: VideoPlayerProps) {
                         <>
                           <div>
                             <h4 className="font-medium mb-2">Key Concepts</h4>
-                            <ul className="list-disc list-inside space-y-1 text-sm text-gray-600">
+                            <ul className="list-disc list-inside space-y-1 text-xs sm:text-sm text-gray-600">
                               <li>Introduction to rotational motion</li>
                               <li>Angular velocity and acceleration</li>
                               <li>Moment of inertia calculations</li>
@@ -182,7 +182,7 @@ export default function VideoPlayer({ video, onClose }: VideoPlayerProps) {
                           
                           <div>
                             <h4 className="font-medium mb-2">Important Formulas</h4>
-                            <div className="space-y-2 text-sm">
+                            <div className="space-y-2 text-xs sm:text-sm">
                               <div className="p-2 bg-gray-100 rounded">
                                 <code>ω = θ/t</code>
                                 <p className="text-xs text-gray-600 mt-1">Angular velocity</p>
@@ -195,12 +195,12 @@ export default function VideoPlayer({ video, onClose }: VideoPlayerProps) {
                           </div>
 
                           <Button className="w-full" variant="outline">
-                            <Download className="w-4 h-4 mr-2" />
+                            <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                             Download Notes
                           </Button>
                         </>
                       ) : (
-                        <p className="text-gray-500 text-center py-8">
+                        <p className="text-gray-500 text-center py-4 sm:py-6 lg:py-8">
                           Auto-generated notes not available for this video.
                         </p>
                       )}
@@ -211,8 +211,8 @@ export default function VideoPlayer({ video, onClose }: VideoPlayerProps) {
                 <TabsContent value="mindmap" className="mt-0">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg flex items-center">
-                        <Map className="w-5 h-5 mr-2" />
+                      <CardTitle className="text-base sm:text-lg flex items-center">
+                        <Map className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                         Visual Mind Map
                       </CardTitle>
                     </CardHeader>
@@ -222,17 +222,17 @@ export default function VideoPlayer({ video, onClose }: VideoPlayerProps) {
                           <div className="aspect-square bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
                             <div className="text-center">
                               <BookOpen className="w-12 h-12 mx-auto text-gray-400 mb-2" />
-                              <p className="text-sm text-gray-600">Interactive mind map</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Interactive mind map</p>
                               <p className="text-xs text-gray-500">Visual concept relationships</p>
                             </div>
                           </div>
                           <Button className="w-full" variant="outline">
-                            <Download className="w-4 h-4 mr-2" />
+                            <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                             Download Mind Map
                           </Button>
                         </div>
                       ) : (
-                        <p className="text-gray-500 text-center py-8">
+                        <p className="text-gray-500 text-center py-4 sm:py-6 lg:py-8">
                           Visual mind map not available for this video.
                         </p>
                       )}
@@ -243,8 +243,8 @@ export default function VideoPlayer({ video, onClose }: VideoPlayerProps) {
                 <TabsContent value="qa" className="mt-0">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg flex items-center">
-                        <MessageCircle className="w-5 h-5 mr-2" />
+                      <CardTitle className="text-base sm:text-lg flex items-center">
+                        <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                         Voice-Enabled Q&A
                       </CardTitle>
                     </CardHeader>
@@ -253,14 +253,14 @@ export default function VideoPlayer({ video, onClose }: VideoPlayerProps) {
                         <div className="space-y-4">
                           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                             <h4 className="font-medium text-blue-900 mb-2">Ask Questions</h4>
-                            <p className="text-sm text-blue-700">
+                            <p className="text-xs sm:text-sm text-blue-700">
                               Use the microphone to ask questions about this lecture, 
                               or type your questions below.
                             </p>
                           </div>
                           
                           <div className="space-y-2">
-                            <h5 className="font-medium text-sm">Common Questions:</h5>
+                            <h5 className="font-medium text-xs sm:text-sm">Common Questions:</h5>
                             <div className="space-y-1">
                               <Button variant="ghost" size="sm" className="justify-start h-auto p-2 text-left">
                                 <span className="text-xs">What is the difference between linear and angular motion?</span>
@@ -275,7 +275,7 @@ export default function VideoPlayer({ video, onClose }: VideoPlayerProps) {
                           </div>
                         </div>
                       ) : (
-                        <p className="text-gray-500 text-center py-8">
+                        <p className="text-gray-500 text-center py-4 sm:py-6 lg:py-8">
                           Voice Q&A not available for this video.
                         </p>
                       )}

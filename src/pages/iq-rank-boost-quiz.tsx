@@ -234,13 +234,13 @@ export default function IQRankBoostQuiz() {
             <Card>
               <CardContent className="py-16 text-center">
                 <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">No Questions Available</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Questions Available</h3>
                 <p className="text-gray-500 mb-6">
                   No questions have been generated for this subject yet.
                 </p>
                 <Link href="/iq-rank-boost-subjects">
                   <Button variant="outline">
-                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     Back to Subjects
                   </Button>
                 </Link>
@@ -262,49 +262,49 @@ export default function IQRankBoostQuiz() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-2xl flex items-center gap-2">
-                      <Brain className="w-6 h-6 text-blue-500" />
+                    <CardTitle className="text-xl sm:text-2xl flex items-center gap-2">
+                      <Brain className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-500" />
                       Quiz Results
                     </CardTitle>
                     <p className="text-gray-600 mt-2">{subjectName}</p>
                   </div>
                   <Link href="/iq-rank-boost-subjects">
                     <Button variant="outline">
-                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       Back to Subjects
                     </Button>
                   </Link>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-3xl font-bold text-blue-600">{results.total}</div>
-                    <div className="text-sm text-gray-600 mt-1">Total Questions</div>
+                    <div className="text-2xl sm:text-3xl font-bold text-blue-600">{results.total}</div>
+                    <div className="text-xs sm:text-sm text-gray-600 mt-1">Total Questions</div>
                   </div>
                   <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-3xl font-bold text-green-600">{results.correct}</div>
-                    <div className="text-sm text-gray-600 mt-1">Correct</div>
+                    <div className="text-2xl sm:text-3xl font-bold text-green-600">{results.correct}</div>
+                    <div className="text-xs sm:text-sm text-gray-600 mt-1">Correct</div>
                   </div>
                   <div className="text-center p-4 bg-red-50 rounded-lg">
-                    <div className="text-3xl font-bold text-red-600">{results.incorrect}</div>
-                    <div className="text-sm text-gray-600 mt-1">Incorrect</div>
+                    <div className="text-2xl sm:text-3xl font-bold text-red-600">{results.incorrect}</div>
+                    <div className="text-xs sm:text-sm text-gray-600 mt-1">Incorrect</div>
                   </div>
                   <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                    <div className="text-3xl font-bold text-yellow-600">{results.unattempted}</div>
-                    <div className="text-sm text-gray-600 mt-1">Unattempted</div>
+                    <div className="text-2xl sm:text-3xl font-bold text-yellow-600">{results.unattempted}</div>
+                    <div className="text-xs sm:text-sm text-gray-600 mt-1">Unattempted</div>
                   </div>
                 </div>
-                <div className="text-center p-6 bg-gradient-to-br from-blue-500 to-pink-500 rounded-lg text-white mb-6">
-                  <div className="text-5xl font-bold mb-2">{results.score}%</div>
-                  <div className="text-lg">Your Score</div>
+                <div className="text-center p-3 sm:p-4 lg:p-6 bg-gradient-to-br from-blue-500 to-pink-500 rounded-lg text-white mb-6">
+                  <div className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2">{results.score}%</div>
+                  <div className="text-base sm:text-lg">Your Score</div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Review Questions */}
             <div className="space-y-4">
-              <h3 className="text-xl font-bold text-gray-900">Review Your Answers</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900">Review Your Answers</h3>
               {questions.map((question, index) => {
                 const userAnswer = answers[question._id];
                 const isCorrect = userAnswer === question.correctAnswer;
@@ -314,7 +314,7 @@ export default function IQRankBoostQuiz() {
                   <Card key={question._id} className={isCorrect ? 'border-green-500' : isAnswered ? 'border-red-500' : 'border-gray-200'}>
                     <CardHeader>
                       <div className="flex items-start justify-between">
-                        <CardTitle className="text-lg">
+                        <CardTitle className="text-base sm:text-lg">
                           Question {index + 1}
                         </CardTitle>
                         <div className="flex gap-2">
@@ -357,7 +357,7 @@ export default function IQRankBoostQuiz() {
                                 <span className="font-semibold">{optionLetter}.</span>
                                 <span>{option.text}</span>
                                 {isCorrectOption && (
-                                  <CheckCircle2 className="w-5 h-5 text-green-600 ml-auto" />
+                                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 ml-auto" />
                                 )}
                               </div>
                             </div>
@@ -367,8 +367,8 @@ export default function IQRankBoostQuiz() {
 
                       {question.explanation && (
                         <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                          <p className="text-sm font-semibold text-blue-900 mb-1">Explanation:</p>
-                          <p className="text-sm text-blue-800">{question.explanation}</p>
+                          <p className="text-xs sm:text-sm font-semibold text-blue-900 mb-1">Explanation:</p>
+                          <p className="text-xs sm:text-sm text-blue-800">{question.explanation}</p>
                         </div>
                       )}
                     </CardContent>
@@ -391,15 +391,15 @@ export default function IQRankBoostQuiz() {
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                  <Brain className="w-6 h-6 text-blue-500" />
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <Brain className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-500" />
                   IQ/Rank Boost Practice
                 </h1>
                 <p className="text-gray-600 mt-1">{subjectName}</p>
               </div>
               <Link href="/iq-rank-boost-subjects">
                 <Button variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Back
                 </Button>
               </Link>
@@ -407,7 +407,7 @@ export default function IQRankBoostQuiz() {
             
             {/* Progress Bar */}
             <div className="mb-4">
-              <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+              <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 mb-2">
                 <span>Question {currentQuestionIndex + 1} of {questions.length}</span>
                 <span>{answeredCount} of {questions.length} answered</span>
               </div>
@@ -419,7 +419,7 @@ export default function IQRankBoostQuiz() {
           <Card className="mb-6">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">
+                <CardTitle className="text-base sm:text-lg">
                   Question {currentQuestionIndex + 1}
                 </CardTitle>
                 <Badge variant="outline" className="capitalize">
@@ -428,7 +428,7 @@ export default function IQRankBoostQuiz() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-gray-800 font-medium text-lg">
+              <p className="text-gray-800 font-medium text-base sm:text-lg">
                 {currentQuestion.questionText}
               </p>
 
@@ -475,7 +475,7 @@ export default function IQRankBoostQuiz() {
               onClick={handlePrevious}
               disabled={currentQuestionIndex === 0}
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Previous
             </Button>
 
@@ -483,7 +483,7 @@ export default function IQRankBoostQuiz() {
               {currentQuestionIndex < questions.length - 1 ? (
                 <Button onClick={handleNext}>
                   Next
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2" />
                 </Button>
               ) : (
                 <Button
@@ -499,7 +499,7 @@ export default function IQRankBoostQuiz() {
           {/* Question Navigation Grid */}
           <Card className="mt-6">
             <CardHeader>
-              <CardTitle className="text-sm">Question Navigation</CardTitle>
+              <CardTitle className="text-xs sm:text-sm">Question Navigation</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-10 gap-2">

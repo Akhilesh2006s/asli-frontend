@@ -167,7 +167,7 @@ export default function Navigation() {
                   : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700 hover:scale-105"
               }`}
             >
-              <Icon className={`w-4 h-4 mr-3 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
+              <Icon className={`w-3 h-3 sm:w-4 sm:h-4 mr-3 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
               <span className="font-medium">{item.label}</span>
             </Button>
           );
@@ -183,7 +183,7 @@ export default function Navigation() {
                   : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700 hover:scale-105"
               }`}
             >
-              <Icon className={`w-4 h-4 mr-3 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
+              <Icon className={`w-3 h-3 sm:w-4 sm:h-4 mr-3 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
               <span className="font-medium">{item.label}</span>
             </Button>
           </Link>
@@ -208,7 +208,7 @@ export default function Navigation() {
                     className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 rounded-xl sm:rounded-2xl object-contain group-hover:scale-105 transition-transform duration-300 shrink-0"
                   />
                   <div className="flex flex-col min-w-0">
-                    <span className="text-lg md:text-xl lg:text-2xl font-bold bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient truncate">
+                    <span className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient truncate">
                       ASLILEARN AI
                     </span>
                     <span className="hidden xl:block text-xs text-gray-600 font-medium -mt-1">AI-Powered Learning</span>
@@ -235,7 +235,7 @@ export default function Navigation() {
                             : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700"
                         }`}
                       >
-                        <Icon className={`w-4 h-4 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
+                        <Icon className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
                         <span className="font-medium text-xs lg:text-sm">{getCompactLabel(item.label)}</span>
                         {isActive && (
                           <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full"></div>
@@ -250,7 +250,7 @@ export default function Navigation() {
                           ? "bg-gradient-to-r from-sky-300 to-teal-400 text-white shadow-lg scale-105" 
                           : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700"
                       }`}>
-                        <Icon className={`w-4 h-4 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
+                        <Icon className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
                         <span className="font-medium text-xs lg:text-sm">{getCompactLabel(item.label)}</span>
                         {isActive && (
                           <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full"></div>
@@ -272,7 +272,7 @@ export default function Navigation() {
                       size="icon"
                       className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 hover:from-blue-200 hover:to-cyan-200 backdrop-blur-sm border border-blue-200/50 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-110"
                     >
-                      <Menu className="w-5 h-5 text-blue-700" />
+                      <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-blue-700" />
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="right" className="w-72 bg-gradient-to-br from-white via-blue-50/30 to-cyan-50/30 backdrop-blur-xl border-l border-blue-200/30">
@@ -290,7 +290,7 @@ export default function Navigation() {
                             </div>
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+                            <span className="text-base sm:text-lg font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
                               ASLILEARN AI
                             </span>
                             <span className="text-xs text-gray-600 font-medium">AI-Powered Learning</span>
@@ -305,7 +305,7 @@ export default function Navigation() {
                           variant="ghost"
                           className="w-full justify-start text-red-600 hover:bg-red-50/50 rounded-xl transition-all duration-300"
                         >
-                          <LogOut className="w-4 h-4 mr-3" />
+                          <LogOut className="w-3 h-3 sm:w-4 sm:h-4 mr-3" />
                           {isLoggingOut ? "Logging out..." : "Logout"}
                         </Button>
                       </div>
@@ -321,7 +321,7 @@ export default function Navigation() {
                           {userInitials}
                         </span>
                       ) : (
-                        <User className="w-5 h-5 lg:w-6 lg:h-6 text-white opacity-95" aria-hidden />
+                        <User className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white opacity-95" aria-hidden />
                       )}
                     </div>
                   </Link>
@@ -331,7 +331,7 @@ export default function Navigation() {
                     variant="ghost"
                     className="px-3 lg:px-5 py-2 lg:py-2.5 rounded-full bg-gradient-to-r from-red-500/10 to-red-600/10 hover:from-red-500/20 hover:to-red-600/20 text-red-600 backdrop-blur-sm border border-red-300/30 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 font-medium"
                   >
-                    <LogOut className="w-4 h-4 lg:mr-2" />
+                    <LogOut className="w-3 h-3 sm:w-4 sm:h-4 lg:mr-2" />
                     <span className="hidden lg:inline">{isLoggingOut ? "Logging out..." : "Logout"}</span>
                   </Button>
                 </div>
@@ -344,7 +344,7 @@ export default function Navigation() {
       {/* Mobile Bottom Navigation - Modern Design */}
       {isMobile && (
         <div className="fixed bottom-0 left-0 right-0 backdrop-blur-xl bg-white/90 border-t border-blue-200/30 shadow-2xl z-50">
-          <div className="grid grid-cols-5 py-2 px-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 py-2 px-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location === item.path;
@@ -360,7 +360,7 @@ export default function Navigation() {
                         : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700"
                     }`}
                   >
-                    <Icon className={`w-5 h-5 mb-1 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
+                    <Icon className={`w-4 h-4 sm:w-5 sm:h-5 mb-1 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
                     <span className="text-[10px] font-medium">{item.label.split(" ")[0]}</span>
                     {isActive && (
                       <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full"></div>
@@ -376,7 +376,7 @@ export default function Navigation() {
                       ? "bg-gradient-to-r from-sky-300 to-teal-400 text-white shadow-lg scale-105" 
                       : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700"
                   }`}>
-                    <Icon className={`w-5 h-5 mb-1 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
+                    <Icon className={`w-4 h-4 sm:w-5 sm:h-5 mb-1 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
                     <span className="text-[10px] font-medium">{item.label.split(" ")[0]}</span>
                     {isActive && (
                       <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full"></div>
@@ -394,7 +394,7 @@ export default function Navigation() {
                   : "text-gray-700 hover:bg-red-50 hover:text-red-600"
               }`}
             >
-              <LogOut className="w-5 h-5 mb-1" />
+              <LogOut className="w-4 h-4 sm:w-5 sm:h-5 mb-1" />
               <span className="text-[10px] font-medium">Logout</span>
             </button>
           </div>

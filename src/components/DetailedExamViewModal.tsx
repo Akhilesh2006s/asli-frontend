@@ -97,10 +97,10 @@ export default function DetailedExamViewModal({
       {/* Modal content */}
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6">
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 sm:p-4 lg:p-6">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-bold">{examTitle}</h2>
+              <h2 className="text-xl sm:text-2xl font-bold">{examTitle}</h2>
               <p className="text-blue-100 mt-1">
                 Question {currentQuestionIndex + 1} of {questions.length}
               </p>
@@ -109,16 +109,16 @@ export default function DetailedExamViewModal({
               onClick={onClose}
               className="text-white hover:text-gray-200 transition-colors p-2 hover:bg-white hover:bg-opacity-20 rounded-full"
             >
-              <X className="w-6 h-6" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
             </button>
           </div>
         </div>
 
         {/* Question content - scrollable */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+        <div className="p-3 sm:p-4 lg:p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
           {/* Question text */}
           <div className="mb-6">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">
               {questionText}
             </h3>
           </div>
@@ -147,12 +147,12 @@ export default function DetailedExamViewModal({
                 // User got it right
                 optionStyle = "border-2 border-green-500 bg-green-50";
                 textStyle = "text-green-700 font-semibold";
-                icon = <CheckCircle className="w-5 h-5 text-green-600" />;
+                icon = <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />;
               } else if (isUserAnswer && !isCorrectAnswer) {
                 // User got it wrong
                 optionStyle = "border-2 border-red-500 bg-red-50";
                 textStyle = "text-red-700 font-semibold";
-                icon = <XCircle className="w-5 h-5 text-red-600" />;
+                icon = <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />;
               } else if (isCorrectAnswer) {
                 // Correct answer (not selected by user)
                 optionStyle = "border-2 border-green-300 bg-green-25";
@@ -166,7 +166,7 @@ export default function DetailedExamViewModal({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+                      <div className={`w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center font-semibold ${
                         isUserAnswer && isCorrectAnswer ? 'bg-green-500 text-white' :
                         isUserAnswer ? 'bg-red-500 text-white' :
                         isCorrectAnswer ? 'bg-green-300 text-green-700' :
@@ -188,7 +188,7 @@ export default function DetailedExamViewModal({
             {/* User's answer */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="font-semibold text-blue-800 mb-2 flex items-center">
-                <Target className="w-4 h-4 mr-2" />
+                <Target className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Your Answer
               </h4>
               <div className="text-blue-700">
@@ -200,7 +200,7 @@ export default function DetailedExamViewModal({
                   </span>
                 ) : (
                   <span className="italic text-gray-500 flex items-center">
-                    <AlertCircle className="w-4 h-4 mr-2" />
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     Not attempted
                   </span>
                 )}
@@ -210,7 +210,7 @@ export default function DetailedExamViewModal({
             {/* Correct answer */}
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <h4 className="font-semibold text-green-800 mb-2 flex items-center">
-                <CheckCircle className="w-4 h-4 mr-2" />
+                <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Correct Answer
               </h4>
               <div className="text-green-700 font-medium">
@@ -225,7 +225,7 @@ export default function DetailedExamViewModal({
           {currentQuestion.explanation && (
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <h4 className="font-semibold text-gray-800 mb-2 flex items-center">
-                <AlertCircle className="w-4 h-4 mr-2" />
+                <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Explanation
               </h4>
               <p className="text-gray-700">{currentQuestion.explanation}</p>
@@ -234,7 +234,7 @@ export default function DetailedExamViewModal({
         </div>
 
         {/* Navigation footer */}
-        <div className="bg-gray-50 border-t border-gray-200 p-6">
+        <div className="bg-gray-50 border-t border-gray-200 p-3 sm:p-4 lg:p-6">
           <div className="flex justify-between items-center">
             <button
               onClick={handlePrevious}
@@ -245,7 +245,7 @@ export default function DetailedExamViewModal({
                   : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 hover:border-gray-400'
               }`}
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
               <span>Previous Question</span>
             </button>
 
@@ -273,7 +273,7 @@ export default function DetailedExamViewModal({
               }`}
             >
               <span>Next Question</span>
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
             </button>
           </div>
         </div>

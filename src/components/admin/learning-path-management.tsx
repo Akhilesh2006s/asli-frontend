@@ -177,17 +177,17 @@ const LearningPathManagement = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Learning Path Management</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Learning Path Management</h2>
           <p className="text-gray-600">Create and manage structured learning journeys</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={resetForm} className="bg-gradient-to-r from-green-600 to-green-700">
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Create Learning Path
             </Button>
           </DialogTrigger>
@@ -244,7 +244,7 @@ const LearningPathManagement = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="difficulty">Difficulty</Label>
                   <Select value={formData.difficulty} onValueChange={(value) => setFormData({ ...formData, difficulty: value })}>
@@ -289,7 +289,7 @@ const LearningPathManagement = () => {
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                 <Input
                   placeholder="Search learning paths..."
                   value={searchTerm}
@@ -300,7 +300,7 @@ const LearningPathManagement = () => {
             </div>
             <Select value={filterDifficulty} onValueChange={setFilterDifficulty}>
               <SelectTrigger className="w-full sm:w-48">
-                <Filter className="w-4 h-4 mr-2" />
+                <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 <SelectValue placeholder="Filter by difficulty" />
               </SelectTrigger>
               <SelectContent>
@@ -315,7 +315,7 @@ const LearningPathManagement = () => {
       </Card>
 
       {/* Learning Paths Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
         {filteredPaths.map((path) => (
           <motion.div
             key={path.id}
@@ -327,10 +327,10 @@ const LearningPathManagement = () => {
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <CardTitle className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                    <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
                       {path.title}
                     </CardTitle>
-                    <p className="text-sm text-gray-600 line-clamp-3">
+                    <p className="text-xs sm:text-sm text-gray-600 line-clamp-3">
                       {path.description}
                     </p>
                   </div>
@@ -346,12 +346,12 @@ const LearningPathManagement = () => {
               
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <Clock className="w-4 h-4 mr-2" />
+                  <div className="flex items-center text-xs sm:text-sm text-gray-600">
+                    <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     {path.estimatedHours} hours
                   </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <BookOpen className="w-4 h-4 mr-2" />
+                  <div className="flex items-center text-xs sm:text-sm text-gray-600">
+                    <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     {path.subjectIds.length} subjects
                   </div>
                 </div>
@@ -372,14 +372,14 @@ const LearningPathManagement = () => {
                 <div className="flex items-center justify-between pt-4 border-t">
                   <div className="flex space-x-2">
                     <Button size="sm" variant="outline" onClick={() => handleEdit(path)}>
-                      <Edit className="w-4 h-4" />
+                      <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => handleDelete(path.id)}>
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                     </Button>
                   </div>
                   <Button size="sm" variant="ghost">
-                    <MoreHorizontal className="w-4 h-4" />
+                    <MoreHorizontal className="w-3 h-3 sm:w-4 sm:h-4" />
                   </Button>
                 </div>
               </CardContent>
@@ -390,11 +390,11 @@ const LearningPathManagement = () => {
 
       {filteredPaths.length === 0 && (
         <Card>
-          <CardContent className="p-8 text-center">
+          <CardContent className="p-4 sm:p-6 lg:p-8 text-center">
             <div className="text-gray-500">
               <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">No learning paths found</p>
-              <p className="text-sm">Try adjusting your search or filters</p>
+              <p className="text-base sm:text-lg font-medium">No learning paths found</p>
+              <p className="text-xs sm:text-sm">Try adjusting your search or filters</p>
             </div>
           </CardContent>
         </Card>

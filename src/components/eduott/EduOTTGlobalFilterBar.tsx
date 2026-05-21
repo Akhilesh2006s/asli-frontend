@@ -70,7 +70,7 @@ export function EduOTTGlobalFilterBar({
             }
           >
             <SelectTrigger className="w-full md:w-[220px] bg-white border-2 border-sky-200 hover:border-sky-300 focus:border-sky-400 focus:ring-sky-200 shadow-sm">
-              <Filter className="w-4 h-4 mr-2 shrink-0 text-gray-500" />
+              <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2 shrink-0 text-gray-500" />
               <SelectValue placeholder="All subjects" />
             </SelectTrigger>
             <SelectContent>

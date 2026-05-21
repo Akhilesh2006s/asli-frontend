@@ -262,23 +262,23 @@ const TeacherAssessmentManagement = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 border-4 border-sky-500 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-          <h2 className="text-2xl font-bold text-gray-900">Assessment Management</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Assessment Management</h2>
           <p className="text-gray-600">Create and manage assessments, exams, and assignments</p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
             <Button className="bg-sky-600 hover:bg-sky-700">
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Create Assessment
               </Button>
             </DialogTrigger>
@@ -309,7 +309,7 @@ const TeacherAssessmentManagement = () => {
                   rows={3}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="subject">Subject</Label>
                   <Select value={newAssessment.subject} onValueChange={(value) => setNewAssessment({ ...newAssessment, subject: value })}>
@@ -338,7 +338,7 @@ const TeacherAssessmentManagement = () => {
                 </Select>
                 </div>
                       </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="difficulty">Difficulty</Label>
                   <Select value={newAssessment.difficulty} onValueChange={(value: 'easy' | 'medium' | 'hard') => setNewAssessment({ ...newAssessment, difficulty: value })}>
@@ -362,7 +362,7 @@ const TeacherAssessmentManagement = () => {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="totalMarks">Total Marks</Label>
                   <Input
@@ -402,7 +402,7 @@ const TeacherAssessmentManagement = () => {
                     onChange={(e) => setNewAssessment({ ...newAssessment, isDriveQuiz: e.target.checked })}
                     className="rounded"
                   />
-                  <Label htmlFor="isDriveQuiz" className="text-sm font-medium">
+                  <Label htmlFor="isDriveQuiz" className="text-xs sm:text-sm font-medium">
                     This is a Google Drive Quiz/Exam
                   </Label>
                 </div>
@@ -440,7 +440,7 @@ const TeacherAssessmentManagement = () => {
       <div className="flex items-center space-x-4">
         <div className="flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3 sm:w-4 sm:h-4" />
             <Input
               placeholder="Search assessments..."
               value={searchTerm}
@@ -474,7 +474,7 @@ const TeacherAssessmentManagement = () => {
       </div>
 
       {/* Assessments Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
         {filteredAssessments.map((assessment) => (
           <motion.div
             key={assessment.id}
@@ -486,10 +486,10 @@ const TeacherAssessmentManagement = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-2">
+                    <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 line-clamp-2">
                       {assessment.title}
                     </CardTitle>
-                    <p className="text-sm text-gray-600 mt-1">{assessment.subject}</p>
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1">{assessment.subject}</p>
                   </div>
                   <div className="flex flex-col space-y-1">
                     <Badge 
@@ -512,20 +512,20 @@ const TeacherAssessmentManagement = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-sm text-gray-600 line-clamp-2">{assessment.description}</p>
+                <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">{assessment.description}</p>
                 
-                <div className="flex items-center justify-between text-sm text-gray-500">
+                <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500">
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center">
-                      <Clock className="w-4 h-4 mr-1" />
+                      <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                       {assessment.duration}min
                     </div>
                     <div className="flex items-center">
-                      <BookOpen className="w-4 h-4 mr-1" />
+                      <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                       {assessment.questions} Q
                     </div>
                     <div className="flex items-center">
-                      <Users className="w-4 h-4 mr-1" />
+                      <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                       {assessment.attempts} attempts
                   </div>
                   </div>
@@ -535,7 +535,7 @@ const TeacherAssessmentManagement = () => {
                 </div>
 
                 <div className="bg-gray-50 rounded-lg p-3">
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-xs sm:text-sm">
                     <span>Total Marks: {assessment.totalMarks}</span>
                     <span>Passing: {assessment.passingMarks}</span>
                   </div>
@@ -545,8 +545,8 @@ const TeacherAssessmentManagement = () => {
                 {assessment.isDriveQuiz && assessment.driveLink && (
                   <div className="mt-3">
                     <div className="flex items-center space-x-2 mb-2">
-                      <ExternalLink className="w-4 h-4 text-blue-600" />
-                      <span className="text-sm font-medium text-blue-600">Google Drive Document</span>
+                      <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+                      <span className="text-xs sm:text-sm font-medium text-blue-600">Google Drive Document</span>
                     </div>
                     <div className="h-32 rounded-lg overflow-hidden border border-gray-200">
                       <DriveViewer 
@@ -568,14 +568,14 @@ const TeacherAssessmentManagement = () => {
                         setIsEditDialogOpen(true);
                       }}
                     >
-                      <Edit className="w-4 h-4" />
+                      <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => toggleAssessmentStatus(assessment)}
                     >
-                      {assessment.isActive ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                      {assessment.isActive ? <Pause className="w-3 h-3 sm:w-4 sm:h-4" /> : <Play className="w-3 h-3 sm:w-4 sm:h-4" />}
                     </Button>
                     <Button
                       size="sm"
@@ -583,11 +583,11 @@ const TeacherAssessmentManagement = () => {
                       onClick={() => handleDeleteAssessment(assessment.id)}
                       className="text-red-600 hover:text-red-700"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                     </Button>
                   </div>
                   <Button size="sm" variant="outline">
-                    <Eye className="w-4 h-4 mr-1" />
+                    <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                     View
                   </Button>
                 </div>
@@ -625,7 +625,7 @@ const TeacherAssessmentManagement = () => {
                   rows={3}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-subject">Subject</Label>
                   <Select value={editingAssessment.subject} onValueChange={(value) => setEditingAssessment({ ...editingAssessment, subject: value })}>
@@ -654,7 +654,7 @@ const TeacherAssessmentManagement = () => {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-difficulty">Difficulty</Label>
                   <Select value={editingAssessment.difficulty} onValueChange={(value: 'easy' | 'medium' | 'hard') => setEditingAssessment({ ...editingAssessment, difficulty: value })}>
@@ -678,7 +678,7 @@ const TeacherAssessmentManagement = () => {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="edit-totalMarks">Total Marks</Label>
                   <Input

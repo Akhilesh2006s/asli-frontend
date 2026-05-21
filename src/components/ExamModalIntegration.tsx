@@ -26,10 +26,10 @@ export default function ExamResultsWithModals({ examResult }) {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6">
+    <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6">
       {/* Your existing exam results content */}
       <div className="text-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
           {modalData.examTitle}
         </h2>
         <p className="text-gray-600">
@@ -41,25 +41,25 @@ export default function ExamResultsWithModals({ examResult }) {
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <button
           onClick={() => setShowDetailedModal(true)}
-          className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
+          className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-3 sm:px-4 lg:px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
         >
-          <Eye className="w-5 h-5" />
+          <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
           <span>Detailed Review</span>
         </button>
 
         <button
           onClick={() => setShowAnimatedModal(true)}
-          className="flex items-center justify-center space-x-2 bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
+          className="flex items-center justify-center space-x-2 bg-purple-600 text-white px-3 sm:px-4 lg:px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
         >
-          <Play className="w-5 h-5" />
+          <Play className="w-4 h-4 sm:w-5 sm:h-5" />
           <span>Animated Review</span>
         </button>
 
         <button
           onClick={() => {/* Your existing detailed analysis logic */}}
-          className="flex items-center justify-center space-x-2 bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
+          className="flex items-center justify-center space-x-2 bg-green-600 text-white px-3 sm:px-4 lg:px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
         >
-          <BarChart3 className="w-5 h-5" />
+          <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5" />
           <span>View Analysis</span>
         </button>
       </div>
@@ -109,7 +109,7 @@ export function AddModalButtonsToDetailedAnalysis({ examResult, questions }) {
           onClick={() => setShowDetailedModal(true)}
           className="flex items-center space-x-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
         >
-          <Eye className="w-4 h-4" />
+          <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
           <span>Modal View</span>
         </button>
 
@@ -117,7 +117,7 @@ export function AddModalButtonsToDetailedAnalysis({ examResult, questions }) {
           onClick={() => setShowAnimatedModal(true)}
           className="flex items-center space-x-2 bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors"
         >
-          <Play className="w-4 h-4" />
+          <Play className="w-3 h-3 sm:w-4 sm:h-4" />
           <span>Animated View</span>
         </button>
       </div>

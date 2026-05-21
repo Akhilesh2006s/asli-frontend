@@ -216,15 +216,15 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
   const selectedSubject = subjects.find(s => s._id === formData.subject);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" onClick={onBack}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
+          <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
           Back
         </Button>
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">Generate Questions for Class {classNumber}</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Generate Questions for Class {classNumber}</h2>
           <p className="text-gray-600 mt-1">Use AI to generate MCQ questions for IQ/Rank Boost activities</p>
         </div>
       </div>
@@ -237,11 +237,11 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
             Configure the parameters for AI-generated questions
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
           {/* Filter Options Section */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b">
-              <Label className="text-base font-semibold">Filter Options</Label>
+              <Label className="text-sm sm:text-base font-semibold">Filter Options</Label>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -337,7 +337,7 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
           {/* Generation Settings Section */}
           <div className="space-y-4 pt-4 border-t">
             <div className="flex items-center gap-2 pb-2">
-              <Label className="text-base font-semibold">Generation Settings</Label>
+              <Label className="text-sm sm:text-base font-semibold">Generation Settings</Label>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -386,7 +386,7 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
             >
               {isGenerating ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
                   Generating...
                 </>
               ) : (
@@ -402,15 +402,15 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
         <Card className="border-green-200 bg-green-50">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <CheckCircle2 className="w-6 h-6 text-green-600" />
+              <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-green-600" />
               <div>
                 <h3 className="font-semibold text-green-900">
                   Successfully Generated {generatedQuestions.length} Questions
                 </h3>
-                <p className="text-sm text-green-700">
+                <p className="text-xs sm:text-sm text-green-700">
                   ✅ Questions have been automatically saved and a new quiz has been created!
                 </p>
-                <p className="text-sm text-green-600 mt-1">
+                <p className="text-xs sm:text-sm text-green-600 mt-1">
                   The quiz is now visible to students in Class {classNumber}
                   {selectedSubject && ` for ${selectedSubject.name}`}. Each time you generate questions, a new quiz is created.
                 </p>
@@ -469,7 +469,7 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
                       
                       {question.explanation && (
                         <div className="ml-4 p-3 bg-blue-50 rounded border border-blue-200">
-                          <p className="text-sm text-gray-700">
+                          <p className="text-xs sm:text-sm text-gray-700">
                             <span className="font-semibold">Explanation: </span>
                             {question.explanation}
                           </p>

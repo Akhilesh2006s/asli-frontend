@@ -48,14 +48,14 @@ function SubjectRow({
     <Collapsible open={open} onOpenChange={setOpen} className="rounded-xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
       <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-slate-50/90 transition-colors">
         <span className="flex items-center gap-2 min-w-0">
-          <BookOpen className="h-4 w-4 shrink-0 text-indigo-500" />
+          <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-indigo-500" />
           <span className="font-medium text-slate-800 truncate">{label}</span>
           <Badge variant="outline" className="text-[10px] font-normal text-slate-500 border-slate-200">
             Subject
           </Badge>
         </span>
         <ChevronDown
-          className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
         />
       </CollapsibleTrigger>
       <CollapsibleContent>
@@ -125,7 +125,7 @@ export function SubjectSection({
           <span className="font-semibold text-slate-900 truncate">{classTitle}</span>
         </span>
         <ChevronDown
-          className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
         />
       </CollapsibleTrigger>
       <CollapsibleContent>

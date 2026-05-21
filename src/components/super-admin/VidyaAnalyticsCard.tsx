@@ -20,8 +20,8 @@ export function VidyaAnalyticsCard() {
 
   return (
     <div className="rounded-xl border bg-white p-5 shadow-sm">
-      <h3 className="mb-3 text-sm font-semibold text-gray-700">Vidya AI - Last 7 Days</h3>
-      <p className="text-sm text-gray-600">{story.story}</p>
+      <h3 className="mb-3 text-xs sm:text-sm font-semibold text-gray-700">Vidya AI - Last 7 Days</h3>
+      <p className="text-xs sm:text-sm text-gray-600">{story.story}</p>
       <div className="mt-3">
         <div className="mb-1 flex justify-between text-xs text-gray-500">
           <span>Answered from your library</span>

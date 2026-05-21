@@ -213,7 +213,7 @@ export default function QuizPage() {
     return (
       <div className="min-h-screen bg-sky-50">
         <Navigation />
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="container mx-auto px-4 py-4 sm:py-6 lg:py-8 max-w-4xl">
           <Skeleton className="h-64 w-full" />
         </div>
       </div>
@@ -224,11 +224,11 @@ export default function QuizPage() {
     return (
       <div className="min-h-screen bg-sky-50">
         <Navigation />
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="container mx-auto px-4 py-4 sm:py-6 lg:py-8 max-w-4xl">
           <Card>
-            <CardContent className="p-8 text-center">
+            <CardContent className="p-4 sm:p-6 lg:p-8 text-center">
               <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Quiz Not Found</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Quiz Not Found</h2>
               <p className="text-gray-600 mb-4">The quiz you're looking for doesn't exist or you don't have access to it.</p>
               <Button onClick={() => window.location.href = '/dashboard'}>Go to Dashboard</Button>
             </CardContent>
@@ -245,35 +245,35 @@ export default function QuizPage() {
   return (
     <div className="min-h-screen bg-sky-50">
       <Navigation />
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 py-4 sm:py-6 lg:py-8 max-w-4xl">
         {/* Quiz Header */}
         <Card className="mb-6">
           <CardHeader>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <CardTitle className="text-2xl mb-2">{quiz.title}</CardTitle>
+                <CardTitle className="text-xl sm:text-2xl mb-2">{quiz.title}</CardTitle>
                 <p className="text-gray-600">{quiz.description}</p>
               </div>
               {!isSubmitted && (
                 <div className="flex items-center space-x-2 bg-red-50 px-4 py-2 rounded-lg border border-red-200">
-                  <Clock className="w-5 h-5 text-red-600" />
-                  <span className="text-lg font-bold text-red-600">{formatTime(timeLeft)}</span>
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+                  <span className="text-base sm:text-lg font-bold text-red-600">{formatTime(timeLeft)}</span>
                 </div>
               )}
             </div>
-            <div className="flex items-center space-x-4 text-sm text-gray-600">
+            <div className="flex items-center space-x-4 text-xs sm:text-sm text-gray-600">
               <div className="flex items-center space-x-1">
-                <Target className="w-4 h-4" />
+                <Target className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span>{quiz.questions.length} Questions</span>
               </div>
               <div className="flex items-center space-x-1">
-                <Trophy className="w-4 h-4" />
+                <Trophy className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span>{quiz.totalPoints} Points</span>
               </div>
               <Badge variant="outline">{quiz.difficulty}</Badge>
             </div>
             <Progress value={progress} className="mt-4" />
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-xs sm:text-sm text-gray-500 mt-2">
               Question {currentQuestionIndex + 1} of {quiz.questions.length}
             </p>
           </CardHeader>
@@ -283,34 +283,34 @@ export default function QuizPage() {
           /* Results View */
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle className="text-2xl flex items-center space-x-2">
-                <Trophy className="w-8 h-8 text-yellow-500" />
+              <CardTitle className="text-xl sm:text-2xl flex items-center space-x-2">
+                <Trophy className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-yellow-500" />
                 <span>Quiz Results</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
               <div className="text-center">
-                <div className="text-6xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+                <div className="text-3xl sm:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
                   {results.percentage}%
                 </div>
                 <p className="text-gray-600">Score: {results.score} / {quiz.totalPoints} points</p>
               </div>
               
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="bg-green-50 rounded-lg p-4 text-center border border-green-200">
-                  <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-green-800">{results.correct}</div>
-                  <div className="text-sm text-green-600">Correct</div>
+                  <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-green-600 mx-auto mb-2" />
+                  <div className="text-xl sm:text-2xl font-bold text-green-800">{results.correct}</div>
+                  <div className="text-xs sm:text-sm text-green-600">Correct</div>
                 </div>
                 <div className="bg-red-50 rounded-lg p-4 text-center border border-red-200">
-                  <AlertCircle className="w-8 h-8 text-red-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-red-800">{results.incorrect}</div>
-                  <div className="text-sm text-red-600">Incorrect</div>
+                  <AlertCircle className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-red-600 mx-auto mb-2" />
+                  <div className="text-xl sm:text-2xl font-bold text-red-800">{results.incorrect}</div>
+                  <div className="text-xs sm:text-sm text-red-600">Incorrect</div>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4 text-center border border-gray-200">
-                  <FileText className="w-8 h-8 text-gray-600 mx-auto mb-2" />
-                  <div className="text-2xl font-bold text-gray-800">{results.unattempted}</div>
-                  <div className="text-sm text-gray-600">Unattempted</div>
+                  <FileText className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-gray-600 mx-auto mb-2" />
+                  <div className="text-xl sm:text-2xl font-bold text-gray-800">{results.unattempted}</div>
+                  <div className="text-xs sm:text-sm text-gray-600">Unattempted</div>
                 </div>
               </div>
 
@@ -326,7 +326,7 @@ export default function QuizPage() {
           /* Question View */
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle className="text-xl mb-4">
+              <CardTitle className="text-lg sm:text-xl mb-4">
                 {currentQuestion.question}
               </CardTitle>
             </CardHeader>
@@ -347,7 +347,7 @@ export default function QuizPage() {
                       }`}
                     >
                       <div className="flex items-center space-x-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+                        <div className={`w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center font-bold ${
                           isSelected
                             ? 'bg-purple-500 text-white'
                             : 'bg-gray-200 text-gray-700'
@@ -356,7 +356,7 @@ export default function QuizPage() {
                         </div>
                         <span className="flex-1">{option}</span>
                         {isSelected && (
-                          <CheckCircle className="w-5 h-5 text-purple-500" />
+                          <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
                         )}
                       </div>
                     </button>
@@ -375,7 +375,7 @@ export default function QuizPage() {
               onClick={handlePrevious}
               disabled={currentQuestionIndex === 0}
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Previous
             </Button>
             
@@ -386,7 +386,7 @@ export default function QuizPage() {
                   className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
                 >
                   Next
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2" />
                 </Button>
               ) : (
                 <Button

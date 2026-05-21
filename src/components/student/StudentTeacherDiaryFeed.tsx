@@ -55,7 +55,7 @@ export function StudentTeacherDiaryFeed() {
     return (
       <Card className="border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30">
         <CardContent className="flex items-center justify-center py-10">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+          <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 animate-spin text-indigo-500" />
         </CardContent>
       </Card>
     );
@@ -66,13 +66,13 @@ export function StudentTeacherDiaryFeed() {
   return (
     <Card className="border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30 shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-900">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold text-gray-900">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white">
-            <BookMarked className="h-4 w-4" />
+            <BookMarked className="h-3 w-3 sm:h-4 sm:w-4" />
           </span>
           From your teachers
         </CardTitle>
-        <p className="text-sm text-gray-600">Daily class updates from teachers at your school.</p>
+        <p className="text-xs sm:text-sm text-gray-600">Daily class updates from teachers at your school.</p>
       </CardHeader>
       <CardContent className="space-y-3">
         {entries.map((e) => (
@@ -89,7 +89,7 @@ export function StudentTeacherDiaryFeed() {
               ) : null}
             </p>
             {e.title ? <p className="mt-1 font-semibold text-gray-900">{e.title}</p> : null}
-            <p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{e.content}</p>
+            <p className="mt-2 whitespace-pre-wrap text-xs sm:text-sm text-gray-700">{e.content}</p>
           </div>
         ))}
       </CardContent>

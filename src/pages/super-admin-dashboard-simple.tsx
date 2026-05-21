@@ -34,7 +34,7 @@ export default function SuperAdminDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">Super Admin Dashboard</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Super Admin Dashboard</h1>
             </div>
             <div className="flex items-center space-x-4">
               <Button
@@ -51,50 +51,50 @@ export default function SuperAdminDashboard() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:p-4 lg:p-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium">Total Users</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">1,234</div>
+              <div className="text-xl sm:text-2xl font-bold">1,234</div>
               <p className="text-xs text-muted-foreground">+20.1% from last month</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Revenue</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium">Revenue</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">₹45,231</div>
+              <div className="text-xl sm:text-2xl font-bold">₹45,231</div>
               <p className="text-xs text-muted-foreground">+15.3% from last month</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Courses</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium">Courses</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">89</div>
+              <div className="text-xl sm:text-2xl font-bold">89</div>
               <p className="text-xs text-muted-foreground">+3 new this week</p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Teachers</CardTitle>
+              <CardTitle className="text-xs sm:text-sm font-medium">Teachers</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">23</div>
+              <div className="text-xl sm:text-2xl font-bold">23</div>
               <p className="text-xs text-muted-foreground">+2 new this month</p>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
@@ -122,20 +122,20 @@ export default function SuperAdminDashboard() {
             <CardContent>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Database</span>
-                  <span className="text-sm text-green-600">Online</span>
+                  <span className="text-xs sm:text-sm">Database</span>
+                  <span className="text-xs sm:text-sm text-green-600">Online</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">API Server</span>
-                  <span className="text-sm text-green-600">Running</span>
+                  <span className="text-xs sm:text-sm">API Server</span>
+                  <span className="text-xs sm:text-sm text-green-600">Running</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Frontend</span>
-                  <span className="text-sm text-green-600">Active</span>
+                  <span className="text-xs sm:text-sm">Frontend</span>
+                  <span className="text-xs sm:text-sm text-green-600">Active</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm">Last Backup</span>
-                  <span className="text-sm text-gray-600">2 hours ago</span>
+                  <span className="text-xs sm:text-sm">Last Backup</span>
+                  <span className="text-xs sm:text-sm text-gray-600">2 hours ago</span>
                 </div>
               </div>
             </CardContent>

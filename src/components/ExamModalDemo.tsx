@@ -48,25 +48,25 @@ export default function ExamModalDemo() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-800 mb-4">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 mb-4">
             Exam Review Modals Demo
           </h1>
-          <p className="text-xl text-gray-600">
+          <p className="text-lg sm:text-xl text-gray-600">
             Choose between a detailed view or an animated replay experience
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:p-6 lg:p-8">
           {/* Detailed Modal Card */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-shadow duration-300">
+          <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 lg:p-8 hover:shadow-2xl transition-shadow duration-300">
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Eye className="w-8 h-8 text-blue-600" />
+                <Eye className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-blue-600" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
                 Detailed Exam View
               </h2>
               <p className="text-gray-600">
@@ -75,19 +75,19 @@ export default function ExamModalDemo() {
             </div>
             
             <div className="space-y-4 mb-6">
-              <div className="flex items-center text-sm text-gray-600">
+              <div className="flex items-center text-xs sm:text-sm text-gray-600">
                 <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
                 Question-by-question navigation
               </div>
-              <div className="flex items-center text-sm text-gray-600">
+              <div className="flex items-center text-xs sm:text-sm text-gray-600">
                 <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
                 Visual answer comparison
               </div>
-              <div className="flex items-center text-sm text-gray-600">
+              <div className="flex items-center text-xs sm:text-sm text-gray-600">
                 <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
                 Detailed explanations
               </div>
-              <div className="flex items-center text-sm text-gray-600">
+              <div className="flex items-center text-xs sm:text-sm text-gray-600">
                 <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
                 Progress indicators
               </div>
@@ -95,19 +95,19 @@ export default function ExamModalDemo() {
 
             <button
               onClick={() => setShowDetailedModal(true)}
-              className="w-full bg-blue-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-blue-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
+              className="w-full bg-blue-600 text-white py-3 px-3 sm:px-4 lg:px-6 rounded-xl font-semibold hover:bg-blue-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
             >
               Open Detailed View
             </button>
           </div>
 
           {/* Animated Modal Card */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-shadow duration-300">
+          <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 lg:p-8 hover:shadow-2xl transition-shadow duration-300">
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Play className="w-8 h-8 text-purple-600" />
+                <Play className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-purple-600" />
               </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
                 Animated Review
               </h2>
               <p className="text-gray-600">
@@ -116,19 +116,19 @@ export default function ExamModalDemo() {
             </div>
             
             <div className="space-y-4 mb-6">
-              <div className="flex items-center text-sm text-gray-600">
+              <div className="flex items-center text-xs sm:text-sm text-gray-600">
                 <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
                 Smooth animations and transitions
               </div>
-              <div className="flex items-center text-sm text-gray-600">
+              <div className="flex items-center text-xs sm:text-sm text-gray-600">
                 <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
                 Auto-reveal answers with effects
               </div>
-              <div className="flex items-center text-sm text-gray-600">
+              <div className="flex items-center text-xs sm:text-sm text-gray-600">
                 <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
                 Interactive replay functionality
               </div>
-              <div className="flex items-center text-sm text-gray-600">
+              <div className="flex items-center text-xs sm:text-sm text-gray-600">
                 <div className="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
                 Enhanced visual feedback
               </div>
@@ -136,7 +136,7 @@ export default function ExamModalDemo() {
 
             <button
               onClick={() => setShowAnimatedModal(true)}
-              className="w-full bg-purple-600 text-white py-3 px-6 rounded-xl font-semibold hover:bg-purple-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
+              className="w-full bg-purple-600 text-white py-3 px-3 sm:px-4 lg:px-6 rounded-xl font-semibold hover:bg-purple-700 transition-colors duration-200 shadow-lg hover:shadow-xl"
             >
               Open Animated Review
             </button>
@@ -144,14 +144,14 @@ export default function ExamModalDemo() {
         </div>
 
         {/* Sample Data Preview */}
-        <div className="mt-12 bg-white rounded-2xl shadow-xl p-8">
-          <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
+        <div className="mt-12 bg-white rounded-2xl shadow-xl p-4 sm:p-6 lg:p-8">
+          <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6 text-center">
             Sample Exam Data
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:p-4 lg:p-6">
             <div>
               <h4 className="font-semibold text-gray-700 mb-3">Exam Info:</h4>
-              <ul className="space-y-2 text-sm text-gray-600">
+              <ul className="space-y-2 text-xs sm:text-sm text-gray-600">
                 <li><strong>Title:</strong> {examData.examTitle}</li>
                 <li><strong>Questions:</strong> {examData.questions.length}</li>
                 <li><strong>Correct:</strong> {examData.questions.filter(q => q.userAnswer === q.correctAnswer).length}</li>
@@ -160,7 +160,7 @@ export default function ExamModalDemo() {
             </div>
             <div>
               <h4 className="font-semibold text-gray-700 mb-3">Question Preview:</h4>
-              <div className="text-sm text-gray-600 space-y-1">
+              <div className="text-xs sm:text-sm text-gray-600 space-y-1">
                 {examData.questions.slice(0, 2).map((q, index) => (
                   <div key={q.id} className="p-2 bg-gray-50 rounded">
                     <strong>Q{q.id}:</strong> {q.question.substring(0, 50)}...

@@ -3,15 +3,15 @@ import { Link } from "wouter";
 export default function Contact() {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="text-3xl font-bold">Contact Us</h1>
+      <div className="mx-auto max-w-3xl px-3 sm:px-4 lg:px-6 py-12">
+        <h1 className="text-2xl sm:text-3xl font-bold">Contact Us</h1>
         <p className="mt-3 text-slate-600">
           Get in touch with AsliLearn AI for support, partnerships, or general
           inquiries.
         </p>
 
         <section className="mt-8 space-y-4">
-          <h2 className="text-xl font-semibold">Ways to reach us</h2>
+          <h2 className="text-lg sm:text-xl font-semibold">Ways to reach us</h2>
           <ul className="list-disc space-y-2 pl-5 text-slate-700">
             <li>
               <a

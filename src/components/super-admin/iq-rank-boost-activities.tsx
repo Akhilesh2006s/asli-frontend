@@ -334,15 +334,15 @@ export default function IQRankBoostActivities() {
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'iq-test':
-        return <Brain className="w-4 h-4" />;
+        return <Brain className="w-3 h-3 sm:w-4 sm:h-4" />;
       case 'rank-boost':
-        return <Trophy className="w-4 h-4" />;
+        return <Trophy className="w-3 h-3 sm:w-4 sm:h-4" />;
       case 'challenge':
-        return <Target className="w-4 h-4" />;
+        return <Target className="w-3 h-3 sm:w-4 sm:h-4" />;
       case 'quiz':
-        return <Award className="w-4 h-4" />;
+        return <Award className="w-3 h-3 sm:w-4 sm:h-4" />;
       default:
-        return <Star className="w-4 h-4" />;
+        return <Star className="w-3 h-3 sm:w-4 sm:h-4" />;
     }
   };
 
@@ -372,11 +372,11 @@ export default function IQRankBoostActivities() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">IQ/Rank Boost Activities</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">IQ/Rank Boost Activities</h2>
           <p className="text-gray-600 mt-1">Manage IQ tests and rank boost activities by class</p>
         </div>
       </div>
@@ -395,12 +395,12 @@ export default function IQRankBoostActivities() {
                  <div className="flex items-center justify-between">
                    <div className="flex items-center gap-2">
                      <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-md">
-                       <span className="bg-gradient-to-br from-blue-500 to-pink-500 bg-clip-text text-transparent font-bold text-lg">
+                       <span className="bg-gradient-to-br from-blue-500 to-pink-500 bg-clip-text text-transparent font-bold text-base sm:text-lg">
                          {classNum}
                        </span>
                      </div>
                      <div>
-                       <CardTitle className="text-lg text-white">Class {classNum}</CardTitle>
+                       <CardTitle className="text-base sm:text-lg text-white">Class {classNum}</CardTitle>
                        <CardDescription className="text-white">IQ/Rank Activities</CardDescription>
                      </div>
                    </div>
@@ -409,19 +409,19 @@ export default function IQRankBoostActivities() {
                <CardContent className="space-y-4">
                  {/* Stats */}
                  <div className="space-y-2">
-                   <div className="flex items-center justify-between text-sm">
+                   <div className="flex items-center justify-between text-xs sm:text-sm">
                      <span className="text-white">Activities:</span>
                      <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm">{classActivities.length}</Badge>
                    </div>
-                   <div className="flex items-center justify-between text-sm">
+                   <div className="flex items-center justify-between text-xs sm:text-sm">
                      <span className="text-white">Active:</span>
                      <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm">{activeCount}</Badge>
                    </div>
-                   <div className="flex items-center justify-between text-sm">
+                   <div className="flex items-center justify-between text-xs sm:text-sm">
                      <span className="text-white">Questions:</span>
                      <span className="font-semibold text-white">{totalQuestions}</span>
                    </div>
-                   <div className="flex items-center justify-between text-sm">
+                   <div className="flex items-center justify-between text-xs sm:text-sm">
                      <span className="text-white">Participants:</span>
                      <span className="font-semibold text-white">{totalParticipants}</span>
                    </div>
@@ -435,7 +435,7 @@ export default function IQRankBoostActivities() {
                      setSelectedClass(classNum);
                    }}
                  >
-                   <Plus className="w-4 h-4 mr-2" />
+                   <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                    Add Questions
                  </Button>
                </CardContent>
@@ -471,7 +471,7 @@ export default function IQRankBoostActivities() {
                 rows={3}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Type</Label>
                 <Select
@@ -507,7 +507,7 @@ export default function IQRankBoostActivities() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <Label>Points</Label>
                 <Input
@@ -533,7 +533,7 @@ export default function IQRankBoostActivities() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Subject (Optional)</Label>
                 <Select
@@ -617,7 +617,7 @@ export default function IQRankBoostActivities() {
                 rows={3}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Type</Label>
                 <Select
@@ -653,7 +653,7 @@ export default function IQRankBoostActivities() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <Label>Points</Label>
                 <Input
@@ -679,7 +679,7 @@ export default function IQRankBoostActivities() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Subject (Optional)</Label>
                 <Select

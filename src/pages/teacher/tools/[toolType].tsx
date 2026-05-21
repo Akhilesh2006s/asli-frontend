@@ -240,23 +240,23 @@ function StoryPassageViewer({ content }: { content: string }) {
   if (!data) {
     return (
       <div
-        className="prose prose-sm max-w-none max-h-[80vh] overflow-y-auto p-6"
+        className="prose prose-sm max-w-none max-h-[80vh] overflow-y-auto p-3 sm:p-4 lg:p-6"
         dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
       />
     );
   }
 
   return (
-    <div className="max-h-[80vh] overflow-y-auto space-y-6 p-1">
+    <div className="max-h-[80vh] overflow-y-auto space-y-3 sm:space-y-4 lg:space-y-6 p-1">
       <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-4">
-        <h2 className="text-lg font-bold text-gray-900">{data.title || 'Reading Passages'}</h2>
+        <h2 className="text-base sm:text-lg font-bold text-gray-900">{data.title || 'Reading Passages'}</h2>
         {(data.subject || data.book || data.chapter) && (
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">
             {[data.subject, data.book, data.chapter].filter(Boolean).join(' · ')}
           </p>
         )}
         {data.instructions && (
-          <p className="mt-3 text-sm text-gray-700 bg-white rounded-lg p-3 border border-amber-100">
+          <p className="mt-3 text-xs sm:text-sm text-gray-700 bg-white rounded-lg p-3 border border-amber-100">
             {data.instructions}
           </p>
         )}
@@ -265,7 +265,7 @@ function StoryPassageViewer({ content }: { content: string }) {
       {data.passages.map((p) => (
         <Card key={p.passage_number} className="border border-gray-200 shadow-sm">
           <CardHeader className="py-3 px-4 bg-gray-50/50">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+            <CardTitle className="text-xs sm:text-sm font-semibold flex items-center gap-2">
               <span className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-bold">
                 {p.passage_number}
               </span>
@@ -273,11 +273,11 @@ function StoryPassageViewer({ content }: { content: string }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 pt-3 pb-4 space-y-3">
-            <p className="text-gray-800 text-sm leading-relaxed">{p.paragraph}</p>
+            <p className="text-gray-800 text-xs sm:text-sm leading-relaxed">{p.paragraph}</p>
             {p.questions && p.questions.length > 0 && (
               <div className="pt-2 border-t border-gray-100">
                 <p className="text-xs font-medium text-gray-500 mb-1.5">Questions</p>
-                <ol className="list-decimal list-inside space-y-1 text-sm text-gray-800">
+                <ol className="list-decimal list-inside space-y-1 text-xs sm:text-sm text-gray-800">
                   {p.questions.map((q, i) => (
                     <li key={i}>{q}</li>
                   ))}
@@ -1613,7 +1613,7 @@ export default function TeacherToolPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Tool Not Found</h1>
+          <h1 className="text-xl sm:text-2xl font-bold mb-4">Tool Not Found</h1>
           <Button onClick={() => {
             localStorage.setItem('teacherDashboardTab', 'vidya-ai');
             setLocation('/teacher/dashboard');
@@ -1627,7 +1627,7 @@ export default function TeacherToolPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-teal-50 p-3 sm:p-4 lg:p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-3 sm:space-y-4 lg:space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           <Button
@@ -1639,21 +1639,21 @@ export default function TeacherToolPage() {
             }}
             className="hover:bg-white/50"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             Back
           </Button>
           <div className="flex items-center space-x-3 min-w-0">
             <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
-              <Icon className="w-6 h-6 text-white" />
+              <Icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">{config.name}</h1>
+              <h1 className="text-xl sm:text-2xl sm:text-3xl font-bold text-gray-900 break-words">{config.name}</h1>
               <p className="text-gray-600">{config.description}</p>
             </div>
           </div>
         </div>
 
-        <div className={`grid grid-cols-1 ${toolType === 'flashcard-generator' ? 'lg:grid-cols-3' : (toolType === 'short-notes-summaries-maker' || toolType === 'concept-mastery-helper' || toolType === 'lesson-planner') ? 'grid-cols-1' : 'lg:grid-cols-2'} gap-6`}>
+        <div className={`grid grid-cols-1 ${toolType === 'flashcard-generator' ? 'lg:grid-cols-3' : (toolType === 'short-notes-summaries-maker' || toolType === 'concept-mastery-helper' || toolType === 'lesson-planner') ? 'grid-cols-1' : 'lg:grid-cols-2'} gap-3 sm:p-4 lg:p-6`}>
           {/* Input Form */}
           <Card className={toolType === 'flashcard-generator' ? 'lg:col-span-1' : toolType === 'short-notes-summaries-maker' ? '' : ''}>
             <CardHeader>
@@ -1729,7 +1729,7 @@ export default function TeacherToolPage() {
                   <div key={field.name}>
                     <Label htmlFor={field.name} className="flex items-center gap-2">
                       {field.label}
-                      {loadingDropdown && <Loader2 className="h-4 w-4 animate-spin text-blue-600" aria-hidden />}
+                      {loadingDropdown && <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-blue-600" aria-hidden />}
                     </Label>
                     {(field.type === 'select' || field.isNCERT || field.isCascadeSubtopic) ? (
                       <Select
@@ -1785,7 +1785,7 @@ export default function TeacherToolPage() {
                               </SelectItem>
                             ))
                           ) : (
-                            <div className="px-2 py-1.5 text-sm text-gray-500">
+                            <div className="px-2 py-1.5 text-xs sm:text-sm text-gray-500">
                               {field.isNCERT && field.name === 'topic'
                                 ? 'No data available'
                                 : field.isCascadeSubtopic
@@ -1823,12 +1823,12 @@ export default function TeacherToolPage() {
               >
                 {isGenerating ? (
                   <>
-                    <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                     Generating...
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4 mr-2" />
+                    <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     Generate
                   </>
                 )}
@@ -1884,7 +1884,7 @@ export default function TeacherToolPage() {
                       variant="outline"
                       onClick={handleCopy}
                     >
-                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      {copied ? <Check className="w-3 h-3 sm:w-4 sm:h-4" /> : <Copy className="w-3 h-3 sm:w-4 sm:h-4" />}
                     </Button>
                     {/* Download removed from Tools pages */}
                   </div>
@@ -1893,16 +1893,16 @@ export default function TeacherToolPage() {
             </CardHeader>
             <CardContent>
               {isGenerating ? (
-                <div className="flex flex-col items-center justify-center py-20 space-y-6">
+                <div className="flex flex-col items-center justify-center py-20 space-y-3 sm:space-y-4 lg:space-y-6">
                   <div className="relative">
                     <div className="w-20 h-20 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <Sparkles className="w-8 h-8 text-blue-600 animate-pulse" />
+                      <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-blue-600 animate-pulse" />
                     </div>
                   </div>
                   <div className="text-center space-y-2">
-                    <h3 className="text-lg font-semibold text-gray-900">Generating Content...</h3>
-                    <p className="text-sm text-gray-600">Please wait while we prepare your content</p>
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">Generating Content...</h3>
+                    <p className="text-xs sm:text-sm text-gray-600">Please wait while we prepare your content</p>
                     <div className="flex items-center justify-center space-x-1 mt-4">
                       <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                       <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -1926,7 +1926,7 @@ export default function TeacherToolPage() {
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-white border border-gray-200 rounded-lg p-6 max-h-[80vh] overflow-y-auto shadow-sm"
+                      className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 lg:p-6 max-h-[80vh] overflow-y-auto shadow-sm"
                     >
                       <div
                         className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900"
@@ -1940,7 +1940,7 @@ export default function TeacherToolPage() {
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white border border-gray-200 rounded-lg p-6 max-h-[80vh] overflow-y-auto shadow-sm"
+                    className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 lg:p-6 max-h-[80vh] overflow-y-auto shadow-sm"
                   >
                     <div 
                       className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-code:text-gray-800 prose-img:rounded-lg prose-img:shadow-md prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-gray-300 prose-th:bg-gray-50 prose-th:p-2 prose-td:border prose-td:border-gray-300 prose-td:p-2"

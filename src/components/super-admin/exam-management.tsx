@@ -1875,17 +1875,17 @@ export default function ExamManagement() {
   };
 
   return (
-    <div className="p-3 sm:p-6 space-y-6">
+    <div className="p-3 sm:p-6 space-y-3 sm:space-y-4 lg:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">Exam Management</h2>
+          <h2 className="text-xl sm:text-2xl sm:text-3xl font-bold text-gray-900 break-words">Exam Management</h2>
           <p className="text-gray-600 mt-1">Create and manage exams</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Dialog open={isCsvDialogOpen} onOpenChange={setIsCsvDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" className="border-green-500 text-green-600 hover:bg-green-50 w-full sm:w-auto">
-                <Upload className="mr-2 h-4 w-4" />
+                <Upload className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                 Upload CSV
               </Button>
             </DialogTrigger>
@@ -1902,7 +1902,7 @@ export default function ExamManagement() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
                   <div>
-                    <p className="font-semibold text-sm">Need a template?</p>
+                    <p className="font-semibold text-xs sm:text-sm">Need a template?</p>
                     <p className="text-xs text-gray-600">Download the CSV template with example data</p>
                   </div>
                   <Button
@@ -1912,7 +1912,7 @@ export default function ExamManagement() {
                     onClick={handleDownloadTemplate}
                     className="border-blue-500 text-blue-600 hover:bg-blue-100"
                   >
-                    <Download className="mr-2 h-4 w-4" />
+                    <Download className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     Download Template
                   </Button>
                 </div>
@@ -1930,7 +1930,7 @@ export default function ExamManagement() {
                         setCsvUploadResults(null);
                       }
                     }}
-                    className="mt-1 cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-200"
+                    className="mt-1 cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-xs sm:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-200"
                   />
                   <p className={`text-xs mt-1 ${csvFile ? 'text-blue-700 font-medium' : 'text-gray-500'}`}>
                     {csvFile ? `Selected file: ${csvFile.name}` : 'No file selected yet'}
@@ -1945,7 +1945,7 @@ export default function ExamManagement() {
 
                 {csvUploadResults && (
                   <div className={`p-4 rounded-lg ${csvUploadResults.errors.length > 0 ? 'bg-yellow-50 border border-yellow-200' : 'bg-green-50 border border-green-200'}`}>
-                    <p className="font-semibold text-sm mb-2">
+                    <p className="font-semibold text-xs sm:text-sm mb-2">
                       {csvUploadResults.success > 0 ? `✅ Successfully created ${csvUploadResults.success} exam(s)` : '❌ No exams created'}
                     </p>
                     {csvUploadResults.errors.length > 0 && (
@@ -1982,7 +1982,7 @@ export default function ExamManagement() {
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={openCreateExamDialog} className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white w-full sm:w-auto">
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                 Create Exam
               </Button>
             </DialogTrigger>
@@ -2045,14 +2045,14 @@ export default function ExamManagement() {
                 <div>
                   <Label htmlFor="schools">Select Schools *</Label>
                   {isLoadingSchools ? (
-                    <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
-                      <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+                    <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs sm:text-sm text-gray-600">
+                      <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-gray-500" />
                       <span>Loading schools...</span>
                     </div>
                   ) : (
                     <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
                       {schools.length === 0 ? (
-                        <p className="text-sm text-gray-500">No schools available</p>
+                        <p className="text-xs sm:text-sm text-gray-500">No schools available</p>
                       ) : (
                         schools.map((school) => (
                           <div key={school.id} className="flex items-center space-x-2">
@@ -2073,9 +2073,9 @@ export default function ExamManagement() {
                                   });
                                 }
                               }}
-                              className="h-4 w-4 rounded border border-gray-400 accent-orange-500"
+                              className="h-3 w-3 sm:h-4 sm:w-4 rounded border border-gray-400 accent-orange-500"
                             />
-                            <Label htmlFor={`school-${school.id}`} className="text-sm cursor-pointer">
+                            <Label htmlFor={`school-${school.id}`} className="text-xs sm:text-sm cursor-pointer">
                               {school.name} (Asli Exclusive Schools)
                             </Label>
                           </div>
@@ -2108,7 +2108,7 @@ export default function ExamManagement() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="classSearch">Assigned Classes *</Label>
                   <Input
@@ -2119,7 +2119,7 @@ export default function ExamManagement() {
                   />
                   <div className="mt-2 max-h-32 overflow-y-auto rounded-md border bg-white p-2 space-y-2">
                     {CLASS_OPTIONS.filter((cls) => `Class ${cls}`.toLowerCase().includes(classModalSearch.toLowerCase())).map((cls) => (
-                      <label key={cls} className="flex items-center gap-2 text-sm">
+                      <label key={cls} className="flex items-center gap-2 text-xs sm:text-sm">
                         <input
                           type="checkbox"
                           checked={formData.assignedClasses.includes(cls)}
@@ -2132,7 +2132,7 @@ export default function ExamManagement() {
                               setFormData({ ...formData, assignedClasses: next, classNumber: next[0] || '' });
                             }
                           }}
-                          className="h-4 w-4 rounded border border-gray-400 accent-orange-500"
+                          className="h-3 w-3 sm:h-4 sm:w-4 rounded border border-gray-400 accent-orange-500"
                         />
                         <span>{`Class ${cls}`}</span>
                       </label>
@@ -2154,7 +2154,7 @@ export default function ExamManagement() {
                   <Label htmlFor="subject">Subjects *</Label>
                   <div className="mt-2 max-h-32 overflow-y-auto rounded-md border bg-white p-2 space-y-2">
                     {EXAM_SUBJECTS.map((subject) => (
-                      <label key={subject.value} className="flex items-center gap-2 text-sm">
+                      <label key={subject.value} className="flex items-center gap-2 text-xs sm:text-sm">
                         <input
                           type="checkbox"
                           checked={formData.subjects.includes(subject.value as any)}
@@ -2173,7 +2173,7 @@ export default function ExamManagement() {
                               });
                             }
                           }}
-                          className="h-4 w-4 rounded border border-gray-400 accent-orange-500"
+                          className="h-3 w-3 sm:h-4 sm:w-4 rounded border border-gray-400 accent-orange-500"
                         />
                         <span>{subject.label}</span>
                       </label>
@@ -2200,7 +2200,7 @@ export default function ExamManagement() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="duration">Duration (minutes) *</Label>
                   <Input
@@ -2232,7 +2232,7 @@ export default function ExamManagement() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="startDate">Start Date *</Label>
                   <Input
@@ -2301,7 +2301,7 @@ export default function ExamManagement() {
                 }
               }}
             >
-              <SelectTrigger className="h-10 rounded-md border border-gray-300 bg-white text-sm">
+              <SelectTrigger className="h-10 rounded-md border border-gray-300 bg-white text-xs sm:text-sm">
                 <SelectValue placeholder="Quick Add Questions" />
               </SelectTrigger>
               <SelectContent>
@@ -2325,7 +2325,7 @@ export default function ExamManagement() {
           )}
 
           <Select value={selectedSchool} onValueChange={setSelectedSchool}>
-            <SelectTrigger className="h-10 rounded-md border border-gray-300 bg-white text-sm">
+            <SelectTrigger className="h-10 rounded-md border border-gray-300 bg-white text-xs sm:text-sm">
               <div className="flex items-center gap-2">
                 <School className="h-3.5 w-3.5 text-gray-600" />
                 <SelectValue placeholder="All Schools" />
@@ -2342,7 +2342,7 @@ export default function ExamManagement() {
           </Select>
 
           <Select value={selectedClass} onValueChange={setSelectedClass}>
-            <SelectTrigger className="h-10 rounded-md border border-gray-300 bg-white text-sm">
+            <SelectTrigger className="h-10 rounded-md border border-gray-300 bg-white text-xs sm:text-sm">
               <div className="flex items-center gap-2">
                 <GraduationCap className="h-3.5 w-3.5 text-gray-600" />
                 <SelectValue placeholder="All Classes" />
@@ -2370,8 +2370,8 @@ export default function ExamManagement() {
         <Card>
           <CardContent className="py-12">
             <div className="flex flex-col items-center justify-center gap-3 text-gray-600">
-              <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
-              <p className="text-sm font-medium">Loading exams...</p>
+              <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 animate-spin text-orange-500" />
+              <p className="text-xs sm:text-sm font-medium">Loading exams...</p>
             </div>
           </CardContent>
         </Card>
@@ -2380,13 +2380,13 @@ export default function ExamManagement() {
           <CardContent className="py-12 text-center">
             <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500">No exams found</p>
-            <p className="text-sm text-gray-400 mt-2">
+            <p className="text-xs sm:text-sm text-gray-400 mt-2">
               Create your first exam to get started
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-4 sm:space-y-6 lg:space-y-8">
           {classSectionKeys.map((classKey) => {
             const classLabel = classKey === 'unassigned' ? 'Unassigned Class' : `Class ${classKey}`;
             const classExams = groupedExams[classKey];
@@ -2394,7 +2394,7 @@ export default function ExamManagement() {
             return (
               <section key={classKey} className="space-y-5">
                 <div className="border-b border-gray-200 pb-2">
-                  <h3 className="text-lg font-semibold text-gray-900">{classLabel}</h3>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">{classLabel}</h3>
                 </div>
 
                 <div className="grid grid-cols-1 items-stretch md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
@@ -2406,7 +2406,7 @@ export default function ExamManagement() {
                           <Card className="flex h-full flex-col border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
                             <CardHeader className="px-4 pb-2 pt-4">
                               <div className="space-y-2">
-                                <CardTitle className="text-base font-bold text-gray-900 leading-tight line-clamp-2">{exam.title}</CardTitle>
+                                <CardTitle className="text-sm sm:text-base font-bold text-gray-900 leading-tight line-clamp-2">{exam.title}</CardTitle>
                                 <div className="flex flex-wrap gap-1.5">
                                   <Badge className={`${getExamTypeBadgeColor(exam.examType)} border text-[11px]`}>
                                     {EXAM_TYPES.find(t => t.value === exam.examType)?.label}
@@ -2462,7 +2462,7 @@ export default function ExamManagement() {
                                   )}
                                 </div>
                               </div>
-                              <div className="mt-auto grid grid-cols-2 gap-2 border-t border-gray-100 pt-3 select-none">
+                              <div className="mt-auto grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-gray-100 pt-3 select-none">
                                 <Button
                                   type="button"
                                   variant="outline"
@@ -2534,7 +2534,7 @@ export default function ExamManagement() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <div className="space-y-3 sm:space-y-4 lg:space-y-6">
             {/* CSV Upload Section */}
             <div className="border-t pt-6 space-y-4">
               <div className="flex items-center justify-between">
@@ -2547,7 +2547,7 @@ export default function ExamManagement() {
                     onClick={handleDownloadQuestionTemplate}
                     className="border-blue-500 text-blue-600 hover:bg-blue-100"
                   >
-                    <Download className="mr-2 h-4 w-4" />
+                    <Download className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     Download Template
                   </Button>
                 </div>
@@ -2586,7 +2586,7 @@ export default function ExamManagement() {
                         prefillQuestionFormFromCsv(file);
                       }
                     }}
-                    className="mt-1 cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-200"
+                    className="mt-1 cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-xs sm:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-200"
                   />
                   <p className={`text-xs mt-1 ${questionCsvFile ? 'text-blue-700 font-medium' : 'text-gray-500'}`}>
                     {questionCsvFile ? `Selected file: ${questionCsvFile.name}` : 'No file selected yet'}
@@ -2598,18 +2598,18 @@ export default function ExamManagement() {
                     Tip: upload the original .xlsx to preserve x², x³, θ, π, √, Δ, ≤, ≥. A plain Excel CSV export silently replaces these with "?".
                   </p>
                 </div>
-                <label className="flex items-center gap-2 text-sm text-gray-700">
+                <label className="flex items-center gap-2 text-xs sm:text-sm text-gray-700">
                   <input
                     type="checkbox"
                     checked={allowDuplicateQuestionsInCsv}
                     onChange={(e) => setAllowDuplicateQuestionsInCsv(e.target.checked)}
-                    className="h-4 w-4 rounded border border-gray-400 accent-orange-500"
+                    className="h-3 w-3 sm:h-4 sm:w-4 rounded border border-gray-400 accent-orange-500"
                   />
                   Allow duplicate questions in this upload
                 </label>
                 {questionCsvUploadResults && (
                   <div className={`p-3 rounded-lg ${questionCsvUploadResults.errors.length > 0 ? 'bg-yellow-50 border border-yellow-200' : 'bg-green-50 border border-green-200'}`}>
-                    <p className="font-semibold text-sm mb-2">
+                    <p className="font-semibold text-xs sm:text-sm mb-2">
                       {questionCsvUploadResults.success > 0 ? `✅ Successfully created ${questionCsvUploadResults.success} question(s)` : '❌ No questions created'}
                     </p>
                     {questionCsvUploadResults.errors.length > 0 && (
@@ -2647,7 +2647,7 @@ export default function ExamManagement() {
                         setPdfQuestionRows([]);
                         setPdfPreviewPage(1);
                       }}
-                      className="mt-1 cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-200"
+                      className="mt-1 cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-xs sm:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-200"
                     />
                     <p className={`text-xs mt-1 ${questionPdfFile ? 'text-blue-700 font-medium' : 'text-gray-500'}`}>
                       {questionPdfFile ? `Selected file: ${questionPdfFile.name}` : 'No PDF selected yet'}
@@ -2661,7 +2661,7 @@ export default function ExamManagement() {
                   >
                     {isExtractingPdfQuestions ? (
                       <span className="inline-flex items-center justify-center gap-2">
-                        <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                        <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 animate-spin" aria-hidden />
                         <span>Extracting questions from PDF...</span>
                       </span>
                     ) : (
@@ -2688,7 +2688,7 @@ export default function ExamManagement() {
                         </div>
                       )}
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-slate-800">
+                        <p className="text-xs sm:text-sm font-semibold text-slate-800">
                           Preview ({pdfQuestionRows.length} question{pdfQuestionRows.length === 1 ? '' : 's'})
                         </p>
                         <div className="flex gap-2">
@@ -2779,7 +2779,7 @@ export default function ExamManagement() {
                   )}
                   {questionCsvUploadResults && (
                     <div className={`p-3 rounded-lg ${questionCsvUploadResults.errors.length > 0 ? 'bg-yellow-50 border border-yellow-200' : 'bg-green-50 border border-green-200'}`}>
-                      <p className="font-semibold text-sm mb-2">
+                      <p className="font-semibold text-xs sm:text-sm mb-2">
                         {questionCsvUploadResults.success > 0 ? `✅ Successfully created ${questionCsvUploadResults.success} question(s)` : '❌ No questions created'}
                       </p>
                       {questionCsvUploadResults.errors.length > 0 && (
@@ -2810,20 +2810,20 @@ export default function ExamManagement() {
                   onClick={handleDeleteAllQuestions}
                   disabled={isDeletingAllQuestions || questions.length === 0}
                 >
-                  <Trash2 className="mr-1 h-4 w-4" />
+                  <Trash2 className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
                   {isDeletingAllQuestions ? 'Deleting...' : 'Delete All Questions'}
                 </Button>
               </div>
               {isLoadingQuestions ? (
-                <div className="text-center py-8">
-                  <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <div className="text-center py-4 sm:py-6 lg:py-8">
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
                   <p className="text-gray-500">Loading questions...</p>
                 </div>
               ) : questions.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-4 sm:py-6 lg:py-8 text-gray-500">
                   <FileQuestion className="h-12 w-12 mx-auto mb-2 text-gray-400" />
                   <p>No questions added yet</p>
-                  <p className="text-sm mt-1">Upload a CSV file or add questions manually below</p>
+                  <p className="text-xs sm:text-sm mt-1">Upload a CSV file or add questions manually below</p>
                 </div>
               ) : (
                 <div className="space-y-4 max-h-96 overflow-y-auto">
@@ -2868,7 +2868,7 @@ export default function ExamManagement() {
                                   />
                                 </div>
                               ) : null}
-                              <p className="text-sm font-medium text-gray-900 mb-2">
+                              <p className="text-xs sm:text-sm font-medium text-gray-900 mb-2">
                                 {formatChemistryText(q.questionText || 'Image question', q.subject)}
                               </p>
                               {(q.questionType === 'mcq' || q.questionType === 'multiple') && q.options && q.options.length > 0 && (
@@ -2881,7 +2881,7 @@ export default function ExamManagement() {
                                     return (
                                       <div 
                                         key={optIdx} 
-                                        className={`p-2 rounded text-sm ${
+                                        className={`p-2 rounded text-xs sm:text-sm ${
                                           isCorrect 
                                             ? 'bg-green-50 border border-green-300 text-green-900' 
                                             : 'bg-gray-50 border border-gray-200 text-gray-700'
@@ -2900,13 +2900,13 @@ export default function ExamManagement() {
                               {q.questionType === 'integer' && (
                                 <div className="mt-3 p-2 bg-green-50 border border-green-300 rounded">
                                   <p className="text-xs font-semibold text-gray-600 mb-1">Correct Answer:</p>
-                                  <p className="text-sm font-bold text-green-900">{formatChemistryText(q.correctAnswer, q.subject)}</p>
+                                  <p className="text-xs sm:text-sm font-bold text-green-900">{formatChemistryText(q.correctAnswer, q.subject)}</p>
                                 </div>
                               )}
                               {q.explanation && (
                                 <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded">
                                   <p className="text-xs font-semibold text-gray-600 mb-1">Explanation:</p>
-                                  <p className="text-sm text-gray-700">{q.explanation}</p>
+                                  <p className="text-xs sm:text-sm text-gray-700">{q.explanation}</p>
                                 </div>
                               )}
                             </div>
@@ -2919,7 +2919,7 @@ export default function ExamManagement() {
                             onClick={() => setPendingDeleteQuestion({ id: String(q._id), index: idx })}
                             aria-label={`Delete question ${idx + 1}`}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
                         </div>
                       </div>
@@ -3054,7 +3054,7 @@ export default function ExamManagement() {
                           name="correctAnswer"
                           checked={questionFormData.correctAnswer === String(index)}
                           onChange={() => setQuestionFormData({ ...questionFormData, correctAnswer: String(index) })}
-                          className="h-4 w-4 border border-gray-400 accent-orange-500"
+                          className="h-3 w-3 sm:h-4 sm:w-4 border border-gray-400 accent-orange-500"
                         />
                       )}
                       {questionFormData.questionType === 'multiple' && (
@@ -3067,7 +3067,7 @@ export default function ExamManagement() {
                               : questionFormData.correctAnswers.filter((ans: string) => ans !== String(index));
                             setQuestionFormData({ ...questionFormData, correctAnswers: answers });
                           }}
-                          className="h-4 w-4 rounded border border-gray-400 accent-orange-500"
+                          className="h-3 w-3 sm:h-4 sm:w-4 rounded border border-gray-400 accent-orange-500"
                         />
                       )}
                       <Button
@@ -3078,7 +3078,7 @@ export default function ExamManagement() {
                           setQuestionFormData({ ...questionFormData, options: newOptions });
                         }}
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-3 w-3 sm:h-4 sm:w-4" />
                       </Button>
                     </div>
                   ))}
@@ -3092,7 +3092,7 @@ export default function ExamManagement() {
                       });
                     }}
                   >
-                    <Plus className="h-4 w-4 mr-1" />
+                    <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                     Add Option
                   </Button>
                 </div>
@@ -3111,7 +3111,7 @@ export default function ExamManagement() {
                 </div>
               )}
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <Label>Marks *</Label>
                   <Input

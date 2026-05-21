@@ -220,7 +220,7 @@ export default function AIContentEngine() {
   };
 
   const renderSectionHeader = (icon: ReactNode, title: string) => (
-    <div className="flex items-center gap-2 text-slate-800 font-semibold text-sm">
+    <div className="flex items-center gap-2 text-slate-800 font-semibold text-xs sm:text-sm">
       <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-slate-100 text-slate-600">
         {icon}
       </span>
@@ -405,34 +405,34 @@ export default function AIContentEngine() {
       );
       return (
         <div className="space-y-3">
-          {renderSectionHeader(<Lightbulb className="h-4 w-4" />, conceptTitle)}
+          {renderSectionHeader(<Lightbulb className="h-3 w-3 sm:h-4 sm:w-4" />, conceptTitle)}
           {pickStr("simple_definition")
-            ? section("1. Simple Definition", <p className="text-sm text-slate-800 whitespace-pre-wrap">{pickStr("simple_definition")}</p>)
+            ? section("1. Simple Definition", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{pickStr("simple_definition")}</p>)
             : null}
           {pickStr("why_important")
-            ? section("2. Why This Concept Is Important", <p className="text-sm text-slate-800 whitespace-pre-wrap">{pickStr("why_important")}</p>)
+            ? section("2. Why This Concept Is Important", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{pickStr("why_important")}</p>)
             : null}
           {pickStr("prior_knowledge_needed")
-            ? section("3. Prior Knowledge Needed", <p className="text-sm text-slate-800 whitespace-pre-wrap">{pickStr("prior_knowledge_needed")}</p>)
+            ? section("3. Prior Knowledge Needed", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{pickStr("prior_knowledge_needed")}</p>)
             : null}
           {pickStr("lesson", "explanation", "step_by_step_explanation", "content", "summary")
             ? section(
                 "4. Step-by-step Explanation",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">
                   {pickStr("lesson", "explanation", "step_by_step_explanation", "content", "summary")}
                 </p>,
               )
             : null}
           {pickStr("diagram_suggestion")
-            ? section("5. Diagram / Visualisation Suggestion", <p className="text-sm text-slate-800 whitespace-pre-wrap">{pickStr("diagram_suggestion")}</p>)
+            ? section("5. Diagram / Visualisation Suggestion", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{pickStr("diagram_suggestion")}</p>)
             : null}
           {pickStr("real_example")
-            ? section("6. Real-life Examples", <p className="text-sm text-slate-800 whitespace-pre-wrap">{pickStr("real_example")}</p>)
+            ? section("6. Real-life Examples", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{pickStr("real_example")}</p>)
             : null}
           {pickArr("common_mistakes").length
             ? section(
                 "7. Common Misconceptions and Corrections",
-                <ul className="text-sm space-y-1">
+                <ul className="text-xs sm:text-sm space-y-1">
                   {pickArr("common_mistakes").map((line, i) => (
                     <li key={`${item._id}-cm-${i}`}>- {line}</li>
                   ))}
@@ -442,7 +442,7 @@ export default function AIContentEngine() {
           {pickArr("concept_check_questions").length
             ? section(
                 "8. Concept Check Questions",
-                <ul className="text-sm space-y-1">
+                <ul className="text-xs sm:text-sm space-y-1">
                   {pickArr("concept_check_questions").map((line, i) => (
                     <li key={`${item._id}-cc-${i}`}>- {line}</li>
                   ))}
@@ -452,7 +452,7 @@ export default function AIContentEngine() {
           {pickArr("key_points").length
             ? section(
                 "9. Key Points to Remember",
-                <ul className="text-sm space-y-1">
+                <ul className="text-xs sm:text-sm space-y-1">
                   {pickArr("key_points").map((line, i) => (
                     <li key={`${item._id}-kp-${i}`}>- {line}</li>
                   ))}
@@ -460,13 +460,13 @@ export default function AIContentEngine() {
               )
             : null}
           {pickStr("exam_tips")
-            ? section("10. Exam Tips", <p className="text-sm text-slate-800 whitespace-pre-wrap">{pickStr("exam_tips")}</p>)
+            ? section("10. Exam Tips", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{pickStr("exam_tips")}</p>)
             : null}
           {pickStr("hots_question")
-            ? section("11. Higher-order Thinking Question", <p className="text-sm text-slate-800 whitespace-pre-wrap">{pickStr("hots_question")}</p>)
+            ? section("11. Higher-order Thinking Question", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{pickStr("hots_question")}</p>)
             : null}
           {pickStr("self_reflection_prompt")
-            ? section("12. Quick Self-reflection Prompt", <p className="text-sm text-slate-800 whitespace-pre-wrap">{pickStr("self_reflection_prompt")}</p>)
+            ? section("12. Quick Self-reflection Prompt", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{pickStr("self_reflection_prompt")}</p>)
             : null}
           {!hasStructured && bodyFromMarkdown ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-3">
@@ -552,11 +552,11 @@ export default function AIContentEngine() {
 
       return (
         <div className="space-y-3">
-          {renderSectionHeader(<ClipboardList className="h-4 w-4" />, hwTitle)}
+          {renderSectionHeader(<ClipboardList className="h-3 w-3 sm:h-4 sm:w-4" />, hwTitle)}
           {pickStr("instructions", "student_instructions")
             ? section(
                 "2. Clear Student Instructions",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("instructions", "student_instructions")}
                 </p>,
               )
@@ -567,9 +567,9 @@ export default function AIContentEngine() {
                 <div className="space-y-3">
                   {practiceQuestions.map((q, i) => (
                     <div key={`${item._id}-hw-q-${i}`} className="rounded-lg border border-slate-100 p-3 space-y-2">
-                      <p className="text-sm font-medium">Q{i + 1}. {q.question}</p>
+                      <p className="text-xs sm:text-sm font-medium">Q{i + 1}. {q.question}</p>
                       {q.options.length > 0 && (
-                        <ul className="text-sm space-y-1 text-slate-700">
+                        <ul className="text-xs sm:text-sm space-y-1 text-slate-700">
                           {q.options.map((opt: string, idx: number) => (
                             <li key={`${item._id}-hw-q-${i}-o-${idx}`}>- {opt}</li>
                           ))}
@@ -588,7 +588,7 @@ export default function AIContentEngine() {
           {applicationTasks.length > 0
             ? section(
                 "4. Application-based Tasks",
-                <ul className="text-sm space-y-1">
+                <ul className="text-xs sm:text-sm space-y-1">
                   {applicationTasks.map((t, i) => (
                     <li key={`${item._id}-hw-app-${i}`}>- {t}</li>
                   ))}
@@ -598,7 +598,7 @@ export default function AIContentEngine() {
           {pickStr("creativeThinkingQuestion", "creative_thinking_question")
             ? section(
                 "5. One Creative / Thinking Question",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("creativeThinkingQuestion", "creative_thinking_question")}
                 </p>,
               )
@@ -606,7 +606,7 @@ export default function AIContentEngine() {
           {pickStr("realLifeObservationTask", "real_life_observation_task")
             ? section(
                 "6. One Real-life Observation Task",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("realLifeObservationTask", "real_life_observation_task")}
                 </p>,
               )
@@ -614,7 +614,7 @@ export default function AIContentEngine() {
           {pickStr("challengeQuestion", "challenge_question")
             ? section(
                 "7. Challenge Question",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("challengeQuestion", "challenge_question")}
                 </p>,
               )
@@ -622,7 +622,7 @@ export default function AIContentEngine() {
           {pickStr("supportHint", "support_hint", "hints")
             ? section(
                 "8. Support Hint",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("supportHint", "support_hint", "hints")}
                 </p>,
               )
@@ -630,7 +630,7 @@ export default function AIContentEngine() {
           {pickStr("answerHints", "answer_hints", "answer_key")
             ? section(
                 "9. Answer Hints / Key Points",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("answerHints", "answer_hints", "answer_key")}
                 </p>,
               )
@@ -638,7 +638,7 @@ export default function AIContentEngine() {
           {pickStr("parentNote", "parent_note")
             ? section(
                 "10. Parent Note",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("parentNote", "parent_note")}
                 </p>,
               )
@@ -770,13 +770,13 @@ export default function AIContentEngine() {
       return (
         <div className="space-y-3">
           <div className="space-y-0.5">
-            {renderSectionHeader(<ClipboardList className="h-4 w-4" />, wsTitle)}
+            {renderSectionHeader(<ClipboardList className="h-3 w-3 sm:h-4 sm:w-4" />, wsTitle)}
             <p className="text-xs text-slate-500 pl-9">Worksheet &amp; MCQ — 10-section template</p>
           </div>
           {objectives.length > 0
             ? section(
                 "2. Learning Objectives",
-                <ul className="text-sm space-y-1">
+                <ul className="text-xs sm:text-sm space-y-1">
                   {objectives.map((line, i) => (
                     <li key={`${item._id}-ws-lo-${i}`}>- {line}</li>
                   ))}
@@ -786,7 +786,7 @@ export default function AIContentEngine() {
           {pickStr("instructions", "student_instructions")
             ? section(
                 "3. Instructions to Students",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("instructions", "student_instructions")}
                 </p>,
               )
@@ -804,7 +804,7 @@ export default function AIContentEngine() {
                       className="rounded-lg border border-slate-100 p-3 space-y-2"
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-medium flex-1">
+                        <p className="text-xs sm:text-sm font-medium flex-1">
                           Q{qx.question_number != null ? String(qx.question_number) : qIdx + 1}. {q.question}
                           {qx.type ? (
                             <span className="ml-2 text-xs font-normal text-slate-500">({qx.type})</span>
@@ -822,7 +822,7 @@ export default function AIContentEngine() {
                         </Button>
                       </div>
                       {q.options.length > 0 && (
-                        <ul className="text-sm space-y-1 text-slate-700">
+                        <ul className="text-xs sm:text-sm space-y-1 text-slate-700">
                           {q.options.map((opt: string, idx: number) => (
                             <li key={`${item._id}-ws-${sIdx}-q-${qIdx}-o-${idx}`} className="flex items-start gap-2">
                               <span className="mt-1 inline-block h-2.5 w-2.5 rounded-full border border-slate-500" />
@@ -864,7 +864,7 @@ export default function AIContentEngine() {
           {pickStr("bloomLevel", "bloom_level") || pickStr("difficultyTag", "difficulty_tag", "difficulty") ? (
             section(
               "10. Bloom's Level and Difficulty Tag",
-              <p className="text-sm text-slate-800 whitespace-pre-wrap">
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                 {[pickStr("bloomLevel", "bloom_level"), pickStr("difficultyTag", "difficulty_tag", "difficulty")]
                   .filter(Boolean)
                   .join(" — ")}
@@ -908,11 +908,11 @@ export default function AIContentEngine() {
       }
       return (
         <div className="space-y-3">
-          {renderSectionHeader(<ClipboardList className="h-4 w-4" />, item.toolType === "homework-creator" ? "Homework Questions" : "Worksheet / MCQ Questions")}
+          {renderSectionHeader(<ClipboardList className="h-3 w-3 sm:h-4 sm:w-4" />, item.toolType === "homework-creator" ? "Homework Questions" : "Worksheet / MCQ Questions")}
           {questions.map((q, i) => (
             <div key={`${item._id}-q-${i}`} className="rounded-xl border bg-white p-4 shadow-sm space-y-2">
               <div className="flex items-start justify-between gap-2">
-                <p className="text-sm font-medium leading-relaxed flex-1">Q{i + 1}. {q.question}</p>
+                <p className="text-xs sm:text-sm font-medium leading-relaxed flex-1">Q{i + 1}. {q.question}</p>
                 <Button
                   type="button"
                   size="icon"
@@ -925,7 +925,7 @@ export default function AIContentEngine() {
                 </Button>
               </div>
               {q.options.length > 0 && (
-                <ul className="mt-3 space-y-1.5 text-sm text-slate-700">
+                <ul className="mt-3 space-y-1.5 text-xs sm:text-sm text-slate-700">
                   {q.options.map((opt: string, idx: number) => (
                     <li key={`${item._id}-q-${i}-opt-${idx}`} className="flex items-start gap-2">
                       <span className="mt-1 inline-block h-2.5 w-2.5 rounded-full border border-slate-500" />
@@ -984,13 +984,13 @@ export default function AIContentEngine() {
       const deckTitle = pickCardStr(rc, "title") || pickCardStr(fb, "deck_title", "title") || "Flashcards";
       const fieldRow = (label: string, value: string) =>
         value ? (
-          <p className="text-sm text-slate-800">
+          <p className="text-xs sm:text-sm text-slate-800">
             <span className="font-medium text-slate-600">{label}:</span> {value}
           </p>
         ) : null;
       return (
         <div className="space-y-3">
-          {renderSectionHeader(<Layers className="h-4 w-4" />, deckTitle)}
+          {renderSectionHeader(<Layers className="h-3 w-3 sm:h-4 sm:w-4" />, deckTitle)}
           <p className="text-xs text-slate-500 pl-9">Flashcard Generator — 7-field template per card</p>
           <div className="grid gap-3 md:grid-cols-2">
           {cards.map((card, idx) => (
@@ -1083,7 +1083,7 @@ export default function AIContentEngine() {
       return (
         <div className="space-y-3">
           <div className="space-y-0.5">
-            {renderSectionHeader(<BookText className="h-4 w-4" />, storyTitle)}
+            {renderSectionHeader(<BookText className="h-3 w-3 sm:h-4 sm:w-4" />, storyTitle)}
             <p className="text-xs text-slate-500 pl-9">Story &amp; Passage — 9-section template</p>
           </div>
           {(metaClass || metaSubject || metaSubtopic || metaBloom || metaDifficulty) && (
@@ -1108,7 +1108,7 @@ export default function AIContentEngine() {
           {section(
             "1. Alignment Block",
             alignment ? (
-              <p className="text-sm text-slate-800 whitespace-pre-wrap">{alignment}</p>
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{alignment}</p>
             ) : (
               emptyHint("Re-upload with Story & Passage Creator to extract NEP/NCF, skill focus, and UDL.")
             ),
@@ -1116,7 +1116,7 @@ export default function AIContentEngine() {
           {section(
             "2. Learning Objectives",
             objectives.length > 0 ? (
-              <ul className="text-sm space-y-1 text-slate-800">
+              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
                 {objectives.map((o, i) => (
                   <li key={`${item._id}-story-lo-${i}`}>- {o}</li>
                 ))}
@@ -1128,7 +1128,7 @@ export default function AIContentEngine() {
           {section(
             "3. Passage",
             passage ? (
-              <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{passage}</p>
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{passage}</p>
             ) : (
               emptyHint("Passage text missing — re-upload the story PDF.")
             ),
@@ -1136,7 +1136,7 @@ export default function AIContentEngine() {
           {section(
             "4. Vocabulary Support",
             vocabulary.length > 0 ? (
-              <ul className="text-sm space-y-1 text-slate-800">
+              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
                 {vocabulary.map((v, i) => (
                   <li key={`${item._id}-story-voc-${i}`}>- {v}</li>
                 ))}
@@ -1150,7 +1150,7 @@ export default function AIContentEngine() {
             questions.length > 0 ? (
               <div className="space-y-2">
                 {questions.map((q, i) => (
-                  <p key={`${item._id}-story-q-${i}`} className="text-sm text-slate-800">
+                  <p key={`${item._id}-story-q-${i}`} className="text-xs sm:text-sm text-slate-800">
                     Q{i + 1}. {q.question}
                   </p>
                 ))}
@@ -1162,7 +1162,7 @@ export default function AIContentEngine() {
           {section(
             "6. Answer Hints",
             answerHints.length > 0 ? (
-              <ul className="text-sm space-y-1 text-slate-800">
+              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
                 {answerHints.map((h, i) => (
                   <li key={`${item._id}-story-hint-${i}`}>- {h}</li>
                 ))}
@@ -1175,7 +1175,7 @@ export default function AIContentEngine() {
             "7. Differentiation",
             pickStr("differentiationSupport", "differentiation_support") ||
               pickStr("differentiationExtension", "differentiation_extension") ? (
-              <div className="space-y-2 text-sm text-slate-800">
+              <div className="space-y-2 text-xs sm:text-sm text-slate-800">
                 {pickStr("differentiationSupport", "differentiation_support") ? (
                   <p>
                     <span className="font-medium">Support:</span>{" "}
@@ -1196,7 +1196,7 @@ export default function AIContentEngine() {
           {section(
             "8. Real-life Application",
             pickStr("realLifeApplication", "real_life_application", "real_life_link") ? (
-              <p className="text-sm text-slate-800 whitespace-pre-wrap">
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                 {pickStr("realLifeApplication", "real_life_application", "real_life_link")}
               </p>
             ) : (
@@ -1206,7 +1206,7 @@ export default function AIContentEngine() {
           {section(
             "9. Reflection / Exit Ticket",
             pickStr("reflectionPrompt", "reflection_prompt", "reflection_exit_ticket") ? (
-              <p className="text-sm text-slate-800 whitespace-pre-wrap">
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                 {pickStr("reflectionPrompt", "reflection_prompt", "reflection_exit_ticket")}
               </p>
             ) : (
@@ -1285,7 +1285,7 @@ export default function AIContentEngine() {
       return (
         <div className="space-y-3">
           <div className="space-y-0.5">
-            {renderSectionHeader(<Lightbulb className="h-4 w-4" />, noteTitle)}
+            {renderSectionHeader(<Lightbulb className="h-3 w-3 sm:h-4 sm:w-4" />, noteTitle)}
             <p className="text-xs text-slate-500 pl-9">Short Notes &amp; Summaries — 10-section template</p>
           </div>
           {(metaClass || metaSubject || metaSubtopic || metaBloom || metaSkill) && (
@@ -1310,7 +1310,7 @@ export default function AIContentEngine() {
           {section(
             "1. Alignment Block",
             alignment ? (
-              <p className="text-sm text-slate-800 whitespace-pre-wrap">{alignment}</p>
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{alignment}</p>
             ) : (
               emptyHint("Re-upload with Short Notes & Summaries to extract alignment.")
             ),
@@ -1318,7 +1318,7 @@ export default function AIContentEngine() {
           {section(
             "2. Learning Objectives",
             objectives.length > 0 ? (
-              <ul className="text-sm space-y-1 text-slate-800">
+              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
                 {objectives.map((o, i) => (
                   <li key={`${item._id}-sns-lo-${i}`}>- {o}</li>
                 ))}
@@ -1330,7 +1330,7 @@ export default function AIContentEngine() {
           {section(
             "3. Short Note / Summary",
             pickStr("shortNoteSummary", "short_note_summary", "summary") ? (
-              <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">
                 {pickStr("shortNoteSummary", "short_note_summary", "summary")}
               </p>
             ) : (
@@ -1340,7 +1340,7 @@ export default function AIContentEngine() {
           {section(
             "4. Key Points to Remember",
             keyPoints.length > 0 ? (
-              <ul className="text-sm space-y-1 text-slate-800">
+              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
                 {keyPoints.map((p, i) => (
                   <li key={`${item._id}-sns-kp-${i}`}>- {p}</li>
                 ))}
@@ -1352,7 +1352,7 @@ export default function AIContentEngine() {
           {section(
             "5. Example",
             pickStr("example") ? (
-              <p className="text-sm text-slate-800 whitespace-pre-wrap">{pickStr("example")}</p>
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{pickStr("example")}</p>
             ) : (
               emptyHint("No example extracted.")
             ),
@@ -1360,7 +1360,7 @@ export default function AIContentEngine() {
           {section(
             "6. Common Misconception and Correction",
             pickStr("commonMisconceptionCorrection", "common_misconception_correction") ? (
-              <p className="text-sm text-slate-800 whitespace-pre-wrap">
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                 {pickStr("commonMisconceptionCorrection", "common_misconception_correction")}
               </p>
             ) : (
@@ -1370,7 +1370,7 @@ export default function AIContentEngine() {
           {section(
             "7. Quick Check Questions",
             quickChecks.length > 0 ? (
-              <ul className="text-sm space-y-1 text-slate-800">
+              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
                 {quickChecks.map((q, i) => (
                   <li key={`${item._id}-sns-qc-${i}`}>- {q}</li>
                 ))}
@@ -1383,7 +1383,7 @@ export default function AIContentEngine() {
             "8. Differentiation",
             pickStr("differentiationSupport", "differentiation_support") ||
               pickStr("differentiationExtension", "differentiation_extension") ? (
-              <div className="space-y-2 text-sm text-slate-800">
+              <div className="space-y-2 text-xs sm:text-sm text-slate-800">
                 {pickStr("differentiationSupport", "differentiation_support") ? (
                   <p>
                     <span className="font-medium">Support:</span>{" "}
@@ -1404,7 +1404,7 @@ export default function AIContentEngine() {
           {section(
             "9. Real-life Application",
             pickStr("realLifeApplication", "real_life_application", "real_life_link") ? (
-              <p className="text-sm text-slate-800 whitespace-pre-wrap">
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                 {pickStr("realLifeApplication", "real_life_application", "real_life_link")}
               </p>
             ) : (
@@ -1414,7 +1414,7 @@ export default function AIContentEngine() {
           {section(
             "10. Reflection / Exit Ticket",
             pickStr("reflectionExitTicket", "reflection_exit_ticket", "reflection_prompt") ? (
-              <p className="text-sm text-slate-800 whitespace-pre-wrap">
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                 {pickStr("reflectionExitTicket", "reflection_exit_ticket", "reflection_prompt")}
               </p>
             ) : (
@@ -1520,13 +1520,13 @@ export default function AIContentEngine() {
       return (
         <div className="space-y-3">
           <div className="space-y-0.5">
-            {renderSectionHeader(<CalendarDays className="h-4 w-4" />, displayTitle)}
+            {renderSectionHeader(<CalendarDays className="h-3 w-3 sm:h-4 sm:w-4" />, displayTitle)}
             <p className="text-xs text-slate-500 pl-9">Daily class plan — 9-section template</p>
           </div>
           {pickStr("dayPeriodTopicBreakup", "day_period_topic_breakup", "topic_breakup")
             ? section(
                 "1. Day / Period-wise Topic Break-up",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("dayPeriodTopicBreakup", "day_period_topic_breakup", "topic_breakup")}
                 </p>,
               )
@@ -1534,7 +1534,7 @@ export default function AIContentEngine() {
           {section(
             "2. Learning Objectives (per period)",
             objectives.length > 0 ? (
-              <ul className="text-sm space-y-1">
+              <ul className="text-xs sm:text-sm space-y-1">
                 {objectives.map((line, i) => (
                   <li key={`${item._id}-dp-lo-${i}`}>- {line}</li>
                 ))}
@@ -1546,7 +1546,7 @@ export default function AIContentEngine() {
           {section(
             "3. Teaching Methods",
             teachingMethods.length > 0 ? (
-              <ul className="text-sm space-y-1">
+              <ul className="text-xs sm:text-sm space-y-1">
                 {teachingMethods.map((line, i) => (
                   <li key={`${item._id}-dp-tm-${i}`}>- {line}</li>
                 ))}
@@ -1558,7 +1558,7 @@ export default function AIContentEngine() {
           {section(
             "4. Classroom Activity / Demonstration",
             classroomActivity.length > 0 ? (
-              <ul className="text-sm space-y-1">
+              <ul className="text-xs sm:text-sm space-y-1">
                 {classroomActivity.map((line, i) => (
                   <li key={`${item._id}-dp-ca-${i}`}>- {line}</li>
                 ))}
@@ -1570,7 +1570,7 @@ export default function AIContentEngine() {
           {pickStr("exitTicket", "exit_ticket", "formative_check", "quick_assessment")
             ? section(
                 "5. Quick Assessment / Exit Ticket",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("exitTicket", "exit_ticket", "formative_check", "quick_assessment")}
                 </p>,
               )
@@ -1578,7 +1578,7 @@ export default function AIContentEngine() {
           {pickStr("differentiatedSupport", "differentiated_support", "differentiation", "udl_support")
             ? section(
                 "6. Differentiated Support",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("differentiatedSupport", "differentiated_support", "differentiation", "udl_support")}
                 </p>,
               )
@@ -1586,7 +1586,7 @@ export default function AIContentEngine() {
           {pickStr("homeworkFollowup", "homework_followup", "homework", "follow_up")
             ? section(
                 "7. Homework / Follow-up",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("homeworkFollowup", "homework_followup", "homework", "follow_up")}
                 </p>,
               )
@@ -1594,7 +1594,7 @@ export default function AIContentEngine() {
           {teachingAids.length > 0
             ? section(
                 "8. Required Teaching Aids",
-                <ul className="text-sm space-y-1">
+                <ul className="text-xs sm:text-sm space-y-1">
                   {teachingAids.map((m, i) => (
                     <li key={`${item._id}-dp-aid-${i}`}>- {m}</li>
                   ))}
@@ -1604,7 +1604,7 @@ export default function AIContentEngine() {
           {pickStr("teacherReflectionNotes", "teacher_reflection_notes", "reflection", "teacher_notes")
             ? section(
                 "9. Teacher Reflection Notes",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("teacherReflectionNotes", "teacher_reflection_notes", "reflection", "teacher_notes")}
                 </p>,
               )
@@ -1612,7 +1612,7 @@ export default function AIContentEngine() {
           {timeSlots.length > 0
             ? section(
                 "Period schedule",
-                <ul className="text-sm space-y-2">
+                <ul className="text-xs sm:text-sm space-y-2">
                   {timeSlots.map((ts, i) => {
                     const time = String(ts?.time || "").trim();
                     const activity = String(ts?.activity || "").trim();
@@ -1630,7 +1630,7 @@ export default function AIContentEngine() {
             : timeline.length > 0
               ? section(
                   "Period schedule",
-                  <ul className="text-sm space-y-1">
+                  <ul className="text-xs sm:text-sm space-y-1">
                     {timeline.map((t, i) => (
                       <li key={`${item._id}-dp-tl-${i}`}>- {t}</li>
                     ))}
@@ -1771,13 +1771,13 @@ export default function AIContentEngine() {
       return (
         <div className="space-y-3">
           <div className="space-y-0.5">
-            {renderSectionHeader(<CalendarDays className="h-4 w-4" />, displayLessonTitle)}
+            {renderSectionHeader(<CalendarDays className="h-3 w-3 sm:h-4 sm:w-4" />, displayLessonTitle)}
             <p className="text-xs text-slate-500 pl-9">Lesson planner — 14-section template</p>
           </div>
           {section(
             "2. Learning Objectives",
             objectives.length > 0 ? (
-              <ul className="text-sm space-y-1">
+              <ul className="text-xs sm:text-sm space-y-1">
                 {objectives.map((line, i) => (
                   <li key={`${item._id}-lp-lo-${i}`}>- {line}</li>
                 ))}
@@ -1788,13 +1788,13 @@ export default function AIContentEngine() {
           )}
           {ncfText
             ? section("3. NCF Competency / Learning Outcome Alignment", (
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">{ncfText}</p>
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{ncfText}</p>
               ))
             : null}
           {pickStr("priorKnowledgeDiagnostic", "prior_knowledge_diagnostic", "diagnostic_question")
             ? section(
                 "4. Prior Knowledge / Diagnostic Question",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("priorKnowledgeDiagnostic", "prior_knowledge_diagnostic", "diagnostic_question")}
                 </p>,
               )
@@ -1802,7 +1802,7 @@ export default function AIContentEngine() {
           {pickStr("introductionWarmup", "introduction_warmup", "warmup")
             ? section(
                 "5. Introduction / Warm-up",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("introductionWarmup", "introduction_warmup", "warmup")}
                 </p>,
               )
@@ -1810,7 +1810,7 @@ export default function AIContentEngine() {
           {pickStr("teachingStrategy", "teaching_strategy", "pedagogy")
             ? section(
                 "6. Teaching Strategy",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("teachingStrategy", "teaching_strategy", "pedagogy")}
                 </p>,
               )
@@ -1818,7 +1818,7 @@ export default function AIContentEngine() {
           {section(
             "7. Classroom Activities",
             activities.length > 0 ? (
-              <ol className="text-sm space-y-1 list-decimal list-inside">
+              <ol className="text-xs sm:text-sm space-y-1 list-decimal list-inside">
                 {activities.map((s, i) => (
                   <li key={`${item._id}-lp-a-${i}`}>{s}</li>
                 ))}
@@ -1830,7 +1830,7 @@ export default function AIContentEngine() {
           {teacherTalk.length > 0
             ? section(
                 "8. Teacher Talk Points",
-                <ul className="text-sm space-y-1">
+                <ul className="text-xs sm:text-sm space-y-1">
                   {teacherTalk.map((t, i) => (
                     <li key={`${item._id}-lp-tt-${i}`}>- {t}</li>
                   ))}
@@ -1840,7 +1840,7 @@ export default function AIContentEngine() {
           {studentTasks.length > 0
             ? section(
                 "9. Student Tasks",
-                <ul className="text-sm space-y-1">
+                <ul className="text-xs sm:text-sm space-y-1">
                   {studentTasks.map((t, i) => (
                     <li key={`${item._id}-lp-st-${i}`}>- {t}</li>
                   ))}
@@ -1850,7 +1850,7 @@ export default function AIContentEngine() {
           {formativeQs.length > 0
             ? section(
                 "10. Formative Assessment Questions",
-                <ul className="text-sm space-y-1">
+                <ul className="text-xs sm:text-sm space-y-1">
                   {formativeQs.map((t, i) => (
                     <li key={`${item._id}-lp-fq-${i}`}>- {t}</li>
                   ))}
@@ -1860,7 +1860,7 @@ export default function AIContentEngine() {
           {pickStr("differentiationPlan", "differentiation_plan", "differentiation")
             ? section(
                 "11. Differentiation Plan",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("differentiationPlan", "differentiation_plan", "differentiation")}
                 </p>,
               )
@@ -1868,7 +1868,7 @@ export default function AIContentEngine() {
           {pickStr("homeworkPractice", "homework_practice", "homework")
             ? section(
                 "12. Homework / Practice",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("homeworkPractice", "homework_practice", "homework")}
                 </p>,
               )
@@ -1876,7 +1876,7 @@ export default function AIContentEngine() {
           {materials.length > 0 || teachingAids.length > 0
             ? section(
                 "13. Teaching Aids Required",
-                <ul className="text-sm space-y-1">
+                <ul className="text-xs sm:text-sm space-y-1">
                   {(teachingAids.length ? teachingAids : materials).map((m, i) => (
                     <li key={`${item._id}-lp-aid-${i}`}>- {m}</li>
                   ))}
@@ -1886,7 +1886,7 @@ export default function AIContentEngine() {
           {pickStr("closureExitTicket", "closure_exit_ticket", "exit_ticket") || timeline.length > 0
             ? section(
                 "14. Closure / Exit Ticket",
-                <div className="space-y-2 text-sm text-slate-800 whitespace-pre-wrap">
+                <div className="space-y-2 text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("closureExitTicket", "closure_exit_ticket", "exit_ticket") ? (
                     <p>{pickStr("closureExitTicket", "closure_exit_ticket", "exit_ticket")}</p>
                   ) : null}
@@ -1903,7 +1903,7 @@ export default function AIContentEngine() {
           {assessment
             ? section(
                 "Assessment (general)",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{assessment}</p>,
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{assessment}</p>,
               )
             : null}
           {!hasStructured && fallbackBody ? (
@@ -1986,11 +1986,11 @@ export default function AIContentEngine() {
 
       return (
         <div className="space-y-3">
-          {renderSectionHeader(<BarChart3 className="h-4 w-4" />, rubricTitle)}
+          {renderSectionHeader(<BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />, rubricTitle)}
           {pickStr("assessmentPurpose", "assessment_purpose")
             ? section(
                 "1. Assessment Purpose",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("assessmentPurpose", "assessment_purpose")}
                 </p>,
               )
@@ -1998,7 +1998,7 @@ export default function AIContentEngine() {
           {pickStr("competencyAssessed", "competency_assessed")
             ? section(
                 "2. Competency / Learning Outcome Assessed",
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("competencyAssessed", "competency_assessed")}
                 </p>,
               )
@@ -2006,7 +2006,7 @@ export default function AIContentEngine() {
           {criteriaRows.length > 0
             ? section(
                 "3. Evaluation Rubric with 4 Performance Levels",
-                <div className="space-y-4 text-sm text-slate-800">
+                <div className="space-y-4 text-xs sm:text-sm text-slate-800">
                   {criteriaRows.map((row, i) => {
                     const levels = [
                       { label: "Excellent", value: row.excellent },
@@ -2039,49 +2039,49 @@ export default function AIContentEngine() {
             : null}
           {pickStr("gradingCriteria", "grading_criteria")
             ? section("4. Grading Criteria", (
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("gradingCriteria", "grading_criteria")}
                 </p>
               ))
             : null}
           {pickStr("strengthsObserved", "strengths_observed")
             ? section("5. Strengths Observed", (
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("strengthsObserved", "strengths_observed")}
                 </p>
               ))
             : null}
           {pickStr("areasForImprovement", "areas_for_improvement")
             ? section("6. Areas for Improvement", (
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("areasForImprovement", "areas_for_improvement")}
                 </p>
               ))
             : null}
           {pickStr("teacherRemarks", "teacher_remarks")
             ? section("7. Teacher Remarks", (
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("teacherRemarks", "teacher_remarks")}
                 </p>
               ))
             : null}
           {pickStr("actionableSuggestions", "actionable_suggestions")
             ? section("8. Actionable Improvement Suggestions", (
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("actionableSuggestions", "actionable_suggestions")}
                 </p>
               ))
             : null}
           {pickStr("parentFriendlyFeedback", "parent_friendly_feedback")
             ? section("9. Parent-friendly Feedback", (
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("parentFriendlyFeedback", "parent_friendly_feedback")}
                 </p>
               ))
             : null}
           {pickStr("nextStepRemedialEnrichment", "next_step_remedial_enrichment")
             ? section("10. Next-step Remedial / Enrichment Activity", (
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
                   {pickStr("nextStepRemedialEnrichment", "next_step_remedial_enrichment")}
                 </p>
               ))
@@ -2119,13 +2119,13 @@ export default function AIContentEngine() {
       return (
         <div className="space-y-3">
           <div className="space-y-0.5">
-            {renderSectionHeader(<ScrollText className="h-4 w-4" />, examTitle)}
+            {renderSectionHeader(<ScrollText className="h-3 w-3 sm:h-4 sm:w-4" />, examTitle)}
             <p className="text-xs text-slate-500 pl-9">Exam question paper — 11-section template</p>
           </div>
           {pickStr("instructions", "general_instructions") ? (
             <div className="rounded-xl border bg-white p-3 shadow-sm">
               <p className="text-xs font-semibold text-slate-500">1. Paper Title and General Instructions</p>
-              <p className="text-sm text-slate-800 whitespace-pre-wrap mt-2">
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">
                 {pickStr("instructions", "general_instructions")}
               </p>
             </div>
@@ -2133,21 +2133,21 @@ export default function AIContentEngine() {
           {pickStr("blueprint", "design_grid") ? (
             <div className="rounded-xl border bg-white p-3 shadow-sm">
               <p className="text-xs font-semibold text-slate-500">2. Blueprint / Design Grid</p>
-              <p className="text-sm text-slate-800 whitespace-pre-wrap mt-2">{pickStr("blueprint", "design_grid")}</p>
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">{pickStr("blueprint", "design_grid")}</p>
             </div>
           ) : null}
           {sections.map((section: any, sIdx: number) => (
             <div key={`${item._id}-sec-${sIdx}`} className="rounded-xl border bg-white p-4 shadow-sm">
-              <p className="text-sm font-semibold">{String(section?.sectionName || section?.title || `Section ${sIdx + 1}`)}</p>
+              <p className="text-xs sm:text-sm font-semibold">{String(section?.sectionName || section?.title || `Section ${sIdx + 1}`)}</p>
               {toQuestionArray(section?.questions || []).map((q, qIdx) => {
                 const qx = q as { question_number?: number; marks?: number };
                 return (
                 <div key={`${item._id}-sec-${sIdx}-q-${qIdx}`} className="rounded-lg border border-slate-100 p-3 mt-2 space-y-2">
-                  <p className="text-sm font-medium">
+                  <p className="text-xs sm:text-sm font-medium">
                     Q{qx.question_number != null ? String(qx.question_number) : qIdx + 1}. {q.question}
                   </p>
                   {q.options.length > 0 && (
-                    <ul className="text-sm space-y-1 text-slate-700">
+                    <ul className="text-xs sm:text-sm space-y-1 text-slate-700">
                       {q.options.map((opt: string, idx: number) => (
                         <li key={`${item._id}-sec-${sIdx}-q-${qIdx}-o-${idx}`}>- {opt}</li>
                       ))}
@@ -2169,7 +2169,7 @@ export default function AIContentEngine() {
           {pickStr("internalChoices", "internal_choices") ? (
             <div className="rounded-xl border bg-white p-3 shadow-sm">
               <p className="text-xs font-semibold text-slate-500">8. Internal Choices</p>
-              <p className="text-sm text-slate-800 whitespace-pre-wrap mt-2">
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">
                 {pickStr("internalChoices", "internal_choices")}
               </p>
             </div>
@@ -2185,7 +2185,7 @@ export default function AIContentEngine() {
           {pickStr("markingScheme", "marking_scheme") ? (
             <div className="rounded-xl border bg-white p-3 shadow-sm">
               <p className="text-xs font-semibold text-slate-500">10. Detailed Marking Scheme</p>
-              <p className="text-sm text-slate-800 whitespace-pre-wrap mt-2">
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">
                 {pickStr("markingScheme", "marking_scheme")}
               </p>
             </div>
@@ -2193,7 +2193,7 @@ export default function AIContentEngine() {
           {pickStr("openEndedRubric", "open_ended_rubric") ? (
             <div className="rounded-xl border bg-white p-3 shadow-sm">
               <p className="text-xs font-semibold text-slate-500">11. Rubric for Open-ended Questions</p>
-              <p className="text-sm text-slate-800 whitespace-pre-wrap mt-2">
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">
                 {pickStr("openEndedRubric", "open_ended_rubric")}
               </p>
             </div>
@@ -2279,18 +2279,18 @@ export default function AIContentEngine() {
       return (
         <div className="space-y-3">
           <div className="space-y-0.5">
-            {renderSectionHeader(<FlaskConical className="h-4 w-4" />, displayTitle)}
+            {renderSectionHeader(<FlaskConical className="h-3 w-3 sm:h-4 sm:w-4" />, displayTitle)}
             <p className="text-xs text-slate-500 pl-9">Activity &amp; Project — section 1 (title)</p>
           </div>
           {subtopicLink
             ? section("2. Subtopic Link and Prior Knowledge Required", (
-                <p className="text-sm text-slate-800 whitespace-pre-wrap">{subtopicLink}</p>
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{subtopicLink}</p>
               ))
             : null}
           {section(
             "3. Learning Objectives",
             learningObjectives.length > 0 ? (
-              <ul className="text-sm space-y-1">
+              <ul className="text-xs sm:text-sm space-y-1">
                 {learningObjectives.map((line: string, i: number) => (
                   <li key={`${item._id}-lo-${i}`}>- {line}</li>
                 ))}
@@ -2303,20 +2303,20 @@ export default function AIContentEngine() {
             ? section(
                 "4. NCF Competency / Learning Outcome Alignment",
                 Array.isArray(ncfAlignment) ? (
-                  <ul className="text-sm space-y-1">
+                  <ul className="text-xs sm:text-sm space-y-1">
                     {(ncfAlignment as string[]).map((line: string, i: number) => (
                       <li key={`${item._id}-ncf-${i}`}>- {line}</li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-slate-800 whitespace-pre-wrap">{ncfAlignment as string}</p>
+                  <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{ncfAlignment as string}</p>
                 ),
               )
             : null}
           {section(
             "5. Materials Required",
             materials.length > 0 ? (
-              <ul className="text-sm space-y-1">
+              <ul className="text-xs sm:text-sm space-y-1">
                 {materials.map((m: string, i: number) => (
                   <li key={`${item._id}-m-${i}`}>- {m}</li>
                 ))}
@@ -2328,13 +2328,13 @@ export default function AIContentEngine() {
           {section(
             "6. Step-by-step Procedure",
             stepsVisible.length > 0 ? (
-              <ol className="text-sm space-y-1 list-decimal list-inside">
+              <ol className="text-xs sm:text-sm space-y-1 list-decimal list-inside">
                 {stepsVisible.map((s: string, i: number) => (
                   <li key={`${item._id}-s-${i}`}>{s}</li>
                 ))}
               </ol>
             ) : rawExcerpt ? (
-              <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{rawExcerpt}</p>
+              <p className="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{rawExcerpt}</p>
             ) : (
               <p className="text-xs text-slate-500 italic">No procedure extracted. Re-upload the PDF after server update, or check that the PDF uses the template section headings.</p>
             ),
@@ -2342,7 +2342,7 @@ export default function AIContentEngine() {
           {teacherInstructions.length > 0
             ? section(
                 "7. Teacher Instructions",
-                <ul className="text-sm space-y-1">
+                <ul className="text-xs sm:text-sm space-y-1">
                   {teacherInstructions.map((t: string, i: number) => (
                     <li key={`${item._id}-ti-${i}`}>- {t}</li>
                   ))}
@@ -2352,7 +2352,7 @@ export default function AIContentEngine() {
           {section(
             "8. Student Instructions",
             studentInstructions.length > 0 ? (
-              <ul className="text-sm space-y-1">
+              <ul className="text-xs sm:text-sm space-y-1">
                 {studentInstructions.map((t: string, i: number) => (
                   <li key={`${item._id}-si-${i}`}>- {t}</li>
                 ))}
@@ -2362,12 +2362,12 @@ export default function AIContentEngine() {
             ),
           )}
           {differentiation
-            ? section("9. Differentiation", <p className="text-sm text-slate-800 whitespace-pre-wrap">{differentiation}</p>)
+            ? section("9. Differentiation", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{differentiation}</p>)
             : null}
           {assessmentRubric.length > 0
             ? section(
                 "10. Assessment Rubric",
-                <ul className="text-sm space-y-1">
+                <ul className="text-xs sm:text-sm space-y-1">
                   {assessmentRubric.map((row: string, i: number) => (
                     <li key={`${item._id}-ar-${i}`}>- {row}</li>
                   ))}
@@ -2375,13 +2375,13 @@ export default function AIContentEngine() {
               )
             : null}
           {expectedOutcomes
-            ? section("11. Expected Learning Outcomes", <p className="text-sm text-slate-800 whitespace-pre-wrap">{expectedOutcomes}</p>)
+            ? section("11. Expected Learning Outcomes", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{expectedOutcomes}</p>)
             : null}
           {realLifeApplication
-            ? section("12. Real-life Application", <p className="text-sm text-slate-800 whitespace-pre-wrap">{realLifeApplication}</p>)
+            ? section("12. Real-life Application", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{realLifeApplication}</p>)
             : null}
           {reflectionExit
-            ? section("13. Reflection / Exit Ticket", <p className="text-sm text-slate-800 whitespace-pre-wrap">{reflectionExit}</p>)
+            ? section("13. Reflection / Exit Ticket", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{reflectionExit}</p>)
             : null}
         </div>
       );
@@ -2391,17 +2391,17 @@ export default function AIContentEngine() {
     const keyPoints = Array.isArray(content.keyPoints) ? content.keyPoints : fallback.keyPoints || [];
     return (
       <div className="space-y-2">
-        {renderSectionHeader(<Lightbulb className="h-4 w-4" />, "Notes / Summary")}
+        {renderSectionHeader(<Lightbulb className="h-3 w-3 sm:h-4 sm:w-4" />, "Notes / Summary")}
         {sections.map((section: any, idx: number) => (
           <div key={`${item._id}-note-${idx}`} className="rounded-xl border bg-white p-4 shadow-sm">
-            <p className="text-sm font-semibold">{String(section?.heading || section?.title || `Section ${idx + 1}`)}</p>
-            <p className="text-sm text-slate-700 mt-1">{String(section?.explanation || section?.content || "").trim()}</p>
+            <p className="text-xs sm:text-sm font-semibold">{String(section?.heading || section?.title || `Section ${idx + 1}`)}</p>
+            <p className="text-xs sm:text-sm text-slate-700 mt-1">{String(section?.explanation || section?.content || "").trim()}</p>
           </div>
         ))}
         {keyPoints.length > 0 && (
           <div className="rounded-xl border bg-white p-4">
             <p className="text-xs font-semibold text-slate-500 mb-2 flex items-center gap-1"><Star className="h-3.5 w-3.5" />Key Points</p>
-            <ul className="text-sm text-slate-700 space-y-1">{keyPoints.map((point: any, idx: number) => <li key={`${item._id}-kp-${idx}`}>- {String(point)}</li>)}</ul>
+            <ul className="text-xs sm:text-sm text-slate-700 space-y-1">{keyPoints.map((point: any, idx: number) => <li key={`${item._id}-kp-${idx}`}>- {String(point)}</li>)}</ul>
           </div>
         )}
       </div>
@@ -2846,7 +2846,7 @@ export default function AIContentEngine() {
   };
 
   return (
-    <div className="space-y-6 max-lg:space-y-4">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6 max-lg:space-y-4">
       <Card>
         <CardHeader>
           <CardTitle>AI PDF</CardTitle>
@@ -3080,14 +3080,14 @@ export default function AIContentEngine() {
           </div>
 
           {uploadStep !== "idle" && uploadStep !== "done" && uploadStep !== "error" && (
-            <div className="md:col-span-2 lg:col-span-4 flex items-center gap-2 text-sm text-blue-700 bg-blue-50 px-4 py-2 rounded-lg">
-              <Loader2 className="w-4 h-4 animate-spin" />
+            <div className="md:col-span-2 lg:col-span-4 flex items-center gap-2 text-xs sm:text-sm text-blue-700 bg-blue-50 px-4 py-2 rounded-lg">
+              <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
               {STEP_MESSAGES[uploadStep]}
             </div>
           )}
 
           {uploadStep === "done" && lastUploadResult && (
-            <div className="md:col-span-2 lg:col-span-4 text-sm text-emerald-700 bg-emerald-50 px-4 py-2 rounded-lg">
+            <div className="md:col-span-2 lg:col-span-4 text-xs sm:text-sm text-emerald-700 bg-emerald-50 px-4 py-2 rounded-lg">
               {`✅ ${lastUploadResult.totalSaved} record${lastUploadResult.totalSaved !== 1 ? "s" : ""} saved successfully`}
             </div>
           )}
@@ -3132,7 +3132,7 @@ export default function AIContentEngine() {
         <CardContent className="pt-6">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-slate-800">Saved PDF records</p>
+              <p className="text-xs sm:text-sm font-semibold text-slate-800">Saved PDF records</p>
               <p className="text-xs text-slate-500">
                 Showing:{" "}
                 <span className="font-medium text-slate-700">
@@ -3171,9 +3171,9 @@ export default function AIContentEngine() {
             </div>
           </div>
           {isLoading ? (
-            <p className="text-sm text-gray-600">Loading hierarchy...</p>
+            <p className="text-xs sm:text-sm text-gray-600">Loading hierarchy...</p>
           ) : groupedHierarchy.length === 0 ? (
-            <p className="text-sm text-gray-600">
+            <p className="text-xs sm:text-sm text-gray-600">
               No saved AI content records
               {recordsBoardFilter !== "__all__"
                 ? ` for board “${recordsBoardFilter}”. Try “All boards” in the filter above.`
@@ -3189,9 +3189,9 @@ export default function AIContentEngine() {
                 >
                   <AccordionTrigger className="py-3 no-underline hover:no-underline max-lg:py-2.5 [&>svg]:shrink-0">
                     <div className="flex min-w-0 flex-1 items-center gap-2 text-left">
-                      <Wrench className="h-4 w-4 shrink-0 text-orange-600" />
+                      <Wrench className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-orange-600" />
                       <Badge className="shrink-0 bg-orange-500 hover:bg-orange-500">Tool</Badge>
-                      <span className="min-w-0 flex-1 break-words font-medium text-sm">{toolNode.tool}</span>
+                      <span className="min-w-0 flex-1 break-words font-medium text-xs sm:text-sm">{toolNode.tool}</span>
                       <Badge className="shrink-0" variant="outline">
                         {toolNode.recordCount} generation{toolNode.recordCount !== 1 ? "s" : ""}
                       </Badge>
@@ -3207,11 +3207,11 @@ export default function AIContentEngine() {
                         >
                           <AccordionTrigger className="py-2.5 no-underline hover:no-underline max-lg:py-2 [&>svg]:shrink-0">
                             <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-left">
-                              <School className="h-4 w-4 shrink-0 text-slate-600" />
+                              <School className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-slate-600" />
                               <Badge className="shrink-0" variant="secondary">
                                 Class
                               </Badge>
-                              <span className="min-w-0 break-words text-sm">{classNode.classLabel}</span>
+                              <span className="min-w-0 break-words text-xs sm:text-sm">{classNode.classLabel}</span>
                               <Badge className="shrink-0" variant="outline">
                                 {classNode.board || "-"}
                               </Badge>
@@ -3227,11 +3227,11 @@ export default function AIContentEngine() {
                                 >
                                   <AccordionTrigger className="py-2.5 no-underline hover:no-underline max-lg:py-2 [&>svg]:shrink-0">
                                     <div className="flex min-w-0 flex-1 items-center gap-2 text-left">
-                                      <BookOpen className="h-4 w-4 shrink-0 text-slate-600" />
+                                      <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-slate-600" />
                                       <Badge className="shrink-0" variant="secondary">
                                         Subject
                                       </Badge>
-                                      <span className="min-w-0 break-words text-sm">{subjectNode.subject}</span>
+                                      <span className="min-w-0 break-words text-xs sm:text-sm">{subjectNode.subject}</span>
                                     </div>
                                   </AccordionTrigger>
                                   <AccordionContent className="space-y-2">
@@ -3244,11 +3244,11 @@ export default function AIContentEngine() {
                                         >
                                           <AccordionTrigger className="py-2.5 no-underline hover:no-underline max-lg:py-2 [&>svg]:shrink-0">
                                             <div className="flex min-w-0 flex-1 items-center gap-2 text-left">
-                                              <BookText className="h-4 w-4 shrink-0 text-slate-600" />
+                                              <BookText className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-slate-600" />
                                               <Badge className="shrink-0" variant="secondary">
                                                 Topic
                                               </Badge>
-                                              <span className="min-w-0 break-words text-sm">{topicNode.topic}</span>
+                                              <span className="min-w-0 break-words text-xs sm:text-sm">{topicNode.topic}</span>
                                             </div>
                                           </AccordionTrigger>
                                           <AccordionContent className="space-y-2">
@@ -3261,11 +3261,11 @@ export default function AIContentEngine() {
                                                 >
                                                   <AccordionTrigger className="py-2.5 no-underline hover:no-underline max-lg:py-2 [&>svg]:shrink-0">
                                                     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-left">
-                                                      <Pin className="h-4 w-4 shrink-0 text-slate-600" />
+                                                      <Pin className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-slate-600" />
                                                       <Badge className="shrink-0" variant="secondary">
                                                         Subtopic
                                                       </Badge>
-                                                      <span className="min-w-0 flex-1 break-words text-sm lg:flex-initial">
+                                                      <span className="min-w-0 flex-1 break-words text-xs sm:text-sm lg:flex-initial">
                                                         {subtopicNode.subtopic}
                                                       </span>
                                                       <Badge className="shrink-0" variant="outline">
@@ -3287,7 +3287,7 @@ export default function AIContentEngine() {
                                                           <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-start lg:justify-between">
                                                             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                                                               <div className="flex flex-wrap items-center gap-2">
-                                                                <FolderOpen className="h-4 w-4 shrink-0 text-slate-500" />
+                                                                <FolderOpen className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-slate-500" />
                                                                 <Badge variant="outline" className="font-medium">
                                                                   Record {idx + 1}
                                                                 </Badge>
@@ -3298,7 +3298,7 @@ export default function AIContentEngine() {
                                                               <span className="pl-6 text-xs text-slate-500 tabular-nums lg:hidden">
                                                                 {new Date(record.uploadDate).toLocaleString()}
                                                               </span>
-                                                              <p className="text-sm font-medium leading-snug text-slate-800 line-clamp-2 pl-6 sm:pl-0">
+                                                              <p className="text-xs sm:text-sm font-medium leading-snug text-slate-800 line-clamp-2 pl-6 sm:pl-0">
                                                                 {pdfRecordPreviewLine(record)}
                                                               </p>
                                                             </div>
@@ -3330,7 +3330,7 @@ export default function AIContentEngine() {
                                                                     setPdfContentViewId(record._id);
                                                                   }}
                                                                 >
-                                                                  <Eye className="h-4 w-4 shrink-0" />
+                                                                  <Eye className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
                                                                   View
                                                                 </Button>
                                                                 <Button
@@ -3346,7 +3346,7 @@ export default function AIContentEngine() {
                                                                     void deletePdf(record._id);
                                                                   }}
                                                                 >
-                                                                  <Trash2 className="h-4 w-4" />
+                                                                  <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                                                                 </Button>
                                                               </div>
                                                             </div>
@@ -3383,8 +3383,8 @@ export default function AIContentEngine() {
 
       <Dialog open={!!pdfContentViewId} onOpenChange={(open) => !open && setPdfContentViewId(null)}>
         <DialogContent className="flex max-h-[min(92vh,920px)] w-[min(100vw-1.5rem,56rem)] max-w-[56rem] flex-col gap-0 overflow-hidden rounded-2xl border-slate-200/90 p-0 shadow-2xl">
-          <DialogHeader className="shrink-0 space-y-1 border-b border-slate-100 bg-gradient-to-br from-slate-50 via-white to-blue-50/50 px-6 py-4 text-left">
-            <DialogTitle className="pr-8 text-lg font-semibold leading-snug tracking-tight text-slate-900">
+          <DialogHeader className="shrink-0 space-y-1 border-b border-slate-100 bg-gradient-to-br from-slate-50 via-white to-blue-50/50 px-3 sm:px-4 lg:px-6 py-4 text-left">
+            <DialogTitle className="pr-8 text-base sm:text-lg font-semibold leading-snug tracking-tight text-slate-900">
               {pdfContentViewRecord ? pdfRecordPreviewLine(pdfContentViewRecord) : "Record content"}
             </DialogTitle>
             {pdfContentViewRecord ? (

@@ -437,10 +437,10 @@ export default function EduOTT() {
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-              <VideoIcon className="w-6 h-6 text-white" />
+              <VideoIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">EduOTT</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">EduOTT</h1>
               <p className="text-gray-600">
                 Educational videos and live sessions from all your subjects
               </p>
@@ -453,15 +453,15 @@ export default function EduOTT() {
           subjectOptions={globalSubjectOptions}
         />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 mt-6">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3 sm:space-y-4 lg:space-y-6 mt-6">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2">
             <TabsTrigger value="videos">Videos</TabsTrigger>
             <TabsTrigger value="live-sessions">Live Sessions</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="videos" className="space-y-6">
+          <TabsContent value="videos" className="space-y-3 sm:space-y-4 lg:space-y-6">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
               <Input
                 type="text"
                 placeholder="Search videos..."
@@ -472,7 +472,7 @@ export default function EduOTT() {
             </div>
 
             <div className="mb-2 flex items-center justify-between gap-3">
-              <p className="text-sm text-gray-600">
+              <p className="text-xs sm:text-sm text-gray-600">
                 Showing {filteredVideos.length} of {videos.length} videos
               </p>
               {isRefreshingVideos ? (
@@ -482,7 +482,7 @@ export default function EduOTT() {
 
             <div className="min-h-[420px]">
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Card key={i} className="overflow-hidden">
                     <Skeleton className="w-full h-48" />
@@ -500,7 +500,7 @@ export default function EduOTT() {
             ) : filteredVideos.length === 0 ? (
               <div className="text-center py-16">
                 <VideoIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">
                   {videos.length === 0 ? 'No Videos Available' : 'No Videos Found'}
                 </h3>
                 <p className="text-gray-500 max-w-md mx-auto">
@@ -512,7 +512,7 @@ export default function EduOTT() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
                 {filteredVideos.map((video) => (
                   <Card
                     key={video._id}
@@ -540,7 +540,7 @@ export default function EduOTT() {
 
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
-                          <Play className="w-8 h-8 text-primary ml-1" fill="currentColor" />
+                          <Play className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-primary ml-1" fill="currentColor" />
                         </div>
                       </div>
 
@@ -552,7 +552,7 @@ export default function EduOTT() {
 
                     <CardHeader>
                       <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-lg font-semibold text-gray-900 line-clamp-2 flex-1">
+                        <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 line-clamp-2 flex-1">
                           {video.title}
                         </CardTitle>
                       </div>
@@ -582,7 +582,7 @@ export default function EduOTT() {
 
                     <CardContent>
                       {video.description && (
-                        <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+                        <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 mb-3">
                           {video.description}
                         </p>
                       )}
@@ -603,10 +603,10 @@ export default function EduOTT() {
             </div>
           </TabsContent>
 
-          <TabsContent value="live-sessions" className="space-y-6">
+          <TabsContent value="live-sessions" className="space-y-3 sm:space-y-4 lg:space-y-6">
             <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end">
               <div className="flex-1 min-w-0 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
                 <Input
                   type="text"
                   placeholder="Search live sessions..."
@@ -655,7 +655,7 @@ export default function EduOTT() {
             ) : filteredSessions.length === 0 ? (
               <div className="text-center py-16">
                 <Radio className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-600 mb-2">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">
                   {liveSessions.length === 0
                     ? 'No Live Sessions Available'
                     : 'No Live Sessions Found'}
@@ -672,11 +672,11 @@ export default function EduOTT() {
               <div className="space-y-4">
                 {filteredSessions.map((session) => (
                   <Card key={session._id} className="hover:shadow-lg transition-shadow">
-                    <CardContent className="p-6">
+                    <CardContent className="p-3 sm:p-4 lg:p-6">
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-lg font-semibold text-gray-900">{session.title}</h3>
+                            <h3 className="text-base sm:text-lg font-semibold text-gray-900">{session.title}</h3>
                             <Badge className={getStatusColor(session.status)}>
                               {session.status.toUpperCase()}
                             </Badge>
@@ -684,16 +684,16 @@ export default function EduOTT() {
                           {session.description && (
                             <p className="text-gray-600 mb-4">{session.description}</p>
                           )}
-                          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                          <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-gray-600">
                             <div className="flex items-center gap-1">
-                              <Users className="w-4 h-4" />
+                              <Users className="w-3 h-3 sm:w-4 sm:h-4" />
                               <span>
                                 {session.streamer?.fullName || session.streamer?.email || 'Unknown'}
                               </span>
                             </div>
                             {session.subject ? (
                               <div className="flex items-center gap-1">
-                                <BookOpen className="w-4 h-4" />
+                                <BookOpen className="w-3 h-3 sm:w-4 sm:h-4" />
                                 <span>{session.subject}</span>
                               </div>
                             ) : null}
@@ -701,12 +701,12 @@ export default function EduOTT() {
                               <Badge variant="outline">Class {session.class}</Badge>
                             ) : null}
                             <div className="flex items-center gap-1">
-                              <Eye className="w-4 h-4" />
+                              <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                               <span>{session.viewerCount || 0} viewers</span>
                             </div>
                             {(session.scheduledTime || session.scheduledStartTime) && (
                               <div className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
+                                <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                                 <span>
                                   {new Date(
                                     session.scheduledTime || session.scheduledStartTime || ''
@@ -726,7 +726,7 @@ export default function EduOTT() {
                               }
                             }}
                           >
-                            <Play className="w-4 h-4 mr-2" />
+                            <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                             Watch Live
                           </Button>
                         )}

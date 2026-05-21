@@ -442,11 +442,11 @@ export default function AdminCalendar() {
   }, [monthlyEvents]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Calendar</h2>
+          <h2 className="text-xl sm:text-2xl sm:text-3xl font-bold text-gray-900">Calendar</h2>
           <p className="text-sm sm:text-base text-gray-600 mt-1">Manage and view your events</p>
         </div>
         <Button onClick={goToToday} variant="outline" className="shrink-0">
@@ -459,23 +459,23 @@ export default function AdminCalendar() {
         <CardContent className="p-3 sm:p-6">
           <div className="flex items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-6">
             <div className="flex items-center gap-2 sm:gap-4">
-              <Button variant="outline" size="icon" onClick={goToPreviousMonth} className="h-8 w-8 sm:h-10 sm:w-10">
-                <ChevronLeft className="h-4 w-4" />
+              <Button variant="outline" size="icon" onClick={goToPreviousMonth} className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 sm:h-10 sm:w-10">
+                <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
-              <h3 className="text-lg sm:text-2xl font-semibold text-gray-900">
+              <h3 className="text-base sm:text-lg sm:text-2xl font-semibold text-gray-900">
                 {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
               </h3>
-              <Button variant="outline" size="icon" onClick={goToNextMonth} className="h-8 w-8 sm:h-10 sm:w-10">
-                <ChevronRight className="h-4 w-4" />
+              <Button variant="outline" size="icon" onClick={goToNextMonth} className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 sm:h-10 sm:w-10">
+                <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
             </div>
           </div>
 
           {/* Mobile agenda */}
           <div className="sm:hidden mb-4">
-            <h4 className="text-sm font-semibold text-sky-900 mb-2">Upcoming This Month</h4>
+            <h4 className="text-xs sm:text-sm font-semibold text-sky-900 mb-2">Upcoming This Month</h4>
             {monthlyEventsByDate.length === 0 ? (
-              <p className="text-sm text-gray-500">No events or exams scheduled this month.</p>
+              <p className="text-xs sm:text-sm text-gray-500">No events or exams scheduled this month.</p>
             ) : (
               <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
                 {monthlyEventsByDate.map(([dateKey, dayEvents]) => (
@@ -497,7 +497,7 @@ export default function AdminCalendar() {
                           className="w-full rounded-md border border-sky-100 bg-sky-50 text-left px-2 py-2"
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <p className="text-sm font-medium text-sky-900 truncate">{event.name}</p>
+                            <p className="text-xs sm:text-sm font-medium text-sky-900 truncate">{event.name}</p>
                             <Badge className={event.type === 'exam' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}>
                               {event.type === 'exam' ? 'Exam' : 'Event'}
                             </Badge>
@@ -599,7 +599,7 @@ export default function AdminCalendar() {
                 <span className="text-xs text-sky-600">{monthlyEvents.length} scheduled</span>
               </div>
               {monthlyEvents.length === 0 ? (
-                <p className="text-sm text-gray-500">No events or exams scheduled this month.</p>
+                <p className="text-xs sm:text-sm text-gray-500">No events or exams scheduled this month.</p>
               ) : (
                 <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                   {monthlyEvents.map((event, idx) => {
@@ -614,7 +614,7 @@ export default function AdminCalendar() {
                         className="w-full text-left rounded-lg border border-sky-100 bg-white hover:bg-sky-50 px-3 py-2 transition-colors"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-medium text-sky-900 truncate">{event.name}</p>
+                          <p className="text-xs sm:text-sm font-medium text-sky-900 truncate">{event.name}</p>
                           <Badge className={event.type === 'exam' ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700'}>
                             {event.type === 'exam' ? 'Exam' : 'Event'}
                           </Badge>
@@ -666,7 +666,7 @@ export default function AdminCalendar() {
                       onClick={() => setEventForm({ ...eventForm, photo: null, photoUrl: '' })}
                       className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-3 w-3 sm:h-4 sm:w-4" />
                     </button>
                   </div>
                 )}
@@ -772,7 +772,7 @@ export default function AdminCalendar() {
                       handleEditEvent(selectedEvent);
                     }}
                   >
-                    <Edit className="h-4 w-4 mr-2" />
+                    <Edit className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                     Edit
                   </Button>
                   <Button
@@ -782,7 +782,7 @@ export default function AdminCalendar() {
                       handleDeleteEvent(selectedEvent);
                     }}
                   >
-                    <Trash2 className="h-4 w-4 mr-2" />
+                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                     Delete
                   </Button>
                 </div>

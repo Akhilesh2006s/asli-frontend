@@ -1915,9 +1915,9 @@ export default function Dashboard() {
         <div className="min-h-screen bg-sky-50 flex items-center justify-center">
           <div className="text-center">
             <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
-              <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
             </div>
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent mb-2">Loading...</h2>
+            <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent mb-2">Loading...</h2>
             <p className="text-gray-600">Preparing your dashboard</p>
           </div>
         </div>
@@ -1945,19 +1945,19 @@ export default function Dashboard() {
         <div className="mt-6 sm:mt-8 mb-6 relative z-10">
         {studyStreak && studyStreak.count > 0 && (
           <div className="mb-4 flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2.5">
-            <span className="text-xl">🔥</span>
+            <span className="text-lg sm:text-xl">🔥</span>
             <div>
-              <p className="text-sm font-semibold text-orange-700">{studyStreak.count}-day study streak!</p>
+              <p className="text-xs sm:text-sm font-semibold text-orange-700">{studyStreak.count}-day study streak!</p>
               <p className="text-xs text-orange-600">{studyStreak.message || 'Keep it up!'}</p>
             </div>
           </div>
         )}
-        <div className="bg-gradient-to-r from-blue-500 via-blue-400 to-teal-400 rounded-2xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl">
+        <div className="bg-gradient-to-r from-blue-500 via-blue-400 to-teal-400 rounded-2xl p-3 sm:p-4 lg:p-6 sm:p-8 text-white relative overflow-hidden shadow-xl">
         <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
             <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               {/* Left side - Text content */}
               <div className="flex-1">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1 sm:mb-2">
+                <h1 className="text-lg sm:text-xl sm:text-2xl lg:text-3xl font-bold mb-1 sm:mb-2">
                   Welcome back, {user?.email?.split('@')[0] || user?.fullName?.split(' ')[0] || 'Student'}!
                 </h1>
                 <p className="text-white/90 mb-3 sm:mb-4 text-xs sm:text-sm">
@@ -1966,14 +1966,14 @@ export default function Dashboard() {
                 
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <Button 
-                    className="bg-white text-orange-600 hover:bg-orange-50 hover:text-orange-700 w-full sm:w-auto font-semibold text-sm py-2 px-4"
+                    className="bg-white text-orange-600 hover:bg-orange-50 hover:text-orange-700 w-full sm:w-auto font-semibold text-xs sm:text-sm py-2 px-4"
                     onClick={() => setLocation('/learning-paths')}
                   >
                     Continue Learning
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="border-white/30 bg-white/10 text-white hover:bg-white/20 w-full sm:w-auto text-sm py-2 px-4"
+                    className="border-white/30 bg-white/10 text-white hover:bg-white/20 w-full sm:w-auto text-xs sm:text-sm py-2 px-4"
                     onClick={() => setLocation('/ai-tutor')}
                   >
                     Ask Vidya AI
@@ -2003,11 +2003,11 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Today's Progress */}
             <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-lg hover:shadow-md transition-all duration-200 h-full">
-              <CardContent className="p-6 flex flex-col h-full relative">
-                <div className="absolute top-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                  <Target className="w-5 h-5 text-white" />
+              <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col h-full relative">
+                <div className="absolute top-3 sm:p-4 lg:p-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <Target className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <p className="text-sm font-medium text-white/90 mb-4 pr-12">Today's Progress</p>
+                <p className="text-xs sm:text-sm font-medium text-white/90 mb-4 pr-12">Today's Progress</p>
                 {(() => {
                   const totalTodos = incompleteContent.length + incompleteQuizzes.length;
                   const completedTodos = incompleteContent.filter((c: any) => completedScheduleIds.has(c._id)).length + 
@@ -2015,7 +2015,7 @@ export default function Dashboard() {
                   const percentage = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
                   return (
                     <>
-                      <p className="text-3xl font-bold text-white mb-3 leading-tight">{completedTodos}/{totalTodos}</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-white mb-3 leading-tight">{completedTodos}/{totalTodos}</p>
                       <div className="w-full bg-white/20 rounded-full h-2 mb-2 overflow-hidden">
                         <div className="bg-white h-2 rounded-full transition-all duration-500" style={{ width: `${percentage}%` }}></div>
                       </div>
@@ -2028,12 +2028,12 @@ export default function Dashboard() {
 
             {/* Study Time */}
             <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg rounded-lg hover:shadow-md transition-all duration-200 h-full">
-              <CardContent className="p-6 flex flex-col h-full relative">
-                <div className="absolute top-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-white" />
+              <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col h-full relative">
+                <div className="absolute top-3 sm:p-4 lg:p-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <p className="text-sm font-medium text-white/90 mb-4 pr-12">Study Time</p>
-                <p className="text-3xl font-bold text-white mb-2 leading-tight transition-all duration-300">
+                <p className="text-xs sm:text-sm font-medium text-white/90 mb-4 pr-12">Study Time</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white mb-2 leading-tight transition-all duration-300">
                   {studyTimeToday >= 60 
                     ? `${(studyTimeToday / 60).toFixed(1)} hrs` 
                     : studyTimeToday < 1 && studyTimeToday > 0
@@ -2046,12 +2046,12 @@ export default function Dashboard() {
 
             {/* This Week */}
             <Card className="bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-lg hover:shadow-md transition-all duration-200 h-full">
-              <CardContent className="p-6 flex flex-col h-full relative">
-                <div className="absolute top-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-white" />
+              <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col h-full relative">
+                <div className="absolute top-3 sm:p-4 lg:p-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <p className="text-sm font-medium text-white/90 mb-4 pr-12">This Week</p>
-                <p className="text-3xl font-bold text-white mb-2 leading-tight transition-all duration-300">
+                <p className="text-xs sm:text-sm font-medium text-white/90 mb-4 pr-12">This Week</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white mb-2 leading-tight transition-all duration-300">
                   {studyTimeThisWeek >= 60 
                     ? `${(studyTimeThisWeek / 60).toFixed(1)} hrs` 
                     : studyTimeThisWeek < 1 && studyTimeThisWeek > 0
@@ -2064,11 +2064,11 @@ export default function Dashboard() {
 
             {/* Efficiency */}
             <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-lg hover:shadow-md transition-all duration-200 h-full">
-              <CardContent className="p-6 flex flex-col h-full relative">
-                <div className="absolute top-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-white" />
+              <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col h-full relative">
+                <div className="absolute top-3 sm:p-4 lg:p-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <p className="text-sm font-medium text-white/90 mb-4 pr-12">Efficiency</p>
+                <p className="text-xs sm:text-sm font-medium text-white/90 mb-4 pr-12">Efficiency</p>
                 {(() => {
                   const totalTodos = incompleteContent.length + incompleteQuizzes.length;
                   const completedTodos = incompleteContent.filter((c: any) => completedScheduleIds.has(c._id)).length + 
@@ -2076,7 +2076,7 @@ export default function Dashboard() {
                   const efficiency = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
                   return (
                     <>
-                      <p className="text-3xl font-bold text-white mb-2 leading-tight">{efficiency}%</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-white mb-2 leading-tight">{efficiency}%</p>
                       <p className="text-xs text-white/80 mt-auto">Completion rate</p>
                     </>
                   );
@@ -2093,8 +2093,8 @@ export default function Dashboard() {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-xl font-bold text-gray-900">Study Calendar</CardTitle>
-                    <p className="text-sm text-gray-600 mt-1">Plan content, quizzes, and exams in one place</p>
+                    <CardTitle className="text-lg sm:text-xl font-bold text-gray-900">Study Calendar</CardTitle>
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1">Plan content, quizzes, and exams in one place</p>
                   </div>
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <div className="flex items-center gap-2">
@@ -2107,9 +2107,9 @@ export default function Dashboard() {
                           )
                         }
                       >
-                        <ChevronLeft className="w-4 h-4" />
+                        <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
-                      <p className="text-sm font-semibold text-gray-800 min-w-[120px] text-center">
+                      <p className="text-xs sm:text-sm font-semibold text-gray-800 min-w-[120px] text-center">
                         {calendarMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                       </p>
                       <Button
@@ -2121,7 +2121,7 @@ export default function Dashboard() {
                           )
                         }
                       >
-                        <ChevronRight className="w-4 h-4" />
+                        <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
                     </div>
                     <div className="flex items-center gap-2">
@@ -2156,7 +2156,7 @@ export default function Dashboard() {
                         key={dayKey}
                         type="button"
                         onClick={() => setSelectedCalendarDate(day)}
-                        className={`h-12 rounded-lg border text-sm transition-colors relative ${
+                        className={`h-12 rounded-lg border text-xs sm:text-sm transition-colors relative ${
                           isSelected
                             ? 'bg-indigo-600 text-white border-indigo-600'
                             : isToday
@@ -2183,8 +2183,8 @@ export default function Dashboard() {
 
             <Card className="bg-white rounded-xl shadow-md">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg font-semibold text-gray-900">Timetable</CardTitle>
-                <p className="text-sm text-gray-600">
+                <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">Timetable</CardTitle>
+                <p className="text-xs sm:text-sm text-gray-600">
                   {selectedCalendarDate.toLocaleDateString('en-US', {
                     weekday: 'long',
                     month: 'short',
@@ -2194,9 +2194,9 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="space-y-3">
                 {selectedDateEntries.length === 0 ? (
-                  <div className="text-center py-6">
-                    <CalendarIcon className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                    <p className="text-sm font-medium text-gray-600">No scheduled items</p>
+                  <div className="text-center py-3 sm:py-4 lg:py-6">
+                    <CalendarIcon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-gray-300 mx-auto mb-2" />
+                    <p className="text-xs sm:text-sm font-medium text-gray-600">No scheduled items</p>
                     <p className="text-xs text-gray-500 mt-1">Select another date to check planned study and exams.</p>
                   </div>
                 ) : (
@@ -2221,7 +2221,7 @@ export default function Dashboard() {
                         }}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-gray-900 line-clamp-1">{entry.title}</p>
+                          <p className="text-xs sm:text-sm font-semibold text-gray-900 line-clamp-1">{entry.title}</p>
                           <Badge className={`${badgeClass} text-[10px]`}>{entry.type.toUpperCase()}</Badge>
                         </div>
                         <p className="text-xs text-gray-600 mt-1">{entry.subject}</p>
@@ -2239,25 +2239,25 @@ export default function Dashboard() {
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-gray-500" />
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
                   </div>
-                  <CardTitle className="text-xl font-semibold tracking-wide text-gray-700">TODAY'S TASKS</CardTitle>
+                  <CardTitle className="text-lg sm:text-xl font-semibold tracking-wide text-gray-700">TODAY'S TASKS</CardTitle>
                 </div>
-                <p className="text-sm text-gray-600">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</p>
+                <p className="text-xs sm:text-sm text-gray-600">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</p>
               </div>
             </CardHeader>
             <CardContent>
               {isLoadingSchedule ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mx-auto mb-2"></div>
-                  <p className="text-gray-600 text-sm">Loading schedule...</p>
+                <div className="text-center py-4 sm:py-6 lg:py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 border-b-2 border-teal-600 mx-auto mb-2"></div>
+                  <p className="text-gray-600 text-xs sm:text-sm">Loading schedule...</p>
                 </div>
               ) : incompleteContent.length === 0 && incompleteQuizzes.length === 0 ? (
-                <div className="text-center py-8">
+                <div className="text-center py-4 sm:py-6 lg:py-8">
                   <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
                   <p className="text-gray-600 font-medium">All caught up!</p>
-                  <p className="text-gray-500 text-sm mt-1">No pending content or quizzes</p>
+                  <p className="text-gray-500 text-xs sm:text-sm mt-1">No pending content or quizzes</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -2297,7 +2297,7 @@ export default function Dashboard() {
                         >
                           {isCompleted ? (
                             <div className="w-7 h-7 bg-emerald-500 rounded-full flex items-center justify-center">
-                              <CheckCircle className="w-4 h-4 text-white" />
+                              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                             </div>
                           ) : (
                             <div className="w-7 h-7 border-2 border-gray-300 rounded-full"></div>
@@ -2378,7 +2378,7 @@ export default function Dashboard() {
                         >
                           {isCompleted ? (
                             <div className="w-7 h-7 bg-emerald-500 rounded-full flex items-center justify-center">
-                              <CheckCircle className="w-4 h-4 text-white" />
+                              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                             </div>
                           ) : (
                             <div className="w-7 h-7 border-2 border-gray-300 rounded-full"></div>
@@ -2429,7 +2429,7 @@ export default function Dashboard() {
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-gradient-to-br from-sky-400 to-teal-500 rounded-lg flex items-center justify-center">
-                    <MessageSquare className="w-5 h-5 text-white" />
+                    <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>
                   <CardTitle className="bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent">
                     Teacher Remarks
@@ -2450,9 +2450,9 @@ export default function Dashboard() {
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2">
                           {remark.isPositive ? (
-                            <ThumbsUp className="w-4 h-4 text-green-600" />
+                            <ThumbsUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
                           ) : (
-                            <AlertCircle className="w-4 h-4 text-orange-600" />
+                            <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600" />
                           )}
                           <span className="font-semibold text-gray-900">
                             {remark.teacherId?.fullName || 'Teacher'}
@@ -2467,11 +2467,11 @@ export default function Dashboard() {
                           {new Date(remark.createdAt).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-gray-700 text-sm">{remark.remark}</p>
+                      <p className="text-gray-700 text-xs sm:text-sm">{remark.remark}</p>
                     </div>
                   ))}
                   {remarks.length > 5 && (
-                    <p className="text-sm text-gray-500 text-center">
+                    <p className="text-xs sm:text-sm text-gray-500 text-center">
                       Showing 5 of {remarks.length} remarks
                     </p>
                   )}
@@ -2488,7 +2488,7 @@ export default function Dashboard() {
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-red-500 rounded-lg flex items-center justify-center">
-                    <AlertTriangle className="w-5 h-5 text-white" />
+                    <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>
                   <CardTitle className="bg-gradient-to-r from-orange-600 via-orange-400 to-red-500 bg-clip-text text-transparent">
                     AI Risk Analysis Reports
@@ -2509,7 +2509,7 @@ export default function Dashboard() {
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <Brain className="w-4 h-4 text-orange-600" />
+                            <Brain className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600" />
                             <h5 className="font-semibold text-gray-900">
                               Performance Risk Analysis Report
                             </h5>
@@ -2517,7 +2517,7 @@ export default function Dashboard() {
                               <Badge className="bg-orange-500 text-white text-xs">New</Badge>
                             )}
                           </div>
-                          <p className="text-sm text-gray-600 mb-2">
+                          <p className="text-xs sm:text-sm text-gray-600 mb-2">
                             Sent by {report.adminId?.fullName || 'Administrator'} on{' '}
                             {new Date(report.sentAt).toLocaleDateString()}
                           </p>
@@ -2570,7 +2570,7 @@ export default function Dashboard() {
                           }}
                           className="text-orange-600 border-orange-300 hover:bg-orange-50"
                         >
-                          <Download className="w-4 h-4 mr-2" />
+                          <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                           Download PDF
                         </Button>
                       </div>
@@ -2588,9 +2588,9 @@ export default function Dashboard() {
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-400 rounded-lg flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-white" />
+                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
-                <CardTitle className="text-xl font-bold text-gray-900">
+                <CardTitle className="text-lg sm:text-xl font-bold text-gray-900">
                   My Homework
                 </CardTitle>
               </div>
@@ -2598,7 +2598,7 @@ export default function Dashboard() {
             <CardContent>
               {assignedHomework.length > 0 && (
                 <div className="mb-6">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                  <h4 className="text-xs sm:text-sm font-semibold text-gray-700 mb-3">
                     Assigned Homework ({assignedHomework.length})
                   </h4>
                   <div className="space-y-2">
@@ -2614,7 +2614,7 @@ export default function Dashboard() {
                           }`}
                         >
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{homework.title || 'Untitled Homework'}</p>
+                            <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">{homework.title || 'Untitled Homework'}</p>
                             <p className="text-xs text-gray-600 truncate">
                               {getSubjectName(homework)}
                               {homework.deadline
@@ -2646,9 +2646,9 @@ export default function Dashboard() {
               )}
 
               {isLoadingSubmissions && assignedHomework.length === 0 && (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
-                  <p className="text-gray-600 text-sm">Loading homework...</p>
+                <div className="text-center py-4 sm:py-6 lg:py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
+                  <p className="text-gray-600 text-xs sm:text-sm">Loading homework...</p>
                 </div>
               )}
             </CardContent>
@@ -2661,7 +2661,7 @@ export default function Dashboard() {
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                  <CheckCircle className="w-8 h-8 text-white" />
+                  <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                 </div>
                 <div className="text-right">
                   <p className="text-white/90 text-responsive-xs font-medium">Questions Solved</p>
@@ -2675,7 +2675,7 @@ export default function Dashboard() {
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                  <TrendingUp className="w-8 h-8 text-white" />
+                  <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                 </div>
                 <div className="text-right">
                   <p className="text-white/90 text-responsive-xs font-medium">Accuracy Rate</p>
@@ -2690,7 +2690,7 @@ export default function Dashboard() {
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                  <BarChart3 className="w-8 h-8 text-white" />
+                  <BarChart3 className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                 </div>
                 <div className="text-right">
                   <p className="text-white/90 text-responsive-xs font-medium">Rank</p>
@@ -2703,10 +2703,10 @@ export default function Dashboard() {
 
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:p-6 lg:p-8 relative z-10">
           
           {/* Left Column: Learning Path & Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-3 sm:space-y-4 lg:space-y-6">
             
             {/* Learning Progress */}
             <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
@@ -2718,7 +2718,7 @@ export default function Dashboard() {
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
                 {/* Progress Overview */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -2737,7 +2737,7 @@ export default function Dashboard() {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-xl flex-shrink-0">
+                          <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
                             {(() => {
                               const name = (subject.name || '').toLowerCase();
                               if (name.includes('math')) return '📐';
@@ -2757,7 +2757,7 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="text-3xl font-bold text-slate-900 leading-none">{subject.progress}%</p>
+                          <p className="text-2xl sm:text-3xl font-bold text-slate-900 leading-none">{subject.progress}%</p>
                         </div>
                       </div>
                       <div className="mt-3 h-2.5 w-full rounded-full bg-gray-100 overflow-hidden">
@@ -2782,7 +2782,7 @@ export default function Dashboard() {
                         <button
                           key={subject.subjectId}
                           onClick={() => setSelectedTopicSubject(subject.subjectId)}
-                          className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
+                          className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-colors ${
                             selectedTopicSubject === subject.subjectId
                               ? 'bg-indigo-600 text-white'
                               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -2797,7 +2797,7 @@ export default function Dashboard() {
                       .filter((subject: any) => subject.subjectId === selectedTopicSubject)
                       .map((subject: any) => (
                         <div key={subject.subjectId} className="space-y-4">
-                          <div className="rounded-xl border border-orange-100 bg-orange-50 px-4 py-3 text-sm text-gray-800">
+                          <div className="rounded-xl border border-orange-100 bg-orange-50 px-4 py-3 text-xs sm:text-sm text-gray-800">
                             Based on your progress, continue with the next pending topic in {subject.subjectName}.
                           </div>
 
@@ -2823,14 +2823,14 @@ export default function Dashboard() {
                                     <div className="flex items-center gap-3 min-w-0">
                                       <div className="flex-shrink-0">
                                         {topic.status === 'completed' ? (
-                                          <CheckCircle2Icon className="w-5 h-5 text-emerald-500" />
+                                          <CheckCircle2Icon className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
                                         ) : topic.status === 'in_progress' ? (
-                                          <Play className="w-5 h-5 text-amber-500" />
+                                          <Play className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
                                         ) : (
-                                          <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
+                                          <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-gray-300" />
                                         )}
                                       </div>
-                                      <p className="text-sm text-gray-900 truncate">{topic.title}</p>
+                                      <p className="text-xs sm:text-sm text-gray-900 truncate">{topic.title}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
                                       {topic.progress > 0 && (
@@ -2838,7 +2838,7 @@ export default function Dashboard() {
                                           {topic.progress}%
                                         </Badge>
                                       )}
-                                      <ArrowRight className="w-4 h-4 text-gray-400" />
+                                      <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                                     </div>
                                   </div>
                                 ))}
@@ -2864,14 +2864,14 @@ export default function Dashboard() {
 
             {/* Learning Paths */}
             <div id="learning-paths-section" className="mb-6 scroll-mt-24">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent mb-2">Learning Paths</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent mb-2">Learning Paths</h1>
               
               {/* Tabs */}
               <div className="mb-6">
                 <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-6">
                   <button
                     onClick={() => setLearningPathTab('subjects')}
-                    className={`flex-1 px-6 py-3 text-sm font-medium rounded-md transition-all ${
+                    className={`flex-1 px-3 sm:px-4 lg:px-6 py-3 text-xs sm:text-sm font-medium rounded-md transition-all ${
                       learningPathTab === 'subjects'
                         ? 'bg-white text-gray-900 shadow-sm border border-gray-300'
                         : 'text-gray-600 hover:text-gray-900'
@@ -2881,7 +2881,7 @@ export default function Dashboard() {
                   </button>
                   <button
                     onClick={() => setLearningPathTab('quizzes')}
-                    className={`flex-1 px-6 py-3 text-sm font-medium rounded-md transition-all ${
+                    className={`flex-1 px-3 sm:px-4 lg:px-6 py-3 text-xs sm:text-sm font-medium rounded-md transition-all ${
                       learningPathTab === 'quizzes'
                         ? 'bg-white text-gray-900 shadow-sm border border-gray-300'
                         : 'text-gray-600 hover:text-gray-900'
@@ -2895,8 +2895,8 @@ export default function Dashboard() {
               {/* Browse by Subject Tab */}
               {learningPathTab === 'subjects' && (
                 <>
-                  <h2 className="text-xl font-semibold text-gray-700 mb-6">Browse by Subject</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-700 mb-6">Browse by Subject</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:p-4 lg:p-6">
                 {isLoadingSubjects ? (
                   Array.from({ length: 3 }).map((_, i) => (
                     <Skeleton key={i} className="h-64 w-full" />
@@ -2904,7 +2904,7 @@ export default function Dashboard() {
                 ) : subjects.length === 0 ? (
                   <div className="col-span-full text-center py-12">
                     <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No Subjects Available</h3>
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Subjects Available</h3>
                     <p className="text-gray-500">Check back later for new learning content.</p>
                   </div>
                 ) : (
@@ -2929,11 +2929,11 @@ export default function Dashboard() {
                         className="hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200"
                         onClick={() => setLocation(`/subject/${subject._id || subject.id}`)}
                       >
-                        <CardContent className="p-6 flex flex-col items-center text-center">
+                        <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
                           <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
                             <Icon className="w-10 h-10 text-white" />
                           </div>
-                          <CardTitle className="text-lg font-semibold text-gray-900">{subject.name}</CardTitle>
+                          <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">{subject.name}</CardTitle>
                         </CardContent>
                       </Card>
                     );
@@ -2946,9 +2946,9 @@ export default function Dashboard() {
               {/* My Quizzes Tab */}
               {learningPathTab === 'quizzes' && (
                 <div className="mb-8">
-                  <h2 className="text-xl font-semibold text-gray-700 mb-6">My Quizzes</h2>
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-700 mb-6">My Quizzes</h2>
                   {isLoadingQuizzes ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
                       {Array.from({ length: 3 }).map((_, i) => (
                         <Skeleton key={i} className="h-64 w-full" />
                       ))}
@@ -2956,17 +2956,17 @@ export default function Dashboard() {
                   ) : quizzes.length === 0 ? (
                     <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
                       <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-600 mb-2">No Quizzes Assigned</h3>
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Quizzes Assigned</h3>
                       <p className="text-gray-500">Your teacher hasn't assigned any quizzes yet. Check back later!</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
                       {quizzes.map((quiz: any) => (
                         <Card key={quiz._id} className="hover:shadow-lg transition-shadow duration-200">
                           <CardHeader>
                             <div className="flex items-center justify-between mb-2">
                               <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-teal-500 rounded-lg flex items-center justify-center shadow-lg">
-                                <FileText className="w-5 h-5 text-white" />
+                                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                               </div>
                               {quiz.hasAttempted && (
                                 <Badge className="bg-green-100 text-green-700 border-green-300">
@@ -2975,18 +2975,18 @@ export default function Dashboard() {
                                 </Badge>
                               )}
                             </div>
-                            <CardTitle className="text-lg">{quiz.title}</CardTitle>
-                            <p className="text-gray-600 text-sm">{quiz.description || `Quiz on ${quiz.subject?.name || quiz.subject}`}</p>
+                            <CardTitle className="text-base sm:text-lg">{quiz.title}</CardTitle>
+                            <p className="text-gray-600 text-xs sm:text-sm">{quiz.description || `Quiz on ${quiz.subject?.name || quiz.subject}`}</p>
                           </CardHeader>
                           <CardContent className="space-y-4">
-                            <div className="grid grid-cols-2 gap-2 text-center">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-center">
                               <div className="bg-orange-50 rounded-lg p-2">
-                                <Clock className="w-4 h-4 text-orange-600 mx-auto mb-1" />
+                                <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 mx-auto mb-1" />
                                 <p className="text-xs font-medium text-orange-800">{quiz.duration || 60} min</p>
                                 <p className="text-xs text-orange-600">Duration</p>
                               </div>
                               <div className="bg-orange-50 rounded-lg p-2">
-                                <Target className="w-4 h-4 text-orange-600 mx-auto mb-1" />
+                                <Target className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 mx-auto mb-1" />
                                 <p className="text-xs font-medium text-orange-800">{quiz.questions?.length || quiz.questionCount || 0}</p>
                                 <p className="text-xs text-orange-600">Questions</p>
                               </div>
@@ -2995,8 +2995,8 @@ export default function Dashboard() {
                             {quiz.hasAttempted && quiz.bestScore !== null && (
                               <div className="bg-green-50 rounded-lg p-3 border border-green-200">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-sm text-green-700">Best Score:</span>
-                                  <span className="text-lg font-bold text-green-800">{quiz.bestScore}%</span>
+                                  <span className="text-xs sm:text-sm text-green-700">Best Score:</span>
+                                  <span className="text-base sm:text-lg font-bold text-green-800">{quiz.bestScore}%</span>
                                 </div>
                               </div>
                             )}
@@ -3017,10 +3017,10 @@ export default function Dashboard() {
             </div>
 
             {/* Digital Library - Browse by Type */}
-            <div className="mb-6 bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Digital Library</h2>
-              <h3 className="text-xl font-semibold text-gray-700 mb-4">Browse by Type</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            <div className="mb-6 bg-white rounded-2xl p-3 sm:p-4 lg:p-6 shadow-sm border border-gray-200">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Digital Library</h2>
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-4">Browse by Type</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6 mb-6">
                 {/* TextBook Card */}
                 <Card 
                   className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
@@ -3031,12 +3031,12 @@ export default function Dashboard() {
                     setSelectedBrowseType(newType);
                   }}
                 >
-                  <CardContent className="p-6 flex flex-col items-center text-center">
+                  <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
                     <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
                       <BookOpen className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                     </div>
-                    <CardTitle className="text-lg font-semibold text-gray-900 mb-1">TextBook</CardTitle>
-                    <p className="text-sm text-gray-500">
+                    <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">TextBook</CardTitle>
+                    <p className="text-xs sm:text-sm text-gray-500">
                       {isLoadingContentCounts ? '...' : `${contentTypeCounts.TextBook} files`}
                     </p>
                   </CardContent>
@@ -3052,12 +3052,12 @@ export default function Dashboard() {
                     setSelectedBrowseType(newType);
                   }}
                 >
-                  <CardContent className="p-6 flex flex-col items-center text-center">
+                  <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
                     <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
                       <FileTextIcon className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                     </div>
-                    <CardTitle className="text-lg font-semibold text-gray-900 mb-1">Workbook</CardTitle>
-                    <p className="text-sm text-gray-500">
+                    <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Workbook</CardTitle>
+                    <p className="text-xs sm:text-sm text-gray-500">
                       {isLoadingContentCounts ? '...' : `${contentTypeCounts.Workbook} files`}
                     </p>
                   </CardContent>
@@ -3073,12 +3073,12 @@ export default function Dashboard() {
                     setSelectedBrowseType(newType);
                   }}
                 >
-                  <CardContent className="p-6 flex flex-col items-center text-center">
+                  <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
                     <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
                       <File className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                     </div>
-                    <CardTitle className="text-lg font-semibold text-gray-900 mb-1">Material</CardTitle>
-                    <p className="text-sm text-gray-500">
+                    <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Material</CardTitle>
+                    <p className="text-xs sm:text-sm text-gray-500">
                       {isLoadingContentCounts ? '...' : `${contentTypeCounts.Material} files`}
                     </p>
                   </CardContent>
@@ -3094,12 +3094,12 @@ export default function Dashboard() {
                     setSelectedBrowseType(newType);
                   }}
                 >
-                  <CardContent className="p-6 flex flex-col items-center text-center">
+                  <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
                     <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
                       <Headphones className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                     </div>
-                    <CardTitle className="text-lg font-semibold text-gray-900 mb-1">Audio</CardTitle>
-                    <p className="text-sm text-gray-500">
+                    <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Audio</CardTitle>
+                    <p className="text-xs sm:text-sm text-gray-500">
                       {isLoadingContentCounts ? '...' : `${contentTypeCounts.Audio} files`}
                     </p>
                   </CardContent>
@@ -3115,12 +3115,12 @@ export default function Dashboard() {
                     setSelectedBrowseType(newType);
                   }}
                 >
-                  <CardContent className="p-6 flex flex-col items-center text-center">
+                  <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
                     <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
                       <ClipboardList className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
                     </div>
-                    <CardTitle className="text-lg font-semibold text-gray-900 mb-1">Homework</CardTitle>
-                    <p className="text-sm text-gray-500">
+                    <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Homework</CardTitle>
+                    <p className="text-xs sm:text-sm text-gray-500">
                       {isLoadingContentCounts ? '...' : `${contentTypeCounts.Homework} files`}
                     </p>
                   </CardContent>
@@ -3131,7 +3131,7 @@ export default function Dashboard() {
               {selectedBrowseType && (
                 <div className="mt-6 border-t border-gray-200 pt-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-lg font-semibold text-gray-900">
+                    <h4 className="text-base sm:text-lg font-semibold text-gray-900">
                       {selectedBrowseType} ({filteredContent.length} {filteredContent.length === 1 ? 'file' : 'files'})
                     </h4>
                     <Button
@@ -3140,18 +3140,18 @@ export default function Dashboard() {
                       onClick={() => setSelectedBrowseType(null)}
                       className="text-gray-500 hover:text-gray-700"
                     >
-                      <ChevronUp className="w-4 h-4 mr-1" />
+                      <ChevronUp className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                       Collapse
                     </Button>
                   </div>
                   
                   {isLoadingFilteredContent ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
+                    <div className="text-center py-4 sm:py-6 lg:py-8">
+                      <div className="animate-spin rounded-full h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
                       <p className="text-gray-600">Loading content...</p>
                     </div>
                   ) : filteredContent.length === 0 ? (
-                    <div className="text-center py-8">
+                    <div className="text-center py-4 sm:py-6 lg:py-8">
                       <p className="text-gray-500">No content found for this type.</p>
                     </div>
                   ) : (
@@ -3176,12 +3176,12 @@ export default function Dashboard() {
                             <CardContent className="p-4">
                               <div className="flex items-start space-x-3">
                                 <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                                  <ContentIcon className="w-5 h-5 text-white" />
+                                  <ContentIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <h5 className="font-semibold text-gray-900 mb-1 truncate">{content.title || 'Untitled'}</h5>
                                   {content.description && (
-                                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">{content.description}</p>
+                                    <p className="text-xs sm:text-sm text-gray-600 mb-2 line-clamp-2">{content.description}</p>
                                   )}
                                   {content.subjectId && typeof content.subjectId === 'object' && content.subjectId.name && (
                                     <Badge variant="outline" className="text-xs mb-2">
@@ -3218,7 +3218,7 @@ export default function Dashboard() {
                   </div>
 
           {/* Right Column: Vidya AI & Performance */}
-          <div className="space-y-6">
+          <div className="space-y-3 sm:space-y-4 lg:space-y-6">
             
             {/* Vidya AI Section */}
             <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
@@ -3233,8 +3233,8 @@ export default function Dashboard() {
                   />
                   </div>
                   <div>
-                    <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">Vidya AI</CardTitle>
-                    <p className="text-sm text-gray-600">AI-powered study tools</p>
+                    <CardTitle className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">Vidya AI</CardTitle>
+                    <p className="text-xs sm:text-sm text-gray-600">AI-powered study tools</p>
                   </div>
                 </div>
                 
@@ -3242,7 +3242,7 @@ export default function Dashboard() {
                 <div className="flex space-x-2 border-b border-gray-200">
                   <button
                     onClick={() => setVidyaAiTab('student-tools')}
-                    className={`px-4 py-2 text-sm font-medium rounded-t-md transition-all ${
+                    className={`px-4 py-2 text-xs sm:text-sm font-medium rounded-t-md transition-all ${
                       vidyaAiTab === 'student-tools'
                         ? 'bg-white text-blue-600 shadow-sm border border-gray-300 border-b-0'
                         : 'text-gray-600 hover:text-gray-900'
@@ -3252,7 +3252,7 @@ export default function Dashboard() {
                   </button>
                   <button
                     onClick={() => setVidyaAiTab('chat')}
-                    className={`px-4 py-2 text-sm font-medium rounded-t-md transition-all ${
+                    className={`px-4 py-2 text-xs sm:text-sm font-medium rounded-t-md transition-all ${
                       vidyaAiTab === 'chat'
                         ? 'bg-white text-blue-600 shadow-sm border border-gray-300 border-b-0'
                         : 'text-gray-600 hover:text-gray-900'
@@ -3265,11 +3265,11 @@ export default function Dashboard() {
               
               <CardContent>
                 {vidyaAiTab === 'student-tools' && (
-                  <div className="space-y-6">
+                  <div className="space-y-3 sm:space-y-4 lg:space-y-6">
                     {/* Available Tools Section - Sidebar Style */}
                     <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">Available Tools</h3>
-                      <p className="text-sm text-gray-600 mb-4">Select a tool to get started. All tools use pre-generated content and Gemini AI.</p>
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Available Tools</h3>
+                      <p className="text-xs sm:text-sm text-gray-600 mb-4">Select a tool to get started. All tools use pre-generated content and Gemini AI.</p>
 
                       {/* Tools List - Vertical scrollable sidebar */}
                       <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
@@ -3280,10 +3280,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <BookMarked className="w-5 h-5 text-orange-600" />
+                            <BookMarked className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Smart Study Guide Generator</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Smart Study Guide Generator</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Create personalized study guides tailored to your needs.</p>
                           </div>
                         </div>
@@ -3296,10 +3296,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Brain className="w-5 h-5 text-blue-600" />
+                            <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Concept Breakdown Explainer</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Concept Breakdown Explainer</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Break down complex concepts into simple explanations.</p>
                           </div>
                         </div>
@@ -3312,10 +3312,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <BookMarked className="w-5 h-5 text-orange-600" />
+                            <BookMarked className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Smart Study Guide Generator</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Smart Study Guide Generator</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Create personalized study guides tailored to your needs.</p>
                           </div>
                         </div>
@@ -3328,10 +3328,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Brain className="w-5 h-5 text-blue-600" />
+                            <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Concept Breakdown Explainer</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Concept Breakdown Explainer</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Break down complex concepts into simple explanations.</p>
                           </div>
                         </div>
@@ -3344,10 +3344,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <HelpCircle className="w-5 h-5 text-orange-600" />
+                            <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Smart Q&A Practice Generator</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Smart Q&A Practice Generator</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Generate practice questions with detailed answers.</p>
                           </div>
                         </div>
@@ -3360,10 +3360,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <FileTextIcon2 className="w-5 h-5 text-blue-600" />
+                            <FileTextIcon2 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Chapter Summary Creator</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Chapter Summary Creator</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Create concise summaries of chapters and topics.</p>
                           </div>
                         </div>
@@ -3376,10 +3376,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Key className="w-5 h-5 text-teal-600" />
+                            <Key className="w-4 h-4 sm:w-5 sm:h-5 text-teal-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Key Points Extractor</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Key Points Extractor</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Extract key points from any topic.</p>
                           </div>
                         </div>
@@ -3392,10 +3392,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <ClipboardListIcon className="w-5 h-5 text-orange-600" />
+                            <ClipboardListIcon className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Quick Assignment Builder</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Quick Assignment Builder</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Build structured assignments quickly and efficiently.</p>
                           </div>
                         </div>
@@ -3408,10 +3408,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <CheckCircle2Icon className="w-5 h-5 text-blue-600" />
+                            <CheckCircle2Icon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Exam Readiness Checker</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Exam Readiness Checker</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Assess your readiness for upcoming exams.</p>
                           </div>
                         </div>
@@ -3424,10 +3424,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Layout className="w-5 h-5 text-teal-600" />
+                            <Layout className="w-4 h-4 sm:w-5 sm:h-5 text-teal-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Project Layout Designer</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Project Layout Designer</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Design structured layouts for your projects.</p>
                           </div>
                         </div>
@@ -3440,10 +3440,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <TargetIcon className="w-5 h-5 text-orange-600" />
+                            <TargetIcon className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Goal & Motivation Planner</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Goal & Motivation Planner</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Set goals and create motivation plans for success.</p>
                           </div>
                         </div>
@@ -3456,10 +3456,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <FileTextIcon2 className="w-5 h-5 text-blue-600" />
+                            <FileTextIcon2 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Worksheet & MCQ Generator</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Worksheet & MCQ Generator</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Design custom worksheets and MCQs with various question types.</p>
                           </div>
                         </div>
@@ -3472,10 +3472,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Brain className="w-5 h-5 text-teal-600" />
+                            <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-teal-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Concept Mastery Helper</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Concept Mastery Helper</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Break down complex concepts into digestible lessons.</p>
                           </div>
                         </div>
@@ -3488,10 +3488,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <BookMarked className="w-5 h-5 text-orange-600" />
+                            <BookMarked className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Flashcard Generator</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Flashcard Generator</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Build study flashcards for quick revision.</p>
                           </div>
                         </div>
@@ -3504,10 +3504,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <FileTextIcon2 className="w-5 h-5 text-teal-600" />
+                            <FileTextIcon2 className="w-4 h-4 sm:w-5 sm:h-5 text-teal-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Short Notes & Summaries Maker</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Short Notes & Summaries Maker</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Condense complex topics into concise notes.</p>
                           </div>
                         </div>
@@ -3520,10 +3520,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <ClipboardListIcon className="w-5 h-5 text-orange-600" />
+                            <ClipboardListIcon className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Homework Creator</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Homework Creator</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Generate meaningful homework assignments.</p>
                           </div>
                         </div>
@@ -3536,10 +3536,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <CheckCircle2Icon className="w-5 h-5 text-blue-600" />
+                            <CheckCircle2Icon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Exam Question Paper Generator</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Exam Question Paper Generator</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Create comprehensive exam papers with varying difficulty.</p>
                           </div>
                         </div>
@@ -3552,10 +3552,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Sparkles className="w-5 h-5 text-orange-600" />
+                            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Activity & Project Generator</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Activity & Project Generator</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Create engaging activities and projects tailored to your curriculum.</p>
                           </div>
                         </div>
@@ -3568,10 +3568,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <BookOpen className="w-5 h-5 text-orange-600" />
+                            <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Story & Passage Creator</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Story & Passage Creator</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Generate engaging stories and reading passages.</p>
                           </div>
                         </div>
@@ -3584,10 +3584,10 @@ export default function Dashboard() {
                       >
                         <div className="flex items-start space-x-3">
                           <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <CalendarIcon className="w-5 h-5 text-orange-600" />
+                            <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-sm">Lesson Planner</h4>
+                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Lesson Planner</h4>
                             <p className="text-xs text-gray-600 line-clamp-2">Plan structured lessons with objectives and activities.</p>
                           </div>
                         </div>
@@ -3610,25 +3610,25 @@ export default function Dashboard() {
                               className="w-full h-full object-cover"
                             />
                           </div>
-                          <span className="absolute -right-1 -bottom-1 text-sm animate-bounce">✨</span>
+                          <span className="absolute -right-1 -bottom-1 text-xs sm:text-sm animate-bounce">✨</span>
                         </div>
                         <div>
-                          <h3 className="text-xl font-bold text-slate-900">Your AI Study Buddy</h3>
-                          <p className="text-sm text-slate-600">Ask anything and learn smarter</p>
+                          <h3 className="text-lg sm:text-xl font-bold text-slate-900">Your AI Study Buddy</h3>
+                          <p className="text-xs sm:text-sm text-slate-600">Ask anything and learn smarter</p>
                         </div>
                       </div>
                     </div>
 
                     <div className="rounded-xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 p-3 shadow-sm">
                       <p className="text-xs uppercase tracking-wide text-slate-500">Learning progress</p>
-                      <p className="text-sm font-semibold text-emerald-700 mt-1">{overallProgress}%</p>
+                      <p className="text-xs sm:text-sm font-semibold text-emerald-700 mt-1">{overallProgress}%</p>
                       <p className="mt-1 text-xs text-slate-600">Pick your subject in the chat panel so Vidya stays on-topic.</p>
                     </div>
 
                     <div className="flex flex-wrap gap-2 rounded-xl bg-white border border-slate-200 p-2 shadow-sm">
                       <button
                         onClick={() => setStudentLearningMode('explain')}
-                        className={`px-3 py-1.5 text-sm rounded-lg transition-all ${
+                        className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-all ${
                           studentLearningMode === 'explain'
                             ? 'bg-sky-600 text-white'
                             : 'text-slate-700 hover:bg-slate-100'
@@ -3638,7 +3638,7 @@ export default function Dashboard() {
                       </button>
                       <button
                         onClick={() => setStudentLearningMode('quiz')}
-                        className={`px-3 py-1.5 text-sm rounded-lg transition-all ${
+                        className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-all ${
                           studentLearningMode === 'quiz'
                             ? 'bg-sky-600 text-white'
                             : 'text-slate-700 hover:bg-slate-100'
@@ -3648,7 +3648,7 @@ export default function Dashboard() {
                       </button>
                       <button
                         onClick={() => setStudentLearningMode('practice')}
-                        className={`px-3 py-1.5 text-sm rounded-lg transition-all ${
+                        className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-all ${
                           studentLearningMode === 'practice'
                             ? 'bg-sky-600 text-white'
                             : 'text-slate-700 hover:bg-slate-100'
@@ -3698,13 +3698,13 @@ export default function Dashboard() {
                 <CardTitle className="bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button 
                     className="quick-action-button"
                     onClick={() => setLocation('/learning-paths')}
                   >
-                    <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center mb-2">
-                      <TrendingUp className="w-4 h-4 text-red-600" />
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-red-100 rounded-lg flex items-center justify-center mb-2">
+                      <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-red-600" />
                     </div>
                     <p className="text-responsive-xs font-medium text-gray-900">Practice Weak Topics</p>
                   </button>
@@ -3713,8 +3713,8 @@ export default function Dashboard() {
                     className="quick-action-button"
                     onClick={() => alert('Schedule Study feature coming soon!')}
                   >
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mb-2">
-                      <Calendar className="w-4 h-4 text-orange-600" />
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-blue-100 rounded-lg flex items-center justify-center mb-2">
+                      <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600" />
                     </div>
                     <p className="text-responsive-xs font-medium text-gray-900">Schedule Study</p>
                   </button>
@@ -3723,8 +3723,8 @@ export default function Dashboard() {
                     className="quick-action-button"
                     onClick={() => alert('Study Groups feature coming soon!')}
                   >
-                    <div className="w-8 h-8 bg-teal-100 rounded-lg flex items-center justify-center mb-2">
-                      <Users className="w-4 h-4 text-orange-600" />
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-teal-100 rounded-lg flex items-center justify-center mb-2">
+                      <Users className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600" />
                     </div>
                     <p className="text-responsive-xs font-medium text-gray-900">Study Groups</p>
                   </button>
@@ -3738,7 +3738,7 @@ export default function Dashboard() {
                 <CardTitle className="bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent">Recent Achievements</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 sm:grid-cols-3 gap-2">
                   {[
                     { icon: '🏆', label: 'First Ace' },
                     { icon: '⭐', label: 'Champion' },
@@ -3751,7 +3751,7 @@ export default function Dashboard() {
                       key={achievement.label}
                       className="rounded-2xl border border-gray-100 bg-gradient-to-b from-orange-50 to-white px-3 py-3 text-center"
                     >
-                      <p className="text-2xl mb-1">{achievement.icon}</p>
+                      <p className="text-xl sm:text-2xl mb-1">{achievement.icon}</p>
                       <p className="text-xs font-semibold text-gray-800">{achievement.label}</p>
                     </div>
                   ))}
@@ -3785,10 +3785,10 @@ export default function Dashboard() {
               <div className="space-y-4 py-4 flex-1 min-h-0 overflow-y-auto">
                 {selectedScheduleItem.isQuiz ? (
                   <>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <p className="text-sm font-medium text-gray-700">Subject</p>
-                        <p className="text-sm text-gray-900">
+                        <p className="text-xs sm:text-sm font-medium text-gray-700">Subject</p>
+                        <p className="text-xs sm:text-sm text-gray-900">
                           {typeof selectedScheduleItem.subject === 'string' 
                             ? selectedScheduleItem.subject 
                             : (typeof selectedScheduleItem.subject === 'object' && selectedScheduleItem.subject?.name 
@@ -3797,41 +3797,41 @@ export default function Dashboard() {
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-700">Difficulty</p>
+                        <p className="text-xs sm:text-sm font-medium text-gray-700">Difficulty</p>
                         <Badge className={`${getPriorityColor(selectedScheduleItem.difficulty || 'Easy')} text-xs`}>
                           {selectedScheduleItem.difficulty || 'Easy'}
                         </Badge>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-700">Duration</p>
-                        <p className="text-sm text-gray-900 flex items-center space-x-1">
+                        <p className="text-xs sm:text-sm font-medium text-gray-700">Duration</p>
+                        <p className="text-xs sm:text-sm text-gray-900 flex items-center space-x-1">
                           <Clock className="w-3 h-3" />
                           <span>{selectedScheduleItem.duration || 30} minutes</span>
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-700">Questions</p>
-                        <p className="text-sm text-gray-900">{selectedScheduleItem.questionCount || 0} questions</p>
+                        <p className="text-xs sm:text-sm font-medium text-gray-700">Questions</p>
+                        <p className="text-xs sm:text-sm text-gray-900">{selectedScheduleItem.questionCount || 0} questions</p>
                       </div>
                     </div>
                     {selectedScheduleItem.totalPoints && (
                       <div>
-                        <p className="text-sm font-medium text-gray-700">Total Points</p>
-                        <p className="text-sm text-gray-900">{selectedScheduleItem.totalPoints} points</p>
+                        <p className="text-xs sm:text-sm font-medium text-gray-700">Total Points</p>
+                        <p className="text-xs sm:text-sm text-gray-900">{selectedScheduleItem.totalPoints} points</p>
                       </div>
                     )}
                   </>
                 ) : (
                   <>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                       <div>
-                        <p className="text-sm font-medium text-gray-700">Subject</p>
-                        <p className="text-sm text-gray-900">
+                        <p className="text-xs sm:text-sm font-medium text-gray-700">Subject</p>
+                        <p className="text-xs sm:text-sm text-gray-900">
                           {getSubjectName(selectedScheduleItem)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-700">Type</p>
+                        <p className="text-xs sm:text-sm font-medium text-gray-700">Type</p>
                         <Badge className="text-xs bg-gray-100 text-gray-700">
                           {selectedScheduleItem.type || 'Material'}
                         </Badge>
@@ -3840,7 +3840,7 @@ export default function Dashboard() {
                     {selectedScheduleItem.fileUrl && (
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium text-gray-700">Content Preview</p>
+                          <p className="text-xs sm:text-sm font-medium text-gray-700">Content Preview</p>
                         </div>
                         
                         {/* Content Preview */}
@@ -3929,7 +3929,7 @@ export default function Dashboard() {
                           
                           if (isAudio) {
                             return (
-                              <div className="w-full bg-gray-100 rounded-lg p-8">
+                              <div className="w-full bg-gray-100 rounded-lg p-4 sm:p-6 lg:p-8">
                                 <div className="text-center space-y-4">
                                   <div className="w-24 h-24 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
                                     <File className="w-12 h-12 text-orange-600" />
@@ -3976,13 +3976,13 @@ export default function Dashboard() {
                           
                           // Default: show file info
                           return (
-                            <div className="w-full bg-gray-100 rounded-lg p-8">
+                            <div className="w-full bg-gray-100 rounded-lg p-4 sm:p-6 lg:p-8">
                               <div className="text-center space-y-4">
                                 <div className="w-24 h-24 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
                                   <File className="w-12 h-12 text-orange-600" />
                                 </div>
                                 <p className="text-gray-600">Preview not available for this file type</p>
-                                <p className="text-sm text-gray-500">
+                                <p className="text-xs sm:text-sm text-gray-500">
                                   This file can only be viewed in this preview window.
                                 </p>
                               </div>
@@ -4009,7 +4009,7 @@ export default function Dashboard() {
                   className="bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white"
                   onClick={() => handleToggleScheduleComplete(selectedScheduleItem, selectedScheduleItem.isQuiz)}
                 >
-                  <CheckCircle className="w-4 h-4 mr-2" />
+                  <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   {completedScheduleIds.has(selectedScheduleItem._id || selectedScheduleItem.id)
                     ? 'Undo Complete'
                     : 'Mark as Complete'}
@@ -4054,7 +4054,7 @@ export default function Dashboard() {
           {selectedHomeworkForSubmit && (
             <div className="space-y-4">
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                <p className="text-sm font-semibold text-gray-900">
+                <p className="text-xs sm:text-sm font-semibold text-gray-900">
                   {selectedHomeworkForSubmit.title || 'Untitled Homework'}
                 </p>
                 <p className="text-xs text-gray-600 mt-1">
@@ -4077,19 +4077,19 @@ export default function Dashboard() {
                       setIsPreviewOpen(true);
                     }}
                   >
-                    <ExternalLink className="w-4 h-4 mr-2" />
+                    <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     View Teacher Homework
                   </Button>
                 )}
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700">Upload Submission File</label>
+                <label className="text-xs sm:text-sm font-medium text-gray-700">Upload Submission File</label>
                 <input
                   type="file"
                   accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.gif"
                   onChange={(e) => setHomeworkSubmissionFile(e.target.files?.[0] || null)}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-orange-100 file:px-3 file:py-1 file:text-orange-700"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-xs sm:text-sm file:mr-3 file:rounded file:border-0 file:bg-orange-100 file:px-3 file:py-1 file:text-orange-700"
                 />
                 {homeworkSubmissionFile && (
                   <p className="mt-1 text-xs text-gray-600">Selected: {homeworkSubmissionFile.name}</p>
@@ -4102,18 +4102,18 @@ export default function Dashboard() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700">Description (optional)</label>
+                <label className="text-xs sm:text-sm font-medium text-gray-700">Description (optional)</label>
                 <textarea
                   value={homeworkSubmissionDescription}
                   onChange={(e) => setHomeworkSubmissionDescription(e.target.value)}
                   rows={3}
                   placeholder="Add short notes about your submission..."
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
                 />
               </div>
 
               {homeworkSubmitError && (
-                <p className="text-sm text-red-600">{homeworkSubmitError}</p>
+                <p className="text-xs sm:text-sm text-red-600">{homeworkSubmitError}</p>
               )}
             </div>
           )}

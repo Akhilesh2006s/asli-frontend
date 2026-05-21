@@ -990,10 +990,10 @@ export default function SubjectContentManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold text-gray-900">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
             Subject &amp; Content Management
           </h2>
           <p className="text-gray-600 mt-1">
@@ -1002,7 +1002,7 @@ export default function SubjectContentManagement() {
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-3 sm:space-y-4 lg:space-y-6">
         {/* Row 1: Classes | Subjects */}
         <div className="grid grid-cols-1 lg:grid-cols-[300px,minmax(0,1fr)] gap-5">
           {/* Left: Classes */}
@@ -1010,12 +1010,12 @@ export default function SubjectContentManagement() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Classes</span>
-              {isLoadingSubjects && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isLoadingSubjects && <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {classOptions.length === 0 && !isLoadingSubjects ? (
-              <p className="text-sm text-gray-500">
+              <p className="text-xs sm:text-sm text-gray-500">
                 No classes found yet. Create a subject first to populate classes.
               </p>
             ) : (
@@ -1029,14 +1029,14 @@ export default function SubjectContentManagement() {
                         setSelectedClassLabel(label);
                         setSelectedSubjectId(null);
                       }}
-                      className={`w-full flex items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+                      className={`w-full flex items-center justify-between rounded-md border px-3 py-2 text-left text-xs sm:text-sm transition-colors ${
                         isActive
                           ? 'border-sky-400 bg-sky-50'
                           : 'border-gray-200 hover:bg-gray-50'
                       }`}
                     >
                       <div className="font-medium text-gray-900">{label}</div>
-                      <ChevronRight className="w-4 h-4 text-gray-400" />
+                      <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                     </button>
                   );
                 })}
@@ -1050,7 +1050,7 @@ export default function SubjectContentManagement() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <div>
               <CardTitle>Subjects under Class</CardTitle>
-              <p className="text-sm text-gray-500">
+              <p className="text-xs sm:text-sm text-gray-500">
                 {selectedClassLabel
                   ? `Showing subjects for ${selectedClassLabel}`
                   : 'Select a class to see subjects.'}
@@ -1062,21 +1062,21 @@ export default function SubjectContentManagement() {
               disabled={!selectedClassNumber}
               className="bg-gradient-to-r from-orange-400 to-sky-400 hover:from-orange-500 hover:to-sky-500 text-white"
             >
-              <Plus className="w-4 h-4 mr-1" />
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
               Add Subject
             </Button>
           </CardHeader>
           <CardContent>
             {isLoadingSubjects ? (
               <div className="flex items-center justify-center py-10">
-                <Loader2 className="w-6 h-6 animate-spin text-sky-500" />
+                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 animate-spin text-sky-500" />
               </div>
             ) : !selectedClassNumber ? (
-              <p className="text-sm text-gray-500">
+              <p className="text-xs sm:text-sm text-gray-500">
                 Select a class from the left to view its subjects.
               </p>
             ) : filteredSubjects.length === 0 ? (
-              <div className="py-8 text-center text-sm text-gray-500">
+              <div className="py-4 sm:py-6 lg:py-8 text-center text-xs sm:text-sm text-gray-500">
                 No subjects found for this class. Use &quot;Add Subject&quot; to
                 create one.
               </div>
@@ -1088,7 +1088,7 @@ export default function SubjectContentManagement() {
                   return (
                     <div
                       key={subj._id}
-                      className={`flex items-center justify-between rounded-md border px-3 py-2 text-sm ${
+                      className={`flex items-center justify-between rounded-md border px-3 py-2 text-xs sm:text-sm ${
                         isActive
                           ? 'border-sky-400 bg-sky-50'
                           : 'border-gray-200 hover:bg-gray-50'
@@ -1099,7 +1099,7 @@ export default function SubjectContentManagement() {
                         onClick={() => setSelectedSubjectId(subj._id)}
                       >
                         <div className="p-2 rounded-md bg-sky-100 text-sky-700">
-                          <Icon className="w-4 h-4" />
+                          <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
                         </div>
                         <div>
                           <div className="font-medium text-gray-900">
@@ -1130,7 +1130,7 @@ export default function SubjectContentManagement() {
                           className="text-sky-600 hover:text-sky-700 hover:bg-sky-50"
                           title="Edit subject"
                         >
-                          <Edit className="w-4 h-4" />
+                          <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -1140,9 +1140,9 @@ export default function SubjectContentManagement() {
                           className="text-red-600 hover:text-red-700"
                         >
                           {deletingSubjectId === subj._id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
                           ) : (
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                           )}
                         </Button>
                       </div>
@@ -1160,7 +1160,7 @@ export default function SubjectContentManagement() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0">
             <div>
               <CardTitle>Content under Subject</CardTitle>
-              <p className="text-sm text-gray-500">
+              <p className="text-xs sm:text-sm text-gray-500">
                 {selectedSubjectId
                   ? 'Content items linked to the selected subject.'
                   : 'Select a subject to see its content.'}
@@ -1172,19 +1172,19 @@ export default function SubjectContentManagement() {
               disabled={!selectedSubjectId || !selectedClassNumber}
               className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
             >
-              <Plus className="w-4 h-4 mr-1" />
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
               Add Content
             </Button>
           </CardHeader>
           <CardContent>
             {isLoadingContents ? (
               <div className="flex items-center justify-center py-10">
-                <Loader2 className="w-6 h-6 animate-spin text-sky-500" />
+                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 animate-spin text-sky-500" />
               </div>
             ) : !selectedSubjectId ? (
-              <p className="text-sm text-gray-500">Select a subject to view content.</p>
+              <p className="text-xs sm:text-sm text-gray-500">Select a subject to view content.</p>
             ) : filteredContents.length === 0 ? (
-              <div className="py-8 text-center text-sm text-gray-500">
+              <div className="py-4 sm:py-6 lg:py-8 text-center text-xs sm:text-sm text-gray-500">
                 No content found for this subject. Use &quot;Add Content&quot; to
                 create one.
               </div>
@@ -1192,7 +1192,7 @@ export default function SubjectContentManagement() {
               <div className="space-y-10">
                 {contentSections.map((section) => (
                   <div key={section.title} className="space-y-4">
-                    <h3 className="text-base font-semibold text-gray-900 border-b border-gray-200 pb-2">
+                    <h3 className="text-sm sm:text-base font-semibold text-gray-900 border-b border-gray-200 pb-2">
                       {section.title}
                     </h3>
                     <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
@@ -1248,15 +1248,15 @@ export default function SubjectContentManagement() {
                                 />
                               ) : showPdfPreview ? (
                                 <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                                  <FileText className="w-8 h-8 text-sky-500" />
+                                  <FileText className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-sky-500" />
                                 </div>
                               ) : content.type === 'Video' ? (
                                 <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                                  <Video className="w-8 h-8 text-sky-500" />
+                                  <Video className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-sky-500" />
                                 </div>
                               ) : content.type === 'Audio' ? (
                                 <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                                  <Headphones className="w-8 h-8 text-sky-500" />
+                                  <Headphones className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-sky-500" />
                                 </div>
                               ) : (
                                 <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
@@ -1272,7 +1272,7 @@ export default function SubjectContentManagement() {
 
                             <div className="p-4 flex-1 flex flex-col space-y-2">
                               <div className="flex items-start justify-between gap-2">
-                                <h4 className="font-semibold text-gray-900 text-sm line-clamp-2">
+                                <h4 className="font-semibold text-gray-900 text-xs sm:text-sm line-clamp-2">
                                   {content.title}
                                 </h4>
                               </div>
@@ -1349,7 +1349,7 @@ export default function SubjectContentManagement() {
                                     className="text-sky-600 hover:text-sky-700 hover:bg-sky-50"
                                     title="Edit content"
                                   >
-                                    <Edit className="w-4 h-4" />
+                                    <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                                   </Button>
                                   <Button
                                     variant="ghost"
@@ -1359,9 +1359,9 @@ export default function SubjectContentManagement() {
                                     className="text-red-600 hover:text-red-700"
                                   >
                                     {deletingContentId === content._id ? (
-                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                      <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
                                     ) : (
-                                      <Trash2 className="w-4 h-4" />
+                                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                                     )}
                                   </Button>
                                 </div>
@@ -1458,7 +1458,7 @@ export default function SubjectContentManagement() {
                 className="bg-gradient-to-r from-orange-400 to-sky-400 hover:from-orange-500 hover:to-sky-500 text-white"
               >
                 {isSavingSubject && (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
                 )}
                 Save
               </Button>
@@ -1548,7 +1548,7 @@ export default function SubjectContentManagement() {
                 className="bg-gradient-to-r from-orange-400 to-sky-400 hover:from-orange-500 hover:to-sky-500 text-white"
               >
                 {isSavingSubject && (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
                 )}
                 Update
               </Button>
@@ -1568,7 +1568,7 @@ export default function SubjectContentManagement() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>
                   Class <span className="text-destructive" aria-hidden="true">*</span>
@@ -1641,7 +1641,7 @@ export default function SubjectContentManagement() {
                 placeholder="Short description for this content"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>
                   Type <span className="text-destructive" aria-hidden="true">*</span>
@@ -1697,7 +1697,7 @@ export default function SubjectContentManagement() {
                       const file = e.target.files?.[0] || null;
                       setSelectedUploadFile(file);
                     }}
-                    className="cursor-pointer text-sm"
+                    className="cursor-pointer text-xs sm:text-sm"
                   />
                   <Button
                     type="button"
@@ -1707,7 +1707,7 @@ export default function SubjectContentManagement() {
                   >
                     {isUploadingFile ? (
                       <span className="inline-flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
                         Uploading
                       </span>
                     ) : (
@@ -1743,7 +1743,7 @@ export default function SubjectContentManagement() {
                 className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
               >
                 {isSavingContent && (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
                 )}
                 {editingContentId ? 'Update' : 'Save'}
               </Button>
@@ -1758,7 +1758,7 @@ export default function SubjectContentManagement() {
           if (!open) setContentPreviewItem(null);
         }}
       >
-        <DialogContent className="flex max-h-[92vh] w-full max-w-[min(100vw-1.5rem,1280px)] flex-col gap-4 overflow-hidden p-6">
+        <DialogContent className="flex max-h-[92vh] w-full max-w-[min(100vw-1.5rem,1280px)] flex-col gap-4 overflow-hidden p-3 sm:p-4 lg:p-6">
           <DialogHeader>
             <DialogTitle className="pr-8">
               {contentPreviewItem?.title ?? 'Content preview'}
@@ -1779,7 +1779,7 @@ export default function SubjectContentManagement() {
                 }`}
               >
                 {!contentPreviewUrl ? (
-                  <p className="p-6 text-center text-sm text-muted-foreground">
+                  <p className="p-3 sm:p-4 lg:p-6 text-center text-xs sm:text-sm text-muted-foreground">
                     No file URL for this content.
                   </p>
                 ) : contentPreviewItem.type === 'Video' ? (
@@ -1829,7 +1829,7 @@ export default function SubjectContentManagement() {
                     );
                   })()
                 ) : contentPreviewItem.type === 'Audio' ? (
-                  <div className="flex flex-col items-center justify-center gap-4 p-8">
+                  <div className="flex flex-col items-center justify-center gap-4 p-4 sm:p-6 lg:p-8">
                     <Headphones className="h-12 w-12 text-sky-500" />
                     <audio src={contentPreviewUrl} controls className="w-full max-w-md">
                       Your browser does not support embedded audio.
@@ -1842,7 +1842,7 @@ export default function SubjectContentManagement() {
                     className="h-[min(78vh,900px)] w-full border-0 bg-white"
                   />
                 ) : (
-                  <div className="flex flex-col items-center justify-center gap-4 p-8 text-center text-sm text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center gap-4 p-4 sm:p-6 lg:p-8 text-center text-xs sm:text-sm text-muted-foreground">
                     <FileText className="h-12 w-12 opacity-40" />
                     <p>
                       In-browser preview is not available for this file type. Open it in a new
@@ -1855,7 +1855,7 @@ export default function SubjectContentManagement() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2"
                       >
-                        <ExternalLink className="h-4 w-4" />
+                        <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4" />
                         Open in new tab
                       </a>
                     </Button>
@@ -1871,7 +1871,7 @@ export default function SubjectContentManagement() {
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2"
                     >
-                      <ExternalLink className="h-4 w-4" />
+                      <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4" />
                       Open in new tab
                     </a>
                   </Button>

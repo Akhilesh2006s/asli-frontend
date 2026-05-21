@@ -47,10 +47,10 @@ export function TimetableSection({
         <div className="min-w-0">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-600 shadow-sm ring-4 ring-violet-600/10">
-              <Clock className="h-5 w-5 text-white" aria-hidden />
+              <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-white" aria-hidden />
             </div>
             <div>
-              <h4 className="text-base font-semibold tracking-tight text-gray-900 sm:text-lg">
+              <h4 className="text-sm sm:text-base font-semibold tracking-tight text-gray-900 sm:text-lg">
                 Timetable
               </h4>
               <p className="truncate text-xs text-gray-500 sm:text-sm">{dateLabel}</p>
@@ -68,7 +68,7 @@ export function TimetableSection({
           )}
           onClick={onAddSlot}
         >
-          <Plus className="mr-1.5 h-4 w-4" aria-hidden />
+          <Plus className="mr-1.5 h-3 w-3 sm:h-4 sm:w-4" aria-hidden />
           Add Slot
         </Button>
       </div>
@@ -83,8 +83,8 @@ export function TimetableSection({
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 text-gray-400">
             <CalendarOff className="h-7 w-7" strokeWidth={1.5} aria-hidden />
           </div>
-          <p className="text-base font-semibold text-gray-900">No schedule for this day</p>
-          <p className="mt-1 max-w-xs text-sm text-gray-500">Select another date or add a class slot</p>
+          <p className="text-sm sm:text-base font-semibold text-gray-900">No schedule for this day</p>
+          <p className="mt-1 max-w-xs text-xs sm:text-sm text-gray-500">Select another date or add a class slot</p>
         </div>
       ) : (
         <ul className="flex max-h-[420px] flex-col gap-3 overflow-y-auto pr-0.5">
@@ -102,8 +102,8 @@ export function TimetableSection({
                 className="min-w-0 flex-1 space-y-2 text-left"
                 onClick={() => onEntryClick(e)}
               >
-                <div className="flex items-center gap-2 text-sm font-semibold text-indigo-600">
-                  <Clock className="h-4 w-4 shrink-0" aria-hidden />
+                <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-indigo-600">
+                  <Clock className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" aria-hidden />
                   <span>
                     {e.startTime} – {e.endTime}
                   </span>
@@ -119,10 +119,10 @@ export function TimetableSection({
                   </span>
                   <p className="text-[15px] font-semibold leading-snug text-gray-900">{e.title}</p>
                 </div>
-                {e.subject ? <p className="text-sm text-gray-600">Subject: {e.subject}</p> : null}
-                {e.classNumber ? <p className="text-sm text-gray-600">Class: {e.classNumber}</p> : null}
+                {e.subject ? <p className="text-xs sm:text-sm text-gray-600">Subject: {e.subject}</p> : null}
+                {e.classNumber ? <p className="text-xs sm:text-sm text-gray-600">Class: {e.classNumber}</p> : null}
                 {e.room ? (
-                  <p className="flex items-center gap-1.5 text-sm text-gray-600">
+                  <p className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-600">
                     <MapPin className="h-3.5 w-3.5 shrink-0 text-gray-400" aria-hidden />
                     {e.room}
                   </p>
@@ -137,7 +137,7 @@ export function TimetableSection({
                   onClick={() => onRemoveSlot(e.id)}
                   aria-label="Remove slot"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>
               ) : null}
             </li>

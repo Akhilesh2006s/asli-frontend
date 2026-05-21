@@ -28,7 +28,7 @@ export function ActivityProjectViewer({
 }) {
   if (!activities || activities.length === 0) {
     return (
-      <div className={cn('rounded-xl border border-dashed border-gray-200 bg-gray-50 p-8 text-center text-sm text-gray-600', className)}>
+      <div className={cn('rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 sm:p-6 lg:p-8 text-center text-xs sm:text-sm text-gray-600', className)}>
         No activities/projects found for this selection.
       </div>
     );
@@ -49,12 +49,12 @@ export function ActivityProjectViewer({
             <CardHeader className="bg-gradient-to-r from-indigo-50 to-violet-50">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <CardTitle className="text-base font-bold text-gray-900 sm:text-lg">
+                  <CardTitle className="text-sm sm:text-base font-bold text-gray-900 sm:text-lg">
                     Activity {sl}: {title}
                   </CardTitle>
                   {a.objective ? (
-                    <p className="mt-1 flex items-start gap-2 text-sm text-gray-700">
-                      <Target className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" aria-hidden />
+                    <p className="mt-1 flex items-start gap-2 text-xs sm:text-sm text-gray-700">
+                      <Target className="mt-0.5 h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-indigo-600" aria-hidden />
                       <span>
                         <span className="font-semibold">Objective:</span> {a.objective}
                       </span>
@@ -69,44 +69,44 @@ export function ActivityProjectViewer({
             <CardContent className="space-y-4 p-4 sm:p-5">
               {materials ? (
                 <div className="space-y-2">
-                  <p className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                    <ClipboardList className="h-4 w-4 text-gray-500" aria-hidden />
+                  <p className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-gray-900">
+                    <ClipboardList className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500" aria-hidden />
                     Materials
                   </p>
                   {Array.isArray(materials) ? (
-                    <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700">
+                    <ul className="list-disc space-y-1 pl-5 text-xs sm:text-sm text-gray-700">
                       {materials.map((m, i) => (
                         <li key={i}>{m}</li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="text-sm text-gray-700">{materials}</p>
+                    <p className="text-xs sm:text-sm text-gray-700">{materials}</p>
                   )}
                 </div>
               ) : null}
 
               {steps ? (
                 <div className="space-y-2">
-                  <p className="flex items-center gap-2 text-sm font-semibold text-gray-900">
-                    <ListChecks className="h-4 w-4 text-gray-500" aria-hidden />
+                  <p className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-gray-900">
+                    <ListChecks className="h-3 w-3 sm:h-4 sm:w-4 text-gray-500" aria-hidden />
                     Steps / Procedure
                   </p>
                   {Array.isArray(steps) ? (
-                    <ol className="list-decimal space-y-1 pl-5 text-sm text-gray-700">
+                    <ol className="list-decimal space-y-1 pl-5 text-xs sm:text-sm text-gray-700">
                       {steps.map((s, i) => (
                         <li key={i}>{s}</li>
                       ))}
                     </ol>
                   ) : (
-                    <p className="text-sm text-gray-700">{steps}</p>
+                    <p className="text-xs sm:text-sm text-gray-700">{steps}</p>
                   )}
                 </div>
               ) : null}
 
               {learningOutcome ? (
                 <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3">
-                  <p className="flex items-start gap-2 text-sm text-gray-800">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+                  <p className="flex items-start gap-2 text-xs sm:text-sm text-gray-800">
+                    <CheckCircle2 className="mt-0.5 h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-emerald-600" aria-hidden />
                     <span>
                       <span className="font-semibold">Learning outcome:</span> {learningOutcome}
                     </span>
@@ -116,15 +116,15 @@ export function ActivityProjectViewer({
 
               {evaluation ? (
                 <div className="rounded-xl border border-amber-100 bg-amber-50/60 p-3">
-                  <p className="text-sm font-semibold text-gray-900">Evaluation</p>
+                  <p className="text-xs sm:text-sm font-semibold text-gray-900">Evaluation</p>
                   {Array.isArray(evaluation) ? (
-                    <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-gray-700">
+                    <ul className="mt-1 list-disc space-y-1 pl-5 text-xs sm:text-sm text-gray-700">
                       {evaluation.map((e, i) => (
                         <li key={i}>{e}</li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="mt-1 text-sm text-gray-700">{evaluation}</p>
+                    <p className="mt-1 text-xs sm:text-sm text-gray-700">{evaluation}</p>
                   )}
                 </div>
               ) : null}

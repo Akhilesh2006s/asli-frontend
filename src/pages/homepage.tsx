@@ -18,7 +18,7 @@ const Navbar = () => {
               alt="AsliLearn AI company logo" 
               className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
             />
-            <span className="text-lg sm:text-2xl md:text-3xl font-extrabold text-blue-600 animate-blue-glow">
+            <span className="text-base sm:text-lg sm:text-2xl md:text-3xl font-extrabold text-blue-600 animate-blue-glow">
               ASLILEARN AI
             </span>
           </Link>
@@ -86,23 +86,23 @@ const Index = () => {
       
       {/* Hero Section - Split Layout */}
       <section className="relative flex items-center overflow-hidden pt-8 pb-12">
-        <div className="w-full max-w-7xl mx-auto px-4 py-8 lg:py-12">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+        <div className="w-full max-w-7xl mx-auto px-4 py-4 sm:py-6 lg:py-8 lg:py-12">
+          <div className="grid lg:grid-cols-2 gap-4 sm:p-6 lg:p-8 lg:gap-12 items-center">
             {/* Left Side - Content */}
-            <div className="space-y-6">
+            <div className="space-y-3 sm:space-y-4 lg:space-y-6">
             {/* Badge */}
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-200">
-                <Sparkles className="w-4 h-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-700">AI-Powered Learning Platform</span>
+                <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+                <span className="text-xs sm:text-sm font-medium text-blue-700">AI-Powered Learning Platform</span>
             </div>
 
             {/* Main Heading */}
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
                 {renderHeroHeading()}
             </h1>
 
             {/* Description */}
-              <p className="text-base md:text-lg text-gray-700 leading-relaxed max-w-xl">
+              <p className="text-sm sm:text-base md:text-lg text-gray-700 leading-relaxed max-w-xl">
                 Master CBSE, ICSE, State Boards, NEET, JEE & more with personalized AI tutoring, 
                 interactive videos, and gamified learning. Join 100,000+ students transforming their education!
               </p>
@@ -112,9 +112,9 @@ const Index = () => {
               <Link href="/auth/login">
                 <Button 
                   size="lg" 
-                    className="group bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white shadow-lg transition-all px-8 py-6 text-base"
+                    className="group bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white shadow-lg transition-all px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-6 text-sm sm:text-base"
                 >
-                    <Zap className="mr-2 w-5 h-5" />
+                    <Zap className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
                     Start Learning Free
                 </Button>
               </Link>
@@ -122,25 +122,25 @@ const Index = () => {
                 size="lg" 
                 variant="outline"
                 onClick={scrollToFeatures}
-                  className="border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-8 py-6 text-base"
+                  className="border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-6 text-sm sm:text-base"
               >
-                  <Trophy className="mr-2 w-5 h-5" />
+                  <Trophy className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
                   View Demo
               </Button>
             </div>
             
               {/* Statistics */}
-              <div className="grid grid-cols-3 gap-4 pt-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-6">
                 <div>
-                  <div className="text-2xl md:text-3xl font-bold text-purple-600">10K+</div>
+                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-purple-600">10K+</div>
                   <div className="text-xs md:text-sm text-gray-600 mt-1">Active Students</div>
                 </div>
                 <div>
-                  <div className="text-2xl md:text-3xl font-bold text-orange-500">500+</div>
+                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-orange-500">500+</div>
                   <div className="text-xs md:text-sm text-gray-600 mt-1">Video Lectures</div>
                 </div>
                 <div>
-                  <div className="text-2xl md:text-3xl font-bold text-green-600">95%</div>
+                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-green-600">95%</div>
                   <div className="text-xs md:text-sm text-gray-600 mt-1">Success Rate</div>
                 </div>
               </div>
@@ -156,7 +156,7 @@ const Index = () => {
                 />
               </div>
               <div className="mt-8 text-center">
-                <h2 className="text-4xl md:text-5xl font-extrabold leading-tight text-gray-900">
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl md:text-5xl font-extrabold leading-tight text-gray-900">
                   {renderAnimatedHeading("ASLILEARN AI")}
                 </h2>
               </div>
@@ -170,19 +170,19 @@ const Index = () => {
         <div className="w-full max-w-7xl mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-50 border border-orange-200 mb-4">
-              <Sparkles className="w-4 h-4 text-orange-600" />
-              <span className="text-sm font-medium text-orange-700">Powerful Features</span>
+              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600" />
+              <span className="text-xs sm:text-sm font-medium text-orange-700">Powerful Features</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl md:text-5xl font-bold">
               <span className="text-gray-900">Everything You Need to </span>
               <span className="text-orange-500">Excel</span>
             </h2>
-            <p className="text-xl text-gray-700">
+            <p className="text-lg sm:text-xl text-gray-700">
               Comprehensive tools designed to make learning engaging, effective, and fun for students of all levels.
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
             {[
               {
                 icon: Brain,
@@ -224,17 +224,17 @@ const Index = () => {
             ].map((feature, index) => (
               <Card
                 key={index}
-                className={`group p-6 bg-white border-2 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${
+                className={`group p-3 sm:p-4 lg:p-6 bg-white border-2 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${
                   feature.highlighted ? 'border-blue-200 shadow-md' : 'border-gray-200'
                 }`}
               >
                 <div className={`mb-4 inline-flex p-4 rounded-xl ${feature.iconBg} text-white shadow-lg`}>
-                  <feature.icon className="w-6 h-6" />
+                  <feature.icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
                 </div>
-                <h3 className="text-xl font-bold mb-2 text-gray-900">
+                <h3 className="text-lg sm:text-xl font-bold mb-2 text-gray-900">
                   {feature.title}
                 </h3>
-                <p className="text-gray-600 text-sm leading-relaxed">
+                <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">
                   {feature.description}
                 </p>
               </Card>
@@ -247,16 +247,16 @@ const Index = () => {
       <section className="py-24 relative overflow-hidden z-10 bg-white">
         <div className="w-full max-w-7xl mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-            <h2 className="text-4xl md:text-5xl font-bold">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl md:text-5xl font-bold">
               <span className="text-gray-900">How </span>
               <span className="text-blue-600">It Works</span>
             </h2>
-            <p className="text-xl text-gray-700">
+            <p className="text-lg sm:text-xl text-gray-700">
               Get started in minutes and begin your journey to academic success with our simple, intuitive process.
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
             {[
               {
                 icon: UserPlus,
@@ -294,22 +294,22 @@ const Index = () => {
                 
                 <div className="relative space-y-4">
                   {/* Step Number */}
-                  <div className="text-6xl font-bold text-blue-100 group-hover:text-blue-200 transition-colors">
+                  <div className="text-3xl sm:text-5xl lg:text-6xl font-bold text-blue-100 group-hover:text-blue-200 transition-colors">
                     {step.number}
                   </div>
                   
                   {/* Icon */}
                   <div className="flex justify-center -mt-12 mb-4">
                     <div className="p-4 rounded-2xl bg-blue-100 border border-blue-200 group-hover:scale-110 transition-transform">
-                      <step.icon className="w-8 h-8 text-blue-600" />
+                      <step.icon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-blue-600" />
                     </div>
                   </div>
                   
                   {/* Content */}
-                  <h3 className="text-xl font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                     {step.title}
                   </h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">
+                  <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">
                     {step.description}
                   </p>
                 </div>
@@ -322,7 +322,7 @@ const Index = () => {
       {/* Stats Section */}
       <section className="py-16 relative overflow-hidden z-10 bg-gradient-to-br from-blue-50 to-cyan-50">
         <div className="w-full max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
             {[
               { value: "10,000+", label: "Active Students" },
               { value: "500+", label: "Expert Teachers" },
@@ -333,10 +333,10 @@ const Index = () => {
                 key={index}
                 className="text-center space-y-2"
               >
-                <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                <div className="text-2xl sm:text-3xl lg:text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
                   {stat.value}
                 </div>
-                <div className="text-sm md:text-base text-gray-700 font-medium">
+                <div className="text-xs sm:text-sm md:text-base text-gray-700 font-medium">
                   {stat.label}
                 </div>
               </div>
@@ -349,12 +349,12 @@ const Index = () => {
       <section className="py-24 relative z-10 bg-white">
         <div className="w-full max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-orange-50 border-2 border-orange-200 mb-6">
-              <span className="text-2xl">"</span>
-              <span className="text-sm font-semibold text-orange-700">Student Success Stories</span>
-              <span className="text-2xl">"</span>
+            <div className="inline-flex items-center gap-2 px-3 sm:px-4 lg:px-6 py-3 rounded-full bg-orange-50 border-2 border-orange-200 mb-6">
+              <span className="text-xl sm:text-2xl">"</span>
+              <span className="text-xs sm:text-sm font-semibold text-orange-700">Student Success Stories</span>
+              <span className="text-xl sm:text-2xl">"</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl md:text-5xl font-bold">
               <span className="text-gray-900">Loved by </span>
               <span className="text-teal-500">10,000+</span>
               <span className="text-gray-900"> </span>
@@ -369,50 +369,50 @@ const Index = () => {
         <div className="w-full max-w-7xl mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-50 border border-orange-200 mb-4">
-              <Crown className="w-4 h-4 text-orange-600" />
-              <span className="text-sm font-medium text-orange-700">Flexible Pricing</span>
+              <Crown className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600" />
+              <span className="text-xs sm:text-sm font-medium text-orange-700">Flexible Pricing</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-bold">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl md:text-5xl font-bold">
               <span className="text-gray-900">Choose Your </span>
               <span className="text-purple-600">Learning Plan</span>
             </h2>
-            <p className="text-xl text-gray-700">
+            <p className="text-lg sm:text-xl text-gray-700">
               Start with our free plan or unlock unlimited potential with premium features. No hidden charges, cancel anytime.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
             {/* Free Explorer */}
             <Card className="border-2 border-gray-200 hover:shadow-xl transition-all duration-300">
               <CardHeader className="text-center pb-4">
-                <CardTitle className="text-2xl font-bold text-gray-900">Free Explorer</CardTitle>
-                <p className="text-gray-600 text-sm mt-2">Perfect for trying out the platform</p>
+                <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900">Free Explorer</CardTitle>
+                <p className="text-gray-600 text-xs sm:text-sm mt-2">Perfect for trying out the platform</p>
                 <div className="mt-6">
-                  <div className="text-4xl font-bold text-gray-900">₹0</div>
-                  <div className="text-gray-600 text-sm">forever</div>
+                  <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">₹0</div>
+                  <div className="text-gray-600 text-xs sm:text-sm">forever</div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">Access to basic video lectures</span>
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm text-gray-700">Access to basic video lectures</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">Limited AI tutor queries (10/day)</span>
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm text-gray-700">Limited AI tutor queries (10/day)</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">Basic practice tests</span>
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm text-gray-700">Basic practice tests</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">Community forum access</span>
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm text-gray-700">Community forum access</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">With ads and watermarks</span>
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm text-gray-700">With ads and watermarks</span>
                   </div>
                 </div>
                 <Link href="/auth/login">
@@ -431,46 +431,46 @@ const Index = () => {
                 </div>
               </div>
               <CardHeader className="text-center pb-4 pt-6">
-                <CardTitle className="text-2xl font-bold text-gray-900">Premium Plan</CardTitle>
-                <p className="text-gray-600 text-sm mt-2">Most popular for serious learners</p>
+                <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900">Premium Plan</CardTitle>
+                <p className="text-gray-600 text-xs sm:text-sm mt-2">Most popular for serious learners</p>
                 <div className="mt-6">
-                  <div className="text-4xl font-bold text-gray-900">₹249</div>
-                  <div className="text-gray-600 text-sm">/month</div>
+                  <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">₹249</div>
+                  <div className="text-gray-600 text-xs sm:text-sm">/month</div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">Unlimited AI tutor access</span>
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm text-gray-700">Unlimited AI tutor access</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">All video lectures & animations</span>
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm text-gray-700">All video lectures & animations</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">Adaptive tests with AI grading</span>
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm text-gray-700">Adaptive tests with AI grading</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">Smart notes & mind maps</span>
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm text-gray-700">Smart notes & mind maps</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">Progress analytics</span>
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm text-gray-700">Progress analytics</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">Download offline content</span>
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm text-gray-700">Download offline content</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">Priority support</span>
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm text-gray-700">Priority support</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">No ads or watermarks</span>
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <span className="text-xs sm:text-sm text-gray-700">No ads or watermarks</span>
                   </div>
                 </div>
                 <Link href="/auth/login">
@@ -485,8 +485,8 @@ const Index = () => {
           {/* School Discount Message */}
           <div className="text-center mt-12">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-200">
-              <GraduationCap className="w-4 h-4 text-blue-600" />
-              <span className="text-sm text-blue-700">
+              <GraduationCap className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+              <span className="text-xs sm:text-sm text-blue-700">
                 Special discounts available for schools and institutions. Contact us for bulk pricing.
               </span>
             </div>
@@ -497,18 +497,18 @@ const Index = () => {
       {/* Ready to Transform Section */}
       <section className="py-24 relative z-10 bg-gradient-to-br from-blue-50 via-white to-cyan-50">
         <div className="w-full max-w-7xl mx-auto px-4">
-          <div className="text-center max-w-3xl mx-auto space-y-8">
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900">
+          <div className="text-center max-w-3xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900">
               Ready to Transform Your Learning Journey?
             </h2>
-            <p className="text-xl md:text-2xl text-gray-700">
+            <p className="text-lg sm:text-xl md:text-2xl text-gray-700">
               Join thousands of students achieving their academic dreams with AI-powered education
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
               <Link href="/auth/login">
                 <Button 
                   size="lg" 
-                  className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg transition-all px-8 py-6 text-base"
+                  className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg transition-all px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-6 text-sm sm:text-base"
                 >
                   Start Free Trial Today
                 </Button>
@@ -517,7 +517,7 @@ const Index = () => {
                 size="lg" 
                 variant="outline"
                 onClick={scrollToFeatures}
-                className="border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-8 py-6 text-base"
+                className="border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-6 text-sm sm:text-base"
               >
                 Explore Demo
               </Button>
@@ -529,12 +529,12 @@ const Index = () => {
       {/* Footer */}
       <footer className="bg-gradient-to-br from-purple-900 to-purple-800 text-white py-12">
         <div className="w-full max-w-7xl mx-auto px-4">
-          <div className="text-center space-y-6">
-            <h3 className="text-2xl font-bold">AsliLearn</h3>
-            <p className="text-purple-200 text-lg">
+          <div className="text-center space-y-3 sm:space-y-4 lg:space-y-6">
+            <h3 className="text-xl sm:text-2xl font-bold">AsliLearn</h3>
+            <p className="text-purple-200 text-base sm:text-lg">
               Empowering Indian students with world-class AI-driven education
             </p>
-            <div className="flex flex-wrap justify-center gap-6 text-sm text-purple-200">
+            <div className="flex flex-wrap justify-center gap-3 sm:p-4 lg:p-6 text-xs sm:text-sm text-purple-200">
               <Link href="/privacy" className="hover:text-white transition-colors">
                 Privacy Policy
               </Link>
@@ -548,7 +548,7 @@ const Index = () => {
               </Link>
             </div>
             <div className="pt-6 border-t border-purple-700">
-              <p className="text-sm text-purple-300">
+              <p className="text-xs sm:text-sm text-purple-300">
                 © 2025 AsliLearn. All rights reserved.
               </p>
             </div>

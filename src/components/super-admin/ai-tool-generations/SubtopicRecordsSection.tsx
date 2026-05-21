@@ -229,10 +229,10 @@ export function SubtopicRecordsSection({
       <div className="border-b border-slate-100/80 bg-white/80 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white shadow-sm">
-            <FileStack className="h-4 w-4" />
+            <FileStack className="h-3 w-3 sm:h-4 sm:w-4" />
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-900">Records</p>
+            <p className="text-xs sm:text-sm font-semibold text-slate-900">Records</p>
             <p className="text-xs text-slate-500 mt-0.5 truncate">
               {total} generation{total !== 1 ? "s" : ""}
               <span className="text-slate-300 mx-1.5">·</span>
@@ -245,7 +245,7 @@ export function SubtopicRecordsSection({
           className="rounded-xl bg-orange-600 hover:bg-orange-700 text-white shadow-sm shrink-0"
           onClick={pdfThisSubtopic}
         >
-          <FileDown className="w-4 h-4 mr-2" />
+          <FileDown className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
           PDF
         </Button>
       </div>
@@ -253,11 +253,11 @@ export function SubtopicRecordsSection({
       <div className="p-4 space-y-3">
         {loading ? (
           <div className="flex flex-col items-center justify-center gap-2 py-12 text-slate-500">
-            <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
-            <p className="text-sm">Loading records…</p>
+            <Loader2 className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 animate-spin text-orange-500" />
+            <p className="text-xs sm:text-sm">Loading records…</p>
           </div>
         ) : items.length === 0 ? (
-          <p className="text-sm text-center text-slate-500 py-8 rounded-xl border border-dashed border-slate-200 bg-white/60">
+          <p className="text-xs sm:text-sm text-center text-slate-500 py-4 sm:py-6 lg:py-8 rounded-xl border border-dashed border-slate-200 bg-white/60">
             No records for this path.
           </p>
         ) : (
@@ -316,14 +316,14 @@ export function SubtopicRecordsSection({
                           className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
                         >
                           <div className="flex items-start justify-between gap-2">
-                            <p className="text-sm font-medium text-slate-900 leading-relaxed flex-1">
+                            <p className="text-xs sm:text-sm font-medium text-slate-900 leading-relaxed flex-1">
                               Q{qIdx + 1}. {q.question}
                             </p>
                             <Button
                               type="button"
                               size="icon"
                               variant="ghost"
-                              className="h-8 w-8 shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                               disabled={deletingQuestionKey === `${row._id}:${qIdx}`}
                               onClick={() => removeQuestionFromRecord(row, qIdx)}
                               aria-label="Delete question"
@@ -333,7 +333,7 @@ export function SubtopicRecordsSection({
                           </div>
                           <ul className="mt-3 space-y-2.5 pl-0.5">
                             {q.options.map((opt, j) => (
-                              <li key={j} className="flex items-start gap-2.5 text-sm text-slate-700">
+                              <li key={j} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700">
                                 <span
                                   className="mt-1.5 h-3.5 w-3.5 rounded-full border border-slate-400 shrink-0 bg-white"
                                   aria-hidden
@@ -356,7 +356,7 @@ export function SubtopicRecordsSection({
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-slate-700 line-clamp-4 leading-relaxed border-l-2 border-orange-200 pl-3">
+                    <p className="text-xs sm:text-sm text-slate-700 line-clamp-4 leading-relaxed border-l-2 border-orange-200 pl-3">
                       {toEditablePlainText(String(row.content || row.preview || ""))}
                     </p>
                   )}
@@ -401,11 +401,11 @@ export function SubtopicRecordsSection({
         >
           <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto rounded-2xl border-slate-200">
             <DialogHeader>
-              <DialogTitle className="text-lg font-semibold text-slate-900">Generated content</DialogTitle>
+              <DialogTitle className="text-base sm:text-lg font-semibold text-slate-900">Generated content</DialogTitle>
             </DialogHeader>
             {fullText == null ? (
               <div className="flex justify-center py-12">
-                <Loader2 className="animate-spin w-8 h-8 text-orange-500" />
+                <Loader2 className="animate-spin w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-orange-500" />
               </div>
             ) : (() => {
                 const dialogQs = viewDetail
@@ -424,12 +424,12 @@ export function SubtopicRecordsSection({
                           key={`dlg-q-${idx}`}
                           className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-3"
                         >
-                          <p className="text-sm font-semibold text-slate-900 leading-relaxed pr-2">
+                          <p className="text-xs sm:text-sm font-semibold text-slate-900 leading-relaxed pr-2">
                             Q{idx + 1}. {q.question}
                           </p>
                           <ul className="space-y-2.5 pl-0.5">
                             {q.options.map((opt, j) => (
-                              <li key={j} className="flex items-start gap-2.5 text-sm text-slate-700">
+                              <li key={j} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700">
                                 <span
                                   className="mt-1.5 h-3.5 w-3.5 rounded-full border border-slate-400 shrink-0 bg-white"
                                   aria-hidden
@@ -454,7 +454,7 @@ export function SubtopicRecordsSection({
                   );
                 }
                 return (
-                  <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm max-h-[min(70vh,620px)] overflow-y-auto">
+                  <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm max-h-[min(70vh,620px)] overflow-y-auto">
                     <GeneratedRecordBody content={fullText} />
                   </div>
                 );
@@ -465,7 +465,7 @@ export function SubtopicRecordsSection({
         <Dialog open={!!editRow} onOpenChange={() => setEditRow(null)}>
           <DialogContent className="max-w-3xl rounded-2xl border-slate-200">
             <DialogHeader>
-              <DialogTitle className="text-lg font-semibold text-slate-900">Edit content</DialogTitle>
+              <DialogTitle className="text-base sm:text-lg font-semibold text-slate-900">Edit content</DialogTitle>
             </DialogHeader>
             <div className="space-y-3">
               <Textarea

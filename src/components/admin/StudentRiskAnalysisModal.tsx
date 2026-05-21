@@ -168,11 +168,11 @@ export function StudentRiskAnalysisModal({
   const getTrendIcon = (trend: string) => {
     switch (trend) {
       case 'improving':
-        return <TrendingUp className="h-4 w-4 text-green-600" />;
+        return <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />;
       case 'declining':
-        return <TrendingDown className="h-4 w-4 text-red-600" />;
+        return <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 text-red-600" />;
       default:
-        return <Minus className="h-4 w-4 text-gray-600" />;
+        return <Minus className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />;
     }
   };
 
@@ -192,10 +192,10 @@ export function StudentRiskAnalysisModal({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-orange-500" />
+            <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500" />
             AI Student Risk Analysis
             {studentName && (
-              <span className="text-base font-normal text-gray-600">
+              <span className="text-sm sm:text-base font-normal text-gray-600">
                 - {studentName}
               </span>
             )}
@@ -207,30 +207,30 @@ export function StudentRiskAnalysisModal({
 
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-orange-500 mb-4" />
+            <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 animate-spin text-orange-500 mb-4" />
             <p className="text-gray-600">Analyzing student performance with AI...</p>
-            <p className="text-sm text-gray-500 mt-2">This may take a few moments</p>
+            <p className="text-xs sm:text-sm text-gray-500 mt-2">This may take a few moments</p>
           </div>
         )}
 
         {error && (
           <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
+            <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
         {analysisData && !isLoading && (
-          <div className="space-y-6">
+          <div className="space-y-3 sm:space-y-4 lg:space-y-6">
             {/* Risk Level Card */}
             <Card className="border-2">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5" />
+                    <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5" />
                     Risk Assessment
                   </CardTitle>
-                  <Badge className={`${getRiskColor(analysisData.riskLevel)} text-sm font-semibold px-3 py-1`}>
+                  <Badge className={`${getRiskColor(analysisData.riskLevel)} text-xs sm:text-sm font-semibold px-3 py-1`}>
                     {analysisData.riskLevel.toUpperCase()} RISK
                   </Badge>
                 </div>
@@ -239,8 +239,8 @@ export function StudentRiskAnalysisModal({
                 <div className="space-y-4">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">Risk Score</span>
-                      <span className="text-lg font-bold">{Math.round(analysisData.riskScore * 100)}%</span>
+                      <span className="text-xs sm:text-sm font-medium text-gray-700">Risk Score</span>
+                      <span className="text-base sm:text-lg font-bold">{Math.round(analysisData.riskScore * 100)}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
@@ -252,7 +252,7 @@ export function StudentRiskAnalysisModal({
                       />
                     </div>
                   </div>
-                  <p className="text-sm text-gray-600">{analysisData.analysis.summary}</p>
+                  <p className="text-xs sm:text-sm text-gray-600">{analysisData.analysis.summary}</p>
                 </div>
               </CardContent>
             </Card>
@@ -261,20 +261,20 @@ export function StudentRiskAnalysisModal({
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5" />
                   Performance Trends
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <p className="text-sm text-gray-700">{analysisData.analysis.trends}</p>
-                  <div className="grid grid-cols-2 gap-4">
+                  <p className="text-xs sm:text-sm text-gray-700">{analysisData.analysis.trends}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="p-3 bg-blue-50 rounded-lg">
                       <div className="flex items-center gap-2 mb-1">
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        <span className="text-sm font-semibold">Strengths</span>
+                        <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
+                        <span className="text-xs sm:text-sm font-semibold">Strengths</span>
                       </div>
-                      <ul className="text-sm text-gray-700 space-y-1">
+                      <ul className="text-xs sm:text-sm text-gray-700 space-y-1">
                         {analysisData.analysis.strengths.map((strength, idx) => (
                           <li key={idx} className="flex items-start gap-2">
                             <span className="text-green-600 mt-1">•</span>
@@ -285,10 +285,10 @@ export function StudentRiskAnalysisModal({
                     </div>
                     <div className="p-3 bg-red-50 rounded-lg">
                       <div className="flex items-center gap-2 mb-1">
-                        <XCircle className="h-4 w-4 text-red-600" />
-                        <span className="text-sm font-semibold">Weaknesses</span>
+                        <XCircle className="h-3 w-3 sm:h-4 sm:w-4 text-red-600" />
+                        <span className="text-xs sm:text-sm font-semibold">Weaknesses</span>
                       </div>
-                      <ul className="text-sm text-gray-700 space-y-1">
+                      <ul className="text-xs sm:text-sm text-gray-700 space-y-1">
                         {analysisData.analysis.weaknesses.map((weakness, idx) => (
                           <li key={idx} className="flex items-start gap-2">
                             <span className="text-red-600 mt-1">•</span>
@@ -306,14 +306,14 @@ export function StudentRiskAnalysisModal({
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
+                  <Target className="h-4 w-4 sm:h-5 sm:w-5" />
                   Root Causes
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
                   {analysisData.analysis.rootCauses.map((cause, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-sm text-gray-700">
+                    <li key={idx} className="flex items-start gap-2 text-xs sm:text-sm text-gray-700">
                       <span className="text-orange-500 mt-1">•</span>
                       <span>{cause}</span>
                     </li>
@@ -326,29 +326,29 @@ export function StudentRiskAnalysisModal({
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="h-5 w-5" />
+                  <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
                   AI Predictions
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-1">Next Exam Prediction</p>
-                    <p className="text-2xl font-bold text-blue-600">
+                    <p className="text-xs sm:text-sm text-gray-600 mb-1">Next Exam Prediction</p>
+                    <p className="text-xl sm:text-2xl font-bold text-blue-600">
                       {Math.round(analysisData.predictions.nextExamPrediction)}%
                     </p>
                   </div>
                   <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-1">Confidence</p>
-                    <p className="text-2xl font-bold text-purple-600">
+                    <p className="text-xs sm:text-sm text-gray-600 mb-1">Confidence</p>
+                    <p className="text-xl sm:text-2xl font-bold text-purple-600">
                       {Math.round(analysisData.predictions.confidence * 100)}%
                     </p>
                   </div>
                   <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-1">Trend</p>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-1">Trend</p>
                     <div className="flex items-center justify-center gap-2">
                       {getTrendIcon(analysisData.predictions.trend)}
-                      <p className="text-lg font-semibold capitalize">
+                      <p className="text-base sm:text-lg font-semibold capitalize">
                         {analysisData.predictions.trend}
                       </p>
                     </div>
@@ -361,7 +361,7 @@ export function StudentRiskAnalysisModal({
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
+                  <Target className="h-4 w-4 sm:h-5 sm:w-5" />
                   Recommended Interventions
                 </CardTitle>
               </CardHeader>
@@ -388,10 +388,10 @@ export function StudentRiskAnalysisModal({
                         </Badge>
                       </div>
                       <h4 className="font-semibold text-gray-900 mb-2">{intervention.action}</h4>
-                      <p className="text-sm text-gray-700 mb-2">
+                      <p className="text-xs sm:text-sm text-gray-700 mb-2">
                         <span className="font-medium">Reasoning:</span> {intervention.reasoning}
                       </p>
-                      <p className="text-sm text-gray-700">
+                      <p className="text-xs sm:text-sm text-gray-700">
                         <span className="font-medium">Expected Impact:</span> {intervention.expectedImpact}
                       </p>
                     </div>
@@ -425,7 +425,7 @@ export function StudentRiskAnalysisModal({
                             </Badge>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-700">{data.recommendation}</p>
+                        <p className="text-xs sm:text-sm text-gray-700">{data.recommendation}</p>
                       </div>
                     ))}
                   </div>
@@ -522,18 +522,18 @@ export function StudentRiskAnalysisModal({
               >
                 {isDownloading ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 mr-2 animate-spin" />
                     Generating...
                   </>
                 ) : (
                   <>
-                    <Download className="h-4 w-4 mr-2" />
+                    <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                     Download PDF & Send to Student
                   </>
                 )}
               </Button>
               <Button onClick={fetchAnalysis} variant="default">
-                <Sparkles className="h-4 w-4 mr-2" />
+                <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                 Refresh Analysis
               </Button>
             </div>

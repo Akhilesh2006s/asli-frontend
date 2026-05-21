@@ -272,14 +272,14 @@ export default function Profile() {
       <>
         <Navigation />
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
-          <div className="space-y-8">
+          <div className="space-y-4 sm:space-y-6 lg:space-y-8">
             <Skeleton className="h-32 w-full" />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:p-6 lg:p-8">
+              <div className="lg:col-span-2 space-y-3 sm:space-y-4 lg:space-y-6">
                 <Skeleton className="h-64 w-full" />
                 <Skeleton className="h-64 w-full" />
               </div>
-              <div className="space-y-6">
+              <div className="space-y-3 sm:space-y-4 lg:space-y-6">
                 <Skeleton className="h-48 w-full" />
                 <Skeleton className="h-48 w-full" />
               </div>
@@ -298,7 +298,7 @@ export default function Profile() {
           <Card>
             <CardContent className="p-12 text-center">
               <User className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">User not found</h3>
+              <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">User not found</h3>
               <p className="text-gray-600">Please check your login status.</p>
             </CardContent>
           </Card>
@@ -316,7 +316,7 @@ export default function Profile() {
         
         {/* Profile Header */}
         <Card className="mb-8 overflow-visible min-w-0">
-          <CardContent className="p-6 overflow-visible min-w-0">
+          <CardContent className="p-3 sm:p-4 lg:p-6 overflow-visible min-w-0">
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center space-x-4 min-w-0 flex-1">
@@ -325,7 +325,7 @@ export default function Profile() {
                       <img src={user.profilePhoto} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full gradient-accent flex items-center justify-center">
-                        <span className="text-2xl font-bold text-white">
+                        <span className="text-xl sm:text-2xl font-bold text-white">
                           {user.fullName?.split(' ').map(
                             (n: string) => n[0]).join('').toUpperCase() || 'U'}
                         </span>
@@ -338,7 +338,7 @@ export default function Profile() {
                         <Input
                           value={editedProfile.fullName}
                           onChange={(e) => setEditedProfile({...editedProfile, fullName: e.target.value})}
-                          className="text-2xl font-bold"
+                          className="text-xl sm:text-2xl font-bold"
                         />
                         <Input
                           type="email"
@@ -349,7 +349,7 @@ export default function Profile() {
                       </div>
                     ) : (
                       <>
-                        <h1 className="text-2xl font-bold text-gray-900 break-words">{user.fullName || 'User'}</h1>
+                        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">{user.fullName || 'User'}</h1>
                         <p className="text-gray-600 break-all">{user.email}</p>
                       </>
                     )}
@@ -366,8 +366,8 @@ export default function Profile() {
                   {isEditing && (
                     <div className="flex items-center gap-2 mr-2">
                       <Label htmlFor="profile-photo-upload" className="cursor-pointer">
-                        <span className="inline-flex items-center rounded-md border px-3 py-2 text-sm bg-white hover:bg-gray-50">
-                          <Camera className="w-4 h-4 mr-2" />
+                        <span className="inline-flex items-center rounded-md border px-3 py-2 text-xs sm:text-sm bg-white hover:bg-gray-50">
+                          <Camera className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                           {isUploadingPhoto ? "Uploading..." : "Upload Photo"}
                         </span>
                       </Label>
@@ -392,17 +392,17 @@ export default function Profile() {
                         disabled={updateProfileMutation.isPending}
                         size="sm"
                       >
-                        <Save className="w-4 h-4 mr-2" />
+                        <Save className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         Save
                       </Button>
                       <Button variant="outline" onClick={handleCancel} size="sm">
-                        <X className="w-4 h-4 mr-2" />
+                        <X className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         Cancel
                       </Button>
                     </>
                   ) : (
                     <Button onClick={handleEdit} variant="outline" size="sm">
-                      <Edit className="w-4 h-4 mr-2" />
+                      <Edit className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       Edit Profile
                     </Button>
                   )}
@@ -412,55 +412,55 @@ export default function Profile() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-4 sm:p-6 lg:p-8">
           
           {/* Main Content */}
           <div className="lg:col-span-2">
-            <Tabs defaultValue="overview" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+            <Tabs defaultValue="overview" className="space-y-3 sm:space-y-4 lg:space-y-6">
+              <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="achievements">Achievements</TabsTrigger>
                 <TabsTrigger value="progress">Progress</TabsTrigger>
                 <TabsTrigger value="settings">Settings</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="overview" className="space-y-6">
+              <TabsContent value="overview" className="space-y-3 sm:space-y-4 lg:space-y-6">
                 {/* Performance Stats */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
-                      <TrendingUp className="w-5 h-5 mr-2" />
+                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                       Performance Overview
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-3 sm:p-4 lg:p-6">
                       <div className="text-center">
-                        <div className="text-3xl font-bold text-orange-600 mb-1">
+                        <div className="text-2xl sm:text-3xl font-bold text-orange-600 mb-1">
                           {stats.streak}
                         </div>
-                        <p className="text-sm text-gray-600">Day Streak</p>
+                        <p className="text-xs sm:text-sm text-gray-600">Day Streak</p>
                       </div>
                       
                       <div className="text-center">
-                        <div className="text-3xl font-bold text-green-600 mb-1">
+                        <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-1">
                           {stats.questionsAnswered.toLocaleString()}
                         </div>
-                        <p className="text-sm text-gray-600">Questions Solved</p>
+                        <p className="text-xs sm:text-sm text-gray-600">Questions Solved</p>
                       </div>
                       
                       <div className="text-center">
-                        <div className="text-3xl font-bold text-blue-600 mb-1">
+                        <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">
                           {stats.accuracyRate}%
                         </div>
-                        <p className="text-sm text-gray-600">Accuracy Rate</p>
+                        <p className="text-xs sm:text-sm text-gray-600">Accuracy Rate</p>
                       </div>
                       
                       <div className="text-center">
-                        <div className="text-3xl font-bold text-purple-600 mb-1">
+                        <div className="text-2xl sm:text-3xl font-bold text-purple-600 mb-1">
                           #{stats.rank}
                         </div>
-                        <p className="text-sm text-gray-600">Rank</p>
+                        <p className="text-xs sm:text-sm text-gray-600">Rank</p>
                       </div>
                     </div>
                   </CardContent>
@@ -470,7 +470,7 @@ export default function Profile() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
-                      <Calendar className="w-5 h-5 mr-2" />
+                      <Calendar className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                       This Week's Activity
                     </CardTitle>
                   </CardHeader>
@@ -490,7 +490,7 @@ export default function Profile() {
                       ))}
                     </div>
                     <div className="mt-4 text-center">
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs sm:text-sm text-gray-600">
                         Total: {weeklyStats.reduce((sum, day) => sum + day.hours, 0)} hours this week
                       </p>
                     </div>
@@ -498,11 +498,11 @@ export default function Profile() {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="achievements" className="space-y-6">
+              <TabsContent value="achievements" className="space-y-3 sm:space-y-4 lg:space-y-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
-                      <Award className="w-5 h-5 mr-2" />
+                      <Award className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                       Achievements & Badges
                     </CardTitle>
                   </CardHeader>
@@ -514,11 +514,11 @@ export default function Profile() {
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center space-x-3">
                               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${achievement.color}`}>
-                                <Icon className="w-5 h-5" />
+                                <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                               </div>
                               <div>
                                 <h4 className="font-medium text-gray-900">{achievement.title}</h4>
-                                <p className="text-sm text-gray-600">{achievement.description}</p>
+                                <p className="text-xs sm:text-sm text-gray-600">{achievement.description}</p>
                               </div>
                             </div>
                             <Badge className={achievement.unlocked ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}>
@@ -536,34 +536,34 @@ export default function Profile() {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="progress" className="space-y-6">
+              <TabsContent value="progress" className="space-y-3 sm:space-y-4 lg:space-y-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
-                      <BookOpen className="w-5 h-5 mr-2" />
+                      <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                       Learning Progress
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-6">
+                  <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
                     {/* Subject Progress */}
                     <div>
                       <h4 className="font-medium mb-4">Subject-wise Progress</h4>
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Physics</span>
-                          <span className="text-sm text-gray-600">75%</span>
+                          <span className="text-xs sm:text-sm font-medium">Physics</span>
+                          <span className="text-xs sm:text-sm text-gray-600">75%</span>
                         </div>
                         <Progress value={75} className="h-2" />
                         
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Chemistry</span>
-                          <span className="text-sm text-gray-600">62%</span>
+                          <span className="text-xs sm:text-sm font-medium">Chemistry</span>
+                          <span className="text-xs sm:text-sm text-gray-600">62%</span>
                         </div>
                         <Progress value={62} className="h-2" />
                         
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Mathematics</span>
-                          <span className="text-sm text-gray-600">58%</span>
+                          <span className="text-xs sm:text-sm font-medium">Mathematics</span>
+                          <span className="text-xs sm:text-sm text-gray-600">58%</span>
                         </div>
                         <Progress value={58} className="h-2" />
                       </div>
@@ -577,20 +577,20 @@ export default function Profile() {
                       <div className="space-y-3">
                         <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                           <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                              <Target className="w-4 h-4 text-blue-600" />
+                            <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                              <Target className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
                             </div>
-                            <span className="text-sm font-medium">Daily Study Goal</span>
+                            <span className="text-xs sm:text-sm font-medium">Daily Study Goal</span>
                           </div>
                           <Badge className="bg-blue-100 text-blue-800">3 hours</Badge>
                         </div>
                         
                         <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                           <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                              <Clock className="w-4 h-4 text-green-600" />
+                            <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                              <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
                             </div>
-                            <span className="text-sm font-medium">Weekly Target</span>
+                            <span className="text-xs sm:text-sm font-medium">Weekly Target</span>
                           </div>
                           <Badge className="bg-green-100 text-green-800">20 hours</Badge>
                         </div>
@@ -600,15 +600,15 @@ export default function Profile() {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="settings" className="space-y-6">
+              <TabsContent value="settings" className="space-y-3 sm:space-y-4 lg:space-y-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center">
-                      <Settings className="w-5 h-5 mr-2" />
+                      <Settings className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                       Profile Settings
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-6">
+                  <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
                     {isEditing ? (
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -672,44 +672,44 @@ export default function Profile() {
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <Label className="text-sm font-medium text-gray-600">Full Name</Label>
-                            <p className="text-lg font-medium text-gray-900">{user.fullName || "N/A"}</p>
+                            <Label className="text-xs sm:text-sm font-medium text-gray-600">Full Name</Label>
+                            <p className="text-base sm:text-lg font-medium text-gray-900">{user.fullName || "N/A"}</p>
                           </div>
                           <div>
-                            <Label className="text-sm font-medium text-gray-600">Email</Label>
-                            <p className="text-lg font-medium text-gray-900 break-all">{user.email || "N/A"}</p>
+                            <Label className="text-xs sm:text-sm font-medium text-gray-600">Email</Label>
+                            <p className="text-base sm:text-lg font-medium text-gray-900 break-all">{user.email || "N/A"}</p>
                           </div>
                           <div>
-                            <Label className="text-sm font-medium text-gray-600">Age</Label>
-                            <p className="text-lg font-medium text-gray-900">{user.age} years</p>
+                            <Label className="text-xs sm:text-sm font-medium text-gray-600">Age</Label>
+                            <p className="text-base sm:text-lg font-medium text-gray-900">{user.age} years</p>
                           </div>
                           
                           <div>
-                            <Label className="text-sm font-medium text-gray-600">Education Stream</Label>
-                            <p className="text-lg font-medium text-gray-900">{user.educationStream}</p>
+                            <Label className="text-xs sm:text-sm font-medium text-gray-600">Education Stream</Label>
+                            <p className="text-base sm:text-lg font-medium text-gray-900">{user.educationStream}</p>
                           </div>
                           <div>
-                            <Label className="text-sm font-medium text-gray-600">Class</Label>
-                            <p className="text-lg font-medium text-gray-900">{user.classNumber || "N/A"}</p>
+                            <Label className="text-xs sm:text-sm font-medium text-gray-600">Class</Label>
+                            <p className="text-base sm:text-lg font-medium text-gray-900">{user.classNumber || "N/A"}</p>
                           </div>
                           <div>
-                            <Label className="text-sm font-medium text-gray-600">Phone</Label>
-                            <p className="text-lg font-medium text-gray-900">{user.phone || "N/A"}</p>
+                            <Label className="text-xs sm:text-sm font-medium text-gray-600">Phone</Label>
+                            <p className="text-base sm:text-lg font-medium text-gray-900">{user.phone || "N/A"}</p>
                           </div>
                           <div>
-                            <Label className="text-sm font-medium text-gray-600">School</Label>
-                            <p className="text-lg font-medium text-gray-900">{user.schoolName || "N/A"}</p>
+                            <Label className="text-xs sm:text-sm font-medium text-gray-600">School</Label>
+                            <p className="text-base sm:text-lg font-medium text-gray-900">{user.schoolName || "N/A"}</p>
                           </div>
                           <div>
-                            <Label className="text-sm font-medium text-gray-600">Board</Label>
-                            <p className="text-lg font-medium text-gray-900">{user.board || "N/A"}</p>
+                            <Label className="text-xs sm:text-sm font-medium text-gray-600">Board</Label>
+                            <p className="text-base sm:text-lg font-medium text-gray-900">{user.board || "N/A"}</p>
                           </div>
                         </div>
                         
                         {user.targetExam && (
                           <div>
-                            <Label className="text-sm font-medium text-gray-600">Target Exam</Label>
-                            <p className="text-lg font-medium text-gray-900">{user.targetExam}</p>
+                            <Label className="text-xs sm:text-sm font-medium text-gray-600">Target Exam</Label>
+                            <p className="text-base sm:text-lg font-medium text-gray-900">{user.targetExam}</p>
                           </div>
                         )}
                       </div>
@@ -721,7 +721,7 @@ export default function Profile() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-3 sm:space-y-4 lg:space-y-6">
             
             {/* Quick Stats */}
             <Card>
@@ -730,12 +730,12 @@ export default function Profile() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Tests Completed</span>
+                  <span className="text-xs sm:text-sm text-gray-600">Tests Completed</span>
                   <span className="font-semibold">{(attempts as any[]).length}</span>
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Best Score</span>
+                  <span className="text-xs sm:text-sm text-gray-600">Best Score</span>
                   <span className="font-semibold">
                     {(attempts as any[]).length > 0
                       ? `${Math.max(...(attempts as any[]).map((a: any) => {
@@ -750,14 +750,14 @@ export default function Profile() {
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Study Hours</span>
+                  <span className="text-xs sm:text-sm text-gray-600">Study Hours</span>
                   <span className="font-semibold">
                     {weeklyStats.reduce((sum, day) => sum + day.hours, 0)}h this week
                   </span>
                 </div>
                 
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Achievements</span>
+                  <span className="text-xs sm:text-sm text-gray-600">Achievements</span>
                   <span className="font-semibold">
                     {achievements.filter(a => a.unlocked).length}/{achievements.length}
                   </span>
@@ -771,22 +771,22 @@ export default function Profile() {
                 <CardTitle>Recent Activity</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex items-center space-x-3 text-sm">
+                <div className="flex items-center space-x-3 text-xs sm:text-sm">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                   <span className="text-gray-600">Completed Physics test</span>
                 </div>
                 
-                <div className="flex items-center space-x-3 text-sm">
+                <div className="flex items-center space-x-3 text-xs sm:text-sm">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span className="text-gray-600">Watched Chemistry lecture</span>
                 </div>
                 
-                <div className="flex items-center space-x-3 text-sm">
+                <div className="flex items-center space-x-3 text-xs sm:text-sm">
                   <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
                   <span className="text-gray-600">Asked Vidya AI a question</span>
                 </div>
                 
-                <div className="flex items-center space-x-3 text-sm">
+                <div className="flex items-center space-x-3 text-xs sm:text-sm">
                   <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                   <span className="text-gray-600">Achieved study streak milestone</span>
                 </div>
@@ -800,17 +800,17 @@ export default function Profile() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center justify-between p-2 bg-blue-50 rounded">
-                  <span className="text-sm font-medium">Physics</span>
+                  <span className="text-xs sm:text-sm font-medium">Physics</span>
                   <Badge variant="outline">30 min</Badge>
                 </div>
                 
                 <div className="flex items-center justify-between p-2 bg-green-50 rounded">
-                  <span className="text-sm font-medium">Chemistry</span>
+                  <span className="text-xs sm:text-sm font-medium">Chemistry</span>
                   <Badge variant="outline">45 min</Badge>
                 </div>
                 
                 <div className="flex items-center justify-between p-2 bg-purple-50 rounded">
-                  <span className="text-sm font-medium">Mathematics</span>
+                  <span className="text-xs sm:text-sm font-medium">Mathematics</span>
                   <Badge variant="outline">60 min</Badge>
                 </div>
                 

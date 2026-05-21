@@ -49,10 +49,10 @@ import {
 import { VidyaAnalyticsCard } from "@/components/super-admin/VidyaAnalyticsCard";
 
 const lazySectionFallback = (
-  <div className="rounded-xl border border-orange-100 bg-white p-8 shadow-sm">
+  <div className="rounded-xl border border-orange-100 bg-white p-4 sm:p-6 lg:p-8 shadow-sm">
     <div className="flex flex-col items-center justify-center gap-3 text-slate-600">
-      <RefreshCw className="h-5 w-5 animate-spin text-orange-500" />
-      <p className="text-sm font-medium">Loading section...</p>
+      <RefreshCw className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-orange-500" />
+      <p className="text-xs sm:text-sm font-medium">Loading section...</p>
     </div>
   </div>
 );
@@ -311,24 +311,24 @@ export default function SuperAdminDashboard() {
 
     return (
     <div className="min-h-screen relative z-10 overflow-x-hidden">
-      <div className="space-y-6">
+      <div className="space-y-3 sm:space-y-4 lg:space-y-6">
         {/* Welcome Header */}
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome back, Super Admin</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Welcome back, Super Admin</h1>
           <p className="text-gray-600">Manage boards, schools, exams and AI analytic tau at one place.</p>
         </div>
 
         {/* Board Management Section */}
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-gray-900">Board Management</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Board Management</h2>
           <div className="grid grid-cols-1 gap-4">
             {/* ASLI EXCLUSIVE SCHOOLS */}
             <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 cursor-pointer hover:from-orange-400 hover:to-orange-500 transition-colors shadow-lg" onClick={openBoardManagement}>
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                    <h3 className="text-2xl font-bold mb-1 text-white">Asli Exclusive Schools</h3>
-                    <p className="text-white/90 text-sm">All Boards Content - Unified Platform</p>
+                    <h3 className="text-xl sm:text-2xl font-bold mb-1 text-white">Asli Exclusive Schools</h3>
+                    <p className="text-white/90 text-xs sm:text-sm">All Boards Content - Unified Platform</p>
                 </div>
                   <Users2 className="h-16 w-16 text-white" />
               </div>
@@ -343,11 +343,11 @@ export default function SuperAdminDashboard() {
             className="bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 cursor-pointer hover:from-sky-400 hover:to-sky-500 transition-all duration-300 shadow-lg"
             onClick={() => setCurrentView('content')}
           >
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold mb-1 text-white">Content Management</h3>
-                  <p className="text-white/90 text-sm">Manage videos, notes & materials</p>
+                  <h3 className="text-lg sm:text-xl font-bold mb-1 text-white">Content Management</h3>
+                  <p className="text-white/90 text-xs sm:text-sm">Manage videos, notes & materials</p>
                 </div>
                 <UploadIcon className="h-12 w-12 text-white" />
               </div>
@@ -359,11 +359,11 @@ export default function SuperAdminDashboard() {
             className="bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 cursor-pointer hover:from-teal-500 hover:to-teal-600 transition-all duration-300 shadow-lg"
             onClick={() => setCurrentView('analytics')}
           >
-            <CardContent className="p-6">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-bold mb-1">Analytics</h3>
-                  <p className="text-teal-100 text-sm">Schools, exams &amp; AI insights</p>
+                  <h3 className="text-lg sm:text-xl font-bold mb-1">Analytics</h3>
+                  <p className="text-teal-100 text-xs sm:text-sm">Schools, exams &amp; AI insights</p>
                 </div>
                 <BrainCircuitIcon className="h-12 w-12 text-white/80" />
               </div>
@@ -376,11 +376,11 @@ export default function SuperAdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Total Students Widget */}
           <Card className="bg-white">
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between mb-4">
               <div>
-                  <p className="text-sm text-gray-600 mb-1">Total Students</p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Students</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {isLoadingStats ? '...' : (stats.totalStudents || 0).toLocaleString().replace(/\s/g, ' ')}
                   </p>
               </div>
@@ -399,13 +399,13 @@ export default function SuperAdminDashboard() {
 
           {/* 80% Pass rate Widget */}
           <Card className="bg-white">
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between mb-4">
               <div>
-                  <p className="text-3xl font-bold text-gray-900 mb-1">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
                     {isLoadingStats ? '...' : (stats.passRate || 0).toFixed(0)}%
                   </p>
-                  <p className="text-sm text-gray-600">Pass rate data</p>
+                  <p className="text-xs sm:text-sm text-gray-600">Pass rate data</p>
               </div>
                 {passRateData.length > 0 && (
                   <div className="w-16 h-12">
@@ -428,11 +428,11 @@ export default function SuperAdminDashboard() {
         >
           <div className="absolute inset-0 bg-white/85"></div>
           <div className="absolute inset-0 bg-orange-300/15"></div>
-          <CardContent className="p-6 relative z-10">
+          <CardContent className="p-3 sm:p-4 lg:p-6 relative z-10">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Vidya AI</h3>
-                <p className="text-sm text-gray-600">24/7 AI Tutor Support</p>
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Vidya AI</h3>
+                <p className="text-xs sm:text-sm text-gray-600">24/7 AI Tutor Support</p>
                 <p className="text-xs text-orange-500 mt-2 font-medium">Click to access Vidya AI →</p>
               </div>
               <div className="ml-4">
@@ -453,27 +453,27 @@ export default function SuperAdminDashboard() {
         >
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Student Analytics</CardTitle>
-            <span className="text-sm text-orange-600 font-medium hover:text-orange-700 transition-colors flex items-center gap-1">
-              View Details <ArrowUpRightIcon className="h-4 w-4" />
+            <span className="text-xs sm:text-sm text-orange-600 font-medium hover:text-orange-700 transition-colors flex items-center gap-1">
+              View Details <ArrowUpRightIcon className="h-3 w-3 sm:h-4 sm:w-4" />
             </span>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">Total Students</span>
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-xs sm:text-sm text-gray-700">Total Students</span>
+                <span className="text-xs sm:text-sm font-semibold text-gray-900">
                   {isLoadingStats ? '...' : (stats.totalStudents || 0).toLocaleString()}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">Active Students</span>
-                <span className="text-sm font-semibold text-orange-600">
+                <span className="text-xs sm:text-sm text-gray-700">Active Students</span>
+                <span className="text-xs sm:text-sm font-semibold text-orange-600">
                   {isLoadingStats ? '...' : (stats.activeStudents || 0).toLocaleString()} ({stats.activeStudentsPercentage || 0}%)
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">Avg Exams per Student</span>
-                <span className="text-sm font-semibold text-teal-600">
+                <span className="text-xs sm:text-sm text-gray-700">Avg Exams per Student</span>
+                <span className="text-xs sm:text-sm font-semibold text-teal-600">
                   {isLoadingStats ? '...' : (Number(stats.avgExamsPerStudent) || 0).toFixed(1)}
                 </span>
               </div>
@@ -501,14 +501,14 @@ export default function SuperAdminDashboard() {
       {/* AI-Powered Recommendations */}
       <div className="space-y-4">
         <div className="flex items-center space-x-2">
-          <TargetIcon className="h-5 w-5 text-orange-400" />
-          <h2 className="text-xl font-bold text-gray-900">AI-Powered Recommendations</h2>
+          <TargetIcon className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">AI-Powered Recommendations</h2>
         </div>
         <Card>
-          <CardContent className="p-6">
-            <div className="text-center py-8">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
+            <div className="text-center py-4 sm:py-6 lg:py-8">
               <TargetIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Recommendations</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">AI Recommendations</h3>
               <p className="text-gray-600">AI-powered insights and recommendations will appear here</p>
             </div>
           </CardContent>
@@ -516,51 +516,51 @@ export default function SuperAdminDashboard() {
       </div>
 
       {/* Real-time Analytics Section */}
-      <div className="space-y-6">
+      <div className="space-y-3 sm:space-y-4 lg:space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <BarChart3Icon className="h-5 w-5 text-teal-400" />
-            <h2 className="text-xl font-bold text-gray-900">Real-time Analytics</h2>
+            <BarChart3Icon className="h-4 w-4 sm:h-5 sm:w-5 text-teal-400" />
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900">Real-time Analytics</h2>
           </div>
           <Button onClick={fetchRealtimeAnalytics} disabled={isLoadingAnalytics} size="sm" variant="outline">
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingAnalytics ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3 w-3 sm:h-4 sm:w-4 mr-2 ${isLoadingAnalytics ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
         </div>
 
         {isLoadingAnalytics ? (
           <Card>
-            <CardContent className="p-8 text-center">
+            <CardContent className="p-4 sm:p-6 lg:p-8 text-center">
               <BarChart3Icon className="h-12 w-12 animate-spin text-teal-400 mx-auto mb-4" />
               <p className="text-gray-600">Loading real-time analytics...</p>
             </CardContent>
           </Card>
         ) : realtimeAnalytics ? (
-          <div className="space-y-6">
+          <div className="space-y-3 sm:space-y-4 lg:space-y-6">
             {/* Overall Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
                 <CardContent className="p-4">
-                  <p className="text-sm text-orange-600 font-medium">Total Students</p>
-                  <p className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-orange-300 bg-clip-text text-transparent">{stats.totalStudents || realtimeAnalytics.overallMetrics?.totalStudents || 0}</p>
+                  <p className="text-xs sm:text-sm text-orange-600 font-medium">Total Students</p>
+                  <p className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-orange-400 to-orange-300 bg-clip-text text-transparent">{stats.totalStudents || realtimeAnalytics.overallMetrics?.totalStudents || 0}</p>
                 </CardContent>
               </Card>
               <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
                 <CardContent className="p-4">
-                  <p className="text-sm text-teal-600 font-medium">Total Exams</p>
-                  <p className="text-2xl font-bold bg-gradient-to-r from-teal-400 to-orange-400 bg-clip-text text-transparent">{realtimeAnalytics.overallMetrics?.totalExams || 0}</p>
+                  <p className="text-xs sm:text-sm text-teal-600 font-medium">Total Exams</p>
+                  <p className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-teal-400 to-orange-400 bg-clip-text text-transparent">{realtimeAnalytics.overallMetrics?.totalExams || 0}</p>
                 </CardContent>
               </Card>
               <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
                 <CardContent className="p-4">
-                  <p className="text-sm text-orange-600 font-medium">Exam Results</p>
-                  <p className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-orange-500 bg-clip-text text-transparent">{realtimeAnalytics.overallMetrics?.totalExamResults || 0}</p>
+                  <p className="text-xs sm:text-sm text-orange-600 font-medium">Exam Results</p>
+                  <p className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-orange-400 to-orange-500 bg-clip-text text-transparent">{realtimeAnalytics.overallMetrics?.totalExamResults || 0}</p>
                 </CardContent>
               </Card>
               <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
                 <CardContent className="p-4">
-                  <p className="text-sm text-violet-700 font-medium">Overall Average</p>
-                  <p className="text-2xl font-bold bg-gradient-to-r from-teal-400 to-orange-400 bg-clip-text text-transparent">{realtimeAnalytics.overallMetrics?.overallAverage || 0}%</p>
+                  <p className="text-xs sm:text-sm text-violet-700 font-medium">Overall Average</p>
+                  <p className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-teal-400 to-orange-400 bg-clip-text text-transparent">{realtimeAnalytics.overallMetrics?.overallAverage || 0}%</p>
                 </CardContent>
               </Card>
             </div>
@@ -611,7 +611,7 @@ export default function SuperAdminDashboard() {
               <Card className="border-red-200 bg-red-50">
                 <CardHeader>
                   <CardTitle className="text-red-900 flex items-center">
-                    <AlertTriangleIcon className="h-5 w-5 mr-2" />
+                    <AlertTriangleIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
                     Low-performing Admins (Needs Attention)
                   </CardTitle>
                 </CardHeader>
@@ -621,13 +621,13 @@ export default function SuperAdminDashboard() {
                       <div key={`${admin.adminId || admin.adminEmail || admin.adminName || 'admin'}-${idx}`} className="flex items-center justify-between p-3 bg-white rounded border border-red-200">
                         <div>
                           <p className="font-semibold text-gray-900">{admin.adminName}</p>
-                          <p className="text-sm text-gray-600">{admin.adminEmail}</p>
+                          <p className="text-xs sm:text-sm text-gray-600">{admin.adminEmail}</p>
                           <p className="text-xs text-gray-500 mt-1">
                             {admin.totalStudents} students • {admin.totalExams} exams
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-lg font-bold text-red-600">{admin.averageScore}%</p>
+                          <p className="text-base sm:text-lg font-bold text-red-600">{admin.averageScore}%</p>
                           <p className="text-xs text-gray-600">Average Score</p>
                         </div>
                       </div>
@@ -645,7 +645,7 @@ export default function SuperAdminDashboard() {
                 <div className="absolute inset-0 bg-white/5 pointer-events-none"></div>
                 <CardHeader className="relative z-10">
                   <CardTitle className="flex items-center text-gray-900">
-                    <TrendingUpIcon className="w-5 h-5 mr-2" />
+                    <TrendingUpIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                     Admin Performance Overview
                   </CardTitle>
                 </CardHeader>
@@ -655,11 +655,11 @@ export default function SuperAdminDashboard() {
                       <div key={`${admin.adminId || admin.adminEmail || admin.adminName || 'admin'}-${idx}`} className="p-4 bg-white/90 backdrop-blur-sm rounded-lg border border-white/50 shadow-md">
                         <div className="flex items-center justify-between mb-3">
                           <div>
-                            <h3 className="font-semibold text-lg text-gray-900">{admin.adminName}</h3>
+                            <h3 className="font-semibold text-base sm:text-lg text-gray-900">{admin.adminName}</h3>
                             <p className="text-gray-600">{admin.adminEmail || `${admin.totalStudents} students`}</p>
                           </div>
                           <div className="text-right">
-                            <p className="font-semibold text-gray-900 text-lg">{admin.averageScore}%</p>
+                            <p className="font-semibold text-gray-900 text-base sm:text-lg">{admin.averageScore}%</p>
                             <p className="text-xs text-gray-600">Avg Score</p>
                           </div>
                         </div>
@@ -672,7 +672,7 @@ export default function SuperAdminDashboard() {
           </div>
         ) : (
           <Card>
-            <CardContent className="p-8 text-center">
+            <CardContent className="p-4 sm:p-6 lg:p-8 text-center">
               <BarChart3Icon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600">No analytics data available</p>
             </CardContent>
@@ -684,19 +684,19 @@ export default function SuperAdminDashboard() {
       {realtimeAnalytics && realtimeAnalytics.insights && realtimeAnalytics.insights.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center space-x-2">
-            <BrainIcon className="h-5 w-5 text-orange-400" />
-            <h2 className="text-xl font-bold text-gray-900">AI-Powered Insights</h2>
+            <BrainIcon className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900">AI-Powered Insights</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:p-4 lg:p-6">
             {realtimeAnalytics.insights.slice(0, 2).map((insight: any, index: number) => (
               <Card key={`${insight.id || insight.title || insight.description || 'insight'}-${index}`} className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
-                <CardContent className="p-6">
+                <CardContent className="p-3 sm:p-4 lg:p-6">
                   <div className="flex items-center space-x-3">
                     <div className="p-2 bg-gradient-to-br from-blue-300 to-blue-400 rounded-lg">
-                      <BrainIcon className="h-5 w-5 text-white" />
+                      <BrainIcon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent">
+                      <p className="text-xs sm:text-sm font-medium bg-gradient-to-r from-blue-400 to-blue-300 bg-clip-text text-transparent">
                         {insight.title || insight.description || 'Insight'}
                       </p>
                       <p className="text-xs text-gray-600">
@@ -749,7 +749,7 @@ export default function SuperAdminDashboard() {
     }
     
     return (
-      <div className="space-y-8">
+      <div className="space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Header with back button */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -757,42 +757,42 @@ export default function SuperAdminDashboard() {
               ← Back to Dashboard
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">{boardName}</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{boardName}</h1>
               <p className="text-gray-600">Manage content, exams, subjects, and view analytics</p>
             </div>
           </div>
         </div>
 
         {/* Board Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:p-4 lg:p-6">
           <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
-            <CardContent className="p-6">
-              <p className="text-sm text-orange-600 font-medium">Students</p>
-              <p className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-orange-300 bg-clip-text text-transparent">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
+              <p className="text-xs sm:text-sm text-orange-600 font-medium">Students</p>
+              <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-400 to-orange-300 bg-clip-text text-transparent">
                 {typeof stats.students === 'number' ? stats.students : 0}
               </p>
             </CardContent>
           </Card>
           <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
-            <CardContent className="p-6">
-              <p className="text-sm text-teal-600 font-medium">Teachers</p>
-              <p className="text-3xl font-bold bg-gradient-to-r from-teal-400 to-orange-400 bg-clip-text text-transparent">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
+              <p className="text-xs sm:text-sm text-teal-600 font-medium">Teachers</p>
+              <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-teal-400 to-orange-400 bg-clip-text text-transparent">
                 {typeof stats.teachers === 'number' ? stats.teachers : 0}
               </p>
             </CardContent>
           </Card>
           <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
-            <CardContent className="p-6">
-              <p className="text-sm text-orange-600 font-medium">Exams</p>
-              <p className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-orange-500 bg-clip-text text-transparent">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
+              <p className="text-xs sm:text-sm text-orange-600 font-medium">Exams</p>
+              <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-400 to-orange-500 bg-clip-text text-transparent">
                 {typeof stats.exams === 'number' ? stats.exams : 0}
               </p>
             </CardContent>
           </Card>
           <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
-            <CardContent className="p-6">
-              <p className="text-sm text-violet-700 font-medium">Avg Score</p>
-              <p className="text-3xl font-bold bg-gradient-to-r from-teal-400 to-orange-400 bg-clip-text text-transparent">
+            <CardContent className="p-3 sm:p-4 lg:p-6">
+              <p className="text-xs sm:text-sm text-violet-700 font-medium">Avg Score</p>
+              <p className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-teal-400 to-orange-400 bg-clip-text text-transparent">
                 {typeof stats.averageScore === 'number' || typeof stats.averageScore === 'string'
                   ? `${stats.averageScore}%`
                   : '0.00%'}
@@ -803,7 +803,7 @@ export default function SuperAdminDashboard() {
 
         {/* Board Comparison Section */}
         <div className="mt-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Board Performance Comparison</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">Board Performance Comparison</h2>
           <Suspense fallback={lazySectionFallback}>
             <BoardComparisonCharts />
           </Suspense>
@@ -837,14 +837,14 @@ export default function SuperAdminDashboard() {
   );
 
   const renderSettingsContent = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">System Settings</h2>
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+      <h2 className="text-xl sm:text-2xl font-bold">System Settings</h2>
       
       <Card>
-        <CardContent className="p-6">
-          <div className="text-center py-8">
+        <CardContent className="p-3 sm:p-4 lg:p-6">
+          <div className="text-center py-4 sm:py-6 lg:py-8">
             <SettingsIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Settings</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Settings</h3>
             <p className="text-gray-600 mb-4">Configure system settings and preferences</p>
             <Button
               type="button"
@@ -888,15 +888,15 @@ export default function SuperAdminDashboard() {
     ];
 
     return (
-      <div className="space-y-6">
-        <div className="rounded-2xl border border-orange-200 bg-gradient-to-r from-orange-400 to-orange-500 p-6 shadow-lg">
+      <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+        <div className="rounded-2xl border border-orange-200 bg-gradient-to-r from-orange-400 to-orange-500 p-3 sm:p-4 lg:p-6 shadow-lg">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center border border-white/30">
-              <Sparkles className="w-5 h-5 text-white" />
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
             <Badge className="bg-white text-orange-600 hover:bg-white">System Control</Badge>
           </div>
-          <h2 className="text-3xl font-bold text-white">AI System Assistant</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white">AI System Assistant</h2>
           <p className="text-white/90 mt-1">Manage and monitor AI across all schools</p>
         </div>
 
@@ -920,9 +920,9 @@ export default function SuperAdminDashboard() {
               >
                 <CardContent className="p-4">
                   <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center mb-3">
-                    <Icon className="w-5 h-5 text-orange-600" />
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                   </div>
-                  <h3 className="text-sm font-semibold text-slate-900">{action.title}</h3>
+                  <h3 className="text-xs sm:text-sm font-semibold text-slate-900">{action.title}</h3>
                   <p className="text-xs text-slate-600 mt-1">{action.description}</p>
                 </CardContent>
               </Card>
@@ -930,7 +930,7 @@ export default function SuperAdminDashboard() {
           })}
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-3 sm:p-4 lg:p-6 items-start">
           <div className="w-full rounded-2xl bg-[#F5F7FA] border border-slate-200 shadow-[0_20px_40px_-30px_rgba(15,23,42,0.8)] p-2">
             <Suspense fallback={lazySectionFallback}>
               <AIChat
@@ -944,8 +944,8 @@ export default function SuperAdminDashboard() {
 
           <Card className="border-slate-200 shadow-sm bg-white">
             <CardHeader className="pb-3 border-b border-slate-100">
-              <CardTitle className="text-base font-semibold text-slate-900 flex items-center gap-2">
-                <Grid3x3 className="w-4 h-4 text-orange-500" />
+              <CardTitle className="text-sm sm:text-base font-semibold text-slate-900 flex items-center gap-2">
+                <Grid3x3 className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" />
                 AI Operations Panel
               </CardTitle>
             </CardHeader>
@@ -953,7 +953,7 @@ export default function SuperAdminDashboard() {
               <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
                 <p className="text-xs uppercase tracking-wide text-slate-500">AI Status</p>
                 <div className="mt-1 flex items-center justify-between">
-                  <span className="text-sm font-medium text-slate-800">Inference Service</span>
+                  <span className="text-xs sm:text-sm font-medium text-slate-800">Inference Service</span>
                   <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Online</Badge>
                 </div>
               </div>
@@ -961,16 +961,16 @@ export default function SuperAdminDashboard() {
               <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
                 <p className="text-xs uppercase tracking-wide text-slate-500">Model Version</p>
                 <div className="mt-1 flex items-center justify-between">
-                  <span className="text-sm font-medium text-slate-800">Primary Model</span>
-                  <span className="text-sm text-slate-600">v3.2.1</span>
+                  <span className="text-xs sm:text-sm font-medium text-slate-800">Primary Model</span>
+                  <span className="text-xs sm:text-sm text-slate-600">v3.2.1</span>
                 </div>
               </div>
 
               <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
                 <p className="text-xs uppercase tracking-wide text-slate-500">Active Requests</p>
                 <div className="mt-1 flex items-center justify-between">
-                  <span className="text-sm font-medium text-slate-800">Current Queue</span>
-                  <span className="text-sm font-semibold text-orange-600">124</span>
+                  <span className="text-xs sm:text-sm font-medium text-slate-800">Current Queue</span>
+                  <span className="text-xs sm:text-sm font-semibold text-orange-600">124</span>
                 </div>
               </div>
 
@@ -1099,7 +1099,7 @@ export default function SuperAdminDashboard() {
       <div
         className={cn(
           "flex flex-col overflow-x-hidden",
-          superAdminDrawerNav ? "ml-0 min-h-screen pt-14" : "ml-64 min-h-screen",
+          superAdminDrawerNav ? "ml-0 min-h-screen pt-14 pb-16 sm:pb-0" : "sm:ml-[60px] lg:ml-64 min-h-screen",
         )}
       >
         <div
@@ -1109,7 +1109,7 @@ export default function SuperAdminDashboard() {
               ? "p-0"
               : superAdminDrawerNav
                 ? "p-3 sm:p-4"
-                : "p-6",
+                : "p-3 sm:p-4 lg:p-6",
           )}
         >
           {renderContent()}
@@ -1195,7 +1195,7 @@ export default function SuperAdminDashboard() {
           </DialogHeader>
           <div className="space-y-4 py-1">
             <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">Quick links</p>
+              <p className="text-xs sm:text-sm font-medium text-foreground">Quick links</p>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <Button
                   type="button"

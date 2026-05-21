@@ -404,8 +404,8 @@ export default function AdminLearningPaths() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
           {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-64 w-full" />
           ))}
@@ -415,11 +415,11 @@ export default function AdminLearningPaths() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       <div className="rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50 via-white to-teal-50 p-5 sm:p-6">
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Learning Paths</h2>
+            <h2 className="text-xl sm:text-2xl sm:text-3xl font-bold text-gray-900">Learning Paths</h2>
             <p className="text-gray-600">
               Redesigned by class structure: quickly view every class and its subjects.
             </p>
@@ -430,27 +430,27 @@ export default function AdminLearningPaths() {
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <p className="text-xs text-gray-500">Classes</p>
-                  <p className="text-xl font-bold text-gray-900">{groupedSubjectsByClass.length}</p>
+                  <p className="text-lg sm:text-xl font-bold text-gray-900">{groupedSubjectsByClass.length}</p>
                 </div>
-                <GraduationCap className="h-5 w-5 text-sky-600" />
+                <GraduationCap className="h-4 w-4 sm:h-5 sm:w-5 text-sky-600" />
               </CardContent>
             </Card>
             <Card className="border-sky-100 shadow-none">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <p className="text-xs text-gray-500">Subjects In View</p>
-                  <p className="text-xl font-bold text-gray-900">{filteredSubjectsWithContent.length}</p>
+                  <p className="text-lg sm:text-xl font-bold text-gray-900">{filteredSubjectsWithContent.length}</p>
                 </div>
-                <Layers3 className="h-5 w-5 text-teal-600" />
+                <Layers3 className="h-4 w-4 sm:h-5 sm:w-5 text-teal-600" />
               </CardContent>
             </Card>
             <Card className="border-sky-100 shadow-none">
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <p className="text-xs text-gray-500">Content Items</p>
-                  <p className="text-xl font-bold text-gray-900">{totalContentItemsInView}</p>
+                  <p className="text-lg sm:text-xl font-bold text-gray-900">{totalContentItemsInView}</p>
                 </div>
-                <BarChart3 className="h-5 w-5 text-orange-600" />
+                <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
               </CardContent>
             </Card>
           </div>
@@ -503,7 +503,7 @@ export default function AdminLearningPaths() {
       )}
 
       {isLoadingContent ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
           {Array.from({ length: subjects.length }).map((_, i) => (
             <Skeleton key={i} className="h-64 w-full" />
           ))}
@@ -512,7 +512,7 @@ export default function AdminLearningPaths() {
         <Card>
           <CardContent className="p-12 text-center">
             <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-600 mb-2">No Subjects Available</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Subjects Available</h3>
             <p className="text-gray-500">No subjects have been registered for your board yet.</p>
           </CardContent>
         </Card>
@@ -520,7 +520,7 @@ export default function AdminLearningPaths() {
         <Card>
           <CardContent className="p-12 text-center">
             <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-600 mb-2">No matches</h3>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No matches</h3>
             <p className="text-gray-500">
               No subjects match the selected class and subject filters. Try choosing &quot;All
               classes&quot; or &quot;All subjects&quot;.
@@ -543,7 +543,7 @@ export default function AdminLearningPaths() {
                       <Badge className="bg-sky-600 text-white border-0">
                         {classKey === 'Unassigned' ? 'Unassigned' : `Class ${classKey}`}
                       </Badge>
-                      <CardTitle className="text-base text-gray-900">
+                      <CardTitle className="text-sm sm:text-base text-gray-900">
                         {subjects.length} subject{subjects.length === 1 ? '' : 's'}
                       </CardTitle>
                     </div>
@@ -576,7 +576,7 @@ export default function AdminLearningPaths() {
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex items-center gap-2 min-w-0">
                                 <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-sky-400 to-teal-500 flex items-center justify-center shrink-0">
-                                  <Icon className="w-4 h-4 text-white" />
+                                  <Icon className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                                 </div>
                                 <h3 className="font-semibold text-gray-900 truncate">{displayName}</h3>
                               </div>
@@ -613,7 +613,7 @@ export default function AdminLearningPaths() {
                               onClick={() => setLocation(viewHref)}
                             >
                               View Content
-                              <ArrowRight className="w-4 h-4 ml-2" />
+                              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2" />
                             </Button>
                           </CardContent>
                         </Card>

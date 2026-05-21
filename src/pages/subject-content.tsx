@@ -399,7 +399,7 @@ export default function SubjectContent() {
     return (
       <>
         <Navigation />
-        <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 py-8 ${isMobile ? 'pb-20' : ''}`}>
+        <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 py-4 sm:py-6 lg:py-8 ${isMobile ? 'pb-20' : ''}`}>
           <div className="text-center">Loading subject content...</div>
         </div>
       </>
@@ -410,15 +410,15 @@ export default function SubjectContent() {
     return (
       <>
         <Navigation />
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">Subject not found</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">Subject not found</h1>
             <Link href="/dashboard">
               <Button
                 variant="outline"
                 className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Back to Dashboard
               </Button>
             </Link>
@@ -445,7 +445,7 @@ export default function SubjectContent() {
                 variant="outline" 
                 className="mr-4 bg-white/90 backdrop-blur-sm border-blue-200 text-blue-700 shadow-sm hover:bg-blue-50 hover:text-blue-800 hover:shadow-md transition-all"
               >
-                <ArrowLeft className="w-4 h-4 mr-2" />
+                <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Back to Dashboard
               </Button>
             </Link>
@@ -455,10 +455,10 @@ export default function SubjectContent() {
             <div className="relative z-10">
               <div className="flex items-center space-x-4 mb-4">
                 <div className={`w-16 h-16 ${subject.color} rounded-2xl flex items-center justify-center`}>
-                  <Icon className="w-8 h-8" />
+                  <Icon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold mb-2">{subject.name}</h1>
+                  <h1 className="text-2xl sm:text-3xl font-bold mb-2">{subject.name}</h1>
                   <p className="text-blue-100">{subject.description}</p>
                 </div>
               </div>
@@ -471,15 +471,15 @@ export default function SubjectContent() {
                   {subject.category}
                 </Badge>
                 <div className="flex items-center space-x-1 text-blue-100">
-                  <Clock className="w-4 h-4" />
+                  <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span>{subject.duration}</span>
                 </div>
                 <div className="flex items-center space-x-1 text-blue-100">
-                  <Users className="w-4 h-4" />
+                  <Users className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span>{subject.students} students</span>
                 </div>
                 <div className="flex items-center space-x-1 text-blue-100">
-                  <Star className="w-4 h-4" />
+                  <Star className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span>{subject.rating}</span>
                 </div>
               </div>
@@ -487,8 +487,8 @@ export default function SubjectContent() {
               {/* Progress */}
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-blue-100">Your Progress</span>
-                  <span className="text-sm font-medium text-white">{subject.progress || 0}%</span>
+                  <span className="text-xs sm:text-sm font-medium text-blue-100">Your Progress</span>
+                  <span className="text-xs sm:text-sm font-medium text-white">{subject.progress || 0}%</span>
                 </div>
                 <Progress value={subject.progress || 0} className="h-2 bg-white/20 [&>div]:bg-white" />
               </div>
@@ -499,7 +499,7 @@ export default function SubjectContent() {
                     className="bg-white text-primary hover:bg-blue-50"
                     onClick={() => setShowCalendar(true)}
                   >
-                    <Play className="w-4 h-4 mr-2" />
+                    <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     Start Learning
                   </Button>
                 )}
@@ -517,10 +517,10 @@ export default function SubjectContent() {
 
         {/* Calendar View */}
         {showCalendar ? (
-          <div className="space-y-6">
+          <div className="space-y-3 sm:space-y-4 lg:space-y-6">
             <div className="mb-4 flex items-center justify-between flex-wrap gap-4">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Learning Calendar</h2>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Learning Calendar</h2>
                 <p className="text-gray-600 mt-1">Content organized by upload date</p>
               </div>
               
@@ -534,7 +534,7 @@ export default function SubjectContent() {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="outline" className="flex items-center space-x-2">
-                            <Filter className="w-4 h-4" />
+                            <Filter className="w-3 h-3 sm:w-4 sm:h-4" />
                             <span>
                               {selectedContentType ? `Filter: ${selectedContentType}` : 'Filter by Type'}
                             </span>
@@ -571,7 +571,7 @@ export default function SubjectContent() {
                       onClick={() => setSelectedContentType(null)}
                       className="flex items-center space-x-1"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3 h-3 sm:w-4 sm:h-4" />
                       <span>Clear</span>
                     </Button>
                   )}
@@ -595,16 +595,16 @@ export default function SubjectContent() {
           </div>
         ) : (
           /* Content Tabs */
-          <Tabs defaultValue="videos" className="space-y-6">
+          <Tabs defaultValue="videos" className="space-y-3 sm:space-y-4 lg:space-y-6">
             <TabsList className="grid w-full grid-cols-1">
               <TabsTrigger value="videos" className="flex items-center space-x-2">
-                <Video className="w-4 h-4" />
+                <Video className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span>Videos ({subject.videos?.length || 0})</span>
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="videos" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <TabsContent value="videos" className="space-y-3 sm:space-y-4 lg:space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
               {subject.videos?.map((video) => (
                 <Card key={video._id} className="hover:shadow-lg transition-shadow duration-200">
                   <CardHeader>
@@ -615,17 +615,17 @@ export default function SubjectContent() {
                         <Video className="w-12 h-12 text-blue-500" />
                       )}
                     </div>
-                    <CardTitle className="text-lg">{video.title}</CardTitle>
-                    <p className="text-gray-600 text-sm">{video.description}</p>
+                    <CardTitle className="text-base sm:text-lg">{video.title}</CardTitle>
+                    <p className="text-gray-600 text-xs sm:text-sm">{video.description}</p>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between text-sm text-gray-600">
+                    <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600">
                       <div className="flex items-center space-x-1">
-                        <Clock className="w-4 h-4" />
+                        <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
                         <span>{video.duration} min</span>
                       </div>
                       <div className="flex items-center space-x-1">
-                        <Users className="w-4 h-4" />
+                        <Users className="w-3 h-3 sm:w-4 sm:h-4" />
                         <span>{video.views} views</span>
                       </div>
                     </div>
@@ -634,7 +634,7 @@ export default function SubjectContent() {
                       className="w-full gradient-primary text-white"
                       onClick={() => handleVideoClick(video)}
                     >
-                      <Play className="w-4 h-4 mr-2" />
+                      <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       Watch Video
                     </Button>
                   </CardContent>
@@ -645,7 +645,7 @@ export default function SubjectContent() {
             {(!subject.videos || subject.videos.length === 0) && (
               <div className="text-center py-12">
                 <Video className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No videos available</h3>
+                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No videos available</h3>
                 <p className="text-gray-600">Videos will appear here once they are added to this learning path.</p>
               </div>
             )}

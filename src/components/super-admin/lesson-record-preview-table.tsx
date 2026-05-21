@@ -76,7 +76,7 @@ export function LessonRecordPreviewTable({
     const fallback = stripMeta ? stripLessonListMetaMarkdown(normalized) : normalized;
     const plain = toPlainOneLine(fallback);
     return (
-      <p className={`text-sm text-slate-600 leading-relaxed line-clamp-3 ${className}`}>
+      <p className={`text-xs sm:text-sm text-slate-600 leading-relaxed line-clamp-3 ${className}`}>
         {plain.length > 320 ? `${plain.slice(0, 320)}…` : plain}
       </p>
     );
@@ -84,7 +84,7 @@ export function LessonRecordPreviewTable({
 
   return (
     <div className={`space-y-2 ${className}`}>
-      <p className="text-sm font-semibold text-slate-900 leading-snug">{title}</p>
+      <p className="text-xs sm:text-sm font-semibold text-slate-900 leading-snug">{title}</p>
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="w-full min-w-[280px] text-xs border-collapse">
           <thead>

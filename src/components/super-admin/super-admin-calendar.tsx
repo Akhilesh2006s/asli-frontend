@@ -485,10 +485,10 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
 
   return (
     <TooltipProvider>
-      <div className="space-y-6">
+      <div className="space-y-3 sm:space-y-4 lg:space-y-6">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">School Calendar</h2>
+            <h2 className="text-xl sm:text-2xl sm:text-3xl font-bold text-gray-900">School Calendar</h2>
             <p className="text-sm sm:text-base text-gray-600 mt-1">
               Exams, holidays, and events by school. Exams sync from Exam Management.
             </p>
@@ -499,9 +499,9 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
         </div>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              <Building2 className="h-5 w-5 text-gray-500 shrink-0" />
+              <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 shrink-0" />
               <div className="flex-1 space-y-2">
                 <Label htmlFor="school-select">School filter</Label>
                 <Select value={selectedSchoolId} onValueChange={setSelectedSchoolId}>
@@ -542,7 +542,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
             </div>
             {selectedSchoolId !== 'all' && selectedAdmin && (
               <div className="mt-4 p-4 bg-orange-50 rounded-lg">
-                <p className="text-sm text-gray-700">
+                <p className="text-xs sm:text-sm text-gray-700">
                   <span className="font-semibold">Filtered school:</span>{' '}
                   {selectedAdmin.schoolName || selectedAdmin.name}
                 </p>
@@ -556,14 +556,14 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
           <CardContent className="p-3 sm:p-6">
             <div className="flex items-center justify-between gap-2 sm:gap-4 mb-4 sm:mb-6">
               <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
-                <Button variant="outline" size="icon" onClick={goToPreviousMonth} className="h-8 w-8 sm:h-10 sm:w-10">
-                  <ChevronLeft className="h-4 w-4" />
+                <Button variant="outline" size="icon" onClick={goToPreviousMonth} className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 sm:h-10 sm:w-10">
+                  <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>
-                <h3 className="text-lg sm:text-2xl font-semibold text-gray-900">
+                <h3 className="text-base sm:text-lg sm:text-2xl font-semibold text-gray-900">
                   {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                 </h3>
-                <Button variant="outline" size="icon" onClick={goToNextMonth} className="h-8 w-8 sm:h-10 sm:w-10">
-                  <ChevronRight className="h-4 w-4" />
+                <Button variant="outline" size="icon" onClick={goToNextMonth} className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 sm:h-10 sm:w-10">
+                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
                 </Button>
               </div>
               <div className="flex items-center gap-2">
@@ -589,9 +589,9 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
             ) : (
               <>
                 <div className="sm:hidden mb-4">
-                  <h4 className="text-sm font-semibold text-sky-900 mb-2">Upcoming This Month</h4>
+                  <h4 className="text-xs sm:text-sm font-semibold text-sky-900 mb-2">Upcoming This Month</h4>
                   {monthlyEventsByDate.length === 0 ? (
-                    <p className="text-sm text-gray-500">No events or exams scheduled this month.</p>
+                    <p className="text-xs sm:text-sm text-gray-500">No events or exams scheduled this month.</p>
                   ) : (
                     <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
                       {monthlyEventsByDate.map(([dateKey, dayEvents]) => (
@@ -615,7 +615,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                                   className="w-full rounded-md border border-sky-100 bg-sky-50 text-left px-2 py-2"
                                 >
                                   <div className="flex items-center justify-between gap-2">
-                                    <p className="text-sm font-medium text-sky-900 truncate">{event.title}</p>
+                                    <p className="text-xs sm:text-sm font-medium text-sky-900 truncate">{event.title}</p>
                                     <Badge className={`${style.dot} text-white border-0`}>{style.label}</Badge>
                                   </div>
                                 </button>
@@ -668,7 +668,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 shrink-0 text-gray-500 hover:text-sky-600"
+                              className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 shrink-0 text-gray-500 hover:text-sky-600"
                               title="Add"
                               onClick={() => openQuickAdd(date)}
                             >
@@ -724,7 +724,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                   <span className="text-xs text-sky-600">{monthlyEvents.length} scheduled</span>
                 </div>
                 {monthlyEvents.length === 0 ? (
-                  <p className="text-sm text-gray-500">No events or exams scheduled this month.</p>
+                  <p className="text-xs sm:text-sm text-gray-500">No events or exams scheduled this month.</p>
                 ) : (
                   <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                     {monthlyEvents.map((event) => {
@@ -740,7 +740,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                           className="w-full text-left rounded-lg border border-sky-100 bg-white hover:bg-sky-50 px-3 py-2 transition-colors"
                         >
                           <div className="flex items-center justify-between gap-2">
-                            <p className="text-sm font-medium text-sky-900 truncate">{event.title}</p>
+                            <p className="text-xs sm:text-sm font-medium text-sky-900 truncate">{event.title}</p>
                             <Badge className={`${style.dot} text-white border-0`}>{style.label}</Badge>
                           </div>
                           <p className="text-xs text-sky-700 mt-1">
@@ -774,7 +774,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
             </DialogHeader>
             <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 sm:p-5 space-y-4">
               <div className="flex items-center justify-between gap-3 flex-wrap">
-                <p className="text-sm text-slate-600">
+                <p className="text-xs sm:text-sm text-slate-600">
                   Fill event details and save to calendar.
                 </p>
                 <Button
@@ -785,7 +785,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                     if (quickAddDate) goToExamWithDate(quickAddDate);
                   }}
                 >
-                  <BookOpen className="h-4 w-4 mr-2" />
+                  <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                   Add Exam Instead
                 </Button>
               </div>
@@ -813,7 +813,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="quick-add-start-time">Start time</Label>
                     <Input
@@ -914,7 +914,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
               </DialogDescription>
             </DialogHeader>
             {selectedEvent && (
-              <div className="space-y-3 text-sm">
+              <div className="space-y-3 text-xs sm:text-sm">
                 <div>
                   <Label>Start</Label>
                   <p className="text-gray-800">
@@ -967,7 +967,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                   );
                 })()}
                 <div className="flex items-center gap-2 text-gray-500">
-                  <Eye className="h-4 w-4" />
+                  <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                   <span>Read-only</span>
                 </div>
               </div>

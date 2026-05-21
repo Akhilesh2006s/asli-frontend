@@ -19,10 +19,10 @@ export default function AsliPrepContentPage() {
           <div className="mb-8">
             <div className="flex items-center space-x-3 mb-2">
               <div className="w-12 h-12 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">AP</span>
+                <span className="text-white font-bold text-lg sm:text-xl">AP</span>
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">AsliLearn Exclusive</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">AsliLearn Exclusive</h1>
                 <p className="text-gray-600">Premium study materials created by Super Admin</p>
               </div>
             </div>

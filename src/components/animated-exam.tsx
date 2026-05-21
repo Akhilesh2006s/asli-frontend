@@ -908,7 +908,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
         <div className="text-center">
           <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <p className="text-gray-600">No questions found in this exam</p>
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="text-xs sm:text-sm text-gray-500 mt-2">
             Exam ID: {exam._id}<br/>
             Questions: {exam.questions?.length || 0}
           </p>
@@ -936,39 +936,39 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
           <Card className="max-w-md w-full mx-4 border-2 border-red-500">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2 text-red-600">
-                <AlertTriangle className="w-6 h-6" />
+                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
                 <span>Warning: Fullscreen Exit Detected</span>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <p className="text-lg font-bold text-red-700 text-center mb-2">
+                  <p className="text-base sm:text-lg font-bold text-red-700 text-center mb-2">
                     Attempt {exitAttempts} of {MAX_EXIT_ATTEMPTS}
                   </p>
-                  <p className="text-sm text-red-600 text-center">
+                  <p className="text-xs sm:text-sm text-red-600 text-center">
                     {exitAttempts >= MAX_EXIT_ATTEMPTS 
                       ? 'Maximum exit attempts reached. Exam will be auto-submitted.'
                       : `You have ${MAX_EXIT_ATTEMPTS - exitAttempts} attempt(s) remaining before auto-submission.`
                     }
                   </p>
                 </div>
-                <p className="text-gray-600 text-sm">
+                <p className="text-gray-600 text-xs sm:text-sm">
                   Please stay in fullscreen mode during the exam. Exiting fullscreen multiple times will result in automatic submission.
                 </p>
                 {exitAttempts >= MAX_EXIT_ATTEMPTS ? (
                   <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <AlertTriangle className="w-5 h-5 text-red-600" />
-                      <p className="text-sm text-red-800 font-bold">
+                      <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+                      <p className="text-xs sm:text-sm text-red-800 font-bold">
                         Maximum Exit Attempts Reached
                       </p>
                     </div>
-                    <p className="text-sm text-red-700 font-semibold">
+                    <p className="text-xs sm:text-sm text-red-700 font-semibold">
                       ⚠️ Your exam is being automatically submitted now...
                     </p>
                     <div className="mt-3 flex items-center gap-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                      <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-red-600"></div>
                       <span className="text-xs text-red-600">Submitting...</span>
                     </div>
                   </div>
@@ -993,12 +993,12 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
       {/* Re-enter Fullscreen Prompt (Non-blocking) */}
       {showReenterPrompt && !showExitWarning && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40">
+        <div className="fixed bottom-3 sm:m-4 lg:m-6 left-1/2 transform -translate-x-1/2 z-40">
           <Card className="border-2 border-yellow-400 shadow-2xl">
             <CardContent className="p-4">
               <div className="flex items-center gap-4">
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-800">
+                  <p className="text-xs sm:text-sm font-semibold text-gray-800">
                     Exit Attempt: {exitAttempts}/{MAX_EXIT_ATTEMPTS}
                   </p>
                   <p className="text-xs text-gray-600">
@@ -1023,12 +1023,12 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
         <div className="max-w-md mx-auto px-4 py-3">
           <div className="flex items-center justify-end gap-3">
             {/* Timer */}
-            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-medium transition-all duration-300 ${
+            <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 ${
               timeLeft < 300 
                 ? 'bg-red-100 text-red-700 animate-pulse' 
                 : 'bg-blue-100 text-blue-700'
             }`}>
-              <Clock className="w-4 h-4" />
+              <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="font-mono">
                 {formatTime(timeLeft)}
               </span>
@@ -1047,7 +1047,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
           {/* Progress Bar */}
           <div className="mt-3">
-            <div className="flex items-center justify-between text-sm text-gray-600 mb-1">
+            <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 mb-1">
               <span className="transition-all duration-300">Question {currentQuestionIndex + 1} of {exam.questions.length}</span>
               <span className="transition-all duration-300">{Math.round(progress)}%</span>
             </div>
@@ -1064,15 +1064,15 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       </div>
 
       {/* Main Content Area */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 sm:p-4 lg:p-6">
           
           {/* Question Navigation Sidebar - Modern Grid Layout */}
           <div className="lg:col-span-1 order-2 lg:order-1">
             <Card className="sticky top-24">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base font-semibold flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-purple-600" />
+                <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2">
+                  <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600" />
                   Questions
                 </CardTitle>
                 <p className="text-xs text-gray-500 mt-1">
@@ -1082,7 +1082,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
               <CardContent className="pt-0">
                 {/* Question Numbers Grid - 5 columns, 5-6 rows */}
                 <div className="bg-gradient-to-br from-gray-50 to-purple-50/30 rounded-xl p-4 border border-gray-200">
-                  <div className="grid grid-cols-5 gap-2.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
                     {exam.questions.map((_: Question, index: number) => {
                       const q = exam.questions[index];
                       const isAnswered = isAnswerProvidedForQuestion(q, answers[answerKey(q)]);
@@ -1096,7 +1096,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                           disabled={isAnimating}
                           className={`
                             group relative
-                            w-11 h-11 rounded-xl font-bold text-sm
+                            w-11 h-11 rounded-xl font-bold text-xs sm:text-sm
                             transition-all duration-300 ease-out
                             flex items-center justify-center
                             border-2
@@ -1136,23 +1136,23 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                   <p className="text-xs font-semibold text-gray-700 mb-3">Status Legend</p>
                   <div className="space-y-2.5">
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded-lg bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 border-2 border-purple-400 ring-2 ring-purple-300"></div>
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-lg bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 border-2 border-purple-400 ring-2 ring-purple-300"></div>
                       <span className="text-xs text-gray-600">Current</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 border-2 border-emerald-400 relative">
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 border-2 border-emerald-400 relative">
                         <CheckCircle className="absolute -bottom-0.5 -right-0.5 w-2 h-2 text-white" />
                       </div>
                       <span className="text-xs text-gray-600">Answered</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded-lg bg-gradient-to-br from-yellow-300 to-yellow-400 border-2 border-yellow-400 relative">
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-lg bg-gradient-to-br from-yellow-300 to-yellow-400 border-2 border-yellow-400 relative">
                         <Flag className="absolute -top-0.5 -right-0.5 w-2 h-2 text-yellow-900" fill="currentColor" />
                       </div>
                       <span className="text-xs text-gray-600">Flagged</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 rounded-lg bg-white border-2 border-gray-300"></div>
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-lg bg-white border-2 border-gray-300"></div>
                       <span className="text-xs text-gray-600">Not Answered</span>
                     </div>
                   </div>
@@ -1177,7 +1177,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
             <Card className={`shadow-lg border-0 bg-white transition-all duration-300 hover:shadow-xl hover:scale-[1.02] ${
               showAnswerFeedback ? 'ring-2 ring-blue-400 ring-opacity-50' : ''
             }`}>
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-4 lg:p-6">
                 {/* Question Header */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-2">
@@ -1202,19 +1202,19 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                     onClick={() => handleFlagQuestion(currentQuestionIndex)}
                     className={`p-2 ${flaggedQuestions.has(currentQuestionIndex) ? 'text-yellow-600 bg-yellow-100' : 'text-gray-400 hover:text-yellow-600'}`}
                   >
-                    <Flag className="w-4 h-4" />
+                    <Flag className="w-3 h-3 sm:w-4 sm:h-4" />
                   </Button>
                 </div>
 
                 {/* Question Content */}
                 <div className="mb-6">
                   <div className="flex items-start space-x-3">
-                    <span className="text-lg font-bold text-gray-900 flex-shrink-0">
+                    <span className="text-base sm:text-lg font-bold text-gray-900 flex-shrink-0">
                       Q{currentQuestionIndex + 1}.
                     </span>
                     <div className="flex-1">
                       {currentQuestion.questionText && (
-                        <p className="text-base text-gray-900 mb-4 leading-relaxed">
+                        <p className="text-sm sm:text-base text-gray-900 mb-4 leading-relaxed">
                           {normalizeExamText(currentQuestion.questionText, currentQuestion.subject)}
                         </p>
                       )}
@@ -1270,7 +1270,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                             />
                             <Label 
                               htmlFor={`mcq-${currentQid}-opt-${index}`} 
-                              className={`text-sm cursor-pointer flex-1 transition-all duration-200 ${
+                              className={`text-xs sm:text-sm cursor-pointer flex-1 transition-all duration-200 ${
                                 selectedAnswer === optionValueStr && showAnswerFeedback
                                   ? 'text-blue-700 font-medium'
                                   : 'text-gray-700 hover:text-gray-900'
@@ -1324,7 +1324,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                             />
                             <Label 
                               htmlFor={`option-${index}`} 
-                              className={`text-sm cursor-pointer flex-1 transition-all duration-200 ${
+                              className={`text-xs sm:text-sm cursor-pointer flex-1 transition-all duration-200 ${
                                 isChecked
                                   ? 'text-green-700 font-medium'
                                   : 'text-gray-700 hover:text-gray-900'
@@ -1340,7 +1340,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
                   {currentQuestion.questionType === 'integer' && (
                     <div className="mt-4">
-                      <Label htmlFor="integer-answer" className="text-sm font-medium text-gray-700 mb-2 block">
+                      <Label htmlFor="integer-answer" className="text-xs sm:text-sm font-medium text-gray-700 mb-2 block">
                         Enter your answer:
                       </Label>
                       <Input
@@ -1385,7 +1385,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
               disabled={currentQuestionIndex === 0 || isAnimating}
               className="flex items-center space-x-2 transition-all duration-300 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <ArrowLeft className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-1" />
+              <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-200 group-hover:-translate-x-1" />
               <span>Previous</span>
             </Button>
           </div>
@@ -1406,7 +1406,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                 className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white transition-all duration-300 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span>Submit</span>
-                <CheckCircle className="w-4 h-4" />
+                <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" />
               </Button>
             ) : (
               <Button
@@ -1416,7 +1416,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                 className="flex items-center space-x-2 transition-all duration-300 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span>Next</span>
-                <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" />
+                <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 transition-transform duration-200 group-hover:translate-x-1" />
               </Button>
             )}
           </div>
@@ -1426,7 +1426,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       </div>
 
       {/* Floating Action Button */}
-      <div className="fixed bottom-6 right-6 z-30">
+      <div className="fixed bottom-3 sm:m-4 lg:m-6 right-6 z-30">
         <div className="flex flex-col space-y-3">
           {/* Flag Button */}
           <Button
@@ -1439,7 +1439,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                 : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
             }`}
           >
-            <Flag className="w-5 h-5" />
+            <Flag className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
           
           {/* Quick Submit Button */}
@@ -1448,7 +1448,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
             onClick={() => setShowWarning(true)}
             className="rounded-full w-12 h-12 bg-red-500 hover:bg-red-600 text-white shadow-lg transition-all duration-300 hover:scale-110"
           >
-            <CheckCircle className="w-5 h-5" />
+            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
         </div>
       </div>
@@ -1459,7 +1459,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
           <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <AlertTriangle className="w-5 h-5 text-yellow-500" />
+                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />
                 <span>Submit Exam?</span>
               </CardTitle>
             </CardHeader>

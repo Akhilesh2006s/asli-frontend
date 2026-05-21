@@ -13,6 +13,16 @@ export default {
       '2xl': '1536px',
     },
     extend: {
+      fontSize: {
+        'fluid-xs':   'var(--text-xs)',
+        'fluid-sm':   'var(--text-sm)',
+        'fluid-base': 'var(--text-base)',
+        'fluid-lg':   'var(--text-lg)',
+        'fluid-xl':   'var(--text-xl)',
+        'fluid-2xl':  'var(--text-2xl)',
+        'fluid-3xl':  'var(--text-3xl)',
+        'fluid-4xl':  'var(--text-4xl)',
+      },
       fontFamily: {
         inter: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },

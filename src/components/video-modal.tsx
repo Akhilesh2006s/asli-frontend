@@ -166,7 +166,7 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
               className="h-full flex flex-col"
             >
               {/* Epic Header with Gradient */}
-              <DialogHeader className="relative p-6 pb-4 bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400">
+              <DialogHeader className="relative p-3 sm:p-4 lg:p-6 pb-4 bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400">
                 <div className="relative z-10 flex items-center justify-between">
                   <div className="flex-1">
                     <motion.div
@@ -174,7 +174,7 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                       animate={{ y: 0, opacity: 1 }}
                       transition={{ delay: 0.1 }}
                     >
-                      <DialogTitle className="text-2xl font-bold text-gray-900 mb-2">
+                      <DialogTitle className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
                         {video.title}
                       </DialogTitle>
                     </motion.div>
@@ -212,7 +212,7 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                       onClick={() => setIsLiked(!isLiked)}
                       className="text-gray-900 hover:bg-white/50 backdrop-blur-sm"
                     >
-                      <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
+                      <Heart className={`w-3 h-3 sm:w-4 sm:h-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
                     </Button>
                     <Button
                       size="sm"
@@ -220,7 +220,7 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                       onClick={() => setIsBookmarked(!isBookmarked)}
                       className="text-gray-900 hover:bg-white/50 backdrop-blur-sm"
                     >
-                      <ThumbsUp className={`w-4 h-4 ${isBookmarked ? 'fill-blue-500 text-blue-500' : ''}`} />
+                      <ThumbsUp className={`w-3 h-3 sm:w-4 sm:h-4 ${isBookmarked ? 'fill-blue-500 text-blue-500' : ''}`} />
                     </Button>
                     <Button
                       size="sm"
@@ -228,7 +228,7 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                       onClick={handleShare}
                       className="text-gray-900 hover:bg-white/50 backdrop-blur-sm"
                     >
-                      <Share2 className="w-4 h-4" />
+                      <Share2 className="w-3 h-3 sm:w-4 sm:h-4" />
                     </Button>
                     <Button
                       size="sm"
@@ -236,7 +236,7 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                       onClick={handleOpenInNewTab}
                       className="text-gray-900 hover:bg-white/50 backdrop-blur-sm"
                     >
-                      <ExternalLink className="w-4 h-4" />
+                      <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
                     </Button>
                     <Button
                       size="sm"
@@ -244,7 +244,7 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                       onClick={onClose}
                       className="text-gray-900 hover:bg-white/50 backdrop-blur-sm"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="w-3 h-3 sm:w-4 sm:h-4" />
                     </Button>
                   </motion.div>
                 </div>
@@ -318,7 +318,7 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                           <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-4">
                             <Play className="w-10 h-10 text-white" />
                           </div>
-                          <p className="text-gray-900 text-lg font-medium mb-2">Video not available</p>
+                          <p className="text-gray-900 text-base sm:text-lg font-medium mb-2">Video not available</p>
                           <p className="text-gray-700">No video URL provided</p>
                         </motion.div>
                       </div>
@@ -335,10 +335,10 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                     className="mt-4 p-4 bg-white/90 backdrop-blur-xl rounded-2xl border border-white/50 shadow-2xl flex-shrink-0 max-h-[200px] overflow-y-auto"
                   >
                     <div className="flex items-center mb-4">
-                      <div className="w-8 h-8 bg-gradient-to-r from-sky-400 to-teal-500 rounded-full flex items-center justify-center mr-3">
-                        <BookOpen className="w-4 h-4 text-white" />
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-gradient-to-r from-sky-400 to-teal-500 rounded-full flex items-center justify-center mr-3">
+                        <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900">Description</h3>
+                      <h3 className="text-lg sm:text-xl font-bold text-gray-900">Description</h3>
                     </div>
                     <p className="text-gray-900 leading-relaxed">{video.description}</p>
                     
@@ -349,7 +349,7 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                         className="border-gray-300 text-gray-900 hover:bg-gray-100 backdrop-blur-sm"
                         onClick={handleDownload}
                       >
-                        <Download className="w-4 h-4 mr-2" />
+                        <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         {isYouTube ? 'Open Video' : 'Download'}
                       </Button>
                       <Button
@@ -357,7 +357,7 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                         className="border-gray-300 text-gray-900 hover:bg-gray-100 backdrop-blur-sm"
                         onClick={handleShare}
                       >
-                        <Share2 className="w-4 h-4 mr-2" />
+                        <Share2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         Share
                       </Button>
                     </div>

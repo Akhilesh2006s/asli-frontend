@@ -124,14 +124,14 @@ export function ConceptMasteryViewer({ content }: ConceptMasteryViewerProps) {
     if (markdownFallback) {
       return (
         <div className="space-y-4 w-full max-w-5xl mx-auto">
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs sm:text-sm text-amber-900">
             <p className="font-medium m-0">Showing saved content as text</p>
             <p className="mt-1 mb-0 text-amber-800/90">
               This copy does not use the interactive concept-card format (e.g. it came from the database fallback). The full text is below.
             </p>
           </div>
           <div
-            className="prose prose-sm max-w-none max-h-[80vh] overflow-y-auto rounded-lg border border-gray-200 bg-white p-6 shadow-sm prose-headings:text-gray-900 prose-p:text-gray-700"
+            className="prose prose-sm max-w-none max-h-[80vh] overflow-y-auto rounded-lg border border-gray-200 bg-white p-3 sm:p-4 lg:p-6 shadow-sm prose-headings:text-gray-900 prose-p:text-gray-700"
             dangerouslySetInnerHTML={{ __html: renderMarkdown(markdownFallback) }}
           />
         </div>
@@ -160,9 +160,9 @@ export function ConceptMasteryViewer({ content }: ConceptMasteryViewerProps) {
   const difficultyColor = getDifficultyColor(currentConcept.difficulty);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[700px] space-y-6 relative w-full">
+    <div className="flex flex-col items-center justify-center min-h-[700px] space-y-3 sm:space-y-4 lg:space-y-6 relative w-full">
       {/* Instructions */}
-      <div className="text-sm text-gray-600 text-center mb-2">
+      <div className="text-xs sm:text-sm text-gray-600 text-center mb-2">
         <p>Use <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">←</kbd> / <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">→</kbd> to navigate concepts</p>
       </div>
 
@@ -233,7 +233,7 @@ export function ConceptMasteryViewer({ content }: ConceptMasteryViewerProps) {
                         <BookOpen className="w-7 h-7 text-white" />
                       </div>
                       <div>
-                        <h2 className="text-2xl font-bold text-gray-900 mb-0">
+                        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-0">
                           {currentConcept.concept_name}
                         </h2>
                         {currentConcept.difficulty && (
@@ -253,11 +253,11 @@ export function ConceptMasteryViewer({ content }: ConceptMasteryViewerProps) {
                 </div>
 
                 {/* Content Area */}
-                <div className="space-y-6" style={{ maxHeight: '500px', overflowY: 'auto' }}>
+                <div className="space-y-3 sm:space-y-4 lg:space-y-6" style={{ maxHeight: '500px', overflowY: 'auto' }}>
                   {/* Lesson/Explanation Section */}
                   {currentConcept.lesson && (
                     <div 
-                      className="bg-white p-6 shadow-md border-l-4"
+                      className="bg-white p-3 sm:p-4 lg:p-6 shadow-md border-l-4"
                       style={{ 
                         borderColor: '#3b82f6',
                         borderRadius: '8px',
@@ -270,9 +270,9 @@ export function ConceptMasteryViewer({ content }: ConceptMasteryViewerProps) {
                           className="w-10 h-10 rounded-lg flex items-center justify-center mr-3 shadow-sm"
                           style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)' }}
                         >
-                          <Lightbulb className="w-5 h-5 text-white" />
+                          <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                         </div>
-                        <h3 className="text-lg font-semibold m-0" style={{ color: '#3b82f6' }}>Lesson Explanation</h3>
+                        <h3 className="text-base sm:text-lg font-semibold m-0" style={{ color: '#3b82f6' }}>Lesson Explanation</h3>
                       </div>
                       <p className="text-gray-700 leading-relaxed m-0" style={{ fontSize: '0.95rem', lineHeight: '1.8' }}>
                         {currentConcept.lesson}
@@ -283,7 +283,7 @@ export function ConceptMasteryViewer({ content }: ConceptMasteryViewerProps) {
                   {/* Real-world Example Section */}
                   {currentConcept.real_example && (
                     <div 
-                      className="bg-white p-6 shadow-md border-l-4"
+                      className="bg-white p-3 sm:p-4 lg:p-6 shadow-md border-l-4"
                       style={{ 
                         borderColor: '#8b5cf6',
                         borderRadius: '8px',
@@ -296,9 +296,9 @@ export function ConceptMasteryViewer({ content }: ConceptMasteryViewerProps) {
                           className="w-10 h-10 rounded-lg flex items-center justify-center mr-3 shadow-sm"
                           style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' }}
                         >
-                          <Target className="w-5 h-5 text-white" />
+                          <Target className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                         </div>
-                        <h3 className="text-lg font-semibold m-0" style={{ color: '#8b5cf6' }}>Real-world Example</h3>
+                        <h3 className="text-base sm:text-lg font-semibold m-0" style={{ color: '#8b5cf6' }}>Real-world Example</h3>
                       </div>
                       <p className="text-gray-700 leading-relaxed m-0" style={{ fontSize: '0.95rem', lineHeight: '1.8' }}>
                         {currentConcept.real_example}
@@ -309,7 +309,7 @@ export function ConceptMasteryViewer({ content }: ConceptMasteryViewerProps) {
                   {/* Key Points Section */}
                   {currentConcept.key_points && currentConcept.key_points.length > 0 && (
                     <div 
-                      className="bg-white p-6 shadow-md border-l-4"
+                      className="bg-white p-3 sm:p-4 lg:p-6 shadow-md border-l-4"
                       style={{ 
                         borderColor: '#10b981',
                         borderRadius: '8px',
@@ -322,9 +322,9 @@ export function ConceptMasteryViewer({ content }: ConceptMasteryViewerProps) {
                           className="w-10 h-10 rounded-lg flex items-center justify-center mr-3 shadow-sm"
                           style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
                         >
-                          <Target className="w-5 h-5 text-white" />
+                          <Target className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                         </div>
-                        <h3 className="text-lg font-semibold m-0" style={{ color: '#10b981' }}>Key Points</h3>
+                        <h3 className="text-base sm:text-lg font-semibold m-0" style={{ color: '#10b981' }}>Key Points</h3>
                       </div>
                       <ul className="list-none p-0 m-0 space-y-3">
                         {currentConcept.key_points.map((point, pointIndex) => (
@@ -338,7 +338,7 @@ export function ConceptMasteryViewer({ content }: ConceptMasteryViewerProps) {
                             }}
                           >
                             <span 
-                              className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-semibold mr-3 mt-0.5"
+                              className="flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 rounded-full flex items-center justify-center text-white text-xs font-semibold mr-3 mt-0.5"
                               style={{ background: '#10b981' }}
                             >
                               {pointIndex + 1}
@@ -356,7 +356,7 @@ export function ConceptMasteryViewer({ content }: ConceptMasteryViewerProps) {
               
               {/* Page number indicator */}
               <div 
-                className="absolute bottom-4 right-8 text-sm text-gray-500 font-medium"
+                className="absolute bottom-4 right-8 text-xs sm:text-sm text-gray-500 font-medium"
                 style={{ fontFamily: 'serif' }}
               >
                 Concept {currentIndex + 1}
@@ -373,10 +373,10 @@ export function ConceptMasteryViewer({ content }: ConceptMasteryViewerProps) {
           size="lg"
           onClick={handlePrevious}
           disabled={currentIndex === 0 || isTurning}
-          className="rounded-lg px-6 py-3 shadow-md hover:shadow-lg transition-shadow"
+          className="rounded-lg px-3 sm:px-4 lg:px-6 py-3 shadow-md hover:shadow-lg transition-shadow"
           type="button"
         >
-          <ChevronLeft className="w-5 h-5 mr-2" />
+          <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
           Previous Concept
         </Button>
 
@@ -395,16 +395,16 @@ export function ConceptMasteryViewer({ content }: ConceptMasteryViewerProps) {
           size="lg"
           onClick={handleNext}
           disabled={currentIndex === concepts.length - 1 || isTurning}
-          className="rounded-lg px-6 py-3 shadow-md hover:shadow-lg transition-shadow"
+          className="rounded-lg px-3 sm:px-4 lg:px-6 py-3 shadow-md hover:shadow-lg transition-shadow"
           type="button"
         >
           Next Concept
-          <ChevronRight className="w-5 h-5 ml-2" />
+          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
         </Button>
       </div>
 
       {/* Concept counter */}
-      <div className="text-sm text-gray-600 font-medium">
+      <div className="text-xs sm:text-sm text-gray-600 font-medium">
         Concept {currentIndex + 1} of {concepts.length}
       </div>
     </div>

@@ -84,7 +84,7 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
   if (model.isLoading) {
     return (
       <div className={`${className ?? ""} flex h-full min-h-[320px] items-center justify-center bg-white`}>
-        <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+        <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 animate-spin text-blue-500" />
       </div>
     );
   }
@@ -93,8 +93,8 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
     <div className={`${className ?? ""} mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col rounded-2xl border border-slate-200 bg-white shadow-sm`}>
       <div className={`border-b border-slate-200 px-4 py-3 ${modeUi.header}`}>
         <div className="flex items-center gap-2">
-          <ModeIcon className="h-4 w-4 text-slate-700" />
-          <h3 className="text-base font-semibold text-slate-900">{modeUi.title}</h3>
+          <ModeIcon className="h-3 w-3 sm:h-4 sm:w-4 text-slate-700" />
+          <h3 className="text-sm sm:text-base font-semibold text-slate-900">{modeUi.title}</h3>
         </div>
         <p className="text-xs text-slate-600">{modeUi.subtitle}</p>
       </div>
@@ -103,7 +103,7 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setTeachingTab("lesson")}
-            className={`rounded-lg px-3 py-1.5 text-sm transition ${
+            className={`rounded-lg px-3 py-1.5 text-xs sm:text-sm transition ${
               teachingTab === "lesson" ? modeUi.activeTab : "bg-slate-100 text-slate-700"
             }`}
           >
@@ -111,7 +111,7 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
           </button>
           <button
             onClick={() => setTeachingTab("quiz")}
-            className={`rounded-lg px-3 py-1.5 text-sm transition ${
+            className={`rounded-lg px-3 py-1.5 text-xs sm:text-sm transition ${
               teachingTab === "quiz" ? modeUi.activeTab : "bg-slate-100 text-slate-700"
             }`}
           >
@@ -119,7 +119,7 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
           </button>
           <button
             onClick={() => setTeachingTab("help")}
-            className={`rounded-lg px-3 py-1.5 text-sm transition ${
+            className={`rounded-lg px-3 py-1.5 text-xs sm:text-sm transition ${
               teachingTab === "help" ? modeUi.activeTab : "bg-slate-100 text-slate-700"
             }`}
           >
@@ -153,14 +153,14 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {model.displayMessages.length === 0 ? (
           <div className="mx-auto max-w-2xl py-10 text-center">
-            <h4 className="text-lg font-semibold text-slate-900">Start with a teaching prompt</h4>
-            <p className="mt-1 text-sm text-slate-600">Choose a prompt to generate your next classroom resource.</p>
+            <h4 className="text-base sm:text-lg font-semibold text-slate-900">Start with a teaching prompt</h4>
+            <p className="mt-1 text-xs sm:text-sm text-slate-600">Choose a prompt to generate your next classroom resource.</p>
             <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
               {model.quickQuestions.map((question, index) => (
                 <button
                   key={question}
                   onClick={() => model.onPromptClick(question)}
-                  className={`rounded-xl border px-4 py-3 text-left text-sm font-medium text-slate-700 transition ${
+                  className={`rounded-xl border px-4 py-3 text-left text-xs sm:text-sm font-medium text-slate-700 transition ${
                     index % 3 === 0
                       ? "border-blue-100 bg-blue-50 hover:bg-blue-100"
                       : index % 3 === 1
@@ -181,7 +181,7 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
                 className={`flex items-start gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
               >
                 <div
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                  className={`flex h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                     msg.role === "user" ? "bg-blue-600 text-white" : "bg-blue-100 text-blue-700"
                   }`}
                 >
@@ -189,7 +189,7 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
                 </div>
                 <div className={msg.role === "user" ? "text-right" : ""}>
                   <div
-                    className={`inline-block rounded-2xl px-4 py-3 text-sm shadow-sm ${
+                    className={`inline-block rounded-2xl px-4 py-3 text-xs sm:text-sm shadow-sm ${
                       msg.role === "user" ? "bg-blue-600 text-white" : "bg-slate-50 text-slate-800"
                     }`}
                   >
@@ -210,20 +210,20 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8"
             onClick={() => model.fileInputRef.current?.click()}
             disabled={model.isPending}
           >
-            <ImageIcon className="h-4 w-4 text-slate-500" />
+            <ImageIcon className="h-3 w-3 sm:h-4 sm:w-4 text-slate-500" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8"
             onClick={model.handleVoiceInput}
             disabled={model.isPending || model.isListening}
           >
-            <Mic className={`h-4 w-4 ${model.isListening ? "text-red-500" : "text-slate-500"}`} />
+            <Mic className={`h-3 w-3 sm:h-4 sm:w-4 ${model.isListening ? "text-red-500" : "text-slate-500"}`} />
           </Button>
           <input
             ref={model.fileInputRef}
@@ -242,15 +242,15 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
               }
             }}
             placeholder={model.inputPlaceholder}
-            className="min-h-[40px] max-h-28 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-sm outline-none"
+            className="min-h-[40px] max-h-28 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-xs sm:text-sm outline-none"
           />
           <Button
             size="icon"
-            className="h-8 w-8 bg-blue-600 text-white hover:bg-blue-700"
+            className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 bg-blue-600 text-white hover:bg-blue-700"
             onClick={model.handleSendMessage}
             disabled={model.isPending || !model.message.trim()}
           >
-            {model.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {model.isPending ? <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <Send className="h-3 w-3 sm:h-4 sm:w-4" />}
           </Button>
         </div>
       </div>

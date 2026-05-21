@@ -315,14 +315,14 @@ const SubjectManagement = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50 overflow-x-hidden">
-      <div className="space-y-6 p-3 sm:space-y-8 sm:p-4 lg:p-6">
+      <div className="space-y-3 sm:space-y-4 lg:space-y-6 p-3 sm:space-y-8 sm:p-4 lg:p-6">
         {/* Hero Section with Vibrant Subject Stats */}
         <div className="relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 opacity-20 rounded-3xl"></div>
           <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:rounded-3xl sm:p-6 lg:p-8 shadow-2xl border border-white/20">
             <div className="flex items-center justify-between mb-6 sm:mb-8">
               <div>
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl leading-tight font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent break-words">
+                <h1 className="text-2xl sm:text-3xl sm:text-4xl lg:text-5xl leading-tight font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent break-words">
                   Subject Management
                 </h1>
                 <p className="text-gray-700 mt-2 sm:mt-3 text-sm sm:text-base lg:text-xl font-medium">Manage subjects and their assignments with style</p>
@@ -335,25 +335,25 @@ const SubjectManagement = () => {
             </div>
 
             {/* Vibrant Subject Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:p-4 lg:p-6">
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-2xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-2xl transition-all duration-300"
               >
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                      <BookOpen className="w-8 h-8 text-white" />
+                      <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                     </div>
                     <div className="text-right">
-                      <p className="text-white/90 text-sm font-medium">Total Subjects</p>
-                      <p className="text-3xl sm:text-4xl font-bold text-white">{totalSubjects}</p>
+                      <p className="text-white/90 text-xs sm:text-sm font-medium">Total Subjects</p>
+                      <p className="text-2xl sm:text-3xl sm:text-4xl font-bold text-white">{totalSubjects}</p>
                     </div>
                   </div>
-                  <div className="flex items-center text-white/80 text-sm">
-                    <BookOpen className="w-4 h-4 mr-2" />
+                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
+                    <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     <span>Available courses</span>
                   </div>
                 </div>
@@ -363,19 +363,19 @@ const SubjectManagement = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-2xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-2xl transition-all duration-300"
               >
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                      <CheckCircle className="w-8 h-8 text-white" />
+                      <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                     </div>
                     <div className="text-right">
-                      <p className="text-white/90 text-sm font-medium">Active Subjects</p>
-                      <p className="text-3xl sm:text-4xl font-bold text-white">{activeSubjects}</p>
+                      <p className="text-white/90 text-xs sm:text-sm font-medium">Active Subjects</p>
+                      <p className="text-2xl sm:text-3xl sm:text-4xl font-bold text-white">{activeSubjects}</p>
                     </div>
                   </div>
-                  <div className="flex items-center text-white/80 text-sm">
+                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
                     <div className="w-3 h-3 bg-white rounded-full mr-2 animate-pulse"></div>
                     <span>Currently offered</span>
                   </div>
@@ -386,20 +386,20 @@ const SubjectManagement = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-2xl p-6 hover:shadow-2xl transition-all duration-300"
+                className="group relative overflow-hidden bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-2xl transition-all duration-300"
               >
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                      <Users className="w-8 h-8 text-white" />
+                      <Users className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
                     </div>
                     <div className="text-right">
-                      <p className="text-white/90 text-sm font-medium">Assigned Subjects</p>
-                      <p className="text-3xl sm:text-4xl font-bold text-white">{assignedSubjects}</p>
+                      <p className="text-white/90 text-xs sm:text-sm font-medium">Assigned Subjects</p>
+                      <p className="text-2xl sm:text-3xl sm:text-4xl font-bold text-white">{assignedSubjects}</p>
                     </div>
                   </div>
-                  <div className="flex items-center text-white/80 text-sm">
-                    <Users className="w-4 h-4 mr-2" />
+                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
+                    <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     <span>With teachers</span>
                   </div>
                 </div>
@@ -409,13 +409,13 @@ const SubjectManagement = () => {
         </div>
 
         {/* Action Bar with Filters */}
-        <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-sky-200">
+        <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg border border-sky-200">
           <div className="flex flex-col gap-4">
             <div className="flex justify-end">
               <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white">
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     Add Subject
                   </Button>
                 </DialogTrigger>
@@ -454,7 +454,7 @@ const SubjectManagement = () => {
             {/* Search Bar */}
           <div className="flex flex-col sm:flex-row gap-4 items-center">
               <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sky-600 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sky-600 w-3 h-3 sm:w-4 sm:h-4" />
               <Input
                 placeholder="Search subjects..."
                 value={searchTerm}
@@ -542,7 +542,7 @@ const SubjectManagement = () => {
                     <div>
                       <div className="font-medium text-sky-900">{subject.name}</div>
                       {subject.description && (
-                        <div className="text-sm text-sky-600 mt-1">{subject.description}</div>
+                        <div className="text-xs sm:text-sm text-sky-600 mt-1">{subject.description}</div>
                       )}
                     </div>
                   </TableCell>
@@ -550,10 +550,10 @@ const SubjectManagement = () => {
                     {subject.teacher ? (
                       <div>
                         <div className="font-medium text-sky-900">{subject.teacher.fullName}</div>
-                        <div className="text-sm text-sky-600">{subject.teacher.email}</div>
+                        <div className="text-xs sm:text-sm text-sky-600">{subject.teacher.email}</div>
                       </div>
                     ) : (
-                      <span className="text-sky-500 text-sm">Unassigned</span>
+                      <span className="text-sky-500 text-xs sm:text-sm">Unassigned</span>
                     )}
                   </TableCell>
                   <TableCell>
@@ -597,7 +597,7 @@ const SubjectManagement = () => {
         {filteredSubjects.length === 0 && (
           <div className="text-center py-12">
             <BookOpen className="w-16 h-16 text-sky-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-sky-700 mb-2">No subjects found</h3>
+            <h3 className="text-lg sm:text-xl font-semibold text-sky-700 mb-2">No subjects found</h3>
             <p className="text-sky-600">Try adjusting your search criteria or add a new subject.</p>
           </div>
         )}
@@ -651,7 +651,7 @@ const SubjectManagement = () => {
             <DialogDescription>Read-only subject information.</DialogDescription>
           </DialogHeader>
           {viewingSubject && (
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2 text-xs sm:text-sm">
               <p><span className="font-semibold">Name:</span> {viewingSubject.name || '-'}</p>
               <p><span className="font-semibold">Teacher:</span> {viewingSubject.teacher?.fullName || 'Unassigned'}</p>
               <p><span className="font-semibold">Description:</span> {viewingSubject.description || '-'}</p>

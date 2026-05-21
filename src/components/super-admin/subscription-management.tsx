@@ -161,10 +161,10 @@ export default function SubscriptionManagement() {
   }, [load]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Payments &amp; subscriptions</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Payments &amp; subscriptions</h2>
           <p className="text-gray-600 mt-1">
             Live data from Razorpay (payments and subscriptions). Configure API keys in the backend{' '}
             <code className="rounded bg-muted px-1 text-xs">.env</code>.
@@ -172,7 +172,7 @@ export default function SubscriptionManagement() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {loading ? <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4" />}
             <span className="ml-2">Refresh</span>
           </Button>
           <Button variant="outline" size="sm" asChild>
@@ -183,7 +183,7 @@ export default function SubscriptionManagement() {
               className="inline-flex items-center"
             >
               Razorpay dashboard
-              <ExternalLink className="ml-2 h-4 w-4" />
+              <ExternalLink className="ml-2 h-3 w-3 sm:h-4 sm:w-4" />
             </a>
           </Button>
         </div>
@@ -191,15 +191,15 @@ export default function SubscriptionManagement() {
 
       {loading && !data ? (
         <div className="flex justify-center py-16 text-gray-500">
-          <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+          <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 animate-spin text-orange-500" />
         </div>
       ) : data ? (
         <>
           {!data.razorpayConfigured && (
             <Alert>
-              <AlertTriangle className="h-4 w-4" />
+              <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4" />
               <AlertTitle>Razorpay not connected</AlertTitle>
-              <AlertDescription className="text-sm mt-1">
+              <AlertDescription className="text-xs sm:text-sm mt-1">
                 Add <code className="rounded bg-muted px-1">RAZORPAY_KEY_ID</code> and{' '}
                 <code className="rounded bg-muted px-1">RAZORPAY_KEY_SECRET</code> to your server environment (from the
                 Razorpay Dashboard → API Keys), then restart the API. Tables will fill with live data.
@@ -209,7 +209,7 @@ export default function SubscriptionManagement() {
 
           {data.razorpayError && (
             <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
+              <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4" />
               <AlertTitle>Razorpay error</AlertTitle>
               <AlertDescription>{data.razorpayError}</AlertDescription>
             </Alert>
@@ -219,8 +219,8 @@ export default function SubscriptionManagement() {
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription>Captured revenue (listed)</CardDescription>
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <IndianRupee className="h-5 w-5 text-emerald-600" />
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <IndianRupee className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
                   {formatInr(data.summary.capturedAmountInr)}
                 </CardTitle>
               </CardHeader>
@@ -231,8 +231,8 @@ export default function SubscriptionManagement() {
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription>Payments</CardDescription>
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <CreditCard className="h-5 w-5 text-sky-600" />
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-sky-600" />
                   {data.summary.paymentsListed}
                 </CardTitle>
               </CardHeader>
@@ -241,8 +241,8 @@ export default function SubscriptionManagement() {
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription>Subscriptions</CardDescription>
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <Repeat className="h-5 w-5 text-violet-600" />
+                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+                  <Repeat className="h-4 w-4 sm:h-5 sm:w-5 text-violet-600" />
                   {data.summary.subscriptionsListed}
                 </CardTitle>
               </CardHeader>
@@ -251,14 +251,14 @@ export default function SubscriptionManagement() {
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription>Active subscriptions</CardDescription>
-                <CardTitle className="text-xl">{data.summary.activeSubscriptions}</CardTitle>
+                <CardTitle className="text-lg sm:text-xl">{data.summary.activeSubscriptions}</CardTitle>
               </CardHeader>
               <CardContent className="text-xs text-muted-foreground">Status active / authenticated.</CardContent>
             </Card>
           </div>
 
           <Tabs defaultValue="payments" className="w-full">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsList className="grid w-full max-w-md grid-cols-1 sm:grid-cols-2">
               <TabsTrigger value="payments">Payments &amp; billing</TabsTrigger>
               <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
             </TabsList>
@@ -270,7 +270,7 @@ export default function SubscriptionManagement() {
                 </CardHeader>
                 <CardContent className="overflow-x-auto">
                   {data.payments.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-6 text-center">
+                    <p className="text-xs sm:text-sm text-muted-foreground py-3 sm:py-4 lg:py-6 text-center">
                       No payments returned. Complete a test payment in Razorpay test mode or widen the date range in the
                       Razorpay dashboard.
                     </p>
@@ -296,7 +296,7 @@ export default function SubscriptionManagement() {
                             <TableCell>{formatInr(p.amount)}</TableCell>
                             <TableCell>{statusBadge(p.status)}</TableCell>
                             <TableCell className="capitalize">{p.method}</TableCell>
-                            <TableCell className="text-sm">
+                            <TableCell className="text-xs sm:text-sm">
                               <div>{p.email}</div>
                               <div className="text-muted-foreground text-xs">{p.contact}</div>
                             </TableCell>
@@ -316,7 +316,7 @@ export default function SubscriptionManagement() {
                 </CardHeader>
                 <CardContent className="overflow-x-auto">
                   {data.subscriptions.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-6 text-center">
+                    <p className="text-xs sm:text-sm text-muted-foreground py-3 sm:py-4 lg:py-6 text-center">
                       No subscriptions yet. Create plans and subscriptions in the Razorpay dashboard, or via your app’s
                       checkout flow.
                     </p>
@@ -345,7 +345,7 @@ export default function SubscriptionManagement() {
                               <div>{formatDate(s.currentStart)}</div>
                               <div className="text-muted-foreground">→ {formatDate(s.currentEnd)}</div>
                             </TableCell>
-                            <TableCell className="text-sm">
+                            <TableCell className="text-xs sm:text-sm">
                               {s.paidCount ?? '—'} / {s.remainingCount ?? '—'}
                             </TableCell>
                           </TableRow>

@@ -178,7 +178,7 @@ const Login = () => {
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.7 }}
-                  className="text-5xl font-bold text-blue-900 mb-2 bg-gradient-to-r from-blue-800 to-blue-600 bg-clip-text text-transparent"
+                  className="text-3xl sm:text-4xl lg:text-5xl font-bold text-blue-900 mb-2 bg-gradient-to-r from-blue-800 to-blue-600 bg-clip-text text-transparent"
                 >
                   ASLILEARN AI
                 </motion.h1>
@@ -186,7 +186,7 @@ const Login = () => {
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.9 }}
-                  className="text-white/90 text-xl font-medium"
+                  className="text-white/90 text-lg sm:text-xl font-medium"
                 >
                   Intelligent Learning Platform
                 </motion.p>
@@ -227,10 +227,10 @@ const Login = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
                 >
-                  <CardTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-sky-600 via-blue-500 to-cyan-600 bg-clip-text text-transparent">
+                  <CardTitle className="text-xl sm:text-2xl sm:text-3xl font-bold bg-gradient-to-r from-sky-600 via-blue-500 to-cyan-600 bg-clip-text text-transparent">
                     Welcome Back
                   </CardTitle>
-                  <p className="text-gray-600 mt-2 text-sm">
+                  <p className="text-gray-600 mt-2 text-xs sm:text-sm">
                     Sign in to continue your learning journey
                   </p>
                 </motion.div>
@@ -256,14 +256,14 @@ const Login = () => {
                     transition={{ delay: 0.5 }}
                     className="space-y-2"
                   >
-                    <Label htmlFor="email" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-indigo-500" />
+                    <Label htmlFor="email" className="text-xs sm:text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Mail className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-500" />
                       Email Address
                     </Label>
                     <div className="relative group">
                       <div className="absolute inset-0 bg-gradient-to-r from-sky-300/20 to-blue-300/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 z-10 -translate-y-1/2 w-5 h-5 text-indigo-500 group-hover:text-indigo-600 transition-colors pointer-events-none" />
+                        <Mail className="absolute left-4 top-1/2 z-10 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 group-hover:text-indigo-600 transition-colors pointer-events-none" />
                         <Input
                           id="email"
                           name="email"
@@ -284,14 +284,14 @@ const Login = () => {
                     transition={{ delay: 0.6 }}
                     className="space-y-2"
                   >
-                    <Label htmlFor="password" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <Lock className="w-4 h-4 text-indigo-500" />
+                    <Label htmlFor="password" className="text-xs sm:text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Lock className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-500" />
                       Password
                     </Label>
                     <div className="relative group">
                       <div className="absolute inset-0 bg-gradient-to-r from-sky-300/20 to-blue-300/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <div className="relative">
-                        <Lock className="absolute left-4 top-1/2 z-10 -translate-y-1/2 w-5 h-5 text-indigo-500 group-hover:text-indigo-600 transition-colors pointer-events-none" />
+                        <Lock className="absolute left-4 top-1/2 z-10 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 group-hover:text-indigo-600 transition-colors pointer-events-none" />
                         <Input
                           id="password"
                           name="password"
@@ -307,7 +307,7 @@ const Login = () => {
                           onClick={() => setShowPassword(!showPassword)}
                           className="absolute right-4 top-1/2 z-10 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition-colors"
                         >
-                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
                         </button>
                       </div>
                     </div>
@@ -323,13 +323,13 @@ const Login = () => {
                       <input
                         id="remember"
                         type="checkbox"
-                        className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 focus:ring-2 cursor-pointer"
+                        className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 focus:ring-2 cursor-pointer"
                       />
-                      <Label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer">
+                      <Label htmlFor="remember" className="text-xs sm:text-sm text-gray-600 cursor-pointer">
                         Remember me
                       </Label>
                     </div>
-                    <Link href="/auth/forgot-password" className="text-sm font-medium text-sky-600 hover:text-sky-700 transition-colors">
+                    <Link href="/auth/forgot-password" className="text-xs sm:text-sm font-medium text-sky-600 hover:text-sky-700 transition-colors">
                       Forgot password?
                     </Link>
                   </motion.div>
@@ -341,7 +341,7 @@ const Login = () => {
                   >
                     <Button
                       type="submit"
-                      className="w-full h-12 bg-gradient-to-r from-sky-500 via-blue-500 to-cyan-500 hover:from-sky-600 hover:via-blue-600 hover:to-cyan-600 text-white font-semibold text-base shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden group"
+                      className="w-full h-12 bg-gradient-to-r from-sky-500 via-blue-500 to-cyan-500 hover:from-sky-600 hover:via-blue-600 hover:to-cyan-600 text-white font-semibold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden group"
                       disabled={isLoading}
                     >
                       <span className="relative z-10 flex items-center justify-center gap-2">
@@ -350,13 +350,13 @@ const Login = () => {
                             <motion.div
                               animate={{ rotate: 360 }}
                               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                              className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                              className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full"
                             />
                             Signing in...
                           </>
                         ) : (
                           <>
-                            <Zap className="w-5 h-5" />
+                            <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
                             Sign In
                           </>
                         )}
@@ -372,7 +372,7 @@ const Login = () => {
                   transition={{ delay: 0.9 }}
                   className="text-center pt-2"
                 >
-                  <p className="text-sm text-gray-600">
+                  <p className="text-xs sm:text-sm text-gray-600">
                     Don't have an account?{' '}
                     <Link href="/auth/register" className="text-sky-600 hover:text-sky-700 font-semibold transition-colors">
                       Sign up here
@@ -386,17 +386,17 @@ const Login = () => {
                   transition={{ delay: 1 }}
                   className="text-center pt-4 border-t border-gray-200"
                 >
-                  <Link href="/" className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-sky-600 transition-colors font-medium group">
-                    <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                  <Link href="/" className="inline-flex items-center gap-2 text-xs sm:text-sm text-gray-600 hover:text-sky-600 transition-colors font-medium group">
+                    <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 group-hover:-translate-x-1 transition-transform" />
                     Back to Home
                   </Link>
                 </motion.div>
 
                 {/* Decorative Icons */}
                 <div className="absolute bottom-4 right-4 hidden sm:flex gap-2 opacity-20">
-                  <BookOpen className="w-6 h-6 text-cyan-400" />
-                  <GraduationCap className="w-6 h-6 text-sky-400" />
-                  <Sparkles className="w-6 h-6 text-blue-400" />
+                  <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-cyan-400" />
+                  <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-sky-400" />
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-400" />
                 </div>
               </CardContent>
             </Card>
