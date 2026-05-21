@@ -35,6 +35,8 @@ interface SchoolDetailsForm {
 
 interface Admin {
   id: string;
+  schoolId?: string;
+  adminUserId?: string;
   name: string;
   email: string;
   board?: string;
@@ -893,10 +895,11 @@ export default function AdminManagement() {
     }
   };
 
-  const handleDeleteAdmin = async (adminId: string) => {
+  const handleDeleteAdmin = async (adminId: string, schoolId?: string) => {
     if (isDeletingAdmin) return;
 
-    if (!adminId) {
+    const deleteId = adminId || schoolId || '';
+    if (!deleteId) {
       toast({
         title: "Error",
         description: "Invalid school ID",
@@ -908,7 +911,7 @@ export default function AdminManagement() {
     setIsDeletingAdmin(true);
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/admins/${adminId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/admins/${deleteId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -938,11 +941,15 @@ export default function AdminManagement() {
             setAdmins(fetchData.data.map(mapAdminState));
           } else {
             // Fallback: filter from local state
-            setAdmins((admins || []).filter(admin => admin?.id !== adminId));
+            setAdmins((admins || []).filter(
+              (a) => a?.id !== deleteId && a?.schoolId !== deleteId && a?.schoolId !== schoolId
+            ));
           }
         } else {
           // Fallback: filter from local state
-          setAdmins((admins || []).filter(admin => admin?.id !== adminId));
+          setAdmins((admins || []).filter(
+            (a) => a?.id !== deleteId && a?.schoolId !== deleteId && a?.schoolId !== schoolId
+          ));
         }
         
         toast({
@@ -2404,7 +2411,7 @@ export default function AdminManagement() {
                     <Button 
                       size="sm" 
                       variant="outline" 
-                      onClick={() => handleDeleteAdmin(admin?.id || '')}
+                      onClick={() => handleDeleteAdmin(admin?.id || '', admin?.schoolId)}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
                       <TrashIcon className="h-4 w-4" />

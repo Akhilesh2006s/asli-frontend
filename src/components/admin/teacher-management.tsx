@@ -444,9 +444,18 @@ const TeacherManagement = () => {
           fileInputRef.current.value = '';
         }
         fetchTeachers();
-        
-        let message = `CSV uploaded successfully!\nCreated ${result.createdTeachers?.length || 0} teachers.\nDefault password: Password123`;
-        
+        fetchSubjects();
+        window.dispatchEvent(new CustomEvent('subjectsUpdated'));
+
+        const newSubjects = result.createdSubjects?.length || 0;
+        let message =
+          result.message ||
+          `CSV uploaded successfully!\nCreated ${result.createdTeachers?.length || 0} teacher(s).`;
+        if (newSubjects > 0) {
+          message += `\n${newSubjects} new subject(s) added to Subject Management.`;
+        }
+        message += '\nDefault password: Password123';
+
         if (result.errors && result.errors.length > 0) {
           message += `\n\nErrors:\n${result.errors.slice(0, 10).join('\n')}`;
           if (result.errors.length > 10) {

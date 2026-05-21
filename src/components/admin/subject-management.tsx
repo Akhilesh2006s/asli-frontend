@@ -10,6 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { API_BASE_URL } from '@/lib/api-config';
+/** Visible fields on white dialogs (default inputs are too faint). */
+const SUBJECT_FORM_FIELD_CLASS =
+  'border border-sky-300 bg-sky-50 text-sky-950 shadow-sm placeholder:text-sky-500 focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-400/35';
 import { 
   BookOpen, 
   Plus, 
@@ -20,9 +23,7 @@ import {
   Users,
   GraduationCap,
   CheckCircle,
-  XCircle,
-  Filter,
-  Hash
+  XCircle
 } from 'lucide-react';
 
 interface Subject {
@@ -51,8 +52,6 @@ const SubjectManagement = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterByDepartment, setFilterByDepartment] = useState<string>('all');
-  const [filterByGrade, setFilterByGrade] = useState<string>('all');
   const [filterByTeacher, setFilterByTeacher] = useState<string>('all');
   const [filterByStatus, setFilterByStatus] = useState<string>('active');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -62,16 +61,16 @@ const SubjectManagement = () => {
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
   const [newSubject, setNewSubject] = useState({
     name: '',
-    code: '',
     description: '',
     teacher: '',
-    grade: '',
-    department: ''
   });
 
   useEffect(() => {
     fetchSubjects();
     fetchTeachers();
+    const onSubjectsUpdated = () => fetchSubjects();
+    window.addEventListener('subjectsUpdated', onSubjectsUpdated);
+    return () => window.removeEventListener('subjectsUpdated', onSubjectsUpdated);
   }, []);
 
   const fetchSubjects = async () => {
@@ -201,7 +200,7 @@ const SubjectManagement = () => {
       });
 
       if (response.ok) {
-        setNewSubject({ name: '', code: '', description: '', teacher: '', grade: '', department: '' });
+        setNewSubject({ name: '', description: '', teacher: '' });
         setIsAddDialogOpen(false);
         fetchSubjects();
         alert('Subject added successfully!');
@@ -274,26 +273,6 @@ const SubjectManagement = () => {
     setIsViewDialogOpen(true);
   };
 
-  // Get unique values for filters
-  const getUniqueDepartments = (): string[] => {
-    const departments = subjects
-      .map(s => s.department)
-      .filter((d): d is string => Boolean(d));
-    return Array.from(new Set(departments)).sort();
-  };
-
-  const getUniqueGrades = (): string[] => {
-    const grades = subjects
-      .map(s => s.grade)
-      .filter((g): g is string => Boolean(g));
-    return Array.from(new Set(grades)).sort((a, b) => {
-      const numA = parseInt(a);
-      const numB = parseInt(b);
-      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
-      return a.localeCompare(b);
-    });
-  };
-
   // Filter subjects based on search term and selected filters
   const filteredSubjects = useMemo(() => {
     if (!Array.isArray(subjects)) return [];
@@ -305,20 +284,9 @@ const SubjectManagement = () => {
       const query = searchTerm.toLowerCase();
       filtered = filtered.filter(subject =>
         subject.name?.toLowerCase().includes(query) ||
-        subject.code?.toLowerCase().includes(query) ||
-        subject.department?.toLowerCase().includes(query) ||
+        subject.description?.toLowerCase().includes(query) ||
         subject.teacher?.fullName?.toLowerCase().includes(query)
       );
-    }
-
-    // Department filter
-    if (filterByDepartment !== 'all') {
-      filtered = filtered.filter(s => s.department === filterByDepartment);
-    }
-
-    // Grade filter
-    if (filterByGrade !== 'all') {
-      filtered = filtered.filter(s => s.grade === filterByGrade);
     }
 
     // Teacher filter
@@ -339,7 +307,7 @@ const SubjectManagement = () => {
     }
 
     return filtered;
-  }, [subjects, searchTerm, filterByDepartment, filterByGrade, filterByTeacher, filterByStatus]);
+  }, [subjects, searchTerm, filterByTeacher, filterByStatus]);
 
   const totalSubjects = Array.isArray(subjects) ? subjects.length : 0;
   const activeSubjects = Array.isArray(subjects) ? subjects.filter(s => s.isActive).length : 0;
@@ -459,25 +427,21 @@ const SubjectManagement = () => {
                   <form onSubmit={handleAddSubject} className="space-y-3">
                     <div>
                       <Label>Subject Name</Label>
-                      <Input value={newSubject.name} onChange={(e) => setNewSubject({ ...newSubject, name: e.target.value })} required />
-                    </div>
-                    <div>
-                      <Label>Subject Code</Label>
-                      <Input value={newSubject.code} onChange={(e) => setNewSubject({ ...newSubject, code: e.target.value })} />
+                      <Input
+                        value={newSubject.name}
+                        onChange={(e) => setNewSubject({ ...newSubject, name: e.target.value })}
+                        className={SUBJECT_FORM_FIELD_CLASS}
+                        required
+                      />
                     </div>
                     <div>
                       <Label>Description</Label>
-                      <Textarea value={newSubject.description} onChange={(e) => setNewSubject({ ...newSubject, description: e.target.value })} rows={3} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label>Department</Label>
-                        <Input value={newSubject.department} onChange={(e) => setNewSubject({ ...newSubject, department: e.target.value })} />
-                      </div>
-                      <div>
-                        <Label>Grade</Label>
-                        <Input value={newSubject.grade} onChange={(e) => setNewSubject({ ...newSubject, grade: e.target.value })} />
-                      </div>
+                      <Textarea
+                        value={newSubject.description}
+                        onChange={(e) => setNewSubject({ ...newSubject, description: e.target.value })}
+                        rows={3}
+                        className={SUBJECT_FORM_FIELD_CLASS}
+                      />
                     </div>
                     <div className="flex justify-end gap-2">
                       <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
@@ -507,42 +471,6 @@ const SubjectManagement = () => {
             <div className="flex flex-wrap items-center gap-4">
               <Label className="font-semibold text-sky-900">Filters:</Label>
               
-              {/* Department Filter */}
-              <div className="relative">
-                <div className="absolute -inset-[2px] bg-gradient-to-r from-orange-300 to-orange-400 rounded-md"></div>
-                <Select value={filterByDepartment} onValueChange={setFilterByDepartment}>
-                  <SelectTrigger className="w-full sm:w-48 relative z-10 border-0 bg-white focus:ring-2 focus:ring-orange-500 focus:ring-offset-0">
-                    <SelectValue placeholder="All Departments" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Departments</SelectItem>
-                    {getUniqueDepartments().map(dept => (
-                      <SelectItem key={dept} value={dept}>
-                        {dept}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Grade Filter */}
-              <div className="relative">
-                <div className="absolute -inset-[2px] bg-gradient-to-r from-sky-300 to-sky-400 rounded-md"></div>
-                <Select value={filterByGrade} onValueChange={setFilterByGrade}>
-                  <SelectTrigger className="w-full sm:w-40 relative z-10 border-0 bg-white focus:ring-2 focus:ring-sky-500 focus:ring-offset-0">
-                    <SelectValue placeholder="All Grades" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Grades</SelectItem>
-                    {getUniqueGrades().map(grade => (
-                      <SelectItem key={grade} value={grade}>
-                        Grade {grade}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
               {/* Teacher Filter */}
               <div className="relative">
                 <div className="absolute -inset-[2px] bg-gradient-to-r from-teal-400 to-teal-500 rounded-md"></div>
@@ -579,13 +507,11 @@ const SubjectManagement = () => {
               </div>
 
               {/* Clear Filters Button */}
-              {(filterByDepartment !== 'all' || filterByGrade !== 'all' || filterByTeacher !== 'all' || filterByStatus !== 'all') && (
+              {(filterByTeacher !== 'all' || filterByStatus !== 'all') && (
                 <Button
                   variant="outline"
                   className="border-sky-200 text-sky-700 hover:bg-sky-50"
                   onClick={() => {
-                    setFilterByDepartment('all');
-                    setFilterByGrade('all');
                     setFilterByTeacher('all');
                     setFilterByStatus('all');
                   }}
@@ -600,14 +526,11 @@ const SubjectManagement = () => {
         {/* Subjects Table */}
         <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-lg border border-sky-200 overflow-hidden">
           <div className="overflow-x-auto">
-          <Table className="min-w-[820px]">
+          <Table className="min-w-[640px]">
             <TableHeader>
               <TableRow className="bg-sky-50/50">
                 <TableHead className="text-sky-900 font-semibold">Subject</TableHead>
-                <TableHead className="text-sky-900 font-semibold">Code</TableHead>
                 <TableHead className="text-sky-900 font-semibold">Teacher</TableHead>
-                <TableHead className="text-sky-900 font-semibold">Department</TableHead>
-                <TableHead className="text-sky-900 font-semibold">Grade</TableHead>
                 <TableHead className="text-sky-900 font-semibold">Status</TableHead>
                 <TableHead className="text-sky-900 font-semibold">Actions</TableHead>
               </TableRow>
@@ -624,12 +547,6 @@ const SubjectManagement = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="border-sky-200 text-sky-700">
-                      <Hash className="w-3 h-3 mr-1" />
-                      {subject.code}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
                     {subject.teacher ? (
                       <div>
                         <div className="font-medium text-sky-900">{subject.teacher.fullName}</div>
@@ -638,12 +555,6 @@ const SubjectManagement = () => {
                     ) : (
                       <span className="text-sky-500 text-sm">Unassigned</span>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sky-700">{subject.department || 'N/A'}</span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sky-700">{subject.grade || 'N/A'}</span>
                   </TableCell>
                   <TableCell>
                     <Badge className={`${subject.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -702,25 +613,27 @@ const SubjectManagement = () => {
           <form onSubmit={handleEditSubject} className="space-y-3">
             <div>
               <Label>Subject Name</Label>
-              <Input value={editingSubject?.name || ''} onChange={(e) => setEditingSubject((prev) => prev ? { ...prev, name: e.target.value } : prev)} required />
-            </div>
-            <div>
-              <Label>Subject Code</Label>
-              <Input value={editingSubject?.code || ''} onChange={(e) => setEditingSubject((prev) => prev ? { ...prev, code: e.target.value } : prev)} />
+              <Input
+                value={editingSubject?.name || ''}
+                onChange={(e) =>
+                  setEditingSubject((prev) => (prev ? { ...prev, name: e.target.value } : prev))
+                }
+                className={SUBJECT_FORM_FIELD_CLASS}
+                required
+              />
             </div>
             <div>
               <Label>Description</Label>
-              <Textarea value={editingSubject?.description || ''} onChange={(e) => setEditingSubject((prev) => prev ? { ...prev, description: e.target.value } : prev)} rows={3} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Department</Label>
-                <Input value={editingSubject?.department || ''} onChange={(e) => setEditingSubject((prev) => prev ? { ...prev, department: e.target.value } : prev)} />
-              </div>
-              <div>
-                <Label>Grade</Label>
-                <Input value={editingSubject?.grade || ''} onChange={(e) => setEditingSubject((prev) => prev ? { ...prev, grade: e.target.value } : prev)} />
-              </div>
+              <Textarea
+                value={editingSubject?.description || ''}
+                onChange={(e) =>
+                  setEditingSubject((prev) =>
+                    prev ? { ...prev, description: e.target.value } : prev
+                  )
+                }
+                rows={3}
+                className={SUBJECT_FORM_FIELD_CLASS}
+              />
             </div>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
@@ -740,9 +653,6 @@ const SubjectManagement = () => {
           {viewingSubject && (
             <div className="space-y-2 text-sm">
               <p><span className="font-semibold">Name:</span> {viewingSubject.name || '-'}</p>
-              <p><span className="font-semibold">Code:</span> {viewingSubject.code || '-'}</p>
-              <p><span className="font-semibold">Department:</span> {viewingSubject.department || '-'}</p>
-              <p><span className="font-semibold">Grade:</span> {viewingSubject.grade || '-'}</p>
               <p><span className="font-semibold">Teacher:</span> {viewingSubject.teacher?.fullName || 'Unassigned'}</p>
               <p><span className="font-semibold">Description:</span> {viewingSubject.description || '-'}</p>
             </div>
