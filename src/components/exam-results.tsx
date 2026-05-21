@@ -81,7 +81,7 @@ export default function ExamResults({
       <DetailedAnalysis 
         result={result}
         examTitle={examTitle}
-        onBack={() => setShowDetailedAnalysis(false)}
+        onBack={onBack}
       />
     );
   }

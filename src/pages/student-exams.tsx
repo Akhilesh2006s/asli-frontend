@@ -96,6 +96,28 @@ interface ExamResult {
   questions?: Question[];
 }
 
+function getExamResultRowId(result: any): string {
+  const id = result?._id ?? result?.id;
+  if (id != null && String(id).trim() !== '') return String(id);
+  const att = Number(result?.attemptNumber) >= 1 ? Number(result.attemptNumber) : 1;
+  const eid = result?.examId != null ? String(result.examId) : '';
+  return `${eid || 'exam'}-attempt-${att}`;
+}
+
+function formatAttemptHistoryLabel(result: any, totalMarks: number): string {
+  const att = Number(result?.attemptNumber) >= 1 ? Number(result.attemptNumber) : 1;
+  const obtained = result?.obtainedMarks ?? 0;
+  const total = result?.totalMarks || totalMarks || 0;
+  const when = result?.completedAt
+    ? new Date(result.completedAt).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : '';
+  return `Attempt ${att} — ${obtained}/${total} marks${when ? ` (${when})` : ''}`;
+}
+
 export default function StudentExams() {
   const isMobile = useIsMobile();
   const [currentExam, setCurrentExam] = useState<Exam | null>(null);
@@ -112,6 +134,8 @@ export default function StudentExams() {
   const [startingExamId, setStartingExamId] = useState<string | null>(null);
   const [postExamVidyaPrompt, setPostExamVidyaPrompt] = useState('');
   const [postExamPromptId, setPostExamPromptId] = useState<string | null>(null);
+  /** Per-exam selected attempt row id on Attempted Exams cards */
+  const [selectedAttemptByExam, setSelectedAttemptByExam] = useState<Record<string, string>>({});
   const didInitClassFilter = useRef(false);
 
   const preserveScrollOnFilterChange = (setter: (value: string) => void, value: string) => {
@@ -507,22 +531,68 @@ export default function StudentExams() {
     [subjectFilteredExams, attemptCountByExamId]
   );
 
-  // Show all saved attempts with a resolvable exam id. Do not require the exam to still appear
-  // in the current filtered catalog (ended / unlisted exams still have valid history).
+  // One card per exam — keep only the latest attempt for the Attempted Exams grid.
   const attemptedResultRows = useMemo(() => {
-    return dedupedExamResults
-      .filter((result: any) => {
-        const examIdStr = getExamIdFromResult(result);
-        if (!examIdStr) return false;
-        if (examSubjectFilter === 'all') return true;
+    const filtered = dedupedExamResults.filter((result: any) => {
+      const examIdStr = getExamIdFromResult(result);
+      if (!examIdStr) return false;
+      if (examSubjectFilter === 'all') return true;
+      const catalogExam = exams.find((e: Exam) => String(e._id) === String(examIdStr));
+      if (!catalogExam) return true;
+      return getExamSubjects(catalogExam).includes(String(examSubjectFilter).toLowerCase());
+    });
+
+    const latestByExam = new Map<string, any>();
+    for (const result of filtered) {
+      const examIdStr = getExamIdFromResult(result);
+      if (!examIdStr) continue;
+      const key = String(examIdStr);
+      const existing = latestByExam.get(key);
+      if (!existing) {
+        latestByExam.set(key, result);
+        continue;
+      }
+      const attNew = Number(result.attemptNumber) >= 1 ? Number(result.attemptNumber) : 1;
+      const attOld = Number(existing.attemptNumber) >= 1 ? Number(existing.attemptNumber) : 1;
+      const dateNew = new Date(result.completedAt || 0).getTime();
+      const dateOld = new Date(existing.completedAt || 0).getTime();
+      if (attNew > attOld || (attNew === attOld && dateNew > dateOld)) {
+        latestByExam.set(key, result);
+      }
+    }
+
+    return Array.from(latestByExam.values()).sort(
+      (a, b) => new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime()
+    );
+  }, [dedupedExamResults, exams, examSubjectFilter, getExamIdFromResult]);
+
+  /** All attempts per exam (newest attempt first) for the history dropdown */
+  const attemptHistoryByExamId = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const result of dedupedExamResults) {
+      const examIdStr = getExamIdFromResult(result);
+      if (!examIdStr) continue;
+      if (examSubjectFilter !== 'all') {
         const catalogExam = exams.find((e: Exam) => String(e._id) === String(examIdStr));
-        if (!catalogExam) return true;
-        return getExamSubjects(catalogExam).includes(String(examSubjectFilter).toLowerCase());
-      })
-      .sort(
-        (a, b) =>
-          new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime()
-      );
+        if (catalogExam && !getExamSubjects(catalogExam).includes(String(examSubjectFilter).toLowerCase())) {
+          continue;
+        }
+      }
+      const key = String(examIdStr);
+      const list = map.get(key) || [];
+      list.push(result);
+      map.set(key, list);
+    }
+    for (const [key, list] of map) {
+      list.sort((a, b) => {
+        const attA = Number(a.attemptNumber) >= 1 ? Number(a.attemptNumber) : 1;
+        const attB = Number(b.attemptNumber) >= 1 ? Number(b.attemptNumber) : 1;
+        if (attB !== attA) return attB - attA;
+        return new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime();
+      });
+      map.set(key, list);
+    }
+    return map;
   }, [dedupedExamResults, exams, examSubjectFilter, getExamIdFromResult]);
 
   const handleStartExam = async (exam: Exam) => {
@@ -1022,19 +1092,22 @@ export default function StudentExams() {
                 ];
                 const colorScheme = colorSchemes[index % 3];
                 const classLabelsAttempted = getExamClassStrings(exam);
-                const displayPercentage = getDisplayPercentage(result);
-                const attemptNum = Number(result.attemptNumber) >= 1 ? Number(result.attemptNumber) : 1;
-                const rid = (result as any)._id ?? (result as any).id;
-                const resultKey = [
-                  rid != null ? String(rid) : '',
-                  examIdStr,
-                  attemptNum,
-                  result.completedAt != null ? String(result.completedAt) : '',
-                  index,
-                ].join('|');
+                const attemptHistory = attemptHistoryByExamId.get(examIdStr) || [result];
+                const totalAttempts = attemptHistory.length;
+                const selectedRowId = selectedAttemptByExam[examIdStr];
+                const displayResult =
+                  (selectedRowId &&
+                    attemptHistory.find((r) => getExamResultRowId(r) === selectedRowId)) ||
+                  attemptHistory[0] ||
+                  result;
+                const displayPercentage = getDisplayPercentage(displayResult);
+                const attemptNum =
+                  Number(displayResult.attemptNumber) >= 1 ? Number(displayResult.attemptNumber) : 1;
+                const displayRowId = getExamResultRowId(displayResult);
+                const totalMarksDisplay = displayResult.totalMarks || exam.totalMarks;
 
                 return (
-                  <Card key={resultKey} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
+                  <Card key={examIdStr} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -1054,43 +1127,71 @@ export default function StudentExams() {
                                 Class {cl}
                               </Badge>
                             ))}
-                            <Badge className="bg-indigo-600 text-white border-2 border-white/50 shadow-lg font-semibold">
-                              Attempt {attemptNum}
-                            </Badge>
                           </div>
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
+                        {totalAttempts > 1 && (
+                          <div className="space-y-1.5">
+                            <Label className={`text-xs font-semibold ${colorScheme.text}`}>
+                              View attempt
+                            </Label>
+                            <Select
+                              value={displayRowId}
+                              onValueChange={(value) =>
+                                setSelectedAttemptByExam((prev) => ({ ...prev, [examIdStr]: value }))
+                              }
+                            >
+                              <SelectTrigger className="bg-white/95 border-white/50 text-gray-900 h-9 text-xs">
+                                <SelectValue placeholder="Choose attempt" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {attemptHistory.map((attemptRow) => (
+                                  <SelectItem
+                                    key={getExamResultRowId(attemptRow)}
+                                    value={getExamResultRowId(attemptRow)}
+                                  >
+                                    {formatAttemptHistoryLabel(attemptRow, exam.totalMarks)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
                         {/* Score Display */}
                         <div className="text-center p-4 bg-white/90 rounded-lg">
-                          <div className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">
-                            {displayPercentage.toFixed(1)}%
+                          <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+                            {displayResult.obtainedMarks || 0}
+                            <span className="text-lg sm:text-xl font-semibold text-gray-600">
+                              /{totalMarksDisplay}
+                            </span>
                           </div>
-                          <div className="text-xs sm:text-sm text-gray-700 font-medium">
-                            {result.obtainedMarks || 0}/{result.totalMarks || exam.totalMarks} marks
-                          </div>
+                          <div className="text-xs sm:text-sm text-gray-700 font-medium mt-1">marks</div>
                         </div>
 
                         {/* Performance Breakdown */}
                         <div className={`space-y-2 text-xs sm:text-sm ${colorScheme.text}`}>
                           <div className="flex items-center justify-between">
                             <span>Correct Answers</span>
-                            <span className="font-medium">{result.correctAnswers || 0}</span>
+                            <span className="font-medium">{displayResult.correctAnswers || 0}</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span>Wrong Answers</span>
-                            <span className="font-medium">{result.wrongAnswers || 0}</span>
+                            <span className="font-medium">{displayResult.wrongAnswers || 0}</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span>Unattempted</span>
-                            <span className="font-medium">{result.unattempted || 0}</span>
+                            <span className="font-medium">{displayResult.unattempted || 0}</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span>Time Taken</span>
                             <span className="font-medium">
-                              {result.timeTaken ? `${Math.floor(result.timeTaken / 60)}m ${result.timeTaken % 60}s` : 'N/A'}
+                              {displayResult.timeTaken
+                                ? `${Math.floor(displayResult.timeTaken / 60)}m ${displayResult.timeTaken % 60}s`
+                                : 'N/A'}
                             </span>
                           </div>
                         </div>
@@ -1113,17 +1214,17 @@ export default function StudentExams() {
                           className="w-full bg-white/90 text-gray-900 border-white/30 hover:bg-white hover:text-gray-900"
                           onClick={async () => {
                             console.log('📋 Viewing details for exam:', exam.title);
-                            console.log('📋 Exam result:', result);
+                            console.log('📋 Exam result:', displayResult);
                             
                             // Load review payload with correct answers for attempted exams.
                             let examWithQuestions = exam;
-                            let reviewResult = result;
+                            let reviewResult = displayResult;
                             let reviewedQuestions: any[] = [];
                             try {
                               const token = localStorage.getItem('authToken');
                               const reviewQs =
-                                result._id != null && String(result._id).trim() !== ''
-                                  ? `?resultId=${encodeURIComponent(String(result._id))}`
+                                displayResult._id != null && String(displayResult._id).trim() !== ''
+                                  ? `?resultId=${encodeURIComponent(String(displayResult._id))}`
                                   : '';
                               const reviewResponse = await fetch(
                                 `${API_BASE_URL}/api/student/exam-results/${exam._id}/review${reviewQs}`,
@@ -1136,7 +1237,7 @@ export default function StudentExams() {
                               );
                               if (reviewResponse.ok) {
                                 const reviewJson = await reviewResponse.json();
-                                reviewResult = reviewJson?.data?.result || result;
+                                reviewResult = reviewJson?.data?.result || displayResult;
                                 reviewedQuestions = reviewJson?.data?.questions || [];
                                 examWithQuestions = {
                                   ...examWithQuestions,
@@ -1166,7 +1267,11 @@ export default function StudentExams() {
                             
                             // Format the result to match ExamResult interface
                             const formattedResult: ExamResult = {
-                              _id: reviewResult._id ? String(reviewResult._id) : result._id ? String(result._id) : undefined,
+                              _id: reviewResult._id
+                                ? String(reviewResult._id)
+                                : displayResult._id
+                                  ? String(displayResult._id)
+                                  : undefined,
                               attemptNumber:
                                 Number(reviewResult.attemptNumber) >= 1
                                   ? Number(reviewResult.attemptNumber)

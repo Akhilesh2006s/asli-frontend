@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { API_BASE_URL } from '@/lib/api-config';
+import { API_BASE_URL, isOurBackendPdfUrl } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import {
   getCurriculumClassLabels,
@@ -260,6 +260,24 @@ const isServerHostedFileUrl = (url: string): boolean => {
   );
 };
 
+const isHttpUrl = (url: string): boolean => {
+  try {
+    const u = new URL(url.trim());
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+};
+
+/** Video: external URL only. Audio: URL or upload. Other types: upload only. */
+function isValidContentSourceUrl(url: string, type: ContentType): boolean {
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+  if (type === 'Video') return isHttpUrl(trimmed);
+  if (type === 'Audio') return isServerHostedFileUrl(trimmed) || isHttpUrl(trimmed);
+  return isServerHostedFileUrl(trimmed);
+}
+
 const normalizeMediaUrl = (value?: string | null): string | null => {
   const trimmed = (value || '').trim();
   if (!trimmed) return null;
@@ -267,6 +285,73 @@ const normalizeMediaUrl = (value?: string | null): string | null => {
   if (trimmed.startsWith('/uploads/')) return `${API_BASE_URL}${trimmed}`;
   return trimmed;
 };
+
+function extractYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  if (match && match[2].length === 11) return match[2];
+  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+  if (shortMatch) return shortMatch[1];
+  return null;
+}
+
+function extractVimeoId(url: string): string | null {
+  const match = url.match(/vimeo\.com\/(?:channels\/[^/]+\/|groups\/[^/]+\/videos\/|video\/)?(\d+)/);
+  return match ? match[1] : null;
+}
+
+function isImageFileUrl(url: string): boolean {
+  return /\.(jpe?g|png|gif|webp|bmp|svg)(\?|#|$)/i.test(url);
+}
+
+type ContentCardPreview =
+  | { kind: 'image'; src: string }
+  | { kind: 'pdf'; src: string }
+  | { kind: 'video'; src: string }
+  | { kind: 'icon'; contentType: ContentType };
+
+function resolveContentCardPreview(content: ContentItem, fileUrl: string): ContentCardPreview {
+  const storedRaw =
+    content.thumbnailUrl ||
+    content.thumbnail ||
+    content.videoThumbnail ||
+    content.previewImage ||
+    content.image;
+  const stored = normalizeMediaUrl(storedRaw);
+  if (stored) return { kind: 'image', src: stored };
+
+  const url = normalizeMediaUrl(fileUrl) || String(fileUrl || '').trim();
+  if (!url) return { kind: 'icon', contentType: content.type };
+
+  const youtubeId = extractYouTubeId(url);
+  if (youtubeId) {
+    return { kind: 'image', src: `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg` };
+  }
+
+  const vimeoId = extractVimeoId(url);
+  if (vimeoId) {
+    return { kind: 'image', src: `https://vumbnail.com/${vimeoId}.jpg` };
+  }
+
+  if (isImageFileUrl(url)) return { kind: 'image', src: url };
+
+  if (isPdfUrl(url)) {
+    const pdfSrc = isOurBackendPdfUrl(url)
+      ? url
+      : `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+    return { kind: 'pdf', src: pdfSrc };
+  }
+
+  if (
+    (content.type === 'Video' || content.type === 'Audio') &&
+    /\.(mp4|webm|ogg|m4a|mp3|wav)(\?|#|$)/i.test(url)
+  ) {
+    return { kind: 'video', src: url };
+  }
+
+  return { kind: 'icon', contentType: content.type };
+}
 
 /** YouTube / Vimeo URLs must use an iframe; <video src> cannot play them. */
 function getStreamingEmbedSrc(url: string): string | null {
@@ -920,21 +1005,29 @@ export default function SubjectContentManagement() {
       return;
     }
 
-    if (!isServerHostedFileUrl(contentForm.fileUrl)) {
+    if (!isValidContentSourceUrl(contentForm.fileUrl, contentForm.type)) {
       toast({
-        title: 'Upload required',
+        title: contentForm.type === 'Video' ? 'Video source required' : 'Upload required',
         description:
-          'Please upload the file first. Only DigitalOcean server files (/uploads/...) are allowed.',
+          contentForm.type === 'Video'
+            ? 'Enter a valid video URL (YouTube, Vimeo, or direct https link).'
+            : contentForm.type === 'Audio'
+              ? 'Enter an audio URL or upload a file to the server first.'
+              : 'Please upload the file first. Only server files (/uploads/...) are allowed.',
         variant: 'destructive',
       });
       return;
     }
 
-    const subj = subjects.find((s) => String(s._id) === String(subjectIdForValidation));
-    if (!subj) {
+    const subj =
+      subjects.find((s) => String(s._id) === String(subjectIdForValidation)) ??
+      subjectsForClass.find((s) => String(s._id) === String(subjectIdForValidation));
+
+    if (!subj || !isCatalogSubjectId(subjectIdForValidation, subjects)) {
       toast({
         title: 'Validation error',
-        description: 'Subject not found. Please select a subject again.',
+        description:
+          'Select a subject from your catalog (use Add Subject) before adding content. Content-only groups cannot be saved.',
         variant: 'destructive',
       });
       return;
@@ -987,7 +1080,7 @@ export default function SubjectContentManagement() {
       if (!editingContentId) {
         body.type = contentForm.type;
         body.board = normalizedSubBoard;
-        body.subject = selectedSubjectId;
+        body.subject = subjectIdForValidation;
         body.stateName =
           normalizedSubBoard === 'STATE' ? String(subj.stateName || '').trim() : '';
       } else {
@@ -1403,60 +1496,81 @@ export default function SubjectContentManagement() {
                             ? `${content.duration} mins`
                             : null;
 
-                        const thumbnailSrcRaw =
-                          content.thumbnailUrl ||
-                          content.thumbnail ||
-                          content.videoThumbnail ||
-                          content.previewImage ||
-                          content.image ||
-                          null;
-                        const thumbnailSrc = normalizeMediaUrl(thumbnailSrcRaw);
-                        const hasBrokenThumbnail = failedThumbnailIds.has(content._id);
-
                         const fileUrl =
                           normalizeMediaUrl(content.fileUrl) || content.fileUrl;
                         const hasPreviewableFile = Boolean(
                           String(content.fileUrl || '').trim()
                         );
+                        const cardPreview = resolveContentCardPreview(content, fileUrl);
+                        const hasBrokenThumbnail = failedThumbnailIds.has(content._id);
+                        const showImageThumb =
+                          cardPreview.kind === 'image' && !hasBrokenThumbnail;
 
-                        const showPdfPreview =
-                          (!thumbnailSrc || hasBrokenThumbnail) && isPdfUrl(fileUrl);
+                        const renderPreviewIcon = (type: ContentType) => {
+                          const PreviewIcon = getContentTypeIcon(type);
+                          return (
+                            <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                              {type === 'Video' ? (
+                                <Video className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-sky-500" />
+                              ) : type === 'Audio' ? (
+                                <Headphones className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-sky-500" />
+                              ) : (
+                                <PreviewIcon className="w-7 h-7 text-sky-500" />
+                              )}
+                            </div>
+                          );
+                        };
 
                         return (
                           <div
                             key={content._id}
                             className="group rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow duration-200 flex flex-col"
                           >
-                            <div className="relative h-40 overflow-hidden bg-gradient-to-br from-sky-300 to-teal-400 flex items-center justify-center">
-                              {thumbnailSrc && !hasBrokenThumbnail ? (
-                                <img
-                                  src={thumbnailSrc}
-                                  alt={content.title}
-                                  className="w-full h-full object-cover"
-                                  onError={() => {
-                                    setFailedThumbnailIds((prev) => {
-                                      const next = new Set(prev);
-                                      next.add(content._id);
-                                      return next;
-                                    });
-                                  }}
+                            <div className="relative h-40 overflow-hidden bg-gradient-to-br from-sky-100 to-teal-100 flex items-center justify-center">
+                              {showImageThumb ? (
+                                <>
+                                  <img
+                                    src={cardPreview.src}
+                                    alt={content.title}
+                                    className="w-full h-full object-cover"
+                                    loading="lazy"
+                                    onError={() => {
+                                      setFailedThumbnailIds((prev) => {
+                                        const next = new Set(prev);
+                                        next.add(content._id);
+                                        return next;
+                                      });
+                                    }}
+                                  />
+                                  {content.type === 'Video' && (
+                                    <div
+                                      className="absolute inset-0 flex items-center justify-center bg-black/25 pointer-events-none"
+                                      aria-hidden
+                                    >
+                                      <div className="w-11 h-11 rounded-full bg-white/95 flex items-center justify-center shadow-md">
+                                        <Video className="w-5 h-5 text-sky-600 ml-0.5" />
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
+                              ) : cardPreview.kind === 'pdf' && !hasBrokenThumbnail ? (
+                                <iframe
+                                  src={cardPreview.src}
+                                  title={content.title}
+                                  className="w-full h-full border-0 bg-white pointer-events-none scale-[1.02] origin-top"
                                 />
-                              ) : showPdfPreview ? (
-                                <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                                  <FileText className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-sky-500" />
-                                </div>
-                              ) : content.type === 'Video' ? (
-                                <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                                  <Video className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-sky-500" />
-                                </div>
-                              ) : content.type === 'Audio' ? (
-                                <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                                  <Headphones className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-sky-500" />
-                                </div>
+                              ) : cardPreview.kind === 'video' ? (
+                                <video
+                                  src={cardPreview.src}
+                                  muted
+                                  playsInline
+                                  preload="metadata"
+                                  className="w-full h-full object-cover bg-black"
+                                />
+                              ) : cardPreview.kind === 'icon' ? (
+                                renderPreviewIcon(cardPreview.contentType)
                               ) : (
-                                <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                                  <Icon className="w-7 h-7 text-sky-500" />
-                                </div>
+                                renderPreviewIcon(content.type)
                               )}
                               {durationLabel && (
                                 <div className="absolute bottom-2 right-2 px-2 py-1 rounded-full bg-black/70 text-white text-xs">
@@ -1895,9 +2009,10 @@ export default function SubjectContentManagement() {
                 </Label>
                 <Select
                   value={contentForm.type}
-                  onValueChange={(value: ContentType) =>
-                    setContentForm((prev) => ({ ...prev, type: value, fileUrl: '' }))
-                  }
+                  onValueChange={(value: ContentType) => {
+                    setContentForm((prev) => ({ ...prev, type: value, fileUrl: '' }));
+                    setSelectedUploadFile(null);
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -1926,52 +2041,147 @@ export default function SubjectContentManagement() {
                 />
               </div>
             </div>
-            <div>
-              <Label>
-                Upload File (saved on DigitalOcean server){' '}
-                <span className="text-destructive" aria-hidden="true">*</span>
-              </Label>
-              <div className="mt-2 flex flex-col gap-2">
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Input
-                    type="file"
-                    accept={
-                      isUploadType(contentForm.type)
-                        ? getUploadAcceptForContentType(contentForm.type)
-                        : 'video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/webm,video/x-matroska'
-                    }
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] || null;
-                      setSelectedUploadFile(file);
-                    }}
-                    className="cursor-pointer text-xs sm:text-sm"
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleUploadContentFile}
-                    disabled={isUploadingFile || !selectedUploadFile}
-                  >
-                    {isUploadingFile ? (
-                      <span className="inline-flex items-center gap-2">
-                        <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
-                        Uploading
-                      </span>
-                    ) : (
-                      'Upload'
-                    )}
-                  </Button>
-                </div>
-                <p className={`text-xs ${selectedUploadFile ? 'text-orange-700 font-medium' : 'text-gray-500'}`}>
-                  {selectedUploadFile ? `Selected file: ${selectedUploadFile.name}` : 'No file selected yet'}
-                </p>
+            {contentForm.type === 'Video' ? (
+              <div>
+                <Label>
+                  Video URL <span className="text-destructive" aria-hidden="true">*</span>
+                </Label>
                 <Input
                   value={contentForm.fileUrl}
-                  readOnly
-                  placeholder="Uploaded file path will appear here (/uploads/...)"
+                  onChange={(e) =>
+                    setContentForm((prev) => ({ ...prev, fileUrl: e.target.value }))
+                  }
+                  placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  Paste a YouTube, Vimeo, or direct https video link.
+                </p>
               </div>
-            </div>
+            ) : contentForm.type === 'Audio' ? (
+              <div className="space-y-4">
+                <div>
+                  <Label>
+                    Audio URL{' '}
+                    <span className="text-destructive" aria-hidden="true">*</span>
+                  </Label>
+                  <Input
+                    value={contentForm.fileUrl}
+                    onChange={(e) =>
+                      setContentForm((prev) => ({ ...prev, fileUrl: e.target.value }))
+                    }
+                    placeholder="https://example.com/audio.mp3"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Paste a direct audio link or upload a file below.
+                  </p>
+                </div>
+                <div className="relative py-1">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-gray-200" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase tracking-wide">
+                    <span className="bg-background px-2 text-gray-500">Or upload audio file</span>
+                  </div>
+                </div>
+                <div>
+                  <Label>
+                    Upload audio (saved on server){' '}
+                    <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+                  </Label>
+                  <div className="mt-2 flex flex-col gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Input
+                        type="file"
+                        accept={getUploadAcceptForContentType('Audio')}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setSelectedUploadFile(file);
+                        }}
+                        className="cursor-pointer text-xs sm:text-sm"
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={handleUploadContentFile}
+                        disabled={isUploadingFile || !selectedUploadFile}
+                      >
+                        {isUploadingFile ? (
+                          <span className="inline-flex items-center gap-2">
+                            <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                            Uploading
+                          </span>
+                        ) : (
+                          'Upload'
+                        )}
+                      </Button>
+                    </div>
+                    <p
+                      className={`text-xs ${selectedUploadFile ? 'text-orange-700 font-medium' : 'text-gray-500'}`}
+                    >
+                      {selectedUploadFile
+                        ? `Selected file: ${selectedUploadFile.name}`
+                        : 'No file selected yet'}
+                    </p>
+                    {isServerHostedFileUrl(contentForm.fileUrl) && (
+                      <p className="text-xs text-green-700 break-all">
+                        Using uploaded file: {contentForm.fileUrl}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <Label>
+                  Upload File (saved on DigitalOcean server){' '}
+                  <span className="text-destructive" aria-hidden="true">*</span>
+                </Label>
+                <div className="mt-2 flex flex-col gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Input
+                      type="file"
+                      accept={
+                        isUploadType(contentForm.type)
+                          ? getUploadAcceptForContentType(contentForm.type)
+                          : '.pdf,.doc,.docx'
+                      }
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setSelectedUploadFile(file);
+                      }}
+                      className="cursor-pointer text-xs sm:text-sm"
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleUploadContentFile}
+                      disabled={isUploadingFile || !selectedUploadFile}
+                    >
+                      {isUploadingFile ? (
+                        <span className="inline-flex items-center gap-2">
+                          <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                          Uploading
+                        </span>
+                      ) : (
+                        'Upload'
+                      )}
+                    </Button>
+                  </div>
+                  <p
+                    className={`text-xs ${selectedUploadFile ? 'text-orange-700 font-medium' : 'text-gray-500'}`}
+                  >
+                    {selectedUploadFile
+                      ? `Selected file: ${selectedUploadFile.name}`
+                      : 'No file selected yet'}
+                  </p>
+                  <Input
+                    value={contentForm.fileUrl}
+                    readOnly
+                    placeholder="Uploaded file path will appear here (/uploads/...)"
+                  />
+                </div>
+              </div>
+            )}
             <div className="flex justify-end gap-2 pt-2">
               <Button
                 type="button"

@@ -3701,7 +3701,13 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button 
                     className="quick-action-button"
-                    onClick={() => setLocation('/learning-paths')}
+                    onClick={() =>
+                      setLocation(
+                        `/ai-tutor?prompt=${encodeURIComponent(
+                          'Help me practice my weak topics from my recent exams and suggest focused questions.'
+                        )}`
+                      )
+                    }
                   >
                     <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-red-100 rounded-lg flex items-center justify-center mb-2">
                       <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-red-600" />

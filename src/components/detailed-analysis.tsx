@@ -362,14 +362,6 @@ function generatePlanQueueItems(dayTitle: string, dayIndex: number): {
   return { warmup, core, stretch };
 }
 
-function getMasteryColor(pct: number): string {
-  if (pct < 20) return 'bg-red-600 text-white';
-  if (pct < 40) return 'bg-red-300 text-red-900';
-  if (pct < 60) return 'bg-amber-400 text-amber-900';
-  if (pct < 80) return 'bg-emerald-300 text-emerald-900';
-  return 'bg-emerald-700 text-white';
-}
-
 function getGradeRingColor(gradeLetter: string): string {
   if (gradeLetter.startsWith('A')) return '#10b981';
   if (gradeLetter.startsWith('B')) return '#10b981';
@@ -1486,7 +1478,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     setTouchStartY(null);
   };
 
-  /** Purple hero + score / marks card — shown only on AI Report and Overview tabs */
+  /** Purple hero + score / marks card — shown on AI Report tab */
   const questionAnalysisMarksModule = (
     <>
       <motion.div
@@ -1534,12 +1526,17 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                     fill="none"
                     strokeLinecap="round"
                     strokeDasharray={`${2 * Math.PI * 42}`}
-                    strokeDashoffset={`${2 * Math.PI * 42 * (1 - animatedValues.percentage / 100)}`}
+                    strokeDashoffset={`${2 * Math.PI * 42 * (1 - animatedValues.obtainedMarks / Math.max(result.totalMarks || 1, 1))}`}
                     className="transition-all duration-2000 ease-out"
                   />
                 </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xl sm:text-2xl font-bold text-gray-900">{animatedValues.percentage}%</span>
+                <div className="absolute inset-0 flex flex-col items-center justify-center px-1">
+                  <span className="text-lg sm:text-xl font-bold text-gray-900 leading-none">
+                    {animatedValues.obtainedMarks}
+                  </span>
+                  <span className="text-xs sm:text-sm font-semibold text-gray-500 mt-0.5">
+                    / {result.totalMarks}
+                  </span>
                 </div>
               </div>
               <span className={`mt-3 px-3 py-1 rounded-full text-xs font-semibold ${getGradePillClass(grade.grade)}`}>
@@ -1633,16 +1630,211 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     </Card>
   );
 
+  const performanceAnalyticsSection = (
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
+        <Card className="rounded-2xl shadow-sm border border-gray-100">
+          <CardHeader>
+            <CardTitle className="flex items-center text-lg sm:text-xl">
+              <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-[#7C3AED]" />
+              Performance DNA
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PerformanceDNARadar scores={dnaScores} />
+            <Badge className="mt-4 bg-amber-100 text-amber-800 border-amber-200">{dnaProfileLabel}</Badge>
+            <p className="text-xs sm:text-sm text-gray-600 mt-3">
+              Your DNA says: you knew more than your marks show — fix pacing and careless slips to unlock hidden potential.
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="rounded-2xl shadow-sm border border-gray-100">
+          <CardHeader>
+            <CardTitle className="flex items-center text-lg sm:text-xl">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-[#7C3AED]" />
+              Time Intelligence
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-center p-4 rounded-xl bg-purple-50 border border-purple-100">
+              <Clock className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-[#7C3AED] mx-auto mb-2" />
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{formatTime(result.timeTaken)}</p>
+              <p className="text-xs sm:text-sm text-gray-600">Total Time Taken</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-center">
+              <div className="p-3 rounded-xl border bg-gray-50">
+                <p className="text-base sm:text-lg font-bold">{formatTime(avgTimePerQuestion)}</p>
+                <p className="text-xs text-gray-500">Avg per Question</p>
+              </div>
+              <div className="p-3 rounded-xl border bg-gray-50">
+                <p className="text-base sm:text-lg font-bold">{speedRatingLabel}</p>
+                <p className="text-xs text-gray-500">Speed Rating</p>
+              </div>
+            </div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Time × Accuracy Quadrant</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-center text-xs sm:text-sm">
+              <div className="p-3 rounded-lg bg-red-50 border border-red-100">
+                <p className="font-bold text-red-700">{timeQuadrant.fastWrong}</p>
+                <p className="text-xs text-gray-600">Fast + Wrong · Careless</p>
+              </div>
+              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                <p className="font-bold text-emerald-700">{timeQuadrant.fastRight}</p>
+                <p className="text-xs text-gray-600">Fast + Right · Sharp</p>
+              </div>
+              <div className="p-3 rounded-lg bg-orange-50 border border-orange-100">
+                <p className="font-bold text-orange-700">{timeQuadrant.slowWrong}</p>
+                <p className="text-xs text-gray-600">Slow + Wrong · Stuck</p>
+              </div>
+              <div className="p-3 rounded-lg bg-blue-50 border border-blue-100">
+                <p className="font-bold text-blue-700">{timeQuadrant.slowRight}</p>
+                <p className="text-xs text-gray-600">Slow + Right · Effortful</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      {questionDistributionBars}
+    </>
+  );
+
+  const subjectWisePerformanceCards = (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+      {Object.entries(result.subjectWiseScore).map(([subject, score]) => {
+        const percentage = score.total > 0 ? (score.correct / score.total) * 100 : 0;
+        const subjectColors = {
+          maths: { bg: 'from-blue-50 to-cyan-50', border: 'border-blue-200', text: 'text-blue-600', icon: 'text-blue-500' },
+          physics: { bg: 'from-green-50 to-emerald-50', border: 'border-green-200', text: 'text-green-600', icon: 'text-green-500' },
+          chemistry: { bg: 'from-purple-50 to-pink-50', border: 'border-purple-200', text: 'text-purple-600', icon: 'text-purple-500' },
+          biology: { bg: 'from-emerald-50 to-lime-50', border: 'border-emerald-200', text: 'text-emerald-600', icon: 'text-emerald-500' },
+        };
+
+        const colors = subjectColors[subject as keyof typeof subjectColors] || {
+          bg: 'from-gray-50 to-slate-50',
+          border: 'border-gray-200',
+          text: 'text-gray-600',
+          icon: 'text-gray-500',
+        };
+
+        return (
+          <Card key={subject} className={`border-0 shadow-xl bg-gradient-to-br ${colors.bg} ${colors.border}`}>
+            <CardContent className="p-3 sm:p-4 lg:p-6">
+              <div className="text-center">
+                <div
+                  className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 bg-gradient-to-br ${colors.bg} ${colors.border} border-2`}
+                >
+                  {subject === 'maths' && <Calculator className={`w-10 h-10 ${colors.icon}`} />}
+                  {subject === 'physics' && <Atom className={`w-10 h-10 ${colors.icon}`} />}
+                  {subject === 'chemistry' && <FlaskConical className={`w-10 h-10 ${colors.icon}`} />}
+                  {subject !== 'maths' && subject !== 'physics' && subject !== 'chemistry' && (
+                    <BookOpen className={`w-10 h-10 ${colors.icon}`} />
+                  )}
+                </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 capitalize mb-2">{subject}</h3>
+                <div className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 text-gray-900">
+                  {percentage.toFixed(1)}%
+                </div>
+                <div className="text-base sm:text-lg text-gray-600 mb-4">
+                  {score.correct}/{score.total} correct
+                </div>
+                <div className="text-lg sm:text-xl font-semibold text-gray-700 mb-4">{score.marks} marks</div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs sm:text-sm">
+                    <span className="text-gray-600">Accuracy</span>
+                    <span className={`font-semibold ${colors.text}`}>{percentage.toFixed(1)}%</span>
+                  </div>
+                  <Progress value={percentage} className="h-2 bg-gray-200" />
+                </div>
+                <div className="mt-4 pt-4 border-t border-gray-200/80 text-left text-xs">
+                  {percentage >= 70 ? (
+                    <p className="font-semibold text-teal-700">✓ STRONGEST · ANCHOR</p>
+                  ) : (
+                    <>
+                      <p className="font-bold text-red-600 uppercase tracking-wide">Weak Chapters</p>
+                      <p className="text-red-600 mt-1">
+                        {(chapterHeatmap[subject] || [])
+                          .filter((c) => c.pct < 50)
+                          .map((c) => c.name)
+                          .join(', ') || 'Review chapter-wise mocks'}
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+
+  const getQuestionInsightByIndex = (questionIndex: number) =>
+    aiAnalysis?.questionInsights?.find(
+      (x) => Number(x.index) === questionIndex + 1 || Number(x.index) === questionIndex
+    );
+
+  const renderQuestionAnalysisSection = (questionIndex: number) => {
+    const item = getQuestionInsightByIndex(questionIndex);
+    return (
+      <div className="mt-4 rounded-lg border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4">
+        <h4 className="text-sm font-semibold text-gray-900 mb-3">Question Analysis</h4>
+        {item ? (
+          <>
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <span className="text-xs sm:text-sm font-semibold text-gray-900">Q{questionIndex + 1}</span>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="uppercase text-[10px]">
+                  {String(item.status || 'unattempted')}
+                </Badge>
+                <Badge variant="outline" className="uppercase text-[10px]">
+                  {String(item.priority || 'medium')}
+                </Badge>
+              </div>
+            </div>
+            {item.conceptGap && (
+              <p className="text-xs sm:text-sm text-gray-700">
+                <strong>Gap:</strong> {item.conceptGap}
+              </p>
+            )}
+            {item.fixStrategy && (
+              <p className="text-xs sm:text-sm text-gray-800 mt-1">
+                <strong>Fix:</strong> {item.fixStrategy}
+              </p>
+            )}
+            {item.practiceTask && (
+              <p className="text-xs sm:text-sm text-indigo-800 mt-1">
+                <strong>Practice:</strong> {item.practiceTask}
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="text-gray-500 text-xs sm:text-sm">
+            Question-level analysis will appear after AI analysis is generated.
+          </p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-white">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3">
+        <Button
+          variant="outline"
+          onClick={onBack}
+          className="px-4 sm:px-6 py-2 bg-white text-gray-800 hover:text-gray-900 hover:bg-gray-50 border-2 border-gray-300 hover:border-gray-400 shadow-sm font-semibold"
+        >
+          <ArrowUp className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+          Back to Dashboard
+        </Button>
+      </div>
+
       {/* Navigation Tabs */}
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-0 overflow-x-auto">
         <div className="flex gap-1 sm:gap-4 min-w-max">
           <button type="button" onClick={() => setActiveTab('ai')} className={tabBtnClass('ai')}>AI Report</button>
-          <button type="button" onClick={() => setActiveTab('overview')} className={tabBtnClass('overview')}>Overview</button>
           <button type="button" onClick={() => setActiveTab('questions')} className={tabBtnClass('questions')}>Questions</button>
           <button type="button" onClick={() => setActiveTab('advanced')} className={tabBtnClass('advanced')}>Advanced</button>
-          <button type="button" onClick={() => setActiveTab('subjects')} className={tabBtnClass('subjects')}>Subjects</button>
           <button type="button" onClick={() => setActiveTab('insights')} className={tabBtnClass('insights')}>Insights</button>
           <button type="button" onClick={() => setActiveTab('plan')} className={`${tabBtnClass('plan')} flex items-center gap-2`}>
             <span className="bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">NEW</span>
@@ -1658,6 +1850,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
         {activeTab === 'ai' && (
           <div className="space-y-3 sm:space-y-4 lg:space-y-6">
             {questionAnalysisMarksModule}
+            {performanceAnalyticsSection}
 
             {aiLoading && (
               <div className="text-xs sm:text-sm text-[#7C3AED] py-4">Generating your AI report...</div>
@@ -1928,101 +2121,6 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-slate-50">
-              <CardHeader>
-                <CardTitle className="text-base sm:text-lg">Question-by-Question AI Diagnosis</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {(aiAnalysis?.questionInsights || []).map((item, idx) => (
-                  <div key={idx} className="p-3 rounded-lg border border-slate-200 bg-white">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <div className="text-xs sm:text-sm font-semibold text-gray-900">
-                        Q{item.index || idx + 1} • {(item.subject || 'general').toString()}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="uppercase">{String(item.status || 'unattempted')}</Badge>
-                        <Badge variant="outline" className="uppercase">{String(item.priority || 'medium')}</Badge>
-                      </div>
-                    </div>
-                    {item.conceptGap && <p className="text-xs sm:text-sm text-gray-700"><strong>Gap:</strong> {item.conceptGap}</p>}
-                    {item.fixStrategy && <p className="text-xs sm:text-sm text-gray-800 mt-1"><strong>Fix:</strong> {item.fixStrategy}</p>}
-                    {item.practiceTask && <p className="text-xs sm:text-sm text-indigo-800 mt-1"><strong>Practice:</strong> {item.practiceTask}</p>}
-                  </div>
-                ))}
-                {(!aiAnalysis?.questionInsights || aiAnalysis.questionInsights.length === 0) && (
-                  <p className="text-gray-500 text-xs sm:text-sm">Question-level diagnosis will appear after AI analysis is generated.</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {/* Overview Tab */}
-        {activeTab === 'overview' && (
-          <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-            {questionAnalysisMarksModule}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
-              <Card className="rounded-2xl shadow-sm border border-gray-100">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-lg sm:text-xl">
-                    <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-[#7C3AED]" />
-                    Performance DNA
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <PerformanceDNARadar scores={dnaScores} />
-                  <Badge className="mt-4 bg-amber-100 text-amber-800 border-amber-200">{dnaProfileLabel}</Badge>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-3">
-                    Your DNA says: you knew more than your marks show — fix pacing and careless slips to unlock hidden potential.
-                  </p>
-                </CardContent>
-              </Card>
-              <Card className="rounded-2xl shadow-sm border border-gray-100">
-                <CardHeader>
-                  <CardTitle className="flex items-center text-lg sm:text-xl">
-                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-[#7C3AED]" />
-                    Time Intelligence
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-center p-4 rounded-xl bg-purple-50 border border-purple-100">
-                    <Clock className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-[#7C3AED] mx-auto mb-2" />
-                    <p className="text-xl sm:text-2xl font-bold text-gray-900">{formatTime(result.timeTaken)}</p>
-                    <p className="text-xs sm:text-sm text-gray-600">Total Time Taken</p>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-center">
-                    <div className="p-3 rounded-xl border bg-gray-50">
-                      <p className="text-base sm:text-lg font-bold">{formatTime(avgTimePerQuestion)}</p>
-                      <p className="text-xs text-gray-500">Avg per Question</p>
-                    </div>
-                    <div className="p-3 rounded-xl border bg-gray-50">
-                      <p className="text-base sm:text-lg font-bold">{speedRatingLabel}</p>
-                      <p className="text-xs text-gray-500">Speed Rating</p>
-                    </div>
-                  </div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Time × Accuracy Quadrant</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-center text-xs sm:text-sm">
-                    <div className="p-3 rounded-lg bg-red-50 border border-red-100">
-                      <p className="font-bold text-red-700">{timeQuadrant.fastWrong}</p>
-                      <p className="text-xs text-gray-600">Fast + Wrong · Careless</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100">
-                      <p className="font-bold text-emerald-700">{timeQuadrant.fastRight}</p>
-                      <p className="text-xs text-gray-600">Fast + Right · Sharp</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-orange-50 border border-orange-100">
-                      <p className="font-bold text-orange-700">{timeQuadrant.slowWrong}</p>
-                      <p className="text-xs text-gray-600">Slow + Wrong · Stuck</p>
-                    </div>
-                    <div className="p-3 rounded-lg bg-blue-50 border border-blue-100">
-                      <p className="font-bold text-blue-700">{timeQuadrant.slowRight}</p>
-                      <p className="text-xs text-gray-600">Slow + Right · Effortful</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            {questionDistributionBars}
           </div>
         )}
 
@@ -2323,6 +2421,8 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                               ) || 'Solution not provided for this question.'}
                             </div>
                           </div>
+
+                          {renderQuestionAnalysisSection(mobileQuestionIndex)}
                         </div>
 
                         {/* Navigation Buttons */}
@@ -2454,124 +2554,13 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
           </div>
         )}
 
-        {/* Subjects Tab */}
-        {activeTab === 'subjects' && (
-          <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:p-4 lg:p-6">
-              {Object.entries(result.subjectWiseScore).map(([subject, score]) => {
-                const percentage = score.total > 0 ? (score.correct / score.total) * 100 : 0;
-                const subjectColors = {
-                  maths: { bg: 'from-blue-50 to-cyan-50', border: 'border-blue-200', text: 'text-blue-600', icon: 'text-blue-500' },
-                  physics: { bg: 'from-green-50 to-emerald-50', border: 'border-green-200', text: 'text-green-600', icon: 'text-green-500' },
-                  chemistry: { bg: 'from-purple-50 to-pink-50', border: 'border-purple-200', text: 'text-purple-600', icon: 'text-purple-500' },
-                  biology: { bg: 'from-emerald-50 to-lime-50', border: 'border-emerald-200', text: 'text-emerald-600', icon: 'text-emerald-500' }
-                };
-                
-                const colors = subjectColors[subject as keyof typeof subjectColors] || {
-                  bg: 'from-gray-50 to-slate-50',
-                  border: 'border-gray-200',
-                  text: 'text-gray-600',
-                  icon: 'text-gray-500'
-                };
-                
-                return (
-                  <Card key={subject} className={`border-0 shadow-xl bg-gradient-to-br ${colors.bg} ${colors.border}`}>
-                    <CardContent className="p-3 sm:p-4 lg:p-6">
-                      <div className="text-center">
-                        <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 bg-gradient-to-br ${colors.bg} ${colors.border} border-2`}>
-                          {subject === 'maths' && <Calculator className={`w-10 h-10 ${colors.icon}`} />}
-                          {subject === 'physics' && <Atom className={`w-10 h-10 ${colors.icon}`} />}
-                          {subject === 'chemistry' && <FlaskConical className={`w-10 h-10 ${colors.icon}`} />}
-                          {subject !== 'maths' && subject !== 'physics' && subject !== 'chemistry' && (
-                            <BookOpen className={`w-10 h-10 ${colors.icon}`} />
-                          )}
-                        </div>
-                        <h3 className="text-xl sm:text-2xl font-bold text-gray-900 capitalize mb-2">{subject}</h3>
-                        <div className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 text-gray-900">
-                          {percentage.toFixed(1)}%
-                        </div>
-                        <div className="text-base sm:text-lg text-gray-600 mb-4">
-                          {score.correct}/{score.total} correct
-                        </div>
-                        <div className="text-lg sm:text-xl font-semibold text-gray-700 mb-4">
-                          {score.marks} marks
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-xs sm:text-sm">
-                            <span className="text-gray-600">Accuracy</span>
-                            <span className="font-semibold" style={{ color: colors.text.replace('text-', '#') }}>
-                              {percentage.toFixed(1)}%
-                            </span>
-                          </div>
-                          <Progress 
-                            value={percentage} 
-                            className="h-2 bg-gray-200"
-                          />
-                        </div>
-                        <div className="mt-4 pt-4 border-t border-gray-200/80 text-left text-xs">
-                          {percentage >= 70 ? (
-                            <p className="font-semibold text-teal-700">✓ STRONGEST · ANCHOR</p>
-                          ) : (
-                            <>
-                              <p className="font-bold text-red-600 uppercase tracking-wide">Weak Chapters</p>
-                              <p className="text-red-600 mt-1">
-                                {(chapterHeatmap[subject] || []).filter((c) => c.pct < 50).map((c) => c.name).join(', ') || 'Review chapter-wise mocks'}
-                              </p>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 flex gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#7C3AED] text-white font-bold flex items-center justify-center shrink-0">V</div>
-              <div>
-                <p className="font-semibold text-gray-900">Vidya&apos;s read across your subjects</p>
-                <p className="text-xs sm:text-sm text-gray-700 mt-2">
-                  {Object.entries(result.subjectWiseScore)
-                    .map(([s, sc]) => `${s.charAt(0).toUpperCase() + s.slice(1)} at ${sc.total > 0 ? ((sc.correct / sc.total) * 100).toFixed(0) : 0}%`)
-                    .join('. ')}
-                  .
-                </p>
-              </div>
-            </div>
-            <Card className="rounded-2xl shadow-sm border">
-              <CardHeader>
-                <CardTitle className="text-lg sm:text-xl">Chapter Mastery Heatmap</CardTitle>
-                <div className="flex flex-wrap gap-2 mt-2 text-[10px] text-gray-500">
-                  {['Novice', 'Beginner', 'Proficient', 'Advanced', 'Master'].map((l, i) => (
-                    <span key={l}>● {l}</span>
-                  ))}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {(['physics', 'maths', 'chemistry'] as const).map((subj) => (
-                  <div key={subj}>
-                    <p className="text-xs font-bold text-gray-500 uppercase mb-2">{subj}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {(chapterHeatmap[subj] || []).map((ch) => (
-                        <span
-                          key={ch.name}
-                          className={`text-xs px-2 py-1 rounded-md font-medium ${getMasteryColor(ch.pct)}`}
-                        >
-                          {ch.name} {Math.round(ch.pct)}%
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
         {/* Insights Tab */}
         {activeTab === 'insights' && (
           <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+            <div>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Subject-wise performance</h3>
+              {subjectWisePerformanceCards}
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
               
               {/* Performance Insights */}
@@ -2772,17 +2761,6 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex items-center justify-center space-x-4 mt-8">
-          <Button 
-            variant="outline" 
-            onClick={onBack}
-            className="px-4 sm:px-6 lg:px-8 py-3 bg-white text-gray-800 hover:text-gray-900 hover:bg-gray-50 border-2 border-gray-300 hover:border-gray-400 shadow-lg font-semibold"
-          >
-            <ArrowUp className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-            Back to Results
-          </Button>
-        </div>
       </div>
     </div>
   );
