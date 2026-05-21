@@ -1,5 +1,5 @@
-name,email,classnumber,phone
-John Doe,john.doe@email.com,Class-101,+1234567890
-Jane Smith,jane.smith@email.com,Class-102,+1234567891
-Mike Johnson,mike.johnson@email.com,Class-101,+1234567892
-Sarah Wilson,sarah.wilson@email.com,Class-103,+1234567893
+name,email,classnumber,section,phone,password
+John Doe,john.doe@email.com,7,A,9876543210,StudentPass1
+Jane Smith,jane.smith@email.com,7,B,9876543211,StudentPass2
+Mike Johnson,mike.johnson@email.com,8,A,9876543212,StudentPass3
+Sarah Wilson,sarah.wilson@email.com,8,B,9876543213,StudentPass4

@@ -52,22 +52,33 @@ const Index = () => {
     document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const renderAnimatedHeading = (text = "Learn Smarter, Achieve Faster!") => (
-    <span className="inline-block">
+  const renderAnimatedHeading = (text: string, delayOffset = 0) => (
+    <>
       {text.split("").map((char, index) => (
         <span
-          key={`${char}-${index}`}
+          key={`${char}-${delayOffset}-${index}`}
           className="animate-color-change inline-block"
           style={{
-            animationDelay: `${index * 0.1}s`,
+            animationDelay: `${(delayOffset + index) * 0.1}s`,
             animationDuration: "4s",
           }}
         >
           {char === " " ? "\u00A0" : char}
         </span>
       ))}
-    </span>
+    </>
   );
+
+  const renderHeroHeading = () => {
+    const line1 = "Learn Smarter";
+    const line2 = "Achieve Faster!";
+    return (
+      <>
+        <span className="block">{renderAnimatedHeading(line1, 0)}</span>
+        <span className="block">{renderAnimatedHeading(line2, line1.length)}</span>
+      </>
+    );
+  };
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-sky-100 via-blue-50 to-cyan-50 relative overflow-hidden">
@@ -87,7 +98,7 @@ const Index = () => {
 
             {/* Main Heading */}
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-                {renderAnimatedHeading()}
+                {renderHeroHeading()}
             </h1>
 
             {/* Description */}

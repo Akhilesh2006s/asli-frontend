@@ -10,6 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+
+const STUDENT_FORM_FIELD_CLASS =
+  'border border-sky-300 bg-sky-50 text-sky-950 shadow-sm placeholder:text-sky-500 focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-400/35';
 import { 
   Users, 
   Plus, 
@@ -23,6 +27,8 @@ import {
   XCircle,
   Mail,
   Phone,
+  Eye,
+  EyeOff,
   Calendar,
   GraduationCap,
   BookOpen,
@@ -32,7 +38,7 @@ import {
   Brain,
   AlertTriangle,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
 } from 'lucide-react';
 import { StudentRiskAnalysisModal } from './StudentRiskAnalysisModal';
 interface Student {
@@ -40,6 +46,8 @@ interface Student {
   name: string;
   email: string;
   classNumber: string;
+  /** Section from linked class (CSV / manual add), e.g. A, B */
+  section?: string;
   phone?: string;
   status: 'active' | 'inactive';
   createdAt: string;
@@ -76,8 +84,11 @@ const UserManagement = () => {
     name: '',
     email: '',
     classNumber: '',
-    phone: ''
+    section: 'A',
+    phone: '',
+    password: '',
   });
+  const [showNewStudentPassword, setShowNewStudentPassword] = useState(false);
   const [isAssignClassDialogOpen, setIsAssignClassDialogOpen] = useState(false);
   const [selectedStudentForClass, setSelectedStudentForClass] = useState<Student | null>(null);
   const [availableClasses, setAvailableClasses] = useState<any[]>([]);
@@ -148,6 +159,10 @@ const UserManagement = () => {
         name: user.fullName || user.name || 'Unknown Student',
         email: user.email || '',
         classNumber: normalizeClassNumberForDisplay(user.classNumber),
+        section:
+          user.assignedClass?.section ||
+          (typeof user.assignedClass === 'object' ? user.assignedClass?.section : '') ||
+          '',
         phone: user.phone || '',
         status: (user.isActive ? 'active' : 'inactive') as 'active' | 'inactive',
         createdAt: user.createdAt || new Date().toISOString(),
@@ -188,11 +203,15 @@ const UserManagement = () => {
     e.preventDefault();
     
     // Validate required fields
-    if (!newStudent.name || !newStudent.email || !newStudent.classNumber) {
-      alert('Please fill in all required fields: Full Name, Email, and Class Number.');
+    if (!newStudent.name || !newStudent.email || !newStudent.classNumber || !newStudent.section) {
+      alert('Please fill in Full Name, Email, Class Number, and Section.');
       return;
     }
-    
+    if (!newStudent.password.trim() || newStudent.password.trim().length < 6) {
+      alert('Password is required and must be at least 6 characters.');
+      return;
+    }
+
     try {
         const token = localStorage.getItem('authToken');
         const response = await fetch(`${API_BASE_URL}/api/admin/students`, {
@@ -205,8 +224,9 @@ const UserManagement = () => {
           fullName: newStudent.name.trim(),
           email: newStudent.email.trim(),
           classNumber: newStudent.classNumber.trim(),
+          section: newStudent.section.trim(),
           phone: newStudent.phone.trim(),
-          password: 'Password123' // Default password for all students
+          password: newStudent.password.trim(),
         })
       });
 
@@ -222,11 +242,12 @@ const UserManagement = () => {
       
       if (response.ok && (responseData.success === true || responseData.success === undefined)) {
         // Reset form and close dialog
-        setNewStudent({ name: '', email: '', classNumber: '', phone: '' });
+        setNewStudent({ name: '', email: '', classNumber: '', section: 'A', phone: '', password: '' });
+        setShowNewStudentPassword(false);
         setIsAddDialogOpen(false);
-        // Refresh the students list
         fetchStudents();
-        alert('Student added successfully! Default password: Password123');
+        fetchClasses();
+        alert('Student added successfully with the password you entered.');
       } else {
         const errorMsg = responseData.message || responseData.error || 'Unknown error occurred';
         console.error('Error response:', responseData);
@@ -296,10 +317,12 @@ const UserManagement = () => {
         fetchStudents();
         
         // Show detailed results
-        let description = `Created ${result.createdUsers?.length || 0} students. Default password: Password123`;
-        
+        let description =
+          result.message ||
+          `Created ${result.createdUsers?.length || 0} student(s) with the passwords from your CSV.`;
+
         if (result.classesCreated && result.classesCreated > 0) {
-          description += ` Created ${result.classesCreated} new class${result.classesCreated > 1 ? 'es' : ''} automatically.`;
+          description += ` Linked ${result.classesCreated} class section(s).`;
         }
         
         if (result.errors && result.errors.length > 0) {
@@ -520,30 +543,64 @@ const UserManagement = () => {
     setIsDeleteAllDialogOpen(false);
   };
 
-  const getClassSectionMeta = (classNumber: string) => {
-    const raw = (classNumber || '').trim();
+  const formatSectionLabel = (sectionRaw: string) => {
+    const s = String(sectionRaw || '')
+      .trim()
+      .toUpperCase()
+      .replace(/^SECTION\s*/i, '');
+    if (!s) return '';
+    const letter = s.match(/^[A-Z]$/) ? s : s.charAt(0);
+    return letter ? `Section ${letter}` : '';
+  };
+
+  const getClassSectionMeta = (student: Pick<Student, 'classNumber' | 'section'>) => {
+    const raw = (student.classNumber || '').trim();
+    const sectionLabel = formatSectionLabel(student.section || '');
+
     if (!raw || raw === 'N/A') {
-      return { classKey: 'Unassigned', sectionKey: 'General' };
+      return {
+        classKey: 'Unassigned',
+        sectionKey: sectionLabel || 'Unassigned',
+      };
+    }
+
+    if (sectionLabel) {
+      const numOnly = raw.match(/^(\d+)$/)?.[1];
+      if (numOnly) {
+        return { classKey: numOnly, sectionKey: sectionLabel };
+      }
+      const labeledNum = raw.match(/class[-\s]*(\d+)/i)?.[1];
+      if (labeledNum) {
+        return { classKey: labeledNum, sectionKey: sectionLabel };
+      }
+      return { classKey: raw, sectionKey: sectionLabel };
     }
 
     const compact = raw.replace(/\s+/g, '');
     const compactMatch = compact.match(/^(\d+)([A-Za-z])$/);
     if (compactMatch) {
       return {
-        classKey: `Class ${compactMatch[1]}`,
-        sectionKey: `Section ${compactMatch[2].toUpperCase()}`
+        classKey: compactMatch[1],
+        sectionKey: `Section ${compactMatch[2].toUpperCase()}`,
       };
     }
 
     const labeledMatch = raw.match(/class[-\s]*(\d+)\s*([A-Za-z])?/i);
     if (labeledMatch) {
       return {
-        classKey: `Class ${labeledMatch[1]}`,
-        sectionKey: labeledMatch[2] ? `Section ${labeledMatch[2].toUpperCase()}` : 'General'
+        classKey: labeledMatch[1],
+        sectionKey: labeledMatch[2]
+          ? `Section ${labeledMatch[2].toUpperCase()}`
+          : 'Section A',
       };
     }
 
-    return { classKey: raw, sectionKey: 'General' };
+    const digitsOnly = raw.match(/^(\d+)$/)?.[1];
+    if (digitsOnly) {
+      return { classKey: digitsOnly, sectionKey: 'Section A' };
+    }
+
+    return { classKey: raw, sectionKey: 'Section A' };
   };
 
   const getClassSortValue = (label: string) => {
@@ -559,15 +616,15 @@ const UserManagement = () => {
 
   // Get all unique classes/sections from students
   const allClasses = Array.from(
-    new Set(students.map((s) => getClassSectionMeta(s.classNumber).classKey))
+    new Set(students.map((s) => getClassSectionMeta(s).classKey))
   ).sort(sortByClassLabel);
 
   const sectionsByClass = allClasses.reduce<Record<string, string[]>>((acc, classKey) => {
     const sections = Array.from(
       new Set(
         students
-          .filter((s) => getClassSectionMeta(s.classNumber).classKey === classKey)
-          .map((s) => getClassSectionMeta(s.classNumber).sectionKey)
+          .filter((s) => getClassSectionMeta(s).classKey === classKey)
+          .map((s) => getClassSectionMeta(s).sectionKey)
       )
     ).sort();
     acc[classKey] = sections;
@@ -586,7 +643,7 @@ const UserManagement = () => {
       (student.classNumber || '').includes(searchTerm);
     
     // Class filter
-    const { classKey, sectionKey } = getClassSectionMeta(student.classNumber || '');
+    const { classKey, sectionKey } = getClassSectionMeta(student);
     const matchesClass = selectedClassFilter === 'all' || classKey === selectedClassFilter;
     const matchesSection = selectedSectionFilter === 'all' || sectionKey === selectedSectionFilter;
     
@@ -598,7 +655,7 @@ const UserManagement = () => {
   }, [selectedClassFilter]);
 
   const classSectionGroups = filteredStudents.reduce<Record<string, Record<string, Student[]>>>((acc, student) => {
-    const { classKey, sectionKey } = getClassSectionMeta(student.classNumber || '');
+    const { classKey, sectionKey } = getClassSectionMeta(student);
     if (!acc[classKey]) acc[classKey] = {};
     if (!acc[classKey][sectionKey]) acc[classKey][sectionKey] = [];
     acc[classKey][sectionKey].push(student);
@@ -606,7 +663,7 @@ const UserManagement = () => {
   }, {});
 
   const sectionClassGroups = filteredStudents.reduce<Record<string, Record<string, Student[]>>>((acc, student) => {
-    const { classKey, sectionKey } = getClassSectionMeta(student.classNumber || '');
+    const { classKey, sectionKey } = getClassSectionMeta(student);
     if (!acc[sectionKey]) acc[sectionKey] = {};
     if (!acc[sectionKey][classKey]) acc[sectionKey][classKey] = [];
     acc[sectionKey][classKey].push(student);
@@ -940,7 +997,7 @@ const UserManagement = () => {
                   <DialogHeader>
                     <DialogTitle className="text-xl font-semibold text-sky-900">Upload Students CSV</DialogTitle>
                     <DialogDescription className="text-sky-700">
-                      Upload a CSV file with student information. All students will have the default password "Password123".
+                      Upload a CSV with student details. Each row must include its own password (min 6 characters) and section.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-6">
@@ -950,10 +1007,12 @@ const UserManagement = () => {
                       <p className="text-sm text-sky-700 mb-4">CSV Format (comma-separated):</p>
                       <div className="bg-white/70 rounded-lg p-4 mb-4 text-left">
                         <p className="text-xs text-sky-600 mb-2 font-medium">Required columns:</p>
-                        <p className="text-xs text-sky-700">name, email, classnumber, phone</p>
+                        <p className="text-xs text-sky-700">name, email, classnumber, section, phone, password</p>
                         <p className="text-xs text-sky-600 mt-2 font-medium">Example:</p>
-                        <p className="text-xs text-sky-700">John Doe, john@email.com, Class-101, +1234567890</p>
-                        <p className="text-xs text-sky-600 mt-2 font-medium">Note: All students will have default password "Password123"</p>
+                        <p className="text-xs text-sky-700">John Doe, john@email.com, 7, A, 9876543210, MyPass123</p>
+                        <p className="text-xs text-sky-600 mt-2 font-medium">
+                          Section is used for Class-wise and Section-wise views. Passwords are saved per student (not a shared default).
+                        </p>
                         <div className="mt-3">
                           <Button 
                             type="button"
@@ -1048,7 +1107,7 @@ const UserManagement = () => {
                   <DialogHeader>
                     <DialogTitle className="text-xl font-semibold text-sky-900">Add New Student</DialogTitle>
                     <DialogDescription className="text-sky-700">
-                      Add a new student to the system. The student will have the default password "Password123".
+                      Add a student with class, section, and their own login password (min 6 characters).
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleAddStudent} className="space-y-6">
@@ -1061,7 +1120,7 @@ const UserManagement = () => {
                     id="name"
                     value={newStudent.name}
                     onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
-                          className="rounded-xl bg-white/70 border-sky-200 text-sky-900 backdrop-blur-sm"
+                    className={cn(STUDENT_FORM_FIELD_CLASS, 'rounded-xl')}
                     required
                   />
                 </div>
@@ -1074,7 +1133,7 @@ const UserManagement = () => {
                     type="email"
                     value={newStudent.email}
                     onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
-                          className="rounded-xl bg-white/70 border-sky-200 text-sky-900 backdrop-blur-sm"
+                    className={cn(STUDENT_FORM_FIELD_CLASS, 'rounded-xl')}
                     required
                   />
                 </div>
@@ -1088,30 +1147,80 @@ const UserManagement = () => {
                     id="classNumber"
                     value={newStudent.classNumber}
                     onChange={(e) => setNewStudent({ ...newStudent, classNumber: e.target.value })}
-                          className="rounded-xl bg-white/70 border-sky-200 text-sky-900 backdrop-blur-sm"
+                    className={cn(STUDENT_FORM_FIELD_CLASS, 'rounded-xl')}
                     required
-                    placeholder="e.g., 10, 11, 12"
+                    placeholder="e.g. 7, 8, 10"
                   />
                 </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="section" className="text-sm font-medium text-sky-800">
+                          Section <span className="text-red-500">*</span>
+                        </Label>
+                  <Input
+                    id="section"
+                    value={newStudent.section}
+                    onChange={(e) =>
+                      setNewStudent({
+                        ...newStudent,
+                        section: e.target.value.toUpperCase().slice(0, 1),
+                      })
+                    }
+                    className={cn(STUDENT_FORM_FIELD_CLASS, 'rounded-xl')}
+                    required
+                    placeholder="A, B, or C"
+                    maxLength={1}
+                  />
+                </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="phone" className="text-sm font-medium text-sky-800">Phone (Optional)</Label>
                   <Input
                     id="phone"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
                     value={newStudent.phone}
-                    onChange={(e) => setNewStudent({ ...newStudent, phone: e.target.value })}
-                          className="rounded-xl bg-white/70 border-sky-200 text-sky-900 backdrop-blur-sm"
+                    onChange={(e) =>
+                      setNewStudent({
+                        ...newStudent,
+                        phone: e.target.value.replace(/\D/g, '').slice(0, 10),
+                      })
+                    }
+                    className={cn(STUDENT_FORM_FIELD_CLASS, 'rounded-xl')}
+                    placeholder="10-digit mobile"
                   />
                 </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password" className="text-sm font-medium text-sky-800">Default Password</Label>
-                      <Input
-                        id="password"
-                        value="Password123"
-                        disabled
-                        className="rounded-xl bg-sky-50 border-sky-200 text-sky-700 backdrop-blur-sm cursor-not-allowed"
-                      />
-                      <p className="text-xs text-sky-600">This is the default password for all new students</p>
+                      <div className="space-y-2">
+                        <Label htmlFor="password" className="text-sm font-medium text-sky-800">
+                          Password <span className="text-red-500">*</span>
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            id="password"
+                            type={showNewStudentPassword ? 'text' : 'password'}
+                            value={newStudent.password}
+                            onChange={(e) => setNewStudent({ ...newStudent, password: e.target.value })}
+                            className={cn(STUDENT_FORM_FIELD_CLASS, 'rounded-xl pr-10')}
+                            required
+                            minLength={6}
+                            autoComplete="new-password"
+                            placeholder="Min 6 characters"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewStudentPassword((p) => !p)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-sky-600 hover:text-sky-900"
+                            aria-label={showNewStudentPassword ? 'Hide password' : 'Show password'}
+                          >
+                            {showNewStudentPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                     <div className="flex justify-end space-x-3 pt-4">
                       <Button 
