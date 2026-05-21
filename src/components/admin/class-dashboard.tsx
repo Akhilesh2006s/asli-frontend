@@ -1149,27 +1149,27 @@ const ClassDashboard = () => {
                             <p className="text-xs sm:text-sm font-medium text-sky-900">{student.name}</p>
                             <p className="text-xs text-sky-600">{student.email}</p>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                             <Button
                               variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 hover:bg-sky-100"
+                              size="icon"
+                              className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 hover:bg-sky-100"
                               onClick={() => handleViewStudentAnalysis(student)}
                               title="View Student Analysis"
                             >
-                              <Eye className="w-3 h-3 sm:w-4 sm:h-4 text-sky-600" />
+                              <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600" />
                             </Button>
                             <Button
                               variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0 hover:bg-orange-100"
+                              size="icon"
+                              className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 hover:bg-orange-100"
                               onClick={() => {
                                 setSelectedStudentForAIRisk(student);
                                 setIsAIRiskAnalysisModalOpen(true);
                               }}
                               title="AI Risk Analysis"
                             >
-                              <Brain className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600" />
+                              <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
                             </Button>
                             <Badge variant="outline" className={`text-xs ${
                               student.status === 'active' 

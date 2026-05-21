@@ -562,28 +562,28 @@ const SubjectManagement = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Button size="sm" variant="outline" className="border-sky-200 text-sky-700 hover:bg-sky-50" onClick={() => handleViewSubject(subject)}>
-                        <Eye className="w-3 h-3" />
+                    <div className="flex items-center gap-2">
+                      <Button size="icon" variant="outline" className="h-9 w-9 sm:h-10 sm:w-10 border-sky-200 text-sky-700 hover:bg-sky-50 shrink-0" onClick={() => handleViewSubject(subject)}>
+                        <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
                       </Button>
                       <Button 
-                        size="sm" 
+                        size="icon"
                         variant="outline" 
-                        className="border-sky-200 text-sky-700 hover:bg-sky-50"
+                        className="h-9 w-9 sm:h-10 sm:w-10 border-sky-200 text-sky-700 hover:bg-sky-50 shrink-0"
                         onClick={() => {
                           setEditingSubject(subject);
                           setIsEditDialogOpen(true);
                         }}
                       >
-                        <Edit className="w-3 h-3" />
+                        <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
                       </Button>
                       <Button 
-                        size="sm" 
+                        size="icon"
                         variant="outline" 
-                        className="border-red-200 text-red-700 hover:bg-red-50"
+                        className="h-9 w-9 sm:h-10 sm:w-10 border-red-200 text-red-700 hover:bg-red-50 shrink-0"
                         onClick={() => handleDeleteSubject(subject.id, subject.name)}
                       >
-                        <Trash2 className="w-3 h-3" />
+                        <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                       </Button>
                     </div>
                   </TableCell>
