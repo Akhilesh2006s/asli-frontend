@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import * as pdfjs from 'pdfjs-dist';
+import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -79,6 +81,12 @@ interface ContentItem {
   duration?: number;
   createdAt: string;
 }
+
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+
+const pdfFirstPageThumbCache = new Map<string, string>();
+/** URLs that returned 404/403 — skip repeat fetches for orphan DB rows. */
+const pdfUnavailableUrls = new Set<string>();
 
 const BOARD_CODE = 'ASLI_EXCLUSIVE_SCHOOLS';
 
@@ -195,6 +203,29 @@ function inferSubjectLabelFromContent(item: ContentItem): string {
 function isCatalogSubjectId(id: string | null, catalog: SubjectItem[]): boolean {
   if (!id || id.startsWith('inferred-')) return false;
   return catalog.some((s) => String(s._id) === String(id));
+}
+
+/** Resolve subject for display/save — catalog row or embedded content.subject. */
+function resolveSubjectForContent(
+  content: ContentItem | null | undefined,
+  catalog: SubjectItem[]
+): SubjectItem | null {
+  if (!content) return null;
+  const sid = getContentSubjectId(content);
+  if (sid && !sid.startsWith('inferred-')) {
+    const fromCatalog = catalog.find((s) => String(s._id) === String(sid));
+    if (fromCatalog) return fromCatalog;
+  }
+  if (content.subject?.name) {
+    return {
+      _id: sid || content.subject._id,
+      name: content.subject.name,
+      board: content.board || BOARD_CODE,
+      classNumber: content.subject.classNumber || content.classNumber,
+      stateName: content.stateName,
+    };
+  }
+  return null;
 }
 
 /** Prefer content.classNumber; else derive from linked subject (matches selected class in UI). */
@@ -358,6 +389,162 @@ function resolveContentCardPreview(content: ContentItem, fileUrl: string): Conte
   return { kind: 'icon', contentType: content.type };
 }
 
+async function renderPdfPageToDataUrl(pdf: pdfjs.PDFDocumentProxy): Promise<string> {
+  const page = await pdf.getPage(1);
+  const baseViewport = page.getViewport({ scale: 1 });
+  const targetWidth = 560;
+  const scale = targetWidth / baseViewport.width;
+  const viewport = page.getViewport({ scale });
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.floor(viewport.width);
+  canvas.height = Math.floor(viewport.height);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas unavailable');
+  await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+  return canvas.toDataURL('image/jpeg', 0.82);
+}
+
+async function loadPdfBytesForThumbnail(fetchUrl: string): Promise<ArrayBuffer> {
+  const isStaticUpload = /\/uploads\//i.test(fetchUrl);
+  const token = localStorage.getItem('authToken') || '';
+  const res = await fetch(fetchUrl, {
+    method: 'GET',
+    credentials: isStaticUpload ? 'omit' : 'include',
+    headers:
+      !isStaticUpload && token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+  if (!res.ok) throw new Error(`PDF fetch failed: ${res.status}`);
+  return res.arrayBuffer();
+}
+
+async function pdfFetchUrlReachable(fetchUrl: string): Promise<boolean> {
+  if (pdfUnavailableUrls.has(fetchUrl)) return false;
+  try {
+    const isStaticUpload = /\/uploads\//i.test(fetchUrl);
+    const res = await fetch(fetchUrl, {
+      method: 'HEAD',
+      credentials: isStaticUpload ? 'omit' : 'include',
+    });
+    if (!res.ok) {
+      pdfUnavailableUrls.add(fetchUrl);
+      return false;
+    }
+    return true;
+  } catch {
+    pdfUnavailableUrls.add(fetchUrl);
+    return false;
+  }
+}
+
+async function renderPdfFirstPageDataUrlFromFile(file: File): Promise<string> {
+  const data = await file.arrayBuffer();
+  const pdf = await pdfjs.getDocument({ data }).promise;
+  try {
+    return await renderPdfPageToDataUrl(pdf);
+  } finally {
+    await pdf.destroy();
+  }
+}
+
+async function renderPdfFirstPageDataUrl(
+  fileUrl: string,
+  title?: string
+): Promise<string> {
+  const cacheKey = fileUrl.trim();
+  const cached = pdfFirstPageThumbCache.get(cacheKey);
+  if (cached) return cached;
+
+  const fetchUrl = getEmbeddedPdfIframeSrc(fileUrl, title).split('#')[0];
+  if (!(await pdfFetchUrlReachable(fetchUrl))) {
+    throw new Error('PDF not available');
+  }
+
+  const pdf = await pdfjs.getDocument({ data: await loadPdfBytesForThumbnail(fetchUrl) }).promise;
+  try {
+    const dataUrl = await renderPdfPageToDataUrl(pdf);
+    pdfFirstPageThumbCache.set(cacheKey, dataUrl);
+    return dataUrl;
+  } finally {
+    await pdf.destroy();
+  }
+}
+
+async function uploadContentThumbnailJpeg(
+  dataUrl: string,
+  token: string
+): Promise<string | null> {
+  const blob = await fetch(dataUrl).then((r) => r.blob());
+  const formData = new FormData();
+  formData.append('thumbnail', blob, 'pdf-page1.jpg');
+  const response = await fetch(
+    `${API_BASE_URL}/api/super-admin/content/upload-thumbnail`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    }
+  );
+  const data = await response.json().catch(() => ({}));
+  if (response.ok && data.success && typeof data.thumbnailUrl === 'string') {
+    return data.thumbnailUrl;
+  }
+  return null;
+}
+
+function PdfFirstPageThumbnail({
+  fileUrl,
+  title,
+  alt,
+  fallback,
+}: {
+  fileUrl: string;
+  title?: string;
+  alt: string;
+  fallback: ReactNode;
+}) {
+  const cacheKey = fileUrl.trim();
+  const [thumbSrc, setThumbSrc] = useState<string | null>(
+    () => pdfFirstPageThumbCache.get(cacheKey) ?? null
+  );
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (thumbSrc || failed) return;
+    let cancelled = false;
+    renderPdfFirstPageDataUrl(fileUrl, title)
+      .then((src) => {
+        if (!cancelled) setThumbSrc(src);
+      })
+      .catch(() => {
+        const unreachable = getEmbeddedPdfIframeSrc(fileUrl, title).split('#')[0];
+        if (unreachable) pdfUnavailableUrls.add(unreachable);
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fileUrl, title, thumbSrc, failed]);
+
+  if (thumbSrc) {
+    return (
+      <img
+        src={thumbSrc}
+        alt={alt}
+        className="w-full h-full object-cover object-top bg-white"
+        loading="lazy"
+      />
+    );
+  }
+
+  if (failed) return <>{fallback}</>;
+
+  return (
+    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-sky-100 to-teal-100">
+      <Loader2 className="h-7 w-7 animate-spin text-sky-500" aria-hidden />
+    </div>
+  );
+}
+
 /** YouTube / Vimeo URLs must use an iframe; <video src> cannot play them. */
 function getStreamingEmbedSrc(url: string): string | null {
   try {
@@ -418,6 +605,7 @@ export default function SubjectContentManagement() {
     type: 'Video' as ContentType,
     date: '',
     fileUrl: '',
+    thumbnailUrl: '',
   });
   const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
@@ -429,6 +617,14 @@ export default function SubjectContentManagement() {
   const [failedThumbnailIds, setFailedThumbnailIds] = useState<Set<string>>(new Set());
   /** In-page preview instead of opening files in a new browser tab. */
   const [contentPreviewItem, setContentPreviewItem] = useState<ContentItem | null>(null);
+  /** Pinned class/subject while Edit Content dialog is open (avoids sidebar auto-select override). */
+  const [editContentContext, setEditContentContext] = useState<{
+    classLabel: string;
+    subjectName: string;
+    board: string;
+    stateName?: string;
+    subjectId: string;
+  } | null>(null);
 
   const contentPreviewUrl = useMemo(() => {
     if (!contentPreviewItem) return null;
@@ -541,6 +737,9 @@ export default function SubjectContentManagement() {
           _id: key,
           name: label,
           board: item.board || BOARD_CODE,
+          classNumber:
+            normalizeClassNumber(effectiveContentClass(item, subjects) || '') ||
+            undefined,
         });
       }
     });
@@ -550,26 +749,45 @@ export default function SubjectContentManagement() {
     );
   }, [subjects, selectedClassNumber, contents]);
 
-  // Auto-select first subject when class changes or subject list loads
+  // Keep subject selection in sync with the selected class (skip while editing content).
   useEffect(() => {
-    if (!selectedClassNumber || subjectsForClass.length === 0) return;
+    if (isAddContentOpen && editingContentId) return;
+
+    if (!selectedClassNumber) {
+      setSelectedSubjectId(null);
+      return;
+    }
+    if (subjectsForClass.length === 0) {
+      setSelectedSubjectId(null);
+      return;
+    }
     const stillValid = subjectsForClass.some(
       (s) => String(s._id) === String(selectedSubjectId)
     );
     if (!stillValid) {
-      setSelectedSubjectId(subjectsForClass[0]._id);
+      const catalog =
+        subjectsForClass.find((s) => isCatalogSubjectId(s._id, subjects)) ??
+        subjectsForClass[0];
+      setSelectedSubjectId(catalog._id);
     }
-  }, [selectedClassNumber, subjectsForClass, selectedSubjectId]);
+  }, [
+    selectedClassNumber,
+    subjectsForClass,
+    selectedSubjectId,
+    subjects,
+    isAddContentOpen,
+    editingContentId,
+  ]);
 
-  const filteredContents = useMemo(() => {
-    if (!selectedSubjectId || !selectedClassNumber) return [];
+  const matchesSubjectAndClass = useMemo(() => {
+    if (!selectedSubjectId || !selectedClassNumber) return () => false;
 
     const selectedRow = subjectsForClass.find((s) => String(s._id) === String(selectedSubjectId));
     const selectedPlain = selectedRow
       ? extractPlainSubjectName(selectedRow.name).toLowerCase()
       : '';
 
-    return contents.filter((item) => {
+    return (item: ContentItem) => {
       const effClass = effectiveContentClass(item, subjects);
       if (normalizeClassNumber(effClass || '') !== selectedClassNumber) return false;
 
@@ -583,21 +801,51 @@ export default function SubjectContentManagement() {
           : inferSubjectLabelFromContent(item)
       ).toLowerCase();
       return selectedPlain !== '' && itemPlain === selectedPlain;
-    });
+    };
   }, [contents, selectedSubjectId, selectedClassNumber, subjects, subjectsForClass]);
 
+  const contentCountForClass = useMemo(() => {
+    if (!selectedClassNumber) return 0;
+    return contents.filter(
+      (item) =>
+        normalizeClassNumber(effectiveContentClass(item, subjects) || '') ===
+        selectedClassNumber
+    ).length;
+  }, [contents, selectedClassNumber, subjects]);
+
+  const filteredContents = useMemo(() => {
+    if (!selectedSubjectId || !selectedClassNumber) return [];
+    return contents.filter((item) => matchesSubjectAndClass(item));
+  }, [contents, selectedSubjectId, selectedClassNumber, matchesSubjectAndClass]);
+
   /** Subject that owns the content in Add/Edit Content dialog (syllabus/state always follow this). */
+  const editingContentItem = useMemo(
+    () =>
+      editingContentId
+        ? contents.find((x) => x._id === editingContentId) ?? null
+        : null,
+    [editingContentId, contents]
+  );
+
   const linkedSubjectForContent = useMemo((): SubjectItem | null => {
     if (!isAddContentOpen) return null;
     if (editingContentId) {
-      const c = contents.find((x) => x._id === editingContentId);
-      const sid = c?.subject?._id;
-      if (!sid) return null;
-      return subjects.find((s) => String(s._id) === String(sid)) ?? null;
+      return resolveSubjectForContent(editingContentItem, subjects);
     }
     if (!selectedSubjectId) return null;
-    return subjects.find((s) => String(s._id) === String(selectedSubjectId)) ?? null;
-  }, [isAddContentOpen, editingContentId, contents, subjects, selectedSubjectId]);
+    return (
+      subjects.find((s) => String(s._id) === String(selectedSubjectId)) ??
+      subjectsForClass.find((s) => String(s._id) === String(selectedSubjectId)) ??
+      null
+    );
+  }, [
+    isAddContentOpen,
+    editingContentId,
+    editingContentItem,
+    subjects,
+    subjectsForClass,
+    selectedSubjectId,
+  ]);
 
   const contentSections = useMemo(() => {
     const knownTypes = new Set(
@@ -975,12 +1223,43 @@ export default function SubjectContentManagement() {
       type: 'Video',
       date: '',
       fileUrl: '',
+      thumbnailUrl: '',
     });
     setEditingContentId(null);
+    setEditContentContext(null);
+    setSelectedUploadFile(null);
     setIsAddContentOpen(true);
   };
 
   const handleOpenEditContent = (content: ContentItem) => {
+    const effClass = effectiveContentClass(content, subjects);
+    const classLabel = effClass
+      ? `Class ${normalizeClassNumber(effClass)}`
+      : selectedClassLabel ?? '';
+
+    const resolvedSubj = resolveSubjectForContent(content, subjects);
+    const plain = content.subject?.name
+      ? extractPlainSubjectName(content.subject.name)
+      : inferSubjectLabelFromContent(content);
+    const sid = getContentSubjectId(content);
+    const subjectId =
+      sid && !sid.startsWith('inferred-')
+        ? String(sid)
+        : `inferred-${plain.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+
+    if (classLabel) setSelectedClassLabel(classLabel);
+    setSelectedSubjectId(subjectId);
+
+    setEditContentContext({
+      classLabel,
+      subjectName: resolvedSubj
+        ? extractPlainSubjectName(resolvedSubj.name)
+        : plain,
+      board: resolvedSubj?.board || content.board || BOARD_CODE,
+      stateName: resolvedSubj?.stateName || content.stateName,
+      subjectId,
+    });
+
     setEditingContentId(content._id);
     setContentForm({
       title: content.title || '',
@@ -988,6 +1267,7 @@ export default function SubjectContentManagement() {
       type: content.type,
       date: new Date(content.date || content.createdAt).toISOString().slice(0, 10),
       fileUrl: content.fileUrl || '',
+      thumbnailUrl: content.thumbnailUrl || '',
     });
     setSelectedUploadFile(null);
     setIsAddContentOpen(true);
@@ -997,10 +1277,9 @@ export default function SubjectContentManagement() {
     const editingItem = editingContentId
       ? contents.find((c) => c._id === editingContentId)
       : null;
-    const subjectIdForValidation =
-      editingItem?.subject?._id != null
-        ? String(editingItem.subject._id)
-        : selectedSubjectId;
+    const subjectIdForValidation = editingContentId
+      ? getContentSubjectId(editingItem!) || selectedSubjectId
+      : selectedSubjectId;
 
     if (
       !subjectIdForValidation ||
@@ -1041,20 +1320,32 @@ export default function SubjectContentManagement() {
       return;
     }
 
-    const subj =
+    const subjFromCatalog =
       subjects.find((s) => String(s._id) === String(subjectIdForValidation)) ??
       subjectsForClass.find((s) => String(s._id) === String(subjectIdForValidation));
+    const subj =
+      subjFromCatalog ?? resolveSubjectForContent(editingItem, subjects);
 
-    if (!subj || !isCatalogSubjectId(subjectIdForValidation, subjects)) {
+    if (!editingContentId) {
+      if (!subj || !isCatalogSubjectId(subjectIdForValidation, subjects)) {
+        toast({
+          title: 'Validation error',
+          description:
+            'Select a subject from your catalog (use Add Subject) before adding content. Content-only groups cannot be saved.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    } else if (!subj) {
       toast({
         title: 'Validation error',
-        description:
-          'Select a subject from your catalog (use Add Subject) before adding content. Content-only groups cannot be saved.',
+        description: 'Could not resolve the subject for this content item.',
         variant: 'destructive',
       });
       return;
     }
-    const subBoard = (subj.board || BOARD_CODE).toUpperCase() as SyllabusBoard;
+
+    const subBoard = (subj.board || editingItem?.board || BOARD_CODE).toUpperCase() as SyllabusBoard;
     const normalizedSubBoard: SyllabusBoard =
       subBoard === 'CBSE' || subBoard === 'STATE' || subBoard === 'ASLI_EXCLUSIVE_SCHOOLS'
         ? subBoard
@@ -1096,6 +1387,9 @@ export default function SubjectContentManagement() {
         fileUrl: contentForm.fileUrl.trim(),
         classNumber: classForPayload,
       };
+      if (contentForm.thumbnailUrl?.trim()) {
+        body.thumbnailUrl = contentForm.thumbnailUrl.trim();
+      }
       if (contentForm.date?.trim()) {
         body.date = contentForm.date.trim();
       }
@@ -1109,6 +1403,9 @@ export default function SubjectContentManagement() {
         body.board = normalizedSubBoard;
         body.stateName =
           normalizedSubBoard === 'STATE' ? String(subj.stateName || '').trim() : '';
+        if (editingItem?.isActive === false) {
+          body.isActive = true;
+        }
       }
 
       const response = await fetch(
@@ -1135,6 +1432,7 @@ export default function SubjectContentManagement() {
         });
         setIsAddContentOpen(false);
         setEditingContentId(null);
+        setEditContentContext(null);
         await fetchContents();
       } else {
         toast({
@@ -1196,11 +1494,30 @@ export default function SubjectContentManagement() {
 
       if (response.ok && data.success && typeof data.fileUrl === 'string') {
         const uploadedUrl = data.fileUrl;
-        setContentForm((prev) => ({ ...prev, fileUrl: uploadedUrl }));
+        let nextThumbnailUrl = '';
+        const isPdfUpload =
+          selectedUploadFile.type === 'application/pdf' ||
+          selectedUploadFile.name.toLowerCase().endsWith('.pdf');
+        if (isPdfUpload) {
+          try {
+            const thumbDataUrl = await renderPdfFirstPageDataUrlFromFile(selectedUploadFile);
+            const uploadedThumb = await uploadContentThumbnailJpeg(thumbDataUrl, token || '');
+            if (uploadedThumb) nextThumbnailUrl = uploadedThumb;
+          } catch (thumbErr) {
+            console.warn('PDF cover thumbnail skipped:', thumbErr);
+          }
+        }
+        setContentForm((prev) => ({
+          ...prev,
+          fileUrl: uploadedUrl,
+          thumbnailUrl: nextThumbnailUrl || prev.thumbnailUrl,
+        }));
         setSelectedUploadFile(null);
         toast({
           title: 'Uploaded',
-          description: 'File uploaded successfully. You can now save the content.',
+          description: isPdfUpload && nextThumbnailUrl
+            ? 'File and PDF cover preview uploaded. Save content to apply.'
+            : 'File uploaded successfully. You can now save the content.',
         });
       } else {
         const nginxHint =
@@ -1251,16 +1568,19 @@ export default function SubjectContentManagement() {
         }
       );
 
-      if (response.ok) {
+      const data = await response.json().catch(() => ({}));
+
+      if (response.ok && data.success !== false) {
+        setContents((prev) => prev.filter((c) => c._id !== contentId));
         toast({
           title: 'Content deleted',
-          description: 'Content deleted successfully.',
+          description: 'This item was removed from your list.',
         });
         await fetchContents();
       } else {
         toast({
           title: 'Error',
-          description: 'Failed to delete content',
+          description: data.message || 'Failed to delete content',
           variant: 'destructive',
         });
       }
@@ -1374,9 +1694,18 @@ export default function SubjectContentManagement() {
                 Select a class from the left to view its subjects.
               </p>
             ) : subjectsForClass.length === 0 ? (
-              <div className="py-4 sm:py-6 lg:py-8 text-center text-xs sm:text-sm text-gray-500">
-                No subjects found for this class. Use &quot;Add Subject&quot; to
-                create one.
+              <div className="py-4 sm:py-6 lg:py-8 text-center text-xs sm:text-sm text-gray-500 space-y-2">
+                <p>
+                  No subjects found for this class. Use &quot;Add Subject&quot; to
+                  create one.
+                </p>
+                {contentCountForClass > 0 && (
+                  <p className="text-amber-700">
+                    {contentCountForClass} content item
+                    {contentCountForClass === 1 ? '' : 's'} exist for this class but
+                    are not linked to a catalog subject yet.
+                  </p>
+                )}
               </div>
             ) : (
               <div className="space-y-2 max-h-[480px] overflow-auto pr-1">
@@ -1408,11 +1737,6 @@ export default function SubjectContentManagement() {
                             <Badge variant="outline" className="text-[10px] font-normal">
                               {syllabusLabel(subj.board)}
                             </Badge>
-                            {!inCatalog && (
-                              <Badge variant="secondary" className="text-[10px] font-normal">
-                                From content
-                              </Badge>
-                            )}
                             {subj.board === 'STATE' && subj.stateName && (
                               <Badge variant="secondary" className="text-[10px] font-normal">
                                 {subj.stateName}
@@ -1473,13 +1797,10 @@ export default function SubjectContentManagement() {
               </p>
             </div>
             <Button
+              type="button"
               size="sm"
               onClick={handleOpenAddContent}
-              disabled={
-                !selectedSubjectId ||
-                !selectedClassNumber ||
-                !isCatalogSubjectId(selectedSubjectId, subjects)
-              }
+              disabled={!selectedSubjectId || !selectedClassNumber}
               className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
             >
               <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
@@ -1495,8 +1816,7 @@ export default function SubjectContentManagement() {
               <p className="text-xs sm:text-sm text-gray-500">Select a subject to view content.</p>
             ) : filteredContents.length === 0 ? (
               <div className="py-4 sm:py-6 lg:py-8 text-center text-xs sm:text-sm text-gray-500">
-                No content found for this subject. Use &quot;Add Content&quot; to
-                create one.
+                No content found for this subject. Use &quot;Add Content&quot; to create one.
               </div>
             ) : (
               <div className="space-y-10">
@@ -1527,6 +1847,12 @@ export default function SubjectContentManagement() {
                         const hasBrokenThumbnail = failedThumbnailIds.has(content._id);
                         const showImageThumb =
                           cardPreview.kind === 'image' && !hasBrokenThumbnail;
+                        const pdfFetchUrl = isPdfUrl(fileUrl)
+                          ? getEmbeddedPdfIframeSrc(fileUrl, content.title).split('#')[0]
+                          : '';
+                        const skipPdfThumbFetch =
+                          cardPreview.kind === 'pdf' &&
+                          Boolean(pdfFetchUrl && pdfUnavailableUrls.has(pdfFetchUrl));
 
                         const renderPreviewIcon = (type: ContentType) => {
                           const PreviewIcon = getContentTypeIcon(type);
@@ -1575,12 +1901,15 @@ export default function SubjectContentManagement() {
                                     </div>
                                   )}
                                 </>
-                              ) : cardPreview.kind === 'pdf' && !hasBrokenThumbnail ? (
-                                <iframe
-                                  src={cardPreview.src}
+                              ) : cardPreview.kind === 'pdf' && !skipPdfThumbFetch ? (
+                                <PdfFirstPageThumbnail
+                                  fileUrl={fileUrl}
                                   title={content.title}
-                                  className="w-full h-full border-0 bg-white pointer-events-none scale-[1.02] origin-top"
+                                  alt={content.title}
+                                  fallback={renderPreviewIcon(content.type)}
                                 />
+                              ) : cardPreview.kind === 'pdf' ? (
+                                renderPreviewIcon(content.type)
                               ) : cardPreview.kind === 'video' ? (
                                 <video
                                   src={cardPreview.src}
@@ -1948,7 +2277,17 @@ export default function SubjectContentManagement() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isAddContentOpen} onOpenChange={setIsAddContentOpen}>
+      <Dialog
+        open={isAddContentOpen}
+        onOpenChange={(open) => {
+          setIsAddContentOpen(open);
+          if (!open) {
+            setEditingContentId(null);
+            setEditContentContext(null);
+            setSelectedUploadFile(null);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingContentId ? 'Edit Content' : 'Add Content'}</DialogTitle>
@@ -1964,7 +2303,14 @@ export default function SubjectContentManagement() {
                 <Label>
                   Class <span className="text-destructive" aria-hidden="true">*</span>
                 </Label>
-                <Input value={selectedClassLabel ?? ''} disabled />
+                <Input
+                  value={
+                    editingContentId && editContentContext
+                      ? editContentContext.classLabel
+                      : selectedClassLabel ?? ''
+                  }
+                  disabled
+                />
               </div>
               <div>
                 <Label>
@@ -1972,9 +2318,11 @@ export default function SubjectContentManagement() {
                 </Label>
                 <Input
                   value={
-                    linkedSubjectForContent
-                      ? extractPlainSubjectName(linkedSubjectForContent.name)
-                      : ''
+                    editingContentId && editContentContext
+                      ? editContentContext.subjectName
+                      : linkedSubjectForContent
+                        ? extractPlainSubjectName(linkedSubjectForContent.name)
+                        : ''
                   }
                   disabled
                   className="bg-muted/50"
@@ -1985,9 +2333,11 @@ export default function SubjectContentManagement() {
               <Label>Syllabus</Label>
               <Input
                 value={
-                  linkedSubjectForContent
-                    ? syllabusLabel(linkedSubjectForContent.board)
-                    : '—'
+                  editingContentId && editContentContext
+                    ? syllabusLabel(editContentContext.board)
+                    : linkedSubjectForContent
+                      ? syllabusLabel(linkedSubjectForContent.board)
+                      : '—'
                 }
                 disabled
                 className="bg-muted/50"
@@ -1996,16 +2346,21 @@ export default function SubjectContentManagement() {
                 Matches this subject&apos;s syllabus (set when you created or edited the subject).
               </p>
             </div>
-            {linkedSubjectForContent?.board === 'STATE' && (
+            {(editingContentId && editContentContext?.board === 'STATE') ||
+            (!editingContentId && linkedSubjectForContent?.board === 'STATE') ? (
               <div>
                 <Label>State name</Label>
                 <Input
-                  value={linkedSubjectForContent.stateName?.trim() || '—'}
+                  value={
+                    editingContentId && editContentContext
+                      ? editContentContext.stateName?.trim() || '—'
+                      : linkedSubjectForContent?.stateName?.trim() || '—'
+                  }
                   disabled
                   className="bg-muted/50"
                 />
               </div>
-            )}
+            ) : null}
             <div>
               <Label>
                 Content Title <span className="text-destructive" aria-hidden="true">*</span>
@@ -2039,6 +2394,7 @@ export default function SubjectContentManagement() {
                 </Label>
                 <Select
                   value={contentForm.type}
+                  disabled={Boolean(editingContentId)}
                   onValueChange={(value: ContentType) => {
                     setContentForm((prev) => ({ ...prev, type: value, fileUrl: '' }));
                     setSelectedUploadFile(null);
@@ -2219,6 +2575,7 @@ export default function SubjectContentManagement() {
                 onClick={() => {
                   setIsAddContentOpen(false);
                   setEditingContentId(null);
+                  setEditContentContext(null);
                 }}
               >
                 Cancel
@@ -2226,7 +2583,11 @@ export default function SubjectContentManagement() {
               <Button
                 type="button"
                 onClick={handleSaveContent}
-                disabled={isSavingContent}
+                disabled={
+                  isSavingContent ||
+                  (!editingContentId &&
+                    !isCatalogSubjectId(selectedSubjectId, subjects))
+                }
                 className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
               >
                 {isSavingContent && (

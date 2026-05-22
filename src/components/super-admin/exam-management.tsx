@@ -2441,7 +2441,10 @@ export default function ExamManagement() {
                         const examSubjects = getExamSubjects(exam);
 
                         return (
-                          <Card className="flex h-full flex-col border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+                          <Card
+                            key={exam._id}
+                            className="flex h-full flex-col border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+                          >
                             <CardHeader className="px-4 pb-2 pt-4">
                               <div className="space-y-2">
                                 <CardTitle className="text-sm sm:text-base font-bold text-gray-900 leading-tight line-clamp-2">{exam.title}</CardTitle>
