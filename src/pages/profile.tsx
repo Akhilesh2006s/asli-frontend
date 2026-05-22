@@ -1,4 +1,4 @@
-import { useState, useEffect, type ChangeEvent } from "react";
+import { useState, useEffect, useMemo, type ChangeEvent } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,9 +28,14 @@ import {
   Camera
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { getAgeGroup } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL, apiFetch } from "@/lib/api-config";
+import { dedupeStudentExamResults } from "@/lib/dedupe-exam-results";
+import {
+  buildWeeklyActivityStats,
+  computeProfileOverviewStats,
+  getExamIdFromResult,
+} from "@/lib/profile-overview-stats";
 
 // User ID now comes from authenticated user (/api/auth/me)
 
@@ -47,6 +52,10 @@ export default function Profile() {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   // Exam results (used as "test attempts" for achievements / quick stats)
   const [examResults, setExamResults] = useState<any[]>([]);
+  const [rankings, setRankings] = useState<any[]>([]);
+  const [progressRecords, setProgressRecords] = useState<any[]>([]);
+  const [streakCount, setStreakCount] = useState(0);
+  const [overviewLoading, setOverviewLoading] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -82,29 +91,74 @@ export default function Profile() {
     fetchUser();
   }, []);
 
-  // Fetch exam results for students (replaces non-existent /api/users/.../test-attempts)
+  // Exam results, rankings, streak, and learning progress for overview stats
   useEffect(() => {
-    const fetchExamResults = async () => {
+    const fetchOverviewData = async () => {
       const token = localStorage.getItem('authToken');
-      if (!token) return;
+      if (!token) {
+        setExamResults([]);
+        setRankings([]);
+        setProgressRecords([]);
+        setStreakCount(0);
+        setOverviewLoading(false);
+        return;
+      }
+      setOverviewLoading(true);
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      };
       try {
-        const res = await fetch(`${API_BASE_URL}/api/student/exam-results`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (res.ok) {
-          const json = await res.json();
-          setExamResults(json.data || []);
+        const [resultsRes, rankingsRes, focusRes, progressRes, meRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/student/exam-results`, { headers }),
+          fetch(`${API_BASE_URL}/api/student/rankings`, { headers }),
+          apiFetch('/api/vidya/student/focus-card').catch(() => null),
+          fetch(`${API_BASE_URL}/api/student/learning-progress`, { headers }),
+          fetch(`${API_BASE_URL}/api/auth/me`, { headers }),
+        ]);
+
+        if (resultsRes.ok) {
+          const json = await resultsRes.json();
+          const rows = Array.isArray(json.data) ? json.data : [];
+          setExamResults(dedupeStudentExamResults(rows, getExamIdFromResult));
         } else {
           setExamResults([]);
         }
+
+        if (rankingsRes.ok) {
+          const json = await rankingsRes.json();
+          setRankings(Array.isArray(json.data) ? json.data : []);
+        } else {
+          setRankings([]);
+        }
+
+        let streak = 0;
+        if (focusRes?.ok) {
+          const focusJson = await focusRes.json();
+          streak = Number(focusJson?.studyStreak?.current ?? focusJson?.studyStreak?.count ?? 0);
+        }
+        if ((!Number.isFinite(streak) || streak <= 0) && meRes.ok) {
+          const meJson = await meRes.json();
+          streak = Number(meJson?.user?.studyStreak?.current ?? 0);
+        }
+        setStreakCount(Number.isFinite(streak) ? Math.max(0, streak) : 0);
+
+        if (progressRes.ok) {
+          const progressJson = await progressRes.json();
+          setProgressRecords(progressJson?.data?.progressRecords || []);
+        } else {
+          setProgressRecords([]);
+        }
       } catch {
         setExamResults([]);
+        setRankings([]);
+        setProgressRecords([]);
+        setStreakCount(0);
+      } finally {
+        setOverviewLoading(false);
       }
     };
-    fetchExamResults();
+    fetchOverviewData();
   }, []);
 
   // Use exam results as "attempts" for achievements and quick stats
@@ -148,16 +202,26 @@ export default function Profile() {
     },
   });
 
-  // Use mock stats for now (could be fetched from backend later)
-  const stats = { streak: 0, questionsAnswered: 0, accuracyRate: 0, rank: 0 };
+  const stats = useMemo(
+    () => computeProfileOverviewStats(examResults, rankings, streakCount),
+    [examResults, rankings, streakCount]
+  );
+
+  const weeklyStats = useMemo(
+    () => buildWeeklyActivityStats(examResults, progressRecords),
+    [examResults, progressRecords]
+  );
+
+  const weeklyHoursTotal = useMemo(
+    () => Math.round(weeklyStats.reduce((sum, day) => sum + day.hours, 0) * 10) / 10,
+    [weeklyStats]
+  );
 
   const handleEdit = () => {
     setIsEditing(true);
     setEditedProfile({
       fullName: user?.fullName || "",
       email: user?.email || "",
-      age: user?.age || 18,
-      educationStream: user?.educationStream || "",
       targetExam: user?.targetExam || "",
       phone: user?.phone || "",
       profilePhoto: user?.profilePhoto || "",
@@ -257,16 +321,6 @@ export default function Profile() {
     }
   ];
 
-  const weeklyStats = [
-    { day: "Mon", hours: 2.5, completed: true },
-    { day: "Tue", hours: 3.0, completed: true },
-    { day: "Wed", hours: 1.8, completed: true },
-    { day: "Thu", hours: 2.2, completed: true },
-    { day: "Fri", hours: 2.8, completed: true },
-    { day: "Sat", hours: 4.0, completed: true },
-    { day: "Sun", hours: 1.5, completed: false },
-  ];
-
   if (isLoading) {
     return (
       <>
@@ -307,7 +361,128 @@ export default function Profile() {
     );
   }
 
-  const ageGroup = getAgeGroup(user.age);
+  const profileClassNumber =
+    user.assignedClass?.classNumber != null && String(user.assignedClass.classNumber).trim() !== ""
+      ? String(user.assignedClass.classNumber).trim()
+      : user.classNumber &&
+          String(user.classNumber).trim() !== "" &&
+          user.classNumber !== "Unassigned"
+        ? String(user.classNumber).trim()
+        : null;
+
+  const profileSection =
+    user.assignedClass?.section != null && String(user.assignedClass.section).trim() !== ""
+      ? String(user.assignedClass.section).trim()
+      : user.section != null && String(user.section).trim() !== ""
+        ? String(user.section).trim()
+        : null;
+
+  const profileSettingsSection = (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <Settings className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+          Profile Settings
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
+        {isEditing ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="settings-fullName">Full Name</Label>
+                <Input
+                  id="settings-fullName"
+                  value={editedProfile.fullName}
+                  onChange={(e) => setEditedProfile({ ...editedProfile, fullName: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="settings-email">Email</Label>
+                <Input
+                  id="settings-email"
+                  type="email"
+                  value={editedProfile.email}
+                  onChange={(e) => setEditedProfile({ ...editedProfile, email: e.target.value })}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="settings-phone">Phone</Label>
+              <Input
+                id="settings-phone"
+                value={editedProfile.phone || ""}
+                onChange={(e) => setEditedProfile({ ...editedProfile, phone: e.target.value })}
+                placeholder="Enter phone number"
+              />
+            </div>
+            <div>
+              <Label htmlFor="settings-targetExam">Target Exam (Optional)</Label>
+              <Input
+                id="settings-targetExam"
+                value={editedProfile.targetExam}
+                onChange={(e) => setEditedProfile({ ...editedProfile, targetExam: e.target.value })}
+                placeholder="e.g., JEE Main 2024"
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-100">
+              <div>
+                <Label className="text-xs sm:text-sm font-medium text-gray-600">Class</Label>
+                <p className="text-base sm:text-lg font-medium text-gray-900 mt-1">
+                  {profileClassNumber || "N/A"}
+                </p>
+              </div>
+              <div>
+                <Label className="text-xs sm:text-sm font-medium text-gray-600">Section</Label>
+                <p className="text-base sm:text-lg font-medium text-gray-900 mt-1">
+                  {profileSection || "N/A"}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs sm:text-sm font-medium text-gray-600">Full Name</Label>
+                <p className="text-base sm:text-lg font-medium text-gray-900">{user.fullName || "N/A"}</p>
+              </div>
+              <div>
+                <Label className="text-xs sm:text-sm font-medium text-gray-600">Email</Label>
+                <p className="text-base sm:text-lg font-medium text-gray-900 break-all">{user.email || "N/A"}</p>
+              </div>
+              <div>
+                <Label className="text-xs sm:text-sm font-medium text-gray-600">Class</Label>
+                <p className="text-base sm:text-lg font-medium text-gray-900">{profileClassNumber || "N/A"}</p>
+              </div>
+              <div>
+                <Label className="text-xs sm:text-sm font-medium text-gray-600">Section</Label>
+                <p className="text-base sm:text-lg font-medium text-gray-900">{profileSection || "N/A"}</p>
+              </div>
+              <div>
+                <Label className="text-xs sm:text-sm font-medium text-gray-600">Phone</Label>
+                <p className="text-base sm:text-lg font-medium text-gray-900">{user.phone || "N/A"}</p>
+              </div>
+              <div>
+                <Label className="text-xs sm:text-sm font-medium text-gray-600">School</Label>
+                <p className="text-base sm:text-lg font-medium text-gray-900">{user.schoolName || "N/A"}</p>
+              </div>
+              <div>
+                <Label className="text-xs sm:text-sm font-medium text-gray-600">Board</Label>
+                <p className="text-base sm:text-lg font-medium text-gray-900">{user.board || "N/A"}</p>
+              </div>
+            </div>
+            {user.targetExam && (
+              <div>
+                <Label className="text-xs sm:text-sm font-medium text-gray-600">Target Exam</Label>
+                <p className="text-base sm:text-lg font-medium text-gray-900">{user.targetExam}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 
   return (
     <>
@@ -354,8 +529,15 @@ export default function Profile() {
                       </>
                     )}
                     <div className="flex flex-wrap items-center gap-2 mt-2">
-                      <Badge variant="outline">{ageGroup.label}</Badge>
-                      <Badge className="gradient-primary text-white">{user.educationStream}</Badge>
+                      {profileClassNumber && (
+                        <Badge variant="outline">
+                          Class {profileClassNumber}
+                          {profileSection ? ` · Sec ${profileSection}` : ""}
+                        </Badge>
+                      )}
+                      {user.board && (
+                        <Badge variant="outline">{user.board}</Badge>
+                      )}
                       {user.targetExam && (
                         <Badge variant="outline">{user.targetExam}</Badge>
                       )}
@@ -434,35 +616,40 @@ export default function Profile() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-3 sm:p-4 lg:p-6">
-                      <div className="text-center">
-                        <div className="text-2xl sm:text-3xl font-bold text-orange-600 mb-1">
-                          {stats.streak}
-                        </div>
-                        <p className="text-xs sm:text-sm text-gray-600">Day Streak</p>
+                    {overviewLoading ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                          <Skeleton key={i} className="h-16 w-full" />
+                        ))}
                       </div>
-                      
-                      <div className="text-center">
-                        <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-1">
-                          {stats.questionsAnswered.toLocaleString()}
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-3 sm:p-4 lg:p-6">
+                        <div className="text-center">
+                          <div className="text-2xl sm:text-3xl font-bold text-orange-600 mb-1">
+                            {stats.streak}
+                          </div>
+                          <p className="text-xs sm:text-sm text-gray-600">Day Streak</p>
                         </div>
-                        <p className="text-xs sm:text-sm text-gray-600">Questions Solved</p>
-                      </div>
-                      
-                      <div className="text-center">
-                        <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">
-                          {stats.accuracyRate}%
+                        <div className="text-center">
+                          <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-1">
+                            {stats.questionsAnswered.toLocaleString()}
+                          </div>
+                          <p className="text-xs sm:text-sm text-gray-600">Questions Solved</p>
                         </div>
-                        <p className="text-xs sm:text-sm text-gray-600">Accuracy Rate</p>
-                      </div>
-                      
-                      <div className="text-center">
-                        <div className="text-2xl sm:text-3xl font-bold text-purple-600 mb-1">
-                          #{stats.rank}
+                        <div className="text-center">
+                          <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-1">
+                            {stats.accuracyRate}%
+                          </div>
+                          <p className="text-xs sm:text-sm text-gray-600">Accuracy Rate</p>
                         </div>
-                        <p className="text-xs sm:text-sm text-gray-600">Rank</p>
+                        <div className="text-center">
+                          <div className="text-2xl sm:text-3xl font-bold text-purple-600 mb-1">
+                            {stats.rank > 0 ? `#${stats.rank}` : '—'}
+                          </div>
+                          <p className="text-xs sm:text-sm text-gray-600">Avg Exam Rank</p>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -475,25 +662,40 @@ export default function Profile() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-7 gap-2 overflow-x-auto">
-                      {weeklyStats.map((day, index) => (
-                        <div key={index} className="text-center">
-                          <div className="text-xs text-gray-600 mb-1">{day.day}</div>
-                          <div 
-                            className={`h-8 rounded flex items-center justify-center text-xs font-medium ${
-                              day.completed ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-                            }`}
-                          >
-                            {day.hours}h
-                          </div>
+                    {overviewLoading ? (
+                      <div className="grid grid-cols-7 gap-2">
+                        {Array.from({ length: 7 }).map((_, i) => (
+                          <Skeleton key={i} className="h-12 w-full" />
+                        ))}
+                      </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-7 gap-2 overflow-x-auto">
+                          {weeklyStats.map((day) => (
+                            <div key={day.dateKey} className="text-center">
+                              <div className="text-xs text-gray-600 mb-1">{day.day}</div>
+                              <div
+                                className={`h-8 rounded flex items-center justify-center text-xs font-medium ${
+                                  day.completed
+                                    ? 'bg-green-100 text-green-800'
+                                    : 'bg-gray-100 text-gray-600'
+                                }`}
+                              >
+                                {day.hours}h
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                    <div className="mt-4 text-center">
-                      <p className="text-xs sm:text-sm text-gray-600">
-                        Total: {weeklyStats.reduce((sum, day) => sum + day.hours, 0)} hours this week
-                      </p>
-                    </div>
+                        <div className="mt-4 text-center">
+                          <p className="text-xs sm:text-sm text-gray-600">
+                            Total: {weeklyHoursTotal} hours this week
+                          </p>
+                          <p className="text-[10px] text-gray-500 mt-1">
+                            From exam time and content study sessions
+                          </p>
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -601,121 +803,7 @@ export default function Profile() {
               </TabsContent>
 
               <TabsContent value="settings" className="space-y-3 sm:space-y-4 lg:space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Settings className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                      Profile Settings
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
-                    {isEditing ? (
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="fullName">Full Name</Label>
-                            <Input
-                              id="fullName"
-                              value={editedProfile.fullName}
-                              onChange={(e) => setEditedProfile({...editedProfile, fullName: e.target.value})}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="email">Email</Label>
-                            <Input
-                              id="email"
-                              type="email"
-                              value={editedProfile.email}
-                              onChange={(e) => setEditedProfile({...editedProfile, email: e.target.value})}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="age">Age</Label>
-                            <Input
-                              id="age"
-                              type="number"
-                              value={editedProfile.age}
-                              onChange={(e) => setEditedProfile({...editedProfile, age: parseInt(e.target.value)})}
-                            />
-                          </div>
-                          
-                          <div>
-                            <Label htmlFor="stream">Education Stream</Label>
-                            <Input
-                              id="stream"
-                              value={editedProfile.educationStream || ""}
-                              onChange={(e) => setEditedProfile({...editedProfile, educationStream: e.target.value})}
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <Label htmlFor="phone">Phone</Label>
-                          <Input
-                            id="phone"
-                            value={editedProfile.phone || ""}
-                            onChange={(e) => setEditedProfile({...editedProfile, phone: e.target.value})}
-                            placeholder="Enter phone number"
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label htmlFor="targetExam">Target Exam (Optional)</Label>
-                          <Input
-                            id="targetExam"
-                            value={editedProfile.targetExam}
-                            onChange={(e) => setEditedProfile({...editedProfile, targetExam: e.target.value})}
-                            placeholder="e.g., JEE Main 2024"
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <Label className="text-xs sm:text-sm font-medium text-gray-600">Full Name</Label>
-                            <p className="text-base sm:text-lg font-medium text-gray-900">{user.fullName || "N/A"}</p>
-                          </div>
-                          <div>
-                            <Label className="text-xs sm:text-sm font-medium text-gray-600">Email</Label>
-                            <p className="text-base sm:text-lg font-medium text-gray-900 break-all">{user.email || "N/A"}</p>
-                          </div>
-                          <div>
-                            <Label className="text-xs sm:text-sm font-medium text-gray-600">Age</Label>
-                            <p className="text-base sm:text-lg font-medium text-gray-900">{user.age} years</p>
-                          </div>
-                          
-                          <div>
-                            <Label className="text-xs sm:text-sm font-medium text-gray-600">Education Stream</Label>
-                            <p className="text-base sm:text-lg font-medium text-gray-900">{user.educationStream}</p>
-                          </div>
-                          <div>
-                            <Label className="text-xs sm:text-sm font-medium text-gray-600">Class</Label>
-                            <p className="text-base sm:text-lg font-medium text-gray-900">{user.classNumber || "N/A"}</p>
-                          </div>
-                          <div>
-                            <Label className="text-xs sm:text-sm font-medium text-gray-600">Phone</Label>
-                            <p className="text-base sm:text-lg font-medium text-gray-900">{user.phone || "N/A"}</p>
-                          </div>
-                          <div>
-                            <Label className="text-xs sm:text-sm font-medium text-gray-600">School</Label>
-                            <p className="text-base sm:text-lg font-medium text-gray-900">{user.schoolName || "N/A"}</p>
-                          </div>
-                          <div>
-                            <Label className="text-xs sm:text-sm font-medium text-gray-600">Board</Label>
-                            <p className="text-base sm:text-lg font-medium text-gray-900">{user.board || "N/A"}</p>
-                          </div>
-                        </div>
-                        
-                        {user.targetExam && (
-                          <div>
-                            <Label className="text-xs sm:text-sm font-medium text-gray-600">Target Exam</Label>
-                            <p className="text-base sm:text-lg font-medium text-gray-900">{user.targetExam}</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
+                {profileSettingsSection}
               </TabsContent>
             </Tabs>
           </div>
@@ -752,7 +840,7 @@ export default function Profile() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs sm:text-sm text-gray-600">Study Hours</span>
                   <span className="font-semibold">
-                    {weeklyStats.reduce((sum, day) => sum + day.hours, 0)}h this week
+                    {overviewLoading ? '…' : `${weeklyHoursTotal}h this week`}
                   </span>
                 </div>
                 
@@ -790,33 +878,6 @@ export default function Profile() {
                   <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                   <span className="text-gray-600">Achieved study streak milestone</span>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Study Plan */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Today's Study Plan</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between p-2 bg-blue-50 rounded">
-                  <span className="text-xs sm:text-sm font-medium">Physics</span>
-                  <Badge variant="outline">30 min</Badge>
-                </div>
-                
-                <div className="flex items-center justify-between p-2 bg-green-50 rounded">
-                  <span className="text-xs sm:text-sm font-medium">Chemistry</span>
-                  <Badge variant="outline">45 min</Badge>
-                </div>
-                
-                <div className="flex items-center justify-between p-2 bg-purple-50 rounded">
-                  <span className="text-xs sm:text-sm font-medium">Mathematics</span>
-                  <Badge variant="outline">60 min</Badge>
-                </div>
-                
-                <Button className="w-full mt-4" variant="outline" size="sm">
-                  View Full Schedule
-                </Button>
               </CardContent>
             </Card>
           </div>
