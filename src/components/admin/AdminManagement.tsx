@@ -18,6 +18,12 @@ import { cn } from "@/lib/utils";
 const SCHOOL_FORM_FIELD_CLASS =
   "border border-slate-300 bg-slate-100 text-slate-900 shadow-sm placeholder:text-slate-500 focus-visible:border-slate-400 focus-visible:ring-2 focus-visible:ring-slate-400/30";
 
+/** Overrides default Dialog lg:max-w-2xl so school forms use full desktop width. */
+const SCHOOL_DIALOG_CONTENT_CLASS =
+  "flex max-h-[min(100dvh,100svh)] w-[min(96vw,42rem)] max-w-[min(96vw,42rem)] translate-x-[-50%] translate-y-[-50%] flex-col gap-0 overflow-hidden p-0 sm:max-h-[94vh] sm:w-[min(94vw,56rem)] sm:max-w-[min(94vw,56rem)] md:w-[min(92vw,64rem)] md:max-w-[min(92vw,64rem)] lg:w-[min(90vw,72rem)] lg:max-w-[min(90vw,72rem)] xl:w-[min(88vw,80rem)] xl:max-w-[min(88vw,80rem)] 2xl:w-[min(86vw,88rem)] 2xl:max-w-[min(86vw,88rem)]";
+
+const SCHOOL_FORM_GRID_CLASS = "grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3";
+
 interface SchoolDetailsForm {
   doorNo: string;
   street: string;
@@ -557,7 +563,6 @@ export default function AdminManagement() {
         board: newAdmin.board,
         isAsliPrepExclusive: newAdmin.isAsliPrepExclusive,
         state: newAdmin.state,
-        place: newAdmin.state,
         schoolName: newAdmin.schoolName,
         schoolLogo: newAdmin.schoolLogo,
         contactPerson: newAdmin.contactPerson?.trim() || '',
@@ -808,7 +813,6 @@ export default function AdminManagement() {
           board: editAdmin.board,
           isAsliPrepExclusive: editAdmin.isAsliPrepExclusive,
           state: editAdmin.state,
-          place: editAdmin.state,
           schoolName: editAdmin.schoolName,
           schoolLogo: editAdmin.schoolLogo,
           contactPerson: editAdmin.contactPerson?.trim() || '',
@@ -1008,18 +1012,18 @@ export default function AdminManagement() {
             </Button>
           </DialogTrigger>
           <DialogContent
-            className="flex max-h-[min(100dvh,100svh)] w-[min(96vw,80rem)] max-w-none translate-x-[-50%] translate-y-[-50%] flex-col gap-0 overflow-hidden p-0 sm:max-h-[94vh] sm:max-w-none"
+            className={SCHOOL_DIALOG_CONTENT_CLASS}
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
-            <DialogHeader className="shrink-0 space-y-1 border-b px-3 sm:px-4 lg:px-6 py-4 text-left">
+            <DialogHeader className="shrink-0 space-y-1 border-b px-4 sm:px-6 lg:px-8 py-4 text-left">
               <DialogTitle>Add New School</DialogTitle>
               <DialogDescription>
-                Scroll on small screens to see all fields. Three columns on large screens. Pick the curriculum board the school follows, then use the toggle for normal usage vs Asli Prep (like Limited vs Unlimited below).
+                Add administrator and school details. Fields spread across up to three columns on large screens.
               </DialogDescription>
             </DialogHeader>
-            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 sm:px-4 lg:px-6 py-4 pb-8 [-webkit-overflow-scrolling:touch]">
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-4 sm:px-6 lg:px-8 py-5 pb-8 [-webkit-overflow-scrolling:touch]">
               <p className="mb-3 text-xs sm:text-sm font-semibold text-gray-900">Administrator</p>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className={SCHOOL_FORM_GRID_CLASS}>
                 <div className="space-y-1.5">
                   <Label htmlFor="name">Full Name *</Label>
                   <Input
@@ -1128,8 +1132,8 @@ export default function AdminManagement() {
               </div>
 
               <p className="mb-3 mt-8 text-xs sm:text-sm font-semibold text-gray-900">School Information</p>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
+              <div className={SCHOOL_FORM_GRID_CLASS}>
+                <div className="space-y-1.5 sm:col-span-2 lg:col-span-3">
                   <Label htmlFor="schoolName">School Name *</Label>
                   <Input
                     id="schoolName"
@@ -1260,8 +1264,8 @@ export default function AdminManagement() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
-                  <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-3">
+                <div className="space-y-1.5 sm:col-span-2 lg:col-span-3">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-5 py-4">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="space-y-1">
                         <p className="text-xs sm:text-sm text-gray-800">School program</p>
@@ -1561,7 +1565,7 @@ export default function AdminManagement() {
                 )}
               </div>
             </div>
-            <div className="flex shrink-0 justify-end gap-2 border-t bg-background px-3 sm:px-4 lg:px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="flex shrink-0 justify-end gap-3 border-t bg-background px-4 sm:px-6 lg:px-8 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                 Cancel
               </Button>
@@ -1584,18 +1588,18 @@ export default function AdminManagement() {
           }}
         >
           <DialogContent
-            className="flex max-h-[min(100dvh,100svh)] w-[min(96vw,80rem)] max-w-none translate-x-[-50%] translate-y-[-50%] flex-col gap-0 overflow-hidden p-0 sm:max-h-[94vh] sm:max-w-none"
+            className={SCHOOL_DIALOG_CONTENT_CLASS}
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
-            <DialogHeader className="shrink-0 space-y-1 border-b px-3 sm:px-4 lg:px-6 py-4 text-left">
+            <DialogHeader className="shrink-0 space-y-1 border-b px-4 sm:px-6 lg:px-8 py-4 text-left">
               <DialogTitle>Edit School</DialogTitle>
               <DialogDescription>
-                Scroll on small screens to see all fields. Three columns on large screens. Pick the curriculum board the school follows, then use the toggle for normal usage vs Asli Prep (like Limited vs Unlimited below).
+                Update administrator and school details. On desktop this panel uses a wide layout so fields are easier to read.
               </DialogDescription>
             </DialogHeader>
-            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 sm:px-4 lg:px-6 py-4 pb-8 [-webkit-overflow-scrolling:touch]">
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-4 sm:px-6 lg:px-8 py-5 pb-8 [-webkit-overflow-scrolling:touch]">
               <p className="mb-3 text-xs sm:text-sm font-semibold text-gray-900">Administrator</p>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className={SCHOOL_FORM_GRID_CLASS}>
                 <div className="space-y-1.5">
                   <Label htmlFor="edit-name">Full Name *</Label>
                   <Input
@@ -1755,8 +1759,8 @@ export default function AdminManagement() {
               </div>
 
               <p className="mb-3 mt-8 text-xs sm:text-sm font-semibold text-gray-900">School Information</p>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
+              <div className={SCHOOL_FORM_GRID_CLASS}>
+                <div className="space-y-1.5 sm:col-span-2 lg:col-span-3">
                   <Label htmlFor="edit-schoolName">School Name *</Label>
                   <Input
                     id="edit-schoolName"
@@ -1881,8 +1885,8 @@ export default function AdminManagement() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
-                  <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-3">
+                <div className="space-y-1.5 sm:col-span-2 lg:col-span-3">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-5 py-4">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="space-y-1">
                         <p className="text-xs sm:text-sm text-gray-800">School program</p>
@@ -2179,7 +2183,7 @@ export default function AdminManagement() {
                 )}
               </div>
             </div>
-            <div className="flex shrink-0 justify-end gap-2 border-t bg-background px-3 sm:px-4 lg:px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="flex shrink-0 justify-end gap-3 border-t bg-background px-4 sm:px-6 lg:px-8 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <Button
                 variant="outline"
                 onClick={() => {
