@@ -19,6 +19,14 @@ export default function BoardComparisonCharts() {
   const [exportingKey, setExportingKey] = useState<string | null>(null);
   const exportCacheRef = useRef<Record<string, any[]>>({});
 
+  const isAsliExclusiveBoard = (board: string): boolean => {
+    const normalized = String(board || '').toUpperCase().replace(/\s+/g, '_');
+    return normalized === 'ASLI_EXCLUSIVE_SCHOOLS';
+  };
+
+  const excludeAsliExclusive = (items: BoardAnalytics[]): BoardAnalytics[] =>
+    items.filter((item) => !isAsliExclusiveBoard(item.board));
+
   // Format board name to title case
   const formatBoardName = (name: string): string => {
     if (!name) return name;
@@ -56,7 +64,7 @@ export default function BoardComparisonCharts() {
             averageScore: item.averageScore || '0.00',
             participationRate: item.participationRate || '0.0'
           }));
-          setAnalytics(formattedAnalytics);
+          setAnalytics(excludeAsliExclusive(formattedAnalytics));
           setIsLoading(false);
           return;
         }
@@ -117,7 +125,7 @@ export default function BoardComparisonCharts() {
         };
       });
 
-      setAnalytics(formattedAnalytics);
+      setAnalytics(excludeAsliExclusive(formattedAnalytics));
     } catch (error) {
       console.error('Failed to fetch board analytics:', error);
     } finally {
