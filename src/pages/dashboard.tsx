@@ -76,6 +76,7 @@ import YouTubePlayer from '@/components/youtube-player';
 import DriveViewer from '@/components/drive-viewer';
 import VideoModal from '@/components/video-modal';
 import { API_BASE_URL, apiFetch, getStudentPdfPreviewIframeSrc } from '@/lib/api-config';
+import { buildExamCalendarEntries } from '@/lib/exam-calendar-entries';
 import { collectVidyaSubjectLabels } from '@/lib/vidya-subjects';
 import { getUser as getStoredUser } from '@/lib/auth-utils';
 import {
@@ -1855,23 +1856,7 @@ export default function Dashboard() {
       })
       .filter(Boolean) as any[];
 
-    const examEntries = exams
-      .map((exam: any) => {
-        const date = parseDate(exam.startDate) || parseDate(exam.examDate) || parseDate(exam.date);
-        if (!date) return null;
-        return {
-          id: exam._id || exam.id,
-          type: 'exam' as const,
-          title: exam.title || exam.examTitle || 'Exam',
-          subject:
-            typeof exam.subject === 'string'
-              ? exam.subject
-              : exam.subject?.name || 'Exam',
-          date,
-          source: exam
-        };
-      })
-      .filter(Boolean) as any[];
+    const examEntries = buildExamCalendarEntries(exams);
 
     return [...contentEntries, ...quizEntries, ...examEntries];
   }, [incompleteContent, incompleteQuizzes, exams, getSubjectName]);
@@ -2214,7 +2199,12 @@ export default function Dashboard() {
                         className="p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
                         onClick={() => {
                           if (entry.type === 'exam') {
-                            setLocation('/student-exams');
+                            const examId = String(entry.id || entry.source?._id || '');
+                            if (examId) {
+                              setLocation(`/student-exams?examId=${encodeURIComponent(examId)}`);
+                            } else {
+                              setLocation('/student-exams');
+                            }
                           } else {
                             handleOpenPreview(entry.source, entry.type === 'quiz');
                           }

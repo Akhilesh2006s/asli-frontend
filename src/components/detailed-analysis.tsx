@@ -80,7 +80,24 @@ interface ExamResult {
   };
   answers?: Record<string, any>;
   questions?: Question[];
+  questionAnalytics?: Array<{
+    questionId?: string;
+    index?: number;
+    timeTaken?: number;
+    timeBucket?: string;
+    difficulty?: string;
+    status?: string;
+  }>;
 }
+
+type QuestionFilterId =
+  | 'all'
+  | 'correct'
+  | 'wrong'
+  | 'skipped'
+  | 'wrong-quick'
+  | 'hard-wrong'
+  | 'time-pressure';
 
 interface DetailedAnalysisProps {
   result: ExamResult;
@@ -181,6 +198,52 @@ function getQuestionDifficulty(q: Question): 'easy' | 'medium' | 'hard' {
   return 'hard';
 }
 
+function resolveQuestionDifficulty(q: Question): 'easy' | 'medium' | 'hard' {
+  const raw = String((q as { difficulty?: string }).difficulty || '').trim().toLowerCase();
+  if (raw.includes('high') || raw.includes('difficult') || raw === 'hard') return 'hard';
+  if (raw.includes('moderate') || raw === 'medium') return 'medium';
+  if (raw.includes('easy')) return 'easy';
+  return getQuestionDifficulty(q);
+}
+
+function getIdealTimeSeconds(difficulty: 'easy' | 'medium' | 'hard'): number {
+  if (difficulty === 'easy') return 30;
+  if (difficulty === 'medium') return 60;
+  return 90;
+}
+
+function isTimePressureWrong(
+  timeSeconds: number | null,
+  avgTime: number,
+  difficulty: 'easy' | 'medium' | 'hard',
+  timeBucket?: string
+): boolean {
+  if (timeBucket === 'over_time') return true;
+  if (timeSeconds == null) return false;
+  const ideal = getIdealTimeSeconds(difficulty);
+  return timeSeconds > ideal * 1.25 || (avgTime > 0 && timeSeconds >= avgTime * 1.2);
+}
+
+function matchesQuestionFilter(
+  filter: QuestionFilterId,
+  status: {
+    attempted: boolean;
+    correct: boolean;
+    isWrongQuick: boolean;
+    isHardWrong: boolean;
+    isTimePressure: boolean;
+  }
+): boolean {
+  if (filter === 'all') return true;
+  if (filter === 'correct') return status.correct;
+  if (filter === 'wrong') return status.attempted && !status.correct;
+  if (filter === 'skipped') return !status.attempted;
+  if (filter === 'wrong-quick') return status.isWrongQuick;
+  if (filter === 'hard-wrong') return status.isHardWrong;
+  if (filter === 'time-pressure') return status.isTimePressure;
+  return true;
+}
+
 function classifyErrorType(
   question: Question,
   userAnswer: unknown,
@@ -195,7 +258,11 @@ function classifyErrorType(
 ): ErrorType {
   if (!opts.isAttempted || opts.isCorrect) return null;
   if (opts.aiInsight && /not|except|incorrectly read/i.test(opts.aiInsight)) return 'reading';
-  if (timeTaken != null && opts.totalExamTime > 0 && timeTaken >= opts.totalExamTime * 0.95) {
+  if (
+    timeTaken != null &&
+    opts.avgTime > 0 &&
+    timeTaken >= opts.avgTime * 1.2
+  ) {
     return 'time-pressure';
   }
   if (timeTaken != null && timeTaken < 30) return 'careless';
@@ -469,7 +536,7 @@ function normalizeMongoId(value: unknown): string {
 
 export default function DetailedAnalysis({ result, examTitle, onBack }: DetailedAnalysisProps) {
   const [activeTab, setActiveTab] = useState('ai');
-  const [questionFilter, setQuestionFilter] = useState<string>('all');
+  const [questionFilter, setQuestionFilter] = useState<QuestionFilterId>('all');
   const [expandedQuestionIndex, setExpandedQuestionIndex] = useState<number | null>(null);
   const [showAllQuestionsList, setShowAllQuestionsList] = useState(false);
   const [selectedPlanDayIndex, setSelectedPlanDayIndex] = useState(0);
@@ -704,6 +771,34 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
 
     return undefined;
   };
+
+  const getAnalyticsForQuestion = useCallback(
+    (question: Question, questionIndex: number) => {
+      const rows =
+        (displayResult as ExamResult).questionAnalytics ??
+        result.questionAnalytics;
+      if (!Array.isArray(rows) || !rows.length) return undefined;
+      const qid = normalizeAnswerKey((question as { _id?: string })._id);
+      return rows.find(
+        (row) =>
+          row.index === questionIndex ||
+          row.index === questionIndex + 1 ||
+          (row.questionId && normalizeAnswerKey(row.questionId) === qid)
+      );
+    },
+    [displayResult, result.questionAnalytics]
+  );
+
+  const getQuestionTimeForIndex = useCallback(
+    (question: Question, questionIndex: number, userAnswer: unknown) => {
+      const fromAnswer = getAnswerTimeSeconds(userAnswer);
+      if (fromAnswer != null) return fromAnswer;
+      const row = getAnalyticsForQuestion(question, questionIndex);
+      if (row?.timeTaken != null && row.timeTaken > 0) return row.timeTaken;
+      return null;
+    },
+    [getAnalyticsForQuestion]
+  );
 
   // Animate values on mount
   useEffect(() => {
@@ -1350,83 +1445,75 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     });
   }, [chapterHeatmap, result.subjectWiseScore]);
 
-  const filteredQuestionIndices = useMemo(() => {
-    const indices = analysisQuestions.map((_, i) => i);
+  const questionRowStatuses = useMemo(() => {
     const avgT = avgTimePerQuestion || 60;
-    const lastQuarterStart = result.timeTaken * 0.75;
-
-    return indices.filter((i) => {
-      const q = analysisQuestions[i];
+    return analysisQuestions.map((q, i) => {
       const ua = getUserAnswerForQuestion(q, i);
       const attempted = ua !== undefined && ua !== null && ua !== '';
       const correct = attempted && compareAnswers(q, ua, q.correctAnswer);
-      const t = getAnswerTimeSeconds(ua);
-      const diff = getQuestionDifficulty(q);
-
-      if (questionFilter === 'all') return true;
-      if (questionFilter === 'correct') return correct;
-      if (questionFilter === 'wrong') return attempted && !correct;
-      if (questionFilter === 'skipped') return !attempted;
-      if (questionFilter === 'wrong-quick') {
-        return attempted && !correct && t != null && t < 30;
-      }
-      if (questionFilter === 'hard-wrong') {
-        return attempted && !correct && diff === 'hard';
-      }
-      if (questionFilter === 'time-pressure') {
-        return (
-          attempted &&
-          !correct &&
-          t != null &&
-          t >= lastQuarterStart
-        );
-      }
-      return true;
+      const analyticsRow = getAnalyticsForQuestion(q, i);
+      const timeSeconds = getQuestionTimeForIndex(q, i, ua);
+      const difficulty = resolveQuestionDifficulty(q);
+      const isWrongQuick = attempted && !correct && timeSeconds != null && timeSeconds < 30;
+      const isHardWrong = attempted && !correct && difficulty === 'hard';
+      const isTimePressure =
+        attempted &&
+        !correct &&
+        isTimePressureWrong(timeSeconds, avgT, difficulty, analyticsRow?.timeBucket);
+      return { attempted, correct, isWrongQuick, isHardWrong, isTimePressure };
     });
   }, [
     analysisQuestions,
-    questionFilter,
-    result.timeTaken,
     avgTimePerQuestion,
     displayResult.answers,
     result.answers,
+    getAnalyticsForQuestion,
+    getQuestionTimeForIndex,
   ]);
 
-  const wrongQuickCount = useMemo(() => {
-    let n = 0;
-    analysisQuestions.forEach((q, i) => {
-      const ua = getUserAnswerForQuestion(q, i);
-      if (ua == null || ua === '') return;
-      if (compareAnswers(q, ua, q.correctAnswer)) return;
-      const t = getAnswerTimeSeconds(ua);
-      if (t != null && t < 30) n += 1;
+  const questionFilterCounts = useMemo(() => {
+    const counts = {
+      all: analysisQuestions.length,
+      correct: 0,
+      wrong: 0,
+      skipped: 0,
+      wrongQuick: 0,
+      hardWrong: 0,
+      timePressure: 0,
+    };
+    questionRowStatuses.forEach((s) => {
+      if (s.correct) counts.correct += 1;
+      if (s.attempted && !s.correct) counts.wrong += 1;
+      if (!s.attempted) counts.skipped += 1;
+      if (s.isWrongQuick) counts.wrongQuick += 1;
+      if (s.isHardWrong) counts.hardWrong += 1;
+      if (s.isTimePressure) counts.timePressure += 1;
     });
-    return n || Math.round(result.wrongAnswers * 0.35);
-  }, [analysisQuestions, result.wrongAnswers, displayResult.answers, result.answers]);
+    return counts;
+  }, [analysisQuestions.length, questionRowStatuses]);
 
-  const hardWrongCount = useMemo(() => {
-    let n = 0;
-    analysisQuestions.forEach((q, i) => {
-      const ua = getUserAnswerForQuestion(q, i);
-      if (ua == null || ua === '') return;
-      if (compareAnswers(q, ua, q.correctAnswer)) return;
-      if (getQuestionDifficulty(q) === 'hard') n += 1;
-    });
-    return n || Math.max(1, Math.round(result.wrongAnswers * 0.15));
-  }, [analysisQuestions, result.wrongAnswers, displayResult.answers, result.answers]);
+  const filteredQuestionIndices = useMemo(
+    () =>
+      analysisQuestions
+        .map((_, i) => i)
+        .filter((i) => matchesQuestionFilter(questionFilter, questionRowStatuses[i])),
+    [analysisQuestions, questionFilter, questionRowStatuses]
+  );
 
-  const timePressureCount = useMemo(() => {
-    const start = result.timeTaken * 0.75;
-    let n = 0;
-    analysisQuestions.forEach((q, i) => {
-      const ua = getUserAnswerForQuestion(q, i);
-      if (ua == null || ua === '') return;
-      if (compareAnswers(q, ua, q.correctAnswer)) return;
-      const t = getAnswerTimeSeconds(ua);
-      if (t != null && t >= start) n += 1;
-    });
-    return n || Math.max(1, Math.round(result.wrongAnswers * 0.12));
-  }, [analysisQuestions, result.wrongAnswers, result.timeTaken, displayResult.answers, result.answers]);
+  const navigableIndices = useMemo(
+    () =>
+      questionFilter === 'all'
+        ? analysisQuestions.map((_, i) => i)
+        : filteredQuestionIndices,
+    [questionFilter, filteredQuestionIndices, analysisQuestions.length]
+  );
+
+  const filteredPosition =
+    navigableIndices.indexOf(mobileQuestionIndex) >= 0
+      ? navigableIndices.indexOf(mobileQuestionIndex) + 1
+      : navigableIndices.length > 0
+        ? 1
+        : 0;
 
   const tabBtnClass = (tab: string) =>
     `px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 -mb-px ${
@@ -1436,17 +1523,19 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     }`;
 
   const goToPrev = () => {
-    if (!analysisQuestions.length) return;
-    if (mobileQuestionIndex <= 0) return;
+    if (!navigableIndices.length) return;
+    const pos = navigableIndices.indexOf(mobileQuestionIndex);
+    if (pos <= 0) return;
     setAnimDirection('down');
-    setMobileQuestionIndex((idx) => Math.max(0, idx - 1));
+    setMobileQuestionIndex(navigableIndices[pos - 1]);
   };
 
   const goToNext = () => {
-    if (!analysisQuestions.length) return;
-    if (mobileQuestionIndex >= analysisQuestions.length - 1) return;
+    if (!navigableIndices.length) return;
+    const pos = navigableIndices.indexOf(mobileQuestionIndex);
+    if (pos < 0 || pos >= navigableIndices.length - 1) return;
     setAnimDirection('up');
-    setMobileQuestionIndex((idx) => Math.min(analysisQuestions.length - 1, idx + 1));
+    setMobileQuestionIndex(navigableIndices[pos + 1]);
   };
 
   useEffect(() => {
@@ -1454,6 +1543,14 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     if (n === 0) return;
     setMobileQuestionIndex((idx) => Math.min(idx, n - 1));
   }, [analysisQuestions.length]);
+
+  useEffect(() => {
+    if (!analysisQuestions.length) return;
+    setMobileQuestionIndex((idx) => {
+      if (!navigableIndices.length) return 0;
+      return navigableIndices.includes(idx) ? idx : navigableIndices[0];
+    });
+  }, [questionFilter, navigableIndices.join(',')]);
 
   const handleWheel: React.WheelEventHandler<HTMLDivElement> = (e) => {
     if (e.deltaY > 10) {
@@ -2096,31 +2193,6 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
               </Card>
             </div>
 
-            <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-pink-50">
-              <CardHeader>
-                <CardTitle className="text-base sm:text-lg">Recommended Interventions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {(aiAnalysis?.interventions || []).map((intervention, idx) => (
-                  <div key={idx} className="p-3 rounded-lg border border-pink-200 bg-pink-50">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold text-gray-900">{intervention.action || 'Intervention'}</span>
-                      <Badge variant="outline" className="uppercase">{String(intervention.priority || 'medium')}</Badge>
-                    </div>
-                    {intervention.reasoning && (
-                      <p className="text-xs sm:text-sm text-gray-700"><strong>Reason:</strong> {intervention.reasoning}</p>
-                    )}
-                    {intervention.expectedImpact && (
-                      <p className="text-xs sm:text-sm text-gray-900 mt-1"><strong>Impact:</strong> {intervention.expectedImpact}</p>
-                    )}
-                  </div>
-                ))}
-                {(!aiAnalysis?.interventions || aiAnalysis.interventions.length === 0) && (
-                  <p className="text-gray-500 text-xs sm:text-sm">No interventions available yet.</p>
-                )}
-              </CardContent>
-            </Card>
-
           </div>
         )}
 
@@ -2129,13 +2201,13 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
           <motion.div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
             <div className="flex flex-wrap gap-2">
               {[
-                { id: 'all', label: `All · ${analysisQuestions.length}` },
-                { id: 'correct', label: `Correct · ${result.correctAnswers}` },
-                { id: 'wrong', label: `Wrong · ${result.wrongAnswers}` },
-                { id: 'skipped', label: `Skipped · ${result.unattempted}` },
-                { id: 'wrong-quick', label: `⚡ Wrong-quick · ${wrongQuickCount}` },
-                { id: 'hard-wrong', label: `Hard + Wrong · ${hardWrongCount}` },
-                { id: 'time-pressure', label: `⏱ Time-pressure · ${timePressureCount}` },
+                { id: 'all' as const, label: `All · ${questionFilterCounts.all}` },
+                { id: 'correct' as const, label: `Correct · ${questionFilterCounts.correct}` },
+                { id: 'wrong' as const, label: `Wrong · ${questionFilterCounts.wrong}` },
+                { id: 'skipped' as const, label: `Skipped · ${questionFilterCounts.skipped}` },
+                { id: 'wrong-quick' as const, label: `⚡ Wrong-quick · ${questionFilterCounts.wrongQuick}` },
+                { id: 'hard-wrong' as const, label: `Hard + Wrong · ${questionFilterCounts.hardWrong}` },
+                { id: 'time-pressure' as const, label: `⏱ Time-pressure · ${questionFilterCounts.timePressure}` },
               ].map((pill) => (
                 <button
                   key={pill.id}
@@ -2161,7 +2233,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                   const userAnswer = getUserAnswerForQuestion(question, index);
                   const isCorrect = compareAnswers(question, userAnswer, question.correctAnswer);
                   const isAttempted = userAnswer !== undefined && userAnswer !== null && userAnswer !== '';
-                  const t = getAnswerTimeSeconds(userAnswer);
+                  const t = getQuestionTimeForIndex(question, index, userAnswer);
                   const qi = aiAnalysis?.questionInsights?.find((x) => x.index === index + 1 || x.index === index);
                   const err = classifyErrorType(question, userAnswer, t, {
                     isCorrect,
@@ -2216,14 +2288,22 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                         Questions
                       </CardTitle>
                       <p className="text-xs text-gray-500 mt-1">
-                        {analysisQuestions.length} questions
+                        {questionFilter === 'all'
+                          ? `${analysisQuestions.length} questions`
+                          : `${navigableIndices.length} of ${analysisQuestions.length} shown`}
                       </p>
                     </CardHeader>
                     <CardContent className="pt-0">
                       {/* Question Numbers Grid - 5 columns, 5-6 rows */}
                       <div className="bg-gradient-to-br from-gray-50 to-purple-50/30 rounded-xl p-4 border border-gray-200">
+                        {navigableIndices.length === 0 ? (
+                          <p className="text-xs text-gray-500 text-center py-6">
+                            No questions match this filter.
+                          </p>
+                        ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
-                          {analysisQuestions.map((question, index) => {
+                          {navigableIndices.map((index) => {
+                            const question = analysisQuestions[index];
                             const userAnswer = getUserAnswerForQuestion(question, index);
                             const isCorrect = compareAnswers(question, userAnswer, question.correctAnswer);
                             const isAttempted = userAnswer !== undefined && userAnswer !== null && userAnswer !== '';
@@ -2265,6 +2345,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                             );
                           })}
                         </div>
+                        )}
                       </div>
                       
                       {/* Legend */}
@@ -2302,7 +2383,13 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                 {/* Question Container */}
                 <Card className="shadow-lg border-0 bg-white">
                   <CardContent className="p-3 sm:p-4 lg:p-6">
-                    {analysisQuestions.length > 0 && (
+                    {analysisQuestions.length > 0 && navigableIndices.length === 0 && (
+                      <div className="py-16 text-center text-gray-500">
+                        <p className="text-sm font-medium">No questions match this filter.</p>
+                        <p className="text-xs mt-1">Try another category above.</p>
+                      </div>
+                    )}
+                    {analysisQuestions.length > 0 && navigableIndices.length > 0 && (
                       <>
                         {/* Question Header */}
                         <div className="flex items-center justify-between mb-6">
@@ -2427,31 +2514,32 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
 
                         {/* Navigation Buttons */}
                         <div className="flex items-center justify-between mt-6 pt-6 border-t">
-                          {(() => {
-                            const totalQuestions = analysisQuestions.length;
-                            const lastQuestionIndex = Math.max(0, totalQuestions - 1);
-                            return (
-                              <>
                           <Button
                             variant="outline"
-                            onClick={() => setMobileQuestionIndex(Math.max(0, mobileQuestionIndex - 1))}
-                            disabled={mobileQuestionIndex === 0}
+                            onClick={goToPrev}
+                            disabled={
+                              navigableIndices.length === 0 ||
+                              navigableIndices.indexOf(mobileQuestionIndex) <= 0
+                            }
                           >
                             Previous
                           </Button>
                           <span className="text-xs sm:text-sm text-gray-600">
-                            Question {mobileQuestionIndex + 1} of {totalQuestions}
+                            {questionFilter === 'all'
+                              ? `Question ${mobileQuestionIndex + 1} of ${analysisQuestions.length}`
+                              : `Question ${filteredPosition} of ${navigableIndices.length} (Q${mobileQuestionIndex + 1})`}
                           </span>
                           <Button
                             variant="outline"
-                            onClick={() => setMobileQuestionIndex(Math.min(lastQuestionIndex, mobileQuestionIndex + 1))}
-                            disabled={mobileQuestionIndex === lastQuestionIndex}
+                            onClick={goToNext}
+                            disabled={
+                              navigableIndices.length === 0 ||
+                              navigableIndices.indexOf(mobileQuestionIndex) >=
+                                navigableIndices.length - 1
+                            }
                           >
                             Next
                           </Button>
-                              </>
-                            );
-                          })()}
                         </div>
                       </>
                     )}

@@ -137,6 +137,22 @@ export default function StudentExams() {
   /** Per-exam selected attempt row id on Attempted Exams cards */
   const [selectedAttemptByExam, setSelectedAttemptByExam] = useState<Record<string, string>>({});
   const didInitClassFilter = useRef(false);
+  const pendingOpenExamIdRef = useRef<string | null>(null);
+  const [calendarFocusExam, setCalendarFocusExam] = useState<{
+    examId: string;
+    mode: 'upcoming' | 'ended';
+    title: string;
+    startDate: string;
+    endDate: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const examId = new URLSearchParams(window.location.search).get('examId');
+    if (examId?.trim()) {
+      pendingOpenExamIdRef.current = examId.trim();
+    }
+  }, []);
 
   const preserveScrollOnFilterChange = (setter: (value: string) => void, value: string) => {
     setter(value);
@@ -650,6 +666,56 @@ export default function StudentExams() {
     setIsTakingExam(true);
   };
 
+  const scrollToExamCard = (examId: string) => {
+    window.requestAnimationFrame(() => {
+      document.getElementById(`calendar-exam-${examId}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    });
+  };
+
+  /** Open a specific exam when arriving from dashboard calendar (/?examId=...) */
+  useEffect(() => {
+    const targetId = pendingOpenExamIdRef.current;
+    if (!targetId || !exams.length || isLoading) return;
+
+    const exam = exams.find((e) => String(e._id) === String(targetId));
+    pendingOpenExamIdRef.current = null;
+
+    if (!exam) {
+      setActiveTab('available');
+      return;
+    }
+
+    const now = new Date();
+    const start = new Date(exam.startDate);
+    const end = new Date(exam.endDate);
+    const scheduleLabel = {
+      title: exam.title || 'Exam',
+      startDate: start.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+      endDate: end.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+    };
+
+    if (now < start) {
+      setCalendarFocusExam({ examId: targetId, mode: 'upcoming', ...scheduleLabel });
+      setActiveTab('upcoming');
+      scrollToExamCard(targetId);
+      return;
+    }
+
+    if (now > end) {
+      setCalendarFocusExam({ examId: targetId, mode: 'ended', ...scheduleLabel });
+      setActiveTab('attempted');
+      scrollToExamCard(targetId);
+      return;
+    }
+
+    setCalendarFocusExam(null);
+    setActiveTab('available');
+    void handleStartExam(exam);
+  }, [exams, isLoading]);
+
   const exitFullscreenIfActive = async () => {
     try {
       if (document.fullscreenElement && document.exitFullscreen) {
@@ -956,6 +1022,39 @@ export default function StudentExams() {
           </div>
         </div>
 
+        {calendarFocusExam && (
+          <div
+            className={`mb-4 rounded-xl border px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 ${
+              calendarFocusExam.mode === 'upcoming'
+                ? 'border-amber-200 bg-amber-50'
+                : 'border-slate-200 bg-slate-50'
+            }`}
+          >
+            <div>
+              <p className="text-sm font-semibold text-gray-900">
+                {calendarFocusExam.mode === 'upcoming' ? 'Upcoming exam' : 'Past exam'} —{' '}
+                {calendarFocusExam.title}
+              </p>
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                {calendarFocusExam.mode === 'upcoming' ? (
+                  <>
+                    Opens <strong>{calendarFocusExam.startDate}</strong> · Closes{' '}
+                    <strong>{calendarFocusExam.endDate}</strong>. You can start it once the exam window begins.
+                  </>
+                ) : (
+                  <>
+                    Ran <strong>{calendarFocusExam.startDate}</strong> – <strong>{calendarFocusExam.endDate}</strong>.
+                    Check your attempts below if you already took it.
+                  </>
+                )}
+              </p>
+            </div>
+            <Button variant="outline" size="sm" className="shrink-0" onClick={() => setCalendarFocusExam(null)}>
+              Dismiss
+            </Button>
+          </div>
+        )}
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3 sm:space-y-4 lg:space-y-6">
           <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
             <TabsTrigger value="available">Available Exams</TabsTrigger>
@@ -1107,7 +1206,15 @@ export default function StudentExams() {
                 const totalMarksDisplay = displayResult.totalMarks || exam.totalMarks;
 
                 return (
-                  <Card key={examIdStr} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
+                  <Card
+                    key={examIdStr}
+                    id={`calendar-exam-${examIdStr}`}
+                    className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300 ${
+                      calendarFocusExam?.examId === examIdStr && calendarFocusExam.mode === 'ended'
+                        ? 'ring-4 ring-slate-400 ring-offset-2'
+                        : ''
+                    }`}
+                  >
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -1344,9 +1451,16 @@ export default function StudentExams() {
                 ];
                 const colorScheme = colorSchemes[index % 3];
                 const classLabelsUpcoming = getExamClassStrings(exam);
+                const isCalendarFocus =
+                  calendarFocusExam?.examId === String(exam._id) && calendarFocusExam.mode === 'upcoming';
                 
                 return (
-                  <Card key={exam._id} className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}>
+                  <Card
+                    id={`calendar-exam-${exam._id}`}
+                    className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300 ${
+                      isCalendarFocus ? 'ring-4 ring-amber-400 ring-offset-2' : ''
+                    }`}
+                  >
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
