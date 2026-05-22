@@ -5,6 +5,11 @@ export function extractClassNumberFromSubjectName(name: string): string | null {
   return match ? match[1] : null;
 }
 
+/** True when subject was soft-deleted in Super Admin (name contains __deleted__). */
+export function isSoftDeletedSubjectName(name: string): boolean {
+  return String(name || '').includes('__deleted__');
+}
+
 export function extractPlainSubjectName(name: string): string {
   const base = String(name || '').split('__deleted__')[0].trim();
   const match = base.match(/^(.+?)_\d+$/);

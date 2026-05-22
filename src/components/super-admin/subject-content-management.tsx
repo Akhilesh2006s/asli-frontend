@@ -59,9 +59,12 @@ interface ContentItem {
   type: ContentType;
   board: string;
   stateName?: string;
+  isActive?: boolean;
   subject: {
     _id: string;
     name: string;
+    classNumber?: string;
+    missingFromCatalog?: boolean;
   };
   classNumber?: string;
   topic?: string;
@@ -201,6 +204,9 @@ function effectiveContentClass(
 ): string | null {
   if (item.classNumber != null && String(item.classNumber).trim() !== '') {
     return normalizeClassNumber(item.classNumber);
+  }
+  if (item.subject?.classNumber != null && String(item.subject.classNumber).trim() !== '') {
+    return normalizeClassNumber(item.subject.classNumber);
   }
   const sid = item.subject?._id;
   if (!sid) return null;
@@ -622,7 +628,15 @@ export default function SubjectContentManagement() {
       if (response.ok) {
         const data = await response.json();
         if (data.success && Array.isArray(data.data)) {
-          setSubjects(data.data);
+          const normalized = data.data.map((raw: SubjectItem & { id?: string }) => ({
+            ...raw,
+            _id: String(raw._id || raw.id),
+            classNumber:
+              raw.classNumber?.trim() ||
+              extractClassNumberFromSubjectName(raw.name) ||
+              undefined,
+          }));
+          setSubjects(normalized);
         }
       } else {
         toast({
@@ -648,7 +662,7 @@ export default function SubjectContentManagement() {
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch(
-        `${API_BASE_URL}/api/super-admin/boards/${BOARD_CODE}/content`,
+        `${API_BASE_URL}/api/super-admin/boards/${BOARD_CODE}/content?includeInactive=true`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -660,7 +674,15 @@ export default function SubjectContentManagement() {
       if (response.ok) {
         const data = await response.json();
         if (data.success && Array.isArray(data.data)) {
-          setContents(data.data);
+          const normalized = data.data.map((row: ContentItem) => ({
+            ...row,
+            classNumber:
+              row.classNumber?.trim() ||
+              row.subject?.classNumber?.trim() ||
+              extractClassNumberFromSubjectName(row.subject?.name || '') ||
+              undefined,
+          }));
+          setContents(normalized);
         }
       } else {
         toast({
@@ -768,6 +790,7 @@ export default function SubjectContentManagement() {
       const body: Record<string, string> = {
         name: storedName,
         board: newSubjectSyllabus,
+        classNumber: selectedClassNumber,
       };
       if (newSubjectSyllabus === 'STATE') {
         body.stateName = newSubjectStateName.trim();
@@ -1607,6 +1630,14 @@ export default function SubjectContentManagement() {
                                 >
                                   {content.type}
                                 </Badge>
+                                {content.isActive === false && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-[10px] font-normal border-amber-200 bg-amber-50 text-amber-800"
+                                  >
+                                    Inactive
+                                  </Badge>
+                                )}
                                 <span>
                                   {new Date(
                                     content.date || content.createdAt

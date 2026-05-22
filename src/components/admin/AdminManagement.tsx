@@ -16,26 +16,7 @@ import { cn } from "@/lib/utils";
 
 /** Visible borders/background on white dialogs (muted/40 was nearly invisible). */
 const SCHOOL_FORM_FIELD_CLASS =
-  "h-10 w-full min-w-0 border border-slate-300 bg-white text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-500/20";
-
-const SCHOOL_FORM_LABEL_CLASS = "text-sm font-medium text-slate-700";
-
-const SCHOOL_DIALOG_CONTENT_CLASS =
-  "flex max-h-[min(100dvh,100svh)] w-[min(96vw,52rem)] max-w-[52rem] translate-x-[-50%] translate-y-[-50%] flex-col gap-0 overflow-hidden p-0 sm:max-h-[92vh]";
-
-const SCHOOL_DIALOG_BODY_CLASS =
-  "min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-5 py-5 pb-8 sm:px-6 [-webkit-overflow-scrolling:touch]";
-
-/** Two columns — wider inputs for names, email, contacts. */
-const SCHOOL_FORM_GRID_MAIN = "grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2";
-
-/** Three columns for compact address / metadata fields. */
-const SCHOOL_FORM_GRID_COMPACT = "grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3";
-
-const SCHOOL_SECTION_TITLE_CLASS = "mb-4 mt-8 text-sm font-semibold text-slate-900 first:mt-0";
-
-const SCHOOL_PROGRAM_BOX_CLASS =
-  "rounded-xl border border-slate-200 bg-slate-50 px-5 py-4";
+  "border border-slate-300 bg-slate-100 text-slate-900 shadow-sm placeholder:text-slate-500 focus-visible:border-slate-400 focus-visible:ring-2 focus-visible:ring-slate-400/30";
 
 interface SchoolDetailsForm {
   doorNo: string;
@@ -1027,19 +1008,19 @@ export default function AdminManagement() {
             </Button>
           </DialogTrigger>
           <DialogContent
-            className={SCHOOL_DIALOG_CONTENT_CLASS}
+            className="flex max-h-[min(100dvh,100svh)] w-[min(96vw,80rem)] max-w-none translate-x-[-50%] translate-y-[-50%] flex-col gap-0 overflow-hidden p-0 sm:max-h-[94vh] sm:max-w-none"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
-            <DialogHeader className="shrink-0 space-y-1.5 border-b px-5 py-4 text-left sm:px-6">
-              <DialogTitle className="text-lg">Add New School</DialogTitle>
-              <DialogDescription className="text-sm leading-relaxed text-slate-600">
-                Set the administrator login, school address, curriculum board, and portal access. Scroll if needed on smaller screens.
+            <DialogHeader className="shrink-0 space-y-1 border-b px-3 sm:px-4 lg:px-6 py-4 text-left">
+              <DialogTitle>Add New School</DialogTitle>
+              <DialogDescription>
+                Scroll on small screens to see all fields. Three columns on large screens. Pick the curriculum board the school follows, then use the toggle for normal usage vs Asli Prep (like Limited vs Unlimited below).
               </DialogDescription>
             </DialogHeader>
-            <div className={SCHOOL_DIALOG_BODY_CLASS}>
-              <p className={SCHOOL_SECTION_TITLE_CLASS}>Administrator</p>
-              <div className={SCHOOL_FORM_GRID_MAIN}>
-                <div className="space-y-2">
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 sm:px-4 lg:px-6 py-4 pb-8 [-webkit-overflow-scrolling:touch]">
+              <p className="mb-3 text-xs sm:text-sm font-semibold text-gray-900">Administrator</p>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-1.5">
                   <Label htmlFor="name">Full Name *</Label>
                   <Input
                     id="name"
@@ -1049,7 +1030,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="email">Email *</Label>
                   <Input
                     id="email"
@@ -1060,7 +1041,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="password">Password *</Label>
                   <div className="relative">
                     <Input
@@ -1087,7 +1068,7 @@ export default function AdminManagement() {
                     </button>
                   </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="contactPerson">Primary contact name</Label>
                   <Input
                     id="contactPerson"
@@ -1097,7 +1078,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="phone">Primary contact number</Label>
                   <Input
                     id="phone"
@@ -1114,7 +1095,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="secondaryContactPerson">Secondary contact name</Label>
                   <Input
                     id="secondaryContactPerson"
@@ -1124,7 +1105,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="secondaryContactPhone">Secondary contact number</Label>
                   <Input
                     id="secondaryContactPhone"
@@ -1146,10 +1127,10 @@ export default function AdminManagement() {
                 </div>
               </div>
 
-              <p className={SCHOOL_SECTION_TITLE_CLASS}>School Information</p>
-              <div className={SCHOOL_FORM_GRID_COMPACT}>
-                <div className="col-span-full space-y-2">
-                  <Label htmlFor="schoolName" className={SCHOOL_FORM_LABEL_CLASS}>School Name *</Label>
+              <p className="mb-3 mt-8 text-xs sm:text-sm font-semibold text-gray-900">School Information</p>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
+                  <Label htmlFor="schoolName">School Name *</Label>
                   <Input
                     id="schoolName"
                     value={newAdmin.schoolName}
@@ -1158,7 +1139,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="doorNo">Door No</Label>
                   <Input
                     id="doorNo"
@@ -1173,7 +1154,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="street">Street</Label>
                   <Input
                     id="street"
@@ -1188,7 +1169,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="area">Area</Label>
                   <Input
                     id="area"
@@ -1203,7 +1184,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="city">City *</Label>
                   <Input
                     id="city"
@@ -1218,7 +1199,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="district">District *</Label>
                   <Input
                     id="district"
@@ -1233,7 +1214,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="state">State *</Label>
                   <Select
                     value={newAdmin.state}
@@ -1251,8 +1232,8 @@ export default function AdminManagement() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2 lg:max-w-[12rem]">
-                  <Label htmlFor="pin" className={SCHOOL_FORM_LABEL_CLASS}>Pincode</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="pin">Pincode</Label>
                   <Input
                     id="pin"
                     value={newAdmin.pin}
@@ -1261,7 +1242,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="board">Curriculum board *</Label>
                   <Select
                     value={newAdmin.board}
@@ -1279,8 +1260,8 @@ export default function AdminManagement() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="col-span-full">
-                  <div className={SCHOOL_PROGRAM_BOX_CLASS}>
+                <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-3">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="space-y-1">
                         <p className="text-xs sm:text-sm text-gray-800">School program</p>
@@ -1316,7 +1297,7 @@ export default function AdminManagement() {
                     </div>
                   </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="medium">Medium</Label>
                   <Select
                     value={newAdmin.schoolDetails.medium || undefined}
@@ -1339,7 +1320,7 @@ export default function AdminManagement() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="classesFrom">Classes From</Label>
                   <Input
                     id="classesFrom"
@@ -1354,7 +1335,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="classesTo">Classes To</Label>
                   <Input
                     id="classesTo"
@@ -1369,7 +1350,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="totalStrength">Total Strength</Label>
                   <Input
                     id="totalStrength"
@@ -1384,7 +1365,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="schoolType">School Type</Label>
                   <Select
                     value={newAdmin.schoolDetails.schoolType || undefined}
@@ -1464,8 +1445,8 @@ export default function AdminManagement() {
                 </div>
               </div>
 
-              <p className={SCHOOL_SECTION_TITLE_CLASS}>Admin portal access</p>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-5">
+              <p className="mb-3 mt-8 text-xs sm:text-sm font-semibold text-gray-900">Admin portal access</p>
+              <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-1">
                     <p className="text-xs sm:text-sm text-gray-800">Limited vs unlimited</p>
@@ -1580,7 +1561,7 @@ export default function AdminManagement() {
                 )}
               </div>
             </div>
-            <div className="flex shrink-0 justify-end gap-3 border-t bg-background px-5 py-4 sm:px-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="flex shrink-0 justify-end gap-2 border-t bg-background px-3 sm:px-4 lg:px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                 Cancel
               </Button>
@@ -1603,20 +1584,20 @@ export default function AdminManagement() {
           }}
         >
           <DialogContent
-            className={SCHOOL_DIALOG_CONTENT_CLASS}
+            className="flex max-h-[min(100dvh,100svh)] w-[min(96vw,80rem)] max-w-none translate-x-[-50%] translate-y-[-50%] flex-col gap-0 overflow-hidden p-0 sm:max-h-[94vh] sm:max-w-none"
             onOpenAutoFocus={(e) => e.preventDefault()}
           >
-            <DialogHeader className="shrink-0 space-y-1.5 border-b px-5 py-4 text-left sm:px-6">
-              <DialogTitle className="text-lg">Edit School</DialogTitle>
-              <DialogDescription className="text-sm leading-relaxed text-slate-600">
-                Update administrator details, school address, curriculum board, and portal access.
+            <DialogHeader className="shrink-0 space-y-1 border-b px-3 sm:px-4 lg:px-6 py-4 text-left">
+              <DialogTitle>Edit School</DialogTitle>
+              <DialogDescription>
+                Scroll on small screens to see all fields. Three columns on large screens. Pick the curriculum board the school follows, then use the toggle for normal usage vs Asli Prep (like Limited vs Unlimited below).
               </DialogDescription>
             </DialogHeader>
-            <div className={SCHOOL_DIALOG_BODY_CLASS}>
-              <p className={SCHOOL_SECTION_TITLE_CLASS}>Administrator</p>
-              <div className={SCHOOL_FORM_GRID_MAIN}>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-name" className={SCHOOL_FORM_LABEL_CLASS}>Full Name *</Label>
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-3 sm:px-4 lg:px-6 py-4 pb-8 [-webkit-overflow-scrolling:touch]">
+              <p className="mb-3 text-xs sm:text-sm font-semibold text-gray-900">Administrator</p>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-name">Full Name *</Label>
                   <Input
                     id="edit-name"
                     value={editAdmin.name}
@@ -1625,8 +1606,8 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-email" className={SCHOOL_FORM_LABEL_CLASS}>Email *</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-email">Email *</Label>
                   <Input
                     id="edit-email"
                     type="email"
@@ -1636,38 +1617,39 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="edit-password-change" className={SCHOOL_FORM_LABEL_CLASS}>
-                    Password
-                  </Label>
-                  {!showEditPasswordChange ? (
+                <div className="space-y-1.5 lg:col-span-1">
+                  <Label htmlFor="edit-password-mask">Password</Label>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Input
+                      id="edit-password-mask"
+                      type="password"
+                      value="••••••••"
+                      readOnly
+                      disabled
+                      className={cn(SCHOOL_FORM_FIELD_CLASS, "sm:flex-1")}
+                      autoComplete="off"
+                      aria-label="Current password is hidden"
+                    />
                     <Button
-                      id="edit-password-change"
                       type="button"
                       variant="outline"
-                      className="h-10 w-full sm:w-auto min-w-[10rem]"
-                      onClick={() => setShowEditPasswordChange(true)}
+                      className="shrink-0"
+                      onClick={() => {
+                        if (showEditPasswordChange) {
+                          resetEditPasswordUi();
+                        } else {
+                          setShowEditPasswordChange(true);
+                        }
+                      }}
                     >
-                      Change password
+                      {showEditPasswordChange ? "Cancel" : "Change password"}
                     </Button>
-                  ) : (
-                    <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <Label htmlFor="edit-new-password" className={SCHOOL_FORM_LABEL_CLASS}>
-                          New password
-                        </Label>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 text-slate-600"
-                          onClick={resetEditPasswordUi}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                        <div className="relative min-w-0 flex-1">
+                  </div>
+                  {showEditPasswordChange && (
+                    <div className="mt-2 space-y-2 rounded-md border border-slate-200 bg-slate-50/80 p-3">
+                      <Label htmlFor="edit-new-password">New password</Label>
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <div className="relative sm:flex-1">
                           <Input
                             id="edit-new-password"
                             type={showEditNewPassword ? "text" : "password"}
@@ -1680,19 +1662,18 @@ export default function AdminManagement() {
                           <button
                             type="button"
                             onClick={() => setShowEditNewPassword((prev) => !prev)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-500 hover:text-slate-800"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-500 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/40"
                             aria-label={showEditNewPassword ? "Hide password" : "Show password"}
                           >
                             {showEditNewPassword ? (
-                              <EyeOff className="h-4 w-4" />
+                              <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" />
                             ) : (
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                             )}
                           </button>
                         </div>
                         <Button
                           type="button"
-                          className="h-10 shrink-0"
                           onClick={handleSaveEditPassword}
                           disabled={isSavingPassword || !editNewPassword.trim()}
                         >
@@ -1702,7 +1683,7 @@ export default function AdminManagement() {
                     </div>
                   )}
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="edit-contactPerson">Primary contact name</Label>
                   <Input
                     id="edit-contactPerson"
@@ -1712,7 +1693,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="edit-phone">Primary contact number</Label>
                   <Input
                     id="edit-phone"
@@ -1729,7 +1710,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="edit-secondaryContactPerson">Secondary contact name</Label>
                   <Input
                     id="edit-secondaryContactPerson"
@@ -1739,7 +1720,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="edit-secondaryContactPhone">Secondary contact number</Label>
                   <Input
                     id="edit-secondaryContactPhone"
@@ -1759,7 +1740,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="flex items-center gap-2 sm:col-span-2">
+                <div className="flex items-end space-x-2 pb-2 md:col-span-2 lg:col-span-3">
                   <input
                     type="checkbox"
                     id="edit-isActive"
@@ -1773,10 +1754,10 @@ export default function AdminManagement() {
                 </div>
               </div>
 
-              <p className={SCHOOL_SECTION_TITLE_CLASS}>School Information</p>
-              <div className={SCHOOL_FORM_GRID_COMPACT}>
-                <div className="col-span-full space-y-2">
-                  <Label htmlFor="edit-schoolName" className={SCHOOL_FORM_LABEL_CLASS}>School Name *</Label>
+              <p className="mb-3 mt-8 text-xs sm:text-sm font-semibold text-gray-900">School Information</p>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
+                  <Label htmlFor="edit-schoolName">School Name *</Label>
                   <Input
                     id="edit-schoolName"
                     value={editAdmin.schoolName}
@@ -1785,7 +1766,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="edit-doorNo">Door No</Label>
                   <Input
                     id="edit-doorNo"
@@ -1799,7 +1780,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="edit-street">Street</Label>
                   <Input
                     id="edit-street"
@@ -1813,7 +1794,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="edit-area">Area</Label>
                   <Input
                     id="edit-area"
@@ -1827,7 +1808,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="edit-city">City *</Label>
                   <Input
                     id="edit-city"
@@ -1841,7 +1822,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="edit-district">District *</Label>
                   <Input
                     id="edit-district"
@@ -1855,7 +1836,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="edit-state">State *</Label>
                   <Select
                     value={editAdmin.state}
@@ -1873,8 +1854,8 @@ export default function AdminManagement() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2 lg:max-w-[12rem]">
-                  <Label htmlFor="edit-pin" className={SCHOOL_FORM_LABEL_CLASS}>Pincode</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-pin">Pincode</Label>
                   <Input
                     id="edit-pin"
                     value={editAdmin.pin}
@@ -1882,7 +1863,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="edit-board">Curriculum board *</Label>
                   <Select
                     value={editAdmin.board}
@@ -1900,8 +1881,8 @@ export default function AdminManagement() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="col-span-full">
-                  <div className={SCHOOL_PROGRAM_BOX_CLASS}>
+                <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-3">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="space-y-1">
                         <p className="text-xs sm:text-sm text-gray-800">School program</p>
@@ -1937,7 +1918,7 @@ export default function AdminManagement() {
                     </div>
                   </div>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="edit-medium">Medium</Label>
                   <Select
                     value={editAdmin.schoolDetails.medium || undefined}
@@ -1960,7 +1941,7 @@ export default function AdminManagement() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="edit-classesFrom">Classes From</Label>
                   <Input
                     id="edit-classesFrom"
@@ -1974,7 +1955,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="edit-classesTo">Classes To</Label>
                   <Input
                     id="edit-classesTo"
@@ -1988,7 +1969,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="edit-totalStrength">Total Strength</Label>
                   <Input
                     id="edit-totalStrength"
@@ -2002,7 +1983,7 @@ export default function AdminManagement() {
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <Label htmlFor="edit-schoolType">School Type</Label>
                   <Select
                     value={editAdmin.schoolDetails.schoolType || undefined}
@@ -2082,8 +2063,8 @@ export default function AdminManagement() {
                 </div>
               </div>
 
-              <p className={SCHOOL_SECTION_TITLE_CLASS}>Admin portal access</p>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-5">
+              <p className="mb-3 mt-8 text-xs sm:text-sm font-semibold text-gray-900">Admin portal access</p>
+              <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-1">
                     <p className="text-xs sm:text-sm text-gray-800">Limited vs unlimited</p>
@@ -2198,7 +2179,7 @@ export default function AdminManagement() {
                 )}
               </div>
             </div>
-            <div className="flex shrink-0 justify-end gap-3 border-t bg-background px-5 py-4 sm:px-6 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="flex shrink-0 justify-end gap-2 border-t bg-background px-3 sm:px-4 lg:px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <Button
                 variant="outline"
                 onClick={() => {
