@@ -23,6 +23,11 @@ import {
   saveCurriculumClass,
 } from '@/lib/super-admin-curriculum-classes';
 import {
+  extractClassNumberFromSubjectName,
+  extractPlainSubjectName,
+  isSoftDeletedSubjectName,
+} from '@/lib/subject-names';
+import {
   BookOpen,
   ChevronRight,
   File,
@@ -92,8 +97,10 @@ const BOARD_CODE = 'ASLI_EXCLUSIVE_SCHOOLS';
 
 type SyllabusBoard = 'ASLI_EXCLUSIVE_SCHOOLS' | 'CBSE' | 'STATE';
 
+/** Boards used when merging content lists (deduped by _id) if board-agnostic fetch is unavailable. */
+const CONTENT_FETCH_BOARDS: SyllabusBoard[] = ['ASLI_EXCLUSIVE_SCHOOLS', 'CBSE', 'STATE'];
+
 const SYLLABUS_OPTIONS: { value: SyllabusBoard; label: string }[] = [
-  { value: 'ASLI_EXCLUSIVE_SCHOOLS', label: 'ASLI Exclusive Schools' },
   { value: 'CBSE', label: 'CBSE' },
   { value: 'STATE', label: 'State' },
 ];
@@ -138,7 +145,9 @@ const INDIAN_STATE_OPTIONS = [
 ] as const;
 
 function syllabusLabel(board: string): string {
-  const o = SYLLABUS_OPTIONS.find((x) => x.value === board);
+  const normalized = board.toUpperCase();
+  if (normalized === 'ASLI_EXCLUSIVE_SCHOOLS') return '';
+  const o = SYLLABUS_OPTIONS.find((x) => x.value === normalized || x.value === board);
   return o?.label ?? board;
 }
 
@@ -151,16 +160,6 @@ const CONTENT_TYPE_SECTIONS: { title: string; types: ContentType[] }[] = [
   { title: 'Videos', types: ['Video'] },
   { title: 'Audio', types: ['Audio'] },
 ];
-
-const extractClassNumberFromSubjectName = (name: string): string | null => {
-  const match = name.match(/_(\d+)$/);
-  return match ? match[1] : null;
-};
-
-const extractPlainSubjectName = (name: string): string => {
-  const match = name.match(/^(.+?)_\d+$/);
-  return match ? match[1] : name;
-};
 
 /** Compare class numbers consistently ("8", "08", Class 8). */
 function normalizeClassNumber(value: string | null | undefined): string {
@@ -200,9 +199,59 @@ function inferSubjectLabelFromContent(item: ContentItem): string {
   return fromTitle || 'General';
 }
 
+function isInferredSubjectId(id: string | null | undefined): boolean {
+  return !id || String(id).startsWith('inferred-');
+}
+
+function isMongoObjectId(id: string | null | undefined): boolean {
+  return Boolean(id && /^[a-f0-9]{24}$/i.test(String(id)));
+}
+
 function isCatalogSubjectId(id: string | null, catalog: SubjectItem[]): boolean {
-  if (!id || id.startsWith('inferred-')) return false;
+  if (isInferredSubjectId(id)) return false;
   return catalog.some((s) => String(s._id) === String(id));
+}
+
+/** One sidebar row per subject title + class (board can differ on content vs catalog). */
+function subjectSidebarKey(name: string, classNum: string): string {
+  return `${extractPlainSubjectName(name).toLowerCase()}|${classNum}`;
+}
+
+function displaySubjectName(name: string): string {
+  const base = String(name || '').split('__deleted__')[0].trim();
+  return extractPlainSubjectName(base) || base;
+}
+
+/** Map UI subject row (incl. inferred groups) to a real catalog subject id for save. */
+function resolveCatalogSubjectIdForSave(
+  subjectId: string | null,
+  catalog: SubjectItem[],
+  classNumber: string,
+  classSubjects: SubjectItem[]
+): string | null {
+  if (!subjectId) return null;
+  if (isCatalogSubjectId(subjectId, catalog)) return String(subjectId);
+  if (isMongoObjectId(subjectId) && !isInferredSubjectId(subjectId)) {
+    return String(subjectId);
+  }
+
+  const row =
+    classSubjects.find((s) => String(s._id) === String(subjectId)) ?? null;
+  if (!row) return null;
+
+  const plain = extractPlainSubjectName(row.name).toLowerCase().trim();
+  const normClass = normalizeClassNumber(classNumber);
+  if (!plain || !normClass) return null;
+
+  const match = catalog.find((s) => {
+    const sClass = s.classNumber
+      ? normalizeClassNumber(s.classNumber)
+      : normalizeClassNumber(extractClassNumberFromSubjectName(s.name) || '');
+    if (sClass !== normClass) return false;
+    return extractPlainSubjectName(s.name).toLowerCase().trim() === plain;
+  });
+
+  return match ? String(match._id) : null;
 }
 
 /** Resolve subject for display/save — catalog row or embedded content.subject. */
@@ -288,12 +337,21 @@ const getUploadAcceptForContentType = (type: ContentType): string => {
   return '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx';
 };
 
-const isServerHostedFileUrl = (url: string): boolean => {
+/** Normalize upload paths so validation and API always get `/uploads/...`. */
+function normalizeServerContentFileUrl(url: string): string {
   const trimmed = url.trim();
-  return (
-    trimmed.startsWith('/uploads/') ||
-    trimmed.startsWith(`${API_BASE_URL}/uploads/`)
-  );
+  if (!trimmed) return '';
+  if (trimmed.startsWith(`${API_BASE_URL}/uploads/`)) {
+    return trimmed.slice(API_BASE_URL.length);
+  }
+  if (trimmed.startsWith('/uploads/')) return trimmed;
+  if (trimmed.startsWith('uploads/')) return `/${trimmed}`;
+  return trimmed;
+}
+
+const isServerHostedFileUrl = (url: string): boolean => {
+  const normalized = normalizeServerContentFileUrl(url);
+  return normalized.startsWith('/uploads/');
 };
 
 const isHttpUrl = (url: string): boolean => {
@@ -307,11 +365,11 @@ const isHttpUrl = (url: string): boolean => {
 
 /** Video: external URL only. Audio: URL or upload. Other types: upload only. */
 function isValidContentSourceUrl(url: string, type: ContentType): boolean {
-  const trimmed = url.trim();
+  const trimmed = normalizeServerContentFileUrl(url) || url.trim();
   if (!trimmed) return false;
-  if (type === 'Video') return isHttpUrl(trimmed);
-  if (type === 'Audio') return isServerHostedFileUrl(trimmed) || isHttpUrl(trimmed);
-  return isServerHostedFileUrl(trimmed);
+  if (type === 'Video') return isHttpUrl(url.trim());
+  if (type === 'Audio') return isServerHostedFileUrl(url) || isHttpUrl(url.trim());
+  return isServerHostedFileUrl(url);
 }
 
 const normalizeMediaUrl = (value?: string | null): string | null => {
@@ -589,12 +647,12 @@ export default function SubjectContentManagement() {
 
   const [isAddSubjectOpen, setIsAddSubjectOpen] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState('');
-  const [newSubjectSyllabus, setNewSubjectSyllabus] = useState<SyllabusBoard>('ASLI_EXCLUSIVE_SCHOOLS');
+  const [newSubjectSyllabus, setNewSubjectSyllabus] = useState<SyllabusBoard>('CBSE');
   const [newSubjectStateName, setNewSubjectStateName] = useState('');
   const [editingSubject, setEditingSubject] = useState<SubjectItem | null>(null);
   const [isEditSubjectOpen, setIsEditSubjectOpen] = useState(false);
   const [editSubjectName, setEditSubjectName] = useState('');
-  const [editSubjectSyllabus, setEditSubjectSyllabus] = useState<SyllabusBoard>('ASLI_EXCLUSIVE_SCHOOLS');
+  const [editSubjectSyllabus, setEditSubjectSyllabus] = useState<SyllabusBoard>('CBSE');
   const [editSubjectStateName, setEditSubjectStateName] = useState('');
 
   const [isAddContentOpen, setIsAddContentOpen] = useState(false);
@@ -715,7 +773,21 @@ export default function SubjectContentManagement() {
         return sid != null && String(sid) === String(subj._id);
       });
       if (subjClass === normClass || linkedViaContent) {
-        map.set(String(subj._id), subj);
+        const rowClass = subjClass || normClass;
+        const groupKey = subjectSidebarKey(subj.name, rowClass);
+        const existing = map.get(groupKey);
+        const preferThis =
+          !existing ||
+          (isSoftDeletedSubjectName(existing.name) && !isSoftDeletedSubjectName(subj.name)) ||
+          (existing.isActive === false && subj.isActive !== false) ||
+          (isInferredSubjectId(existing._id) && isMongoObjectId(subj._id));
+        if (preferThis) {
+          map.set(groupKey, {
+            ...subj,
+            name: displaySubjectName(subj.name),
+            classNumber: rowClass || subj.classNumber,
+          });
+        }
       }
     });
 
@@ -725,22 +797,32 @@ export default function SubjectContentManagement() {
       }
       const sid = getContentSubjectId(item);
       const label = item.subject?.name
-        ? extractPlainSubjectName(item.subject.name)
+        ? displaySubjectName(item.subject.name)
         : inferSubjectLabelFromContent(item);
+      const board = item.board || BOARD_CODE;
+      const groupKey = subjectSidebarKey(label, normClass);
       const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      const key =
-        sid && subjects.some((s) => String(s._id) === String(sid))
-          ? String(sid)
-          : `inferred-${slug}`;
-      if (!map.has(key)) {
-        map.set(key, {
-          _id: key,
+      const idKey =
+        sid && isMongoObjectId(sid) && !isInferredSubjectId(sid) ? String(sid) : `inferred-${slug}`;
+
+      const existing = map.get(groupKey);
+      if (!existing) {
+        const fromCatalog =
+          sid && subjects.find((s) => String(s._id) === String(sid));
+        map.set(groupKey, {
+          _id: fromCatalog ? String(fromCatalog._id) : idKey,
           name: label,
-          board: item.board || BOARD_CODE,
-          classNumber:
-            normalizeClassNumber(effectiveContentClass(item, subjects) || '') ||
-            undefined,
+          board,
+          classNumber: normClass,
+          isActive: item.isActive,
         });
+      } else if (
+        sid &&
+        isMongoObjectId(sid) &&
+        isInferredSubjectId(existing._id) &&
+        !isInferredSubjectId(sid)
+      ) {
+        map.set(groupKey, { ...existing, _id: String(sid), board: existing.board || board });
       }
     });
 
@@ -866,12 +948,15 @@ export default function SubjectContentManagement() {
     setIsLoadingSubjects(true);
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/subjects`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/super-admin/subjects?includeInactive=true`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -879,6 +964,7 @@ export default function SubjectContentManagement() {
           const normalized = data.data.map((raw: SubjectItem & { id?: string }) => ({
             ...raw,
             _id: String(raw._id || raw.id),
+            name: displaySubjectName(raw.name),
             classNumber:
               raw.classNumber?.trim() ||
               extractClassNumberFromSubjectName(raw.name) ||
@@ -889,7 +975,7 @@ export default function SubjectContentManagement() {
       } else {
         toast({
           title: 'Error',
-          description: 'Failed to load subjects',
+          description: `Failed to load subjects (${response.status})`,
           variant: 'destructive',
         });
       }
@@ -905,40 +991,75 @@ export default function SubjectContentManagement() {
     }
   };
 
+  const normalizeContentRows = (rows: ContentItem[]) =>
+    rows.map((row: ContentItem) => ({
+      ...row,
+      classNumber:
+        row.classNumber?.trim() ||
+        row.subject?.classNumber?.trim() ||
+        extractClassNumberFromSubjectName(row.subject?.name || '') ||
+        undefined,
+    }));
+
   const fetchContents = async () => {
     setIsLoadingContents(true);
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(
-        `${API_BASE_URL}/api/super-admin/boards/${BOARD_CODE}/content?includeInactive=true`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      };
+      const query = 'includeInactive=true';
 
-      if (response.ok) {
-        const data = await response.json();
+      const allUrl = `${API_BASE_URL}/api/super-admin/content?${query}`;
+      const allResponse = await fetch(allUrl, { headers });
+
+      let merged: ContentItem[] = [];
+
+      if (allResponse.ok) {
+        const data = await allResponse.json();
         if (data.success && Array.isArray(data.data)) {
-          const normalized = data.data.map((row: ContentItem) => ({
-            ...row,
-            classNumber:
-              row.classNumber?.trim() ||
-              row.subject?.classNumber?.trim() ||
-              extractClassNumberFromSubjectName(row.subject?.name || '') ||
-              undefined,
-          }));
-          setContents(normalized);
+          merged = normalizeContentRows(data.data);
+        } else {
+          toast({
+            title: 'Error',
+            description: data.message || 'Failed to load content',
+            variant: 'destructive',
+          });
         }
       } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to load content',
-          variant: 'destructive',
-        });
+        const byId = new Map<string, ContentItem>();
+        const boardResponses = await Promise.all(
+          CONTENT_FETCH_BOARDS.map((board) =>
+            fetch(
+              `${API_BASE_URL}/api/super-admin/boards/${board}/content?${query}`,
+              { headers }
+            )
+          )
+        );
+        let anyOk = false;
+        for (const response of boardResponses) {
+          if (!response.ok) continue;
+          anyOk = true;
+          const data = await response.json();
+          if (data.success && Array.isArray(data.data)) {
+            for (const row of normalizeContentRows(data.data)) {
+              byId.set(String(row._id), row);
+            }
+          }
+        }
+        merged = Array.from(byId.values());
+        if (!anyOk) {
+          toast({
+            title: 'Error',
+            description: 'Failed to load content',
+            variant: 'destructive',
+          });
+          return;
+        }
       }
+
+      setContents(merged);
     } catch (error) {
       console.error('Failed to fetch contents:', error);
       toast({
@@ -1007,7 +1128,7 @@ export default function SubjectContentManagement() {
       return;
     }
     setNewSubjectName('');
-    setNewSubjectSyllabus('ASLI_EXCLUSIVE_SCHOOLS');
+    setNewSubjectSyllabus('CBSE');
     setNewSubjectStateName('');
     setIsAddSubjectOpen(true);
   };
@@ -1090,7 +1211,7 @@ export default function SubjectContentManagement() {
     setEditSubjectName(extractPlainSubjectName(subject.name));
     const b = (subject.board || BOARD_CODE).toUpperCase() as SyllabusBoard;
     setEditSubjectSyllabus(
-      b === 'CBSE' || b === 'STATE' || b === 'ASLI_EXCLUSIVE_SCHOOLS' ? b : 'ASLI_EXCLUSIVE_SCHOOLS'
+      b === 'CBSE' || b === 'STATE' || b === 'ASLI_EXCLUSIVE_SCHOOLS' ? b : 'CBSE'
     );
     setEditSubjectStateName(subject.stateName?.trim() || '');
     setIsEditSubjectOpen(true);
@@ -1217,6 +1338,15 @@ export default function SubjectContentManagement() {
       });
       return;
     }
+    if (isInferredSubjectId(selectedSubjectId)) {
+      toast({
+        title: 'Catalog subject required',
+        description:
+          'Add a catalog subject first (use Add Subject or Sync Missing Subjects), then add content.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setContentForm({
       title: '',
       description: '',
@@ -1281,10 +1411,11 @@ export default function SubjectContentManagement() {
       ? getContentSubjectId(editingItem!) || selectedSubjectId
       : selectedSubjectId;
 
+    const fileUrlForSave = normalizeServerContentFileUrl(contentForm.fileUrl);
     if (
       !subjectIdForValidation ||
       !contentForm.title.trim() ||
-      !contentForm.fileUrl.trim() ||
+      !fileUrlForSave ||
       (!editingContentId && !String(contentForm.type || '').trim())
     ) {
       toast({
@@ -1306,7 +1437,7 @@ export default function SubjectContentManagement() {
       return;
     }
 
-    if (!isValidContentSourceUrl(contentForm.fileUrl, contentForm.type)) {
+    if (!isValidContentSourceUrl(fileUrlForSave, contentForm.type)) {
       toast({
         title: contentForm.type === 'Video' ? 'Video source required' : 'Upload required',
         description:
@@ -1320,23 +1451,43 @@ export default function SubjectContentManagement() {
       return;
     }
 
-    const subjFromCatalog =
-      subjects.find((s) => String(s._id) === String(subjectIdForValidation)) ??
-      subjectsForClass.find((s) => String(s._id) === String(subjectIdForValidation));
-    const subj =
-      subjFromCatalog ?? resolveSubjectForContent(editingItem, subjects);
+    if (isInferredSubjectId(subjectIdForValidation)) {
+      toast({
+        title: 'Catalog subject required',
+        description:
+          'Add a catalog subject first (use Add Subject or Sync Missing Subjects), then add content.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    if (!editingContentId) {
-      if (!subj || !isCatalogSubjectId(subjectIdForValidation, subjects)) {
-        toast({
-          title: 'Validation error',
-          description:
-            'Select a subject from your catalog (use Add Subject) before adding content. Content-only groups cannot be saved.',
-          variant: 'destructive',
-        });
-        return;
-      }
-    } else if (!subj) {
+    const resolvedSubjectId =
+      (editingContentId ? getContentSubjectId(editingItem!) : null) ||
+      resolveCatalogSubjectIdForSave(
+        subjectIdForValidation,
+        subjects,
+        selectedClassNumber,
+        subjectsForClass
+      ) ||
+      (isMongoObjectId(subjectIdForValidation) ? String(subjectIdForValidation) : null);
+
+    if (!resolvedSubjectId) {
+      toast({
+        title: 'Subject required',
+        description:
+          'Use "Add Subject" to create this subject in the catalog first, then add content.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const saveSubjectId = resolvedSubjectId;
+    const subj =
+      subjects.find((s) => String(s._id) === String(saveSubjectId)) ??
+      subjectsForClass.find((s) => String(s._id) === String(saveSubjectId)) ??
+      resolveSubjectForContent(editingItem, subjects);
+
+    if (!subj) {
       toast({
         title: 'Validation error',
         description: 'Could not resolve the subject for this content item.',
@@ -1349,7 +1500,7 @@ export default function SubjectContentManagement() {
     const normalizedSubBoard: SyllabusBoard =
       subBoard === 'CBSE' || subBoard === 'STATE' || subBoard === 'ASLI_EXCLUSIVE_SCHOOLS'
         ? subBoard
-        : 'ASLI_EXCLUSIVE_SCHOOLS';
+        : 'CBSE';
     if (normalizedSubBoard === 'STATE' && !(subj.stateName || '').trim()) {
       toast({
         title: 'Subject incomplete',
@@ -1381,10 +1532,11 @@ export default function SubjectContentManagement() {
         setIsSavingContent(false);
         return;
       }
+      const normalizedFileUrl = normalizeServerContentFileUrl(contentForm.fileUrl);
       const body: Record<string, unknown> = {
         title: contentForm.title.trim(),
         description: contentForm.description?.trim() || undefined,
-        fileUrl: contentForm.fileUrl.trim(),
+        fileUrl: normalizedFileUrl,
         classNumber: classForPayload,
       };
       if (contentForm.thumbnailUrl?.trim()) {
@@ -1396,7 +1548,7 @@ export default function SubjectContentManagement() {
       if (!editingContentId) {
         body.type = contentForm.type;
         body.board = normalizedSubBoard;
-        body.subject = subjectIdForValidation;
+        body.subject = saveSubjectId;
         body.stateName =
           normalizedSubBoard === 'STATE' ? String(subj.stateName || '').trim() : '';
       } else {
@@ -1493,7 +1645,7 @@ export default function SubjectContentManagement() {
       }
 
       if (response.ok && data.success && typeof data.fileUrl === 'string') {
-        const uploadedUrl = data.fileUrl;
+        const uploadedUrl = normalizeServerContentFileUrl(data.fileUrl);
         let nextThumbnailUrl = '';
         const isPdfUpload =
           selectedUploadFile.type === 'application/pdf' ||
@@ -1713,6 +1865,9 @@ export default function SubjectContentManagement() {
                   const isActive = selectedSubjectId === subj._id;
                   const Icon = BookOpen;
                   const inCatalog = isCatalogSubjectId(subj._id, subjects);
+                  const isInferredRow = isInferredSubjectId(subj._id);
+                  const canManageSubject =
+                    !isInferredRow && isMongoObjectId(subj._id);
                   return (
                     <div
                       key={subj._id}
@@ -1734,9 +1889,11 @@ export default function SubjectContentManagement() {
                             {extractPlainSubjectName(subj.name)}
                           </div>
                           <div className="mt-1 flex flex-wrap gap-1">
-                            <Badge variant="outline" className="text-[10px] font-normal">
-                              {syllabusLabel(subj.board)}
-                            </Badge>
+                            {syllabusLabel(subj.board) ? (
+                              <Badge variant="outline" className="text-[10px] font-normal">
+                                {syllabusLabel(subj.board)}
+                              </Badge>
+                            ) : null}
                             {subj.board === 'STATE' && subj.stateName && (
                               <Badge variant="secondary" className="text-[10px] font-normal">
                                 {subj.stateName}
@@ -1750,23 +1907,26 @@ export default function SubjectContentManagement() {
                           )}
                         </div>
                       </button>
-                      {inCatalog ? (
-                        <div className="flex items-center gap-1 ml-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleOpenEditSubject(subj)}
-                            className="text-sky-600 hover:text-sky-700 hover:bg-sky-50"
-                            title="Edit subject"
-                          >
-                            <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
-                          </Button>
+                      {canManageSubject ? (
+                        <div className="flex items-center gap-1 ml-2 shrink-0">
+                          {inCatalog ? (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleOpenEditSubject(subj)}
+                              className="text-sky-600 hover:text-sky-700 hover:bg-sky-50"
+                              title="Edit subject"
+                            >
+                              <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                            </Button>
+                          ) : null}
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => handleDeleteSubject(subj._id)}
                             disabled={deletingSubjectId === subj._id}
-                            className="text-red-600 hover:text-red-700"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            title="Delete subject"
                           >
                             {deletingSubjectId === subj._id ? (
                               <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
@@ -1800,7 +1960,7 @@ export default function SubjectContentManagement() {
               type="button"
               size="sm"
               onClick={handleOpenAddContent}
-              disabled={!selectedSubjectId || !selectedClassNumber}
+              disabled={!selectedClassNumber || !selectedSubjectId}
               className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
             >
               <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
@@ -1945,9 +2105,11 @@ export default function SubjectContentManagement() {
                                     {subjectLabel}
                                   </Badge>
                                 )}
-                                <Badge variant="outline" className="text-[10px] font-normal">
-                                  {syllabusLabel(content.board)}
-                                </Badge>
+                                {syllabusLabel(content.board) ? (
+                                  <Badge variant="outline" className="text-[10px] font-normal">
+                                    {syllabusLabel(content.board)}
+                                  </Badge>
+                                ) : null}
                                 {content.board === 'STATE' && content.stateName && (
                                   <Badge variant="secondary" className="text-[10px] font-normal">
                                     {content.stateName}
@@ -2329,23 +2491,6 @@ export default function SubjectContentManagement() {
                 />
               </div>
             </div>
-            <div>
-              <Label>Syllabus</Label>
-              <Input
-                value={
-                  editingContentId && editContentContext
-                    ? syllabusLabel(editContentContext.board)
-                    : linkedSubjectForContent
-                      ? syllabusLabel(linkedSubjectForContent.board)
-                      : '—'
-                }
-                disabled
-                className="bg-muted/50"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                Matches this subject&apos;s syllabus (set when you created or edited the subject).
-              </p>
-            </div>
             {(editingContentId && editContentContext?.board === 'STATE') ||
             (!editingContentId && linkedSubjectForContent?.board === 'STATE') ? (
               <div>
@@ -2554,14 +2699,22 @@ export default function SubjectContentManagement() {
                     </Button>
                   </div>
                   <p
-                    className={`text-xs ${selectedUploadFile ? 'text-orange-700 font-medium' : 'text-gray-500'}`}
+                    className={`text-xs ${
+                      normalizeServerContentFileUrl(contentForm.fileUrl)
+                        ? 'text-green-700 font-medium'
+                        : selectedUploadFile
+                          ? 'text-orange-700 font-medium'
+                          : 'text-gray-500'
+                    }`}
                   >
-                    {selectedUploadFile
-                      ? `Selected file: ${selectedUploadFile.name}`
-                      : 'No file selected yet'}
+                    {normalizeServerContentFileUrl(contentForm.fileUrl)
+                      ? 'File uploaded — click Save to add this content.'
+                      : selectedUploadFile
+                        ? `Selected file: ${selectedUploadFile.name} — click Upload.`
+                        : 'Choose a file, then click Upload before Save.'}
                   </p>
                   <Input
-                    value={contentForm.fileUrl}
+                    value={normalizeServerContentFileUrl(contentForm.fileUrl) || contentForm.fileUrl}
                     readOnly
                     placeholder="Uploaded file path will appear here (/uploads/...)"
                   />
@@ -2583,11 +2736,7 @@ export default function SubjectContentManagement() {
               <Button
                 type="button"
                 onClick={handleSaveContent}
-                disabled={
-                  isSavingContent ||
-                  (!editingContentId &&
-                    !isCatalogSubjectId(selectedSubjectId, subjects))
-                }
+                disabled={isSavingContent}
                 className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
               >
                 {isSavingContent && (
@@ -2613,7 +2762,12 @@ export default function SubjectContentManagement() {
             </DialogTitle>
             <DialogDescription>
               {contentPreviewItem
-                ? `${contentPreviewItem.type} · ${syllabusLabel(contentPreviewItem.board)}`
+                ? [
+                    contentPreviewItem.type,
+                    syllabusLabel(contentPreviewItem.board),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')
                 : 'Preview attached file'}
             </DialogDescription>
           </DialogHeader>

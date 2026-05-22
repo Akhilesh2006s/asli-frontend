@@ -15,6 +15,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { API_BASE_URL } from '@/lib/api-config';
 import {
+  getAiToolBoardOptions,
+  getDefaultAiToolBoard,
+  mapGradeLevelForIitBoard,
+  resolveIsAsliPrepExclusive,
+} from '@/lib/school-program';
+import {
   useCurriculumCascade,
   normalizeGradeForCurriculum,
   isGradeWithScienceCurriculumDropdowns,
@@ -521,8 +527,9 @@ export default function StudentToolPage() {
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [availableNCERTTopics, setAvailableNCERTTopics] = useState<string[]>([]);
   const [schoolBoardName, setSchoolBoardName] = useState('CBSE');
-  const boardOptions = schoolBoardName === 'IIT' ? ['IIT'] : [schoolBoardName, 'IIT'];
-  const selectedBoard = formParams.board || schoolBoardName;
+  const [isAsliPrepExclusive, setIsAsliPrepExclusive] = useState(false);
+  const boardOptions = getAiToolBoardOptions(isAsliPrepExclusive, schoolBoardName);
+  const selectedBoard = formParams.board || getDefaultAiToolBoard(isAsliPrepExclusive, schoolBoardName);
 
   const cascade = useCurriculumCascade(
     formParams.gradeLevel,
@@ -566,14 +573,15 @@ export default function StudentToolPage() {
         if (response.ok) {
           const userData = await response.json();
           setUser(userData.user);
+          const exclusive = resolveIsAsliPrepExclusive(userData.user);
+          setIsAsliPrepExclusive(exclusive);
           const boardFromUser = String(userData?.user?.curriculumBoard || '').trim();
-          if (boardFromUser) {
-            setSchoolBoardName(boardFromUser);
-            setFormParams((prev) => ({
-              ...prev,
-              board: prev.board || boardFromUser,
-            }));
-          }
+          const defaultBoard = getDefaultAiToolBoard(exclusive, boardFromUser || 'CBSE');
+          setSchoolBoardName(boardFromUser || 'CBSE');
+          setFormParams((prev) => ({
+            ...prev,
+            board: prev.board || defaultBoard,
+          }));
           
           // Auto-populate class field with student's assigned class
           if (userData.user) {
@@ -918,7 +926,8 @@ export default function StudentToolPage() {
         const requestBody: Record<string, unknown> = {
           toolType,
           ...formParams,
-          gradeLevel: formParams.gradeLevel,
+          board: selectedBoard,
+          gradeLevel: mapGradeLevelForIitBoard(selectedBoard, formParams.gradeLevel),
           subject: formParams.subject || formParams.subjects,
           topic: mappedTopic,
         };

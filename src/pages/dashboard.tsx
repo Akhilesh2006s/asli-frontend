@@ -12,6 +12,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import Navigation from "@/components/navigation";
+import {
+  filterContentsBySchoolProgram,
+  getAllowedContentTypes,
+  resolveIsAsliPrepExclusive,
+  type ContentTypeName,
+} from "@/lib/school-program";
 import { StudentTeacherDiaryFeed } from "@/components/student/StudentTeacherDiaryFeed";
 import ProgressChart from "@/components/progress-chart";
 import { 
@@ -304,15 +310,18 @@ export default function Dashboard() {
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
+  const isAsliPrepExclusive = resolveIsAsliPrepExclusive(user);
+  const allowedBrowseTypes = getAllowedContentTypes(isAsliPrepExclusive);
   const [contentTypeCounts, setContentTypeCounts] = useState({
     TextBook: 0,
     Workbook: 0,
     Material: 0,
     Audio: 0,
-    Homework: 0
+    Homework: 0,
+    Video: 0,
   });
   const [isLoadingContentCounts, setIsLoadingContentCounts] = useState(false);
-  const [selectedBrowseType, setSelectedBrowseType] = useState<'TextBook' | 'Workbook' | 'Material' | 'Audio' | 'Homework' | null>(null);
+  const [selectedBrowseType, setSelectedBrowseType] = useState<ContentTypeName | null>(null);
   const [filteredContent, setFilteredContent] = useState<any[]>([]);
   const [isLoadingFilteredContent, setIsLoadingFilteredContent] = useState(false);
   const [allContent, setAllContent] = useState<any[]>([]);
@@ -940,7 +949,10 @@ export default function Dashboard() {
             }
           });
           
-          const allFetchedContent = Array.from(contentMap.values());
+          const allFetchedContent = filterContentsBySchoolProgram(
+            Array.from(contentMap.values()),
+            resolveIsAsliPrepExclusive(user),
+          );
           setAllContent(allFetchedContent);
           
           // Count by type
@@ -949,7 +961,8 @@ export default function Dashboard() {
             Workbook: 0,
             Material: 0,
             Audio: 0,
-            Homework: 0
+            Homework: 0,
+            Video: 0,
           };
           
           allFetchedContent.forEach((content: any) => {
@@ -997,7 +1010,7 @@ export default function Dashboard() {
     };
 
     fetchContentCounts();
-  }, []);
+  }, [user?.isAsliPrepExclusive, user?.assignedAdmin?.isAsliPrepExclusive]);
 
   // Update filteredContent state when memoized value changes
   useEffect(() => {
@@ -3032,47 +3045,71 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
 
-                {/* Workbook Card */}
-                <Card 
-                  className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
-                    selectedBrowseType === 'Workbook' ? 'ring-2 ring-orange-500' : ''
-                  }`}
-                  onClick={() => {
-                    const newType = selectedBrowseType === 'Workbook' ? null : 'Workbook';
-                    setSelectedBrowseType(newType);
-                  }}
-                >
-                  <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
-                      <FileTextIcon className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
-                    </div>
-                    <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Workbook</CardTitle>
-                    <p className="text-xs sm:text-sm text-gray-500">
-                      {isLoadingContentCounts ? '...' : `${contentTypeCounts.Workbook} files`}
-                    </p>
-                  </CardContent>
-                </Card>
+                {allowedBrowseTypes.includes('Video') && (
+                  <Card
+                    className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
+                      selectedBrowseType === 'Video' ? 'ring-2 ring-orange-500' : ''
+                    }`}
+                    onClick={() => {
+                      const newType = selectedBrowseType === 'Video' ? null : 'Video';
+                      setSelectedBrowseType(newType);
+                    }}
+                  >
+                    <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
+                      <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
+                        <VideoIcon className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
+                      </div>
+                      <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Video</CardTitle>
+                      <p className="text-xs sm:text-sm text-gray-500">
+                        {isLoadingContentCounts ? '...' : `${contentTypeCounts.Video} files`}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
 
-                {/* Material Card */}
-                <Card 
-                  className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
-                    selectedBrowseType === 'Material' ? 'ring-2 ring-orange-500' : ''
-                  }`}
-                  onClick={() => {
-                    const newType = selectedBrowseType === 'Material' ? null : 'Material';
-                    setSelectedBrowseType(newType);
-                  }}
-                >
-                  <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
-                      <File className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
-                    </div>
-                    <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Material</CardTitle>
-                    <p className="text-xs sm:text-sm text-gray-500">
-                      {isLoadingContentCounts ? '...' : `${contentTypeCounts.Material} files`}
-                    </p>
-                  </CardContent>
-                </Card>
+                {allowedBrowseTypes.includes('Workbook') && (
+                  <Card
+                    className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
+                      selectedBrowseType === 'Workbook' ? 'ring-2 ring-orange-500' : ''
+                    }`}
+                    onClick={() => {
+                      const newType = selectedBrowseType === 'Workbook' ? null : 'Workbook';
+                      setSelectedBrowseType(newType);
+                    }}
+                  >
+                    <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
+                      <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
+                        <FileTextIcon className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
+                      </div>
+                      <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Workbook</CardTitle>
+                      <p className="text-xs sm:text-sm text-gray-500">
+                        {isLoadingContentCounts ? '...' : `${contentTypeCounts.Workbook} files`}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {allowedBrowseTypes.includes('Material') && (
+                  <Card
+                    className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
+                      selectedBrowseType === 'Material' ? 'ring-2 ring-orange-500' : ''
+                    }`}
+                    onClick={() => {
+                      const newType = selectedBrowseType === 'Material' ? null : 'Material';
+                      setSelectedBrowseType(newType);
+                    }}
+                  >
+                    <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
+                      <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
+                        <File className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
+                      </div>
+                      <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Material</CardTitle>
+                      <p className="text-xs sm:text-sm text-gray-500">
+                        {isLoadingContentCounts ? '...' : `${contentTypeCounts.Material} files`}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Audio Card */}
                 <Card 

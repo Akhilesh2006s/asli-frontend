@@ -13,6 +13,21 @@ interface BoardAnalytics {
   participationRate: string;
 }
 
+const ASLI_EXCLUSIVE_BOARD_KEYS = new Set([
+  'ASLI_EXCLUSIVE_SCHOOLS',
+  'ASLI EXCLUSIVE SCHOOLS',
+  'Asli Exclusive Schools',
+]);
+
+function isAsliExclusiveBoardLabel(name: string): boolean {
+  const key = String(name || '').trim();
+  return ASLI_EXCLUSIVE_BOARD_KEYS.has(key) || key.toUpperCase().replace(/\s+/g, '_') === 'ASLI_EXCLUSIVE_SCHOOLS';
+}
+
+function filterComparisonBoards(rows: BoardAnalytics[]): BoardAnalytics[] {
+  return rows.filter((item) => !isAsliExclusiveBoardLabel(item.board));
+}
+
 export default function BoardComparisonCharts() {
   const [analytics, setAnalytics] = useState<BoardAnalytics[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,22 +63,24 @@ export default function BoardComparisonCharts() {
       if (comparisonResponse.ok) {
         const comparisonData = await comparisonResponse.json();
         if (comparisonData.success && comparisonData.data) {
-          const formattedAnalytics = comparisonData.data.map((item: any) => ({
-            board: formatBoardName(item.boardName || item.board),
-            students: item.students || 0,
-            exams: item.exams || 0,
-            totalAttempts: item.totalAttempts || 0,
-            averageScore: item.averageScore || '0.00',
-            participationRate: item.participationRate || '0.0'
-          }));
+          const formattedAnalytics = filterComparisonBoards(
+            comparisonData.data.map((item: any) => ({
+              board: formatBoardName(item.boardName || item.board),
+              students: item.students || 0,
+              exams: item.exams || 0,
+              totalAttempts: item.totalAttempts || 0,
+              averageScore: item.averageScore || '0.00',
+              participationRate: item.participationRate || '0.0',
+            }))
+          );
           setAnalytics(formattedAnalytics);
           setIsLoading(false);
           return;
         }
       }
 
-      // Fallback: Fetch all boards analytics using dashboard endpoint
-      const boards = ['ASLI_EXCLUSIVE_SCHOOLS'];
+      // Fallback: curriculum boards only (no Asli Exclusive hub)
+      const boards = ['CBSE', 'STATE', 'SSC', 'ICSE', 'IB', 'CAMBRIDGE'];
       const analyticsPromises = boards.map(async (board) => {
         try {
           const res = await fetch(`${API_BASE_URL}/api/super-admin/boards/${board}/dashboard`, {
@@ -86,8 +103,9 @@ export default function BoardComparisonCharts() {
       const results = await Promise.all(analyticsPromises);
       
       // Format data for comparison
-      const formattedAnalytics = results.map((result) => {
-        const boardName = formatBoardName('Asli Exclusive Schools');
+      const formattedAnalytics = filterComparisonBoards(
+        results.map((result) => {
+        const boardName = formatBoardName(result.board);
         
         if (result.data && result.data.stats) {
           const stats = result.data.stats;
@@ -115,7 +133,8 @@ export default function BoardComparisonCharts() {
           averageScore: '0.00',
           participationRate: '0.0'
         };
-      });
+      })
+      );
 
       setAnalytics(formattedAnalytics);
     } catch (error) {
@@ -315,7 +334,7 @@ export default function BoardComparisonCharts() {
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-gray-600 mt-1">Compare performance across all boards</p>
+          <p className="text-gray-600 mt-1">Compare performance across curriculum boards</p>
         </div>
         <Button onClick={fetchBoardAnalytics} variant="outline">
           <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />

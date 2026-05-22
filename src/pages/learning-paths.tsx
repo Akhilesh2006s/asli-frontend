@@ -32,9 +32,16 @@ import {
   Eye,
   ClipboardList,
   Headphones,
-  ExternalLink
+  ExternalLink,
+  Video,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import {
+  filterContentsBySchoolProgram,
+  getAllowedContentTypes,
+  resolveIsAsliPrepExclusive,
+  type ContentTypeName,
+} from "@/lib/school-program";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect } from "react";
 import {
@@ -56,15 +63,18 @@ export default function LearningPaths() {
   const [activeTab, setActiveTab] = useState<'subjects' | 'quizzes'>('subjects');
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
+  const isAsliPrepExclusive = resolveIsAsliPrepExclusive(user);
+  const allowedBrowseTypes = getAllowedContentTypes(isAsliPrepExclusive);
   const [contentTypeCounts, setContentTypeCounts] = useState({
     TextBook: 0,
     Workbook: 0,
     Material: 0,
     Audio: 0,
-    Homework: 0
+    Homework: 0,
+    Video: 0,
   });
   const [isLoadingContentCounts, setIsLoadingContentCounts] = useState(true);
-  const [selectedContentType, setSelectedContentType] = useState<'TextBook' | 'Workbook' | 'Material' | 'Audio' | 'Homework' | null>(null);
+  const [selectedContentType, setSelectedContentType] = useState<ContentTypeName | null>(null);
   const [filteredContent, setFilteredContent] = useState<any[]>([]);
   const [isLoadingFilteredContent, setIsLoadingFilteredContent] = useState(false);
   const [allLibraryContent, setAllLibraryContent] = useState<any[]>([]);
@@ -572,8 +582,12 @@ export default function LearningPaths() {
         
         if (response.ok) {
           const data = await response.json();
-          const allContent = data.data || data || [];
-          setAllLibraryContent(Array.isArray(allContent) ? allContent : []);
+          const rawContent = data.data || data || [];
+          const allContent = filterContentsBySchoolProgram(
+            Array.isArray(rawContent) ? rawContent : [],
+            resolveIsAsliPrepExclusive(user),
+          );
+          setAllLibraryContent(allContent);
           
           // Count by type
           const counts = {
@@ -581,7 +595,8 @@ export default function LearningPaths() {
             Workbook: 0,
             Material: 0,
             Audio: 0,
-            Homework: 0
+            Homework: 0,
+            Video: 0,
           };
           
           allContent.forEach((content: any) => {
@@ -604,7 +619,7 @@ export default function LearningPaths() {
     };
 
     fetchContentCounts();
-  }, []);
+  }, [user?.isAsliPrepExclusive, user?.assignedAdmin?.isAsliPrepExclusive]);
 
   // Update filtered content from already-fetched library content
   useEffect(() => {
@@ -895,41 +910,62 @@ export default function LearningPaths() {
               </CardContent>
             </Card>
 
-            {/* Workbook Card */}
-            <Card 
-              className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
-                selectedContentType === 'Workbook' ? 'ring-2 ring-blue-500' : ''
-              }`}
-              onClick={() => setSelectedContentType(selectedContentType === 'Workbook' ? null : 'Workbook')}
-            >
-              <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
-                <div className="w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md mb-4">
-                  <FileTextIcon className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
-                </div>
-                <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Workbook</CardTitle>
-                <p className="text-xs sm:text-sm text-gray-500">
-                  {isLoadingContentCounts ? '...' : `${contentTypeCounts.Workbook} files`}
-                </p>
-              </CardContent>
-            </Card>
+            {allowedBrowseTypes.includes('Video') && (
+              <Card
+                className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
+                  selectedContentType === 'Video' ? 'ring-2 ring-blue-500' : ''
+                }`}
+                onClick={() => setSelectedContentType(selectedContentType === 'Video' ? null : 'Video')}
+              >
+                <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
+                  <div className="w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md mb-4">
+                    <Video className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
+                  </div>
+                  <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Video</CardTitle>
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    {isLoadingContentCounts ? '...' : `${contentTypeCounts.Video} files`}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
-            {/* Material Card */}
-            <Card 
-              className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
-                selectedContentType === 'Material' ? 'ring-2 ring-blue-500' : ''
-              }`}
-              onClick={() => setSelectedContentType(selectedContentType === 'Material' ? null : 'Material')}
-            >
-              <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
-                <div className="w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md mb-4">
-                  <File className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
-                </div>
-                <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Material</CardTitle>
-                <p className="text-xs sm:text-sm text-gray-500">
-                  {isLoadingContentCounts ? '...' : `${contentTypeCounts.Material} files`}
-                </p>
-              </CardContent>
-            </Card>
+            {allowedBrowseTypes.includes('Workbook') && (
+              <Card
+                className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
+                  selectedContentType === 'Workbook' ? 'ring-2 ring-blue-500' : ''
+                }`}
+                onClick={() => setSelectedContentType(selectedContentType === 'Workbook' ? null : 'Workbook')}
+              >
+                <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
+                  <div className="w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md mb-4">
+                    <FileTextIcon className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
+                  </div>
+                  <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Workbook</CardTitle>
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    {isLoadingContentCounts ? '...' : `${contentTypeCounts.Workbook} files`}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {allowedBrowseTypes.includes('Material') && (
+              <Card
+                className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
+                  selectedContentType === 'Material' ? 'ring-2 ring-blue-500' : ''
+                }`}
+                onClick={() => setSelectedContentType(selectedContentType === 'Material' ? null : 'Material')}
+              >
+                <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
+                  <div className="w-20 h-20 bg-gradient-to-br from-pink-500 via-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-md mb-4">
+                    <File className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
+                  </div>
+                  <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Material</CardTitle>
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    {isLoadingContentCounts ? '...' : `${contentTypeCounts.Material} files`}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Audio Card */}
             <Card 

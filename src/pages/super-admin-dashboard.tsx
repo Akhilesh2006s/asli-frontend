@@ -36,7 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BellIcon, UsersIcon, TrendingUpIcon, BookIcon, UserPlusIcon, BookPlusIcon, SettingsIcon, DownloadIcon, HomeIcon, CrownIcon, BarChart3Icon, ArrowUpRightIcon, ArrowDownRightIcon, StarIcon, TargetIcon, BrainIcon, ZapIcon, AlertTriangleIcon, TrendingDownIcon, RefreshCw, Sparkles, MessageSquare, Clock, Plus, Monitor, Grid3x3, Shield, Search, Camera, PieChart, User, Download, Circle, Square, Bot, Users2, UploadIcon, BrainCircuitIcon, AlertTriangle } from "lucide-react";
+import { BellIcon, UsersIcon, Users2, TrendingUpIcon, BookIcon, UserPlusIcon, BookPlusIcon, SettingsIcon, DownloadIcon, HomeIcon, CrownIcon, BarChart3Icon, ArrowUpRightIcon, ArrowDownRightIcon, StarIcon, TargetIcon, BrainIcon, ZapIcon, AlertTriangleIcon, TrendingDownIcon, RefreshCw, Sparkles, MessageSquare, Clock, Plus, Monitor, Grid3x3, Shield, Search, Camera, PieChart, User, Download, Circle, Square, Bot, UploadIcon, BrainCircuitIcon, AlertTriangle } from "lucide-react";
 import { LineChart, Line, PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
@@ -285,18 +285,6 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  const openBoardManagement = () => {
-    const defaultBoard = 'ASLI_EXCLUSIVE_SCHOOLS';
-
-    // If prefetch already has current board data, switch view instantly.
-    if (boardData && selectedBoard === defaultBoard) {
-      setCurrentView('board');
-      return;
-    }
-
-    fetchBoardDashboard(defaultBoard);
-  };
-
   // Chart data - will be populated from real analytics when available
   const [totalStudentsData, setTotalStudentsData] = useState<Array<{name: string, value: number}>>([]);
   const [passRateData, setPassRateData] = useState<Array<{name: string, value: number}>>([]);
@@ -319,26 +307,30 @@ export default function SuperAdminDashboard() {
           <p className="text-gray-600">Manage boards, schools, exams and AI analytic tau at one place.</p>
         </div>
 
-        {/* Board Management Section */}
+        {/* Board Management */}
         <div className="space-y-4">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Board Management</h2>
-          <div className="grid grid-cols-1 gap-4">
-            {/* ASLI EXCLUSIVE SCHOOLS */}
-            <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 cursor-pointer hover:from-orange-400 hover:to-orange-500 transition-colors shadow-lg" onClick={openBoardManagement}>
-              <CardContent className="p-3 sm:p-4 lg:p-6">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Board Management</h2>
+
+          <Card
+            className="bg-gradient-to-br from-orange-400 to-orange-500 text-white border-0 cursor-pointer hover:from-orange-500 hover:to-orange-600 transition-all duration-300 shadow-lg"
+            onClick={() => fetchBoardDashboard('ASLI_EXCLUSIVE_SCHOOLS')}
+          >
+            <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                    <h3 className="text-xl sm:text-2xl font-bold mb-1 text-white">Asli Exclusive Schools</h3>
-                    <p className="text-white/90 text-xs sm:text-sm">All Boards Content - Unified Platform</p>
+                  <h3 className="text-lg sm:text-xl font-bold mb-1 text-white">
+                    Asli Exclusive Schools
+                  </h3>
+                  <p className="text-white/90 text-xs sm:text-sm">
+                    All Boards Content — Unified Platform
+                  </p>
                 </div>
-                  <Users2 className="h-16 w-16 text-white" />
+                <Users2 className="h-12 w-12 text-white" />
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        {/* Content Management & AI Analytics Boxes */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Content Management - Light Blue (CBSE TS color) */}
           <Card 
             className="bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 cursor-pointer hover:from-sky-400 hover:to-sky-500 transition-all duration-300 shadow-lg"
@@ -370,8 +362,8 @@ export default function SuperAdminDashboard() {
               </div>
             </CardContent>
           </Card>
+          </div>
         </div>
-      </div>
 
         {/* Widgets Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -23,6 +23,10 @@ import {
 import { useLocation } from 'wouter';
 import { API_BASE_URL } from '@/lib/api-config';
 import {
+  filterContentsBySchoolProgram,
+  resolveIsAsliPrepExclusive,
+} from '@/lib/school-program';
+import {
   extractPlainSubjectName,
   getLearningPathClassLabel,
   isSoftDeletedSubjectName,
@@ -214,6 +218,26 @@ export default function AdminLearningPaths() {
   const [isLoadingContent, setIsLoadingContent] = useState(false);
   const [classFilter, setClassFilter] = useState<string>('all');
   const [subjectFilter, setSubjectFilter] = useState<string>('all');
+  const [isAsliPrepExclusive, setIsAsliPrepExclusive] = useState(false);
+
+  useEffect(() => {
+    const loadProgram = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setIsAsliPrepExclusive(resolveIsAsliPrepExclusive(data?.user));
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    void loadProgram();
+  }, []);
 
   const classOptionsFromData = useMemo(() => {
     const classSet = new Set<string>();
@@ -298,7 +322,7 @@ export default function AdminLearningPaths() {
   useEffect(() => {
     if (isLoading) return;
     void fetchSubjectsWithContent();
-  }, [subjects, isLoading]);
+  }, [subjects, isLoading, isAsliPrepExclusive]);
 
   const fetchSubjects = async () => {
     try {
@@ -351,6 +375,7 @@ export default function AdminLearningPaths() {
           const contentData = await contentResponse.json();
           allContent = contentData.data || contentData || [];
           if (!Array.isArray(allContent)) allContent = [];
+          allContent = filterContentsBySchoolProgram(allContent, isAsliPrepExclusive);
         }
       } catch (e) {
         console.error('Failed to fetch all asli-prep content:', e);

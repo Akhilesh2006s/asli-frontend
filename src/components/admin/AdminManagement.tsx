@@ -210,6 +210,18 @@ function isCurriculumBoardCode(b?: string): boolean {
   return (CURRICULUM_BOARD_CODES as readonly string[]).includes(u);
 }
 
+function isAsliExclusiveBoardCode(b?: string): boolean {
+  return String(b || "").toUpperCase().trim() === "ASLI_EXCLUSIVE_SCHOOLS";
+}
+
+/** Curriculum dropdown value only — never the Asli Exclusive hub code. */
+function normalizeCurriculumSelection(b?: string): string {
+  if (isAsliExclusiveBoardCode(b) || !isCurriculumBoardCode(b)) {
+    return "CBSE";
+  }
+  return String(b).toUpperCase().trim();
+}
+
 function curriculumDisplayLabel(code?: string): string {
   const u = (code || "").toUpperCase();
   const labels: Record<string, string> = {
@@ -336,9 +348,14 @@ export default function AdminManagement() {
   ];
 
   const normalizeCurriculumBoard = (b?: string): string => {
-    const code = (b || "").toUpperCase().trim();
+    const code = normalizeCurriculumSelection(b);
     return boardOptions.some((o) => o.value === code) ? code : DEFAULT_CURRICULUM_BOARD;
   };
+
+  /** Curriculum boards for the dropdown (Asli Exclusive Schools is not a curriculum option). */
+  const curriculumBoardOptions = boardOptions.filter(
+    (o) => !isAsliExclusiveBoardCode(o.value)
+  );
 
   const mediumOptions = [
     { value: 'English', label: 'English' },
@@ -1256,7 +1273,7 @@ export default function AdminManagement() {
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent>
-                      {boardOptions.map((board) => (
+                      {curriculumBoardOptions.map((board) => (
                         <SelectItem key={board.value} value={board.value}>
                           {board.label}
                         </SelectItem>
@@ -1270,7 +1287,7 @@ export default function AdminManagement() {
                       <div className="space-y-1">
                         <p className="text-xs sm:text-sm text-gray-800">School program</p>
                         <p className="text-xs text-gray-600">
-                          Normal schools use the curriculum board only. Turn on Asli Prep for schools on the Asli Prep track (same pattern as Limited vs Unlimited below).
+                          Normal schools use the curriculum board only. Turn on Asli Prep for the Asli Prep track — keep the curriculum board above (CBSE, State, etc.); it is not replaced by Asli Exclusive Schools.
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-3">
@@ -1285,7 +1302,11 @@ export default function AdminManagement() {
                         <Switch
                           checked={newAdmin.isAsliPrepExclusive}
                           onCheckedChange={(checked) =>
-                            setNewAdmin({ ...newAdmin, isAsliPrepExclusive: checked })
+                            setNewAdmin((prev) => ({
+                              ...prev,
+                              isAsliPrepExclusive: checked,
+                              board: normalizeCurriculumSelection(prev.board),
+                            }))
                           }
                           aria-label="Toggle Asli Prep school program"
                         />
@@ -1877,7 +1898,7 @@ export default function AdminManagement() {
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent>
-                      {boardOptions.map((board) => (
+                      {curriculumBoardOptions.map((board) => (
                         <SelectItem key={board.value} value={board.value}>
                           {board.label}
                         </SelectItem>
@@ -1891,7 +1912,7 @@ export default function AdminManagement() {
                       <div className="space-y-1">
                         <p className="text-xs sm:text-sm text-gray-800">School program</p>
                         <p className="text-xs text-gray-600">
-                          Normal schools use the curriculum board only. Turn on Asli Prep for the Asli Prep track.
+                          Normal schools use the curriculum board only. Turn on Asli Prep for the Asli Prep track — keep the curriculum board above; it is not replaced by Asli Exclusive Schools.
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-3">
@@ -1906,7 +1927,11 @@ export default function AdminManagement() {
                         <Switch
                           checked={editAdmin.isAsliPrepExclusive}
                           onCheckedChange={(checked) =>
-                            setEditAdmin({ ...editAdmin, isAsliPrepExclusive: checked })
+                            setEditAdmin((prev) => ({
+                              ...prev,
+                              isAsliPrepExclusive: checked,
+                              board: normalizeCurriculumSelection(prev.board),
+                            }))
                           }
                           aria-label="Toggle Asli Prep school program"
                         />

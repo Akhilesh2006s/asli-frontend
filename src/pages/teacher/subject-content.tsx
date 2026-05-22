@@ -25,6 +25,10 @@ import {
 } from 'lucide-react';
 import CalendarView from '@/components/student/calendar-view';
 import { API_BASE_URL } from '@/lib/api-config';
+import {
+  filterContentsBySchoolProgram,
+  resolveIsAsliPrepExclusive,
+} from '@/lib/school-program';
 
 interface ContentItem {
   _id: string;
@@ -51,12 +55,32 @@ export default function TeacherSubjectContent() {
   const [contents, setContents] = useState<ContentItem[]>([]);
   const [loadingContents, setLoadingContents] = useState(false);
   const [selectedContentType, setSelectedContentType] = useState<string | null>(null);
+  const [isAsliPrepExclusive, setIsAsliPrepExclusive] = useState(false);
+
+  useEffect(() => {
+    const loadProgram = async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setIsAsliPrepExclusive(resolveIsAsliPrepExclusive(data?.user));
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    void loadProgram();
+  }, []);
 
   useEffect(() => {
     if (params?.id) {
       fetchSubjectContent(params.id);
     }
-  }, [params?.id]);
+  }, [params?.id, isAsliPrepExclusive]);
 
   const fetchSubjectContent = async (subjectId: string) => {
     try {
@@ -98,7 +122,12 @@ export default function TeacherSubjectContent() {
         if (contentType && contentType.includes('application/json')) {
           const contentsData = await contentsResponse.json();
           const contentsList = contentsData.data || contentsData || [];
-          setContents(contentsList);
+          setContents(
+            filterContentsBySchoolProgram(
+              Array.isArray(contentsList) ? contentsList : [],
+              isAsliPrepExclusive,
+            ),
+          );
         }
       } else {
         setContents([]);

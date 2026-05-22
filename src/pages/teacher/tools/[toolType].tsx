@@ -8,6 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Sparkles, Download, Copy, Check, FileText, FileSpreadsheet, FileDown, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
+import {
+  getAiToolBoardOptions,
+  getDefaultAiToolBoard,
+  mapGradeLevelForIitBoard,
+  resolveIsAsliPrepExclusive,
+} from '@/lib/school-program';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
@@ -314,8 +320,9 @@ export default function TeacherToolPage() {
   const [availableNCERTTopics, setAvailableNCERTTopics] = useState<string[]>([]);
   const [assignedSubjectNames, setAssignedSubjectNames] = useState<string[]>([]);
   const [schoolBoardName, setSchoolBoardName] = useState('CBSE');
-  const boardOptions = schoolBoardName === 'IIT' ? ['IIT'] : [schoolBoardName, 'IIT'];
-  const selectedBoard = formParams.board || schoolBoardName;
+  const [isAsliPrepExclusive, setIsAsliPrepExclusive] = useState(false);
+  const boardOptions = getAiToolBoardOptions(isAsliPrepExclusive, schoolBoardName);
+  const selectedBoard = formParams.board || getDefaultAiToolBoard(isAsliPrepExclusive, schoolBoardName);
 
   const normalizeSubjectName = (value: string) => {
     let compact = value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -395,12 +402,14 @@ export default function TeacherToolPage() {
         });
         if (!response.ok) return;
         const data = await response.json();
+        const exclusive = resolveIsAsliPrepExclusive(data?.user);
+        setIsAsliPrepExclusive(exclusive);
         const boardFromUser = String(data?.user?.curriculumBoard || '').trim();
-        if (!boardFromUser) return;
-        setSchoolBoardName(boardFromUser);
+        const defaultBoard = getDefaultAiToolBoard(exclusive, boardFromUser || 'CBSE');
+        setSchoolBoardName(boardFromUser || 'CBSE');
         setFormParams((prev) => ({
           ...prev,
-          board: prev.board || boardFromUser,
+          board: prev.board || defaultBoard,
         }));
       } catch (error) {
         console.error('Failed to fetch teacher board:', error);
@@ -794,7 +803,9 @@ export default function TeacherToolPage() {
     setIsFallbackContent(false);
     try {
       const token = localStorage.getItem('authToken');
-      const selectedClass = formParams.gradeLevel;
+      const selectedClass = isAsliPrepExclusive
+        ? 'IIT-6'
+        : mapGradeLevelForIitBoard(selectedBoard, formParams.gradeLevel);
       const selectedSubject = formParams.subject || formParams.subjects;
       const selectedTopic = formParams.topic || '';
       const selectedSubTopic = formParams.subTopic || '';
@@ -802,10 +813,11 @@ export default function TeacherToolPage() {
 
       const requestBody = {
         toolType,
+        board: selectedBoard,
         classNumber: selectedClass
-          ? (selectedClass === 'IIT-6'
+          ? selectedClass === 'IIT-6' || selectedClass === 'Class-6-IIT'
               ? 'IIT-6'
-              : parseInt(String(selectedClass).replace('Class ', ''), 10))
+              : parseInt(String(selectedClass).replace('Class ', ''), 10)
           : undefined,
         subject: selectedSubject,
         topic: selectedTopic,
@@ -814,6 +826,8 @@ export default function TeacherToolPage() {
         questionCount: formParams.questionCount ? parseInt(formParams.questionCount) : undefined,
         duration: formParams.duration ? parseInt(formParams.duration) : undefined,
         ...formParams,
+        board: selectedBoard,
+        gradeLevel: selectedClass,
       };
 
       const response = await fetch(`${API_BASE_URL}/api/teacher/ai/generate-content`, {

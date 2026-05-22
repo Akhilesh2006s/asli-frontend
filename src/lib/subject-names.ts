@@ -1,7 +1,8 @@
 /** Parse Super Admin style subject keys, e.g. Chemistry_10 → class "10", plain "Chemistry". */
 
 export function extractClassNumberFromSubjectName(name: string): string | null {
-  const match = name.match(/_(\d+)$/);
+  const base = String(name || '').split('__deleted__')[0].trim();
+  const match = base.match(/_(\d+)$/);
   return match ? match[1] : null;
 }
 

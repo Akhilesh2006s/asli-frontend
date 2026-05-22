@@ -7,6 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Play, FileText, File, Image, Video, Download, Search, Filter, BookOpen, ExternalLink } from 'lucide-react';
 import { API_BASE_URL, getStudentPdfPreviewIframeSrc } from '@/lib/api-config';
+import {
+  filterContentsBySchoolProgram,
+  getAllowedContentTypes,
+  resolveIsAsliPrepExclusive,
+} from '@/lib/school-program';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Content {
@@ -39,10 +44,11 @@ export default function AsliPrepContent() {
   const [subjects, setSubjects] = useState<any[]>([]);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewContent, setPreviewContent] = useState<Content | null>(null);
+  const [isAsliPrepExclusive, setIsAsliPrepExclusive] = useState(false);
+  const allowedTypes = getAllowedContentTypes(isAsliPrepExclusive);
 
   useEffect(() => {
-    fetchContents();
-    fetchSubjects();
+    void fetchSubjects();
   }, []);
 
   const fetchSubjects = async () => {
@@ -58,6 +64,7 @@ export default function AsliPrepContent() {
 
       if (userResponse.ok) {
         const userData = await userResponse.json();
+        setIsAsliPrepExclusive(resolveIsAsliPrepExclusive(userData.user));
         const board = userData.user?.board;
         
         if (board) {
@@ -100,7 +107,8 @@ export default function AsliPrepContent() {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          setContents(data.data || []);
+          const rows = Array.isArray(data.data) ? data.data : [];
+          setContents(filterContentsBySchoolProgram(rows, isAsliPrepExclusive));
         }
       }
     } catch (error) {
@@ -111,8 +119,8 @@ export default function AsliPrepContent() {
   };
 
   useEffect(() => {
-    fetchContents();
-  }, [filters.subject, filters.type, filters.topic]);
+    void fetchContents();
+  }, [filters.subject, filters.type, filters.topic, isAsliPrepExclusive]);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -407,8 +415,7 @@ export default function AsliPrepContent() {
           {(() => {
             const fileUrl = extractDirectFileUrl(getNormalizedContentUrl(previewContent?.fileUrl));
             const lower = fileUrl.toLowerCase();
-            const isPdf =
-              lower.endsWith('.pdf') || lower.includes('.pdf') || previewContent?.type === 'PDF';
+            const isPdf = lower.endsWith('.pdf') || lower.includes('.pdf');
             const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/.test(lower);
             const isAudio = /\.(mp3|wav|ogg|m4a|aac|flac)$/.test(lower) || previewContent?.type === 'Audio';
             const isVideo = /\.(mp4|webm|ogg|mov|avi|mkv)$/.test(lower) || previewContent?.type === 'Video';
