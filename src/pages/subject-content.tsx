@@ -399,7 +399,7 @@ export default function SubjectContent() {
     return (
       <>
         <Navigation />
-        <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 py-4 sm:py-6 lg:py-8 ${isMobile ? 'pb-20' : ''}`}>
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 py-4 sm:py-6 lg:py-8">
           <div className="text-center">Loading subject content...</div>
         </div>
       </>
@@ -433,7 +433,7 @@ export default function SubjectContent() {
   return (
     <>
       <Navigation />
-      <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-8 ${isMobile ? 'pb-20' : ''} relative`}>
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-8 relative">
         
         {!isMobile && <VidyaAIFloatingAssistant />}
         

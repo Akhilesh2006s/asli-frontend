@@ -6,8 +6,35 @@ export function extractClassNumberFromSubjectName(name: string): string | null {
 }
 
 export function extractPlainSubjectName(name: string): string {
-  const match = name.match(/^(.+?)_\d+$/);
-  return match ? match[1] : name;
+  const base = String(name || '').split('__deleted__')[0].trim();
+  const match = base.match(/^(.+?)_\d+$/);
+  return match ? match[1] : base;
+}
+
+/** Human-readable label for teacher cards, class rows, etc. (BIO → Biology, Biology_7 → Biology). */
+export function formatSubjectDisplayLabel(name: string): string {
+  const raw = (name || '').trim();
+  if (!raw) return '';
+  const plain = extractPlainSubjectName(raw).trim();
+  const lower = plain.toLowerCase();
+  const classNum = extractClassNumberFromSubjectName(raw);
+
+  if (lower === 'bio' || lower === 'biology') {
+    return classNum ? `Biology (Class ${classNum})` : 'Biology';
+  }
+
+  if (classNum && plain) {
+    const titled = plain.charAt(0).toUpperCase() + plain.slice(1);
+    return `${titled} (Class ${classNum})`;
+  }
+
+  return plain;
+}
+
+export function normalizeSubjectDisplayKey(name: string): string {
+  const plain = extractPlainSubjectName(name || '').trim().toLowerCase();
+  if (plain === 'bio' || plain === 'biology') return 'biology';
+  return plain;
 }
 
 export function getSubjectClassLabel(subject: {

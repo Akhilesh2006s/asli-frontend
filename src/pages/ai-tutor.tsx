@@ -422,7 +422,7 @@ export default function AITutor() {
       <>
         <Navigation />
         <div className="h-screen overflow-hidden bg-gradient-to-br from-teal-100 via-teal-50 to-teal-100">
-          <div className={`container mx-auto flex h-full min-h-0 flex-col px-4 pt-20 sm:pt-24 py-3 sm:py-4 lg:py-6 ${isMobile ? 'pb-20' : ''}`}>
+          <div className="container mx-auto flex h-full min-h-0 flex-col px-4 pt-20 sm:pt-24 py-3 sm:py-4 lg:py-6">
             <Button
               variant="outline"
               onClick={() => setSelectedTool(null)}
@@ -455,7 +455,7 @@ export default function AITutor() {
     <>
       <Navigation />
       <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-teal-50">
-        <div className={`container mx-auto px-4 pt-20 sm:pt-24 py-4 sm:py-6 lg:py-8 ${isMobile ? 'pb-20' : ''}`}>
+        <div className="container mx-auto px-4 pt-20 sm:pt-24 py-4 sm:py-6 lg:py-8">
           {/* Header */}
           <div className="mb-8 rounded-2xl border border-sky-100 bg-white/90 backdrop-blur-sm shadow-sm p-5 sm:p-7">
             <div className="flex flex-wrap items-start justify-between gap-4">

@@ -969,7 +969,7 @@ export default function StudentExams() {
   return (
     <div className="min-h-screen bg-sky-50">
       <Navigation />
-      <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-8 ${isMobile ? 'pb-20' : ''} relative`}>
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-8 relative">
         
         {!isMobile && <VidyaAIFloatingAssistant />}
         

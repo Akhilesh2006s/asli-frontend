@@ -341,66 +341,6 @@ export default function Navigation() {
         </div>
       </nav>
 
-      {/* Mobile Bottom Navigation - Modern Design */}
-      {isMobile && (
-        <div className="fixed bottom-0 left-0 right-0 backdrop-blur-xl bg-white/90 border-t border-blue-200/30 shadow-2xl z-50">
-          <div className="grid grid-cols-1 sm:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 py-2 px-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location === item.path;
-              
-              if (item.onClick) {
-                return (
-                  <button
-                    key={item.path}
-                    onClick={item.onClick}
-                    className={`flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-300 relative group ${
-                      isActive 
-                        ? "bg-gradient-to-r from-sky-300 to-teal-400 text-white shadow-lg scale-105" 
-                        : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700"
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 sm:w-5 sm:h-5 mb-1 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
-                    <span className="text-[10px] font-medium">{item.label.split(" ")[0]}</span>
-                    {isActive && (
-                      <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full"></div>
-                    )}
-                  </button>
-                );
-              }
-              
-              return (
-                <Link key={item.path} href={item.path}>
-                  <button className={`flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-300 relative group ${
-                    isActive 
-                      ? "bg-gradient-to-r from-sky-300 to-teal-400 text-white shadow-lg scale-105" 
-                      : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700"
-                  }`}>
-                    <Icon className={`w-4 h-4 sm:w-5 sm:h-5 mb-1 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
-                    <span className="text-[10px] font-medium">{item.label.split(" ")[0]}</span>
-                    {isActive && (
-                      <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full"></div>
-                    )}
-                  </button>
-                </Link>
-              );
-            })}
-            <button 
-              onClick={handleLogout}
-              disabled={isLoggingOut}
-              className={`flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-300 ${
-                isLoggingOut 
-                  ? "bg-red-500/20 text-red-600" 
-                  : "text-gray-700 hover:bg-red-50 hover:text-red-600"
-              }`}
-            >
-              <LogOut className="w-4 h-4 sm:w-5 sm:h-5 mb-1" />
-              <span className="text-[10px] font-medium">Logout</span>
-            </button>
-          </div>
-        </div>
-      )}
-
     </>
   );
 }

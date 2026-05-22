@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { API_BASE_URL } from '@/lib/api-config';
 import { normalizeAndFormatExamDisplayText } from '@/lib/exam-text-normalize';
 import AdvancedPerformanceDashboard from '@/components/analytics/AdvancedPerformanceDashboard';
+import AiReportTab from '@/components/exam-analysis/AiReportTab';
 import {
   WeakSubjectResourcesCard,
   type WeakSubjectContentMap,
@@ -1048,8 +1049,16 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     ? ((result.correctAnswers + result.wrongAnswers) / totalQuestionCount) * 100
     : 0;
 
-  const grade = getGrade(displayPercentage);
+  const marksPercentForGrade =
+    (result.totalMarks || 0) > 0
+      ? ((result.obtainedMarks || 0) / (result.totalMarks || 1)) * 100
+      : displayPercentage;
+  const grade = getGrade(marksPercentForGrade);
   const GradeIcon = grade.icon;
+  const marksPercent =
+    (result.totalMarks || 0) > 0
+      ? ((result.obtainedMarks || 0) / (result.totalMarks || 1)) * 100
+      : displayPercentage;
 
   const normalizedRiskLevel = String(aiAnalysis?.riskLevel || '').toLowerCase();
   const riskBadgeClass =
@@ -1368,6 +1377,62 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     return lost / wrong;
   }, [result]);
 
+  const scoreReconciliation = useMemo(() => {
+    let marksEarned = 0;
+    let negativePenalty = 0;
+    let marksNotEarnedOnWrong = 0;
+    const wrongN = result.wrongAnswers || 0;
+    const net = Math.round(Number(result.obtainedMarks) || 0);
+
+    analysisQuestions.forEach((q, i) => {
+      const ua = getUserAnswerForQuestion(q, i);
+      const attempted = ua !== undefined && ua !== null && ua !== '';
+      const qMarks = Number(q.marks ?? 4) || 4;
+      const qNeg = Number(q.negativeMarks ?? 1) || 0;
+      if (!attempted) return;
+      if (compareAnswers(q, ua, q.correctAnswer)) {
+        marksEarned += qMarks;
+      } else {
+        negativePenalty += qNeg;
+        marksNotEarnedOnWrong += qMarks;
+      }
+    });
+
+    if (analysisQuestions.length === 0 && wrongN > 0) {
+      const avgQMarks = (result.totalMarks || 0) / Math.max(totalQuestionCount, 1);
+      marksNotEarnedOnWrong = Math.round(wrongN * avgQMarks);
+      negativePenalty = Math.max(0, Math.round(net + marksNotEarnedOnWrong - (result.totalMarks || 0) + wrongN * avgQMarks));
+      if (negativePenalty <= 0) {
+        negativePenalty = Math.round(wrongN * 1);
+      }
+      marksEarned = net + negativePenalty;
+    }
+
+    marksEarned = Math.round(marksEarned);
+    negativePenalty = Math.round(negativePenalty);
+    marksNotEarnedOnWrong = Math.round(marksNotEarnedOnWrong);
+    const totalImpact = marksNotEarnedOnWrong + negativePenalty;
+    const costPerWrong =
+      wrongN > 0 ? Math.round(totalImpact / wrongN) : Math.round(marksPerWrong);
+
+    return {
+      marksEarned,
+      negativePenalty,
+      net,
+      marksNotEarnedOnWrong,
+      costPerWrong,
+    };
+  }, [
+    analysisQuestions,
+    result.obtainedMarks,
+    result.wrongAnswers,
+    result.totalMarks,
+    totalQuestionCount,
+    marksPerWrong,
+    displayResult.answers,
+    result.answers,
+  ]);
+
   const chapterHeatmap = useMemo(() => {
     const bySubject: Record<string, Array<{ name: string; pct: number }>> = {
       physics: [],
@@ -1457,8 +1522,8 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       const isWrongQuick = attempted && !correct && timeSeconds != null && timeSeconds < 30;
       const isHardWrong = attempted && !correct && difficulty === 'hard';
       const isTimePressure =
-        attempted &&
-        !correct &&
+          attempted &&
+          !correct &&
         isTimePressureWrong(timeSeconds, avgT, difficulty, analyticsRow?.timeBucket);
       return { attempted, correct, isWrongQuick, isHardWrong, isTimePressure };
     });
@@ -1575,127 +1640,6 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     setTouchStartY(null);
   };
 
-  /** Purple hero + score / marks card — shown on AI Report tab */
-  const questionAnalysisMarksModule = (
-    <>
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-purple-600 to-pink-500 text-white p-3 sm:p-4 lg:p-6 sm:p-8 rounded-2xl mb-4"
-      >
-        <motion.div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold mb-1">Question Analysis</h1>
-            <p className="text-white/80 text-sm sm:text-base">
-              Review each question and understand your performance
-            </p>
-            <p className="text-white/70 text-xs sm:text-sm mt-2">
-              {Number(result.attemptNumber) >= 1 ? `Attempt ${Number(result.attemptNumber)}` : 'Attempt 1'}
-              {' · '}
-              {studentName}
-              {' · '}
-              {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-            </p>
-          </div>
-          <span className="self-start bg-white text-purple-700 text-xs sm:text-sm font-semibold px-4 py-2 rounded-full shadow-sm">
-            {analysisQuestions.length || result.totalQuestions || 0} Total Questions
-          </span>
-        </motion.div>
-      </motion.div>
-
-      <Card className="mb-8 rounded-2xl shadow-sm border border-gray-100 bg-white">
-        <CardContent className="p-3 sm:p-4 lg:p-6 sm:p-8">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col xl:flex-row gap-4 sm:p-6 lg:p-8 items-stretch"
-          >
-            <div className="flex flex-col items-center shrink-0">
-              <div className="relative w-32 h-32 sm:w-36 sm:h-36">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="42" stroke="#f3f4f6" strokeWidth="8" fill="none" />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="42"
-                    stroke={getGradeRingColor(grade.grade)}
-                    strokeWidth="8"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeDasharray={`${2 * Math.PI * 42}`}
-                    strokeDashoffset={`${2 * Math.PI * 42 * (1 - animatedValues.obtainedMarks / Math.max(result.totalMarks || 1, 1))}`}
-                    className="transition-all duration-2000 ease-out"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center px-1">
-                  <span className="text-lg sm:text-xl font-bold text-gray-900 leading-none">
-                    {animatedValues.obtainedMarks}
-                  </span>
-                  <span className="text-xs sm:text-sm font-semibold text-gray-500 mt-0.5">
-                    / {result.totalMarks}
-                  </span>
-                </div>
-              </div>
-              <span className={`mt-3 px-3 py-1 rounded-full text-xs font-semibold ${getGradePillClass(grade.grade)}`}>
-                {grade.grade} Grade
-              </span>
-            </div>
-
-            <div className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-3 sm:p-4 lg:p-6 min-w-0">
-              <div className="text-center sm:text-left">
-                <div className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 leading-none">{animatedValues.obtainedMarks}</div>
-                <p className="text-gray-500 mt-1">out of {result.totalMarks} marks</p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 w-full sm:w-auto max-w-md">
-                <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3 text-center">
-                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 mx-auto mb-1" />
-                  <div className="text-lg sm:text-xl font-bold text-emerald-700">{animatedValues.correctAnswers}</div>
-                  <div className="text-xs text-emerald-600">Correct</div>
-                </div>
-                <div className="rounded-xl bg-red-50 border border-red-100 p-3 text-center">
-                  <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 mx-auto mb-1" />
-                  <div className="text-lg sm:text-xl font-bold text-red-700">{animatedValues.wrongAnswers}</div>
-                  <div className="text-xs text-red-600">Wrong</div>
-                </div>
-                <div className="rounded-xl bg-gray-50 border border-gray-200 p-3 text-center">
-                  <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 mx-auto mb-1" />
-                  <div className="text-lg sm:text-xl font-bold text-gray-700">{animatedValues.unattempted}</div>
-                  <div className="text-xs text-gray-600">Skipped</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="w-full xl:w-56 space-y-4 shrink-0">
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="font-medium text-gray-700">Accuracy Rate</span>
-                  <span className="font-semibold text-orange-600">{accuracyRate.toFixed(1)}%</span>
-                </div>
-                <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-                  <div className="h-full rounded-full bg-gradient-to-r from-orange-400 to-red-500" style={{ width: `${Math.min(100, accuracyRate)}%` }} />
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-xs mb-1">
-                  <span className="font-medium text-gray-700">Completion Rate</span>
-                  <span className="font-semibold text-[#7C3AED]">{completionRate.toFixed(1)}%</span>
-                </div>
-                <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-                  <div className="h-full rounded-full bg-[#7C3AED]" style={{ width: `${Math.min(100, completionRate)}%` }} />
-                </div>
-              </div>
-              <div className="flex items-center gap-2 p-3 rounded-xl border border-gray-100 bg-gray-50">
-                <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-[#7C3AED]" />
-                <span className="text-xs sm:text-sm text-gray-600">Time Taken</span>
-                <span className="ml-auto text-xs sm:text-sm font-semibold text-gray-900">{formatTime(result.timeTaken)}</span>
-              </div>
-            </div>
-          </motion.div>
-        </CardContent>
-      </Card>
-    </>
-  );
-
   const questionDistributionBars = (
     <Card className="rounded-2xl shadow-sm border border-gray-100 bg-white">
       <CardHeader>
@@ -1729,68 +1673,68 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
 
   const performanceAnalyticsSection = (
     <>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
-        <Card className="rounded-2xl shadow-sm border border-gray-100">
-          <CardHeader>
-            <CardTitle className="flex items-center text-lg sm:text-xl">
-              <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-[#7C3AED]" />
-              Performance DNA
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PerformanceDNARadar scores={dnaScores} />
-            <Badge className="mt-4 bg-amber-100 text-amber-800 border-amber-200">{dnaProfileLabel}</Badge>
-            <p className="text-xs sm:text-sm text-gray-600 mt-3">
-              Your DNA says: you knew more than your marks show — fix pacing and careless slips to unlock hidden potential.
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="rounded-2xl shadow-sm border border-gray-100">
-          <CardHeader>
-            <CardTitle className="flex items-center text-lg sm:text-xl">
-              <Clock className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-[#7C3AED]" />
-              Time Intelligence
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-center p-4 rounded-xl bg-purple-50 border border-purple-100">
-              <Clock className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-[#7C3AED] mx-auto mb-2" />
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{formatTime(result.timeTaken)}</p>
-              <p className="text-xs sm:text-sm text-gray-600">Total Time Taken</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
+              <Card className="rounded-2xl shadow-sm border border-gray-100">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-lg sm:text-xl">
+                    <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-[#7C3AED]" />
+                    Performance DNA
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <PerformanceDNARadar scores={dnaScores} />
+                  <Badge className="mt-4 bg-amber-100 text-amber-800 border-amber-200">{dnaProfileLabel}</Badge>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-3">
+                    Your DNA says: you knew more than your marks show — fix pacing and careless slips to unlock hidden potential.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="rounded-2xl shadow-sm border border-gray-100">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-lg sm:text-xl">
+                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-[#7C3AED]" />
+                    Time Intelligence
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="text-center p-4 rounded-xl bg-purple-50 border border-purple-100">
+                    <Clock className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-[#7C3AED] mx-auto mb-2" />
+                    <p className="text-xl sm:text-2xl font-bold text-gray-900">{formatTime(result.timeTaken)}</p>
+                    <p className="text-xs sm:text-sm text-gray-600">Total Time Taken</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-center">
+                    <div className="p-3 rounded-xl border bg-gray-50">
+                      <p className="text-base sm:text-lg font-bold">{formatTime(avgTimePerQuestion)}</p>
+                      <p className="text-xs text-gray-500">Avg per Question</p>
+                    </div>
+                    <div className="p-3 rounded-xl border bg-gray-50">
+                      <p className="text-base sm:text-lg font-bold">{speedRatingLabel}</p>
+                      <p className="text-xs text-gray-500">Speed Rating</p>
+                    </div>
+                  </div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Time × Accuracy Quadrant</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-center text-xs sm:text-sm">
+                    <div className="p-3 rounded-lg bg-red-50 border border-red-100">
+                      <p className="font-bold text-red-700">{timeQuadrant.fastWrong}</p>
+                      <p className="text-xs text-gray-600">Fast + Wrong · Careless</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                      <p className="font-bold text-emerald-700">{timeQuadrant.fastRight}</p>
+                      <p className="text-xs text-gray-600">Fast + Right · Sharp</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-orange-50 border border-orange-100">
+                      <p className="font-bold text-orange-700">{timeQuadrant.slowWrong}</p>
+                      <p className="text-xs text-gray-600">Slow + Wrong · Stuck</p>
+                    </div>
+                    <div className="p-3 rounded-lg bg-blue-50 border border-blue-100">
+                      <p className="font-bold text-blue-700">{timeQuadrant.slowRight}</p>
+                      <p className="text-xs text-gray-600">Slow + Right · Effortful</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-center">
-              <div className="p-3 rounded-xl border bg-gray-50">
-                <p className="text-base sm:text-lg font-bold">{formatTime(avgTimePerQuestion)}</p>
-                <p className="text-xs text-gray-500">Avg per Question</p>
-              </div>
-              <div className="p-3 rounded-xl border bg-gray-50">
-                <p className="text-base sm:text-lg font-bold">{speedRatingLabel}</p>
-                <p className="text-xs text-gray-500">Speed Rating</p>
-              </div>
-            </div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Time × Accuracy Quadrant</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-center text-xs sm:text-sm">
-              <div className="p-3 rounded-lg bg-red-50 border border-red-100">
-                <p className="font-bold text-red-700">{timeQuadrant.fastWrong}</p>
-                <p className="text-xs text-gray-600">Fast + Wrong · Careless</p>
-              </div>
-              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100">
-                <p className="font-bold text-emerald-700">{timeQuadrant.fastRight}</p>
-                <p className="text-xs text-gray-600">Fast + Right · Sharp</p>
-              </div>
-              <div className="p-3 rounded-lg bg-orange-50 border border-orange-100">
-                <p className="font-bold text-orange-700">{timeQuadrant.slowWrong}</p>
-                <p className="text-xs text-gray-600">Slow + Wrong · Stuck</p>
-              </div>
-              <div className="p-3 rounded-lg bg-blue-50 border border-blue-100">
-                <p className="font-bold text-blue-700">{timeQuadrant.slowRight}</p>
-                <p className="text-xs text-gray-600">Slow + Right · Effortful</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      {questionDistributionBars}
+            {questionDistributionBars}
     </>
   );
 
@@ -1825,7 +1769,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                   {subject !== 'maths' && subject !== 'physics' && subject !== 'chemistry' && (
                     <BookOpen className={`w-10 h-10 ${colors.icon}`} />
                   )}
-                </div>
+          </div>
                 <h3 className="text-xl sm:text-2xl font-bold text-gray-900 capitalize mb-2">{subject}</h3>
                 <div className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 text-gray-900">
                   {percentage.toFixed(1)}%
@@ -1940,260 +1884,34 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8">
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Tab Content */}
 
         {/* AI Report Tab */}
         {activeTab === 'ai' && (
-          <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-            {questionAnalysisMarksModule}
-            {performanceAnalyticsSection}
-
-            {aiLoading && (
-              <div className="text-xs sm:text-sm text-[#7C3AED] py-4">Generating your AI report...</div>
-            )}
-            {!aiLoading && aiError && (
-              <div className="text-xs sm:text-sm text-red-600 p-4 rounded-xl bg-red-50 border border-red-200">{aiError}</div>
-            )}
-
-            {!aiLoading && (
-              <>
-            <div className="rounded-2xl border-l-4 border-red-500 bg-red-50 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="flex gap-3 flex-1">
-                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-red-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs font-bold text-red-800 tracking-wide">THE REAL PROBLEM IN THIS ATTEMPT</p>
-                  <p className="text-xs sm:text-sm font-semibold text-gray-900 mt-1">
-                    {carelessMistakeCount} careless mistakes cost you {Math.round(carelessMistakeCount * marksPerWrong)} marks.
-                  </p>
-                  <p className="text-xs sm:text-sm text-gray-700 mt-1">
-                    {aiAnalysis?.rootCauses?.[0] ||
-                      'You knew these. You answered in under 30 seconds — speed without accuracy.'}
-                  </p>
-                </div>
-              </div>
-              <Button
-                type="button"
-                className="bg-red-900 hover:bg-red-950 text-white shrink-0"
-                onClick={() => setActiveTab('plan')}
-              >
-                Fix this <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 ml-1 inline" />
-              </Button>
-            </div>
-
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5">
-              <div className="flex gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#7C3AED] text-white font-bold flex items-center justify-center shrink-0">V</div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-gray-900">Vidya</span>
-                    <span className="text-[10px] uppercase tracking-wide bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">YOUR TUTOR</span>
-                  </div>
-                  <p className="text-xs sm:text-sm text-gray-800 mt-2">
-                    {studentName}, don&apos;t let this number define the day — one mock is data, not destiny.
-                  </p>
-                  <p className="text-xs sm:text-sm text-gray-700 mt-1">
-                    {(aiAnalysis?.motivation || aiAnalysis?.summary || '').split(/[.!?]/)[0]}.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="rounded-xl bg-teal-50 border border-teal-100 p-4">
-                <p className="text-xs text-gray-500">Attempted</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">{attemptedCount}</p>
-              </div>
-              <div className="rounded-xl bg-blue-50 border border-blue-100 p-4">
-                <p className="text-xs text-gray-500">Unattempted</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">{result.unattempted}</p>
-              </div>
-              <div className="rounded-xl bg-red-50 border border-red-100 p-4">
-                <p className="text-xs text-gray-500">Wrong</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">{result.wrongAnswers}</p>
-              </div>
-              <div className="rounded-xl bg-purple-50 border border-purple-100 p-4">
-                <p className="text-xs text-gray-500">Accuracy</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900">{accuracyRate.toFixed(1)}%</p>
-              </div>
-            </div>
-
-            <Card className="rounded-2xl shadow-sm border border-gray-100">
-              <CardHeader>
-                <CardTitle className="text-lg sm:text-xl">Vidya&apos;s Performance Diagnosis</CardTitle>
-                <p className="text-xs sm:text-sm text-gray-500">Powered by Gemini · 4 paragraphs · two-minute read</p>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                {[
-                  { n: 1, label: 'WHAT WENT WELL', color: 'text-emerald-600', body: aiAnalysis?.strengths?.[0] || aiAnalysis?.motivation || 'You showed pockets of accuracy when you slowed down.' },
-                  { n: 2, label: 'THE BIGGEST ISSUE', color: 'text-red-600', body: aiAnalysis?.rootCauses?.[0] || 'Careless errors under time pressure dominated this attempt.' },
-                  { n: 3, label: 'PATTERN ACROSS ATTEMPTS', color: 'text-blue-600', body: (aiAnalysis?.summary || '').split('.').slice(1, 3).join('.').trim() || aiAnalysis?.summary || 'Similar gaps appear when pacing is rushed.' },
-                  { n: 4, label: 'DO THIS TOMORROW', color: 'text-[#7C3AED]', body: aiAnalysis?.actionPlan?.today?.[0] || 'Run a 25-minute slow-mode drill on your weakest chapter.' },
-                ].map((row) => (
-                  <div key={row.n} className="flex gap-4">
-                    <span className="text-base sm:text-lg font-bold text-gray-300">{row.n}</span>
-                    <div>
-                      <p className={`text-xs font-bold tracking-wider ${row.color}`}>{row.label}</p>
-                      <p className="text-xs sm:text-sm text-gray-600 mt-1">{row.body}</p>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-indigo-50 rounded-2xl">
-              <CardHeader>
-                <CardTitle className="flex items-center text-lg sm:text-xl">
-                  <Brain className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 mr-2 text-indigo-600" />
-                  Performance Analysis Report
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {aiLoading && (
-                  <p className="text-xs sm:text-sm text-indigo-700">Generating your report...</p>
-                )}
-                {!aiLoading && aiError && (
-                  <p className="text-xs sm:text-sm text-red-600">{aiError}</p>
-                )}
-                {!aiLoading && !aiError && aiAnalysis?.summary && (
-                  <p className="text-gray-800 whitespace-pre-line">{aiAnalysis.summary}</p>
-                )}
-                {!aiLoading && !aiError && aiAnalysis?.motivation && (
-                  <div className="p-3 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-900">
-                    {aiAnalysis.motivation}
-                  </div>
-                )}
-                {!aiLoading && !aiError && !aiAnalysis?.summary && !aiAnalysis?.motivation && (
-                  <p className="text-xs sm:text-sm text-gray-500">Full analysis will appear once the AI report is generated.</p>
-                )}
-              </CardContent>
-            </Card>
-              </>
-            )}
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-green-50">
-                <CardHeader>
-                  <CardTitle className="text-base sm:text-lg">Strengths</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 text-xs sm:text-sm text-gray-800">
-                    {(aiAnalysis?.strengths || []).map((item, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 mt-0.5" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                    {(!aiAnalysis?.strengths || aiAnalysis.strengths.length === 0) && (
-                      <li className="text-gray-500">No AI strengths available yet.</li>
-                    )}
-                  </ul>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-amber-50">
-                <CardHeader>
-                  <CardTitle className="text-base sm:text-lg">Focus Areas</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {(aiAnalysis?.focusAreas || []).map((item, idx) => (
-                    <div key={idx} className="p-3 rounded-lg border border-amber-200 bg-amber-50">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-semibold capitalize">{item.subject}</span>
-                        <Badge variant="outline" className="uppercase">{item.priority}</Badge>
-                      </div>
-                      <p className="text-xs sm:text-sm text-gray-700">{item.issue}</p>
-                      <p className="text-xs sm:text-sm text-gray-900 mt-1"><strong>Do:</strong> {item.whatToDo}</p>
-                    </div>
-                  ))}
-                  {(!aiAnalysis?.focusAreas || aiAnalysis.focusAreas.length === 0) && (
-                    <p className="text-gray-500 text-xs sm:text-sm">No AI focus areas available yet.</p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card className="rounded-2xl shadow-sm border border-gray-100">
-              <CardHeader>
-                <CardTitle className="text-base sm:text-lg">Root Causes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-xs sm:text-sm text-gray-800">
-                  {(aiAnalysis?.rootCauses || []).map((cause, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 mt-0.5 shrink-0" />
-                      <span>{cause}</span>
-                    </li>
-                  ))}
-                  {(!aiAnalysis?.rootCauses || aiAnalysis.rootCauses.length === 0) && (
-                    <li className="text-gray-500">No root causes available yet.</li>
-                  )}
-                </ul>
-              </CardContent>
-            </Card>
-
-            {weakAreas.length === 0 ? (
-              <p className="text-center text-xs sm:text-sm text-muted-foreground py-3 sm:py-4 lg:py-6 rounded-xl border border-dashed border-purple-100 bg-gradient-to-r from-purple-50/80 to-pink-50/50">
-                Great job! No weak areas detected — keep it up! 🎉
-              </p>
-            ) : (
-              <WeakSubjectResourcesCard
-                loadingContent={loadingWeakContent}
-                weakSubjectContent={weakSubjectContent}
-              />
-            )}
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-purple-50">
-                <CardHeader>
-                  <CardTitle className="text-base sm:text-lg">AI Action Plan</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-xs sm:text-sm mb-2">Today</h4>
-                    <ul className="list-disc list-inside text-xs sm:text-sm text-gray-800 space-y-1">
-                      {(aiAnalysis?.actionPlan?.today || []).map((x, idx) => <li key={idx}>{x}</li>)}
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-xs sm:text-sm mb-2">This Week</h4>
-                    <ul className="list-disc list-inside text-xs sm:text-sm text-gray-800 space-y-1">
-                      {(aiAnalysis?.actionPlan?.thisWeek || []).map((x, idx) => <li key={idx}>{x}</li>)}
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-xs sm:text-sm mb-2">Before Next Exam</h4>
-                    <ul className="list-disc list-inside text-xs sm:text-sm text-gray-800 space-y-1">
-                      {(aiAnalysis?.actionPlan?.beforeNextExam || []).map((x, idx) => <li key={idx}>{x}</li>)}
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-xl bg-gradient-to-br from-white to-blue-50">
-                <CardHeader>
-                  <CardTitle className="text-base sm:text-lg">Recommended AI Tools</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <h4 className="font-semibold text-xs sm:text-sm mb-2">AsliLearn AI Tools</h4>
-                    <div className="space-y-2">
-                      {(aiAnalysis?.recommendedAiTools || []).map((t, idx) => (
-                        <div key={idx} className="p-2 rounded border border-indigo-200 bg-indigo-50">
-                          <div className="text-xs sm:text-sm font-medium text-indigo-900">{t.toolType}</div>
-                          <div className="text-xs text-indigo-800">{t.why}</div>
-                        </div>
-                      ))}
-                      {(!aiAnalysis?.recommendedAiTools || aiAnalysis.recommendedAiTools.length === 0) && (
-                        <p className="text-gray-500 text-xs sm:text-sm">No AI tool picks available yet.</p>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-          </div>
+            <AiReportTab
+              result={result}
+              examTitle={examTitle}
+              studentName={studentName}
+              examDateLabel={examDateLabel}
+              aiAnalysis={aiAnalysis}
+              aiLoading={aiLoading}
+              aiError={aiError}
+              animatedMarks={animatedValues.obtainedMarks}
+              animatedCorrect={animatedValues.correctAnswers}
+              animatedWrong={animatedValues.wrongAnswers}
+              animatedSkipped={animatedValues.unattempted}
+              gradeLetter={grade.grade}
+              marksPercent={marksPercent}
+              accuracyRate={accuracyRate}
+              completionRate={completionRate}
+              attemptedCount={attemptedCount}
+              totalQuestionCount={totalQuestionCount}
+              mistakeTaxonomy={mistakeTaxonomy}
+              wrongQuickCount={questionFilterCounts.wrongQuick}
+              marksPerWrong={marksPerWrong}
+              scoreReconciliation={scoreReconciliation}
+            />
         )}
 
         {/* Questions Tab */}
@@ -2608,36 +2326,6 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
             <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-xs sm:text-sm text-amber-900">
               Pattern detected — Careless errors have appeared in consecutive mocks. Slow-mode drills recommended daily.
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
-              <Card className="rounded-2xl shadow-sm border">
-                <CardHeader><CardTitle>Peer Benchmark</CardTitle></CardHeader>
-                <CardContent className="space-y-3 text-xs sm:text-sm">
-                  {['App-wide', 'Hyderabad cohort', 'Class nationally'].map((label, i) => (
-                    <div key={label}>
-                      <div className="flex justify-between mb-1"><span>{label}</span><span>{38 + i * 4}th %ile</span></div>
-                      <div className="h-2 bg-gray-100 rounded-full"><div className="h-full bg-[#7C3AED] rounded-full" style={{ width: `${35 + i * 5}%` }} /></div>
-                    </div>
-                  ))}
-                  <p className="font-bold pt-2">TOPPER GAP: {Math.max(0, (result.totalMarks || 0) - (result.obtainedMarks || 0) - 20)} marks</p>
-                </CardContent>
-              </Card>
-              <Card className="rounded-2xl shadow-sm border">
-                <CardHeader><CardTitle>Predicted Rank Projection</CardTitle></CardHeader>
-                <CardContent className="space-y-2 text-xs sm:text-sm">
-                  <p className="text-xs text-gray-500">JEE MAIN AIR BAND</p>
-                  <p className="text-lg sm:text-xl font-bold">N/A</p>
-                  <p className="text-gray-600">Percentile band: N/A</p>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    <Badge variant="outline">Last 5 attempts</Badge>
-                    <Badge variant="outline">NTA 2024 norm</Badge>
-                    <Badge variant="outline">Confidence: Med</Badge>
-                  </div>
-                  <div className="mt-3 p-3 rounded-lg bg-rose-50 border border-rose-100 text-gray-700 text-xs">
-                    {aiAnalysis?.motivation || aiAnalysis?.summary?.slice(0, 120) || 'Keep attempting mocks to unlock rank projection.'}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
             <AdvancedPerformanceDashboard examId={advancedExamId} />
           </div>
         )}
@@ -2649,6 +2337,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
               <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Subject-wise performance</h3>
               {subjectWisePerformanceCards}
             </div>
+            {performanceAnalyticsSection}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
               
               {/* Performance Insights */}

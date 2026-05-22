@@ -38,27 +38,48 @@ export function shouldFetchDirectly(url: string): boolean {
   }
 }
 
-/**
- * `src` for student PDF iframes. External URLs use `/content-preview` with `token` in the query
- * because the browser cannot send `Authorization` on iframe navigations.
- */
-export function getStudentPdfPreviewIframeSrc(
-  fileUrl: string,
-  title?: string
-): string {
+const PDF_IFRAME_CHROMELESS_HASH = "toolbar=0&navpanes=0&scrollbar=1&view=FitH";
+
+/** Hide browser PDF viewer toolbar (download / print / menu) where supported. */
+export function appendPdfViewerChromelessHash(src: string): string {
+  if (!src) return "";
+  const lower = src.toLowerCase();
+  if (
+    lower.includes("youtube.com") ||
+    lower.includes("youtu.be") ||
+    lower.includes("vimeo.com")
+  ) {
+    return src;
+  }
+
+  try {
+    const url = new URL(src);
+    const existing = url.hash ? url.hash.replace(/^#/, "") : "";
+    const parts = existing
+      ? existing.split("&").filter((p) => p && !p.startsWith("toolbar=") && !p.startsWith("navpanes="))
+      : [];
+    parts.push(...PDF_IFRAME_CHROMELESS_HASH.split("&"));
+    url.hash = parts.join("&");
+    return url.toString();
+  } catch {
+    if (src.includes("#")) {
+      return `${src}&${PDF_IFRAME_CHROMELESS_HASH}`;
+    }
+    return `${src}#${PDF_IFRAME_CHROMELESS_HASH}`;
+  }
+}
+
+function resolvePdfPreviewBaseUrl(fileUrl: string, title?: string): string {
   if (!fileUrl) return "";
 
-  // Our own backend URLs — load directly, no proxy needed
   if (isOurBackendPdfUrl(fileUrl)) {
     return fileUrl;
   }
 
-  // External domains that block datacenter IPs — bypass proxy, let browser fetch directly
   if (shouldFetchDirectly(fileUrl)) {
     return fileUrl;
   }
 
-  // All other external URLs — route through our backend proxy
   const token =
     typeof window !== "undefined"
       ? localStorage.getItem("authToken") || ""
@@ -69,6 +90,23 @@ export function getStudentPdfPreviewIframeSrc(
     `&filename=${encodeURIComponent(title || "preview.pdf")}` +
     `&token=${encodeURIComponent(token)}`
   );
+}
+
+/**
+ * `src` for student PDF iframes. External URLs use `/content-preview` with `token` in the query
+ * because the browser cannot send `Authorization` on iframe navigations.
+ */
+export function getStudentPdfPreviewIframeSrc(
+  fileUrl: string,
+  title?: string
+): string {
+  const base = resolvePdfPreviewBaseUrl(fileUrl, title);
+  return appendPdfViewerChromelessHash(base);
+}
+
+/** PDF iframe src for any role (super-admin subject content, dashboard, etc.). */
+export function getEmbeddedPdfIframeSrc(fileUrl: string, title?: string): string {
+  return getStudentPdfPreviewIframeSrc(fileUrl, title);
 }
 
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {

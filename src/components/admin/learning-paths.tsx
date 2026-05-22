@@ -26,6 +26,12 @@ import {
   extractPlainSubjectName,
   getLearningPathClassLabel,
 } from '@/lib/subject-names';
+import {
+  filterActiveCatalogContent,
+  filterActiveCatalogSubjects,
+  isActiveCatalogSubject,
+  isSoftDeletedCatalogName,
+} from '@/lib/catalog-filters';
 
 function subjectMatchesClassFilter(
   row: {
@@ -68,9 +74,12 @@ function groupKeyForSubjectRow(row: {
 }
 
 function consolidateDuplicateSubjectCards(rows: any[]): any[] {
+  const activeRows = filterActiveCatalogSubjects(
+    rows.filter((row) => !isSoftDeletedCatalogName(row?.name))
+  );
   const byKey = new Map<string, any>();
 
-  for (const row of rows) {
+  for (const row of activeRows) {
     const key = groupKeyForSubjectRow(row);
     const rowId = String(row._id || row.id);
     const incoming = [...(row.asliPrepContent || [])];
@@ -288,7 +297,7 @@ export default function AdminLearningPaths() {
         const data = await response.json();
         // Handle both array and object responses
         const subjectsArray = Array.isArray(data) ? data : (data.data || data.subjects || []);
-        setSubjects(subjectsArray);
+        setSubjects(filterActiveCatalogSubjects(subjectsArray));
       }
     } catch (error) {
       console.error('Failed to fetch subjects:', error);
@@ -320,6 +329,7 @@ export default function AdminLearningPaths() {
           const contentData = await contentResponse.json();
           allContent = contentData.data || contentData || [];
           if (!Array.isArray(allContent)) allContent = [];
+          allContent = filterActiveCatalogContent(allContent) as any[];
         }
       } catch (e) {
         console.error('Failed to fetch all asli-prep content:', e);
@@ -359,7 +369,7 @@ export default function AdminLearningPaths() {
         });
       }
 
-      // Subjects that only appear on content (e.g. catalog row missing from /subjects response)
+      // Subjects that only appear on content (active catalog only; skip soft-deleted subjects)
       bySubjectId.forEach((items, subjectId) => {
         if (consumedIds.has(subjectId)) return;
         const sorted = items.slice().sort((a: any, b: any) => {
@@ -368,11 +378,15 @@ export default function AdminLearningPaths() {
           return tb - ta;
         });
         const first = sorted[0];
-        const populated = first?.subject;
+        const subjectRef = first?.subject;
+        if (typeof subjectRef === 'object' && subjectRef) {
+          if (!isActiveCatalogSubject(subjectRef)) return;
+        }
         const nameFromPopulate =
-          typeof populated === 'object' && populated?.name
-            ? populated.name
+          typeof subjectRef === 'object' && subjectRef?.name
+            ? subjectRef.name
             : 'Subject';
+        if (isSoftDeletedCatalogName(nameFromPopulate)) return;
         merged.push({
           _id: subjectId,
           id: subjectId,
@@ -385,7 +399,11 @@ export default function AdminLearningPaths() {
         });
       });
 
-      const consolidated = consolidateDuplicateSubjectCards(merged);
+      const consolidated = consolidateDuplicateSubjectCards(merged).filter(
+        (row) =>
+          !isSoftDeletedCatalogName(row?.name) &&
+          (row.asliPrepContent?.length || row.totalContent || 0) > 0
+      );
       setSubjectsWithContent(consolidated);
     } catch (error) {
       console.error('Failed to fetch subjects with content:', error);

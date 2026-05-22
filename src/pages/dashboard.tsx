@@ -1915,7 +1915,7 @@ export default function Dashboard() {
   return (
     <>
       <Navigation />
-      <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-responsive pb-responsive bg-sky-50 min-h-screen ${isMobile ? 'pb-20' : ''} relative`}>
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-responsive pb-responsive bg-sky-50 min-h-screen relative">
         {/* Interactive Background */}
         <div className="fixed inset-0 z-0 bg-sky-50">
           {/* Interactive Background - Disabled for better performance */}
@@ -1937,28 +1937,28 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-        <div className="bg-gradient-to-r from-blue-500 via-blue-400 to-teal-400 rounded-2xl p-3 sm:p-4 lg:p-6 sm:p-8 text-white relative overflow-hidden shadow-xl">
+        <div className="bg-gradient-to-r from-blue-500 via-blue-400 to-teal-400 rounded-2xl p-4 sm:p-6 lg:p-8 text-white relative overflow-hidden shadow-xl">
         <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-            <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="relative z-10 flex flex-row items-center justify-between gap-3 sm:gap-4">
               {/* Left side - Text content */}
-              <div className="flex-1">
-                <h1 className="text-lg sm:text-xl sm:text-2xl lg:text-3xl font-bold mb-1 sm:mb-2">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-base sm:text-xl lg:text-3xl font-bold mb-1 sm:mb-2 leading-tight">
                   Welcome back, {user?.email?.split('@')[0] || user?.fullName?.split(' ')[0] || 'Student'}!
                 </h1>
-                <p className="text-white/90 mb-3 sm:mb-4 text-xs sm:text-sm">
+                <p className="text-white/90 mb-2 sm:mb-4 text-[11px] sm:text-sm leading-snug line-clamp-3 sm:line-clamp-none">
                   Ready to continue your {user?.educationStream || 'JEE'} preparation journey? Your Vidya AI has personalized recommendations waiting.
                 </p>
                 
-                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                <div className="flex flex-row flex-wrap gap-2 sm:gap-3">
                   <Button 
-                    className="bg-white text-orange-600 hover:bg-orange-50 hover:text-orange-700 w-full sm:w-auto font-semibold text-xs sm:text-sm py-2 px-4"
+                    className="bg-white text-orange-600 hover:bg-orange-50 hover:text-orange-700 font-semibold text-[11px] sm:text-sm py-1.5 sm:py-2 px-2.5 sm:px-4 h-auto whitespace-nowrap"
                     onClick={() => setLocation('/learning-paths')}
                   >
                     Continue Learning
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="border-white/30 bg-white/10 text-white hover:bg-white/20 w-full sm:w-auto text-xs sm:text-sm py-2 px-4"
+                    className="border-white/30 bg-white/10 text-white hover:bg-white/20 text-[11px] sm:text-sm py-1.5 sm:py-2 px-2.5 sm:px-4 h-auto whitespace-nowrap"
                     onClick={() => setLocation('/ai-tutor')}
                   >
                     Ask Vidya AI
@@ -1966,15 +1966,15 @@ export default function Dashboard() {
                 </div>
               </div>
               
-              {/* Right side - Robot image */}
-              <div className="flex-shrink-0 w-full sm:w-auto flex justify-center sm:justify-end">
-                <div className="w-36 h-24 sm:w-40 sm:h-28 lg:w-44 lg:h-32 relative">
-                  <div className="absolute inset-0 bg-white/15 rounded-2xl backdrop-blur-sm p-1.5 border border-white/30 shadow-lg">
+              {/* Right side - Vidya image (same row as desktop) */}
+              <div className="flex-shrink-0">
+                <div className="w-[4.5rem] h-[3.25rem] sm:w-40 sm:h-28 lg:w-44 lg:h-32 relative">
+                  <div className="absolute inset-0 bg-white/15 rounded-xl sm:rounded-2xl backdrop-blur-sm p-1 sm:p-1.5 border border-white/30 shadow-lg">
                     <img 
                       src="/Vidya-ai.jpg" 
                       alt="Vidya AI" 
                       draggable={false}
-                      className="w-full h-full object-cover object-center rounded-xl"
+                      className="w-full h-full object-cover object-center rounded-lg sm:rounded-xl"
                     />
                   </div>
                 </div>
@@ -3682,78 +3682,6 @@ export default function Dashboard() {
               overallProgress={overallProgress}
             />
 
-            {/* Quick Actions */}
-            <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
-              <CardHeader>
-                <CardTitle className="bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent">Quick Actions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button 
-                    className="quick-action-button"
-                    onClick={() =>
-                      setLocation(
-                        `/ai-tutor?prompt=${encodeURIComponent(
-                          'Help me practice my weak topics from my recent exams and suggest focused questions.'
-                        )}`
-                      )
-                    }
-                  >
-                    <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-red-100 rounded-lg flex items-center justify-center mb-2">
-                      <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-red-600" />
-                    </div>
-                    <p className="text-responsive-xs font-medium text-gray-900">Practice Weak Topics</p>
-                  </button>
-
-                  <button 
-                    className="quick-action-button"
-                    onClick={() => alert('Schedule Study feature coming soon!')}
-                  >
-                    <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-blue-100 rounded-lg flex items-center justify-center mb-2">
-                      <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600" />
-                    </div>
-                    <p className="text-responsive-xs font-medium text-gray-900">Schedule Study</p>
-                  </button>
-
-                  <button 
-                    className="quick-action-button"
-                    onClick={() => alert('Study Groups feature coming soon!')}
-                  >
-                    <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-teal-100 rounded-lg flex items-center justify-center mb-2">
-                      <Users className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600" />
-                    </div>
-                    <p className="text-responsive-xs font-medium text-gray-900">Study Groups</p>
-                  </button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Recent Achievements */}
-            <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
-              <CardHeader>
-                <CardTitle className="bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent">Recent Achievements</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 sm:grid-cols-3 gap-2">
-                  {[
-                    { icon: '🏆', label: 'First Ace' },
-                    { icon: '⭐', label: 'Champion' },
-                    { icon: '📝', label: 'Perfect HW' },
-                    { icon: '🔥', label: '7-Day' },
-                    { icon: '🤖', label: 'AI Fan' },
-                    { icon: '📚', label: 'Explorer' }
-                  ].map((achievement) => (
-                    <div
-                      key={achievement.label}
-                      className="rounded-2xl border border-gray-100 bg-gradient-to-b from-orange-50 to-white px-3 py-3 text-center"
-                    >
-                      <p className="text-xl sm:text-2xl mb-1">{achievement.icon}</p>
-                      <p className="text-xs font-semibold text-gray-800">{achievement.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
 

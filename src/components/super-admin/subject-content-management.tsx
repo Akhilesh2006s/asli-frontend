@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { API_BASE_URL, isOurBackendPdfUrl } from '@/lib/api-config';
+import { API_BASE_URL, getEmbeddedPdfIframeSrc, isOurBackendPdfUrl } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import {
   getCurriculumClassLabels,
@@ -31,7 +31,6 @@ import {
   Trash2,
   Video,
   Edit,
-  ExternalLink,
 } from 'lucide-react';
 
 interface SubjectItem {
@@ -2295,44 +2294,20 @@ export default function SubjectContentManagement() {
                 ) : isPdfUrl(contentPreviewUrl) ? (
                   <iframe
                     title={contentPreviewItem.title}
-                    src={contentPreviewUrl}
+                    src={getEmbeddedPdfIframeSrc(
+                      contentPreviewUrl,
+                      contentPreviewItem.title
+                    )}
                     className="h-[min(78vh,900px)] w-full border-0 bg-white"
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center gap-4 p-4 sm:p-6 lg:p-8 text-center text-xs sm:text-sm text-muted-foreground">
                     <FileText className="h-12 w-12 opacity-40" />
-                    <p>
-                      In-browser preview is not available for this file type. Open it in a new
-                      tab to use your device&apos;s viewer.
-                    </p>
-                    <Button variant="secondary" asChild>
-                      <a
-                        href={contentPreviewUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2"
-                      >
-                        <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4" />
-                        Open in new tab
-                      </a>
-                    </Button>
+                    <p>Preview is not available for this file type in the app.</p>
                   </div>
                 )}
               </div>
               <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                {contentPreviewUrl ? (
-                  <Button variant="outline" asChild>
-                    <a
-                      href={contentPreviewUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2"
-                    >
-                      <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4" />
-                      Open in new tab
-                    </a>
-                  </Button>
-                ) : null}
                 <Button type="button" onClick={() => setContentPreviewItem(null)}>
                   Close
                 </Button>

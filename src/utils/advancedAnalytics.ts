@@ -8,6 +8,9 @@ export type DifficultyRow = {
     inTime: number;
     lessTime: number;
     overTime: number;
+    inTimeAvg?: number;
+    lessTimeAvg?: number;
+    overTimeAvg?: number;
   };
   wrongAnswered: {
     count: number;
@@ -15,6 +18,9 @@ export type DifficultyRow = {
     inTime: number;
     lessTime: number;
     overTime: number;
+    inTimeAvg?: number;
+    lessTimeAvg?: number;
+    overTimeAvg?: number;
   };
 };
 
@@ -92,17 +98,26 @@ export const difficultyLabel = (difficulty: string) => {
   return map[difficulty] || difficulty;
 };
 
+/** Orange / blue / green only — matches Advanced dashboard palette */
 export const chapterStrengthClass = (accuracy: number) => {
-  if (accuracy < 60) return 'bg-red-50 text-red-700';
-  if (accuracy < 80) return 'bg-yellow-50 text-yellow-700';
-  return 'bg-green-50 text-green-700';
+  if (accuracy < 60) return 'bg-orange-100 text-orange-800 border border-orange-200';
+  if (accuracy < 80) return 'bg-blue-100 text-blue-800 border border-blue-200';
+  return 'bg-green-100 text-green-800 border border-green-200';
 };
 
 export const heatmapCellClass = (accuracy: number) => {
-  if (accuracy < 40) return 'bg-red-500 text-white';
-  if (accuracy < 60) return 'bg-red-300 text-red-900';
-  if (accuracy < 80) return 'bg-yellow-300 text-yellow-900';
-  return 'bg-green-400 text-green-900';
+  if (accuracy < 60) return 'bg-orange-500 text-white';
+  if (accuracy < 80) return 'bg-blue-400 text-white';
+  return 'bg-green-500 text-white';
+};
+
+export const formatTimeBucketCell = (
+  count: number,
+  avgSec?: number
+): string => {
+  const c = Math.max(0, Math.round(Number(count) || 0));
+  const a = Math.max(0, Math.round(Number(avgSec) || 0));
+  return `${c} ${a}`;
 };
 
 export const advancedAnalyticsMockData: AdvancedAnalyticsPayload = {

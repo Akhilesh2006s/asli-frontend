@@ -351,7 +351,7 @@ export default function ExamManagement() {
   };
 
   const handleDownloadQuestionTemplate = () => {
-    // Create CSV template for questions
+    // Create CSV template for questions (questionCategory + difficulty feed Advanced analytics tables)
     const headers = [
       'questionText',
       'questionImage',
@@ -359,6 +359,10 @@ export default function ExamManagement() {
       'subject',
       'marks',
       'negativeMarks',
+      'chapter',
+      'difficulty',
+      'questionCategory',
+      'conceptType',
       'explanation',
       'option1',
       'option2',
@@ -366,27 +370,30 @@ export default function ExamManagement() {
       'option4',
       'correctAnswer',
       'correctAnswers',
-      'integerAnswer'
+      'integerAnswer',
     ];
-    
-    // Example rows for different question types
+
     const mcqExample = [
-      'What is 2 + 2?',
+      'Define electric current.',
       '',
       'mcq',
-      'maths',
-      '1',
-      '0',
-      'Basic addition',
-      '3',
+      'physics',
       '4',
-      '5',
-      '6',
+      '1',
+      'Current Electricity',
+      'moderate',
+      'Theory',
+      'Concept',
+      'Definition based',
+      'Rate of flow of charge',
+      'Rate of flow of energy',
+      'Rate of flow of mass',
+      'Rate of flow of momentum',
       '1',
       '',
-      ''
+      '',
     ];
-    
+
     const multipleExample = [
       'Which are prime numbers?',
       '',
@@ -394,6 +401,10 @@ export default function ExamManagement() {
       'maths',
       '2',
       '0.5',
+      'Number Theory',
+      'easy',
+      'Theory',
+      'Concept',
       'Prime numbers are divisible only by 1 and themselves',
       '2',
       '3',
@@ -401,31 +412,57 @@ export default function ExamManagement() {
       '5',
       '',
       '0,1,3',
-      ''
+      '',
     ];
-    
+
     const integerExample = [
-      'What is the square root of 16?',
+      'Find the value of x when 2x = 10',
       '',
       'integer',
       'maths',
+      '4',
+      '1',
+      'Algebra',
+      'moderate',
+      'Numerical',
+      'Application',
+      'Solve for x',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '5',
+    ];
+
+    const diagramExample = [
+      'Identify the labeled part in the circuit diagram',
+      '',
+      'mcq',
+      'physics',
+      '4',
+      '1',
+      'Electromagnetic Induction',
+      'difficult',
+      'Diagram',
+      'Application',
+      'Refer to figure in question paper',
+      'Resistor',
+      'Capacitor',
+      'Inductor',
+      'Battery',
       '2',
-      '0',
-      'Square root of 16 is 4',
       '',
       '',
-      '',
-      '',
-      '',
-      '',
-      '4'
     ];
     
     const csvContent = [
       headers.join(','),
       mcqExample.join(','),
       multipleExample.join(','),
-      integerExample.join(',')
+      integerExample.join(','),
+      diagramExample.join(','),
     ].join('\n');
     
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -440,7 +477,8 @@ export default function ExamManagement() {
     
     toast({
       title: 'Template Downloaded',
-      description: 'CSV template downloaded successfully. Fill it with your question data and upload it.',
+      description:
+        'Includes questionCategory (Numerical, Theory, Formula, Diagram, …) and difficulty (easy, moderate, difficult, highly_difficult) for Advanced analytics.',
     });
   };
 
@@ -2592,7 +2630,13 @@ export default function ExamManagement() {
                     {questionCsvFile ? `Selected file: ${questionCsvFile.name}` : 'No file selected yet'}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    File should contain: questionText, questionType, subject, marks, options (option1-option4), correctAnswer/correctAnswers/integerAnswer
+                    Required: questionText (or questionImage), questionType (mcq | multiple | integer), subject, marks, answers.
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    <span className="font-semibold text-slate-700">questionCategory</span> (for Question-Type matrix): Numerical, Theory, Formula, Diagram, Graph, Assertion/Reason, Comprehension, Match the Following.
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    <span className="font-semibold text-slate-700">difficulty</span> (for Difficulty + Time Intelligence): easy, moderate, difficult, highly_difficult.
                   </p>
                   <p className="text-xs text-blue-700 mt-1">
                     Tip: upload the original .xlsx to preserve x², x³, θ, π, √, Δ, ≤, ≥. A plain Excel CSV export silently replaces these with "?".

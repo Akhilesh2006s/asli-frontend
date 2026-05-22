@@ -40,7 +40,7 @@ import {
   MessageCircle,
   Calendar as CalendarIcon
 } from 'lucide-react';
-import { useLocation } from 'wouter';
+import { useLocation, useSearch } from 'wouter';
 const UserManagement = lazy(() => import('@/components/admin/user-management'));
 const ClassDashboard = lazy(() => import('@/components/admin/class-dashboard'));
 const TeacherManagement = lazy(() => import('@/components/admin/teacher-management'));
@@ -62,8 +62,22 @@ const lazySectionFallback = (
   </div>
 );
 
+const VALID_ADMIN_TABS = new Set([
+  'overview',
+  'students',
+  'classes',
+  'teachers',
+  'subjects',
+  'exams',
+  'learning-paths',
+  'eduott',
+  'calendar',
+  'vidya-ai',
+]);
+
 const AdminDashboard = () => {
   const [, setLocation] = useLocation();
+  const search = useSearch() || '';
   const [activeTab, setActiveTab] = useState('overview');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -153,6 +167,15 @@ const AdminDashboard = () => {
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [analyticsLoaded, setAnalyticsLoaded] = useState(false);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
+  useEffect(() => {
+    const raw = search || '';
+    const q = raw.startsWith('?') ? raw.slice(1) : raw;
+    const tab = new URLSearchParams(q).get('tab');
+    if (tab && VALID_ADMIN_TABS.has(tab)) {
+      setActiveTab(tab);
+    }
+  }, [search]);
+
   const handleMobileTabChange = (tab: string) => {
     setActiveTab(tab);
     setMobileMenuOpen(false);

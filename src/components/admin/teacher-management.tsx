@@ -10,6 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { API_BASE_URL } from '@/lib/api-config';
+import {
+  formatSubjectDisplayLabel,
+  normalizeSubjectDisplayKey,
+} from '@/lib/subject-names';
 import { 
   Users, 
   Plus, 
@@ -47,8 +51,11 @@ interface Teacher {
 interface Class {
   id: string;
   name: string;
+  classNumber?: string;
+  section?: string;
   description?: string;
   subject: string;
+  assignedSubjects?: Array<{ id?: string; _id?: string; name?: string; code?: string }>;
   grade: string;
   teacher: string;
   schedule: string;
@@ -58,11 +65,182 @@ interface Class {
   createdAt: string;
 }
 
+const dedupeSubjectsForDisplay = (subjects: Subject[] | undefined) => {
+  const byKey = new Map<string, { id: string; label: string }>();
+  for (const subject of subjects ?? []) {
+    if (!subject) continue;
+    const raw = subject.name || subject.code || '';
+    if (!raw) continue;
+    const key = normalizeSubjectDisplayKey(raw);
+    const label = formatSubjectDisplayLabel(raw);
+    const existing = byKey.get(key);
+    const id = getSubjectRecordId(subject) || key;
+    if (!existing || label.length > existing.label.length) {
+      byKey.set(key, { id, label });
+    }
+  }
+  return Array.from(byKey.values());
+};
+
+const getClassSubjectLine = (
+  classItem: Class | undefined,
+  teacherSubjects: Subject[] = []
+) => {
+  if (!classItem) return '';
+  const teacherIdSet = new Set(
+    teacherSubjects.filter(Boolean).map((s) => String(s?.id ?? ''))
+  );
+  const fromClass = (classItem.assignedSubjects ?? []).filter((sub) => {
+    if (!sub) return false;
+    const sid = String(sub.id || sub._id || '');
+    return teacherIdSet.size === 0 || !sid || teacherIdSet.has(sid);
+  });
+
+  const labels = (
+    fromClass.length > 0
+      ? fromClass.map((s) => formatSubjectDisplayLabel(s.name || s.code || ''))
+      : dedupeSubjectsForDisplay(teacherSubjects).map((s) => s.label)
+  ).filter(Boolean);
+
+  const unique = Array.from(new Set(labels));
+  if (unique.length > 0) return unique.join(', ');
+  const subjectField = classItem.subject;
+  if (subjectField && subjectField !== 'General') {
+    return String(subjectField)
+      .split(',')
+      .map((part) => formatSubjectDisplayLabel(part.trim()))
+      .join(', ');
+  }
+  return '';
+};
+
+const resolveAssignedClass = (classId: string, classList: Class[] | undefined) => {
+  const id = String(classId);
+  return (classList ?? []).find(
+    (c) =>
+      c != null &&
+      (c.id === id ||
+        c.classNumber === id ||
+        `${c.classNumber ?? ''}${c.section ?? ''}` === id)
+  );
+};
+
 interface Subject {
   id: string;
+  _id?: string;
   name: string;
-  code: string;
+  code?: string;
   description?: string;
+  isActive?: boolean;
+}
+
+function readSavedClassAssignments(): Record<string, string[]> {
+  try {
+    const raw = localStorage.getItem('teacherClassAssignments');
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, string[]>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function getSubjectRecordId(subject: { id?: string; _id?: string } | null | undefined): string {
+  if (!subject) return '';
+  return String(subject.id || subject._id || '');
+}
+
+function mapSubjectFromApi(subject: unknown): Subject | null {
+  if (!subject || typeof subject !== 'object') return null;
+  const s = subject as {
+    id?: string;
+    _id?: string;
+    name?: string;
+    code?: string;
+    description?: string;
+    isActive?: boolean;
+  };
+  const id = getSubjectRecordId(s);
+  if (!id || typeof s.name !== 'string') return null;
+  if (s.isActive === false) return null;
+  return {
+    id,
+    _id: s._id || id,
+    name: s.name,
+    code: s.code || '',
+    description: s.description,
+    isActive: true,
+  };
+}
+
+function mapTeacherFromApi(
+  teacher: unknown,
+  savedAssignments: Record<string, string[]>
+): Teacher | null {
+  if (!teacher || typeof teacher !== 'object') return null;
+  const t = teacher as Teacher & { _id?: string };
+  const id = String(t._id || t.id || '');
+  if (!id) return null;
+
+  const subjects = (Array.isArray(t.subjects) ? t.subjects : [])
+    .map(mapSubjectFromApi)
+    .filter((s): s is Subject => s != null);
+
+  const assignedRaw = t.assignedClassIds ?? savedAssignments[id] ?? [];
+  const assignedClassIds = Array.isArray(assignedRaw)
+    ? assignedRaw.map((x) => String(x)).filter(Boolean)
+    : [];
+
+  return {
+    id,
+    fullName: String(t.fullName || 'Unknown'),
+    email: String(t.email || ''),
+    phone: t.phone,
+    department: t.department,
+    qualifications: t.qualifications,
+    subjects,
+    assignedClassIds,
+    isActive: t.isActive !== false,
+    createdAt: t.createdAt || new Date().toISOString(),
+    lastLogin: t.lastLogin,
+  };
+}
+
+function mapClassFromApi(classItem: unknown): Class | null {
+  if (!classItem || typeof classItem !== 'object') return null;
+  const c = classItem as Class & { _id?: string };
+  const id = String(c._id || c.id || '');
+  if (!id) return null;
+
+  return {
+    id,
+    name: String(c.name || `Class ${c.classNumber ?? ''}${c.section ?? ''}`),
+    classNumber: c.classNumber != null ? String(c.classNumber) : undefined,
+    section: c.section != null ? String(c.section) : undefined,
+    description: c.description,
+    subject: typeof c.subject === 'string' ? c.subject : 'General',
+    assignedSubjects: Array.isArray(c.assignedSubjects) ? c.assignedSubjects : [],
+    grade: String(c.grade ?? c.classNumber ?? ''),
+    teacher: String(c.teacher ?? 'TBD'),
+    schedule: String(c.schedule ?? 'Mon-Fri 9:00 AM'),
+    room: String(c.room ?? '—'),
+    studentCount: Number(c.studentCount) || 0,
+    students: Array.isArray(c.students) ? c.students : [],
+    createdAt: c.createdAt || new Date().toISOString(),
+  };
+}
+
+function getTeacherInitials(fullName?: string): string {
+  const parts = String(fullName || '?')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return '?';
+  return parts
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 }
 
 const TeacherManagement = () => {
@@ -119,7 +297,7 @@ const TeacherManagement = () => {
       console.log('Raw teachers data:', data);
       
       // Handle different response formats
-      let teachersArray = [];
+      let teachersArray: unknown[] = [];
       if (Array.isArray(data)) {
         teachersArray = data;
       } else if (data && Array.isArray(data.data)) {
@@ -131,45 +309,10 @@ const TeacherManagement = () => {
         teachersArray = [];
       }
       
-      // Map backend _id to frontend id and ensure subjects are properly mapped
-      const mappedTeachers = teachersArray.map((teacher: any) => {
-        // Ensure teacher object exists
-        if (!teacher) {
-          console.warn('Null teacher object found, skipping...');
-          return null;
-        }
-        
-        // Load saved assignments from localStorage
-        const savedAssignments = JSON.parse(localStorage.getItem('teacherClassAssignments') || '{}');
-        const teacherId = teacher._id || teacher.id;
-        
-        const mappedTeacher = {
-          ...teacher,
-          id: teacherId,
-          subjects: teacher.subjects && Array.isArray(teacher.subjects) 
-            ? teacher.subjects
-                .filter(
-                  (subject: any) =>
-                    subject != null &&
-                    typeof subject === 'object' &&
-                    (subject._id || subject.id) &&
-                    typeof subject.name === 'string' &&
-                    subject.isActive !== false
-                )
-                .map((subject: any) => ({
-                  ...subject,
-                  id: subject._id || subject.id || Math.random().toString(36).substr(2, 9) // Fallback ID
-                }))
-            : [],
-          assignedClassIds: teacher.assignedClassIds || savedAssignments[teacherId] || []
-        };
-        
-        // Log teacher data for debugging
-        console.log(`Teacher ${mappedTeacher.fullName} subjects:`, mappedTeacher.subjects);
-        console.log(`Teacher ${mappedTeacher.fullName} assignedClassIds:`, mappedTeacher.assignedClassIds);
-        
-        return mappedTeacher;
-      }).filter(teacher => teacher !== null); // Remove any null teachers
+      const savedAssignments = readSavedClassAssignments();
+      const mappedTeachers = teachersArray
+        .map((teacher: unknown) => mapTeacherFromApi(teacher, savedAssignments))
+        .filter((teacher): teacher is Teacher => teacher != null);
       setTeachers(mappedTeachers);
     } catch (error) {
       console.error('Failed to fetch teachers:', error);
@@ -224,7 +367,7 @@ const TeacherManagement = () => {
       console.log('Subjects API Response:', data); // Debug log
       
       // Handle different response formats
-      let subjectsArray = [];
+      let subjectsArray: unknown[] = [];
       if (Array.isArray(data)) {
         subjectsArray = data;
       } else if (data && Array.isArray(data.data)) {
@@ -236,12 +379,12 @@ const TeacherManagement = () => {
         subjectsArray = [];
       }
       
-      // Map backend _id to frontend id
-      const mappedSubjects = subjectsArray.map((subject: any) => ({
-        ...subject,
-        id: subject._id || subject.id
-      }));
-      
+      const mappedSubjects: Subject[] = [];
+      for (const item of subjectsArray) {
+        const mapped = mapSubjectFromApi(item);
+        if (mapped) mappedSubjects.push(mapped);
+      }
+
       setSubjects(mappedSubjects);
     } catch (error) {
       console.error('Failed to fetch subjects:', error);
@@ -271,7 +414,7 @@ const TeacherManagement = () => {
       console.log('Classes API Response:', data);
       
       // Handle different response formats
-      let classesArray = [];
+      let classesArray: unknown[] = [];
       if (Array.isArray(data)) {
         classesArray = data;
       } else if (data && Array.isArray(data.data)) {
@@ -284,10 +427,9 @@ const TeacherManagement = () => {
       }
       
       // Map backend _id to frontend id
-      const mappedClasses = classesArray.map((classItem: any) => ({
-        ...classItem,
-        id: classItem._id || classItem.id
-      }));
+      const mappedClasses = classesArray
+        .map((classItem: unknown) => mapClassFromApi(classItem))
+        .filter((c): c is Class => c != null);
       
       setClasses(mappedClasses);
     } catch (error) {
@@ -567,7 +709,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
           const updatedTeacher = { ...assigningClassTeacher, assignedClassIds: classIds };
           
           // Save to localStorage for persistence across reloads
-          const savedAssignments = JSON.parse(localStorage.getItem('teacherClassAssignments') || '{}');
+          const savedAssignments = readSavedClassAssignments();
           savedAssignments[assigningClassTeacher.id] = classIds;
           localStorage.setItem('teacherClassAssignments', JSON.stringify(savedAssignments));
           
@@ -578,8 +720,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
           ));
         }
         
-        // Don't refresh teachers data immediately - keep optimistic update
-        // await fetchTeachers();
+        await fetchTeachers();
         
         setIsAssignClassDialogOpen(false);
         setAssigningClassTeacher(null);
@@ -628,22 +769,18 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
 
         // 1) Optimistic update (keep until server confirms)
         if (assigningTeacher) {
-          const updatedTeacher = {
-            ...assigningTeacher,
-            subjects: subjectIds.map(id => {
-              const subject = subjects.find(s => (s._id || s.id) === id);
-              return subject ? {
-                id: subject._id || subject.id,
-                name: subject.name,
-                code: subject.code,
-                description: subject.description
-              } : null;
-            }).filter(Boolean)
-          };
+          const updatedSubjects: Subject[] = subjectIds
+            .map((id) => {
+              const subject = subjects.find((s) => getSubjectRecordId(s) === id);
+              return subject ? mapSubjectFromApi(subject) : null;
+            })
+            .filter((s): s is Subject => s != null);
 
-          setTeachers(prevTeachers =>
-            prevTeachers.map(teacher =>
-              teacher.id === assigningTeacher.id ? updatedTeacher : teacher
+          setTeachers((prevTeachers) =>
+            prevTeachers.map((teacher) =>
+              teacher.id === assigningTeacher.id
+                ? { ...assigningTeacher, subjects: updatedSubjects }
+                : teacher
             )
           );
         }
@@ -663,19 +800,20 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
             });
             if (!resp2.ok) throw new Error(`Refresh status ${resp2.status}`);
             const raw = await resp2.json();
-            const arr = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : Array.isArray(raw?.teachers) ? raw.teachers : [];
+            const arr: unknown[] = Array.isArray(raw)
+              ? raw
+              : Array.isArray(raw?.data)
+                ? raw.data
+                : Array.isArray(raw?.teachers)
+                  ? raw.teachers
+                  : [];
 
-            // Map minimal fields we need
-            const mapped = arr.map((t: any) => ({
-              ...t,
-              id: t._id || t.id,
-              subjects: Array.isArray(t.subjects) ? t.subjects.filter((s: any) => s && typeof s === 'object').map((s: any) => ({
-                ...s,
-                id: s._id || s.id
-              })) : []
-            }));
+            const savedAssignments = readSavedClassAssignments();
+            const mapped: Teacher[] = arr
+              .map((t) => mapTeacherFromApi(t, savedAssignments))
+              .filter((t): t is Teacher => t != null);
 
-            const refreshed = mapped.find((t: any) => t.id === teacherId);
+            const refreshed = mapped.find((t: Teacher) => t.id === teacherId);
             const ok = refreshed && Array.isArray(refreshed.subjects) && refreshed.subjects.length >= subjectIds.length;
             console.log(`Refresh attempt ${attempt} → confirmed:`, ok, refreshed?.subjects);
 
@@ -711,9 +849,9 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
     setAssigningTeacher(teacher);
     
     // Map existing subjects to their IDs properly
-    const existingSubjectIds = teacher.subjects
-      .filter(subject => subject && (subject._id || subject.id))
-      .map(subject => subject._id || subject.id);
+    const existingSubjectIds = (teacher.subjects ?? [])
+      .map((subject) => getSubjectRecordId(subject))
+      .filter(Boolean);
     
     console.log('Existing subject IDs:', existingSubjectIds);
     setSelectedSubjects(existingSubjectIds);
@@ -784,15 +922,18 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
     }
   };
 
-  const filteredTeachers = teachers.filter(teacher =>
-    teacher.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    teacher.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    teacher.department?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredTeachers = teachers.filter((teacher) => {
+    const q = searchTerm.toLowerCase();
+    return (
+      (teacher.fullName || '').toLowerCase().includes(q) ||
+      (teacher.email || '').toLowerCase().includes(q) ||
+      (teacher.department || '').toLowerCase().includes(q)
+    );
+  });
 
   const totalTeachers = teachers.length;
   const activeTeachers = teachers.filter(t => t.isActive).length;
-  const totalSubjects = teachers.reduce((total, teacher) => total + teacher.subjects.length, 0);
+  const totalSubjects = teachers.reduce((total, teacher) => total + (teacher.subjects?.length ?? 0), 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50 overflow-x-hidden">
@@ -1134,7 +1275,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-2 border border-orange-200 rounded-xl bg-gray-50">
                       {subjects.map(subject => {
-                        const subjectId = subject.id || subject._id;
+                        const subjectId = getSubjectRecordId(subject);
                         const isSelected = newTeacher.subjects.includes(subjectId);
                         return (
                           <Card
@@ -1187,7 +1328,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                       </p>
                       <div className="flex flex-wrap gap-1.5">
                         {newTeacher.subjects.map(subjectId => {
-                          const subject = subjects.find(s => (s.id || s._id) === subjectId);
+                          const subject = subjects.find((s) => getSubjectRecordId(s) === subjectId);
                           return subject ? (
                             <Badge key={subjectId} className="bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 border-orange-200 rounded-lg px-3 py-1">
                               {subject.name}
@@ -1229,9 +1370,11 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
           </div>
         </div>
 
-        {/* Teachers Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
+        {/* Teachers Grid — stretch cards so sections align across columns */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6 items-stretch">
           {filteredTeachers.map((teacher, index) => {
+            const teacherSubjects = teacher.subjects ?? [];
+            const assignedClassIds = teacher.assignedClassIds ?? [];
             const gradientColors = [
               'from-orange-500 to-orange-400',
               'from-blue-500 to-cyan-500', 
@@ -1248,94 +1391,98 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="group relative overflow-hidden bg-white/80 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 border border-white/20"
+                className="group relative overflow-hidden bg-white/80 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 border border-white/20 h-full flex flex-col"
               >
                 <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-5 group-hover:opacity-10 transition-opacity duration-300`}></div>
-                <div className="relative z-10">
-                  <div className="flex items-start justify-between mb-6">
-                    <div className="flex items-center space-x-4">
-                      <div className={`w-16 h-16 bg-gradient-to-r ${gradient} rounded-2xl flex items-center justify-center text-white font-bold text-lg sm:text-xl shadow-lg`}>
-                        {teacher.fullName.split(' ').map(n => n[0]).join('')}
+                <div className="relative z-10 flex flex-col flex-1 min-h-0">
+                  {/* Header — fixed height so Subjects / Classes align across cards */}
+                  <div className="flex items-start justify-between gap-2 mb-4 min-h-[5.5rem]">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <div className={`w-14 h-14 sm:w-16 sm:h-16 shrink-0 bg-gradient-to-r ${gradient} rounded-2xl flex items-center justify-center text-white font-bold text-base sm:text-lg shadow-lg`}>
+                        {getTeacherInitials(teacher.fullName)}
                       </div>
-                      <div>
-                        <h3 className="font-bold text-gray-900 text-sm sm:text-base sm:text-xl break-words">{teacher.fullName}</h3>
-                        <p className="text-gray-600 text-xs sm:text-sm break-all">{teacher.email}</p>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-bold text-gray-900 text-sm sm:text-base leading-tight line-clamp-2">{teacher.fullName}</h3>
+                        <p className="text-gray-600 text-xs sm:text-sm mt-1 line-clamp-2 min-h-[2.5rem] leading-snug" title={teacher.email}>
+                          {teacher.email}
+                        </p>
                       </div>
                     </div>
-                    <Badge className={`${teacher.isActive ? 'bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 border-emerald-200' : 'bg-gradient-to-r from-red-100 to-pink-100 text-red-800 border-red-200'} rounded-lg px-3 py-1`}>
+                    <Badge className={`shrink-0 ${teacher.isActive ? 'bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 border-emerald-200' : 'bg-gradient-to-r from-red-100 to-pink-100 text-red-800 border-red-200'} rounded-lg px-3 py-1`}>
                       {teacher.isActive ? 'Active' : 'Inactive'}
                     </Badge>
                   </div>
 
-                  <div className="space-y-4 mb-6">
-                    {teacher.phone && (
-                      <div className="flex items-center text-xs sm:text-sm text-gray-700 bg-white/50 rounded-xl p-3">
-                        <Phone className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-orange-600" />
-                        <span className="font-medium">{teacher.phone}</span>
-                      </div>
-                    )}
-                    {teacher.department && (
-                      <div className="flex items-center text-xs sm:text-sm text-gray-700 bg-white/50 rounded-xl p-3">
-                        <GraduationCap className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-orange-600" />
-                        <span className="font-medium">{teacher.department}</span>
-                      </div>
-                    )}
-                    {teacher.qualifications && (
-                      <div className="flex items-center text-xs sm:text-sm text-gray-700 bg-white/50 rounded-xl p-3">
-                        <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-emerald-600" />
-                        <span className="truncate font-medium">{teacher.qualifications}</span>
-                      </div>
-                    )}
+                  {/* Contact — same two rows on every card */}
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center text-xs sm:text-sm text-gray-700 bg-white/50 rounded-xl px-3 min-h-[2.75rem]">
+                      <Phone className="w-4 h-4 mr-3 shrink-0 text-orange-600" />
+                      <span className={`font-medium truncate ${teacher.phone ? '' : 'text-gray-400'}`}>
+                        {teacher.phone || '—'}
+                      </span>
+                    </div>
+                    <div className="flex items-center text-xs sm:text-sm text-gray-700 bg-white/50 rounded-xl px-3 min-h-[2.75rem]">
+                      <BookOpen className="w-4 h-4 mr-3 shrink-0 text-emerald-600" />
+                      <span className={`font-medium truncate ${teacher.qualifications ? '' : 'text-gray-400'}`}>
+                        {teacher.qualifications || '—'}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="mb-6">
-                    <h4 className="font-bold text-gray-900 text-xs sm:text-sm mb-3">Subjects:</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {teacher.subjects.map(subject => (
+                  {/* Subjects — fixed block height */}
+                  <div className="mb-4 min-h-[4.25rem]">
+                    <h4 className="font-bold text-gray-900 text-xs sm:text-sm mb-2">Subjects:</h4>
+                    <div className="flex flex-wrap gap-2 min-h-[1.75rem] items-start">
+                      {dedupeSubjectsForDisplay(teacherSubjects).map((subject) => (
                         <Badge key={subject.id} className={`bg-gradient-to-r ${gradient} text-white border-0 rounded-lg px-3 py-1 text-xs font-medium`}>
-                          {subject.name}
+                          {subject.label}
                         </Badge>
                       ))}
-                      {teacher.subjects.length === 0 && (
+                      {teacherSubjects.length === 0 && (
                         <span className="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1">No subjects assigned</span>
                       )}
                     </div>
                   </div>
 
-                  <div className="mb-6">
-                    <h4 className="font-bold text-gray-900 text-xs sm:text-sm mb-3">Assigned Classes:</h4>
-                    <div className="space-y-2">
-                      {teacher.assignedClassIds && teacher.assignedClassIds.length > 0 ? (
-                        teacher.assignedClassIds.map((classId) => {
-                          const classItem = classes.find(c => c.id === classId);
-                          return classItem ? (
-                            <div key={classId} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <span className="font-medium text-gray-900">{classItem.name}</span>
-                                  <span className="text-gray-600 ml-2">- {classItem.subject}</span>
-                                </div>
+                  {/* Assigned classes — equal scroll area on all cards */}
+                  <div className="mb-4 flex flex-col flex-1 min-h-[8rem]">
+                    <h4 className="font-bold text-gray-900 text-xs sm:text-sm mb-2">Assigned Classes:</h4>
+                    <div className="space-y-2 flex-1 overflow-y-auto max-h-48 pr-0.5">
+                      {assignedClassIds.length > 0 ? (
+                        assignedClassIds.map((classId) => {
+                          const classItem = resolveAssignedClass(classId, classes);
+                          if (!classItem) {
+                            return (
+                              <div key={classId} className="bg-gray-50 rounded-lg p-3 border border-gray-200 min-h-[4.5rem]">
+                                <span className="text-gray-500 text-xs">Class ID: {classId}</span>
+                              </div>
+                            );
+                          }
+                          const subjectLine = getClassSubjectLine(classItem, teacherSubjects);
+                          return (
+                            <div key={classId} className="bg-gray-50 rounded-lg p-3 border border-gray-200 min-h-[4.5rem]">
+                              <div className="text-sm leading-snug">
+                                <span className="font-medium text-gray-900">{classItem.name}</span>
+                                {subjectLine ? (
+                                  <span className="text-gray-600 block sm:inline sm:ml-2">- {subjectLine}</span>
+                                ) : null}
                               </div>
                               <div className="text-xs text-gray-500 mt-1">
-                                📅 {classItem.schedule}
+                                📅 {classItem.schedule ?? '—'}
                               </div>
                               <div className="text-xs text-gray-500">
-                                🏫 {classItem.room} • 👥 {classItem.studentCount} students
+                                🏫 {classItem.room ?? '—'} • 👥 {classItem.studentCount ?? 0} students
                               </div>
-                            </div>
-                          ) : (
-                            <div key={classId} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                              <span className="text-gray-500">Class ID: {classId}</span>
                             </div>
                           );
                         })
                       ) : (
-                        <span className="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1">No classes assigned</span>
+                        <span className="text-xs text-gray-500 bg-gray-100 rounded-lg px-3 py-1 inline-block">No classes assigned</span>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-200 mt-auto">
                     <div className="flex items-center space-x-2">
                       <Button 
                         size="sm" 
@@ -1396,7 +1543,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                 <Label className="text-gray-700 font-medium text-base sm:text-lg">Available Subjects</Label>
                 <div className="mt-3 space-y-3 max-h-60 overflow-y-auto">
                   {subjects.map(subject => {
-                    const subjectId = subject._id || subject.id;
+                    const subjectId = getSubjectRecordId(subject);
                     return (
                       <div key={subjectId} className="flex items-center space-x-4 p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-purple-100 hover:border-orange-200 transition-colors">
                         <input

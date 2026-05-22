@@ -49,6 +49,13 @@ interface ExamResult {
   percentage: number;
   obtainedMarks: number;
   totalMarks: number;
+  totalQuestions?: number;
+  correctAnswers?: number;
+  wrongAnswers?: number;
+  unattempted?: number;
+  timeTaken?: number;
+  attemptNumber?: number;
+  subjectWiseScore?: Record<string, { correct?: number; total?: number; marks?: number }>;
   completedAt: string;
 }
 
@@ -91,6 +98,50 @@ const getPerformerPercentage = (performer: any): number => {
   return Number.isFinite(stored) ? stored : 0;
 };
 
+const formatTimeTaken = (seconds: unknown): string => {
+  const total = Math.max(0, Math.round(Number(seconds) || 0));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m ${secs}s`;
+  return `${secs}s`;
+};
+
+const getAttemptedCount = (result: ExamResult): number =>
+  Math.max(0, Number(result.correctAnswers) || 0) + Math.max(0, Number(result.wrongAnswers) || 0);
+
+const getQuestionAccuracy = (result: ExamResult): number => {
+  const attempted = getAttemptedCount(result);
+  if (attempted <= 0) return 0;
+  return Math.round((Math.max(0, Number(result.correctAnswers) || 0) / attempted) * 100);
+};
+
+const formatCompletedAt = (value: string) => {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return { date: '—', time: '' };
+  return {
+    date: d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+    time: d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+  };
+};
+
+const subjectWiseEntries = (result: ExamResult) => {
+  const raw = result.subjectWiseScore;
+  if (!raw || typeof raw !== 'object') return [];
+  return Object.entries(raw).map(([subject, stats]) => ({
+    subject,
+    correct: Number(stats?.correct) || 0,
+    total: Number(stats?.total) || 0,
+    marks: Number(stats?.marks) || 0,
+  }));
+};
+
+const marksBadgeClass = (pct: number) =>
+  pct >= 70 ? 'bg-green-100 text-green-800 border-green-200' :
+  pct >= 50 ? 'bg-amber-100 text-amber-800 border-amber-200' :
+  'bg-red-100 text-red-800 border-red-200';
+
 export default function ExamViewOnly() {
   const { toast } = useToast();
   const [exams, setExams] = useState<Exam[]>([]);
@@ -107,6 +158,16 @@ export default function ExamViewOnly() {
     endDate: ''
   });
   const [listClassFilter, setListClassFilter] = useState<string>('all');
+
+  const rankedExamResults = useMemo(() => {
+    return [...examResults]
+      .map((result) => ({
+        result,
+        marksPct: getResultPercentage(result),
+        questionAcc: getQuestionAccuracy(result),
+      }))
+      .sort((a, b) => b.marksPct - a.marksPct || b.result.obtainedMarks - a.result.obtainedMarks);
+  }, [examResults]);
 
   const getExamSortTime = (exam: Exam) => {
     const candidates = [exam.updatedAt, exam.createdAt, exam.startDate, exam.endDate];
@@ -273,24 +334,41 @@ export default function ExamViewOnly() {
     }
 
     // CSV Headers
-    const headers = ['Rank', 'Student Name', 'Email', 'Class', 'Marks Obtained', 'Total Marks', 'Percentage', 'Completed At'];
-    
-    // Sort results by percentage (descending) for ranking
-    const sortedResults = [...examResults].sort((a, b) => getResultPercentage(b) - getResultPercentage(a));
-    
-    // CSV Data rows
-    const rows = sortedResults
-      .map((result, idx) => {
+    const headers = [
+      'Rank',
+      'Student Name',
+      'Email',
+      'Class',
+      'Attempt',
+      'Correct',
+      'Wrong',
+      'Skipped',
+      'Marks Obtained',
+      'Total Marks',
+      'Marks %',
+      'Question Accuracy %',
+      'Time Taken',
+      'Completed At',
+    ];
+
+    const rows = rankedExamResults
+      .map(({ result }, idx) => {
         const rank = idx + 1;
         return [
           rank,
           result.userId.fullName,
           result.userId.email,
           normalizeClassNumberForDisplay(result.userId.classNumber),
+          result.attemptNumber || 1,
+          result.correctAnswers ?? '',
+          result.wrongAnswers ?? '',
+          result.unattempted ?? '',
           result.obtainedMarks,
           result.totalMarks,
           `${getResultPercentage(result).toFixed(2)}%`,
-          new Date(result.completedAt).toLocaleString()
+          `${getQuestionAccuracy(result)}%`,
+          formatTimeTaken(result.timeTaken),
+          new Date(result.completedAt).toLocaleString(),
         ];
       })
       .map(row => row.map(cell => `"${cell}"`).join(','));
@@ -511,49 +589,120 @@ export default function ExamViewOnly() {
             {isLoadingResults ? (
               <div>Loading results...</div>
             ) : examResults.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 px-4">Student</th>
-                      <th className="text-left py-2 px-4">Class</th>
-                      <th className="text-left py-2 px-4">Score</th>
-                      <th className="text-left py-2 px-4">Percentage</th>
-                      <th className="text-left py-2 px-4">Completed At</th>
+              <div className="overflow-x-auto rounded-lg border border-gray-200">
+                <table className="w-full min-w-[1100px] text-sm">
+                  <thead className="bg-slate-50">
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-3 font-semibold text-slate-700">#</th>
+                      <th className="text-left py-3 px-3 font-semibold text-slate-700">Student</th>
+                      <th className="text-left py-3 px-3 font-semibold text-slate-700">Class</th>
+                      <th className="text-left py-3 px-3 font-semibold text-slate-700">Attempt</th>
+                      <th className="text-left py-3 px-3 font-semibold text-slate-700">Questions</th>
+                      <th className="text-left py-3 px-3 font-semibold text-slate-700">Marks</th>
+                      <th className="text-left py-3 px-3 font-semibold text-slate-700">Accuracy</th>
+                      <th className="text-left py-3 px-3 font-semibold text-slate-700">Time</th>
+                      <th className="text-left py-3 px-3 font-semibold text-slate-700">Completed</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {examResults.map((result) => (
-                      <tr key={result._id} className="border-b hover:bg-gray-50">
-                        <td className="py-3 px-4">
-                          <div>
-                            <p className="font-medium">{result.userId.fullName}</p>
-                            <p className="text-xs sm:text-sm text-gray-600">{result.userId.email}</p>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">{normalizeClassNumberForDisplay(result.userId.classNumber)}</td>
-                        <td className="py-3 px-4">
-                          <span className="font-medium">{result.obtainedMarks}/{result.totalMarks}</span>
-                        </td>
-                        <td className="py-3 px-4">
-                          {(() => {
-                            const pct = getResultPercentage(result);
-                            return (
-                          <Badge className={
-                            pct >= 70 ? 'bg-green-100 text-green-800' :
-                            pct >= 50 ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                          }>
-                            {pct}%
-                          </Badge>
-                            );
-                          })()}
-                        </td>
-                        <td className="py-3 px-4 text-xs sm:text-sm text-gray-600">
-                          {new Date(result.completedAt).toLocaleString()}
-                        </td>
-                      </tr>
-                    ))}
+                    {rankedExamResults.map(({ result, marksPct, questionAcc }, idx) => {
+                      const completed = formatCompletedAt(result.completedAt);
+                      const subjects = subjectWiseEntries(result);
+                      const totalQ =
+                        Number(result.totalQuestions) ||
+                        Math.max(
+                          0,
+                          (Number(result.correctAnswers) || 0) +
+                            (Number(result.wrongAnswers) || 0) +
+                            (Number(result.unattempted) || 0)
+                        );
+                      return (
+                        <tr key={result._id} className="border-b border-gray-100 hover:bg-slate-50/80 align-top">
+                          <td className="py-3 px-3">
+                            <span
+                              className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${
+                                idx === 0
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : idx === 1
+                                    ? 'bg-slate-200 text-slate-700'
+                                    : idx === 2
+                                      ? 'bg-orange-100 text-orange-800'
+                                      : 'bg-slate-100 text-slate-600'
+                              }`}
+                            >
+                              {idx + 1}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 min-w-[180px]">
+                            <p className="font-semibold text-slate-900">{result.userId.fullName}</p>
+                            <p className="text-xs text-slate-500 mt-0.5">{result.userId.email}</p>
+                            {subjects.length > 0 ? (
+                              <p className="text-[11px] text-slate-500 mt-1.5 leading-snug">
+                                {subjects
+                                  .map(
+                                    (s) =>
+                                      `${s.subject}: ${s.marks}m (${s.correct}/${s.total})`
+                                  )
+                                  .join(' · ')}
+                              </p>
+                            ) : null}
+                          </td>
+                          <td className="py-3 px-3 text-slate-800">
+                            {normalizeClassNumberForDisplay(result.userId.classNumber)}
+                          </td>
+                          <td className="py-3 px-3 text-slate-700">
+                            {result.attemptNumber && result.attemptNumber > 1 ? (
+                              <Badge variant="outline" className="text-xs">
+                                Attempt {result.attemptNumber}
+                              </Badge>
+                            ) : (
+                              <span className="text-xs text-slate-500">1st</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="flex flex-wrap gap-1.5 text-xs">
+                              <span className="rounded-md bg-green-50 px-2 py-0.5 font-medium text-green-700 border border-green-100">
+                                ✓ {result.correctAnswers ?? 0}
+                              </span>
+                              <span className="rounded-md bg-orange-50 px-2 py-0.5 font-medium text-orange-700 border border-orange-100">
+                                ✗ {result.wrongAnswers ?? 0}
+                              </span>
+                              <span className="rounded-md bg-blue-50 px-2 py-0.5 font-medium text-blue-700 border border-blue-100">
+                                ○ {result.unattempted ?? 0}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-1">
+                              {totalQ} questions · {getAttemptedCount(result)} attempted
+                            </p>
+                          </td>
+                          <td className="py-3 px-3">
+                            <p className="text-base font-bold text-slate-900">
+                              {result.obtainedMarks}
+                              <span className="text-slate-400 font-medium"> / {result.totalMarks}</span>
+                            </p>
+                            <p className="text-[11px] text-slate-500">marks obtained</p>
+                          </td>
+                          <td className="py-3 px-3">
+                            <div className="space-y-1">
+                              <Badge className={`border ${marksBadgeClass(marksPct)}`}>
+                                {marksPct}% marks
+                              </Badge>
+                              <p className="text-[11px] text-slate-500">
+                                {questionAcc}% on attempted ({result.correctAnswers ?? 0}/
+                                {getAttemptedCount(result) || '—'})
+                              </p>
+                            </div>
+                          </td>
+                          <td className="py-3 px-3 text-slate-700 whitespace-nowrap">
+                            {formatTimeTaken(result.timeTaken)}
+                          </td>
+                          <td className="py-3 px-3 text-slate-600 whitespace-nowrap">
+                            <p className="font-medium text-slate-800">{completed.date}</p>
+                            <p className="text-xs text-slate-500">{completed.time}</p>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

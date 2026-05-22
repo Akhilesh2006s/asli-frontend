@@ -370,6 +370,13 @@ export default function Profile() {
         ? String(user.classNumber).trim()
         : null;
 
+  const displayBoard =
+    user?.curriculumBoard && String(user.curriculumBoard).trim() !== ""
+      ? String(user.curriculumBoard).toUpperCase()
+      : user?.board && String(user.board).toUpperCase() !== "ASLI_EXCLUSIVE_SCHOOLS"
+        ? String(user.board).toUpperCase()
+        : user?.board || "";
+
   const profileSection =
     user.assignedClass?.section != null && String(user.assignedClass.section).trim() !== ""
       ? String(user.assignedClass.section).trim()
@@ -469,7 +476,7 @@ export default function Profile() {
               </div>
               <div>
                 <Label className="text-xs sm:text-sm font-medium text-gray-600">Board</Label>
-                <p className="text-base sm:text-lg font-medium text-gray-900">{user.board || "N/A"}</p>
+                <p className="text-base sm:text-lg font-medium text-gray-900">{displayBoard || "N/A"}</p>
               </div>
             </div>
             {user.targetExam && (
@@ -487,7 +494,7 @@ export default function Profile() {
   return (
     <>
       <Navigation />
-      <div className={`w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8 ${isMobile ? 'pb-20' : ''}`}>
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
         
         {/* Profile Header */}
         <Card className="mb-8 overflow-visible min-w-0">
@@ -535,8 +542,8 @@ export default function Profile() {
                           {profileSection ? ` · Sec ${profileSection}` : ""}
                         </Badge>
                       )}
-                      {user.board && (
-                        <Badge variant="outline">{user.board}</Badge>
+                      {displayBoard && (
+                        <Badge variant="outline">{displayBoard}</Badge>
                       )}
                       {user.targetExam && (
                         <Badge variant="outline">{user.targetExam}</Badge>

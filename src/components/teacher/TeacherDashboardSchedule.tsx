@@ -11,6 +11,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { CalendarWidget } from '@/components/teacher/CalendarWidget';
 import { TimetableSection } from '@/components/teacher/TimetableSection';
 import type { TimetableEntry, UnifiedScheduleEntry } from '@/components/teacher/schedule-types';
@@ -22,6 +29,14 @@ export type { TimetableEntry } from '@/components/teacher/schedule-types';
 
 type TeacherDashboardScheduleProps = {
   storageKey?: string;
+};
+
+type TeacherClassOption = {
+  id: string;
+  name: string;
+  classNumber: string;
+  section?: string;
+  subject?: string;
 };
 
 type TeacherRemoteEvent = {
@@ -46,10 +61,13 @@ export function TeacherDashboardSchedule({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<UnifiedScheduleEntry | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [formTitle, setFormTitle] = useState('');
+  const [formClassId, setFormClassId] = useState('');
+  const [formPeriod, setFormPeriod] = useState('');
   const [formStart, setFormStart] = useState('09:00');
   const [formEnd, setFormEnd] = useState('10:00');
   const [formRoom, setFormRoom] = useState('');
+  const [classOptions, setClassOptions] = useState<TeacherClassOption[]>([]);
+  const [classesLoading, setClassesLoading] = useState(false);
 
   const lsKey = useMemo(
     () => `teacher-timetable:${storageKey.replace(/[^a-zA-Z0-9@._-]/g, '_')}`,
@@ -161,6 +179,63 @@ export function TeacherDashboardSchedule({
     fetchExternalEvents();
   }, [fetchExternalEvents]);
 
+  const fetchTeacherClasses = useCallback(async () => {
+    try {
+      setClassesLoading(true);
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setClassOptions([]);
+        return;
+      }
+      const response = await fetch(`${API_BASE_URL}/api/teacher/classes`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to load classes (${response.status})`);
+      }
+      const payload = await response.json();
+      const rows = Array.isArray(payload?.data) ? payload.data : [];
+      const mapped: TeacherClassOption[] = rows.map((row: Record<string, unknown>) => {
+        const classNumber = String(row.classNumber ?? '').trim();
+        const section = String(row.section ?? '').trim();
+        const name =
+          String(row.name ?? '').trim() ||
+          `Class ${classNumber}${section ? ` · Sec ${section}` : ''}`;
+        return {
+          id: String(row._id || row.id || `${classNumber}-${section}`),
+          name,
+          classNumber,
+          section: section || undefined,
+          subject: String(row.subject ?? '').trim() || undefined,
+        };
+      });
+      setClassOptions(mapped.filter((c) => c.id && c.classNumber));
+    } catch (error) {
+      console.error('Failed to fetch teacher classes:', error);
+      setClassOptions([]);
+      toast({
+        variant: 'destructive',
+        title: 'Could not load classes',
+        description: 'Assign classes to your teacher account in admin, then try again.',
+      });
+    } finally {
+      setClassesLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    fetchTeacherClasses();
+  }, [fetchTeacherClasses]);
+
+  useEffect(() => {
+    if (dialogOpen && classOptions.length > 0 && !formClassId) {
+      setFormClassId(classOptions[0].id);
+    }
+  }, [dialogOpen, classOptions, formClassId]);
+
   const isDateWithinEvent = useCallback(
     (date: Date, entry: UnifiedScheduleEntry) => {
       if (!isValid(date)) return false;
@@ -178,6 +253,7 @@ export function TeacherDashboardSchedule({
         ...entry,
         eventType: 'class',
         removable: true,
+        classNumber: entry.classNumber,
       })),
     [entries]
   );
@@ -218,8 +294,20 @@ export function TeacherDashboardSchedule({
       ? format(selectedDate, 'EEEE, MMM d, yyyy')
       : 'Select a date';
 
+  const selectedClass = useMemo(
+    () => classOptions.find((c) => c.id === formClassId),
+    [classOptions, formClassId]
+  );
+
+  const buildSlotTitle = () => {
+    if (!selectedClass) return '';
+    const period = formPeriod.trim();
+    return period ? `${selectedClass.name} · ${period}` : selectedClass.name;
+  };
+
   const addEntry = () => {
-    if (!dateKey || !formTitle.trim()) return;
+    if (!dateKey || !selectedClass) return;
+    const title = buildSlotTitle();
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     setEntries((prev) => [
       ...prev,
@@ -228,12 +316,15 @@ export function TeacherDashboardSchedule({
         date: dateKey,
         startTime: formStart,
         endTime: formEnd,
-        title: formTitle.trim(),
+        title,
         room: formRoom.trim() || undefined,
+        classNumber: selectedClass.classNumber,
+        section: selectedClass.section,
       },
     ]);
     setDialogOpen(false);
-    setFormTitle('');
+    setFormClassId('');
+    setFormPeriod('');
     setFormRoom('');
   };
 
@@ -243,11 +334,15 @@ export function TeacherDashboardSchedule({
 
   const openAdd = () => {
     if (!dateKey) return;
-    setFormTitle('');
+    setFormClassId(classOptions[0]?.id || '');
+    setFormPeriod('');
     setFormRoom('');
     setFormStart('09:00');
     setFormEnd('10:00');
     setDialogOpen(true);
+    if (classOptions.length === 0) {
+      fetchTeacherClasses();
+    }
   };
 
   return (
@@ -303,12 +398,45 @@ export function TeacherDashboardSchedule({
               </span>
             </p>
             <div className="space-y-2">
-              <Label htmlFor="tt-title">Class / title</Label>
+              <Label htmlFor="tt-class">Class</Label>
+              <Select
+                value={formClassId}
+                onValueChange={setFormClassId}
+                disabled={classesLoading || classOptions.length === 0}
+              >
+                <SelectTrigger id="tt-class" className="rounded-xl border-gray-200">
+                  <SelectValue
+                    placeholder={
+                      classesLoading
+                        ? 'Loading classes…'
+                        : classOptions.length === 0
+                          ? 'No classes assigned'
+                          : 'Select a class'
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {classOptions.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>
+                      {cls.name}
+                      {cls.subject && cls.subject !== 'N/A' ? ` (${cls.subject})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {classOptions.length === 0 && !classesLoading ? (
+                <p className="text-xs text-amber-700">
+                  Ask your school admin to assign classes to your teacher profile.
+                </p>
+              ) : null}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tt-period">Period / label (optional)</Label>
               <Input
-                id="tt-title"
-                placeholder="e.g. Maths 7C · Period 2"
-                value={formTitle}
-                onChange={(e) => setFormTitle(e.target.value)}
+                id="tt-period"
+                placeholder="e.g. Period 2 · Maths"
+                value={formPeriod}
+                onChange={(e) => setFormPeriod(e.target.value)}
                 className="rounded-xl border-gray-200"
               />
             </div>
@@ -357,7 +485,7 @@ export function TeacherDashboardSchedule({
             <Button
               type="button"
               onClick={addEntry}
-              disabled={!formTitle.trim()}
+              disabled={!formClassId || classOptions.length === 0}
               className="rounded-xl bg-indigo-600 font-semibold hover:bg-indigo-700"
             >
               Save slot

@@ -18,6 +18,10 @@ import {
 } from 'lucide-react';
 import CalendarView from '@/components/student/calendar-view';
 import { API_BASE_URL } from '@/lib/api-config';
+import {
+  filterActiveCatalogContent,
+  isSoftDeletedCatalogName,
+} from '@/lib/catalog-filters';
 
 interface ContentItem {
   _id: string;
@@ -87,7 +91,13 @@ export default function AdminSubjectContent() {
         const contentType = subjectResponse.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
           const subjectData = await subjectResponse.json();
-          setSubject(subjectData.subject || { _id: subjectId, name: subjectData.name || 'Subject' });
+          const subjRow = subjectData.subject || subjectData;
+          const subjName = subjRow?.name || subjectData.name || 'Subject';
+          if (isSoftDeletedCatalogName(subjName)) {
+            setSubject(null);
+          } else {
+            setSubject({ _id: subjectId, name: subjName, description: subjRow?.description });
+          }
         } else {
           // Fallback
           setSubject({ _id: subjectId, name: 'Subject' });
@@ -111,6 +121,7 @@ export default function AdminSubjectContent() {
           const contentsData = await contentsResponse.json();
           let contentsList = contentsData.data || contentsData || [];
           if (!Array.isArray(contentsList)) contentsList = [];
+          contentsList = filterActiveCatalogContent(contentsList) as any[];
           const filtered = contentsList.filter((item: any) => {
             const sid = getContentSubjectId(item);
             return sid && allowedIds.has(sid);
@@ -154,6 +165,26 @@ export default function AdminSubjectContent() {
     );
   }
 
+  if (!subject) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+          <Button
+            variant="ghost"
+            onClick={() => setLocation('/admin/dashboard?tab=learning-paths')}
+            className="mb-4"
+          >
+            <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+            Back to Learning Paths
+          </Button>
+          <p className="text-gray-600">
+            This subject is no longer available. It may have been removed from the catalog.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
@@ -161,11 +192,11 @@ export default function AdminSubjectContent() {
         <div className="mb-6">
           <Button
             variant="ghost"
-            onClick={() => setLocation('/admin/dashboard')}
+            onClick={() => setLocation('/admin/dashboard?tab=learning-paths')}
             className="mb-4"
           >
             <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-            Back to Dashboard
+            Back to Learning Paths
           </Button>
           <div className="flex items-center justify-between">
             <div>

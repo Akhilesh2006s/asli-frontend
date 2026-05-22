@@ -5,6 +5,8 @@ export type TimetableEntry = {
   endTime: string;
   title: string;
   room?: string;
+  classNumber?: string;
+  section?: string;
 };
 
 export type UnifiedScheduleEntry = {
