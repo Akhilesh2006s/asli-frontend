@@ -77,7 +77,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import YouTubePlayer from '@/components/youtube-player';
 import DriveViewer from '@/components/drive-viewer';
 import VideoModal from '@/components/video-modal';
@@ -94,6 +94,10 @@ import {
   getWeeklyStudyData
 } from '@/utils/studyTimeTracker';
 import '@/utils/debugStudyTime'; // Load debug helper
+import {
+  readDashboardStatsCache,
+  writeDashboardStatsCache,
+} from '@/utils/dashboard-stats-cache';
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import AdaptiveRecommendations from "@/components/dashboard/AdaptiveRecommendations";
 import AIChat from "@/components/ai-chat.tsx";
@@ -102,6 +106,27 @@ import VidyaAIFloatingAssistant from "@/components/student/VidyaAIFloatingAssist
 // Mock user ID - in a real app, this would come from authentication
 const MOCK_USER_ID = "user-1";
 const initialStoredUser = getStoredUser();
+const initialDashboardStatsCache = readDashboardStatsCache();
+
+function buildSessionTimeBaselineFromCache() {
+  if (!initialDashboardStatsCache) {
+    return {
+      useBackend: false,
+      backendToday: 0,
+      backendWeek: 0,
+      localTodayAtLoad: 0,
+      localWeekAtLoad: 0,
+    };
+  }
+  const local = updateStudyTime();
+  return {
+    useBackend: true,
+    backendToday: initialDashboardStatsCache.backendToday,
+    backendWeek: initialDashboardStatsCache.backendWeek,
+    localTodayAtLoad: local.today,
+    localWeekAtLoad: local.thisWeek,
+  };
+}
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
@@ -360,15 +385,56 @@ export default function Dashboard() {
     });
     return map;
   }, [homeworkSubmissions]);
-  const [studyTimeToday, setStudyTimeToday] = useState<number>(0); // in minutes
-  const [studyTimeThisWeek, setStudyTimeThisWeek] = useState<number>(0); // in minutes
+  const [studyTimeToday, setStudyTimeToday] = useState<number>(
+    () => initialDashboardStatsCache?.studyTimeToday ?? 0
+  );
+  const [studyTimeThisWeek, setStudyTimeThisWeek] = useState<number>(
+    () => initialDashboardStatsCache?.studyTimeThisWeek ?? 0
+  );
   const [weeklyStudyData, setWeeklyStudyData] = useState<{ [key: string]: number }>({}); // Daily study time in minutes
+  const sessionTimeBaselineRef = useRef(buildSessionTimeBaselineFromCache());
+  const dashboardStatsCacheRef = useRef(initialDashboardStatsCache);
   const [incompleteContent, setIncompleteContent] = useState<any[]>([]);
   const [incompleteQuizzes, setIncompleteQuizzes] = useState<any[]>([]);
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
   const [selectedScheduleItem, setSelectedScheduleItem] = useState<any | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [completedScheduleIds, setCompletedScheduleIds] = useState<Set<string>>(new Set());
+
+  const dashboardTodoStats = useMemo(() => {
+    const liveTotal = incompleteContent.length + incompleteQuizzes.length;
+    const liveCompleted =
+      incompleteContent.filter((c: any) => completedScheduleIds.has(c._id)).length +
+      incompleteQuizzes.filter((q: any) => completedScheduleIds.has(q._id)).length;
+    if (liveTotal > 0) {
+      return { totalTodos: liveTotal, completedTodos: liveCompleted };
+    }
+    const cached = dashboardStatsCacheRef.current;
+    return {
+      totalTodos: cached?.totalTodos ?? 0,
+      completedTodos: cached?.completedTodos ?? 0,
+    };
+  }, [incompleteContent, incompleteQuizzes, completedScheduleIds]);
+
+  useEffect(() => {
+    const liveTotal = incompleteContent.length + incompleteQuizzes.length;
+    if (liveTotal === 0) return;
+    const completedTodos =
+      incompleteContent.filter((c: any) => completedScheduleIds.has(c._id)).length +
+      incompleteQuizzes.filter((q: any) => completedScheduleIds.has(q._id)).length;
+    const patch = { totalTodos: liveTotal, completedTodos };
+    writeDashboardStatsCache(patch);
+    dashboardStatsCacheRef.current = {
+      ...(dashboardStatsCacheRef.current || {
+        studyTimeToday: 0,
+        studyTimeThisWeek: 0,
+        backendToday: 0,
+        backendWeek: 0,
+      }),
+      ...patch,
+    };
+  }, [incompleteContent, incompleteQuizzes, completedScheduleIds]);
+
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -1027,155 +1093,192 @@ export default function Dashboard() {
 
   // Track study time using timestamp module (ignores background time)
   useEffect(() => {
-    // Fetch session time from backend on mount to get user-specific data
-    const fetchSessionTime = async () => {
+    let cancelled = false;
+    let trackingStarted = false;
+    let displayInterval: ReturnType<typeof setInterval> | undefined;
+    let saveSessionInterval: ReturnType<typeof setInterval> | undefined;
+
+    const getDisplayedStudyTime = () => {
+      const times = updateStudyTime();
+      const baseline = sessionTimeBaselineRef.current;
+      if (baseline.useBackend) {
+        const deltaToday = Math.max(0, times.today - baseline.localTodayAtLoad);
+        const deltaWeek = Math.max(0, times.thisWeek - baseline.localWeekAtLoad);
+        return {
+          today: baseline.backendToday + deltaToday,
+          thisWeek: baseline.backendWeek + deltaWeek,
+        };
+      }
+      return { today: times.today, thisWeek: times.thisWeek };
+    };
+
+    const persistStudyTimeCache = () => {
+      const { today, thisWeek } = getDisplayedStudyTime();
+      const baseline = sessionTimeBaselineRef.current;
+      writeDashboardStatsCache({
+        studyTimeToday: today,
+        studyTimeThisWeek: thisWeek,
+        backendToday: baseline.useBackend ? baseline.backendToday : today,
+        backendWeek: baseline.useBackend ? baseline.backendWeek : thisWeek,
+      });
+      dashboardStatsCacheRef.current = {
+        ...(dashboardStatsCacheRef.current || {
+          totalTodos: 0,
+          completedTodos: 0,
+          backendToday: 0,
+          backendWeek: 0,
+        }),
+        studyTimeToday: today,
+        studyTimeThisWeek: thisWeek,
+        backendToday: baseline.useBackend ? baseline.backendToday : today,
+        backendWeek: baseline.useBackend ? baseline.backendWeek : thisWeek,
+      };
+    };
+
+    const applyStudyTimeFromTracker = () => {
+      if (cancelled) return;
+      const { today, thisWeek } = getDisplayedStudyTime();
+      setStudyTimeToday(today);
+      setStudyTimeThisWeek(thisWeek);
+      if (!sessionTimeBaselineRef.current.useBackend) {
+        setWeeklyStudyData(getWeeklyStudyData());
+      }
+    };
+
+    const startTracking = () => {
+      if (trackingStarted || cancelled) return;
+      trackingStarted = true;
+      startSession();
+      applyStudyTimeFromTracker();
+      persistStudyTimeCache();
+
+      saveSessionInterval = setInterval(async () => {
+        try {
+          const { today } = getDisplayedStudyTime();
+          const dateKey = new Date().toISOString().split('T')[0];
+          const token = localStorage.getItem('authToken');
+          if (token && today > 0) {
+            await fetch(`${API_BASE_URL}/api/student/session-time`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                date: dateKey,
+                totalMinutes: today,
+              }),
+            }).catch((err) => console.error('Failed to save session time:', err));
+          }
+        } catch (error) {
+          console.error('Error saving session time:', error);
+        }
+      }, 5 * 60 * 1000);
+
+      displayInterval = setInterval(() => {
+        try {
+          applyStudyTimeFromTracker();
+        } catch (error) {
+          console.error('Error updating study time:', error);
+        }
+      }, 1000);
+    };
+
+    const refreshSessionTime = async () => {
       try {
         const token = localStorage.getItem('authToken');
         if (token) {
           const response = await fetch(`${API_BASE_URL}/api/student/session-time`, {
             headers: {
-              'Authorization': `Bearer ${token}`,
+              Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
-            }
+            },
           });
-          
+
           if (response.ok) {
             const data = await response.json();
             if (data.success && data.data) {
-              // Use backend data if available (more accurate and user-specific)
-              setStudyTimeToday(data.data.today || 0);
-              setStudyTimeThisWeek(data.data.thisWeek || 0);
-              
-              // Convert backend weekly data format to our format
+              const localAtLoad = updateStudyTime();
+              sessionTimeBaselineRef.current = {
+                useBackend: true,
+                backendToday: data.data.today || 0,
+                backendWeek: data.data.thisWeek || 0,
+                localTodayAtLoad: localAtLoad.today,
+                localWeekAtLoad: localAtLoad.thisWeek,
+              };
+
               if (data.data.weeklyData) {
                 const convertedWeeklyData: { [key: string]: number } = {};
-                Object.keys(data.data.weeklyData).forEach(dateKey => {
+                Object.keys(data.data.weeklyData).forEach((dateKey) => {
                   const date = new Date(dateKey);
                   convertedWeeklyData[date.toDateString()] = data.data.weeklyData[dateKey];
                 });
-                setWeeklyStudyData(convertedWeeklyData);
+                if (!cancelled) setWeeklyStudyData(convertedWeeklyData);
               }
-              
-              console.log('✅ Loaded session time from backend:', data.data);
-              return; // Use backend data, skip localStorage
             }
           }
         }
       } catch (error) {
-        console.error('Failed to fetch session time from backend, using localStorage:', error);
+        console.error('Failed to fetch session time from backend:', error);
       }
-      
-      // Fallback to localStorage if backend fetch fails
-      const initialTimes = updateStudyTime();
-      setStudyTimeToday(initialTimes.today);
-      setStudyTimeThisWeek(initialTimes.thisWeek);
-      const initialWeeklyData = getWeeklyStudyData();
-      setWeeklyStudyData(initialWeeklyData);
+
+      if (!sessionTimeBaselineRef.current.useBackend) {
+        sessionTimeBaselineRef.current = {
+          useBackend: false,
+          backendToday: 0,
+          backendWeek: 0,
+          localTodayAtLoad: 0,
+          localWeekAtLoad: 0,
+        };
+      }
+
+      if (!cancelled) {
+        startTracking();
+        applyStudyTimeFromTracker();
+        persistStudyTimeCache();
+      }
     };
-    
-    fetchSessionTime();
-    
-    // Start session when component mounts
-    startSession();
-    
-    // Save session time to database every 5 minutes
-    const saveSessionInterval = setInterval(async () => {
-      try {
-        const times = updateStudyTime();
-        const today = new Date().toDateString();
-        const dateKey = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-        
-        // Save today's logged-in time to database
-        const token = localStorage.getItem('authToken');
-        if (token && times.today > 0) {
-          await fetch(`${API_BASE_URL}/api/student/session-time`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              date: dateKey,
-              totalMinutes: times.today
-            })
-          }).catch(err => console.error('Failed to save session time:', err));
-        }
-      } catch (error) {
-        console.error('Error saving session time:', error);
-      }
-    }, 5 * 60 * 1000); // Save every 5 minutes
-    
-    // Update display every 1 second for real-time updates
-    const displayInterval = setInterval(() => {
-      try {
-        const times = updateStudyTime();
-        // Always update state to trigger re-render
-        // The calculation includes active session time which changes every second
-        setStudyTimeToday(times.today);
-        setStudyTimeThisWeek(times.thisWeek);
-        
-        // Update weekly data for Weekly Overview
-        const weeklyData = getWeeklyStudyData();
-        setWeeklyStudyData(weeklyData);
-      } catch (error) {
-        console.error('Error updating study time:', error);
-      }
-    }, 1000); // Update every 1 second for real-time feel
-    
+
+    if (sessionTimeBaselineRef.current.useBackend) {
+      startTracking();
+    }
+    void refreshSessionTime();
+
     // Handle page visibility changes
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        // Page became hidden - end session (stops tracking time)
         endSession();
       } else {
-        // Page became visible - start new session
         startSession();
       }
-      
-      // Update display immediately
-      const times = updateStudyTime();
-      setStudyTimeToday(times.today);
-      setStudyTimeThisWeek(times.thisWeek);
-      const weeklyData = getWeeklyStudyData();
-      setWeeklyStudyData(weeklyData);
+      applyStudyTimeFromTracker();
     };
-    
-    // Handle window focus/blur
+
     const handleFocus = () => {
       if (!document.hidden) {
         startSession();
-        const times = updateStudyTime();
-        setStudyTimeToday(times.today);
-        setStudyTimeThisWeek(times.thisWeek);
+        applyStudyTimeFromTracker();
       }
     };
-    
+
     const handleBlur = () => {
       endSession();
-      const times = updateStudyTime();
-      setStudyTimeToday(times.today);
-      setStudyTimeThisWeek(times.thisWeek);
+      applyStudyTimeFromTracker();
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
     window.addEventListener('blur', handleBlur);
-    
-    // Initial update
-    const initialTimes = updateStudyTime();
-    setStudyTimeToday(initialTimes.today);
-    setStudyTimeThisWeek(initialTimes.thisWeek);
-    const initialWeeklyData = getWeeklyStudyData();
-    setWeeklyStudyData(initialWeeklyData);
-    
+
     // Cleanup on unmount
     return () => {
-      clearInterval(displayInterval);
-      clearInterval(saveSessionInterval);
+      cancelled = true;
+      if (displayInterval) clearInterval(displayInterval);
+      if (saveSessionInterval) clearInterval(saveSessionInterval);
       endSession(); // End session when component unmounts
       
       // Save final session time before unmounting
-      const finalTimes = updateStudyTime();
+      const finalTimes = trackingStarted ? getDisplayedStudyTime() : updateStudyTime();
       const dateKey = new Date().toISOString().split('T')[0];
       const token = localStorage.getItem('authToken');
       if (token && finalTimes.today > 0) {
@@ -1296,8 +1399,26 @@ export default function Dashboard() {
           return dateB - dateA;
         });
 
-        setIncompleteContent(incomplete.slice(0, 10));
-        setIncompleteQuizzes(incompleteQuiz.slice(0, 10));
+        const slicedContent = incomplete.slice(0, 10);
+        const slicedQuizzes = incompleteQuiz.slice(0, 10);
+        setIncompleteContent(slicedContent);
+        setIncompleteQuizzes(slicedQuizzes);
+
+        const completedTodos =
+          slicedContent.filter((c: any) => completedScheduleIds.has(c._id)).length +
+          slicedQuizzes.filter((q: any) => completedScheduleIds.has(q._id)).length;
+        const totalTodos = slicedContent.length + slicedQuizzes.length;
+        const todoPatch = { totalTodos, completedTodos };
+        writeDashboardStatsCache(todoPatch);
+        dashboardStatsCacheRef.current = {
+          ...(dashboardStatsCacheRef.current || {
+            studyTimeToday: 0,
+            studyTimeThisWeek: 0,
+            backendToday: 0,
+            backendWeek: 0,
+          }),
+          ...todoPatch,
+        };
       } catch (error) {
         console.error('Failed to fetch schedule items:', error);
         setIncompleteContent([]);
@@ -2012,9 +2133,7 @@ export default function Dashboard() {
                 </div>
                 <p className="text-xs sm:text-sm font-medium text-white/90 mb-4 pr-12">Today's Progress</p>
                 {(() => {
-                  const totalTodos = incompleteContent.length + incompleteQuizzes.length;
-                  const completedTodos = incompleteContent.filter((c: any) => completedScheduleIds.has(c._id)).length + 
-                                       incompleteQuizzes.filter((q: any) => completedScheduleIds.has(q._id)).length;
+                  const { totalTodos, completedTodos } = dashboardTodoStats;
                   const percentage = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
                   return (
                     <>
@@ -2073,9 +2192,7 @@ export default function Dashboard() {
                 </div>
                 <p className="text-xs sm:text-sm font-medium text-white/90 mb-4 pr-12">Efficiency</p>
                 {(() => {
-                  const totalTodos = incompleteContent.length + incompleteQuizzes.length;
-                  const completedTodos = incompleteContent.filter((c: any) => completedScheduleIds.has(c._id)).length + 
-                                       incompleteQuizzes.filter((q: any) => completedScheduleIds.has(q._id)).length;
+                  const { totalTodos, completedTodos } = dashboardTodoStats;
                   const efficiency = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
                   return (
                     <>

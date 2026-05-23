@@ -53,34 +53,30 @@ export default function AsliPrepContent() {
 
   const fetchSubjects = async () => {
     try {
-      // Get student's board first
       const token = localStorage.getItem('authToken');
       const userResponse = await fetch(`${API_BASE_URL}/api/auth/me`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
 
       if (userResponse.ok) {
         const userData = await userResponse.json();
         setIsAsliPrepExclusive(resolveIsAsliPrepExclusive(userData.user));
-        const board = userData.user?.board;
-        
-        if (board) {
-          const subjectsResponse = await fetch(`${API_BASE_URL}/api/super-admin/boards/${board}/subjects`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
+      }
 
-          if (subjectsResponse.ok) {
-            const data = await subjectsResponse.json();
-            if (data.success) {
-              setSubjects(data.data || []);
-            }
-          }
+      const subjectsResponse = await fetch(`${API_BASE_URL}/api/student/subjects`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (subjectsResponse.ok) {
+        const data = await subjectsResponse.json();
+        if (data.success) {
+          setSubjects(data.data || data.subjects || []);
         }
       }
     } catch (error) {

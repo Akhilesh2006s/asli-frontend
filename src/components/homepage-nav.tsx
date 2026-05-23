@@ -44,10 +44,15 @@ const HomepageNav = () => {
             </Link>
             <div className="flex items-center space-x-4">
               <Link href="/auth/login">
-                <Button variant="ghost">Sign In</Button>
+                <Button
+                  variant="outline"
+                  className="border-2 border-blue-600 bg-white text-blue-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-700 font-semibold"
+                >
+                  Sign In
+                </Button>
               </Link>
               <Link href="/auth/register">
-                <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+                <Button className="bg-gradient-to-r from-sky-500 to-teal-500 hover:from-sky-600 hover:to-teal-600 text-white font-semibold shadow-md">
                   Get Started
                 </Button>
               </Link>
@@ -99,12 +104,15 @@ const HomepageNav = () => {
               </Link>
               <div className="flex flex-col space-y-2 pt-4 border-t border-gray-200">
                 <Link href="/auth/login" onClick={() => setIsMenuOpen(false)}>
-                  <Button variant="ghost" className="w-full justify-start">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-center border-2 border-blue-600 text-blue-600 hover:bg-blue-50 hover:text-blue-700 font-semibold"
+                  >
                     Sign In
                   </Button>
                 </Link>
                 <Link href="/auth/register" onClick={() => setIsMenuOpen(false)}>
-                  <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+                  <Button className="w-full bg-gradient-to-r from-sky-500 to-teal-500 hover:from-sky-600 hover:to-teal-600 text-white font-semibold">
                     Get Started
                   </Button>
                 </Link>

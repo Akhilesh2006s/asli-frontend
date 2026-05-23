@@ -80,11 +80,25 @@ export default function VidyaAIFloatingAssistant({
 
   if (isDashboardCorner) {
     return (
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2 sm:bottom-6 sm:right-6">
+      <div
+        className="fixed bottom-4 right-4 z-40 flex max-w-[min(18rem,calc(100vw-1.5rem))] flex-row items-end justify-end gap-2 pointer-events-none sm:bottom-6 sm:right-6"
+      >
+        <div className="pointer-events-none relative mb-1 max-w-[200px] animate-fade-in">
+          <div className="rounded-lg border border-orange-200 bg-white p-2.5 shadow-lg">
+            <p className="text-xs font-medium leading-snug text-gray-800">
+              {messages[currentMessage]}
+            </p>
+          </div>
+          <div className="absolute -right-1 bottom-3 translate-x-full">
+            <div className="h-0 w-0 border-y-[6px] border-l-[6px] border-y-transparent border-l-orange-200" />
+            <div className="absolute left-0 top-0 -ml-px h-0 w-0 border-y-[6px] border-l-[6px] border-y-transparent border-l-white" />
+          </div>
+        </div>
+
         <button
           type="button"
           onClick={handleClick}
-          className="h-12 w-12 shrink-0 rounded-full border-2 border-orange-300 bg-white p-0.5 shadow-lg transition-all duration-300 hover:scale-110 hover:border-orange-400 hover:shadow-xl active:scale-95 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 sm:h-16 sm:w-16"
+          className="pointer-events-auto h-12 w-12 shrink-0 rounded-full border-2 border-orange-300 bg-white p-0.5 shadow-lg transition-all duration-300 hover:scale-110 hover:border-orange-400 hover:shadow-xl active:scale-95 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 sm:h-14 sm:w-14"
           aria-label="Open Vidya AI"
         >
           <img
@@ -94,18 +108,6 @@ export default function VidyaAIFloatingAssistant({
             className="h-full w-full rounded-full object-cover object-top"
           />
         </button>
-
-        <div className="relative max-w-[220px] animate-fade-in">
-          <div className="absolute right-6 top-0 -translate-y-full">
-            <div className="h-0 w-0 border-l-[6px] border-r-[6px] border-b-[6px] border-l-transparent border-r-transparent border-b-orange-200" />
-            <div className="absolute left-0 top-px h-0 w-0 border-l-[6px] border-r-[6px] border-b-[6px] border-l-transparent border-r-transparent border-b-white" />
-          </div>
-          <div className="rounded-lg border border-orange-200 bg-white p-2.5 shadow-lg">
-            <p className="text-xs font-medium leading-snug text-gray-800">
-              {messages[currentMessage]}
-            </p>
-          </div>
-        </div>
       </div>
     );
   }

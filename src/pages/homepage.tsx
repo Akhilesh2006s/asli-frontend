@@ -26,16 +26,16 @@ const Navbar = () => {
           {/* Right - Login/Signup Buttons */}
           <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <Link href="/auth/login">
-              <Button 
-                variant="outline" 
-                className="border-gray-300 bg-white text-gray-700 hover:bg-gray-50 w-full sm:w-auto"
+              <Button
+                variant="outline"
+                className="border-2 border-blue-600 bg-white text-blue-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-700 w-full sm:w-auto font-semibold"
               >
                 Login
               </Button>
             </Link>
             <Link href="/auth/register">
-              <Button 
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg w-full sm:w-auto"
+              <Button
+                className="bg-gradient-to-r from-sky-500 to-teal-500 hover:from-sky-600 hover:to-teal-600 text-white shadow-lg w-full sm:w-auto font-semibold"
               >
                 Get Started
               </Button>
