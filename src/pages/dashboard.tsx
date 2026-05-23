@@ -108,6 +108,79 @@ const MOCK_USER_ID = "user-1";
 const initialStoredUser = getStoredUser();
 const initialDashboardStatsCache = readDashboardStatsCache();
 
+const MAX_STUDY_MINUTES_PER_DAY = 12 * 60;
+const MAX_STUDY_MINUTES_PER_WEEK = MAX_STUDY_MINUTES_PER_DAY * 7;
+
+function capStudyMinutes(minutes: number, max: number) {
+  return Math.min(max, Math.max(0, Math.round(minutes)));
+}
+
+/** Backend week total already includes today — replace today's slice with live capped today. */
+function mergeDisplayedStudyTime(
+  baseline: {
+    useBackend: boolean;
+    backendToday: number;
+    backendWeek: number;
+    localTodayAtLoad: number;
+  },
+  localTimes: { today: number; thisWeek: number },
+) {
+  if (!baseline.useBackend) {
+    return {
+      today: capStudyMinutes(localTimes.today, MAX_STUDY_MINUTES_PER_DAY),
+      thisWeek: capStudyMinutes(localTimes.thisWeek, MAX_STUDY_MINUTES_PER_WEEK),
+    };
+  }
+  const deltaToday = Math.max(0, localTimes.today - baseline.localTodayAtLoad);
+  const today = capStudyMinutes(baseline.backendToday + deltaToday, MAX_STUDY_MINUTES_PER_DAY);
+  const weekWithoutToday = Math.max(0, baseline.backendWeek - baseline.backendToday);
+  const thisWeek = capStudyMinutes(weekWithoutToday + today, MAX_STUDY_MINUTES_PER_WEEK);
+  return { today, thisWeek };
+}
+
+function collectCompletedContentIds(): Set<string> {
+  const completedContentIds = new Set<string>();
+  try {
+    Object.keys(localStorage).forEach((key) => {
+      if (!key.startsWith('completed_content_')) return;
+      const completed = JSON.parse(localStorage.getItem(key) || '[]');
+      if (Array.isArray(completed)) {
+        completed.forEach((id: string) => completedContentIds.add(String(id)));
+      }
+    });
+  } catch {
+    // ignore
+  }
+  return completedContentIds;
+}
+
+function buildScheduleCompletionStats(allContent: any[], allQuizzes: any[]) {
+  const completedContentIds = collectCompletedContentIds();
+  const trackableContent = allContent.filter(
+    (content: any) => String(content.type || '').toLowerCase() !== 'homework',
+  );
+  const completedContent = trackableContent.filter((content: any) =>
+    completedContentIds.has(String(content._id || content.id)),
+  ).length;
+  const completedQuizzes = allQuizzes.filter(
+    (quiz: any) => quiz.hasAttempted || quiz.completedAt,
+  ).length;
+  const totalContent = trackableContent.length;
+  const totalQuizzes = allQuizzes.length;
+  const total = totalContent + totalQuizzes;
+  const completed = completedContent + completedQuizzes;
+  const completionPercent = total > 0 ? Math.round((completed / total) * 100) : 0;
+  return {
+    totalContent,
+    completedContent,
+    totalQuizzes,
+    completedQuizzes,
+    total,
+    completed,
+    completionPercent,
+  };
+}
+
 function buildSessionTimeBaselineFromCache() {
   if (!initialDashboardStatsCache) {
     return {
@@ -396,6 +469,15 @@ export default function Dashboard() {
   const dashboardStatsCacheRef = useRef(initialDashboardStatsCache);
   const [incompleteContent, setIncompleteContent] = useState<any[]>([]);
   const [incompleteQuizzes, setIncompleteQuizzes] = useState<any[]>([]);
+  const [scheduleCompletionStats, setScheduleCompletionStats] = useState({
+    total: 0,
+    completed: 0,
+    completionPercent: 0,
+    totalContent: 0,
+    completedContent: 0,
+    totalQuizzes: 0,
+    completedQuizzes: 0,
+  });
   const [isLoadingSchedule, setIsLoadingSchedule] = useState(false);
   const [selectedScheduleItem, setSelectedScheduleItem] = useState<any | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -1100,16 +1182,7 @@ export default function Dashboard() {
 
     const getDisplayedStudyTime = () => {
       const times = updateStudyTime();
-      const baseline = sessionTimeBaselineRef.current;
-      if (baseline.useBackend) {
-        const deltaToday = Math.max(0, times.today - baseline.localTodayAtLoad);
-        const deltaWeek = Math.max(0, times.thisWeek - baseline.localWeekAtLoad);
-        return {
-          today: baseline.backendToday + deltaToday,
-          thisWeek: baseline.backendWeek + deltaWeek,
-        };
-      }
-      return { today: times.today, thisWeek: times.thisWeek };
+      return mergeDisplayedStudyTime(sessionTimeBaselineRef.current, times);
     };
 
     const persistStudyTimeCache = () => {
@@ -1360,25 +1433,15 @@ export default function Dashboard() {
           allQuizzes = quizzesData.data || quizzesData || [];
         }
 
-        // Get completed content IDs from localStorage (check all subjects)
-        const completedContentIds = new Set<string>();
-        const allKeys = Object.keys(localStorage);
-        allKeys.forEach(key => {
-          if (key.startsWith('completed_content_')) {
-            try {
-              const completed = JSON.parse(localStorage.getItem(key) || '[]');
-              completed.forEach((id: string) => completedContentIds.add(id));
-            } catch (e) {
-              // Ignore parse errors
-            }
-          }
-        });
+        const completedContentIds = collectCompletedContentIds();
+        const completionStats = buildScheduleCompletionStats(allContent, allQuizzes);
+        setScheduleCompletionStats(completionStats);
 
         // Filter incomplete content
         const incomplete = allContent.filter((content: any) => {
           const contentId = content._id || content.id;
           const isHomework = String(content.type || '').toLowerCase() === 'homework';
-          return !isHomework && !completedContentIds.has(contentId);
+          return !isHomework && !completedContentIds.has(String(contentId));
         });
 
         // Filter incomplete quizzes (not attempted or not completed)
@@ -1964,7 +2027,7 @@ export default function Dashboard() {
           title: content.title || 'Study Content',
           subject: getSubjectName(content),
           date,
-          source: content
+          source: content,
         };
       })
       .filter(Boolean) as any[];
@@ -1985,7 +2048,7 @@ export default function Dashboard() {
               ? quiz.subject
               : quiz.subject?.name || 'General',
           date,
-          source: quiz
+          source: quiz,
         };
       })
       .filter(Boolean) as any[];
@@ -2180,7 +2243,7 @@ export default function Dashboard() {
                     ? '<1m'
                     : `${Math.round(studyTimeThisWeek)}m`}
                 </p>
-                <p className="text-xs text-white/80 mt-auto">Logged in this week</p>
+                <p className="text-xs text-white/80 mt-auto">Study time this week</p>
               </CardContent>
             </Card>
 
@@ -2192,12 +2255,20 @@ export default function Dashboard() {
                 </div>
                 <p className="text-xs sm:text-sm font-medium text-white/90 mb-4 pr-12">Efficiency</p>
                 {(() => {
-                  const { totalTodos, completedTodos } = dashboardTodoStats;
-                  const efficiency = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
+                  const efficiency =
+                    scheduleCompletionStats.total > 0
+                      ? scheduleCompletionStats.completionPercent
+                      : overallProgress > 0
+                        ? Math.round(overallProgress)
+                        : 0;
+                  const completedLabel =
+                    scheduleCompletionStats.total > 0
+                      ? `${scheduleCompletionStats.completed}/${scheduleCompletionStats.total} items done`
+                      : 'Content & quizzes';
                   return (
                     <>
                       <p className="text-2xl sm:text-3xl font-bold text-white mb-2 leading-tight">{efficiency}%</p>
-                      <p className="text-xs text-white/80 mt-auto">Completion rate</p>
+                      <p className="text-xs text-white/80 mt-auto">{completedLabel}</p>
                     </>
                   );
                 })()}
@@ -2214,7 +2285,9 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-lg sm:text-xl font-bold text-gray-900">Study Calendar</CardTitle>
-                    <p className="text-xs sm:text-sm text-gray-600 mt-1">Plan content, quizzes, and exams in one place</p>
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                      Content and quizzes by due date; exams on start and end dates only
+                    </p>
                   </div>
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                     <div className="flex items-center gap-2">
