@@ -34,6 +34,7 @@ export type AiReportAnalysis = {
     insight?: string;
     fixStrategy?: string;
     status?: string;
+    geminiExplanation?: string;
   }>;
   focusAreas?: Array<{
     subject: string;
@@ -470,9 +471,6 @@ export default function AiReportTab({
         </div>
       </div>
 
-      {aiLoading && (
-        <p className="text-violet-600 text-sm py-4 text-center">Generating your AI report…</p>
-      )}
       {aiError && (
         <p className="text-red-600 text-sm p-4 rounded-xl bg-red-50 border border-red-200">{aiError}</p>
       )}
@@ -691,15 +689,27 @@ export default function AiReportTab({
       {/* Vidya report */}
       <ReportCard title="Vidya Performance Report" icon="✺" className="[&_h3]:mb-4">
         <div className="space-y-3">
-          {geminiParagraphs.map((p, i) => (
-            <p key={i} className="text-[13.5px] text-slate-600 leading-relaxed">
-              {p}
-            </p>
-          ))}
+          {aiLoading && !aiAnalysis?.summary ? (
+            <div className="space-y-2 animate-pulse" aria-busy="true" aria-label="Loading report summary">
+              <div className="h-3 bg-slate-200 rounded w-full" />
+              <div className="h-3 bg-slate-200 rounded w-[92%]" />
+              <div className="h-3 bg-slate-200 rounded w-[80%]" />
+            </div>
+          ) : (
+            geminiParagraphs.map((p, i) => (
+              <p key={i} className="text-[13.5px] text-slate-600 leading-relaxed">
+                {p}
+              </p>
+            ))
+          )}
         </div>
         <div className="mt-4 rounded-[14px] px-4 py-3.5 bg-violet-50 border border-violet-200 text-violet-600 font-semibold text-[13.5px]">
-          {aiAnalysis?.motivation ||
-            'Deep, consistent practice beats intensity spikes — small daily wins compound into a much stronger next attempt.'}
+          {aiLoading && !aiAnalysis?.motivation ? (
+            <div className="h-3 bg-violet-200/80 rounded animate-pulse w-3/4" aria-hidden />
+          ) : (
+            aiAnalysis?.motivation ||
+            'Deep, consistent practice beats intensity spikes — small daily wins compound into a much stronger next attempt.'
+          )}
         </div>
       </ReportCard>
     </div>

@@ -162,6 +162,7 @@ interface AiExamAnalysis {
     conceptGap?: string;
     fixStrategy?: string;
     practiceTask?: string;
+    geminiExplanation?: string;
     insight?: string;
     priority?: 'high' | 'medium' | 'low' | string;
   }>;
@@ -1814,8 +1815,24 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       (x) => Number(x.index) === questionIndex + 1 || Number(x.index) === questionIndex
     );
 
+  const extractExplanationHintFromFix = (fixStrategy?: string) => {
+    const match = String(fixStrategy || '').match(/Review explanation hint:\s*"([^"]*)"/i);
+    return match?.[1]?.trim() || '';
+  };
+
+  const getQuestionExplanationText = (questionIndex: number) => {
+    const item = getQuestionInsightByIndex(questionIndex);
+    const question = analysisQuestions[questionIndex];
+    const fromGemini = String(item?.geminiExplanation || '').trim();
+    if (fromGemini) return fromGemini;
+    const fromQuestion = String(question?.explanation || '').trim();
+    if (fromQuestion) return fromQuestion;
+    return extractExplanationHintFromFix(item?.fixStrategy);
+  };
+
   const renderQuestionAnalysisSection = (questionIndex: number) => {
     const item = getQuestionInsightByIndex(questionIndex);
+    const explanationText = getQuestionExplanationText(questionIndex);
     return (
       <div className="mt-4 rounded-lg border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4">
         <h4 className="text-sm font-semibold text-gray-900 mb-3">Question Analysis</h4>
@@ -1832,25 +1849,30 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                 </Badge>
               </div>
             </div>
-            {item.conceptGap && (
-              <p className="text-xs sm:text-sm text-gray-700">
-                <strong>Gap:</strong> {item.conceptGap}
+            {aiLoading && !explanationText ? (
+              <div className="mt-2 space-y-2 animate-pulse" aria-busy="true" aria-label="Loading explanation">
+                <div className="h-3 bg-slate-200 rounded w-full" />
+                <div className="h-3 bg-slate-200 rounded w-[92%]" />
+                <div className="h-3 bg-slate-200 rounded w-[78%]" />
+              </div>
+            ) : explanationText ? (
+              <p className="text-xs sm:text-sm text-gray-700 leading-relaxed mt-2">
+                {explanationText}
               </p>
-            )}
-            {item.fixStrategy && (
-              <p className="text-xs sm:text-sm text-gray-800 mt-1">
-                <strong>Fix:</strong> {item.fixStrategy}
-              </p>
-            )}
-            {item.practiceTask && (
-              <p className="text-xs sm:text-sm text-indigo-800 mt-1">
-                <strong>Practice:</strong> {item.practiceTask}
+            ) : (
+              <p className="text-gray-500 text-xs sm:text-sm mt-2">
+                No explanation available for this question.
               </p>
             )}
           </>
+        ) : aiLoading ? (
+          <div className="space-y-2 animate-pulse" aria-busy="true" aria-label="Loading question analysis">
+            <div className="h-3 bg-slate-200 rounded w-2/3" />
+            <div className="h-3 bg-slate-200 rounded w-full" />
+          </div>
         ) : (
           <p className="text-gray-500 text-xs sm:text-sm">
-            Question-level analysis will appear after AI analysis is generated.
+            Open this question after the report finishes loading.
           </p>
         )}
       </div>
