@@ -821,7 +821,6 @@ export default function TeacherToolPage() {
 
       const requestBody = {
         toolType,
-        board: selectedBoard,
         classNumber: selectedClass
           ? selectedClass === 'IIT-6' || selectedClass === 'Class-6-IIT'
               ? 'IIT-6'
