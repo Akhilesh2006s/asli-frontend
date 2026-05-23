@@ -18,6 +18,8 @@ import {
 import Navigation from '@/components/navigation';
 import { API_BASE_URL } from '@/lib/api-config';
 import { EduOTTVideoCard, EduOTTSubjectBadges } from '@/components/eduott/EduOTTVideoCard';
+import type { EduOTTVideoCardItem } from '@/components/eduott/EduOTTVideoCard';
+import { EduOTTVideoPlayerDialog } from '@/components/eduott/EduOTTVideoPlayerDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
@@ -196,7 +198,7 @@ export default function EduOTT() {
   const [hasLoadedSessions, setHasLoadedSessions] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sessionSearchTerm, setSessionSearchTerm] = useState('');
-  const [expandedVideoId, setExpandedVideoId] = useState<string | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<EduOTTVideoCardItem | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   /** Unfiltered catalog for global class/subject dropdown options */
@@ -499,10 +501,7 @@ export default function EduOTT() {
                     <EduOTTVideoCard
                       key={videoId}
                       video={video}
-                      isExpanded={expandedVideoId === videoId}
-                      onToggle={() =>
-                        setExpandedVideoId((prev) => (prev === videoId ? null : videoId))
-                      }
+                      onPlay={() => setSelectedVideo(video)}
                       subjectBadges={
                         video.subjectName ? (
                           <EduOTTSubjectBadges
@@ -666,6 +665,13 @@ export default function EduOTT() {
         </Tabs>
       </div>
 
+      <EduOTTVideoPlayerDialog
+        video={selectedVideo}
+        open={!!selectedVideo}
+        onOpenChange={(open) => {
+          if (!open) setSelectedVideo(null);
+        }}
+      />
     </>
   );
 }

@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, Clock, Play, Video as VideoIcon, X } from 'lucide-react';
-import YouTubePlayer from '@/components/youtube-player';
+import { BookOpen, Clock, Play, Video as VideoIcon } from 'lucide-react';
 import {
   getEduOTTPlaybackUrl,
   getEduOTTThumbnailUrl,
@@ -28,8 +27,7 @@ export type EduOTTVideoCardItem = EduOTTVideoLike & {
 
 type EduOTTVideoCardProps = {
   video: EduOTTVideoCardItem;
-  isExpanded: boolean;
-  onToggle: () => void;
+  onPlay: () => void;
   /** Optional override; otherwise computed from video + file metadata. */
   durationLabel?: string;
   subjectBadges?: React.ReactNode;
@@ -38,8 +36,7 @@ type EduOTTVideoCardProps = {
 
 export function EduOTTVideoCard({
   video,
-  isExpanded,
-  onToggle,
+  onPlay,
   durationLabel: durationLabelProp,
   subjectBadges,
   playAccentClass = 'text-primary',
@@ -64,92 +61,59 @@ export function EduOTTVideoCard({
 
   return (
     <Card
-      className={`overflow-hidden transition-shadow duration-200 ${
-        isExpanded ? 'ring-2 ring-sky-400 shadow-lg' : 'hover:shadow-lg cursor-pointer group'
-      }`}
-      onClick={isExpanded ? undefined : onToggle}
+      className="overflow-hidden transition-shadow duration-200 hover:shadow-lg cursor-pointer group"
+      onClick={onPlay}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onPlay();
+        }
+      }}
     >
       <div className="relative bg-white">
-        {isExpanded ? (
-          <div className="relative bg-black" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              onClick={onToggle}
-              className="absolute top-2 right-2 z-10 rounded-full bg-black/60 p-1.5 text-white hover:bg-black/80"
-              aria-label="Close video"
-            >
-              <X className="w-4 h-4" />
-            </button>
-            {isYouTube && playbackUrl ? (
-              <YouTubePlayer videoUrl={playbackUrl} title={video.title} className="w-full" />
-            ) : playbackUrl ? (
-              <video
-                key={videoKey}
-                src={playbackUrl}
-                controls
-                autoPlay
-                className="w-full aspect-video object-contain bg-black"
-                playsInline
-                onLoadedMetadata={(e) => {
-                  const d = e.currentTarget.duration;
-                  if (Number.isFinite(d) && d > 0) {
-                    setSecondsFromFile(Math.round(d));
-                  }
-                }}
-              >
-                <track kind="captions" />
-              </video>
-            ) : (
-              <div className="flex aspect-video items-center justify-center bg-gray-100 text-gray-600">
-                Video not available
-              </div>
-            )}
-          </div>
+        {!isYouTube && playbackUrl && dbSeconds <= 0 ? (
+          <video
+            className="hidden"
+            preload="metadata"
+            src={playbackUrl}
+            aria-hidden
+            tabIndex={-1}
+            onLoadedMetadata={(e) => {
+              const d = e.currentTarget.duration;
+              if (Number.isFinite(d) && d > 0) {
+                setSecondsFromFile(Math.round(d));
+              }
+            }}
+          />
+        ) : null}
+        {thumbnailSrc && !thumbError ? (
+          <img
+            src={thumbnailSrc}
+            alt={video.title}
+            className="w-full h-48 object-cover bg-white"
+            onError={() => setThumbError(true)}
+          />
         ) : (
-          <>
-            {!isYouTube && playbackUrl && dbSeconds <= 0 ? (
-              <video
-                className="hidden"
-                preload="metadata"
-                src={playbackUrl}
-                aria-hidden
-                tabIndex={-1}
-                onLoadedMetadata={(e) => {
-                  const d = e.currentTarget.duration;
-                  if (Number.isFinite(d) && d > 0) {
-                    setSecondsFromFile(Math.round(d));
-                  }
-                }}
-              />
-            ) : null}
-            {thumbnailSrc && !thumbError ? (
-              <img
-                src={thumbnailSrc}
-                alt={video.title}
-                className="w-full h-48 object-cover bg-white"
-                onError={() => setThumbError(true)}
-              />
-            ) : (
-              <div className="flex h-48 w-full items-center justify-center bg-gray-100">
-                <VideoIcon className="h-14 w-14 text-gray-400" />
-              </div>
-            )}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90">
-                <Play className={`h-7 w-7 ml-0.5 ${playAccentClass}`} fill="currentColor" />
-              </div>
-            </div>
-            {durationLabel ? (
-              <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded bg-black/70 px-2 py-1 text-xs text-white">
-                <Clock className="h-3 w-3 shrink-0" />
-                <span>{durationLabel}</span>
-              </div>
-            ) : null}
-          </>
+          <div className="flex h-48 w-full items-center justify-center bg-gray-100">
+            <VideoIcon className="h-14 w-14 text-gray-400" />
+          </div>
         )}
+        <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90">
+            <Play className={`h-7 w-7 ml-0.5 ${playAccentClass}`} fill="currentColor" />
+          </div>
+        </div>
+        {durationLabel ? (
+          <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded bg-black/70 px-2 py-1 text-xs text-white">
+            <Clock className="h-3 w-3 shrink-0" />
+            <span>{durationLabel}</span>
+          </div>
+        ) : null}
       </div>
 
-      <CardHeader className={isExpanded ? 'pt-3' : undefined}>
+      <CardHeader>
         <CardTitle className="line-clamp-2 text-base font-semibold text-gray-900 sm:text-lg">
           {video.title}
         </CardTitle>

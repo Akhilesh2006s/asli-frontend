@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { EduOTTVideoCard, EduOTTSubjectBadges } from '@/components/eduott/EduOTTVideoCard';
+import { EduOTTVideoPlayerDialog } from '@/components/eduott/EduOTTVideoPlayerDialog';
+import type { EduOTTVideoCardItem } from '@/components/eduott/EduOTTVideoCard';
 import { resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
@@ -84,7 +86,7 @@ export default function AdminEduOTT() {
   const [videoSubjectFilter, setVideoSubjectFilter] = useState<string>('all');
   const [sessionClassFilter, setSessionClassFilter] = useState<string>('all');
   const [sessionSubjectFilter, setSessionSubjectFilter] = useState<string>('all');
-  const [expandedVideoId, setExpandedVideoId] = useState<string | null>(null);
+  const [selectedVideo, setSelectedVideo] = useState<EduOTTVideoCardItem | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   useEffect(() => {
@@ -423,10 +425,7 @@ export default function AdminEduOTT() {
                   <EduOTTVideoCard
                     key={video._id}
                     video={video}
-                    isExpanded={expandedVideoId === video._id}
-                    onToggle={() =>
-                      setExpandedVideoId((prev) => (prev === video._id ? null : video._id))
-                    }
+                    onPlay={() => setSelectedVideo(video)}
                     playAccentClass="text-sky-600"
                     subjectBadges={
                       video.subjectName ? (
@@ -599,6 +598,13 @@ export default function AdminEduOTT() {
         </Tabs>
       </div>
 
+      <EduOTTVideoPlayerDialog
+        video={selectedVideo}
+        open={!!selectedVideo}
+        onOpenChange={(open) => {
+          if (!open) setSelectedVideo(null);
+        }}
+      />
     </div>
   );
 }

@@ -64,6 +64,8 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import AIChat from '@/components/ai-chat';
 import { EduOTTVideoCard, EduOTTSubjectBadges } from '@/components/eduott/EduOTTVideoCard';
+import type { EduOTTVideoCardItem } from '@/components/eduott/EduOTTVideoCard';
+import { EduOTTVideoPlayerDialog } from '@/components/eduott/EduOTTVideoPlayerDialog';
 import { resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
@@ -156,7 +158,7 @@ const TeacherDashboard = () => {
   const [eduottClassFilter, setEduottClassFilter] = useState<string>('all');
   const [eduottSubjectFilter, setEduottSubjectFilter] = useState<string>('all');
   const [isLoadingEduott, setIsLoadingEduott] = useState(false);
-  const [expandedEduottVideoId, setExpandedEduottVideoId] = useState<string | null>(null);
+  const [selectedEduottVideo, setSelectedEduottVideo] = useState<EduOTTVideoCardItem | null>(null);
   const [eduottActiveTab, setEduottActiveTab] = useState<'videos' | 'live-sessions'>('videos');
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
   const [isLoadingLiveSessions, setIsLoadingLiveSessions] = useState(false);
@@ -4218,12 +4220,7 @@ const TeacherDashboard = () => {
                               <EduOTTVideoCard
                                 key={videoId}
                                 video={video}
-                                isExpanded={expandedEduottVideoId === videoId}
-                                onToggle={() =>
-                                  setExpandedEduottVideoId((prev) =>
-                                    prev === videoId ? null : videoId
-                                  )
-                                }
+                                onPlay={() => setSelectedEduottVideo(video)}
                                 playAccentClass="text-purple-600"
                                 subjectBadges={
                                   video.subjectName || video.subject ? (
@@ -4437,6 +4434,14 @@ const TeacherDashboard = () => {
                       </TabsContent>
                     </Tabs>
                   </div>
+
+                  <EduOTTVideoPlayerDialog
+                    video={selectedEduottVideo}
+                    open={!!selectedEduottVideo}
+                    onOpenChange={(open) => {
+                      if (!open) setSelectedEduottVideo(null);
+                    }}
+                  />
                 </div>
               )}
             </div>
