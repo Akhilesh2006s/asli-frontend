@@ -33,9 +33,12 @@ interface Class {
   className: string;
   description: string;
   studentCount: number;
-  videoCount: number;
-  quizCount: number;
-  assessmentCount: number;
+  videoCount?: number;
+  quizCount?: number;
+  assessmentCount?: number;
+  subjects?: Array<{ id?: string; _id?: string; name?: string }>;
+  assignedSubjects?: Array<{ id?: string; _id?: string; name?: string }>;
+  teachers?: Array<{ id?: string; name?: string; email?: string }>;
   status: 'active' | 'inactive';
   createdAt: string;
 }
@@ -69,36 +72,24 @@ const ClassManagement = () => {
       }
       
       const data = await response.json();
-      setClasses(data);
+      const list = Array.isArray(data) ? data : data.data || [];
+      setClasses(
+        list.map((c: any) => ({
+          id: String(c.id || c._id || ''),
+          classNumber: String(c.classNumber || ''),
+          className: c.className || c.name || `Class ${c.classNumber || ''}`,
+          description: c.description || '',
+          studentCount: c.studentCount ?? c.students?.length ?? 0,
+          subjects: c.subjects || c.assignedSubjects || [],
+          assignedSubjects: c.assignedSubjects || c.subjects || [],
+          teachers: c.teachers || [],
+          status: 'active' as const,
+          createdAt: c.createdAt || new Date().toISOString(),
+        }))
+      );
     } catch (error) {
       console.error('Failed to fetch classes:', error);
-      // Set mock data for development
-      setClasses([
-        {
-          id: '1',
-          classNumber: '10A',
-          className: 'Advanced Mathematics',
-          description: 'Advanced mathematics for grade 10 students',
-          studentCount: 25,
-          videoCount: 15,
-          quizCount: 8,
-          assessmentCount: 3,
-          status: 'active',
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: '2',
-          classNumber: '12B',
-          className: 'Science Class',
-          description: 'Comprehensive science curriculum',
-          studentCount: 30,
-          videoCount: 20,
-          quizCount: 12,
-          assessmentCount: 5,
-          status: 'active',
-          createdAt: new Date().toISOString()
-        }
-      ]);
+      setClasses([]);
     }
   };
 
@@ -287,6 +278,23 @@ const ClassManagement = () => {
               </div>
               
               <p className="text-xs sm:text-sm text-gray-600 mb-4">{classItem.description || 'No description available'}</p>
+
+              {(classItem.subjects?.length || classItem.assignedSubjects?.length) ? (
+                <p className="text-xs text-gray-700 mb-3">
+                  <span className="font-medium">Subjects: </span>
+                  {(classItem.subjects || classItem.assignedSubjects || [])
+                    .map((s) => s.name)
+                    .filter(Boolean)
+                    .join(', ')}
+                </p>
+              ) : null}
+
+              {classItem.teachers?.length ? (
+                <p className="text-xs text-gray-700 mb-3">
+                  <span className="font-medium">Teachers: </span>
+                  {classItem.teachers.map((t) => t.name).filter(Boolean).join(', ')}
+                </p>
+              ) : null}
               
               {/* Stats Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -116,6 +116,7 @@ const ClassDashboard = () => {
   };
   // Assign Subjects state
   const [selectedClassForSubjects, setSelectedClassForSubjects] = useState<string>('');
+  const [selectedSectionForSubjects, setSelectedSectionForSubjects] = useState<string>('');
   const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
   const [isAssigningSubjects, setIsAssigningSubjects] = useState(false);
   const [selectedClassesForPromotion, setSelectedClassesForPromotion] = useState<Set<string>>(new Set());
@@ -134,66 +135,68 @@ const ClassDashboard = () => {
     fetchSubjects();
   }, []);
 
-  // When a class number is selected, pre-populate selectedSubjectIds with already assigned subjects
+  const sectionsForSelectedClass = selectedClassForSubjects
+    ? classes
+        .filter((c) => c.classNumber === selectedClassForSubjects && c.section)
+        .sort((a, b) => String(a.section).localeCompare(String(b.section)))
+    : [];
+
+  const resolveSubjectIdsForClass = (classItem: Class | undefined) => {
+    if (!classItem?.assignedSubjects?.length || subjects.length === 0) return [];
+    return classItem.assignedSubjects
+      .map((subj) => {
+        const subjectId = subj.id || subj._id;
+        const matchingSubject = subjects.find(
+          (s) =>
+            s.id === subjectId ||
+            s._id === subjectId ||
+            s.id === subj._id ||
+            s._id === subj._id ||
+            String(s.id) === String(subjectId) ||
+            String(s._id) === String(subjectId)
+        );
+        return matchingSubject ? matchingSubject.id || matchingSubject._id : subjectId;
+      })
+      .filter(Boolean) as string[];
+  };
+
+  const baselineSubjectIdsForAssign = useMemo(() => {
+    if (!selectedClassForSubjects || !selectedSectionForSubjects) return [];
+    const classForSection = classes.find(
+      (c) =>
+        c.classNumber === selectedClassForSubjects &&
+        String(c.section || '').toUpperCase() === selectedSectionForSubjects.toUpperCase()
+    );
+    return resolveSubjectIdsForClass(classForSection).map(String).sort();
+  }, [selectedClassForSubjects, selectedSectionForSubjects, classes, subjects]);
+
+  const assignSubjectsSelectionChanged = useMemo(() => {
+    if (!selectedClassForSubjects || !selectedSectionForSubjects) return false;
+    const current = [...selectedSubjectIds].map(String).sort();
+    if (current.length !== baselineSubjectIdsForAssign.length) return true;
+    return current.some((id, i) => id !== baselineSubjectIdsForAssign[i]);
+  }, [
+    selectedClassForSubjects,
+    selectedSectionForSubjects,
+    selectedSubjectIds,
+    baselineSubjectIdsForAssign,
+  ]);
+
+  // Load subjects for the selected class + section only
   useEffect(() => {
-    console.log('useEffect triggered - selectedClassForSubjects:', selectedClassForSubjects, 'classes.length:', classes.length, 'subjects.length:', subjects.length);
-    
-    if (selectedClassForSubjects && classes.length > 0 && subjects.length > 0) {
-      // Find all classes with this classNumber
-      const classesWithThisNumber = classes.filter(c => c.classNumber === selectedClassForSubjects);
-      console.log('Classes with this number:', classesWithThisNumber.length, classesWithThisNumber.map(c => ({ 
-        classNumber: c.classNumber, 
-        section: c.section,
-        hasAssignedSubjects: !!c.assignedSubjects,
-        assignedSubjectsCount: c.assignedSubjects?.length || 0
-      })));
-      
-      if (classesWithThisNumber.length > 0) {
-        // Get assigned subjects from the first class (all sections should have the same subjects)
-        const firstClass = classesWithThisNumber[0];
-        console.log('First class assignedSubjects:', firstClass.assignedSubjects);
-        
-        if (firstClass.assignedSubjects && firstClass.assignedSubjects.length > 0) {
-          // Extract subject IDs - need to match with the subjects array format
-          // The assignedSubjects from class have id or _id, and we need to match them with subjects array
-          const assignedSubjectIds = firstClass.assignedSubjects.map(subj => {
-            const subjectId = subj.id || subj._id;
-            console.log('Matching subject:', { subjectId, subjName: subj.name });
-            
-            // Find matching subject in the subjects array to ensure ID format matches
-            const matchingSubject = subjects.find(s => {
-              const match = s.id === subjectId || s._id === subjectId || 
-                           s.id === subj._id || s._id === subj._id ||
-                           String(s.id) === String(subjectId) || String(s._id) === String(subjectId);
-              if (match) {
-                console.log('Found match:', { subjectId, matchedId: s.id || s._id, subjectName: s.name });
-              }
-              return match;
-            });
-            
-            const finalId = matchingSubject ? (matchingSubject.id || matchingSubject._id) : subjectId;
-            console.log('Final ID for subject:', subj.name, '->', finalId);
-            return finalId;
-          }).filter(id => id); // Filter out any undefined/null values
-          
-          console.log('Setting selectedSubjectIds to:', assignedSubjectIds);
-          setSelectedSubjectIds(assignedSubjectIds);
-        } else {
-          // No subjects assigned yet, clear selection
-          console.log('No assigned subjects found, clearing selection');
-          setSelectedSubjectIds([]);
-        }
-      } else {
-        // Class not found, clear selection
-        console.log('Class not found, clearing selection');
-        setSelectedSubjectIds([]);
-      }
-    } else if (!selectedClassForSubjects) {
-      // No class selected, clear selection
-      console.log('No class selected, clearing selection');
+    if (!selectedClassForSubjects || !selectedSectionForSubjects) {
       setSelectedSubjectIds([]);
+      return;
     }
-  }, [selectedClassForSubjects, classes, subjects]);
+
+    const classForSection = classes.find(
+      (c) =>
+        c.classNumber === selectedClassForSubjects &&
+        String(c.section || '').toUpperCase() === selectedSectionForSubjects.toUpperCase()
+    );
+
+    setSelectedSubjectIds(resolveSubjectIdsForClass(classForSection));
+  }, [selectedClassForSubjects, selectedSectionForSubjects, classes, subjects]);
 
   const fetchSubjects = async () => {
     try {
@@ -690,11 +693,20 @@ const ClassDashboard = () => {
       return;
     }
 
-    if (selectedSubjectIds.length === 0) {
+    if (!selectedSectionForSubjects) {
       toast({
         title: 'Validation Error',
-        description: 'Please select at least one subject',
+        description: 'Please select a section',
         variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!assignSubjectsSelectionChanged) {
+      toast({
+        title: 'No changes',
+        description: 'Update subject selection before saving',
+        variant: 'destructive',
       });
       return;
     }
@@ -717,33 +729,27 @@ const ClassDashboard = () => {
         return;
       }
 
-      console.log('Assigning subjects to class number:', classNumber);
-
-      // Save subjects for all sections of this class number in the database
       const response = await fetch(`${API_BASE_URL}/api/admin/classes/${encodeURIComponent(classNumber)}/assign-subjects`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ subjectIds: selectedSubjectIds })
+        body: JSON.stringify({
+          subjectIds: selectedSubjectIds,
+          section: selectedSectionForSubjects,
+        })
       });
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // Count sections that were updated
-        const sectionsForClass = classes.filter(c => c.classNumber === classNumber);
-        const sectionCount = sectionsForClass.length;
         toast({
           title: 'Success',
-          description: `Subjects assigned to all sections of Class ${classNumber} (${sectionCount} section${sectionCount !== 1 ? 's' : ''}) successfully`,
+          description: `Subjects assigned to Class ${classNumber} Section ${selectedSectionForSubjects} successfully`,
         });
-        // Reset form
-        setSelectedClassForSubjects('');
-        setSelectedSubjectIds([]);
-        // Refresh classes to show updated data
-        fetchClasses();
+        await fetchClasses();
+        window.dispatchEvent(new CustomEvent('subjectsUpdated'));
       } else {
         toast({
           title: 'Error',
@@ -1223,12 +1229,20 @@ const ClassDashboard = () => {
                 <CardTitle className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 bg-clip-text text-transparent">
                   Assign Subjects to Class
                 </CardTitle>
-                <p className="text-gray-600 mt-2">Select a class and assign subjects to all students in that class</p>
+                <p className="text-gray-600 mt-2">Select a class, section, and subjects for that section only</p>
               </CardHeader>
               <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="class-select" className="text-sm sm:text-base font-semibold mb-2 block">Select Class Number *</Label>
-                  <Select value={selectedClassForSubjects} onValueChange={setSelectedClassForSubjects}>
+                  <Select
+                    value={selectedClassForSubjects}
+                    onValueChange={(value) => {
+                      setSelectedClassForSubjects(value);
+                      setSelectedSectionForSubjects('');
+                      setSelectedSubjectIds([]);
+                    }}
+                  >
                     <SelectTrigger id="class-select" className="w-full">
                       <SelectValue placeholder="Choose a class number" />
                     </SelectTrigger>
@@ -1256,12 +1270,34 @@ const ClassDashboard = () => {
                         })}
                     </SelectContent>
                   </Select>
-                  {selectedClassForSubjects && (
-                    <p className="text-xs sm:text-sm text-gray-600 mt-2">
-                      Subjects will be assigned to all sections of Class {selectedClassForSubjects} (A, B, C)
-                    </p>
-                  )}
                 </div>
+
+                <div>
+                  <Label htmlFor="section-select" className="text-sm sm:text-base font-semibold mb-2 block">Select Section *</Label>
+                  <Select
+                    value={selectedSectionForSubjects}
+                    onValueChange={setSelectedSectionForSubjects}
+                    disabled={!selectedClassForSubjects || sectionsForSelectedClass.length === 0}
+                  >
+                    <SelectTrigger id="section-select" className="w-full">
+                      <SelectValue placeholder={selectedClassForSubjects ? 'Choose a section' : 'Select class first'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sectionsForSelectedClass.map((classItem) => (
+                        <SelectItem key={classItem.id} value={String(classItem.section)}>
+                          Section {classItem.section} ({classItem.studentCount || 0} students)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                </div>
+
+                {selectedClassForSubjects && selectedSectionForSubjects && (
+                  <p className="text-xs sm:text-sm text-gray-600">
+                    Subjects will be assigned to Class {selectedClassForSubjects} Section {selectedSectionForSubjects} only.
+                  </p>
+                )}
 
                 <div>
                   <Label className="text-sm sm:text-base font-semibold mb-4 block">Select Subjects *</Label>
@@ -1326,6 +1362,7 @@ const ClassDashboard = () => {
                     variant="outline"
                     onClick={() => {
                       setSelectedClassForSubjects('');
+                      setSelectedSectionForSubjects('');
                       setSelectedSubjectIds([]);
                     }}
                     disabled={isAssigningSubjects}
@@ -1334,7 +1371,12 @@ const ClassDashboard = () => {
                   </Button>
                   <Button
                     onClick={handleAssignSubjects}
-                    disabled={!selectedClassForSubjects || selectedSubjectIds.length === 0 || isAssigningSubjects}
+                    disabled={
+                      !selectedClassForSubjects ||
+                      !selectedSectionForSubjects ||
+                      !assignSubjectsSelectionChanged ||
+                      isAssigningSubjects
+                    }
                     className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
                   >
                     {isAssigningSubjects ? 'Saving...' : 'Save'}

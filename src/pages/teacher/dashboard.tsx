@@ -63,7 +63,7 @@ import {
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import AIChat from '@/components/ai-chat';
-import VideoModal from '@/components/video-modal';
+import { EduOTTVideoCard, EduOTTSubjectBadges } from '@/components/eduott/EduOTTVideoCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import { TeacherDashboardSchedule } from '@/components/teacher/TeacherDashboardSchedule';
@@ -154,8 +154,7 @@ const TeacherDashboard = () => {
   const [eduottClassFilter, setEduottClassFilter] = useState<string>('all');
   const [eduottSubjectFilter, setEduottSubjectFilter] = useState<string>('all');
   const [isLoadingEduott, setIsLoadingEduott] = useState(false);
-  const [selectedEduottVideo, setSelectedEduottVideo] = useState<any>(null);
-  const [isEduottVideoModalOpen, setIsEduottVideoModalOpen] = useState(false);
+  const [expandedEduottVideoId, setExpandedEduottVideoId] = useState<string | null>(null);
   const [eduottActiveTab, setEduottActiveTab] = useState<'videos' | 'live-sessions'>('videos');
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
   const [isLoadingLiveSessions, setIsLoadingLiveSessions] = useState(false);
@@ -1672,13 +1671,6 @@ const TeacherDashboard = () => {
     const hrs = Math.floor(minutes / 60);
     const mins = Math.floor(minutes % 60);
     return hrs > 0 ? `${hrs}:${mins.toString().padStart(2, '0')}` : `${mins}:00`;
-  }, []);
-
-  const extractYouTubeId = useCallback((url: string) => {
-    if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
   }, []);
 
   if (isLoading) {
@@ -4224,97 +4216,41 @@ const TeacherDashboard = () => {
 
                       return (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6 mt-6">
-                          {filteredEduottVideos.map((video) => (
-                            <Card 
-                              key={video._id || video.id} 
-                              className="overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer group"
-                              onClick={() => {
-                                setSelectedEduottVideo(video);
-                                setIsEduottVideoModalOpen(true);
-                              }}
-                            >
-                              {/* Video Thumbnail */}
-                              <div className="relative">
-                                {video.thumbnailUrl ? (
-                                  <img
-                                    src={video.thumbnailUrl}
-                                    alt={video.title}
-                                    className="w-full h-48 object-cover"
-                                  />
-                                ) : video.isYouTubeVideo && video.youtubeUrl ? (
-                                  <img
-                                    src={`https://img.youtube.com/vi/${extractYouTubeId(video.youtubeUrl)}/hqdefault.jpg`}
-                                    alt={video.title}
-                                    className="w-full h-48 object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-full h-48 bg-gradient-to-br from-purple-400 to-blue-500 flex items-center justify-center">
-                                    <Play className="w-16 h-16 text-white" fill="currentColor" />
-                                  </div>
+                          {filteredEduottVideos.map((video) => {
+                            const videoId = video._id || video.id || '';
+                            return (
+                              <EduOTTVideoCard
+                                key={videoId}
+                                video={video}
+                                isExpanded={expandedEduottVideoId === videoId}
+                                onToggle={() =>
+                                  setExpandedEduottVideoId((prev) =>
+                                    prev === videoId ? null : videoId
+                                  )
+                                }
+                                durationLabel={formatDuration(
+                                  video.duration ||
+                                    (video.durationSeconds ? video.durationSeconds / 60 : 0)
                                 )}
-                                
-                                {/* Play Overlay */}
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                  <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
-                                    <Play className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-purple-600 ml-1" fill="currentColor" />
-                                  </div>
-                                </div>
-
-                                {/* Duration Badge */}
-                                {(video.duration || video.durationSeconds) && (
-                                  <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    {formatDuration(video.duration || (video.durationSeconds ? video.durationSeconds / 60 : 0))}
-                                  </div>
-                                )}
-                              </div>
-
-                              <CardHeader>
-                                <div className="flex items-start justify-between gap-2">
-                                  <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 line-clamp-2 flex-1">
-                                    {video.title}
-                                  </CardTitle>
-                                </div>
-                                {(video.subjectName || video.subject) && (
-                                  <div className="mt-2 flex flex-wrap gap-2">
-                                    <Badge variant="outline" className="w-fit font-medium">
-                                      <BookOpen className="w-3 h-3 mr-1" />
-                                      {extractPlainSubjectName(String(video.subjectName || video.subject))}
-                                    </Badge>
-                                    {getSubjectClassLabel({
-                                      name: String(video.subjectName || video.subject),
-                                      classNumber: video.classNumber,
-                                    }) ? (
-                                      <Badge className="w-fit bg-sky-100 text-sky-800 border-0">
-                                        Class{' '}
-                                        {getSubjectClassLabel({
+                                playAccentClass="text-purple-600"
+                                subjectBadges={
+                                  video.subjectName || video.subject ? (
+                                    <EduOTTSubjectBadges
+                                      subjectLabel={extractPlainSubjectName(
+                                        String(video.subjectName || video.subject)
+                                      )}
+                                      classLabel={
+                                        getSubjectClassLabel({
                                           name: String(video.subjectName || video.subject),
                                           classNumber: video.classNumber,
-                                        })}
-                                      </Badge>
-                                    ) : null}
-                                  </div>
-                                )}
-                              </CardHeader>
-
-                              <CardContent>
-                                {video.description && (
-                                  <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 mb-3">
-                                    {video.description}
-                                  </p>
-                                )}
-                                <div className="flex items-center justify-between text-xs text-gray-500">
-                                  <div className="flex items-center gap-1">
-                                    <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
-                                    <span>{video.views || 0} views</span>
-                                  </div>
-                                  {video.createdAt && (
-                                    <span>{new Date(video.createdAt).toLocaleDateString()}</span>
-                                  )}
-                                </div>
-                              </CardContent>
-                            </Card>
-                          ))}
+                                        }) || undefined
+                                      }
+                                    />
+                                  ) : undefined
+                                }
+                              />
+                            );
+                          })}
                         </div>
                       );
                     })()}
@@ -4878,28 +4814,6 @@ const TeacherDashboard = () => {
         </DialogContent>
       </Dialog>
 
-      {/* EduOTT Video Modal */}
-      <VideoModal
-        isOpen={isEduottVideoModalOpen}
-        onClose={() => {
-          setIsEduottVideoModalOpen(false);
-          setSelectedEduottVideo(null);
-        }}
-        video={selectedEduottVideo ? {
-          id: selectedEduottVideo._id || selectedEduottVideo.id,
-          title: selectedEduottVideo.title || '',
-          description: selectedEduottVideo.description || '',
-          duration: selectedEduottVideo.duration && selectedEduottVideo.duration > 0 
-            ? Math.round(selectedEduottVideo.duration) 
-            : (selectedEduottVideo.durationSeconds && selectedEduottVideo.durationSeconds > 0
-              ? Math.round(selectedEduottVideo.durationSeconds / 60)
-              : 0), // Convert from seconds to minutes if needed, or use duration in minutes
-          subject: selectedEduottVideo.subjectName || selectedEduottVideo.subject || 'Unknown Subject',
-          videoUrl: selectedEduottVideo.videoUrl || selectedEduottVideo.fileUrl,
-          youtubeUrl: selectedEduottVideo.youtubeUrl || (selectedEduottVideo.isYouTubeVideo ? (selectedEduottVideo.videoUrl || selectedEduottVideo.fileUrl) : undefined),
-          isYouTubeVideo: selectedEduottVideo.isYouTubeVideo || false
-        } : null}
-      />
       </div>
     </div>
   );

@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import {
   Play,
-  Clock,
   Search,
   Video as VideoIcon,
   BookOpen,
@@ -17,8 +16,8 @@ import {
   Calendar,
 } from 'lucide-react';
 import Navigation from '@/components/navigation';
-import VideoModal from '@/components/video-modal';
 import { API_BASE_URL } from '@/lib/api-config';
+import { EduOTTVideoCard, EduOTTSubjectBadges } from '@/components/eduott/EduOTTVideoCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
@@ -193,8 +192,7 @@ export default function EduOTT() {
   const [hasLoadedSessions, setHasLoadedSessions] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sessionSearchTerm, setSessionSearchTerm] = useState('');
-  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
-  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [expandedVideoId, setExpandedVideoId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   /** Unfiltered catalog for global class/subject dropdown options */
@@ -391,16 +389,6 @@ export default function EduOTT() {
 
   const hasGlobalFilters = selectedClass != null || selectedSubject != null;
 
-  const handleVideoClick = (video: Video) => {
-    setSelectedVideo(video);
-    setIsVideoModalOpen(true);
-  };
-
-  const handleCloseVideoModal = () => {
-    setIsVideoModalOpen(false);
-    setSelectedVideo(null);
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'live':
@@ -422,16 +410,10 @@ export default function EduOTT() {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const extractYouTubeId = (url: string): string | null => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return match && match[2].length === 11 ? match[2] : null;
-  };
-
   return (
     <>
       <Navigation />
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-8 bg-sky-50 min-h-screen relative">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-8 bg-white min-h-screen relative">
         {!isMobile && <VidyaAIFloatingAssistant />}
 
         <div className="mb-6">
@@ -513,91 +495,37 @@ export default function EduOTT() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
-                {filteredVideos.map((video) => (
-                  <Card
-                    key={video._id}
-                    className="overflow-hidden hover:shadow-lg transition-shadow duration-200 cursor-pointer group"
-                    onClick={() => handleVideoClick(video)}
-                  >
-                    <div className="relative">
-                      {video.thumbnailUrl ? (
-                        <img
-                          src={video.thumbnailUrl}
-                          alt={video.title}
-                          className="w-full h-48 object-cover"
-                        />
-                      ) : video.isYouTubeVideo && video.youtubeUrl ? (
-                        <img
-                          src={`https://img.youtube.com/vi/${extractYouTubeId(video.youtubeUrl)}/hqdefault.jpg`}
-                          alt={video.title}
-                          className="w-full h-48 object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-48 bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center">
-                          <Play className="w-16 h-16 text-white" fill="currentColor" />
-                        </div>
-                      )}
-
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
-                          <Play className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-primary ml-1" fill="currentColor" />
-                        </div>
-                      </div>
-
-                      <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {formatDuration(video.duration || 0)}
-                      </div>
-                    </div>
-
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 line-clamp-2 flex-1">
-                          {video.title}
-                        </CardTitle>
-                      </div>
-                      {video.subjectName && (
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          <Badge variant="outline" className="w-fit">
-                            <BookOpen className="w-3 h-3 mr-1" />
-                            {video.subject || extractPlainSubjectName(video.subjectName)}
-                          </Badge>
-                          {(video.class ||
-                            getSubjectClassLabel({
-                              name: video.subjectName,
-                              classNumber: video.classNumber,
-                            })) ? (
-                            <Badge className="bg-sky-100 text-sky-800 border-0 w-fit">
-                              Class{' '}
-                              {video.class ||
-                                getSubjectClassLabel({
-                                  name: video.subjectName,
-                                  classNumber: video.classNumber,
-                                })}
-                            </Badge>
-                          ) : null}
-                        </div>
-                      )}
-                    </CardHeader>
-
-                    <CardContent>
-                      {video.description && (
-                        <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 mb-3">
-                          {video.description}
-                        </p>
-                      )}
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <VideoIcon className="w-3 h-3" />
-                          {video.views || 0} views
-                        </span>
-                        {video.createdAt && (
-                          <span>{new Date(video.createdAt).toLocaleDateString()}</span>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                {filteredVideos.map((video) => {
+                  const videoId = video._id || video.id || '';
+                  return (
+                    <EduOTTVideoCard
+                      key={videoId}
+                      video={video}
+                      isExpanded={expandedVideoId === videoId}
+                      onToggle={() =>
+                        setExpandedVideoId((prev) => (prev === videoId ? null : videoId))
+                      }
+                      durationLabel={formatDuration(video.duration || 0)}
+                      subjectBadges={
+                        video.subjectName ? (
+                          <EduOTTSubjectBadges
+                            subjectLabel={
+                              video.subject || extractPlainSubjectName(video.subjectName)
+                            }
+                            classLabel={
+                              video.class ||
+                              getSubjectClassLabel({
+                                name: video.subjectName,
+                                classNumber: video.classNumber,
+                              }) ||
+                              undefined
+                            }
+                          />
+                        ) : undefined
+                      }
+                    />
+                  );
+                })}
               </div>
             )}
             </div>
@@ -741,33 +669,6 @@ export default function EduOTT() {
         </Tabs>
       </div>
 
-      <VideoModal
-        isOpen={isVideoModalOpen}
-        onClose={handleCloseVideoModal}
-        video={
-          selectedVideo
-            ? {
-                id: selectedVideo._id || selectedVideo.id || '',
-                title: selectedVideo.title || '',
-                description: selectedVideo.description || '',
-                duration:
-                  selectedVideo.duration && selectedVideo.duration > 0
-                    ? Math.round(selectedVideo.duration / 60)
-                    : 0,
-                subject:
-                  selectedVideo.subject ||
-                  extractPlainSubjectName(selectedVideo.subjectName || 'Unknown Subject'),
-                videoUrl: selectedVideo.videoUrl || selectedVideo.fileUrl,
-                youtubeUrl:
-                  selectedVideo.youtubeUrl ||
-                  (selectedVideo.isYouTubeVideo
-                    ? selectedVideo.videoUrl || selectedVideo.fileUrl
-                    : undefined),
-                isYouTubeVideo: selectedVideo.isYouTubeVideo || false,
-              }
-            : null
-        }
-      />
     </>
   );
 }

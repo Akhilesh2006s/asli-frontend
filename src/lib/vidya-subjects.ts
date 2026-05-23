@@ -91,13 +91,13 @@ function labelFromCanonicalKey(key: string): string {
  */
 export function dedupeVidyaSubjectNames(names: Iterable<string>): string[] {
   const keys = new Set<string>();
-  for (const raw of names) {
+  Array.from(names).forEach((raw) => {
     const s = String(raw ?? "").trim();
-    if (!s || isLikelyMongoObjectId(s)) continue;
+    if (!s || isLikelyMongoObjectId(s)) return;
     const key = canonicalVidyaSubjectKey(s);
     if (key) keys.add(key);
-  }
-  return [...keys]
+  });
+  return Array.from(keys)
     .map(labelFromCanonicalKey)
     .filter(Boolean)
     .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));

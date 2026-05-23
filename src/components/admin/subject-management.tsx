@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { API_BASE_URL } from '@/lib/api-config';
 /** Visible fields on white dialogs (default inputs are too faint). */
 const SUBJECT_FORM_FIELD_CLASS =
@@ -26,18 +27,24 @@ import {
   XCircle
 } from 'lucide-react';
 
+interface ClassOption {
+  id: string;
+  classNumber: string;
+  className: string;
+  section?: string;
+}
+
 interface Subject {
   id: string;
   name: string;
-  code: string;
   description?: string;
   teacher?: {
     id: string;
     fullName: string;
     email: string;
   };
-  grade?: string;
-  department?: string;
+  classes: ClassOption[];
+  classIds?: string[];
   isActive: boolean;
   createdAt: string;
 }
@@ -50,6 +57,7 @@ interface Teacher {
 
 const SubjectManagement = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [classes, setClasses] = useState<ClassOption[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterByTeacher, setFilterByTeacher] = useState<string>('all');
@@ -62,12 +70,14 @@ const SubjectManagement = () => {
   const [newSubject, setNewSubject] = useState({
     name: '',
     description: '',
-    teacher: '',
+    teacherId: '',
+    classIds: [] as string[],
   });
 
   useEffect(() => {
     fetchSubjects();
     fetchTeachers();
+    fetchClasses();
     const onSubjectsUpdated = () => fetchSubjects();
     window.addEventListener('subjectsUpdated', onSubjectsUpdated);
     return () => window.removeEventListener('subjectsUpdated', onSubjectsUpdated);
@@ -88,68 +98,69 @@ const SubjectManagement = () => {
       }
       
       const data = await response.json();
-      // Normalize backend payloads: {_id, fullName, ...} -> UI shape.
       const subjectsData = data.data || data.subjects || data || [];
-      const displaySubjectName = (raw: string) =>
-        String(raw || '').split('__deleted__')[0].trim();
 
       const normalized = Array.isArray(subjectsData)
         ? subjectsData
             .filter((s: any) => s.isActive !== false)
             .map((s: any) => ({
-            id: String(s.id || s._id || ''),
-            name: displaySubjectName(s.name || ''),
-            code: s.code || '',
-            description: s.description || '',
-            teacher: s.teacher
-              ? {
-                  id: String(s.teacher.id || s.teacher._id || ''),
-                  fullName: s.teacher.fullName || s.teacher.name || '',
-                  email: s.teacher.email || '',
-                }
-              : undefined,
-            grade: s.grade || s.classNumber || '',
-            department: s.department || '',
-            isActive: s.isActive === true,
-            createdAt: s.createdAt || new Date().toISOString(),
-          }))
+              id: String(s.id || s._id || ''),
+              name: String(s.name || '').split('__deleted__')[0].trim(),
+              description: s.description || '',
+              teacher: s.teacher
+                ? {
+                    id: String(s.teacher.id || s.teacher._id || ''),
+                    fullName: s.teacher.fullName || s.teacher.name || '',
+                    email: s.teacher.email || '',
+                  }
+                : undefined,
+              classes: Array.isArray(s.classes)
+                ? s.classes.map((c: any) => ({
+                    id: String(c.id || c._id || ''),
+                    classNumber: c.classNumber || '',
+                    className: c.className || c.name || `Class ${c.classNumber || ''}`,
+                    section: c.section,
+                  }))
+                : [],
+              classIds: Array.isArray(s.classIds)
+                ? s.classIds.map(String)
+                : Array.isArray(s.classes)
+                  ? s.classes.map((c: any) => String(c.id || c._id || ''))
+                  : [],
+              isActive: s.isActive !== false,
+              createdAt: s.createdAt || new Date().toISOString(),
+            }))
         : [];
       setSubjects(normalized);
     } catch (error) {
       console.error('Failed to fetch subjects:', error);
-      // Set mock data for development
-      setSubjects([
-        {
-          id: '1',
-          name: 'Calculus',
-          code: 'MATH101',
-          description: 'Advanced Calculus and Differential Equations',
-          teacher: {
-            id: '1',
-            fullName: 'Dr. Sarah Johnson',
-            email: 'sarah.johnson@school.edu'
-          },
-          grade: '12',
-          department: 'Mathematics',
-          isActive: true,
-          createdAt: new Date().toISOString()
+      setSubjects([]);
+    }
+  };
+
+  const fetchClasses = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/admin/classes`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
-        {
-          id: '2',
-          name: 'Physics',
-          code: 'PHYS101',
-          description: 'Classical Mechanics and Thermodynamics',
-          teacher: {
-            id: '2',
-            fullName: 'Prof. Michael Brown',
-            email: 'michael.brown@school.edu'
-          },
-          grade: '11',
-          department: 'Physics',
-          isActive: true,
-          createdAt: new Date().toISOString()
-        }
-      ]);
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      const list = Array.isArray(data) ? data : data.data || [];
+      setClasses(
+        list.map((c: any) => ({
+          id: String(c.id || c._id || ''),
+          classNumber: String(c.classNumber || ''),
+          className: c.name || c.className || `Class ${c.classNumber || ''}${c.section ? `-${c.section}` : ''}`,
+          section: c.section,
+        }))
+      );
+    } catch (error) {
+      console.error('Failed to fetch classes:', error);
+      setClasses([]);
     }
   };
 
@@ -179,11 +190,23 @@ const SubjectManagement = () => {
       setTeachers(normalizedTeachers);
     } catch (error) {
       console.error('Failed to fetch teachers:', error);
-      setTeachers([
-        { id: '1', fullName: 'Dr. Sarah Johnson', email: 'sarah.johnson@school.edu' },
-        { id: '2', fullName: 'Prof. Michael Brown', email: 'michael.brown@school.edu' }
-      ]);
+      setTeachers([]);
     }
+  };
+
+  const formatClassLabels = (subject: Subject) => {
+    if (!subject.classes?.length) return '—';
+    return subject.classes
+      .map((c) => {
+        const label = c.classNumber ? `Class ${c.classNumber}` : c.className;
+        return c.section ? `${label}-${c.section}` : label;
+      })
+      .join(', ');
+  };
+
+  const toggleClassId = (classIds: string[], classId: string, checked: boolean) => {
+    if (checked) return [...classIds, classId];
+    return classIds.filter((id) => id !== classId);
   };
 
   const handleAddSubject = async (e: React.FormEvent) => {
@@ -196,11 +219,16 @@ const SubjectManagement = () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json' 
         },
-        body: JSON.stringify(newSubject)
+        body: JSON.stringify({
+          name: newSubject.name.trim(),
+          description: newSubject.description,
+          teacherId: newSubject.teacherId || undefined,
+          classIds: newSubject.classIds,
+        }),
       });
 
       if (response.ok) {
-        setNewSubject({ name: '', description: '', teacher: '' });
+        setNewSubject({ name: '', description: '', teacherId: '', classIds: [] });
         setIsAddDialogOpen(false);
         fetchSubjects();
         alert('Subject added successfully!');
@@ -225,7 +253,12 @@ const SubjectManagement = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         },
-        body: JSON.stringify(editingSubject)
+        body: JSON.stringify({
+          name: editingSubject.name,
+          description: editingSubject.description,
+          teacherId: editingSubject.teacher?.id || undefined,
+          classIds: editingSubject.classIds || editingSubject.classes?.map((c) => c.id) || [],
+        }),
       });
 
       if (response.ok) {
@@ -285,7 +318,8 @@ const SubjectManagement = () => {
       filtered = filtered.filter(subject =>
         subject.name?.toLowerCase().includes(query) ||
         subject.description?.toLowerCase().includes(query) ||
-        subject.teacher?.fullName?.toLowerCase().includes(query)
+        subject.teacher?.fullName?.toLowerCase().includes(query) ||
+        formatClassLabels(subject).toLowerCase().includes(query)
       );
     }
 
@@ -443,6 +477,57 @@ const SubjectManagement = () => {
                         className={SUBJECT_FORM_FIELD_CLASS}
                       />
                     </div>
+                    <div>
+                      <Label>Assign Teacher</Label>
+                      <Select
+                        value={newSubject.teacherId || 'none'}
+                        onValueChange={(v) =>
+                          setNewSubject({ ...newSubject, teacherId: v === 'none' ? '' : v })
+                        }
+                      >
+                        <SelectTrigger className={SUBJECT_FORM_FIELD_CLASS}>
+                          <SelectValue placeholder="Select teacher" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Unassigned</SelectItem>
+                          {teachers.map((t) => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.fullName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label>Assign to Class(es)</Label>
+                      {classes.length === 0 ? (
+                        <p className="text-sm text-sky-600">No classes yet. Add classes first.</p>
+                      ) : (
+                        <div className="max-h-40 overflow-y-auto border border-sky-200 rounded-lg p-3 space-y-2 bg-sky-50/50">
+                          {classes.map((cls) => (
+                            <label key={cls.id} className="flex items-center gap-2 text-sm text-sky-900">
+                              <Checkbox
+                                checked={newSubject.classIds.includes(cls.id)}
+                                onCheckedChange={(checked) =>
+                                  setNewSubject({
+                                    ...newSubject,
+                                    classIds: toggleClassId(
+                                      newSubject.classIds,
+                                      cls.id,
+                                      checked === true
+                                    ),
+                                  })
+                                }
+                              />
+                              <span>
+                                {cls.className} ({cls.classNumber}
+                                {cls.section ? `-${cls.section}` : ''})
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <div className="flex justify-end gap-2">
                       <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
                       <Button type="submit">Create Subject</Button>
@@ -530,6 +615,7 @@ const SubjectManagement = () => {
             <TableHeader>
               <TableRow className="bg-sky-50/50">
                 <TableHead className="text-sky-900 font-semibold">Subject</TableHead>
+                <TableHead className="text-sky-900 font-semibold">Assigned Classes</TableHead>
                 <TableHead className="text-sky-900 font-semibold">Teacher</TableHead>
                 <TableHead className="text-sky-900 font-semibold">Status</TableHead>
                 <TableHead className="text-sky-900 font-semibold">Actions</TableHead>
@@ -545,6 +631,9 @@ const SubjectManagement = () => {
                         <div className="text-xs sm:text-sm text-sky-600 mt-1">{subject.description}</div>
                       )}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-sm text-sky-800">{formatClassLabels(subject)}</span>
                   </TableCell>
                   <TableCell>
                     {subject.teacher ? (
@@ -635,6 +724,75 @@ const SubjectManagement = () => {
                 className={SUBJECT_FORM_FIELD_CLASS}
               />
             </div>
+            <div>
+              <Label>Assign Teacher</Label>
+              <Select
+                value={editingSubject?.teacher?.id || 'none'}
+                onValueChange={(v) =>
+                  setEditingSubject((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          teacher:
+                            v === 'none'
+                              ? undefined
+                              : teachers.find((t) => t.id === v)
+                                ? {
+                                    id: v,
+                                    fullName: teachers.find((t) => t.id === v)!.fullName,
+                                    email: teachers.find((t) => t.id === v)!.email,
+                                  }
+                                : undefined,
+                        }
+                      : prev
+                  )
+                }
+              >
+                <SelectTrigger className={SUBJECT_FORM_FIELD_CLASS}>
+                  <SelectValue placeholder="Select teacher" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Unassigned</SelectItem>
+                  {teachers.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.fullName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Assign to Class(es)</Label>
+              <div className="max-h-40 overflow-y-auto border border-sky-200 rounded-lg p-3 space-y-2 bg-sky-50/50">
+                {classes.map((cls) => {
+                  const selected =
+                    editingSubject?.classIds?.includes(cls.id) ||
+                    editingSubject?.classes?.some((c) => c.id === cls.id);
+                  return (
+                    <label key={cls.id} className="flex items-center gap-2 text-sm text-sky-900">
+                      <Checkbox
+                        checked={!!selected}
+                        onCheckedChange={(checked) =>
+                          setEditingSubject((prev) => {
+                            if (!prev) return prev;
+                            const current =
+                              prev.classIds || prev.classes?.map((c) => c.id) || [];
+                            return {
+                              ...prev,
+                              classIds: toggleClassId(current, cls.id, checked === true),
+                            };
+                          })
+                        }
+                      />
+                      <span>
+                        {cls.className} ({cls.classNumber}
+                        {cls.section ? `-${cls.section}` : ''})
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
               <Button type="submit">Update Subject</Button>
@@ -653,6 +811,7 @@ const SubjectManagement = () => {
           {viewingSubject && (
             <div className="space-y-2 text-xs sm:text-sm">
               <p><span className="font-semibold">Name:</span> {viewingSubject.name || '-'}</p>
+              <p><span className="font-semibold">Classes:</span> {formatClassLabels(viewingSubject)}</p>
               <p><span className="font-semibold">Teacher:</span> {viewingSubject.teacher?.fullName || 'Unassigned'}</p>
               <p><span className="font-semibold">Description:</span> {viewingSubject.description || '-'}</p>
             </div>

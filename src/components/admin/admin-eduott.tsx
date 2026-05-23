@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/select';
 import { 
   Play, 
-  Clock, 
   Search,
   Filter,
   Video as VideoIcon,
@@ -23,8 +22,8 @@ import {
   Users,
   Calendar
 } from 'lucide-react';
-import VideoModal from '@/components/video-modal';
 import { API_BASE_URL } from '@/lib/api-config';
+import { EduOTTVideoCard, EduOTTSubjectBadges } from '@/components/eduott/EduOTTVideoCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
 import {
@@ -84,8 +83,7 @@ export default function AdminEduOTT() {
   const [videoSubjectFilter, setVideoSubjectFilter] = useState<string>('all');
   const [sessionClassFilter, setSessionClassFilter] = useState<string>('all');
   const [sessionSubjectFilter, setSessionSubjectFilter] = useState<string>('all');
-  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
-  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [expandedVideoId, setExpandedVideoId] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   useEffect(() => {
@@ -144,6 +142,15 @@ export default function AdminEduOTT() {
               }
             }
             
+            const rawFileUrl = content.fileUrl || '';
+            const isYouTube =
+              !!(
+                content.youtubeUrl ||
+                rawFileUrl.includes('youtube.com') ||
+                rawFileUrl.includes('youtu.be')
+              );
+            const youtubeUrl = content.youtubeUrl || (isYouTube ? videoFileUrl || rawFileUrl : '');
+
             return {
               _id: content._id,
               title: content.title || 'Untitled Video',
@@ -151,8 +158,9 @@ export default function AdminEduOTT() {
               duration: durationInMinutes,
               durationSeconds: durationInSeconds,
               videoUrl: videoFileUrl,
-              youtubeUrl: content.youtubeUrl || '',
-              isYouTubeVideo: !!content.youtubeUrl,
+              fileUrl: videoFileUrl,
+              youtubeUrl,
+              isYouTubeVideo: isYouTube,
               thumbnailUrl: content.thumbnailUrl || '',
               views: content.views || 0,
               createdAt: content.createdAt || content.date || new Date().toISOString(),
@@ -418,73 +426,29 @@ export default function AdminEduOTT() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
                 {filteredVideos.map((video) => (
-                  <Card
+                  <EduOTTVideoCard
                     key={video._id}
-                    className="group cursor-pointer hover:shadow-xl transition-all duration-300 overflow-hidden"
-                    onClick={() => {
-                      setSelectedVideo(video);
-                      setIsVideoModalOpen(true);
-                    }}
-                  >
-                    <div className="relative aspect-video bg-gray-900 overflow-hidden">
-                      {video.isYouTubeVideo && video.youtubeUrl ? (
-                        <img
-                          src={`https://img.youtube.com/vi/${video.youtubeUrl.split('v=')[1]?.split('&')[0]}/hqdefault.jpg`}
-                          alt={video.title}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${video.youtubeUrl.split('v=')[1]?.split('&')[0]}/hqdefault.jpg`;
-                          }}
-                        />
-                      ) : video.thumbnailUrl ? (
-                        <img
-                          src={video.thumbnailUrl}
-                          alt={video.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-sky-400 to-teal-500">
-                          <VideoIcon className="w-16 h-16 text-white/50" />
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
-                          <Play className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-sky-600 ml-1" />
-                        </div>
-                      </div>
-                      <div className="absolute bottom-2 right-2">
-                        <Badge className="bg-black/70 text-white">
-                          <Clock className="w-3 h-3 mr-1" />
-                          {formatDuration(video.duration)}
-                        </Badge>
-                      </div>
-                    </div>
-                    <CardContent className="p-4">
-                      <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{video.title}</h3>
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {video.subjectName ? (
-                          <Badge variant="outline" className="text-xs font-medium">
-                            {extractPlainSubjectName(video.subjectName)}
-                          </Badge>
-                        ) : null}
-                        {getSubjectClassLabel({
-                          name: video.subjectName,
-                          classNumber: video.classNumber,
-                        }) ? (
-                          <Badge className="text-xs bg-sky-100 text-sky-800 border-0">
-                            Class{' '}
-                            {getSubjectClassLabel({
+                    video={video}
+                    isExpanded={expandedVideoId === video._id}
+                    onToggle={() =>
+                      setExpandedVideoId((prev) => (prev === video._id ? null : video._id))
+                    }
+                    durationLabel={formatDuration(video.duration)}
+                    playAccentClass="text-sky-600"
+                    subjectBadges={
+                      video.subjectName ? (
+                        <EduOTTSubjectBadges
+                          subjectLabel={extractPlainSubjectName(video.subjectName)}
+                          classLabel={
+                            getSubjectClassLabel({
                               name: video.subjectName,
                               classNumber: video.classNumber,
-                            })}
-                          </Badge>
-                        ) : null}
-                      </div>
-                      {video.description && (
-                        <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">{video.description}</p>
-                      )}
-                    </CardContent>
-                  </Card>
+                            }) || undefined
+                          }
+                        />
+                      ) : undefined
+                    }
+                  />
                 ))}
               </div>
             )}
@@ -642,24 +606,6 @@ export default function AdminEduOTT() {
         </Tabs>
       </div>
 
-      {/* Video Modal */}
-      <VideoModal
-        video={selectedVideo ? {
-          id: selectedVideo._id,
-          title: selectedVideo.title,
-          description: selectedVideo.description || '',
-          duration: selectedVideo.duration,
-          videoUrl: selectedVideo.videoUrl || '',
-          youtubeUrl: selectedVideo.youtubeUrl || '',
-          isYouTubeVideo: selectedVideo.isYouTubeVideo || false,
-          thumbnailUrl: selectedVideo.thumbnailUrl || ''
-        } : null}
-        isOpen={isVideoModalOpen}
-        onClose={() => {
-          setIsVideoModalOpen(false);
-          setSelectedVideo(null);
-        }}
-      />
     </div>
   );
 }

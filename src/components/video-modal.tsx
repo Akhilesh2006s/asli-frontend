@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { X, ExternalLink, Play, Pause, Clock, BookOpen, Star, Share2, Download, Heart, ThumbsUp } from 'lucide-react';
+import { Play, Pause, Clock, BookOpen, Star, Share2, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import YouTubePlayer from '@/components/youtube-player';
 
@@ -22,8 +22,6 @@ interface VideoModalProps {
 }
 
 const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
-  const [isLiked, setIsLiked] = useState(false);
-  const [isBookmarked, setIsBookmarked] = useState(false);
   const [calculatedDuration, setCalculatedDuration] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showPlayButton, setShowPlayButton] = useState(true);
@@ -115,14 +113,6 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
   const isYouTube = video.isYouTubeVideo || !!youtubeId;
   const youtubeUrl = video.youtubeUrl || (youtubeId ? `https://www.youtube.com/watch?v=${youtubeId}` : null);
 
-  const handleOpenInNewTab = () => {
-    if (isYouTube && youtubeUrl) {
-      window.open(youtubeUrl, '_blank', 'noopener,noreferrer');
-    } else if (video.videoUrl) {
-      window.open(video.videoUrl, '_blank', 'noopener,noreferrer');
-    }
-  };
-
   const handleShare = () => {
     const shareUrl = isYouTube && youtubeUrl ? youtubeUrl : (video.videoUrl || window.location.href);
     if (navigator.share) {
@@ -155,7 +145,7 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl w-full max-h-[95vh] p-0 overflow-y-auto bg-gradient-to-br from-sky-300 via-sky-400 to-teal-400 flex flex-col">
+      <DialogContent className="max-w-6xl w-full max-h-[95vh] p-0 overflow-y-auto bg-white flex flex-col">
         <AnimatePresence>
           {isOpen && (
             <motion.div
@@ -165,87 +155,37 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
               transition={{ duration: 0.3, ease: "easeOut" }}
               className="h-full flex flex-col"
             >
-              {/* Epic Header with Gradient */}
-              <DialogHeader className="relative p-3 sm:p-4 lg:p-6 pb-4 bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400">
-                <div className="relative z-10 flex items-center justify-between">
-                  <div className="flex-1">
-                    <motion.div
-                      initial={{ y: -20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.1 }}
-                    >
-                      <DialogTitle className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-                        {video.title}
-                      </DialogTitle>
-                    </motion.div>
-                    <motion.div
-                      initial={{ y: -20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.2 }}
-                      className="flex items-center space-x-4"
-                    >
-                      <Badge variant="secondary" className="bg-white/90 text-gray-900 border-white/50 backdrop-blur-sm">
-                        <BookOpen className="w-3 h-3 mr-1" />
-                        {video.subject}
-                      </Badge>
-                      {displayDuration > 0 && (
-                      <Badge variant="secondary" className="bg-white/90 text-gray-900 border-white/50 backdrop-blur-sm">
-                        <Clock className="w-3 h-3 mr-1" />
-                          {displayDuration} min
-                      </Badge>
-                      )}
-                      <Badge variant="secondary" className="bg-white/90 text-gray-900 border-white/50 backdrop-blur-sm">
-                        <Star className="w-3 h-3 mr-1" />
-                        Premium
-                      </Badge>
-                    </motion.div>
-                  </div>
+              <DialogHeader className="relative p-3 sm:p-4 lg:p-6 pb-4 bg-white border-b border-gray-100">
+                <div className="relative z-10 pr-8">
                   <motion.div
                     initial={{ y: -20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.3 }}
-                    className="flex items-center space-x-2"
+                    transition={{ delay: 0.1 }}
                   >
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setIsLiked(!isLiked)}
-                      className="text-gray-900 hover:bg-white/50 backdrop-blur-sm"
-                    >
-                      <Heart className={`w-3 h-3 sm:w-4 sm:h-4 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setIsBookmarked(!isBookmarked)}
-                      className="text-gray-900 hover:bg-white/50 backdrop-blur-sm"
-                    >
-                      <ThumbsUp className={`w-3 h-3 sm:w-4 sm:h-4 ${isBookmarked ? 'fill-blue-500 text-blue-500' : ''}`} />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={handleShare}
-                      className="text-gray-900 hover:bg-white/50 backdrop-blur-sm"
-                    >
-                      <Share2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={handleOpenInNewTab}
-                      className="text-gray-900 hover:bg-white/50 backdrop-blur-sm"
-                    >
-                      <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={onClose}
-                      className="text-gray-900 hover:bg-white/50 backdrop-blur-sm"
-                    >
-                      <X className="w-3 h-3 sm:w-4 sm:h-4" />
-                    </Button>
+                    <DialogTitle className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                      {video.title}
+                    </DialogTitle>
+                  </motion.div>
+                  <motion.div
+                    initial={{ y: -20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="flex flex-wrap items-center gap-2"
+                  >
+                    <Badge variant="secondary" className="bg-gray-100 text-gray-900 border-gray-200">
+                      <BookOpen className="w-3 h-3 mr-1" />
+                      {video.subject}
+                    </Badge>
+                    {displayDuration > 0 && (
+                      <Badge variant="secondary" className="bg-gray-100 text-gray-900 border-gray-200">
+                        <Clock className="w-3 h-3 mr-1" />
+                        {displayDuration} min
+                      </Badge>
+                    )}
+                    <Badge variant="secondary" className="bg-gray-100 text-gray-900 border-gray-200">
+                      <Star className="w-3 h-3 mr-1" />
+                      Premium
+                    </Badge>
                   </motion.div>
                 </div>
               </DialogHeader>
@@ -255,13 +195,10 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="flex-1 p-4 pt-4 relative min-h-0 flex flex-col overflow-y-auto"
+                className="flex-1 p-4 pt-4 relative min-h-0 flex flex-col overflow-y-auto bg-white"
               >
                 <div className="flex-1 relative group min-h-0">
-                  {/* Glowing Border Effect */}
-                  <div className="absolute -inset-1 bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000"></div>
-                  
-                  <div className="relative w-full h-full bg-black rounded-xl overflow-hidden shadow-2xl">
+                  <div className="relative w-full h-full bg-black rounded-xl overflow-hidden shadow-lg border border-gray-200">
                     {isYouTube && youtubeUrl ? (
                       <YouTubePlayer 
                         videoUrl={youtubeUrl}
@@ -308,18 +245,18 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                         )}
                       </div>
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-sky-200 to-teal-300">
+                      <div className="w-full h-full flex items-center justify-center bg-gray-100">
                         <motion.div
                           initial={{ scale: 0.8, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ delay: 0.5 }}
                           className="text-center"
                         >
-                          <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Play className="w-10 h-10 text-white" />
+                          <div className="w-20 h-20 bg-gray-300 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Play className="w-10 h-10 text-gray-700" />
                           </div>
                           <p className="text-gray-900 text-base sm:text-lg font-medium mb-2">Video not available</p>
-                          <p className="text-gray-700">No video URL provided</p>
+                          <p className="text-gray-600">No video URL provided</p>
                         </motion.div>
                       </div>
                     )}
@@ -332,11 +269,11 @@ const VideoModal = ({ isOpen, onClose, video }: VideoModalProps) => {
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.6 }}
-                    className="mt-4 p-4 bg-white/90 backdrop-blur-xl rounded-2xl border border-white/50 shadow-2xl flex-shrink-0 max-h-[200px] overflow-y-auto"
+                    className="mt-4 p-4 bg-white rounded-2xl border border-gray-200 shadow-sm flex-shrink-0 max-h-[200px] overflow-y-auto"
                   >
                     <div className="flex items-center mb-4">
-                      <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-gradient-to-r from-sky-400 to-teal-500 rounded-full flex items-center justify-center mr-3">
-                        <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                      <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-gray-200 rounded-full flex items-center justify-center mr-3">
+                        <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 text-gray-700" />
                       </div>
                       <h3 className="text-lg sm:text-xl font-bold text-gray-900">Description</h3>
                     </div>
