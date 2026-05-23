@@ -2,23 +2,28 @@ import { useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Brain,
   Sparkles,
   Video,
   FileText,
   ClipboardList,
-  ExternalLink,
-  BookOpen,
   ChevronRight,
+  BookOpen,
   Headphones,
   FileBadge,
   GraduationCap,
   Loader2,
   AlertCircle,
 } from 'lucide-react';
-import { API_BASE_URL } from '@/lib/api-config';
+import { API_BASE_URL, getStudentPdfPreviewIframeSrc } from '@/lib/api-config';
 
 /** Optional legacy props (dashboard may still pass them; recommendations come from API). */
 export interface AdaptiveRecommendationsProps {
@@ -47,15 +52,41 @@ interface AdaptiveCard {
   subjectId: string;
   subjectName: string;
   progressPercent: number;
+  examScorePercent?: number;
   weakTopicCount: number;
   priority: 'High' | 'Medium' | 'Low';
   gapsWithoutContent: string[];
+  usesLibraryFallback?: boolean;
   recommendedContent: RecommendedItem[];
 }
 
 interface AdaptiveApiPayload {
   cards: AdaptiveCard[];
-  meta?: { generatedAt?: string; reason?: string; examResultsAnalyzed?: number };
+  meta?: {
+    generatedAt?: string;
+    reason?: string;
+    examResultsAnalyzed?: number;
+    libraryItemsLoaded?: number;
+  };
+}
+
+function parseAdaptivePayload(json: Record<string, unknown>): AdaptiveApiPayload {
+  const root = json as { success?: boolean; data?: unknown };
+  let payload = root.data ?? json;
+  if (payload && typeof payload === 'object' && 'data' in (payload as object)) {
+    const nested = (payload as { data?: AdaptiveApiPayload }).data;
+    if (nested && typeof nested === 'object' && Array.isArray((nested as AdaptiveApiPayload).cards)) {
+      payload = nested;
+    }
+  }
+  const cards = Array.isArray((payload as AdaptiveApiPayload)?.cards)
+    ? (payload as AdaptiveApiPayload).cards
+    : [];
+  const meta =
+    payload && typeof payload === 'object' && 'meta' in payload
+      ? (payload as AdaptiveApiPayload).meta
+      : undefined;
+  return { cards, meta };
 }
 
 function getSubjectIcon(name: string) {
@@ -63,7 +94,7 @@ function getSubjectIcon(name: string) {
   if (n.includes('math')) return '∑';
   if (n.includes('physics')) return 'Φ';
   if (n.includes('chemistry')) return '⚗';
-  if (n.includes('biology')) return '🧬';
+  if (n.includes('bio')) return '🧬';
   return (name || 'Su').substring(0, 2).toUpperCase();
 }
 
@@ -95,11 +126,19 @@ function getTypeIcon(displayType: string) {
   return BookOpen;
 }
 
+function resolveFileUrl(url: string) {
+  if (!url) return '';
+  if (url.startsWith('http') || url.startsWith('//')) return url;
+  if (url.startsWith('/')) return `${API_BASE_URL}${url}`;
+  return `${API_BASE_URL}/${url}`;
+}
+
 export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsProps) {
   const [, setLocation] = useLocation();
   const [cards, setCards] = useState<AdaptiveCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [previewItem, setPreviewItem] = useState<RecommendedItem | null>(null);
 
   const fetchAdaptive = useCallback(async () => {
     try {
@@ -116,13 +155,14 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        cache: 'no-store',
       });
       if (!response.ok) {
         throw new Error('Failed to load adaptive learning');
       }
       const json = await response.json();
-      const payload: AdaptiveApiPayload = json.data || json;
-      setCards(Array.isArray(payload.cards) ? payload.cards : []);
+      const payload = parseAdaptivePayload(json);
+      setCards(payload.cards);
     } catch (e) {
       console.error('Adaptive learning fetch failed:', e);
       setError(e instanceof Error ? e.message : 'Could not load recommendations');
@@ -151,13 +191,24 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
     }
     const url = item.fileUrl;
     if (!url) return;
-    const fullUrl =
-      url.startsWith('http') || url.startsWith('//')
-        ? url
-        : url.startsWith('/')
-          ? `${API_BASE_URL}${url}`
-          : `${API_BASE_URL}/${url}`;
-    window.open(fullUrl, '_blank', 'noopener,noreferrer');
+
+    const fullUrl = resolveFileUrl(url);
+    const isPdf =
+      item.displayType?.toLowerCase() === 'pdf' ||
+      fullUrl.toLowerCase().includes('.pdf') ||
+      mode === 'preview';
+
+    if (isPdf) {
+      setPreviewItem({ ...item, fileUrl: fullUrl });
+      return;
+    }
+
+    if (item.displayType?.toLowerCase() === 'video' || fullUrl.includes('youtube') || fullUrl.includes('youtu.be')) {
+      window.open(fullUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    setPreviewItem({ ...item, fileUrl: fullUrl });
   };
 
   const headerBlock = (
@@ -235,25 +286,26 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
   }
 
   return (
-    <Card className="bg-gradient-to-br from-purple-50 via-blue-50 to-teal-50 border-2 border-purple-200 shadow-xl">
-      <CardHeader>{headerBlock}</CardHeader>
-      <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
-        {cards.map((rec) => {
-          const hasContent = rec.recommendedContent?.length > 0;
-          return (
-            <div
-              key={rec.subjectId}
-              className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-purple-100 shadow-sm"
-            >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
-                <div className="flex items-center gap-3 min-w-0">
+    <>
+      <Card className="bg-gradient-to-br from-purple-50 via-blue-50 to-teal-50 border-2 border-purple-200 shadow-xl">
+        <CardHeader>{headerBlock}</CardHeader>
+        <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
+          {cards.map((rec) => {
+            const hasContent = rec.recommendedContent?.length > 0;
+            const examScore = rec.examScorePercent ?? rec.progressPercent;
+            return (
+              <div
+                key={rec.subjectId}
+                className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-purple-100 shadow-sm"
+              >
+                <div className="flex items-center gap-3 min-w-0 mb-4">
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold bg-gradient-to-r from-purple-500 to-blue-500 shrink-0">
                     {getSubjectIcon(rec.subjectName)}
                   </div>
                   <div className="min-w-0">
                     <h3 className="font-semibold text-gray-900 truncate">{rec.subjectName}</h3>
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
-                      <span>Progress {Math.round(rec.progressPercent)}%</span>
+                      <span>Exam score {Math.round(examScore)}%</span>
                       <span aria-hidden className="text-gray-300">
                         ·
                       </span>
@@ -267,80 +319,118 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
                     </div>
                   </div>
                 </div>
-                <div className="w-full sm:w-28 shrink-0">
-                  <Progress
-                    value={rec.progressPercent}
-                    className="h-2 [&>div]:bg-gradient-to-r [&>div]:from-purple-500 [&>div]:to-blue-500"
-                  />
-                </div>
-              </div>
 
-              {hasContent ? (
-                <div>
-                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2 flex items-center gap-1">
-                    <BookOpen className="w-3.5 h-3.5" />
-                    Recommended Content
-                  </p>
-                  <ul className="space-y-1.5 divide-y divide-gray-100/80 rounded-lg border border-gray-100 overflow-hidden bg-white/60">
-                    {rec.recommendedContent.map((item) => {
-                      const Icon = getTypeIcon(item.displayType);
-                      return (
-                        <li key={`${item.kind}-${item._id}`} className="first:rounded-t-lg last:rounded-b-lg">
-                          <button
-                            type="button"
-                            onClick={() => openResource(item)}
-                            className="flex items-center gap-2 text-xs sm:text-sm text-left w-full px-3 py-2.5 hover:bg-purple-50/80 text-gray-800 transition-colors"
-                          >
-                            <Icon className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600 shrink-0" />
-                            <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                              <span className="truncate w-full text-left">{item.title}</span>
-                              {item.topicHint ? (
-                                <span className="text-[11px] text-gray-500 truncate w-full text-left">
-                                  Focus: {item.topicHint}
-                                </span>
-                              ) : null}
-                            </div>
-                            <Badge className={`shrink-0 text-[10px] font-semibold ${typeBadgeClass(item.displayType)}`}>
-                              {item.displayType}
-                            </Badge>
-                            {item.navigatePath || item.fileUrl ? (
-                              item.kind === 'quiz' || item.kind === 'exam' ? (
-                                <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 shrink-0" />
-                              ) : (
-                                <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 shrink-0" />
-                              )
-                            ) : null}
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              ) : null}
-
-              {rec.gapsWithoutContent?.length > 0 ? (
-                <div className="mt-4 rounded-lg border border-amber-100 bg-amber-50/80 px-3 py-2 text-xs text-amber-950 space-y-1">
-                  <p className="font-semibold uppercase tracking-wide text-[10px] text-amber-900/90">
-                    No matching library items
-                  </p>
-                  {rec.gapsWithoutContent.slice(0, 6).map((topic) => (
-                    <p key={topic} className="text-amber-900/85">
-                      No recommended content available for this topic:{' '}
-                      <span className="font-medium">{topic}</span>
+                {hasContent ? (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2 flex items-center gap-1">
+                      <BookOpen className="w-3.5 h-3.5" />
+                      {rec.usesLibraryFallback
+                        ? 'Recommended from your library'
+                        : 'Recommended for your weak areas'}
                     </p>
-                  ))}
-                </div>
-              ) : null}
+                    <ul className="space-y-1.5 divide-y divide-gray-100/80 rounded-lg border border-gray-100 overflow-hidden bg-white/60">
+                      {rec.recommendedContent.map((item) => {
+                        const Icon = getTypeIcon(item.displayType);
+                        const isPdf = item.displayType?.toLowerCase() === 'pdf';
+                        const actionLabel =
+                          item.kind === 'quiz' || item.kind === 'exam'
+                            ? 'Open'
+                            : isPdf
+                              ? 'View only'
+                              : item.displayType?.toLowerCase() === 'video'
+                                ? 'Watch'
+                                : 'View';
+                        return (
+                          <li key={`${item.kind}-${item._id}`} className="first:rounded-t-lg last:rounded-b-lg">
+                            <button
+                              type="button"
+                              onClick={() => openResource(item)}
+                              className="flex items-center gap-2 text-xs sm:text-sm text-left w-full px-3 py-2.5 hover:bg-purple-50/80 text-gray-800 transition-colors"
+                            >
+                              <Icon className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600 shrink-0" />
+                              <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                                <span className="truncate w-full text-left">{item.title}</span>
+                                {item.topicHint && item.topicHint !== 'From your library' ? (
+                                  <span className="text-[11px] text-gray-500 truncate w-full text-left">
+                                    Focus: {item.topicHint}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <Badge
+                                className={`shrink-0 text-[10px] font-semibold ${typeBadgeClass(item.displayType)}`}
+                              >
+                                {item.displayType}
+                              </Badge>
+                              <span className="shrink-0 text-[10px] font-medium text-purple-700">
+                                {actionLabel}
+                              </span>
+                              {item.navigatePath || item.fileUrl ? (
+                                <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 shrink-0" />
+                              ) : null}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ) : null}
 
-              {!hasContent && !rec.gapsWithoutContent?.length ? (
-                <p className="text-xs sm:text-sm text-gray-500 italic mt-1">
-                  No recommended content available for your weak topics in this subject yet.
-                </p>
-              ) : null}
-            </div>
-          );
-        })}
-      </CardContent>
-    </Card>
+                {rec.gapsWithoutContent?.length > 0 ? (
+                  <div className="mt-4 rounded-lg border border-amber-100 bg-amber-50/80 px-3 py-2 text-xs text-amber-950 space-y-1">
+                    <p className="font-semibold uppercase tracking-wide text-[10px] text-amber-900/90">
+                      No matching library items
+                    </p>
+                    {rec.gapsWithoutContent.slice(0, 6).map((topic) => (
+                      <p key={topic} className="text-amber-900/85">
+                        No recommended content available for this topic:{' '}
+                        <span className="font-medium">{topic}</span>
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
+
+                {!hasContent && !rec.gapsWithoutContent?.length ? (
+                  <p className="text-xs sm:text-sm text-gray-500 italic mt-1">
+                    No library content is available for this subject yet. Check back after your teacher
+                    adds materials.
+                  </p>
+                ) : null}
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      <Dialog open={Boolean(previewItem)} onOpenChange={(open) => !open && setPreviewItem(null)}>
+        <DialogContent className="w-[90vw] max-w-4xl h-[90vh] flex flex-col overflow-hidden">
+          {previewItem ? (
+            <>
+              <DialogHeader>
+                <DialogTitle>{previewItem.title}</DialogTitle>
+                <DialogDescription>View only — preview opens in this window.</DialogDescription>
+              </DialogHeader>
+              <div className="flex-1 min-h-0 overflow-hidden rounded-lg border bg-white">
+                {previewItem.displayType?.toLowerCase() === 'pdf' ||
+                previewItem.fileUrl?.toLowerCase().includes('.pdf') ? (
+                  <iframe
+                    title={previewItem.title}
+                    src={getStudentPdfPreviewIframeSrc(previewItem.fileUrl || '', previewItem.title)}
+                    className="h-full w-full border-0"
+                  />
+                ) : previewItem.displayType?.toLowerCase() === 'video' ? (
+                  <video src={previewItem.fileUrl} controls className="h-full w-full" />
+                ) : (
+                  <iframe
+                    title={previewItem.title}
+                    src={previewItem.fileUrl}
+                    className="h-full w-full border-0"
+                  />
+                )}
+              </div>
+            </>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

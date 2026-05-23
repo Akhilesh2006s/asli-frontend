@@ -3421,7 +3421,7 @@ export default function Dashboard() {
                                           setIsPreviewOpen(true);
                                         }}
                                       >
-                                        {isImage ? 'View' : isPDF ? 'View PDF' : 'View'}
+                                        {isImage ? 'View' : isPDF ? 'View only' : 'View'}
                                       </Button>
                                     )}
                                   </div>
