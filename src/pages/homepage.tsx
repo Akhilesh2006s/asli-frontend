@@ -9,33 +9,38 @@ import {
 const Navbar = () => {
   return (
     <nav className="w-full bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-      <div className="w-full max-w-7xl mx-auto px-4 py-3 sm:py-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+      <div className="w-full max-w-7xl mx-auto px-3 py-2.5 sm:px-4 sm:py-4">
+        <div className="flex flex-nowrap items-center justify-between gap-2 sm:gap-4">
           {/* Left - Logo and Brand Name */}
-          <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+          <Link
+            href="/"
+            className="flex min-w-0 flex-1 items-center gap-2 hover:opacity-80 transition-opacity sm:gap-3 sm:flex-none"
+          >
             <img 
               src="/logo.jpg" 
               alt="AsliLearn AI company logo" 
-              className="w-10 h-10 sm:w-12 sm:h-12 object-contain"
+              className="h-8 w-8 shrink-0 object-contain sm:h-12 sm:w-12"
             />
-            <span className="text-base sm:text-lg sm:text-2xl md:text-3xl font-extrabold text-blue-600 animate-blue-glow">
+            <span className="truncate text-sm font-extrabold text-blue-600 animate-blue-glow sm:text-2xl md:text-3xl">
               ASLILEARN AI
             </span>
           </Link>
 
           {/* Right - Login/Signup Buttons */}
-          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
             <Link href="/auth/login">
               <Button
                 variant="outline"
-                className="border-2 border-blue-600 bg-white text-blue-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-700 w-full sm:w-auto font-semibold"
+                size="sm"
+                className="h-8 border-2 border-blue-600 bg-white px-2.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-700 sm:h-10 sm:px-4 sm:text-sm"
               >
                 Login
               </Button>
             </Link>
             <Link href="/auth/register">
               <Button
-                className="bg-gradient-to-r from-sky-500 to-teal-500 hover:from-sky-600 hover:to-teal-600 text-white shadow-lg w-full sm:w-auto font-semibold"
+                size="sm"
+                className="h-8 bg-gradient-to-r from-sky-500 to-teal-500 px-2.5 text-xs font-semibold text-white shadow-lg hover:from-sky-600 hover:to-teal-600 sm:h-10 sm:px-4 sm:text-sm"
               >
                 Get Started
               </Button>
@@ -107,14 +112,14 @@ const Index = () => {
                 interactive videos, and gamified learning. Join 100,000+ students transforming their education!
               </p>
             
-            {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 pt-2">
-              <Link href="/auth/login">
+            {/* CTA Buttons — equal width on mobile only */}
+              <div className="flex w-full max-w-sm flex-col gap-3 pt-2 sm:max-w-none sm:flex-row sm:gap-4">
+              <Link href="/auth/login" className="w-full sm:w-auto">
                 <Button 
                   size="lg" 
-                    className="group bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white shadow-lg transition-all px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-6 text-sm sm:text-base"
+                    className="group flex h-11 w-full items-center justify-center bg-gradient-to-r from-purple-600 to-purple-500 text-sm text-white shadow-lg transition-all hover:from-purple-700 hover:to-purple-600 sm:h-auto sm:w-auto sm:px-6 sm:py-4 lg:px-8 lg:py-6 sm:text-base"
                 >
-                    <Zap className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
+                    <Zap className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
                     Start Learning Free
                 </Button>
               </Link>
@@ -122,26 +127,26 @@ const Index = () => {
                 size="lg" 
                 variant="outline"
                 onClick={scrollToFeatures}
-                  className="border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-6 text-sm sm:text-base"
+                  className="flex h-11 w-full items-center justify-center border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 sm:h-auto sm:w-auto sm:px-6 sm:py-4 lg:px-8 lg:py-6 sm:text-base"
               >
-                  <Trophy className="mr-2 w-4 h-4 sm:w-5 sm:h-5" />
+                  <Trophy className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
                   View Demo
               </Button>
             </div>
             
-              {/* Statistics */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-6">
-                <div>
-                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-purple-600">10K+</div>
-                  <div className="text-xs md:text-sm text-gray-600 mt-1">Active Students</div>
+              {/* Statistics — single row on mobile only */}
+              <div className="grid grid-cols-3 gap-1 pt-5 sm:grid-cols-2 sm:gap-4 sm:pt-6 lg:grid-cols-3">
+                <div className="text-center sm:text-left">
+                  <div className="text-base font-bold leading-none text-purple-600 sm:text-2xl md:text-3xl">10K+</div>
+                  <div className="mt-1 text-[10px] leading-tight text-gray-600 sm:text-xs md:text-sm">Active Students</div>
                 </div>
-                <div>
-                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-orange-500">500+</div>
-                  <div className="text-xs md:text-sm text-gray-600 mt-1">Video Lectures</div>
+                <div className="text-center sm:text-left">
+                  <div className="text-base font-bold leading-none text-orange-500 sm:text-2xl md:text-3xl">500+</div>
+                  <div className="mt-1 text-[10px] leading-tight text-gray-600 sm:text-xs md:text-sm">Video Lectures</div>
                 </div>
-                <div>
-                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-green-600">95%</div>
-                  <div className="text-xs md:text-sm text-gray-600 mt-1">Success Rate</div>
+                <div className="text-center sm:text-left">
+                  <div className="text-base font-bold leading-none text-green-600 sm:text-2xl md:text-3xl">95%</div>
+                  <div className="mt-1 text-[10px] leading-tight text-gray-600 sm:text-xs md:text-sm">Success Rate</div>
                 </div>
               </div>
               </div>
