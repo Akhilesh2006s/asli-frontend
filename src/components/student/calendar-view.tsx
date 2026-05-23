@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -12,10 +12,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { 
-  ChevronDown, 
-  ChevronUp, 
   FileText, 
-  Folder, 
   CheckCircle,
   File,
   Video,
@@ -38,21 +35,20 @@ interface ContentItem {
   deadline?: string;
 }
 
-interface WeekContent {
-  weekStart: Date;
-  weekEnd: Date;
-  contents: ContentItem[];
-}
-
 interface CalendarViewProps {
   contents: ContentItem[];
+  isLoading?: boolean;
   onMarkAsDone?: (contentId: string) => void;
   completedItems?: string[];
 }
 
-export default function CalendarView({ contents, onMarkAsDone, completedItems = [] }: CalendarViewProps) {
+export default function CalendarView({
+  contents,
+  isLoading = false,
+  onMarkAsDone,
+  completedItems = [],
+}: CalendarViewProps) {
   const { toast } = useToast();
-  const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
   const [markedDone, setMarkedDone] = useState<Set<string>>(new Set(completedItems));
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -64,124 +60,13 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [existingSubmission, setExistingSubmission] = useState<any>(null);
 
-  // Organize content by weeks - only show weeks that have content
-  const organizeByWeeks = (contents: ContentItem[]): WeekContent[] => {
-    if (!contents || contents.length === 0) {
-      console.log('📅 Calendar: No contents provided');
-      return [];
-    }
-
-    console.log('📅 Calendar: Organizing', contents.length, 'content items by weeks');
-
-    // Sort contents by upload date (date field is the upload date)
-    const sortedContents = [...contents].sort((a, b) => {
-      // Use date field (upload date) if available, otherwise fall back to createdAt
-      const dateA = a.date ? new Date(a.date) : new Date(a.createdAt);
-      const dateB = b.date ? new Date(b.date) : new Date(b.createdAt);
-      return dateA.getTime() - dateB.getTime();
-    });
-
-    // Group by weeks - only create weeks that have content
-    const weeksMap = new Map<string, ContentItem[]>();
-
-    sortedContents.forEach(content => {
-      // Use date field (upload date) if available, otherwise fall back to createdAt
-      // Handle both Date objects and ISO strings
-      let contentDate: Date;
-      if (content.date) {
-        contentDate = new Date(content.date);
-      } else if (content.createdAt) {
-        contentDate = new Date(content.createdAt);
-      } else {
-        console.warn('⚠️ Calendar: No date found for content:', content.title);
-        return; // Skip content without date
-      }
-      
-      // Ensure date is valid
-      if (isNaN(contentDate.getTime())) {
-        console.warn('⚠️ Calendar: Invalid date for content:', content.title, content.date, content.createdAt);
-        return; // Skip invalid dates
-      }
-      
-      // Calculate week boundaries based on upload date
-      const weekStart = getWeekStart(contentDate);
-      const weekEnd = getWeekEnd(contentDate);
-      // Use a separator that won't conflict with ISO date strings
-      const weekKey = `${weekStart.getTime()}_${weekEnd.getTime()}`;
-
-      console.log(`📅 Calendar: Content "${content.title}" uploaded on ${contentDate.toLocaleDateString()} -> Week ${weekStart.toLocaleDateString()} to ${weekEnd.toLocaleDateString()}`);
-
-      if (!weeksMap.has(weekKey)) {
-        weeksMap.set(weekKey, []);
-      }
-      weeksMap.get(weekKey)!.push(content);
-    });
-
-    // Convert to array and sort by week start date
-    // Only include weeks that have content
-    const weeks: WeekContent[] = Array.from(weeksMap.entries())
-      .filter(([_, contents]) => contents.length > 0) // Only weeks with content
-      .map(([key, contents]) => {
-        // Parse the week key (format: startTime_endTime)
-        const [startTime, endTime] = key.split('_').map(Number);
-        return {
-          weekStart: new Date(startTime),
-          weekEnd: new Date(endTime),
-          contents: contents.sort((a, b) => {
-            const dateA = a.date ? new Date(a.date) : new Date(a.createdAt);
-            const dateB = b.date ? new Date(b.date) : new Date(b.createdAt);
-            return dateA.getTime() - dateB.getTime();
-          })
-        };
-      })
-      .sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
-
-    console.log('📅 Calendar: Organized into', weeks.length, 'weeks with content');
-    return weeks;
-  };
-
-  const getWeekStart = (date: Date): Date => {
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0); // Reset to start of day
-    const day = d.getDay();
-    // Monday = 1, Sunday = 0
-    // If Sunday (0), go back 6 days to Monday
-    // Otherwise, go back (day - 1) days to Monday
-    const diff = day === 0 ? -6 : 1 - day;
-    const weekStart = new Date(d);
-    weekStart.setDate(d.getDate() + diff);
-    return weekStart;
-  };
-
-  const getWeekEnd = (date: Date): Date => {
-    const weekStart = getWeekStart(date);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999); // End of day
-    return weekEnd;
-  };
-
-  const formatDateRange = (start: Date, end: Date): string => {
-    const startDay = start.getDate();
-    const startMonth = start.toLocaleString('default', { month: 'long' });
-    const endDay = end.getDate();
-    const endMonth = end.toLocaleString('default', { month: 'long' });
-    
-    if (startMonth === endMonth) {
-      return `${startDay} ${startMonth} - ${endDay} ${endMonth}`;
-    }
-    return `${startDay} ${startMonth} - ${endDay} ${endMonth}`;
-  };
-
-  const toggleWeek = (weekKey: string) => {
-    const newExpanded = new Set(expandedWeeks);
-    if (newExpanded.has(weekKey)) {
-      newExpanded.delete(weekKey);
-    } else {
-      newExpanded.add(weekKey);
-    }
-    setExpandedWeeks(newExpanded);
-  };
+  const sortedContents = [...contents].sort((a, b) => {
+    const dateA = a.date ? new Date(a.date) : new Date(a.createdAt);
+    const dateB = b.date ? new Date(b.date) : new Date(b.createdAt);
+    const timeA = Number.isNaN(dateA.getTime()) ? 0 : dateA.getTime();
+    const timeB = Number.isNaN(dateB.getTime()) ? 0 : dateB.getTime();
+    return timeA - timeB;
+  });
 
   const handleMarkAsDone = (contentId: string) => {
     const newMarked = new Set(markedDone);
@@ -524,108 +409,80 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
     }
   };
 
-  const weeks = organizeByWeeks(contents);
-
-  console.log('📅 Calendar: Rendering', weeks.length, 'weeks with', contents.length, 'total contents');
-
   return (
-    <div className="space-y-4">
-      {weeks.length === 0 ? (
+    <div className="space-y-3">
+      {isLoading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading content...</p>
+        </div>
+      ) : sortedContents.length === 0 ? (
         <div className="text-center py-12">
           <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No content available</h3>
           <p className="text-gray-600">Content will appear here once it's uploaded.</p>
         </div>
       ) : (
-        weeks.map((week, index) => {
-          const weekKey = `${week.weekStart.getTime()}_${week.weekEnd.getTime()}`;
-          const isExpanded = expandedWeeks.has(weekKey) || (expandedWeeks.size === 0 && index === 0); // Expand first week by default
+        sortedContents.map((content) => {
+          const Icon = getContentIcon(content.type);
+          const isDone = markedDone.has(content._id);
+          const contentTypeLabel = getContentTypeLabel(content.type);
 
           return (
-            <div key={weekKey} className="border border-gray-200 rounded-lg overflow-hidden">
-              {/* Week Header */}
-              <button
-                onClick={() => toggleWeek(weekKey)}
-                className="w-full px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between"
-              >
-                <span className="font-medium text-gray-900">
-                  {formatDateRange(week.weekStart, week.weekEnd)}
-                </span>
-                {isExpanded ? (
-                  <ChevronUp className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
-                ) : (
-                  <ChevronDown className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
-                )}
-              </button>
-
-              {/* Week Content */}
-              {isExpanded && (
-                <div className="p-4 space-y-3">
-                  {week.contents.map((content) => {
-                    const Icon = getContentIcon(content.type);
-                    const isDone = markedDone.has(content._id);
-                    const contentTypeLabel = getContentTypeLabel(content.type);
-
-                    return (
-                      <div
-                        key={content._id}
-                        className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-                        onClick={() => handleContentClick(content)}
-                      >
-                        <div className="flex items-center space-x-3 flex-1">
-                          <div className="p-2 bg-blue-100 rounded-lg">
-                            <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-2 mb-1">
-                              <span className="text-xs font-medium text-gray-500 uppercase">
-                                {contentTypeLabel}
-                              </span>
-                            </div>
-                            <h4 className="font-medium text-gray-900 text-xs sm:text-sm">{content.title}</h4>
-                            {content.description && (
-                              <p className="text-xs text-gray-500 mt-1">{content.description}</p>
-                            )}
-                          </div>
-                        </div>
-                        {onMarkAsDone && (
-                          <div className="flex items-center space-x-2">
-                            {isDone ? (
-                              <Button
-                                size="sm"
-                                className="bg-green-500 hover:bg-green-600 text-white"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleMarkAsDone(content._id);
-                                }}
-                              >
-                                <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                                Done
-                              </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleMarkAsDone(content._id);
-                                }}
-                              >
-                                Mark as done
-                              </Button>
-                            )}
-                          </div>
-                        )}
-                        {content.deadline && content.type === 'Homework' && (
-                          <Badge className="bg-orange-100 text-orange-700 text-xs ml-2">
-                            Deadline: {new Date(content.deadline).toLocaleDateString()}
-                          </Badge>
-                        )}
-                      </div>
-                    );
-                  })}
+            <div
+              key={content._id}
+              className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+              onClick={() => handleContentClick(content)}
+            >
+              <div className="flex items-center space-x-3 flex-1">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                 </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span className="text-xs font-medium text-gray-500 uppercase">
+                      {contentTypeLabel}
+                    </span>
+                  </div>
+                  <h4 className="font-medium text-gray-900 text-xs sm:text-sm">{content.title}</h4>
+                  {content.description && (
+                    <p className="text-xs text-gray-500 mt-1">{content.description}</p>
+                  )}
+                </div>
+              </div>
+              {onMarkAsDone && (
+                <div className="flex items-center space-x-2">
+                  {isDone ? (
+                    <Button
+                      size="sm"
+                      className="bg-green-500 hover:bg-green-600 text-white"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMarkAsDone(content._id);
+                      }}
+                    >
+                      <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                      Done
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMarkAsDone(content._id);
+                      }}
+                    >
+                      Mark as done
+                    </Button>
+                  )}
+                </div>
+              )}
+              {content.deadline && content.type === 'Homework' && (
+                <Badge className="bg-orange-100 text-orange-700 text-xs ml-2">
+                  Deadline: {new Date(content.deadline).toLocaleDateString()}
+                </Badge>
               )}
             </div>
           );

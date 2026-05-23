@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRoute, useLocation, useSearch } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,10 +18,6 @@ import {
 } from 'lucide-react';
 import CalendarView from '@/components/student/calendar-view';
 import { API_BASE_URL } from '@/lib/api-config';
-import {
-  filterContentsBySchoolProgram,
-  resolveIsAsliPrepExclusive,
-} from '@/lib/school-program';
 
 interface ContentItem {
   _id: string;
@@ -40,14 +36,6 @@ interface Subject {
   description?: string;
 }
 
-function getContentSubjectId(content: any): string | null {
-  const subj = content?.subject;
-  if (subj == null) return null;
-  if (typeof subj === 'object' && subj._id != null) return String(subj._id);
-  if (typeof subj === 'string' && subj.trim()) return subj.trim();
-  return null;
-}
-
 export default function AdminSubjectContent() {
   const [, params] = useRoute('/admin/subject/:id');
   const [, setLocation] = useLocation();
@@ -55,57 +43,39 @@ export default function AdminSubjectContent() {
   const [subject, setSubject] = useState<Subject | null>(null);
   const [loading, setLoading] = useState(true);
   const [contents, setContents] = useState<ContentItem[]>([]);
-  const [loadingContents, setLoadingContents] = useState(false);
+  const [loadingContents, setLoadingContents] = useState(true);
   const [selectedContentType, setSelectedContentType] = useState<string | null>(null);
-  const [isAsliPrepExclusive, setIsAsliPrepExclusive] = useState(false);
+  const fetchGenRef = useRef(0);
 
   useEffect(() => {
-    const loadProgram = async () => {
-      try {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
-        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setIsAsliPrepExclusive(resolveIsAsliPrepExclusive(data?.user));
-        }
-      } catch {
-        /* ignore */
-      }
-    };
-    void loadProgram();
-  }, []);
-
-  useEffect(() => {
-    if (params?.id) {
-      const q = search.startsWith('?') ? search.slice(1) : search;
-      const mergeParam = new URLSearchParams(q).get('merge');
-      const mergeIds = mergeParam
-        ? mergeParam
-            .split(',')
-            .map((s) => s.trim())
-            .filter(Boolean)
-        : [];
-      void fetchSubjectContent(params.id, mergeIds);
-    }
-  }, [params?.id, search, isAsliPrepExclusive]);
+    if (!params?.id) return;
+    const q = search.startsWith('?') ? search.slice(1) : search;
+    const mergeParam = new URLSearchParams(q).get('merge');
+    const mergeIds = mergeParam
+      ? mergeParam
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
+    void fetchSubjectContent(params.id, mergeIds);
+  }, [params?.id, search]);
 
   const fetchSubjectContent = async (subjectId: string, mergeSubjectIds: string[]) => {
+    const fetchId = ++fetchGenRef.current;
     try {
       setLoading(true);
+      setLoadingContents(true);
       const token = localStorage.getItem('authToken');
+      const subjectIds = Array.from(new Set([subjectId, ...mergeSubjectIds]));
 
-      const allowedIds = new Set<string>([subjectId, ...mergeSubjectIds]);
-
-      // Fetch subject info
       const subjectResponse = await fetch(`${API_BASE_URL}/api/subjects/${subjectId}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
-        }
+        },
       });
+
+      if (fetchId !== fetchGenRef.current) return;
 
       if (subjectResponse.ok) {
         const contentType = subjectResponse.headers.get('content-type');
@@ -113,50 +83,63 @@ export default function AdminSubjectContent() {
           const subjectData = await subjectResponse.json();
           setSubject(subjectData.subject || { _id: subjectId, name: subjectData.name || 'Subject' });
         } else {
-          // Fallback
           setSubject({ _id: subjectId, name: 'Subject' });
         }
       } else {
         setSubject({ _id: subjectId, name: 'Subject' });
       }
 
-      // Load all prep content once, then keep items for this subject + merged duplicates (same as Learning Paths).
-      setLoadingContents(true);
-      const contentsResponse = await fetch(`${API_BASE_URL}/api/admin/asli-prep-content`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+      const contentResponses = await Promise.all(
+        subjectIds.map((id) =>
+          fetch(
+            `${API_BASE_URL}/api/admin/asli-prep-content?subject=${encodeURIComponent(id)}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            },
+          ),
+        ),
+      );
+
+      if (fetchId !== fetchGenRef.current) return;
+
+      const seen = new Set<string>();
+      const merged: ContentItem[] = [];
+      for (const contentsResponse of contentResponses) {
+        if (!contentsResponse.ok) continue;
+        const contentType = contentsResponse.headers.get('content-type');
+        if (!contentType?.includes('application/json')) continue;
+        const contentsData = await contentsResponse.json();
+        const contentsList = contentsData.data || contentsData || [];
+        if (!Array.isArray(contentsList)) continue;
+        for (const item of contentsList) {
+          const id = item?._id ? String(item._id) : '';
+          if (!id || seen.has(id)) continue;
+          seen.add(id);
+          merged.push(item);
         }
+      }
+
+      merged.sort((a, b) => {
+        const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tb - ta;
       });
 
-      if (contentsResponse.ok) {
-        const contentType = contentsResponse.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const contentsData = await contentsResponse.json();
-          let contentsList = contentsData.data || contentsData || [];
-          if (!Array.isArray(contentsList)) contentsList = [];
-          const filtered = contentsList.filter((item: any) => {
-            const sid = getContentSubjectId(item);
-            return sid && allowedIds.has(sid);
-          });
-          filtered.sort((a: any, b: any) => {
-            const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return tb - ta;
-          });
-          setContents(filterContentsBySchoolProgram(filtered, isAsliPrepExclusive));
-        }
-      } else {
-        setContents([]);
-      }
-      setLoadingContents(false);
-
+      setContents(merged);
     } catch (error) {
       console.error('Failed to fetch subject content:', error);
-      setSubject({ _id: params?.id || '', name: 'Subject' });
-      setContents([]);
+      if (fetchId === fetchGenRef.current) {
+        setSubject({ _id: params?.id || '', name: 'Subject' });
+        setContents([]);
+      }
     } finally {
-      setLoading(false);
+      if (fetchId === fetchGenRef.current) {
+        setLoadingContents(false);
+        setLoading(false);
+      }
     }
   };
 
