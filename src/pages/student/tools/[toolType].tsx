@@ -18,7 +18,7 @@ import {
   getAiToolBoardOptions,
   getDefaultAiToolBoard,
   mapGradeLevelForIitBoard,
-  resolveIsAsliPrepExclusive,
+  resolveCurriculumBoardForAiTools,
 } from '@/lib/school-program';
 import {
   useCurriculumCascade,
@@ -573,11 +573,11 @@ export default function StudentToolPage() {
         if (response.ok) {
           const userData = await response.json();
           setUser(userData.user);
-          const exclusive = resolveIsAsliPrepExclusive(userData.user);
+          const exclusive = userData.user?.isAsliPrepExclusive === true;
           setIsAsliPrepExclusive(exclusive);
-          const boardFromUser = String(userData?.user?.curriculumBoard || '').trim();
-          const defaultBoard = getDefaultAiToolBoard(exclusive, boardFromUser || 'CBSE');
-          setSchoolBoardName(boardFromUser || 'CBSE');
+          const curriculumBoard = resolveCurriculumBoardForAiTools(userData.user);
+          const defaultBoard = getDefaultAiToolBoard(exclusive, curriculumBoard);
+          setSchoolBoardName(curriculumBoard);
           setFormParams((prev) => ({
             ...prev,
             board: prev.board || defaultBoard,
@@ -634,6 +634,14 @@ export default function StudentToolPage() {
 
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    if (isLoadingUser || !formParams.board) return;
+    if (!boardOptions.includes(formParams.board)) {
+      const fallback = getDefaultAiToolBoard(isAsliPrepExclusive, schoolBoardName);
+      setFormParams((prev) => ({ ...prev, board: fallback }));
+    }
+  }, [boardOptions, formParams.board, isAsliPrepExclusive, isLoadingUser, schoolBoardName]);
 
   useEffect(() => {
     if (isLoadingUser) return;

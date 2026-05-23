@@ -61,21 +61,39 @@ export function filterContentsBySchoolProgram<T extends { type?: string }>(
   return contents.filter((row) => isAllowedContentType(row?.type, isAsliPrepExclusive));
 }
 
-/** AI Tools board dropdown options */
+const CURRICULUM_BOARDS = ['CBSE', 'STATE', 'SSC', 'ICSE', 'IB', 'CAMBRIDGE'] as const;
+
+/** School curriculum board for AI tools (never IIT / ASLI_EXCLUSIVE_SCHOOLS). */
+export function resolveCurriculumBoardForAiTools(user?: {
+  curriculumBoard?: string;
+  board?: string;
+} | null): string {
+  const raw = String(user?.curriculumBoard || user?.board || '')
+    .toUpperCase()
+    .trim();
+  if ((CURRICULUM_BOARDS as readonly string[]).includes(raw)) return raw;
+  return 'CBSE';
+}
+
+/** AI Tools board dropdown: curriculum always; IIT only when Asli Prep is on. */
 export function getAiToolBoardOptions(
   isAsliPrepExclusive: boolean,
   curriculumBoard: string,
 ): string[] {
-  const curriculum = String(curriculumBoard || 'CBSE').trim() || 'CBSE';
-  if (isAsliPrepExclusive) return ['IIT'];
-  return [curriculum];
+  const curriculum = resolveCurriculumBoardForAiTools({ curriculumBoard });
+  const options = [curriculum];
+  if (isAsliPrepExclusive && !options.includes('IIT')) {
+    options.push('IIT');
+  }
+  return options;
 }
 
+/** Default AI tool board is always the school's curriculum board. */
 export function getDefaultAiToolBoard(
-  isAsliPrepExclusive: boolean,
+  _isAsliPrepExclusive: boolean,
   curriculumBoard: string,
 ): string {
-  return isAsliPrepExclusive ? 'IIT' : String(curriculumBoard || 'CBSE').trim() || 'CBSE';
+  return resolveCurriculumBoardForAiTools({ curriculumBoard });
 }
 
 /** Map student tool gradeLevel when board is IIT (Asli Prep). */

@@ -12,7 +12,7 @@ import {
   getAiToolBoardOptions,
   getDefaultAiToolBoard,
   mapGradeLevelForIitBoard,
-  resolveIsAsliPrepExclusive,
+  resolveCurriculumBoardForAiTools,
 } from '@/lib/school-program';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
@@ -402,11 +402,11 @@ export default function TeacherToolPage() {
         });
         if (!response.ok) return;
         const data = await response.json();
-        const exclusive = resolveIsAsliPrepExclusive(data?.user);
+        const exclusive = data?.user?.isAsliPrepExclusive === true;
         setIsAsliPrepExclusive(exclusive);
-        const boardFromUser = String(data?.user?.curriculumBoard || '').trim();
-        const defaultBoard = getDefaultAiToolBoard(exclusive, boardFromUser || 'CBSE');
-        setSchoolBoardName(boardFromUser || 'CBSE');
+        const curriculumBoard = resolveCurriculumBoardForAiTools(data?.user);
+        const defaultBoard = getDefaultAiToolBoard(exclusive, curriculumBoard);
+        setSchoolBoardName(curriculumBoard);
         setFormParams((prev) => ({
           ...prev,
           board: prev.board || defaultBoard,
@@ -441,6 +441,14 @@ export default function TeacherToolPage() {
     fetchTeacherBoard();
     fetchAssignedSubjects();
   }, []);
+
+  useEffect(() => {
+    if (!formParams.board) return;
+    if (!boardOptions.includes(formParams.board)) {
+      const fallback = getDefaultAiToolBoard(isAsliPrepExclusive, schoolBoardName);
+      setFormParams((prev) => ({ ...prev, board: fallback }));
+    }
+  }, [boardOptions, formParams.board, isAsliPrepExclusive, schoolBoardName]);
 
   // Keep subject aligned when class is chosen and list loads (only after a class is selected)
   useEffect(() => {
