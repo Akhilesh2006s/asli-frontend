@@ -41,6 +41,7 @@ import {
   Calendar as CalendarIcon
 } from 'lucide-react';
 import { useLocation, useSearch } from 'wouter';
+import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
 const UserManagement = lazy(() => import('@/components/admin/user-management'));
 const ClassDashboard = lazy(() => import('@/components/admin/class-dashboard'));
 const TeacherManagement = lazy(() => import('@/components/admin/teacher-management'));
@@ -314,67 +315,6 @@ const AdminDashboard = () => {
   if (!isAuthenticated) {
     return null;
   }
-
-  // Vidya AI Corner Button Component
-  const VidyaAICornerButton = () => {
-    const messages = [
-      "Need help managing your school?",
-      "Ask me about student management",
-      "Need help with class assignments?",
-      "Ask me about teacher management?"
-    ];
-    const [currentMessage, setCurrentMessage] = useState(0);
-    
-    useEffect(() => {
-      const interval = setInterval(() => {
-        setCurrentMessage((prev) => (prev + 1) % messages.length);
-      }, 3000);
-      return () => clearInterval(interval);
-    }, [messages.length]);
-    
-    return (
-      <div
-        className={
-          isMobile
-            ? 'fixed bottom-4 right-3 z-40 flex flex-col items-end gap-2'
-            : 'fixed bottom-6 left-4 md:left-[17rem] z-50 flex flex-col items-start gap-2'
-        }
-      >
-        {/* Vidya AI avatar — on top so tooltip sits below and does not cover sidebar nav */}
-        <button
-          type="button"
-          onClick={() => {
-            setActiveTab('vidya-ai');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
-          className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} shrink-0 rounded-full shadow-lg hover:shadow-xl border-2 border-orange-300 hover:border-orange-400 bg-white p-1 transition-all duration-300 hover:scale-110 active:scale-95 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2`}
-        >
-          <img
-            src="/Vidya-ai.jpg"
-            alt="Vidya AI - Click to chat"
-            className="w-full h-full rounded-full object-cover"
-          />
-        </button>
-
-        {/* Message popup below avatar */}
-        {!isMobile && (
-          <div className="relative mt-1 animate-fade-in max-w-[220px]">
-            <div className="absolute top-0 left-6 -translate-y-full">
-              <div className="h-0 w-0 border-l-[6px] border-r-[6px] border-b-[6px] border-l-transparent border-r-transparent border-b-orange-200" />
-              <div
-                className="absolute left-0 top-px h-0 w-0 border-l-[6px] border-r-[6px] border-b-[6px] border-l-transparent border-r-transparent border-b-white"
-              />
-            </div>
-            <div className="rounded-lg border border-orange-200 bg-white p-2.5 shadow-lg">
-              <p className="text-xs font-medium leading-snug text-gray-800">
-                {messages[currentMessage]}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-sky-50 relative overflow-hidden md:flex md:h-screen">
@@ -1258,8 +1198,13 @@ const AdminDashboard = () => {
         </div>
       </div>
       
-      {/* Vidya AI Corner Button */}
-      <VidyaAICornerButton />
+      <VidyaAIFloatingAssistant
+        role="admin"
+        onClick={() => {
+          setActiveTab('vidya-ai');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
     </div>
   );
 };

@@ -67,6 +67,7 @@ import { EduOTTVideoCard, EduOTTSubjectBadges } from '@/components/eduott/EduOTT
 import { resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
+import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
 import { TeacherDashboardSchedule } from '@/components/teacher/TeacherDashboardSchedule';
 import { ClassCard } from '@/components/teacher/ClassCard';
 import { TeacherWorkDiaryPanel } from '@/components/teacher/TeacherWorkDiaryPanel';
@@ -4804,6 +4805,15 @@ const TeacherDashboard = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      <VidyaAIFloatingAssistant
+        role="teacher"
+        onClick={() => {
+          setDashboardSubTab('vidya-ai');
+          localStorage.removeItem('teacherDashboardTab');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
 
       </div>
     </div>

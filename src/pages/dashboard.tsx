@@ -1936,8 +1936,13 @@ export default function Dashboard() {
           <FloatingParticles /> */}
         </div>
         
-        {/* Vidya AI - Fixed at Bottom Left with Message Popup */}
-        {!isMobile && <VidyaAIFloatingAssistant />}
+        <VidyaAIFloatingAssistant
+          role="student"
+          onClick={() => {
+            setVidyaAiTab('chat');
+            document.getElementById('vidya-ai-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
+        />
         
         {/* Welcome Section */}
         <div className="mt-6 sm:mt-8 mb-6 relative z-10">
@@ -3248,7 +3253,7 @@ export default function Dashboard() {
           <div className="space-y-3 sm:space-y-4 lg:space-y-6">
             
             {/* Vidya AI Section */}
-            <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
+            <Card id="vidya-ai-section" className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl scroll-mt-24">
               <CardHeader>
                 <div className="flex items-center space-x-3 mb-4">
                   <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">

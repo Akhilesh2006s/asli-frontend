@@ -1,42 +1,114 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 
-const MESSAGES = [
+const DEFAULT_MESSAGES = [
   "Need some help with your homework?",
   "Need some help with maths?",
   "Need some help with physics?",
   "Need some help with chemistry?",
 ];
 
-/** Compact corner assistant: small circular avatar + narrow tooltip so lesson actions stay tappable. */
+const ROLE_MESSAGES = {
+  admin: [
+    "Need help managing your school?",
+    "Ask me about student management",
+    "Need help with class assignments?",
+    "Ask me about teacher management?",
+  ],
+  teacher: [
+    "Ask me about your students",
+    "Need help with class planning?",
+    "Ask me about assessments?",
+    "Need help tracking progress?",
+  ],
+  student: DEFAULT_MESSAGES,
+} as const;
+
+export type VidyaAssistantRole = keyof typeof ROLE_MESSAGES;
+
 interface VidyaAIFloatingAssistantProps {
   currentSubject?: string;
   postExamContext?: string;
+  /** Dashboard corner: orange style, avatar on top, uses onClick instead of routing away */
+  role?: VidyaAssistantRole;
+  onClick?: () => void;
 }
 
 export default function VidyaAIFloatingAssistant({
   currentSubject,
   postExamContext,
+  role,
+  onClick,
 }: VidyaAIFloatingAssistantProps) {
   const [currentPage, setLocation] = useLocation();
   const [currentMessage, setCurrentMessage] = useState(0);
-  const baseMessages = currentSubject
-    ? [
-        `Need help with ${currentSubject}?`,
-        `Ask me anything about ${currentSubject}`,
-        `I can explain ${currentSubject} concepts`,
-        `Practice ${currentSubject} with me`,
-      ]
-    : MESSAGES;
+
+  const baseMessages = role
+    ? [...ROLE_MESSAGES[role]]
+    : currentSubject
+      ? [
+          `Need help with ${currentSubject}?`,
+          `Ask me anything about ${currentSubject}`,
+          `I can explain ${currentSubject} concepts`,
+          `Practice ${currentSubject} with me`,
+        ]
+      : DEFAULT_MESSAGES;
   const messages = postExamContext ? [postExamContext, ...baseMessages] : baseMessages;
+
+  const isDashboardCorner = Boolean(onClick);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentMessage((prev) => (prev + 1) % messages.length);
     }, 3000);
-
     return () => clearInterval(interval);
   }, [messages.length]);
+
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+      return;
+    }
+    const inferredSubject = currentSubject || (currentPage.includes("math") ? "Maths" : "");
+    const dest = postExamContext
+      ? `/ai-tutor?prompt=${encodeURIComponent(postExamContext)}`
+      : inferredSubject
+        ? `/ai-tutor?subject=${encodeURIComponent(inferredSubject)}`
+        : "/ai-tutor";
+    setLocation(dest);
+  };
+
+  if (isDashboardCorner) {
+    return (
+      <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2 sm:bottom-6 sm:right-6">
+        <button
+          type="button"
+          onClick={handleClick}
+          className="h-12 w-12 shrink-0 rounded-full border-2 border-orange-300 bg-white p-0.5 shadow-lg transition-all duration-300 hover:scale-110 hover:border-orange-400 hover:shadow-xl active:scale-95 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 sm:h-16 sm:w-16"
+          aria-label="Open Vidya AI"
+        >
+          <img
+            src="/Vidya-ai.jpg"
+            alt="Vidya AI - Click to chat"
+            draggable={false}
+            className="h-full w-full rounded-full object-cover object-top"
+          />
+        </button>
+
+        <div className="relative max-w-[220px] animate-fade-in">
+          <div className="absolute right-6 top-0 -translate-y-full">
+            <div className="h-0 w-0 border-l-[6px] border-r-[6px] border-b-[6px] border-l-transparent border-r-transparent border-b-orange-200" />
+            <div className="absolute left-0 top-px h-0 w-0 border-l-[6px] border-r-[6px] border-b-[6px] border-l-transparent border-r-transparent border-b-white" />
+          </div>
+          <div className="rounded-lg border border-orange-200 bg-white p-2.5 shadow-lg">
+            <p className="text-xs font-medium leading-snug text-gray-800">
+              {messages[currentMessage]}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -61,15 +133,7 @@ export default function VidyaAIFloatingAssistant({
       <button
         type="button"
         className="pointer-events-auto rounded-full p-0.5 shadow-lg ring-2 ring-white transition-transform hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2"
-        onClick={() => {
-          const inferredSubject = currentSubject || (currentPage.includes("math") ? "Maths" : "");
-          const dest = postExamContext
-            ? `/ai-tutor?prompt=${encodeURIComponent(postExamContext)}`
-            : inferredSubject
-              ? `/ai-tutor?subject=${encodeURIComponent(inferredSubject)}`
-              : "/ai-tutor";
-          setLocation(dest);
-        }}
+        onClick={handleClick}
         aria-label="Open Vidya AI tutor"
       >
         <img
