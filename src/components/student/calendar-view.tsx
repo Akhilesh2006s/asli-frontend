@@ -656,11 +656,6 @@ export default function CalendarView({ contents, onMarkAsDone, completedItems = 
                     <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>{getContentTypeLabel(selectedContent.type)}</span>
                   </span>
-                  {selectedContent.date && (
-                    <span className="flex items-center space-x-1">
-                      <span>Uploaded: {new Date(selectedContent.date).toLocaleDateString()}</span>
-                    </span>
-                  )}
                 </div>
               </div>
             </div>

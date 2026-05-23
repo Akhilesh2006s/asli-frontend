@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { EduOTTVideoCard, EduOTTSubjectBadges } from '@/components/eduott/EduOTTVideoCard';
+import { resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
 import {
@@ -127,11 +128,12 @@ export default function AdminEduOTT() {
                   ? String(content.subject.classNumber).trim()
                   : undefined;
             
-            const rawDuration = content.duration;
-            const durationInMinutes = rawDuration && rawDuration > 0 
-              ? Number(rawDuration) 
-              : 0;
-            const durationInSeconds = durationInMinutes > 0 ? durationInMinutes * 60 : 0;
+            const durationInSeconds = resolveContentDurationSeconds({
+              duration: content.duration,
+              durationSeconds: content.durationSeconds,
+            });
+            const durationInMinutes =
+              durationInSeconds > 0 ? Math.max(1, Math.round(durationInSeconds / 60)) : 0;
             
             let videoFileUrl = content.fileUrl;
             if (videoFileUrl && !videoFileUrl.startsWith('http') && !videoFileUrl.startsWith('//')) {
@@ -331,14 +333,6 @@ export default function AdminEduOTT() {
     }
   };
 
-  const formatDuration = (minutes: number) => {
-    if (!minutes || minutes === 0) return '0 mins';
-    if (minutes < 60) return `${Math.round(minutes)} mins`;
-    const hours = Math.floor(minutes / 60);
-    const mins = Math.round(minutes % 60);
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-  };
-
   return (
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Header */}
@@ -433,7 +427,6 @@ export default function AdminEduOTT() {
                     onToggle={() =>
                       setExpandedVideoId((prev) => (prev === video._id ? null : video._id))
                     }
-                    durationLabel={formatDuration(video.duration)}
                     playAccentClass="text-sky-600"
                     subjectBadges={
                       video.subjectName ? (

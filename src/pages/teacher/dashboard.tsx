@@ -64,6 +64,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import AIChat from '@/components/ai-chat';
 import { EduOTTVideoCard, EduOTTSubjectBadges } from '@/components/eduott/EduOTTVideoCard';
+import { resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import { TeacherDashboardSchedule } from '@/components/teacher/TeacherDashboardSchedule';
@@ -419,11 +420,12 @@ const TeacherDashboard = () => {
             const subjectName = content.subject?.name || content.subject || 'Unknown Subject';
             const subjectId = content.subject?._id || content.subject;
             
-            // Handle duration - Content model stores duration in minutes
-            const rawDuration = content.duration;
-            const durationInMinutes = rawDuration && rawDuration > 0 
-              ? Number(rawDuration) 
-              : 0;
+            const durationInSeconds = resolveContentDurationSeconds({
+              duration: content.duration,
+              durationSeconds: content.durationSeconds,
+            });
+            const durationInMinutes =
+              durationInSeconds > 0 ? Math.max(1, Math.round(durationInSeconds / 60)) : 0;
             
             // Ensure fileUrl is properly formatted (handle relative/absolute URLs from database)
             let videoFileUrl = content.fileUrl;
@@ -444,8 +446,8 @@ const TeacherDashboard = () => {
               fileUrl: videoFileUrl, // Use properly formatted fileUrl from database
               videoUrl: videoFileUrl, // Map fileUrl to videoUrl for compatibility
               thumbnailUrl: content.thumbnailUrl, // Thumbnail from database
-              duration: durationInMinutes, // Keep in minutes for VideoModal
-              durationSeconds: durationInMinutes > 0 ? durationInMinutes * 60 : 0, // Convert to seconds for card display
+              duration: durationInMinutes,
+              durationSeconds: durationInSeconds,
               views: content.views || 0,
               createdAt: content.createdAt,
               subject: subjectName,
@@ -1666,13 +1668,6 @@ const TeacherDashboard = () => {
   }, [liveSessions, sessionSearchTerm, filterStatus, sessionClassFilter, sessionSubjectFilter]);
 
   // Memoize helper functions
-  const formatDuration = useCallback((minutes: number) => {
-    if (!minutes || minutes === 0) return '0:00';
-    const hrs = Math.floor(minutes / 60);
-    const mins = Math.floor(minutes % 60);
-    return hrs > 0 ? `${hrs}:${mins.toString().padStart(2, '0')}` : `${mins}:00`;
-  }, []);
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-sky-50 flex items-center justify-center">
@@ -4228,10 +4223,6 @@ const TeacherDashboard = () => {
                                     prev === videoId ? null : videoId
                                   )
                                 }
-                                durationLabel={formatDuration(
-                                  video.duration ||
-                                    (video.durationSeconds ? video.durationSeconds / 60 : 0)
-                                )}
                                 playAccentClass="text-purple-600"
                                 subjectBadges={
                                   video.subjectName || video.subject ? (

@@ -25,6 +25,7 @@ import {
   getSubjectClassLabel,
 } from '@/lib/subject-names';
 import { normalizeVideoLike, normalizeSessionLike } from '@/lib/eduott-normalize';
+import { resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
 import { useEduOTTFilters } from '@/contexts/edu-ott-filter-context';
 import { EduOTTGlobalFilterBar } from '@/components/eduott/EduOTTGlobalFilterBar';
 import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
@@ -34,6 +35,7 @@ interface Video {
   title: string;
   description?: string;
   duration: number;
+  durationSeconds?: number;
   videoUrl?: string;
   youtubeUrl?: string;
   isYouTubeVideo?: boolean;
@@ -95,9 +97,10 @@ function mapContentToVideo(content: any): Video {
         ? String(content.subject.classNumber).trim()
         : undefined;
 
-  const rawDuration = content.duration;
-  const durationInMinutes = rawDuration && rawDuration > 0 ? Number(rawDuration) : 0;
-  const durationInSeconds = durationInMinutes > 0 ? durationInMinutes * 60 : 0;
+  const durationInSeconds = resolveContentDurationSeconds({
+    duration: content.duration,
+    durationSeconds: content.durationSeconds,
+  });
 
   let videoFileUrl = content.fileUrl;
   if (videoFileUrl && !videoFileUrl.startsWith('http') && !videoFileUrl.startsWith('//')) {
@@ -119,6 +122,7 @@ function mapContentToVideo(content: any): Video {
     fileUrl: videoFileUrl,
     thumbnailUrl: content.thumbnailUrl,
     duration: durationInSeconds,
+    durationSeconds: durationInSeconds,
     views: content.views || 0,
     createdAt: content.createdAt,
     subjectId,
@@ -404,12 +408,6 @@ export default function EduOTT() {
     }
   };
 
-  const formatDuration = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
-
   return (
     <>
       <Navigation />
@@ -505,7 +503,6 @@ export default function EduOTT() {
                       onToggle={() =>
                         setExpandedVideoId((prev) => (prev === videoId ? null : videoId))
                       }
-                      durationLabel={formatDuration(video.duration || 0)}
                       subjectBadges={
                         video.subjectName ? (
                           <EduOTTSubjectBadges

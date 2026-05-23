@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BookOpen, Clock, Play, Video as VideoIcon, X } from 'lucide-react';
@@ -6,6 +6,8 @@ import YouTubePlayer from '@/components/youtube-player';
 import {
   getEduOTTPlaybackUrl,
   getEduOTTThumbnailUrl,
+  resolveContentDurationSeconds,
+  formatEduOTTDurationLabel,
   type EduOTTVideoLike,
 } from '@/lib/eduott-video-utils';
 
@@ -16,6 +18,10 @@ export type EduOTTVideoCardItem = EduOTTVideoLike & {
   description?: string;
   views?: number;
   createdAt?: string;
+  /** Length in seconds (preferred). */
+  durationSeconds?: number;
+  /** Legacy: minutes in DB, or seconds if large — use resolveContentDurationSeconds. */
+  duration?: number;
   subjectName?: string;
   subject?: string;
 };
@@ -24,7 +30,8 @@ type EduOTTVideoCardProps = {
   video: EduOTTVideoCardItem;
   isExpanded: boolean;
   onToggle: () => void;
-  durationLabel: string;
+  /** Optional override; otherwise computed from video + file metadata. */
+  durationLabel?: string;
   subjectBadges?: React.ReactNode;
   playAccentClass?: string;
 };
@@ -33,14 +40,27 @@ export function EduOTTVideoCard({
   video,
   isExpanded,
   onToggle,
-  durationLabel,
+  durationLabel: durationLabelProp,
   subjectBadges,
   playAccentClass = 'text-primary',
 }: EduOTTVideoCardProps) {
   const [thumbError, setThumbError] = useState(false);
+  const [secondsFromFile, setSecondsFromFile] = useState<number | null>(null);
   const thumbnailSrc = getEduOTTThumbnailUrl(video);
   const { isYouTube, url: playbackUrl } = getEduOTTPlaybackUrl(video);
   const videoKey = video._id || video.id || video.title;
+
+  const dbSeconds = useMemo(() => resolveContentDurationSeconds(video), [video]);
+
+  useEffect(() => {
+    setSecondsFromFile(null);
+  }, [videoKey, playbackUrl]);
+
+  const displaySeconds = secondsFromFile ?? dbSeconds;
+  const durationLabel =
+    durationLabelProp?.trim() ||
+    formatEduOTTDurationLabel(displaySeconds) ||
+    '';
 
   return (
     <Card
@@ -70,6 +90,12 @@ export function EduOTTVideoCard({
                 autoPlay
                 className="w-full aspect-video object-contain bg-black"
                 playsInline
+                onLoadedMetadata={(e) => {
+                  const d = e.currentTarget.duration;
+                  if (Number.isFinite(d) && d > 0) {
+                    setSecondsFromFile(Math.round(d));
+                  }
+                }}
               >
                 <track kind="captions" />
               </video>
@@ -81,6 +107,21 @@ export function EduOTTVideoCard({
           </div>
         ) : (
           <>
+            {!isYouTube && playbackUrl && dbSeconds <= 0 ? (
+              <video
+                className="hidden"
+                preload="metadata"
+                src={playbackUrl}
+                aria-hidden
+                tabIndex={-1}
+                onLoadedMetadata={(e) => {
+                  const d = e.currentTarget.duration;
+                  if (Number.isFinite(d) && d > 0) {
+                    setSecondsFromFile(Math.round(d));
+                  }
+                }}
+              />
+            ) : null}
             {thumbnailSrc && !thumbError ? (
               <img
                 src={thumbnailSrc}
@@ -98,10 +139,12 @@ export function EduOTTVideoCard({
                 <Play className={`h-7 w-7 ml-0.5 ${playAccentClass}`} fill="currentColor" />
               </div>
             </div>
-            <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded bg-black/70 px-2 py-1 text-xs text-white">
-              <Clock className="h-3 w-3" />
-              {durationLabel}
-            </div>
+            {durationLabel ? (
+              <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded bg-black/70 px-2 py-1 text-xs text-white">
+                <Clock className="h-3 w-3 shrink-0" />
+                <span>{durationLabel}</span>
+              </div>
+            ) : null}
           </>
         )}
       </div>
@@ -113,22 +156,11 @@ export function EduOTTVideoCard({
         {subjectBadges ? <div className="mt-2 flex flex-wrap gap-2">{subjectBadges}</div> : null}
       </CardHeader>
 
-      {(video.description || video.views != null || video.createdAt) && (
+      {video.description ? (
         <CardContent className="pt-0">
-          {video.description && (
-            <p className="mb-3 line-clamp-2 text-xs text-gray-600 sm:text-sm">{video.description}</p>
-          )}
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            <span className="flex items-center gap-1">
-              <VideoIcon className="h-3 w-3" />
-              {video.views ?? 0} views
-            </span>
-            {video.createdAt && (
-              <span>{new Date(video.createdAt).toLocaleDateString()}</span>
-            )}
-          </div>
+          <p className="line-clamp-2 text-xs text-gray-600 sm:text-sm">{video.description}</p>
         </CardContent>
-      )}
+      ) : null}
     </Card>
   );
 }

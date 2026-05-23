@@ -71,3 +71,41 @@ export function getEduOTTPlaybackUrl(video: EduOTTVideoLike): {
   if (file) return { isYouTube: false, url: file };
   return { isYouTube: false, url: null };
 }
+
+type DurationSource = {
+  duration?: number | null;
+  durationSeconds?: number | null;
+};
+
+/**
+ * Content.duration is stored in minutes (super-admin). Some rows use seconds or are 0.
+ * Prefer explicit durationSeconds when provided.
+ */
+export function resolveContentDurationSeconds(source: DurationSource): number {
+  if (source.durationSeconds != null && Number(source.durationSeconds) > 0) {
+    return Math.round(Number(source.durationSeconds));
+  }
+  const raw = Number(source.duration);
+  if (!Number.isFinite(raw) || raw <= 0) return 0;
+  // Values >= 600 are almost certainly already seconds (10+ hours as minutes is rare).
+  if (raw >= 600) return Math.round(raw);
+  return Math.round(raw * 60);
+}
+
+/** Human-readable length for EduOTT cards (e.g. 8:05, 1h 12m). */
+export function formatEduOTTDurationLabel(totalSeconds: number): string {
+  const sec = Math.max(0, Math.round(totalSeconds));
+  if (sec <= 0) return '';
+  const hours = Math.floor(sec / 3600);
+  const minutes = Math.floor((sec % 3600) / 60);
+  const seconds = sec % 60;
+  if (hours > 0) {
+    return minutes > 0 || seconds > 0
+      ? `${hours}h ${minutes}m`
+      : `${hours}h`;
+  }
+  if (minutes > 0) {
+    return seconds > 0 ? `${minutes}:${String(seconds).padStart(2, '0')}` : `${minutes} min`;
+  }
+  return `${seconds}s`;
+}

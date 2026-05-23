@@ -1073,14 +1073,6 @@ export default function LearningPaths() {
                             </span>
                           </div>
                         )}
-                        {content.date && (
-                          <div className="flex items-center space-x-2">
-                            <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
-                            <span className="text-xs sm:text-sm text-gray-600">
-                              {new Date(content.date).toLocaleDateString()}
-                            </span>
-                          </div>
-                        )}
                         </div>
                         <div className="flex space-x-2">
                           <Button
