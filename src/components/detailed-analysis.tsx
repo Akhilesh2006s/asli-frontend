@@ -171,14 +171,11 @@ interface AiExamAnalysis {
 
 type ErrorType = 'careless' | 'conceptual' | 'time-pressure' | 'reading' | null;
 
-type PlanDay = {
-  dayNum: number;
-  label: string;
-  weekday: string;
+type PlanTopic = {
+  topicNum: number;
   title: string;
   subtitle: string;
   duration: string;
-  isToday: boolean;
 };
 
 function getAnswerTimeSeconds(raw: unknown): number | null {
@@ -357,11 +354,10 @@ function getDNAProfileLabel(
   return '📊 Balanced Learner';
 }
 
-function generatePlanDays(
-  result: ExamResult,
+function generatePlanTopics(
+  _result: ExamResult,
   aiAnalysis: AiExamAnalysis | null
-): PlanDay[] {
-  const weekdays = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+): PlanTopic[] {
   const weekActions = aiAnalysis?.actionPlan?.thisWeek || [];
   const focus = aiAnalysis?.focusAreas || [];
   const topics = focus.map((f) => {
@@ -378,35 +374,32 @@ function generatePlanDays(
     'Mock Retake',
   ];
   const subtitles = [
-    'Concept+10Qs',
+    'Concept + 10 Qs',
     'Read twice',
-    'Builds on D1',
-    'Timed 15-Q',
-    'Concept+10Q',
-    'The Maths',
-    'Same paper',
+    'Build on prior topic',
+    'Timed 15-Q drill',
+    'Concept + 10 Q',
+    'Core maths practice',
+    'Full mock retake',
   ];
   const durations = ['25 min', '15 min', '25 min', '20 min', '25 min', '30 min', '35 min'];
 
   return Array.from({ length: 7 }, (_, i) => ({
-    dayNum: i + 1,
-    label: `DAY ${i + 1}`,
-    weekday: weekdays[i],
-    title: topics[i] || weekActions[i]?.slice(0, 24) || defaults[i],
+    topicNum: i + 1,
+    title: topics[i] || weekActions[i]?.slice(0, 48) || defaults[i],
     subtitle: subtitles[i],
     duration: durations[i],
-    isToday: i === 0,
   }));
 }
 
 type PlanQueueItem = { id: string; minutes: number; title: string; tier: 'warmup' | 'core' | 'stretch' };
 
-function generatePlanQueueItems(dayTitle: string, dayIndex: number): {
+function generatePlanQueueItems(topicTitle: string, topicIndex: number): {
   warmup: PlanQueueItem[];
   core: PlanQueueItem[];
   stretch: PlanQueueItem[];
 } {
-  const concept = dayTitle || 'Focus';
+  const concept = topicTitle || 'Focus';
   const warmup: PlanQueueItem[] = [
     { id: 'w1', minutes: 1, title: `${concept}: quick recall`, tier: 'warmup' },
     { id: 'w2', minutes: 1, title: `${concept}: formula check`, tier: 'warmup' },
@@ -422,7 +415,7 @@ function generatePlanQueueItems(dayTitle: string, dayIndex: number): {
     { id: 'c7', minutes: 2, title: `${concept}: consolidation`, tier: 'core' },
   ];
   const stretch: PlanQueueItem[] =
-    dayIndex >= 5
+    topicIndex >= 5
       ? [
           { id: 's1', minutes: 3, title: `${concept}: challenge set A`, tier: 'stretch' },
           { id: 's2', minutes: 3, title: `${concept}: challenge set B`, tier: 'stretch' },
@@ -1307,12 +1300,12 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       ),
     [analysisQuestions, result.timeTaken, displayResult.answers, result.answers]
   );
-  const planDays = useMemo(() => generatePlanDays(result, aiAnalysis), [result, aiAnalysis]);
+  const planTopics = useMemo(() => generatePlanTopics(result, aiAnalysis), [result, aiAnalysis]);
 
-  const activePlanDay = planDays[selectedPlanDayIndex] ?? planDays[0];
+  const activePlanTopic = planTopics[selectedPlanDayIndex] ?? planTopics[0];
   const planQueue = useMemo(
-    () => generatePlanQueueItems(activePlanDay?.title || 'Focus', selectedPlanDayIndex),
-    [activePlanDay?.title, selectedPlanDayIndex]
+    () => generatePlanQueueItems(activePlanTopic?.title || 'Focus', selectedPlanDayIndex),
+    [activePlanTopic?.title, selectedPlanDayIndex]
   );
 
   const scrollToPlanQueue = useCallback(() => {
@@ -2454,11 +2447,13 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
           <div className="space-y-3 sm:space-y-4 lg:space-y-6">
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-r from-purple-600 to-pink-500 text-white p-3 sm:p-4 lg:p-6 sm:p-8 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h2 className="text-xl sm:text-2xl font-bold">YOUR 7-DAY PLAN</h2>
-                <p className="text-white/80 text-xs sm:text-sm mt-1">Starts tomorrow morning, 6 AM</p>
-                <p className="text-white/70 text-xs mt-2">25 minutes a day · 7 anchor concepts · 70 questions · 7 quizzes</p>
+                <h2 className="text-xl sm:text-2xl font-bold">YOUR TOPIC PLAN</h2>
+                <p className="text-white/80 text-xs sm:text-sm mt-1">Personalised from your weak areas</p>
+                <p className="text-white/70 text-xs mt-2">7 focus topics · 70 questions · 7 quizzes</p>
               </div>
-              <Button type="button" className="bg-white text-purple-700 hover:bg-white/90" onClick={scrollToPlanQueue}>Start Day 1 now →</Button>
+              <Button type="button" className="bg-white text-purple-700 hover:bg-white/90" onClick={scrollToPlanQueue}>
+                Start {planTopics[0]?.title || 'first topic'} →
+              </Button>
             </motion.div>
             <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 flex gap-3">
               <div className="w-10 h-10 rounded-full bg-[#7C3AED] text-white font-bold flex items-center justify-center shrink-0">V</div>
@@ -2471,26 +2466,28 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
             </div>
             <div className="overflow-x-auto pb-2">
               <div className="flex gap-3 min-w-max">
-                {planDays.map((day, dayIndex) => {
-                  const isSelected = selectedPlanDayIndex === dayIndex;
+                {planTopics.map((topic, topicIndex) => {
+                  const isSelected = selectedPlanDayIndex === topicIndex;
                   return (
                     <button
-                      key={day.dayNum}
+                      key={topic.topicNum}
                       type="button"
                       onClick={() => {
-                        setSelectedPlanDayIndex(dayIndex);
+                        setSelectedPlanDayIndex(topicIndex);
                         requestAnimationFrame(() => {
                           planQueueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         });
                       }}
-                      className={`rounded-xl p-4 min-w-[140px] border text-left transition-shadow ${isSelected ? 'bg-white border-[#7C3AED] shadow-md ring-2 ring-[#7C3AED]/30' : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'}`}
+                      className={`rounded-xl p-4 min-w-[160px] max-w-[220px] border text-left transition-shadow ${isSelected ? 'bg-white border-[#7C3AED] shadow-md ring-2 ring-[#7C3AED]/30' : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'}`}
                     >
-                      {dayIndex === 0 && <span className="text-[10px] font-bold text-[#7C3AED]">TODAY</span>}
-                      {isSelected && dayIndex !== 0 && <span className="text-[10px] font-bold text-[#7C3AED]">SELECTED</span>}
-                      <p className="text-xs font-semibold mt-1">{day.label} · {day.weekday}</p>
-                      <p className={`font-bold mt-2 ${isSelected ? 'text-gray-900' : ''}`}>{day.title}</p>
-                      <p className="text-xs mt-1">{day.subtitle}</p>
-                      <p className="text-xs mt-2 font-medium">{day.duration}</p>
+                      {isSelected && (
+                        <span className="text-[10px] font-bold text-[#7C3AED]">ACTIVE</span>
+                      )}
+                      <p className={`font-bold mt-1 line-clamp-2 ${isSelected ? 'text-gray-900' : 'text-gray-800'}`}>
+                        {topic.title}
+                      </p>
+                      <p className="text-xs mt-1 text-gray-600 line-clamp-1">{topic.subtitle}</p>
+                      <p className="text-xs mt-2 font-medium">{topic.duration}</p>
                     </button>
                   );
                 })}
@@ -2499,13 +2496,11 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
             <div ref={planQueueRef} className="scroll-mt-24">
             <Card className="rounded-2xl shadow-sm border">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>
-                  {selectedPlanDayIndex === 0 ? 'TODAY' : activePlanDay?.label} · {activePlanDay?.title || 'Focus'}
-                </CardTitle>
-                <Badge>Anchor concept</Badge>
+                <CardTitle className="line-clamp-2">{activePlanTopic?.title || 'Focus topic'}</CardTitle>
+                <Badge>Focus topic</Badge>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-xs sm:text-sm text-gray-600">{activePlanDay?.subtitle || 'Daily practice'} · {activePlanDay?.duration || '25 min'}</p>
+                <p className="text-xs sm:text-sm text-gray-600">{activePlanTopic?.subtitle || 'Practice'} · {activePlanTopic?.duration || '25 min'}</p>
                 <div>
                   <p className="text-xs font-bold text-gray-500 mb-2">WARM-UP · {planQueue.warmup.length} EASY Qs</p>
                   <div className="flex flex-wrap gap-2">
