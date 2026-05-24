@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { API_BASE_URL } from '@/lib/api-config';
+import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ import {
   Menu,
   Search,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   ArrowRight,
   FileText,
@@ -113,6 +115,72 @@ interface Student {
     learningProgress?: number; // Content completion progress
     dailyAverageWatchTime?: number;
   };
+}
+
+function getStudentClassAndSection(student: Student) {
+  const rawClass =
+    student.assignedClass?.classNumber?.trim() ||
+    student.classNumber?.trim() ||
+    '';
+  let section = student.assignedClass?.section?.trim() || '';
+  let classNumber = rawClass.replace(/^Class\s*/i, '').trim();
+
+  if (!section && classNumber && /^\d+[A-Za-z]+$/i.test(classNumber)) {
+    const match = classNumber.match(/^(\d+)([A-Za-z]+)$/i);
+    if (match) {
+      classNumber = match[1];
+      section = match[2].toUpperCase();
+    }
+  }
+
+  return {
+    classNumber: classNumber || null,
+    section: section || null,
+  };
+}
+
+function buildSubmissionClassSectionMap(
+  studentList: Student[],
+  assignedClassList: { classNumber?: string; section?: string }[]
+) {
+  const map = new Map<string, Set<string>>();
+
+  assignedClassList.forEach((c) => {
+    const classNumber = String(c.classNumber || '')
+      .replace(/^Class\s*/i, '')
+      .trim();
+    const section = String(c.section || '').trim().toUpperCase();
+    if (!classNumber) return;
+    if (!map.has(classNumber)) map.set(classNumber, new Set());
+    if (section) map.get(classNumber)!.add(section);
+  });
+
+  studentList.forEach((student) => {
+    const { classNumber, section } = getStudentClassAndSection(student);
+    if (!classNumber) return;
+    if (!map.has(classNumber)) map.set(classNumber, new Set());
+    if (section) map.get(classNumber)!.add(section);
+  });
+
+  return map;
+}
+
+function sortClassNumbers(a: string, b: string) {
+  const na = parseInt(a, 10);
+  const nb = parseInt(b, 10);
+  if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+  return a.localeCompare(b);
+}
+
+function getStudentsInClassSection(
+  studentList: Student[],
+  classNumber: string,
+  section: string
+) {
+  return studentList.filter((student) => {
+    const parsed = getStudentClassAndSection(student);
+    return parsed.classNumber === classNumber && parsed.section === section;
+  });
 }
 
 interface Video {
@@ -212,6 +280,12 @@ const TeacherDashboard = () => {
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
   const [expandedHomework, setExpandedHomework] = useState<Set<string>>(new Set());
   const [expandedStudent, setExpandedStudent] = useState<Set<string>>(new Set());
+  const [expandedSubmissionClasses, setExpandedSubmissionClasses] = useState<Set<string>>(
+    new Set()
+  );
+  const [expandedSubmissionSections, setExpandedSubmissionSections] = useState<Set<string>>(
+    new Set()
+  );
 
   const preserveScrollOnFilterChange = (setter: (value: string) => void, value: string) => {
     const currentY = window.scrollY;
@@ -1356,6 +1430,16 @@ const TeacherDashboard = () => {
     });
     return { totalAssigned, map };
   }, [homeworkSubmissions]);
+
+  const submissionClassSectionMap = useMemo(
+    () => buildSubmissionClassSectionMap(students, assignedClasses),
+    [students, assignedClasses]
+  );
+
+  const submissionClassList = useMemo(
+    () => Array.from(submissionClassSectionMap.keys()).sort(sortClassNumbers),
+    [submissionClassSectionMap]
+  );
 
   const getStudentHomeworkStatsForPanel = useCallback(
     (studentId: string) => {
@@ -3847,13 +3931,99 @@ const TeacherDashboard = () => {
                               <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
                               Submissions by Students
                             </h3>
-                            <div className="space-y-2">
-                              {students.length > 0 ? (
-                                students.map((student) => {
-                                  const studentId = student.id || student._id;
-                                  const isExpanded = expandedStudent.has(studentId);
-                                  
-                                  // Find submissions for this student
+
+                            <div className="space-y-1">
+                              {submissionClassList.length === 0 ? (
+                                <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50/80 px-4 py-10 text-center text-sm text-gray-500">
+                                  No classes assigned yet.
+                                </div>
+                              ) : (
+                                submissionClassList.map((classNum) => {
+                                  const classOpen = expandedSubmissionClasses.has(classNum);
+                                  const sections = submissionClassSectionMap.get(classNum);
+                                  const sectionList = sections
+                                    ? Array.from(sections).sort()
+                                    : [];
+
+                                  return (
+                                    <div key={classNum} className="border-b border-gray-100 last:border-0">
+                                      <button
+                                        type="button"
+                                        className="flex w-full items-center gap-2 py-3 text-left text-lg font-semibold text-indigo-950 hover:text-indigo-700"
+                                        onClick={() => {
+                                          setExpandedSubmissionClasses((prev) => {
+                                            const next = new Set(prev);
+                                            if (next.has(classNum)) next.delete(classNum);
+                                            else next.add(classNum);
+                                            return next;
+                                          });
+                                        }}
+                                      >
+                                        <ChevronDown
+                                          className={cn(
+                                            'h-4 w-4 shrink-0 text-indigo-900 transition-transform duration-200',
+                                            !classOpen && '-rotate-90'
+                                          )}
+                                          aria-hidden
+                                        />
+                                        <span>{classNum}</span>
+                                      </button>
+
+                                      {classOpen && (
+                                        <div className="ml-5 space-y-2 pb-3">
+                                          {sectionList.length === 0 ? (
+                                            <p className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-4 text-xs text-gray-500">
+                                              No sections for this class.
+                                            </p>
+                                          ) : (
+                                            sectionList.map((section) => {
+                                              const sectionKey = `${classNum}-${section}`;
+                                              const sectionOpen =
+                                                expandedSubmissionSections.has(sectionKey);
+                                              const sectionStudents = getStudentsInClassSection(
+                                                students,
+                                                classNum,
+                                                section
+                                              );
+
+                                              return (
+                                                <div
+                                                  key={sectionKey}
+                                                  className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+                                                >
+                                                  <button
+                                                    type="button"
+                                                    className="flex w-full items-center gap-2 px-4 py-3 text-left font-medium text-indigo-950 hover:bg-gray-50/80"
+                                                    onClick={() => {
+                                                      setExpandedSubmissionSections((prev) => {
+                                                        const next = new Set(prev);
+                                                        if (next.has(sectionKey)) next.delete(sectionKey);
+                                                        else next.add(sectionKey);
+                                                        return next;
+                                                      });
+                                                    }}
+                                                  >
+                                                    <ChevronRight
+                                                      className={cn(
+                                                        'h-4 w-4 shrink-0 text-indigo-900 transition-transform duration-200',
+                                                        sectionOpen && 'rotate-90'
+                                                      )}
+                                                      aria-hidden
+                                                    />
+                                                    <span>Section {section}</span>
+                                                    <span className="ml-auto text-xs font-normal text-gray-500">
+                                                      {sectionStudents.length} student
+                                                      {sectionStudents.length !== 1 ? 's' : ''}
+                                                    </span>
+                                                  </button>
+
+                                                  {sectionOpen && (
+                                                    <div className="space-y-2 border-t border-gray-100 bg-gray-50/50 p-2">
+                                                      {sectionStudents.length > 0 ? (
+                                                        sectionStudents.map((student) => {
+                                  const studentId = student.id || (student as { _id?: string })._id;
+                                  const isExpanded = expandedStudent.has(String(studentId));
+
                                   const studentSubmissions = homeworkSubmissions.students?.find(
                                     (item: any) => (item.student?._id || item.student?.id) === studentId
                                   )?.submissions || [];
@@ -3864,34 +4034,27 @@ const TeacherDashboard = () => {
                                         className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 hover:from-blue-100 hover:to-purple-100 cursor-pointer transition-all"
                                         onClick={() => {
                                           const newExpanded = new Set(expandedStudent);
+                                          const sid = String(studentId);
                                           if (isExpanded) {
-                                            newExpanded.delete(studentId);
+                                            newExpanded.delete(sid);
                                           } else {
-                                            newExpanded.add(studentId);
+                                            newExpanded.add(sid);
                                           }
                                           setExpandedStudent(newExpanded);
                                         }}
                                       >
-                                        <div className="flex items-center justify-between">
-                                          <div className="flex-1">
-                                            <div className="flex items-center gap-3">
-                                              <h4 className="font-semibold text-gray-900">
-                                                {student.name || student.fullName || 'Unknown Student'}
-                                              </h4>
-                                              {student.assignedClass && (
-                                                <Badge className="bg-gray-100 text-gray-700">
-                                                  {student.assignedClass.classNumber || student.classNumber}
-                                                  {student.assignedClass.section || ''}
-                                                </Badge>
-                                              )}
-                                            </div>
-                                            <p className="text-xs sm:text-sm text-gray-600 mt-1">{student.email || ''}</p>
+                                        <div className="flex items-start justify-between gap-3">
+                                          <div className="min-w-0 flex-1">
+                                            <h4 className="font-semibold text-gray-900">
+                                              {student.name || (student as { fullName?: string }).fullName || 'Unknown Student'}
+                                            </h4>
+                                            <p className="mt-1 text-xs sm:text-sm text-gray-600">{student.email || ''}</p>
                                             <Badge className={`mt-2 ${studentSubmissions.length > 0 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'}`}>
                                               {studentSubmissions.length} homework{studentSubmissions.length !== 1 ? 's' : ''} submitted
                                             </Badge>
                                           </div>
                                           <ChevronDown
-                                            className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-500 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
+                                            className={`mt-1 w-4 h-4 sm:w-5 sm:h-5 shrink-0 text-gray-500 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
                                           />
                                         </div>
                                       </div>
@@ -3950,12 +4113,24 @@ const TeacherDashboard = () => {
                                       )}
                                     </div>
                                   );
+                                                        })
+                                                      ) : (
+                                                        <div className="py-6 text-center text-sm text-gray-500">
+                                                          <Users className="mx-auto mb-2 h-10 w-10 text-gray-400" />
+                                                          <p>No students in this section</p>
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              );
+                                            })
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
                                 })
-                              ) : (
-                                <div className="text-center py-12 text-gray-500">
-                                  <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                                  <p>No students found</p>
-                                </div>
                               )}
                             </div>
                           </div>

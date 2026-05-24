@@ -50,11 +50,6 @@ const ExamViewOnly = lazy(() => import('@/components/admin/exam-view-only'));
 const AdminLearningPaths = lazy(() => import('@/components/admin/learning-paths'));
 const AdminEduOTT = lazy(() => import('@/components/admin/admin-eduott'));
 const AdminCalendar = lazy(() => import('@/components/admin/admin-calendar'));
-const AdminTeacherDiaryFeed = lazy(() =>
-  import('@/components/admin/AdminTeacherDiaryFeed').then((module) => ({
-    default: module.AdminTeacherDiaryFeed,
-  }))
-);
 const AIChat = lazy(() => import('@/components/ai-chat'));
 
 const lazySectionFallback = (
@@ -868,10 +863,6 @@ const AdminDashboard = () => {
             </div>
 
             <AtRiskStudentsPanel />
-
-            <Suspense fallback={lazySectionFallback}>
-              <AdminTeacherDiaryFeed />
-            </Suspense>
 
             {/* Detailed School Analysis Section */}
               <motion.div
