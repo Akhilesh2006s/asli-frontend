@@ -60,9 +60,8 @@ import {
   CheckCircle2,
   BookMarked
 } from 'lucide-react';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
 import AIChat from '@/components/ai-chat';
+import { TeacherTrackProgressPanels } from '@/components/teacher/TeacherTrackProgressPanels';
 import { EduOTTVideoCard, EduOTTSubjectBadges } from '@/components/eduott/EduOTTVideoCard';
 import type { EduOTTVideoCardItem } from '@/components/eduott/EduOTTVideoCard';
 import { EduOTTVideoPlayerDialog } from '@/components/eduott/EduOTTVideoPlayerDialog';
@@ -189,15 +188,15 @@ const TeacherDashboard = () => {
     'list' | 'track-progress' | 'submissions' | 'diary'
   >('list');
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
+  const [trackProgressRemarks, setTrackProgressRemarks] = useState<any[]>([]);
+  const [aiProgressInsights, setAiProgressInsights] = useState('');
+  const [isLoadingAiInsights, setIsLoadingAiInsights] = useState(false);
   const [filterByClass, setFilterByClass] = useState<string>('all');
   const [filterByStudent, setFilterByStudent] = useState<string>('all');
-
-  // Reset student filter when class filter changes
-  useEffect(() => {
-    if (filterByClass !== 'all') {
-      setFilterByStudent('all');
-    }
-  }, [filterByClass]);
+  const [progressDetailStudent, setProgressDetailStudent] = useState<Student | null>(null);
+  const [isProgressDetailOpen, setIsProgressDetailOpen] = useState(false);
+  const [detailAiInsights, setDetailAiInsights] = useState('');
+  const [isLoadingDetailAi, setIsLoadingDetailAi] = useState(false);
 
   useEffect(() => {
     setEduottSubjectFilter('all');
@@ -206,7 +205,10 @@ const TeacherDashboard = () => {
   useEffect(() => {
     setSessionSubjectFilter('all');
   }, [sessionClassFilter]);
-  const [homeworkSubmissions, setHomeworkSubmissions] = useState<any[]>([]);
+  const [homeworkSubmissions, setHomeworkSubmissions] = useState<{
+    homeworks?: any[];
+    students?: any[];
+  }>({ homeworks: [], students: [] });
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
   const [expandedHomework, setExpandedHomework] = useState<Set<string>>(new Set());
   const [expandedStudent, setExpandedStudent] = useState<Set<string>>(new Set());
@@ -328,13 +330,45 @@ const TeacherDashboard = () => {
     }
   };
 
+  const trackProgressFilteredStudents = useMemo(() => {
+    let list = students;
+    if (filterByClass !== 'all') {
+      list = list.filter((s) => {
+        const studentClass = s.classNumber || s.assignedClass?.classNumber;
+        return studentClass === filterByClass;
+      });
+    }
+    if (filterByStudent !== 'all') {
+      list = list.filter(
+        (s) =>
+          String(s.id || (s as { _id?: string })._id) === String(filterByStudent)
+      );
+    }
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      list = list.filter((s) => {
+        const name = (s.name || s.email || '').toLowerCase();
+        const email = (s.email || '').toLowerCase();
+        const phone = (s.phone || '').toLowerCase();
+        return (
+          name.includes(lowerSearch) ||
+          email.includes(lowerSearch) ||
+          phone.includes(lowerSearch)
+        );
+      });
+    }
+    return list;
+  }, [students, filterByClass, filterByStudent, searchTerm]);
+
   // Fetch student performance data when Track Progress tab is active
   useEffect(() => {
     if (dashboardSubTab === 'students' && studentsSubTab === 'track-progress') {
       setIsLoadingProgress(true);
-      fetchStudentPerformance().finally(() => {
-        setIsLoadingProgress(false);
-      });
+      fetchStudentPerformance()
+        .then(() => Promise.all([fetchTrackProgressRemarks(), fetchHomeworkSubmissions()]))
+        .finally(() => {
+          setIsLoadingProgress(false);
+        });
     }
   }, [dashboardSubTab, studentsSubTab]);
 
@@ -1260,6 +1294,249 @@ const TeacherDashboard = () => {
     }
   };
 
+
+  const fetchTrackProgressRemarks = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      };
+      const [classRemarksRes, teacherRemarksRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/teacher/students/remarks`, { headers }),
+        fetch(`${API_BASE_URL}/api/teacher/remarks`, { headers }),
+      ]);
+
+      const merged: any[] = [];
+      const seen = new Set<string>();
+
+      const addRemarks = (list: any[]) => {
+        for (const r of list || []) {
+          const key = String(r._id || '');
+          if (!key || seen.has(key)) continue;
+          seen.add(key);
+          merged.push(r);
+        }
+      };
+
+      if (classRemarksRes.ok) {
+        const data = await classRemarksRes.json();
+        addRemarks(data.data || []);
+      }
+      if (teacherRemarksRes.ok) {
+        const data = await teacherRemarksRes.json();
+        addRemarks(data.data || []);
+      }
+
+      merged.sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      setTrackProgressRemarks(merged);
+    } catch (error) {
+      console.error('Failed to fetch track progress remarks:', error);
+      setTrackProgressRemarks([]);
+    }
+  };
+
+  const getHomeworkStatsByStudentId = useCallback(() => {
+    const totalAssigned = homeworkSubmissions?.homeworks?.length || 0;
+    const map = new Map<string, { assigned: number; submitted: number }>();
+    (homeworkSubmissions?.students || []).forEach((item: any) => {
+      const sid = String(item.student?._id || item.student?.id || '');
+      if (!sid) return;
+      const submittedIds = new Set(
+        (item.submissions || []).map((sub: any) =>
+          String(sub.homeworkId?._id || sub.homeworkId || '')
+        )
+      );
+      map.set(sid, {
+        assigned: totalAssigned,
+        submitted: submittedIds.size,
+      });
+    });
+    return { totalAssigned, map };
+  }, [homeworkSubmissions]);
+
+  const getStudentHomeworkStatsForPanel = useCallback(
+    (studentId: string) => {
+      const { totalAssigned, map } = getHomeworkStatsByStudentId();
+      return map.get(studentId) || { assigned: totalAssigned, submitted: 0 };
+    },
+    [getHomeworkStatsByStudentId]
+  );
+
+  const fetchAiProgressInsights = useCallback(
+    async (filtered: Student[], options?: { updateGlobal?: boolean }) => {
+      const updateGlobal = options?.updateGlobal !== false;
+      if (!filtered.length) {
+        if (updateGlobal) setAiProgressInsights('');
+        return '';
+      }
+      if (updateGlobal) setIsLoadingAiInsights(true);
+      try {
+        const studentIds = new Set(
+          filtered.map((s) => String(s.id || (s as { _id?: string })._id || '')).filter(Boolean)
+        );
+        const relevantRemarks = trackProgressRemarks.filter((r) => {
+          const sid =
+            typeof r.studentId === 'string'
+              ? r.studentId
+              : String(r.studentId?._id || r.studentId?.id || '');
+          return sid && studentIds.has(sid);
+        });
+
+        const { totalAssigned, map: homeworkMap } = getHomeworkStatsByStudentId();
+
+        const studentDetails = filtered.map((s) => {
+          const sid = String(s.id || (s as { _id?: string })._id || '');
+          const perf = s.performance || {};
+          const hw = homeworkMap.get(sid) || {
+            assigned: totalAssigned,
+            submitted: 0,
+          };
+          return {
+            name: s.name || (s as { fullName?: string }).fullName || s.email,
+            totalExams: perf.totalExams ?? 0,
+            averagePercentage: perf.averagePercentage ?? null,
+            overallProgress: perf.overallProgress ?? 0,
+            learningProgress: perf.learningProgress ?? 0,
+            dailyAverageWatchTime: perf.dailyAverageWatchTime ?? 0,
+            homeworkAssigned: hw.assigned,
+            homeworkSubmitted: hw.submitted,
+          };
+        });
+
+        const withExams = filtered.filter((s) => (s.performance?.totalExams || 0) > 0);
+        const examScores = withExams
+          .map((s) => s.performance?.averagePercentage)
+          .filter((p): p is number => p != null);
+        const avgExam =
+          examScores.length > 0
+            ? examScores.reduce((a, b) => a + b, 0) / examScores.length
+            : 0;
+
+        const avgOverall =
+          filtered.reduce((sum, s) => sum + (s.performance?.overallProgress ?? 0), 0) /
+          filtered.length;
+        const withLearning = filtered.filter((s) => (s.performance?.learningProgress ?? 0) > 0);
+        const avgLearning =
+          withLearning.length > 0
+            ? withLearning.reduce((sum, s) => sum + (s.performance?.learningProgress ?? 0), 0) /
+              withLearning.length
+            : 0;
+        const withUsage = filtered.filter((s) => (s.performance?.dailyAverageWatchTime ?? 0) > 0);
+        const avgWatch =
+          withUsage.length > 0
+            ? withUsage.reduce(
+                (sum, s) => sum + (s.performance?.dailyAverageWatchTime ?? 0),
+                0
+              ) / withUsage.length
+            : 0;
+
+        const scopeLabel =
+          filtered.length === 1
+            ? `Student: ${filtered[0]?.name || filtered[0]?.email || 'selected'}`
+            : filterByClass !== 'all'
+              ? `Class ${filterByClass}`
+              : 'All assigned students';
+
+        const summary = {
+          scopeLabel,
+          studentCount: filtered.length,
+          avgExamScore: avgExam,
+          studentsWithExams: withExams.length,
+          avgOverallProgress: avgOverall,
+          avgLearningProgress: avgLearning,
+          avgDailyUsageMinutes: avgWatch,
+          studentsWithUsage: withUsage.length,
+          students: studentDetails,
+          remarksSample: relevantRemarks.slice(0, 8).map((r) => ({
+            studentName:
+              typeof r.studentId === 'object'
+                ? r.studentId?.fullName || 'Student'
+                : filtered.find(
+                    (s) =>
+                      String(s.id || (s as { _id?: string })._id) ===
+                      String(
+                        typeof r.studentId === 'string'
+                          ? r.studentId
+                          : r.studentId?._id
+                      )
+                  )?.name || 'Student',
+            text: r.remark,
+            isPositive: r.isPositive,
+          })),
+        };
+
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`${API_BASE_URL}/api/teacher/students/progress-ai-insights`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ summary }),
+        });
+        let insights = '';
+        if (response.ok) {
+          const data = await response.json();
+          insights = data.data?.insights || '';
+        }
+        if (updateGlobal) setAiProgressInsights(insights);
+        return insights;
+      } catch (error) {
+        console.error('Failed to fetch progress insights:', error);
+        if (updateGlobal) setAiProgressInsights('');
+        return '';
+      } finally {
+        if (updateGlobal) setIsLoadingAiInsights(false);
+      }
+    },
+    [trackProgressRemarks, filterByClass, filterByStudent, getHomeworkStatsByStudentId]
+  );
+
+  const openStudentProgressDetail = useCallback(
+    async (student: Student) => {
+      const sid = String(student.id || (student as { _id?: string })._id || '');
+      const classNum = student.classNumber || student.assignedClass?.classNumber;
+      if (classNum != null && String(classNum).trim() !== '') {
+        setFilterByClass(String(classNum));
+      }
+      setFilterByStudent(sid);
+      setProgressDetailStudent(student);
+      setDetailAiInsights('');
+      setIsProgressDetailOpen(true);
+      setIsLoadingDetailAi(true);
+      try {
+        const insights = await fetchAiProgressInsights([student], { updateGlobal: false });
+        setDetailAiInsights(insights);
+      } finally {
+        setIsLoadingDetailAi(false);
+      }
+      window.setTimeout(() => {
+        document
+          .getElementById('teacher-progress-analytics')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    },
+    [fetchAiProgressInsights]
+  );
+
+  useEffect(() => {
+    if (dashboardSubTab !== 'students' || studentsSubTab !== 'track-progress') return;
+    if (isLoadingProgress) return;
+    const timer = setTimeout(() => {
+      fetchAiProgressInsights(trackProgressFilteredStudents);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [
+    dashboardSubTab,
+    studentsSubTab,
+    trackProgressFilteredStudents,
+    isLoadingProgress,
+    homeworkSubmissions,
+    fetchAiProgressInsights,
+  ]);
 
   // Fetch student performance data
   const fetchStudentPerformance = async () => {
@@ -2920,7 +3197,10 @@ const TeacherDashboard = () => {
                                   setSelectedSubjectForRemark('general');
                                   setSelectedStudentForRemark(null);
                                   setIsPositiveRemark(true);
-                                  // Show success message (you can add toast here)
+                                  await fetchTrackProgressRemarks();
+                                  if (studentsSubTab === 'track-progress') {
+                                    fetchAiProgressInsights(trackProgressFilteredStudents);
+                                  }
                                   alert('Remark added successfully!');
                                 } else {
                                   alert(data.message || 'Failed to add remark');
@@ -2954,7 +3234,7 @@ const TeacherDashboard = () => {
                           </div>
                           <div>
                             <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Track Student Progress</h2>
-                            <p className="text-gray-600">Monitor and analyze student performance over time</p>
+                            <p className="text-gray-600">Exam results, usage, homework, remarks, and data-driven improvement analysis</p>
                           </div>
                         </div>
                       </div>
@@ -2978,7 +3258,13 @@ const TeacherDashboard = () => {
                             {/* Filter by Class */}
                             <div className="flex items-center gap-2">
                               <Label className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">Filter by Class:</Label>
-                              <Select value={filterByClass} onValueChange={setFilterByClass}>
+                              <Select
+                                value={filterByClass}
+                                onValueChange={(value) => {
+                                  setFilterByClass(value);
+                                  setFilterByStudent('all');
+                                }}
+                              >
                                 <SelectTrigger className="w-[180px] rounded-xl bg-white/70 border-gray-200">
                                   <SelectValue placeholder="All Classes" />
                                 </SelectTrigger>
@@ -3019,11 +3305,14 @@ const TeacherDashboard = () => {
                                       }
                                       return true;
                                     })
-                                    .map(student => (
-                                      <SelectItem key={student.id} value={student.id}>
-                                        {student.name || student.email}
-                                      </SelectItem>
-                                    ))}
+                                    .map(student => {
+                                      const sid = String(student.id || (student as { _id?: string })._id || '');
+                                      return (
+                                        <SelectItem key={sid} value={sid}>
+                                          {student.name || student.email}
+                                        </SelectItem>
+                                      );
+                                    })}
                                 </SelectContent>
                               </Select>
                             </div>
@@ -3056,412 +3345,17 @@ const TeacherDashboard = () => {
                         </div>
                       ) : (
                         <>
-                      {/* Visual Graphs and Analyses */}
-                      {(() => {
-                        // Apply filters
-                        let filteredStudents = students;
-                        
-                        // Filter by class
-                        if (filterByClass !== 'all') {
-                          filteredStudents = filteredStudents.filter(s => {
-                            const studentClass = s.classNumber || s.assignedClass?.classNumber;
-                            return studentClass === filterByClass;
-                          });
+                      <TeacherTrackProgressPanels
+                        students={trackProgressFilteredStudents}
+                        remarks={trackProgressRemarks}
+                        aiInsights={aiProgressInsights}
+                        isLoadingAi={isLoadingAiInsights}
+                        onRefreshAi={() => fetchAiProgressInsights(trackProgressFilteredStudents)}
+                        onFetchStudentInsights={(student) =>
+                          fetchAiProgressInsights([student], { updateGlobal: false })
                         }
-                        
-                        // Filter by student
-                        if (filterByStudent !== 'all') {
-                          filteredStudents = filteredStudents.filter(s => s.id === filterByStudent);
-                        }
-                        
-                        // Apply search term filter
-                        if (searchTerm) {
-                          const lowerSearch = searchTerm.toLowerCase();
-                          filteredStudents = filteredStudents.filter(s => {
-                            const name = (s.name || s.email || '').toLowerCase();
-                            const email = (s.email || '').toLowerCase();
-                            const phone = (s.phone || '').toLowerCase();
-                            return name.includes(lowerSearch) || email.includes(lowerSearch) || phone.includes(lowerSearch);
-                          });
-                        }
-                        
-                        // Calculate class-wide statistics
-                        const studentsWithData = filteredStudents.filter(s => {
-                          const perf = s.performance || {};
-                          return perf.totalExams > 0 || perf.overallProgress > 0 || (perf.dailyAverageWatchTime && perf.dailyAverageWatchTime > 0);
-                        });
-
-                        // Exam Performance Analysis
-                        const examPerformanceData = [
-                          {
-                            category: 'Excellent (≥70%)',
-                            count: filteredStudents.filter(s => {
-                              const perf = s.performance || {};
-                              return perf.averagePercentage && perf.averagePercentage >= 70;
-                            }).length,
-                            color: '#10b981'
-                          },
-                          {
-                            category: 'Good (50-69%)',
-                            count: filteredStudents.filter(s => {
-                              const perf = s.performance || {};
-                              return perf.averagePercentage && perf.averagePercentage >= 50 && perf.averagePercentage < 70;
-                            }).length,
-                            color: '#f59e0b'
-                          },
-                          {
-                            category: 'Needs Improvement (<50%)',
-                            count: filteredStudents.filter(s => {
-                              const perf = s.performance || {};
-                              return perf.averagePercentage && perf.averagePercentage < 50;
-                            }).length,
-                            color: '#ef4444'
-                          },
-                          {
-                            category: 'No Exams',
-                            count: filteredStudents.filter(s => {
-                              const perf = s.performance || {};
-                              return !perf.averagePercentage || perf.totalExams === 0;
-                            }).length,
-                            color: '#9ca3af'
-                          }
-                        ];
-
-                        const avgExamScore = studentsWithData.length > 0
-                          ? studentsWithData.reduce((sum, s) => {
-                              const perf = s.performance || {};
-                              return sum + (perf.averagePercentage || 0);
-                            }, 0) / studentsWithData.filter(s => (s.performance || {}).averagePercentage).length
-                          : 0;
-
-                        // Progress Distribution
-                        const progressDistribution = [
-                          {
-                            name: 'Excellent (≥70%)',
-                            value: filteredStudents.filter(s => {
-                              const perf = s.performance || {};
-                              return perf.overallProgress && perf.overallProgress >= 70;
-                            }).length,
-                            color: '#10b981'
-                          },
-                          {
-                            name: 'Good (50-69%)',
-                            value: filteredStudents.filter(s => {
-                              const perf = s.performance || {};
-                              return perf.overallProgress && perf.overallProgress >= 50 && perf.overallProgress < 70;
-                            }).length,
-                            color: '#f59e0b'
-                          },
-                          {
-                            name: 'Needs Improvement (<50%)',
-                            value: filteredStudents.filter(s => {
-                              const perf = s.performance || {};
-                              return !perf.overallProgress || perf.overallProgress < 50;
-                            }).length,
-                            color: '#ef4444'
-                          }
-                        ];
-
-                        const avgProgress = studentsWithData.length > 0
-                          ? studentsWithData.reduce((sum, s) => {
-                              const perf = s.performance || {};
-                              return sum + (perf.overallProgress || 0);
-                            }, 0) / studentsWithData.length
-                          : 0;
-
-                        // Watch Time Analysis
-                        const watchTimeData = filteredStudents
-                          .filter(s => {
-                            const perf = s.performance || {};
-                            return perf.dailyAverageWatchTime && perf.dailyAverageWatchTime > 0;
-                          })
-                          .map(s => ({
-                            name: s.name || s.fullName || 'Student',
-                            watchTime: (s.performance || {}).dailyAverageWatchTime || 0
-                          }))
-                          .sort((a, b) => b.watchTime - a.watchTime)
-                          .slice(0, 10); // Top 10 students
-
-                        const avgWatchTime = studentsWithData.length > 0
-                          ? studentsWithData.reduce((sum, s) => {
-                              const perf = s.performance || {};
-                              return sum + (perf.dailyAverageWatchTime || 0);
-                            }, 0) / studentsWithData.filter(s => (s.performance || {}).dailyAverageWatchTime).length
-                          : 0;
-
-                        const watchTimeDistribution = [
-                          {
-                            range: '0-15 min',
-                            count: filteredStudents.filter(s => {
-                              const perf = s.performance || {};
-                              const time = perf.dailyAverageWatchTime || 0;
-                              return time > 0 && time <= 15;
-                            }).length,
-                            color: '#ef4444'
-                          },
-                          {
-                            range: '16-30 min',
-                            count: filteredStudents.filter(s => {
-                              const perf = s.performance || {};
-                              const time = perf.dailyAverageWatchTime || 0;
-                              return time > 15 && time <= 30;
-                            }).length,
-                            color: '#f59e0b'
-                          },
-                          {
-                            range: '31-60 min',
-                            count: filteredStudents.filter(s => {
-                              const perf = s.performance || {};
-                              const time = perf.dailyAverageWatchTime || 0;
-                              return time > 30 && time <= 60;
-                            }).length,
-                            color: '#3b82f6'
-                          },
-                          {
-                            range: '60+ min',
-                            count: filteredStudents.filter(s => {
-                              const perf = s.performance || {};
-                              const time = perf.dailyAverageWatchTime || 0;
-                              return time > 60;
-                            }).length,
-                            color: '#10b981'
-                          },
-                          {
-                            range: 'No Data',
-                            count: filteredStudents.filter(s => {
-                              const perf = s.performance || {};
-                              return !perf.dailyAverageWatchTime || perf.dailyAverageWatchTime === 0;
-                            }).length,
-                            color: '#9ca3af'
-                          }
-                        ];
-
-                        return (
-                          <div id="teacher-progress-analytics" className="space-y-4 sm:space-y-6 lg:space-y-8 scroll-mt-24">
-                            {/* Class Performance Summary */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:p-4 lg:p-6">
-                              <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
-                              >
-                                <div className="flex items-center justify-between mb-4">
-                                  <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl">
-                                    <Target className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                                      {avgExamScore.toFixed(1)}%
-                                    </p>
-                                    <p className="text-xs sm:text-sm text-gray-600">Avg Exam Score</p>
-                                  </div>
-                                </div>
-                                <p className="text-xs text-gray-500">
-                                  {studentsWithData.filter(s => (s.performance || {}).averagePercentage).length} students with exam data
-                                </p>
-                              </motion.div>
-
-                              <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.1 }}
-                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
-                              >
-                                <div className="flex items-center justify-between mb-4">
-                                  <div className="p-3 bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl">
-                                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                                      {avgProgress.toFixed(1)}%
-                                    </p>
-                                    <p className="text-xs sm:text-sm text-gray-600">Avg Progress</p>
-                                  </div>
-                                </div>
-                                <p className="text-xs text-gray-500">
-                                  {studentsWithData.length} students tracked
-                                </p>
-                              </motion.div>
-
-                              <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2 }}
-                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
-                              >
-                                <div className="flex items-center justify-between mb-4">
-                                  <div className="p-3 bg-gradient-to-br from-purple-400 to-pink-400 rounded-xl">
-                                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                                      {avgWatchTime.toFixed(1)} min
-                                    </p>
-                                    <p className="text-xs sm:text-sm text-gray-600">Avg Watch Time</p>
-                                  </div>
-                                </div>
-                                <p className="text-xs text-gray-500">
-                                  {studentsWithData.filter(s => (s.performance || {}).dailyAverageWatchTime).length} students with watch data
-                                </p>
-                              </motion.div>
-                            </div>
-
-                            {/* Charts Grid */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6">
-                              {/* Exam Performance Distribution */}
-                              <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
-                              >
-                                <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                  <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
-                                  Exam Performance Distribution
-                                </h3>
-                                <ChartContainer
-                                  config={{
-                                    count: { label: "Students", color: "hsl(var(--chart-1))" }
-                                  }}
-                                  className="h-[300px]"
-                                >
-                                  <BarChart data={examPerformanceData}>
-                                    <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
-                                    <XAxis 
-                                      dataKey="category" 
-                                      tick={{ fill: '#6b7280', fontSize: 12 }}
-                                      angle={-45}
-                                      textAnchor="end"
-                                      height={80}
-                                    />
-                                    <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} />
-                                    <ChartTooltip content={<ChartTooltipContent />} />
-                                    <Bar dataKey="count" radius={[8, 8, 0, 0]}>
-                                      {examPerformanceData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                      ))}
-                                    </Bar>
-                                  </BarChart>
-                                </ChartContainer>
-                                <div className="mt-4 text-xs sm:text-sm text-gray-600">
-                                  <p>Total students with exams: {students.filter(s => (s.performance || {}).totalExams > 0).length}</p>
-                                </div>
-                              </motion.div>
-
-                              {/* Progress Distribution Pie Chart */}
-                              <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.1 }}
-                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
-                              >
-                                <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                  <Target className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
-                                  Overall Progress Distribution
-                                </h3>
-                                <ChartContainer
-                                  config={{
-                                    excellent: { label: "Excellent", color: "#10b981" },
-                                    good: { label: "Good", color: "#f59e0b" },
-                                    needsImprovement: { label: "Needs Improvement", color: "#ef4444" }
-                                  }}
-                                  className="h-[300px]"
-                                >
-                                  <PieChart>
-                                    <Pie
-                                      data={progressDistribution}
-                                      dataKey="value"
-                                      nameKey="name"
-                                      cx="50%"
-                                      cy="50%"
-                                      outerRadius={100}
-                                      label={({ name, value, percent }) => `${name}: ${value} (${(percent * 100).toFixed(0)}%)`}
-                                    >
-                                      {progressDistribution.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                      ))}
-                                    </Pie>
-                                    <ChartTooltip content={<ChartTooltipContent />} />
-                                  </PieChart>
-                                </ChartContainer>
-                                <div className="mt-4 text-xs sm:text-sm text-gray-600">
-                                  <p>Total students: {students.length}</p>
-                                </div>
-                              </motion.div>
-
-                              {/* Watch Time Distribution */}
-                              <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.2 }}
-                                className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
-                              >
-                                <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
-                                  Daily Watch Time Distribution
-                                </h3>
-                                <ChartContainer
-                                  config={{
-                                    count: { label: "Students", color: "hsl(var(--chart-1))" }
-                                  }}
-                                  className="h-[300px]"
-                                >
-                                  <BarChart data={watchTimeDistribution}>
-                                    <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
-                                    <XAxis 
-                                      dataKey="range" 
-                                      tick={{ fill: '#6b7280', fontSize: 12 }}
-                                    />
-                                    <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} />
-                                    <ChartTooltip content={<ChartTooltipContent />} />
-                                    <Bar dataKey="count" radius={[8, 8, 0, 0]}>
-                                      {watchTimeDistribution.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                      ))}
-                                    </Bar>
-                                  </BarChart>
-                                </ChartContainer>
-                                <div className="mt-4 text-xs sm:text-sm text-gray-600">
-                                  <p>Students with watch data: {students.filter(s => (s.performance || {}).dailyAverageWatchTime).length}</p>
-                                </div>
-                              </motion.div>
-
-                              {/* Top Watch Time Students */}
-                              {watchTimeData.length > 0 && (
-                                <motion.div
-                                  initial={{ opacity: 0, y: 20 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  transition={{ delay: 0.3 }}
-                                  className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
-                                >
-                                  <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
-                                    Top 10 Watch Time Leaders
-                                  </h3>
-                                  <ChartContainer
-                                    config={{
-                                      watchTime: { label: "Watch Time (min)", color: "#8b5cf6" }
-                                    }}
-                                    className="h-[300px]"
-                                  >
-                                    <BarChart data={watchTimeData} layout="vertical">
-                                      <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
-                                      <XAxis type="number" tick={{ fill: '#6b7280', fontSize: 12 }} />
-                                      <YAxis 
-                                        type="category" 
-                                        dataKey="name" 
-                                        tick={{ fill: '#6b7280', fontSize: 11 }}
-                                        width={120}
-                                      />
-                                      <ChartTooltip content={<ChartTooltipContent />} />
-                                      <Bar dataKey="watchTime" radius={[0, 8, 8, 0]} fill="#8b5cf6" />
-                                    </BarChart>
-                                  </ChartContainer>
-                                </motion.div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })()}
+                        getStudentHomeworkStats={getStudentHomeworkStatsForPanel}
+                      />
 
                       {/* Progress Overview Cards */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:p-4 lg:p-6">
@@ -3723,26 +3617,7 @@ const TeacherDashboard = () => {
                                             size="sm"
                                             variant="outline"
                                             className="h-8 rounded-lg border-indigo-200 bg-white text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
-                                            onClick={() => {
-                                              const sid = student.id || student._id;
-                                              const classNum =
-                                                student.classNumber ||
-                                                student.assignedClass?.classNumber;
-                                              if (classNum != null && String(classNum).trim() !== '') {
-                                                setFilterByClass(String(classNum));
-                                              } else {
-                                                setFilterByClass('all');
-                                              }
-                                              setFilterByStudent(String(sid));
-                                              window.setTimeout(() => {
-                                                document
-                                                  .getElementById('teacher-progress-analytics')
-                                                  ?.scrollIntoView({
-                                                    behavior: 'smooth',
-                                                    block: 'start',
-                                                  });
-                                              }, 120);
-                                            }}
+                                            onClick={() => openStudentProgressDetail(student)}
                                           >
                                             <Eye className="mr-1 h-3.5 w-3.5" aria-hidden />
                                             View
@@ -4555,6 +4430,55 @@ const TeacherDashboard = () => {
         </DialogContent>
       </Dialog>
 
+
+      {/* Student progress detail (Track Progress → View) */}
+      <Dialog
+        open={isProgressDetailOpen}
+        onOpenChange={(open) => {
+          setIsProgressDetailOpen(open);
+          if (!open) {
+            setProgressDetailStudent(null);
+            setDetailAiInsights('');
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {progressDetailStudent?.name ||
+                progressDetailStudent?.fullName ||
+                progressDetailStudent?.email ||
+                'Student progress'}
+            </DialogTitle>
+            <DialogDescription>
+              Exam performance, platform usage, homework, remarks, and improvement analysis
+            </DialogDescription>
+          </DialogHeader>
+          {progressDetailStudent && (
+            <TeacherTrackProgressPanels
+              students={[progressDetailStudent]}
+              remarks={trackProgressRemarks}
+              aiInsights={detailAiInsights}
+              isLoadingAi={isLoadingDetailAi}
+              onRefreshAi={async () => {
+                setIsLoadingDetailAi(true);
+                try {
+                  const insights = await fetchAiProgressInsights([progressDetailStudent], {
+                    updateGlobal: false,
+                  });
+                  setDetailAiInsights(insights);
+                } finally {
+                  setIsLoadingDetailAi(false);
+                }
+              }}
+              onFetchStudentInsights={(student) =>
+                fetchAiProgressInsights([student], { updateGlobal: false })
+              }
+              getStudentHomeworkStats={getStudentHomeworkStatsForPanel}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Video Viewer Modal */}
       <Dialog open={isVideoViewerOpen} onOpenChange={setIsVideoViewerOpen}>
