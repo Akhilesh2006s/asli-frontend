@@ -392,6 +392,88 @@ export default function CalendarView({
 
   const getContentTypeLabel = (type: string): string => type?.trim() || 'Content';
 
+  const CONTENT_TYPE_ORDER: ContentItem['type'][] = [
+    'Video',
+    'TextBook',
+    'Workbook',
+    'Material',
+    'Audio',
+    'Homework',
+  ];
+
+  const groupedByType = sortedContents.reduce<Record<string, ContentItem[]>>((acc, content) => {
+    const type = content.type || 'Content';
+    if (!acc[type]) acc[type] = [];
+    acc[type].push(content);
+    return acc;
+  }, {});
+
+  const contentTypeSections = [
+    ...CONTENT_TYPE_ORDER.filter((type) => groupedByType[type]?.length),
+    ...Object.keys(groupedByType).filter(
+      (type) => !CONTENT_TYPE_ORDER.includes(type as ContentItem['type']),
+    ),
+  ];
+
+  const renderContentCard = (content: ContentItem) => {
+    const Icon = getContentIcon(content.type);
+    const isDone = markedDone.has(content._id);
+
+    return (
+      <div
+        key={content._id}
+        className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+        onClick={() => handleContentClick(content)}
+      >
+        <div className="flex items-center space-x-3 flex-1">
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="font-medium text-gray-900 text-xs sm:text-sm">{content.title}</h4>
+            {content.description && (
+              <p className="text-xs text-gray-500 mt-1">{content.description}</p>
+            )}
+          </div>
+        </div>
+        {onMarkAsDone && (
+          <div className="flex items-center space-x-2">
+            {isDone ? (
+              <Button
+                size="sm"
+                className="bg-green-500 hover:bg-green-600 text-white"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMarkAsDone(content._id);
+                }}
+              >
+                <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                Done
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMarkAsDone(content._id);
+                }}
+              >
+                Mark as done
+              </Button>
+            )}
+          </div>
+        )}
+        {content.deadline && content.type === 'Homework' && (
+          <Badge className="bg-orange-100 text-orange-700 text-xs ml-2">
+            Deadline: {new Date(content.deadline).toLocaleDateString()}
+          </Badge>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-3">
       {isLoading ? (
@@ -406,70 +488,18 @@ export default function CalendarView({
           <p className="text-gray-600">Content will appear here once it's uploaded.</p>
         </div>
       ) : (
-        sortedContents.map((content) => {
-          const Icon = getContentIcon(content.type);
-          const isDone = markedDone.has(content._id);
-          const contentTypeLabel = getContentTypeLabel(content.type);
-
-          return (
-            <div
-              key={content._id}
-              className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-              onClick={() => handleContentClick(content)}
-            >
-              <div className="flex items-center space-x-3 flex-1">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <span className="text-xs font-medium text-gray-500">
-                      {contentTypeLabel}
-                    </span>
-                  </div>
-                  <h4 className="font-medium text-gray-900 text-xs sm:text-sm">{content.title}</h4>
-                  {content.description && (
-                    <p className="text-xs text-gray-500 mt-1">{content.description}</p>
-                  )}
-                </div>
+        <div className="space-y-6">
+          {contentTypeSections.map((type) => (
+            <section key={type} className="space-y-2">
+              <h3 className="text-sm sm:text-base font-semibold text-gray-900">
+                {getContentTypeLabel(type)}
+              </h3>
+              <div className="space-y-2">
+                {groupedByType[type].map((content) => renderContentCard(content))}
               </div>
-              {onMarkAsDone && (
-                <div className="flex items-center space-x-2">
-                  {isDone ? (
-                    <Button
-                      size="sm"
-                      className="bg-green-500 hover:bg-green-600 text-white"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMarkAsDone(content._id);
-                      }}
-                    >
-                      <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                      Done
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMarkAsDone(content._id);
-                      }}
-                    >
-                      Mark as done
-                    </Button>
-                  )}
-                </div>
-              )}
-              {content.deadline && content.type === 'Homework' && (
-                <Badge className="bg-orange-100 text-orange-700 text-xs ml-2">
-                  Deadline: {new Date(content.deadline).toLocaleDateString()}
-                </Badge>
-              )}
-            </div>
-          );
-        })
+            </section>
+          ))}
+        </div>
       )}
 
       {/* Preview Dialog */}
