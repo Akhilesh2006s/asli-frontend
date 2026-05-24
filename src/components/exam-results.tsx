@@ -19,17 +19,19 @@ import {
   Eye
 } from 'lucide-react';
 
+type QuestionOption = string | { text: string; isCorrect?: boolean; _id?: string };
+
 interface Question {
   _id: string;
   questionText: string;
   questionImage?: string;
   questionType: 'mcq' | 'multiple' | 'integer';
-  options?: string[];
-  correctAnswer: string | string[];
+  options?: QuestionOption[];
+  correctAnswer: string | string[] | QuestionOption | QuestionOption[];
   marks: number;
   negativeMarks: number;
   explanation?: string;
-  subject: 'maths' | 'physics' | 'chemistry' | 'biology';
+  subject: string;
 }
 
 interface ExamResult {

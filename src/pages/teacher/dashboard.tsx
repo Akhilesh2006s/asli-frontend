@@ -2076,7 +2076,7 @@ const TeacherDashboard = () => {
                 variant="ghost" 
                 size="sm"
                 onClick={handleLogout}
-                className="bg-white/90 text-sky-600 hover:bg-white rounded-full border-2 border-teal-400 backdrop-blur-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 w-auto"
+                className="rounded-full border-2 border-white/80 bg-orange-500 px-4 text-white shadow-lg transition-all duration-300 hover:scale-105 hover:bg-orange-600 hover:shadow-xl w-auto font-semibold"
               >
                 <LogOut className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Logout

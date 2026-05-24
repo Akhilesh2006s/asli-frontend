@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, type ComponentProps } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,26 +33,27 @@ import StudentRanking from '@/components/student/student-ranking';
 import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
 import { API_BASE_URL, apiFetch } from '@/lib/api-config';
 import {
-  CLASS_FILTER_OPTIONS,
-  examMatchesStudentClassFilter,
-  getExamClassStrings,
+  examMatchesStudentAssignedClass,
+  getExamClassLabelsForStudent,
   normalizeClassNumber,
 } from '@/lib/exam-classes';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { dedupeStudentExamResults } from '@/lib/dedupe-exam-results';
 import { getUserIdFromAuthToken } from '@/lib/auth-utils';
 
+type QuestionOption = string | { text: string; isCorrect?: boolean; _id?: string };
+
 interface Question {
   _id: string;
   questionText: string;
   questionImage?: string;
   questionType: 'mcq' | 'multiple' | 'integer';
-  options?: string[];
-  correctAnswer: string | string[];
+  options?: QuestionOption[];
+  correctAnswer: string | string[] | QuestionOption | QuestionOption[];
   marks: number;
   negativeMarks: number;
   explanation?: string;
-  subject: 'maths' | 'physics' | 'chemistry' | 'biology';
+  subject: string;
 }
 
 interface Exam {
@@ -78,6 +79,7 @@ interface Exam {
 interface ExamResult {
   _id?: string;
   examId: string;
+  examTitle?: string;
   attemptNumber?: number;
   totalQuestions: number;
   correctAnswers: number;
@@ -87,14 +89,19 @@ interface ExamResult {
   obtainedMarks: number;
   percentage: number;
   timeTaken: number;
+  completedAt?: string;
   subjectWiseScore: {
     maths: { correct: number; total: number; marks: number };
     physics: { correct: number; total: number; marks: number };
     chemistry: { correct: number; total: number; marks: number };
+    biology?: { correct: number; total: number; marks: number };
   };
-  answers?: Record<string, any>;
+  answers?: Record<string, unknown>;
   questions?: Question[];
+  questionTimings?: Record<string, number>;
 }
+
+type ExamResultsResultProp = ComponentProps<typeof ExamResults>['result'];
 
 function getExamResultRowId(result: any): string {
   const id = result?._id ?? result?.id;
@@ -129,14 +136,12 @@ export default function StudentExams() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<string>('available');
-  const [examClassFilter, setExamClassFilter] = useState<string>('my');
   const [examSubjectFilter, setExamSubjectFilter] = useState<string>('all');
   const [startingExamId, setStartingExamId] = useState<string | null>(null);
   const [postExamVidyaPrompt, setPostExamVidyaPrompt] = useState('');
   const [postExamPromptId, setPostExamPromptId] = useState<string | null>(null);
   /** Per-exam selected attempt row id on Attempted Exams cards */
   const [selectedAttemptByExam, setSelectedAttemptByExam] = useState<Record<string, string>>({});
-  const didInitClassFilter = useRef(false);
   const pendingOpenExamIdRef = useRef<string | null>(null);
   const [calendarFocusExam, setCalendarFocusExam] = useState<{
     examId: string;
@@ -158,11 +163,7 @@ export default function StudentExams() {
     setter(value);
   };
 
-  useEffect(() => {
-    if (didInitClassFilter.current || !user?.classNumber) return;
-    didInitClassFilter.current = true;
-    setExamClassFilter('my');
-  }, [user?.classNumber]);
+  const studentClassNumber = normalizeClassNumber(user?.classNumber);
 
   /** Stable id for React Query keys so another user's cached exam/results never flash after login switch. */
   const studentId =
@@ -374,39 +375,10 @@ export default function StudentExams() {
     }
   }, [exams, isLoading]);
 
-  const allowedClassFilterOptions = useMemo(() => {
-    const normalizedUserClass = normalizeClassNumber(user?.classNumber);
-    const userClassNumber = Number(normalizedUserClass);
-    if (!normalizedUserClass || Number.isNaN(userClassNumber)) {
-      return [...CLASS_FILTER_OPTIONS];
-    }
-    return CLASS_FILTER_OPTIONS.filter((c) => Number(c) <= userClassNumber);
-  }, [user?.classNumber]);
-
-  const examMatchesEligibleStudentClass = (exam: Exam) => {
-    const normalizedUserClass = normalizeClassNumber(user?.classNumber);
-    const userClassNumber = Number(normalizedUserClass);
-    if (!normalizedUserClass || Number.isNaN(userClassNumber)) return true;
-    const examClasses = getExamClassStrings(exam);
-    if (examClasses.length === 0) return true;
-    return examClasses.some((c) => Number(c) <= userClassNumber);
-  };
-
   const classFilteredExams = useMemo(
-    () =>
-      exams.filter((e: Exam) => {
-        if (!examMatchesEligibleStudentClass(e)) return false;
-        return examMatchesStudentClassFilter(e, examClassFilter, user?.classNumber);
-      }),
-    [exams, examClassFilter, user?.classNumber]
+    () => exams.filter((e: Exam) => examMatchesStudentAssignedClass(e, user?.classNumber)),
+    [exams, user?.classNumber]
   );
-
-  useEffect(() => {
-    if (examClassFilter === 'all' || examClassFilter === 'my') return;
-    if (!allowedClassFilterOptions.includes(examClassFilter as any)) {
-      setExamClassFilter('my');
-    }
-  }, [allowedClassFilterOptions, examClassFilter]);
 
   const getExamSubjects = (exam: Exam): string[] => {
     const qSubjects = Array.isArray(exam.questions)
@@ -555,6 +527,7 @@ export default function StudentExams() {
       if (examSubjectFilter === 'all') return true;
       const catalogExam = exams.find((e: Exam) => String(e._id) === String(examIdStr));
       if (!catalogExam) return true;
+      if (!examMatchesStudentAssignedClass(catalogExam, user?.classNumber)) return false;
       return getExamSubjects(catalogExam).includes(String(examSubjectFilter).toLowerCase());
     });
 
@@ -599,15 +572,15 @@ export default function StudentExams() {
       list.push(result);
       map.set(key, list);
     }
-    for (const [key, list] of map) {
-      list.sort((a, b) => {
+    Array.from(map.entries()).forEach(([key, list]) => {
+      list.sort((a: { attemptNumber?: number; completedAt?: string }, b: { attemptNumber?: number; completedAt?: string }) => {
         const attA = Number(a.attemptNumber) >= 1 ? Number(a.attemptNumber) : 1;
         const attB = Number(b.attemptNumber) >= 1 ? Number(b.attemptNumber) : 1;
         if (attB !== attA) return attB - attA;
         return new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime();
       });
       map.set(key, list);
-    }
+    });
     return map;
   }, [dedupedExamResults, exams, examSubjectFilter, getExamIdFromResult]);
 
@@ -733,28 +706,22 @@ export default function StudentExams() {
     }
   };
 
-  const handleExamComplete = async (result: ExamResult) => {
+  const finishExamAfterSubmit = async (result: ExamResult) => {
     await exitFullscreenIfActive();
-    // Show full results + analytics screen immediately after submission.
     setExamResult(result);
     setIsTakingExam(false);
     setActiveTab('attempted');
-    
-    // Invalidate and refetch exam results to update the UI
-    console.log('🔄 Invalidating exam results query after exam completion');
-    console.log('📋 Exam result data:', result);
 
-    // Refresh data in background so result UI appears immediately.
     await Promise.allSettled([
       queryClient.invalidateQueries({ queryKey: ['/api/student/exam-results'] }),
       queryClient.invalidateQueries({ queryKey: ['/api/student/exams'] }),
       refetchResults(),
       queryClient.refetchQueries({ queryKey: ['/api/student/exams', effectiveStudentId] }),
     ]);
-    
-    console.log('✅ Exam results query invalidated and refetched');
-    console.log('📋 Current results after refetch:', results?.data?.length || 0);
-    console.log('🔄 Showing full exam results screen');
+  };
+
+  const handleExamComplete = (result: ExamResult) => {
+    void finishExamAfterSubmit(result);
   };
 
   const handleExitExam = () => {
@@ -882,7 +849,7 @@ export default function StudentExams() {
           </div>
         )}
         <ExamResults
-          result={examResult}
+          result={examResult as ExamResultsResultProp}
           examTitle={currentExam.title}
           onRetake={handleRetakeExam}
           onViewAnalysis={() => {}}
@@ -978,28 +945,14 @@ export default function StudentExams() {
           <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent mb-2">Exams</h1>
           <p className="text-gray-600">Take practice exams and track your progress</p>
           <div className="flex flex-wrap items-center gap-2 mt-4">
-            <Label htmlFor="exam-class-filter" className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">
-              Class
-            </Label>
-            <Select
-              value={examClassFilter}
-              onValueChange={(value) => preserveScrollOnFilterChange(setExamClassFilter, value)}
-            >
-              <SelectTrigger id="exam-class-filter" className="w-full sm:w-[220px] bg-white">
-                <SelectValue placeholder="All classes" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All eligible classes</SelectItem>
-                {user?.classNumber ? (
-                  <SelectItem value="my">My class ({normalizeClassNumber(user.classNumber) || String(user.classNumber)})</SelectItem>
-                ) : null}
-                {allowedClassFilterOptions.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    Class {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {studentClassNumber ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Class</span>
+                <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 font-medium">
+                  Class {studentClassNumber}
+                </Badge>
+              </div>
+            ) : null}
             <Label htmlFor="exam-subject-filter" className="text-xs sm:text-sm text-gray-600 whitespace-nowrap sm:ml-2">
               Subject
             </Label>
@@ -1075,7 +1028,7 @@ export default function StudentExams() {
                   { bg: 'from-teal-400 to-teal-500', text: 'text-white', badge: 'bg-teal-500/20 text-teal-100' }
                 ];
                 const colorScheme = colorSchemes[index % 3];
-                const classLabels = getExamClassStrings(exam);
+                const classLabels = getExamClassLabelsForStudent(exam, user?.classNumber);
                 const hydratedQuestionCount = Array.isArray(exam.questions) ? exam.questions.length : Number(exam.totalQuestions || 0);
                 
                 return (
@@ -1190,7 +1143,7 @@ export default function StudentExams() {
                   { bg: 'from-teal-400 to-teal-500', text: 'text-white', badge: 'bg-teal-500/20 text-teal-100' }
                 ];
                 const colorScheme = colorSchemes[index % 3];
-                const classLabelsAttempted = getExamClassStrings(exam);
+                const classLabelsAttempted = getExamClassLabelsForStudent(exam, user?.classNumber);
                 const attemptHistory = attemptHistoryByExamId.get(examIdStr) || [result];
                 const totalAttempts = attemptHistory.length;
                 const selectedRowId = selectedAttemptByExam[examIdStr];
@@ -1450,7 +1403,7 @@ export default function StudentExams() {
                   { bg: 'from-teal-400 to-teal-500', text: 'text-white', badge: 'bg-teal-500/20 text-teal-100' }
                 ];
                 const colorScheme = colorSchemes[index % 3];
-                const classLabelsUpcoming = getExamClassStrings(exam);
+                const classLabelsUpcoming = getExamClassLabelsForStudent(exam, user?.classNumber);
                 const isCalendarFocus =
                   calendarFocusExam?.examId === String(exam._id) && calendarFocusExam.mode === 'upcoming';
                 

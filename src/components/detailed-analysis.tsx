@@ -46,17 +46,19 @@ import {
   Gem,
 } from 'lucide-react';
 
+type QuestionOption = string | { text: string; isCorrect?: boolean; _id?: string };
+
 interface Question {
   _id: string;
   questionText: string;
   questionImage?: string;
   questionType: 'mcq' | 'multiple' | 'integer';
-  options?: Array<{ text: string; isCorrect: boolean; _id?: string }> | string[];
-  correctAnswer: string | string[] | { text: string; isCorrect: boolean; _id?: string };
+  options?: QuestionOption[];
+  correctAnswer: string | string[] | QuestionOption | QuestionOption[];
   marks: number;
   negativeMarks: number;
   explanation?: string;
-  subject: 'maths' | 'physics' | 'chemistry' | 'biology';
+  subject: string;
 }
 
 interface ExamResult {

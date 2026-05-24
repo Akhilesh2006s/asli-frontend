@@ -722,48 +722,48 @@ const UserManagement = () => {
       </div>
 
       <div className="pt-3 border-t border-sky-200 space-y-2 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center gap-1.5">
           <Button
             variant="ghost"
             size="sm"
-            className="text-sky-600 hover:text-blue-700 hover:bg-blue-100/50 rounded-lg h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 p-0"
+            className="text-sky-600 hover:text-blue-700 hover:bg-blue-100/50 rounded-lg h-9 w-9 sm:h-10 sm:w-10 p-0"
             onClick={() => handleEditStudent(student)}
             title="Edit Details"
           >
-            <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+            <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="text-sky-600 hover:text-red-700 hover:bg-red-100/50 rounded-lg h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 p-0"
+            className="text-sky-600 hover:text-red-700 hover:bg-red-100/50 rounded-lg h-9 w-9 sm:h-10 sm:w-10 p-0"
             onClick={() => handleDeleteStudent(student.id, student.name || 'Unknown Student')}
             title="Delete"
           >
-            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+            <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="text-orange-600 hover:text-orange-700 hover:bg-orange-100/50 rounded-lg h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 p-0"
+            className="text-orange-600 hover:text-orange-700 hover:bg-orange-100/50 rounded-lg h-9 w-9 sm:h-10 sm:w-10 p-0"
             onClick={() => {
               setSelectedStudentForAnalysis(student);
               setIsRiskAnalysisModalOpen(true);
             }}
             title="AI Risk Analysis"
           >
-            <Brain className="w-3 h-3 sm:w-4 sm:h-4" />
+            <Brain className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
         </div>
         <Button
           variant="outline"
           size="sm"
-          className="w-full sm:w-auto text-sky-600 hover:text-sky-800 border-sky-200 hover:bg-sky-50 rounded-lg h-8 text-xs"
+          className="w-full sm:w-auto text-sky-600 hover:text-sky-800 border-sky-200 hover:bg-sky-50 rounded-lg h-9 text-xs sm:text-sm"
           onClick={() => {
             setSelectedStudentForClass(student);
             setIsAssignClassDialogOpen(true);
           }}
         >
-          <GraduationCap className="w-3.5 h-3.5 mr-1.5" />
+          <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5" />
           Assign Class
         </Button>
       </div>

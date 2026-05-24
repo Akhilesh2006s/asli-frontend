@@ -3,6 +3,14 @@
  * Tracks study time using timestamps and ignores time when app is in background
  */
 
+/** YYYY-MM-DD in the user's local timezone (matches session-time API keys). */
+export function getLocalIsoDateKey(date: Date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 /**
  * Get user-specific storage key
  */

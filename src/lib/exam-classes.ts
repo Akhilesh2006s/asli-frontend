@@ -71,3 +71,25 @@ export function examMatchesStudentClassFilter(
   }
   return examIncludesClass(exam, filter);
 }
+
+/** Only exams explicitly assigned to the student's class. */
+export function examMatchesStudentAssignedClass(
+  exam: Partial<ExamClassLike>,
+  userClass?: string
+): boolean {
+  const c = normalizeClassNumber(userClass);
+  if (!c) return true;
+  const examClasses = getExamClassStrings(exam);
+  if (examClasses.length === 0) return false;
+  return examIncludesClass(exam, c);
+}
+
+/** Badge labels on student exam cards — student's class only. */
+export function getExamClassLabelsForStudent(
+  exam: Partial<ExamClassLike>,
+  userClass?: string
+): string[] {
+  const c = normalizeClassNumber(userClass);
+  if (!c || !examIncludesClass(exam, c)) return [];
+  return [c];
+}

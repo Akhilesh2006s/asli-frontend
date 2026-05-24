@@ -93,7 +93,8 @@ import {
   updateStudyTime,
   startSession,
   endSession,
-  getWeeklyStudyData
+  getWeeklyStudyData,
+  getLocalIsoDateKey,
 } from '@/utils/studyTimeTracker';
 import '@/utils/debugStudyTime'; // Load debug helper
 import {
@@ -134,10 +135,16 @@ function mergeDisplayedStudyTime(
     };
   }
   const deltaToday = Math.max(0, localTimes.today - baseline.localTodayAtLoad);
-  const today = capStudyMinutes(baseline.backendToday + deltaToday, MAX_STUDY_MINUTES_PER_DAY);
+  const mergedToday = capStudyMinutes(
+    Math.max(baseline.backendToday + deltaToday, localTimes.today),
+    MAX_STUDY_MINUTES_PER_DAY,
+  );
   const weekWithoutToday = Math.max(0, baseline.backendWeek - baseline.backendToday);
-  const thisWeek = capStudyMinutes(weekWithoutToday + today, MAX_STUDY_MINUTES_PER_WEEK);
-  return { today, thisWeek };
+  const thisWeek = capStudyMinutes(
+    Math.max(weekWithoutToday + mergedToday, localTimes.thisWeek),
+    MAX_STUDY_MINUTES_PER_WEEK,
+  );
+  return { today: mergedToday, thisWeek };
 }
 
 function collectCompletedContentIds(): Set<string> {
@@ -430,12 +437,14 @@ export default function Dashboard() {
     });
     return map;
   }, [homeworkSubmissions]);
-  const [studyTimeToday, setStudyTimeToday] = useState<number>(
-    () => initialDashboardStatsCache?.studyTimeToday ?? 0
-  );
-  const [studyTimeThisWeek, setStudyTimeThisWeek] = useState<number>(
-    () => initialDashboardStatsCache?.studyTimeThisWeek ?? 0
-  );
+  const [studyTimeToday, setStudyTimeToday] = useState<number>(() => {
+    const cached = initialDashboardStatsCache?.studyTimeToday ?? 0;
+    return Math.max(cached, getTodayStudyTime());
+  });
+  const [studyTimeThisWeek, setStudyTimeThisWeek] = useState<number>(() => {
+    const cached = initialDashboardStatsCache?.studyTimeThisWeek ?? 0;
+    return Math.max(cached, getWeeklyStudyTime());
+  });
   const [weeklyStudyData, setWeeklyStudyData] = useState<{ [key: string]: number }>({}); // Daily study time in minutes
   const sessionTimeBaselineRef = useRef(buildSessionTimeBaselineFromCache());
   const dashboardStatsCacheRef = useRef(initialDashboardStatsCache);
@@ -1052,7 +1061,7 @@ export default function Dashboard() {
       saveSessionInterval = setInterval(async () => {
         try {
           const { today } = getDisplayedStudyTime();
-          const dateKey = new Date().toISOString().split('T')[0];
+          const dateKey = getLocalIsoDateKey();
           const token = localStorage.getItem('authToken');
           if (token && today > 0) {
             await fetch(`${API_BASE_URL}/api/student/session-time`, {
@@ -1096,9 +1105,16 @@ export default function Dashboard() {
             const data = await response.json();
             if (data.success && data.data) {
               const localAtLoad = updateStudyTime();
+              const localTodayKey = getLocalIsoDateKey();
+              const weekly = data.data.weeklyData || {};
+              const todayFromWeekly = Number(weekly[localTodayKey]) || 0;
+              const backendToday = Math.max(
+                Number(data.data.today) || 0,
+                todayFromWeekly,
+              );
               sessionTimeBaselineRef.current = {
                 useBackend: true,
-                backendToday: data.data.today || 0,
+                backendToday,
                 backendWeek: data.data.thisWeek || 0,
                 localTodayAtLoad: localAtLoad.today,
                 localWeekAtLoad: localAtLoad.thisWeek,
@@ -1107,7 +1123,8 @@ export default function Dashboard() {
               if (data.data.weeklyData) {
                 const convertedWeeklyData: { [key: string]: number } = {};
                 Object.keys(data.data.weeklyData).forEach((dateKey) => {
-                  const date = new Date(dateKey);
+                  const [y, m, d] = dateKey.split('-').map(Number);
+                  const date = new Date(y, m - 1, d);
                   convertedWeeklyData[date.toDateString()] = data.data.weeklyData[dateKey];
                 });
                 if (!cancelled) setWeeklyStudyData(convertedWeeklyData);
@@ -1176,7 +1193,7 @@ export default function Dashboard() {
       
       // Save final session time before unmounting
       const finalTimes = trackingStarted ? getDisplayedStudyTime() : updateStudyTime();
-      const dateKey = new Date().toISOString().split('T')[0];
+      const dateKey = getLocalIsoDateKey();
       const token = localStorage.getItem('authToken');
       if (token && finalTimes.today > 0) {
         fetch(`${API_BASE_URL}/api/student/session-time`, {
@@ -1187,8 +1204,8 @@ export default function Dashboard() {
           },
           body: JSON.stringify({
             date: dateKey,
-            totalMinutes: finalTimes.today
-          })
+            totalMinutes: finalTimes.today,
+          }),
         }).catch(err => console.error('Failed to save final session time:', err));
       }
       
@@ -2079,16 +2096,21 @@ export default function Dashboard() {
                 </div>
                 <p className="text-xs sm:text-sm font-medium text-white/90 mb-4 pr-12">Efficiency</p>
                 {(() => {
+                  const { totalTodos, completedTodos } = dashboardTodoStats;
                   const efficiency =
-                    scheduleCompletionStats.total > 0
-                      ? scheduleCompletionStats.completionPercent
-                      : overallProgress > 0
-                        ? Math.round(overallProgress)
-                        : 0;
+                    totalTodos > 0
+                      ? Math.round((completedTodos / totalTodos) * 100)
+                      : scheduleCompletionStats.total > 0
+                        ? scheduleCompletionStats.completionPercent
+                        : overallProgress > 0
+                          ? Math.round(overallProgress)
+                          : 0;
                   const completedLabel =
-                    scheduleCompletionStats.total > 0
-                      ? `${scheduleCompletionStats.completed}/${scheduleCompletionStats.total} items done`
-                      : 'Content & quizzes';
+                    totalTodos > 0
+                      ? `${completedTodos}/${totalTodos} tasks done`
+                      : scheduleCompletionStats.total > 0
+                        ? `${scheduleCompletionStats.completed}/${scheduleCompletionStats.total} items done`
+                        : 'Content & quizzes';
                   return (
                     <>
                       <p className="text-2xl sm:text-3xl font-bold text-white mb-2 leading-tight">{efficiency}%</p>
