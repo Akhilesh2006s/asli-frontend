@@ -22,7 +22,6 @@ import {
   Trash2,
   AlertTriangle,
   UserPlus,
-  Calendar,
   Clock,
   Target,
   TrendingUp,
@@ -1154,24 +1153,6 @@ const ClassDashboard = () => {
                           <span>Teachers:</span>
                         </div>
                         <span className="font-medium text-sky-500 text-xs">No teachers assigned</span>
-                      </div>
-                    )}
-                    {classItem.schedule && (
-                      <div className="flex items-center justify-between text-xs sm:text-sm">
-                        <div className="flex items-center text-sky-700">
-                          <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600" />
-                          <span>Schedule:</span>
-                        </div>
-                        <span className="font-medium text-sky-900">{classItem.schedule}</span>
-                      </div>
-                    )}
-                    {classItem.room && (
-                      <div className="flex items-center justify-between text-xs sm:text-sm">
-                        <div className="flex items-center text-sky-700">
-                          <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600" />
-                          <span>Room:</span>
-                        </div>
-                        <span className="font-medium text-sky-900">{classItem.room}</span>
                       </div>
                     )}
                     {classItem.section && (

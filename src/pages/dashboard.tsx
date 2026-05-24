@@ -19,6 +19,7 @@ import {
   type ContentTypeName,
 } from "@/lib/school-program";
 import { StudentTeacherDiaryFeed } from "@/components/student/StudentTeacherDiaryFeed";
+import StudentTimetableView from "@/components/student/StudentTimetableView";
 import ProgressChart from "@/components/progress-chart";
 import { 
   CheckCircle, 
@@ -83,6 +84,9 @@ import DriveViewer from '@/components/drive-viewer';
 import VideoModal from '@/components/video-modal';
 import { API_BASE_URL, apiFetch, getStudentPdfPreviewIframeSrc } from '@/lib/api-config';
 import { buildExamCalendarEntries } from '@/lib/exam-calendar-entries';
+import { buildTimetableCalendarEntries } from '@/lib/timetable-calendar-entries';
+import { useTimetableEntries } from '@/hooks/useTimetable';
+import { format, startOfMonth, endOfMonth, startOfWeek, addDays, parseISO } from 'date-fns';
 import { collectVidyaSubjectLabels } from '@/lib/vidya-subjects';
 import { getUser as getStoredUser } from '@/lib/auth-utils';
 import { fetchAuthUser, peekCachedAuthUser } from '@/lib/auth-session';
@@ -510,6 +514,27 @@ export default function Dashboard() {
     const day = String(now.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   });
+
+  const calendarMonthStart = format(startOfMonth(calendarMonth), 'yyyy-MM-dd');
+  const calendarMonthEnd = format(endOfMonth(calendarMonth), 'yyyy-MM-dd');
+  const { data: timetableEntries = [], isLoading: timetableLoading } = useTimetableEntries({
+    startDate: calendarMonthStart,
+    endDate: calendarMonthEnd,
+  });
+
+  const timetableWeekStart = useMemo(
+    () => startOfWeek(selectedCalendarDate, { weekStartsOn: 1 }),
+    [selectedCalendarDate]
+  );
+
+  const handleTimetableWeekChange = (weekStart: Date) => {
+    setSelectedCalendarDate(weekStart);
+    setCalendarMonth(new Date(weekStart.getFullYear(), weekStart.getMonth(), 1));
+    const y = weekStart.getFullYear();
+    const m = String(weekStart.getMonth() + 1).padStart(2, '0');
+    const d = String(weekStart.getDate()).padStart(2, '0');
+    setCalendarJumpDate(`${y}-${m}-${d}`);
+  };
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -1895,9 +1920,10 @@ export default function Dashboard() {
       .filter(Boolean) as any[];
 
     const examEntries = buildExamCalendarEntries(exams);
+    const timetableCalendarEntries = buildTimetableCalendarEntries(timetableEntries);
 
-    return [...contentEntries, ...quizEntries, ...examEntries];
-  }, [incompleteContent, incompleteQuizzes, exams, getSubjectName]);
+    return [...contentEntries, ...quizEntries, ...examEntries, ...timetableCalendarEntries];
+  }, [incompleteContent, incompleteQuizzes, exams, getSubjectName, timetableEntries]);
 
   const entriesByDate = useMemo(() => {
     return calendarEntries.reduce((acc: Record<string, any[]>, entry: any) => {
@@ -1910,7 +1936,7 @@ export default function Dashboard() {
 
   const selectedDateEntries = useMemo(() => {
     const key = formatDateKey(selectedCalendarDate);
-    const entries = entriesByDate[key] || [];
+    const entries = (entriesByDate[key] || []).filter((e: { type?: string }) => e.type !== 'timetable');
     return [...entries].sort((a, b) => a.date.getTime() - b.date.getTime());
   }, [selectedCalendarDate, entriesByDate]);
 
@@ -2124,7 +2150,7 @@ export default function Dashboard() {
         </div>
 
         {/* Student Calendar + Timetable */}
-        <div className="mb-6 relative z-10">
+        <div className="mb-6 relative z-10 space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Card className="lg:col-span-2 bg-white rounded-xl shadow-md">
               <CardHeader className="pb-3">
@@ -2222,21 +2248,24 @@ export default function Dashboard() {
 
             <Card className="bg-white rounded-xl shadow-md">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">Timetable</CardTitle>
+                <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">Study & exams</CardTitle>
                 <p className="text-xs sm:text-sm text-gray-600">
                   {selectedCalendarDate.toLocaleDateString('en-US', {
                     weekday: 'long',
                     month: 'short',
                     day: 'numeric'
                   })}
+                  {' · '}Class timetable is in the table below
                 </p>
               </CardHeader>
               <CardContent className="space-y-3">
-                {selectedDateEntries.length === 0 ? (
+                {timetableLoading ? (
+                  <div className="h-20 bg-gray-100 animate-pulse rounded-lg" />
+                ) : selectedDateEntries.length === 0 ? (
                   <div className="text-center py-3 sm:py-4 lg:py-6">
                     <CalendarIcon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-gray-300 mx-auto mb-2" />
-                    <p className="text-xs sm:text-sm font-medium text-gray-600">No scheduled items</p>
-                    <p className="text-xs text-gray-500 mt-1">Select another date to check planned study and exams.</p>
+                    <p className="text-xs sm:text-sm font-medium text-gray-600">No study tasks or exams</p>
+                    <p className="text-xs text-gray-500 mt-1">Class sessions for this day are in the timetable table below.</p>
                   </div>
                 ) : (
                   selectedDateEntries.map((entry: any) => {
@@ -2245,13 +2274,24 @@ export default function Dashboard() {
                         ? 'bg-red-100 text-red-700'
                         : entry.type === 'quiz'
                         ? 'bg-orange-100 text-orange-700'
+                        : entry.type === 'timetable'
+                        ? 'bg-sky-100 text-sky-700'
                         : 'bg-blue-100 text-blue-700';
-                    const timeLabel = entry.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const badgeLabel =
+                      entry.type === 'timetable'
+                        ? (entry.sessionType || 'CLASS').toUpperCase()
+                        : entry.type.toUpperCase();
+                    const timeLabel =
+                      entry.type === 'timetable'
+                        ? `${entry.startTime || ''}${entry.endTime ? `–${entry.endTime}` : ''}`
+                        : entry.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const isClickable = entry.type !== 'timetable';
                     return (
                       <div
                         key={`${entry.type}-${entry.id}`}
-                        className="p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors cursor-pointer"
+                        className={`p-3 rounded-lg border border-gray-200 transition-colors ${isClickable ? 'hover:bg-gray-50 cursor-pointer' : 'bg-sky-50/40'}`}
                         onClick={() => {
+                          if (entry.type === 'timetable') return;
                           if (entry.type === 'exam') {
                             const examId = String(entry.id || entry.source?._id || '');
                             if (examId) {
@@ -2266,10 +2306,16 @@ export default function Dashboard() {
                       >
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-xs sm:text-sm font-semibold text-gray-900 line-clamp-1">{entry.title}</p>
-                          <Badge className={`${badgeClass} text-[10px]`}>{entry.type.toUpperCase()}</Badge>
+                          <Badge className={`${badgeClass} text-[10px]`}>{badgeLabel}</Badge>
                         </div>
                         <p className="text-xs text-gray-600 mt-1">{entry.subject}</p>
-                        <p className="text-xs text-gray-500 mt-1">{timeLabel}</p>
+                        {entry.type === 'timetable' && entry.teacher && (
+                          <p className="text-xs text-gray-600 mt-1">{entry.teacher}</p>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">
+                          {timeLabel}
+                          {entry.type === 'timetable' && entry.room ? ` · ${entry.room}` : ''}
+                        </p>
                       </div>
                     );
                   })
@@ -2277,6 +2323,14 @@ export default function Dashboard() {
               </CardContent>
             </Card>
           </div>
+
+          <StudentTimetableView
+            entries={timetableEntries}
+            isLoading={timetableLoading}
+            selectedDate={selectedCalendarDate}
+            weekAnchor={timetableWeekStart}
+            onWeekChange={handleTimetableWeekChange}
+          />
 
           {/* Today's Tasks */}
           <Card className="bg-white rounded-xl shadow-md">

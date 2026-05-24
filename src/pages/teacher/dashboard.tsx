@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { useLocation } from 'wouter';
+import { useLocation, useSearch } from 'wouter';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { 
   GraduationCap, 
@@ -72,6 +72,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
 import { TeacherDashboardSchedule } from '@/components/teacher/TeacherDashboardSchedule';
+import TeacherTimetableDashboard from '@/components/teacher/TeacherTimetableDashboard';
 import { ClassCard } from '@/components/teacher/ClassCard';
 import { TeacherWorkDiaryPanel } from '@/components/teacher/TeacherWorkDiaryPanel';
 import { useToast } from '@/hooks/use-toast';
@@ -208,7 +209,9 @@ interface Assessment {
 
 
 const TeacherDashboard = () => {
-  const [dashboardSubTab, setDashboardSubTab] = useState<'ai-classes' | 'students' | 'eduott' | 'vidya-ai'>('ai-classes');
+  const [dashboardSubTab, setDashboardSubTab] = useState<
+    'ai-classes' | 'students' | 'eduott' | 'vidya-ai' | 'timetable'
+  >('ai-classes');
   const [stats, setStats] = useState<TeacherStats>({
     totalStudents: 0,
     totalClasses: 0,
@@ -242,7 +245,23 @@ const TeacherDashboard = () => {
   const [teacherEmail, setTeacherEmail] = useState<string>(localStorage.getItem('userEmail') || '');
   const [expandedClasses, setExpandedClasses] = useState<Set<string>>(new Set());
   const [, setLocation] = useLocation();
+  const search = useSearch();
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    const raw = search || '';
+    const q = raw.startsWith('?') ? raw.slice(1) : raw;
+    const tab = new URLSearchParams(q).get('tab');
+    if (
+      tab === 'timetable' ||
+      tab === 'students' ||
+      tab === 'eduott' ||
+      tab === 'vidya-ai' ||
+      tab === 'ai-classes'
+    ) {
+      setDashboardSubTab(tab);
+    }
+  }, [search]);
   const [subjectsWithContent, setSubjectsWithContent] = useState<any[]>([]);
   
   // Remark states
@@ -2126,6 +2145,14 @@ const TeacherDashboard = () => {
                     EduOTT
                   </Button>
                   <Button
+                    variant={dashboardSubTab === 'timetable' ? 'default' : 'outline'}
+                    className={`${dashboardSubTab === 'timetable' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} whitespace-nowrap`}
+                    onClick={() => setDashboardSubTab('timetable')}
+                  >
+                    <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                    My Timetable
+                  </Button>
+                  <Button
                     variant={dashboardSubTab === 'vidya-ai' ? 'default' : 'outline'}
                     className={dashboardSubTab === 'vidya-ai' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'}
                     onClick={() => {
@@ -2472,6 +2499,16 @@ const TeacherDashboard = () => {
                   )}
                 </motion.div>
                 </>
+              )}
+
+              {/* My Timetable Tab */}
+              {dashboardSubTab === 'timetable' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <TeacherTimetableDashboard />
+                </motion.div>
               )}
 
               {/* Vidya AI Tab */}

@@ -16,7 +16,9 @@ const Register = lazy(() => import("./pages/auth/register"));
 const AdminDashboard = lazy(() => import("./pages/admin/dashboard"));
 const AdminSubjectContent = lazy(() => import("./pages/admin/subject-content"));
 const SubjectManagement = lazy(() => import("./pages/admin/subject-management"));
+const TimetableManagementPage = lazy(() => import("./pages/admin/timetable"));
 const TeacherDashboard = lazy(() => import("./pages/teacher/dashboard"));
+const TeacherTimetablePage = lazy(() => import("./pages/teacher/timetable"));
 const TeacherSubjectContent = lazy(() => import("./pages/teacher/subject-content"));
 const TeacherToolPage = lazy(() => import("./pages/teacher/tools/[toolType]"));
 const StudentToolPage = lazy(() => import("./pages/student/tools/[toolType]"));
@@ -68,7 +70,9 @@ function Router() {
       <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route path="/admin/subject/:id" component={AdminSubjectContent} />
       <Route path="/admin/subjects" component={SubjectManagement} />
+      <Route path="/admin/timetable" component={TimetableManagementPage} />
       <Route path="/teacher/dashboard" component={TeacherDashboard} />
+      <Route path="/teacher/timetable" component={TeacherTimetablePage} />
       <Route path="/teacher/subject/:id" component={TeacherSubjectContent} />
       <Route path="/teacher/tools/:toolType" component={TeacherToolPage} />
       <Route path="/student/tools/:toolType" component={StudentToolPage} />

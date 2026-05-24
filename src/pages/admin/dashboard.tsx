@@ -38,7 +38,8 @@ import {
   Menu,
   Sparkles,
   MessageCircle,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  CalendarDays
 } from 'lucide-react';
 import { useLocation, useSearch } from 'wouter';
 import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
@@ -50,6 +51,7 @@ const ExamViewOnly = lazy(() => import('@/components/admin/exam-view-only'));
 const AdminLearningPaths = lazy(() => import('@/components/admin/learning-paths'));
 const AdminEduOTT = lazy(() => import('@/components/admin/admin-eduott'));
 const AdminCalendar = lazy(() => import('@/components/admin/admin-calendar'));
+const TimetableManagement = lazy(() => import('@/components/admin/timetable-management'));
 const AIChat = lazy(() => import('@/components/ai-chat'));
 
 const lazySectionFallback = (
@@ -68,6 +70,7 @@ const VALID_ADMIN_TABS = new Set([
   'learning-paths',
   'eduott',
   'calendar',
+  'timetable',
   'vidya-ai',
 ]);
 
@@ -447,6 +450,18 @@ const AdminDashboard = () => {
                     </button>
 
                     <button
+                      onClick={() => handleMobileTabChange('timetable')}
+                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                        activeTab === 'timetable'
+                          ? 'bg-white text-orange-600 shadow-md'
+                          : 'text-white hover:bg-orange-600/50'
+                      }`}
+                    >
+                      <CalendarDays className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <span className="truncate">Timetable</span>
+                    </button>
+
+                    <button
                       onClick={() => handleMobileTabChange('calendar')}
                       className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
                         activeTab === 'calendar' 
@@ -630,6 +645,18 @@ const AdminDashboard = () => {
                     >
                       <Play className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                       <span className="truncate">EduOTT</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => setActiveTab('timetable')}
+                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                        activeTab === 'timetable'
+                          ? 'bg-white text-orange-600 shadow-md'
+                          : 'text-white hover:bg-orange-600/50'
+                      }`}
+                    >
+                      <CalendarDays className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <span className="truncate">Timetable</span>
                     </button>
                     
                     <button
@@ -1083,6 +1110,11 @@ const AdminDashboard = () => {
           {activeTab === 'calendar' && (
             <Suspense fallback={lazySectionFallback}>
               <AdminCalendar />
+            </Suspense>
+          )}
+          {activeTab === 'timetable' && (
+            <Suspense fallback={lazySectionFallback}>
+              <TimetableManagement />
             </Suspense>
           )}
           {activeTab === 'vidya-ai' && (
