@@ -71,14 +71,15 @@ type PdfItem = {
   generatedContent?: string;
 };
 
-type UploadStep = "idle" | "uploading" | "extracting" | "parsing" | "saving" | "done" | "error";
+type UploadStep = "idle" | "uploading" | "extracting" | "validating" | "parsing" | "saving" | "done" | "error";
 
 const STEP_MESSAGES: Record<UploadStep, string> = {
   idle: "",
   uploading: "Uploading PDF...",
-  extracting: "Reading PDF text...",
-  parsing: "Extracting detailed items from PDF...",
-  saving: "Generating missing items with AI and saving all records...",
+  extracting: "Extracting PDF content...",
+  validating: "Validating structured JSON...",
+  parsing: "Extracting all items from PDF (multi-item pass)...",
+  saving: "Saving validated records...",
   done: "",
   error: "",
 };
@@ -2754,6 +2755,7 @@ export default function AIContentEngine() {
       form.append("subTopic", String(subTopic || "").trim());
       form.append("toolType", toolType);
       setUploadStep("extracting");
+      setUploadStep("validating");
       setUploadStep("parsing");
       const res = await fetch(`${API_BASE_URL}/api/pdf/upload`, {
         method: "POST",
@@ -2779,11 +2781,27 @@ export default function AIContentEngine() {
       const totalSaved = Number(json?.data?.totalSaved || 1);
       const extractedFromPdf = Number(json?.data?.extractedFromPdf || 0);
       const generatedByAI = Number(json?.data?.generatedByAI || 0);
+      const extraction = json?.data?.extraction as
+        | {
+            validationPassed?: boolean;
+            retryCount?: number;
+            expectedItemCount?: number;
+            validationErrors?: string[];
+          }
+        | undefined;
       setUploadStep("done");
       setLastUploadResult({ totalSaved });
+      const retryNote =
+        extraction?.retryCount && extraction.retryCount > 0
+          ? ` (${extraction.retryCount} validation retries)`
+          : "";
+      const validationNote =
+        extraction?.validationPassed === false
+          ? " Some fields may be incomplete — review saved records."
+          : "";
       toast({
         title: `PDF Processed - ${totalSaved} records saved`,
-        description: `${extractedFromPdf} extracted from PDF + ${generatedByAI} AI-generated to complete the set`,
+        description: `${extractedFromPdf} extracted from PDF${retryNote}.${validationNote}`,
       });
       setUploadError("");
       setMismatchDetails(null);
