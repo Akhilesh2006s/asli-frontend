@@ -390,24 +390,7 @@ export default function CalendarView({
     }
   };
 
-  const getContentTypeLabel = (type: string): string => {
-    switch (type) {
-      case 'Video':
-        return 'VIDEO';
-      case 'TextBook':
-        return 'TEXTBOOK';
-      case 'Workbook':
-        return 'WORKBOOK';
-      case 'Material':
-        return 'FILE';
-      case 'Audio':
-        return 'AUDIO';
-      case 'Homework':
-        return 'HOMEWORK';
-      default:
-        return 'FILE';
-    }
-  };
+  const getContentTypeLabel = (type: string): string => type?.trim() || 'Content';
 
   return (
     <div className="space-y-3">
@@ -440,7 +423,7 @@ export default function CalendarView({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2 mb-1">
-                    <span className="text-xs font-medium text-gray-500 uppercase">
+                    <span className="text-xs font-medium text-gray-500">
                       {contentTypeLabel}
                     </span>
                   </div>

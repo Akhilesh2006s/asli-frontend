@@ -5,7 +5,6 @@ import type { SuperAdminView } from "@/lib/super-admin-views";
 const AdminManagement = lazy(() => import("@/components/admin/AdminManagement"));
 const CombinedSuperAdminAnalytics = lazy(() => import("./combined-super-admin-analytics"));
 const BoardComparisonCharts = lazy(() => import("@/components/admin/board-comparison-charts"));
-const ContentManagement = lazy(() => import("@/components/super-admin/content-management"));
 const SubjectManagement = lazy(() => import("@/components/super-admin/subject-management"));
 const SubjectContentManagement = lazy(() => import("@/components/super-admin/subject-content-management"));
 const ExamManagement = lazy(() => import("@/components/super-admin/exam-management"));
@@ -285,6 +284,24 @@ export default function SuperAdminDashboard() {
     }
   };
 
+  /** Same page as sidebar “Subject & Content” (current design). */
+  const openSubjectAndContent = () => {
+    setSelectedBoard(null);
+    setCurrentView("subjects-and-content");
+    clearSuperAdminDashboardQueryFromUrl();
+  };
+
+  const openAnalytics = () => {
+    setSelectedBoard(null);
+    setCurrentView("analytics");
+    clearSuperAdminDashboardQueryFromUrl();
+    void fetchRealtimeAnalytics();
+  };
+
+  const openAsliExclusiveBoard = () => {
+    void fetchBoardDashboard("ASLI_EXCLUSIVE_SCHOOLS");
+  };
+
   // Chart data - will be populated from real analytics when available
   const [totalStudentsData, setTotalStudentsData] = useState<Array<{name: string, value: number}>>([]);
   const [passRateData, setPassRateData] = useState<Array<{name: string, value: number}>>([]);
@@ -304,7 +321,7 @@ export default function SuperAdminDashboard() {
         {/* Welcome Header */}
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Welcome back, Super Admin</h1>
-          <p className="text-gray-600">Manage boards, schools, exams and AI analytic tau at one place.</p>
+          <p className="text-gray-600">Manage boards, schools, exams, and AI analytics in one place.</p>
         </div>
 
         {/* Board Management */}
@@ -313,7 +330,7 @@ export default function SuperAdminDashboard() {
 
           <Card
             className="bg-gradient-to-br from-orange-400 to-orange-500 text-white border-0 cursor-pointer hover:from-orange-500 hover:to-orange-600 transition-all duration-300 shadow-lg"
-            onClick={() => fetchBoardDashboard('ASLI_EXCLUSIVE_SCHOOLS')}
+            onClick={openAsliExclusiveBoard}
           >
             <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
@@ -334,7 +351,7 @@ export default function SuperAdminDashboard() {
           {/* Content Management - Light Blue (CBSE TS color) */}
           <Card 
             className="bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 cursor-pointer hover:from-sky-400 hover:to-sky-500 transition-all duration-300 shadow-lg"
-            onClick={() => setCurrentView('content')}
+            onClick={openSubjectAndContent}
           >
             <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
@@ -350,7 +367,7 @@ export default function SuperAdminDashboard() {
           {/* Analytics (overview + exam / AI insights) */}
           <Card 
             className="bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 cursor-pointer hover:from-teal-500 hover:to-teal-600 transition-all duration-300 shadow-lg"
-            onClick={() => setCurrentView('analytics')}
+            onClick={openAnalytics}
           >
             <CardContent className="p-3 sm:p-4 lg:p-6">
               <div className="flex items-center justify-between">
@@ -996,9 +1013,10 @@ export default function SuperAdminDashboard() {
           </Suspense>
         );
       case 'content':
+        // Legacy view id — same as Subject & Content (replaces old upload grid page).
         return (
           <Suspense fallback={lazySectionFallback}>
-            <ContentManagement />
+            <SubjectContentManagement />
           </Suspense>
         );
       case 'subjects':
