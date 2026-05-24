@@ -85,6 +85,8 @@ import { API_BASE_URL, apiFetch, getStudentPdfPreviewIframeSrc } from '@/lib/api
 import { buildExamCalendarEntries } from '@/lib/exam-calendar-entries';
 import { collectVidyaSubjectLabels } from '@/lib/vidya-subjects';
 import { getUser as getStoredUser } from '@/lib/auth-utils';
+import { fetchAuthUser, peekCachedAuthUser } from '@/lib/auth-session';
+import { fetchDashboardBootstrap } from '@/lib/dashboard-bootstrap';
 import {
   getTodayStudyTime,
   getWeeklyStudyTime,
@@ -224,110 +226,23 @@ export default function Dashboard() {
   const [riskAnalysisReports, setRiskAnalysisReports] = useState<any[]>([]);
   const [isLoadingReports, setIsLoadingReports] = useState(false);
   const [studyStreak, setStudyStreak] = useState<{ count: number; message?: string } | null>(null);
+  const bootstrapAppliedRef = useRef(false);
 
-  // Fetch user data
+  // Preview videos fallback (bootstrap supplies these in the same request)
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          console.log('No auth token found');
-          setUser({ 
-            fullName: "Student", 
-            email: "student@example.com", 
-            age: 18, 
-            educationStream: "JEE" 
-          });
-          return;
-        }
-
-        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          const userData = await response.json();
-          console.log('Dashboard auth check - user data:', userData);
-          setUser(userData.user);
-        } else {
-          console.log('Dashboard auth check failed with status:', response.status);
-          // Fallback to mock data if not authenticated
-          setUser({ 
-            fullName: "Student", 
-            email: "student@example.com", 
-            age: 18, 
-            educationStream: "JEE" 
-          });
-        }
-      } catch (error) {
-        console.error('Failed to fetch user:', error);
-        // Fallback to mock data
-        setUser({ 
-          fullName: "Student", 
-          email: "student@example.com", 
-          age: 18, 
-          educationStream: "JEE" 
-        });
-      } finally {
-        setIsLoadingUser(false);
-      }
-    };
-
-    fetchUser();
-    // Load saved overall progress from database on mount
-    const loadProgress = async () => {
-      try {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
-        
-        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          }
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.user && data.user.overallProgress !== undefined && data.user.overallProgress !== null) {
-            setOverallProgress(data.user.overallProgress);
-            console.log('✅ Loaded overall progress from database:', data.user.overallProgress);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading overall progress:', error);
-      }
-    };
-    loadProgress();
-  }, []);
-
-  useEffect(() => {
-    if (String(user?.role || '').toLowerCase() !== 'student') return;
-    apiFetch('/api/vidya/student/focus-card')
-      .then((r) => r.json())
-      .then((d) => {
-        if (d?.success && d.studyStreak) setStudyStreak(d.studyStreak);
-      })
-      .catch(() => null);
-  }, [user?.role]);
-
-  // Fetch content data
-  useEffect(() => {
-    const fetchContent = async () => {
+    const timer = window.setTimeout(async () => {
+      if (bootstrapAppliedRef.current) return;
       try {
         const videosRes = await fetch(`${API_BASE_URL}/api/student/videos`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-            'Content-Type': 'application/json'
-          }
+            Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+            'Content-Type': 'application/json',
+          },
         });
 
         if (videosRes.ok) {
           const videosData = await videosRes.json();
-          setVideos((videosData.data || videosData).slice(0, 3)); // Show first 3 videos
+          setVideos((videosData.data || videosData).slice(0, 3));
         }
       } catch (error) {
         console.error('Failed to fetch content:', error);
@@ -335,9 +250,8 @@ export default function Dashboard() {
       } finally {
         setIsLoadingContent(false);
       }
-    };
-
-    fetchContent();
+    }, 500);
+    return () => window.clearTimeout(timer);
   }, []);
 
   // Fetch real dashboard data
@@ -381,22 +295,10 @@ export default function Dashboard() {
   // Load overall progress from database
   const loadOverallProgressFromDB = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
-      
-      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.user && data.user.overallProgress !== undefined && data.user.overallProgress !== null) {
-          setOverallProgress(data.user.overallProgress);
-          console.log('✅ Loaded overall progress from database:', data.user.overallProgress);
-        }
+      const authUser = await fetchAuthUser();
+      const u = authUser as { overallProgress?: number } | null;
+      if (u && u.overallProgress !== undefined && u.overallProgress !== null) {
+        setOverallProgress(u.overallProgress);
       }
     } catch (error) {
       console.error('Error loading overall progress:', error);
@@ -423,6 +325,76 @@ export default function Dashboard() {
   const [filteredContent, setFilteredContent] = useState<any[]>([]);
   const [isLoadingFilteredContent, setIsLoadingFilteredContent] = useState(false);
   const [allContent, setAllContent] = useState<any[]>([]);
+
+  // Single bootstrap: auth + subjects + content counts + quizzes (replaces 15+ separate calls)
+  useEffect(() => {
+    let cancelled = false;
+
+    const applyBootstrap = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setIsLoadingUser(false);
+        return;
+      }
+
+      const cached = peekCachedAuthUser();
+      if (cached && !cancelled) {
+        setUser(cached);
+        setIsLoadingUser(false);
+      }
+
+      try {
+        const [authUser, bootstrap] = await Promise.all([
+          fetchAuthUser(),
+          fetchDashboardBootstrap(),
+        ]);
+        if (cancelled) return;
+
+        if (authUser) setUser(authUser);
+        setIsLoadingUser(false);
+
+        if (!bootstrap) return;
+
+        bootstrapAppliedRef.current = true;
+
+        if (bootstrap.user) {
+          setUser(bootstrap.user);
+          const op = (bootstrap.user as { overallProgress?: number }).overallProgress;
+          if (op !== undefined && op !== null) setOverallProgress(Number(op));
+        }
+
+        setSubjects(bootstrap.subjects || []);
+        setIsLoadingSubjects(false);
+
+        const preview = Array.isArray(bootstrap.previewVideos) ? bootstrap.previewVideos : [];
+        if (preview.length) {
+          setVideos(preview.slice(0, 3));
+        }
+        setIsLoadingContent(false);
+
+        const filtered = filterContentsBySchoolProgram(
+          bootstrap.contents || [],
+          resolveIsAsliPrepExclusive(bootstrap.user),
+        );
+        setAllContent(filtered);
+        setContentTypeCounts(bootstrap.contentTypeCounts);
+        setIsLoadingContentCounts(false);
+
+        setQuizzes(bootstrap.quizzes || []);
+        setIsLoadingQuizzes(false);
+
+        if (bootstrap.studyStreak) setStudyStreak(bootstrap.studyStreak);
+      } catch (error) {
+        console.error('Dashboard bootstrap failed:', error);
+        if (!cancelled) setIsLoadingUser(false);
+      }
+    };
+
+    applyBootstrap();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Memoize filtered content (must be before useEffect that uses it)
   const memoizedFilteredContent = useMemo(() => {
@@ -693,27 +665,18 @@ export default function Dashboard() {
                 if (stored) {
                   const completedIds = JSON.parse(stored);
                   
-                  // Fetch content count for this subject to calculate accurate progress
+                  // Use contentCount from bootstrap/subjects API (avoids N per-subject fetches)
                   try {
-                    const contentResponse = await fetch(`${API_BASE_URL}/api/student/asli-prep-content?subject=${encodeURIComponent(subjectId)}`, {
-                      headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                      }
-                    });
-                    
-                    if (contentResponse.ok) {
-                      const contentData = await contentResponse.json();
-                      const contents = contentData.data || contentData || [];
-                      const totalContent = contents.length;
-                      
-                      if (totalContent > 0) {
-                        const progress = Math.round((completedIds.length / totalContent) * 100);
-                        learningPathProgress.set(subjectId, progress);
-                      } else if (completedIds.length > 0) {
-                        // If there's no content but items are marked, set to 0
-                        learningPathProgress.set(subjectId, 0);
-                      }
+                    const totalContent =
+                      Number(subject.contentCount) > 0
+                        ? Number(subject.contentCount)
+                        : 0;
+
+                    if (totalContent > 0) {
+                      const progress = Math.round((completedIds.length / totalContent) * 100);
+                      learningPathProgress.set(subjectId, progress);
+                    } else if (completedIds.length > 0) {
+                      learningPathProgress.set(subjectId, 0);
                     }
                   } catch (contentError) {
                     console.error('Error fetching content for subject:', subjectId, contentError);
@@ -878,9 +841,10 @@ export default function Dashboard() {
     fetchDashboardData();
   }, []);
 
-  // Fetch assigned quizzes
+  // Fetch assigned quizzes (skipped when dashboard-bootstrap wins the race)
   useEffect(() => {
-    const fetchQuizzes = async () => {
+    const timer = window.setTimeout(async () => {
+      if (bootstrapAppliedRef.current) return;
       try {
         setIsLoadingQuizzes(true);
         const token = localStorage.getItem('authToken');
@@ -903,153 +867,14 @@ export default function Dashboard() {
       } finally {
         setIsLoadingQuizzes(false);
       }
-    };
-
-    fetchQuizzes();
+    }, 400);
+    return () => window.clearTimeout(timer);
   }, []);
 
-  // Fetch subjects with their content (same as learning paths page)
+  // Fetch content type counts for Digital Library (fallback if bootstrap missed)
   useEffect(() => {
-    const fetchSubjects = async () => {
-      try {
-        setIsLoadingSubjects(true);
-        
-        const token = localStorage.getItem('authToken');
-        const subjectsResponse = await fetch(`${API_BASE_URL}/api/student/subjects`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        if (subjectsResponse.ok) {
-          const contentType = subjectsResponse.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            const subjectsData = await subjectsResponse.json();
-            
-            let subjectsArray = [];
-            
-            if (subjectsData.subjects && Array.isArray(subjectsData.subjects)) {
-              subjectsArray = subjectsData.subjects;
-            } else if (subjectsData.data && Array.isArray(subjectsData.data)) {
-              subjectsArray = subjectsData.data;
-            } else if (Array.isArray(subjectsData)) {
-              subjectsArray = subjectsData;
-            } else if (subjectsData.success && subjectsData.subjects && Array.isArray(subjectsData.subjects)) {
-              subjectsArray = subjectsData.subjects;
-            } else if (subjectsData.success && subjectsData.data && Array.isArray(subjectsData.data)) {
-              subjectsArray = subjectsData.data;
-            }
-            
-            if (!Array.isArray(subjectsArray) || subjectsArray.length === 0) {
-              setSubjects([]);
-              setIsLoadingSubjects(false);
-              return;
-            }
-            
-            // Fetch content for each subject
-            const subjectsWithContentResults = await Promise.allSettled(
-              subjectsArray.map(async (subject: any) => {
-                try {
-                  const subjectId = subject._id || subject.id || subject.name;
-                  
-                  // Fetch videos for this subject
-                  let videos = [];
-                  try {
-                    const videosResponse = await fetch(`${API_BASE_URL}/api/student/videos?subject=${encodeURIComponent(subjectId)}`, {
-                      headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-                        'Content-Type': 'application/json',
-                      }
-                    });
-                    
-                    if (videosResponse.ok) {
-                      const videosData = await videosResponse.json();
-                      videos = videosData.data || videosData.videos || videosData || [];
-                      if (!Array.isArray(videos)) videos = [];
-                    }
-                  } catch (videoError) {
-                    videos = [];
-                  }
-
-                  // Fetch assessments/quizzes for this subject
-                  let assessments = [];
-                  try {
-                    const assessmentsResponse = await fetch(`${API_BASE_URL}/api/student/assessments?subject=${encodeURIComponent(subjectId)}`, {
-                      headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-                        'Content-Type': 'application/json',
-                      }
-                    });
-                    
-                    if (assessmentsResponse.ok) {
-                      const assessmentsData = await assessmentsResponse.json();
-                      assessments = assessmentsData.data || assessmentsData.assessments || assessmentsData.quizzes || assessmentsData || [];
-                      if (!Array.isArray(assessments)) assessments = [];
-                    }
-                  } catch (assessmentError) {
-                    assessments = [];
-                  }
-
-                  const totalContent = videos.length + assessments.length;
-
-                  return {
-                    ...subject,
-                    videos: videos,
-                    quizzes: assessments,
-                    assessments: assessments,
-                    totalContent: totalContent
-                  };
-                } catch (error) {
-                  return {
-                    ...subject,
-                    videos: [],
-                    quizzes: [],
-                    assessments: [],
-                    totalContent: 0
-                  };
-                }
-              })
-            );
-            
-            const subjectsWithContent = subjectsWithContentResults.map((result, index) => {
-              if (result.status === 'fulfilled') {
-                return result.value;
-              } else {
-                const subject = subjectsArray[index];
-                return {
-                  ...subject,
-                  videos: [],
-                  quizzes: [],
-                  assessments: [],
-                  totalContent: 0
-                };
-              }
-            });
-            
-            const validSubjects = subjectsWithContent.filter((s: any) => s && (s.name || s._id || s.id));
-            const uniqueSubjects = validSubjects.filter((subject, index, self) => {
-              const subjectId = subject._id || subject.id;
-              return index === self.findIndex((s: any) => (s._id || s.id) === subjectId);
-            });
-            
-            setSubjects(uniqueSubjects);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching subjects:', error);
-        setSubjects([]);
-      } finally {
-        setIsLoadingSubjects(false);
-      }
-    };
-
-    fetchSubjects();
-  }, []);
-
-  // Fetch content type counts for Digital Library
-  useEffect(() => {
-    const fetchContentCounts = async () => {
+    const timer = window.setTimeout(async () => {
+      if (bootstrapAppliedRef.current) return;
       try {
         setIsLoadingContentCounts(true);
         const token = localStorage.getItem('authToken');
@@ -1155,9 +980,8 @@ export default function Dashboard() {
       } finally {
         setIsLoadingContentCounts(false);
       }
-    };
-
-    fetchContentCounts();
+    }, 400);
+    return () => window.clearTimeout(timer);
   }, [user?.isAsliPrepExclusive, user?.assignedAdmin?.isAsliPrepExclusive]);
 
   // Update filteredContent state when memoized value changes

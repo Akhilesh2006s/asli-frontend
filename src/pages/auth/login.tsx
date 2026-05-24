@@ -9,11 +9,28 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, Mail, Lock, ArrowLeft, Sparkles, Zap, BookOpen, GraduationCap } from 'lucide-react';
 import { Link } from 'wouter';
 import { API_BASE_URL } from '@/lib/api-config';
+import { setAuthToken, setUser } from '@/lib/auth-utils';
+import { invalidateAuthSessionCache } from '@/lib/auth-session';
+import { invalidateDashboardBootstrapCache, fetchDashboardBootstrap } from '@/lib/dashboard-bootstrap';
+
+const LOGIN_INTRO_KEY = 'aslilearn_skip_login_intro';
 
 const Login = () => {
   const [, setLocation] = useLocation();
-  const [showVideo, setShowVideo] = useState(true);
-  const [showSignInForm, setShowSignInForm] = useState(false);
+  const [showVideo, setShowVideo] = useState(() => {
+    try {
+      return localStorage.getItem(LOGIN_INTRO_KEY) !== '1';
+    } catch {
+      return false;
+    }
+  });
+  const [showSignInForm, setShowSignInForm] = useState(() => {
+    try {
+      return localStorage.getItem(LOGIN_INTRO_KEY) === '1';
+    } catch {
+      return true;
+    }
+  });
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -22,15 +39,24 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Handle video timing
+  // Short intro on first visit only (~0.8s); returning users see the form immediately
   useEffect(() => {
+    try {
+      if (localStorage.getItem(LOGIN_INTRO_KEY) === '1') return;
+    } catch {
+      setShowVideo(false);
+      setShowSignInForm(true);
+      return;
+    }
     const timer = setTimeout(() => {
       setShowVideo(false);
-      setTimeout(() => {
-        setShowSignInForm(true);
-      }, 500); // Small delay for smooth transition
-    }, 3000); // Show video for 3 seconds
-
+      setTimeout(() => setShowSignInForm(true), 200);
+      try {
+        localStorage.setItem(LOGIN_INTRO_KEY, '1');
+      } catch {
+        /* ignore */
+      }
+    }, 800);
     return () => clearTimeout(timer);
   }, []);
 
@@ -40,15 +66,6 @@ const Login = () => {
     setError('');
 
     try {
-      // Test backend connection first
-      console.log('Testing backend connection...');
-      const healthCheck = await fetch(`${API_BASE_URL}/api/health`);
-      if (!healthCheck.ok) {
-        throw new Error('Backend server is not running. Please check the server status.');
-      }
-      console.log('Backend server is running');
-
-      // Use direct backend URL for production
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
@@ -61,31 +78,25 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        console.log('Login successful, user role:', data.user.role);
-        
-        // Store JWT token in localStorage
+        invalidateAuthSessionCache();
+        invalidateDashboardBootstrapCache();
+
         if (data.token) {
-          localStorage.setItem('authToken', data.token);
-          console.log('JWT token stored in localStorage');
+          setAuthToken(data.token);
         }
-        
-        // Store user role and email for immediate display
-        localStorage.setItem('userRole', data.user.role);
-        localStorage.setItem('userEmail', data.user.email);
-        console.log('User role and email stored:', data.user.role, data.user.email);
-        
-        // Redirect based on user role
+        if (data.user) {
+          setUser(data.user);
+          localStorage.setItem('userRole', data.user.role);
+          localStorage.setItem('userEmail', data.user.email);
+        }
         if (data.user.role === 'super-admin') {
-          console.log('Redirecting to super admin dashboard');
           setLocation('/super-admin/dashboard');
         } else if (data.user.role === 'admin') {
-          console.log('Redirecting to admin dashboard');
           setLocation('/admin/dashboard');
         } else if (data.user.role === 'teacher') {
-          console.log('Redirecting to teacher dashboard');
           setLocation('/teacher/dashboard');
         } else {
-          console.log('Redirecting to student dashboard');
+          void fetchDashboardBootstrap({ force: true });
           setLocation('/dashboard');
         }
       } else {

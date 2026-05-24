@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { BookOpen, FileText, MessageCircle, User, Menu, LogOut, Sparkles, Video } from "lucide-react";
 import { API_BASE_URL } from '@/lib/api-config';
 import { clearAuthData, getAuthToken, getUser, setUser } from '@/lib/auth-utils';
+import { fetchAuthUser } from '@/lib/auth-session';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -66,25 +67,16 @@ export default function Navigation() {
         return;
       }
       try {
-        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          const user = data?.user;
-          if (user && typeof user === 'object') {
-            try {
-              setUser(user);
-            } catch {
-              /* ignore */
-            }
+        const user = await fetchAuthUser();
+        if (user && typeof user === 'object') {
+          try {
+            setUser(user);
+          } catch {
+            /* ignore */
           }
           const next =
-            initialsFromName(user?.fullName || user?.name) ||
-            initialsFromEmail(user?.email) ||
+            initialsFromName((user as { fullName?: string; name?: string }).fullName || (user as { name?: string }).name) ||
+            initialsFromEmail((user as { email?: string }).email) ||
             readInitialsForNav();
           setUserInitials(next);
           if (next) {

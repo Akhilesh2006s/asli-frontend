@@ -3,11 +3,16 @@
  * Centralized functions for managing authentication state
  */
 
+import { invalidateAuthSessionCache } from './auth-session';
+import { invalidateDashboardBootstrapCache } from './dashboard-bootstrap';
+
 /**
  * Clears all authentication-related data from localStorage
  * This should be called on logout to ensure complete cleanup
  */
 export const clearAuthData = () => {
+  invalidateAuthSessionCache();
+  invalidateDashboardBootstrapCache();
   // Authentication tokens
   localStorage.removeItem('authToken');
   localStorage.removeItem('superAdminToken');
