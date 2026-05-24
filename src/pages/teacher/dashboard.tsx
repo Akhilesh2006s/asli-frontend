@@ -185,7 +185,7 @@ const TeacherDashboard = () => {
   const [selectedSubjectForRemark, setSelectedSubjectForRemark] = useState<string>('general');
   const [isPositiveRemark, setIsPositiveRemark] = useState(true);
   const [studentsSubTab, setStudentsSubTab] = useState<
-    'list' | 'track-progress' | 'submissions' | 'diary'
+    'list' | 'track-progress' | 'submissions' | 'daily'
   >('list');
   const [isLoadingProgress, setIsLoadingProgress] = useState(false);
   const [trackProgressRemarks, setTrackProgressRemarks] = useState<any[]>([]);
@@ -2909,12 +2909,12 @@ const TeacherDashboard = () => {
                         Submissions
                       </Button>
                       <Button
-                        variant={studentsSubTab === 'diary' ? 'default' : 'outline'}
-                        className={studentsSubTab === 'diary' ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50'}
-                        onClick={() => setStudentsSubTab('diary')}
+                        variant={studentsSubTab === 'daily' ? 'default' : 'outline'}
+                        className={studentsSubTab === 'daily' ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50'}
+                        onClick={() => setStudentsSubTab('daily')}
                       >
                         <BookMarked className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                        Diary
+                        Daily
                       </Button>
                     </div>
                     </div>
@@ -3964,7 +3964,7 @@ const TeacherDashboard = () => {
                     </div>
                   )}
 
-                  {studentsSubTab === 'diary' && <TeacherWorkDiaryPanel />}
+                  {studentsSubTab === 'daily' && <TeacherWorkDiaryPanel />}
 
                 </div>
               )}

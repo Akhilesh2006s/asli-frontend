@@ -3,18 +3,51 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { API_BASE_URL } from '@/lib/api-config';
+import { Badge } from '@/components/ui/badge';
 import { BookMarked, Loader2, Save, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+type TeacherClassOption = {
+  id: string;
+  classNumber?: string;
+  section?: string;
+  name?: string;
+  className?: string;
+};
+
+type ClassRef = {
+  classNumber?: string;
+  section?: string;
+  name?: string;
+};
 
 type DiaryEntry = {
   _id: string;
   forDate: string;
   title?: string;
   content: string;
+  classDisplay?: string;
+  classId?: string | ClassRef;
   createdAt?: string;
   updatedAt?: string;
 };
+
+function formatClassSectionLabel(c: TeacherClassOption | ClassRef) {
+  if (c.classNumber) {
+    const section = c.section?.trim();
+    return section ? `Class ${c.classNumber} - ${section}` : `Class ${c.classNumber}`;
+  }
+  const named = 'className' in c ? c.className : c.name;
+  return named || 'Class';
+}
 
 function formatDiaryDay(iso: string) {
   try {
@@ -30,14 +63,57 @@ function formatDiaryDay(iso: string) {
   }
 }
 
+function entryClassLabel(entry: DiaryEntry) {
+  if (entry.classDisplay?.trim()) return entry.classDisplay.trim();
+  const ref = entry.classId;
+  if (!ref) return null;
+  if (typeof ref === 'object') return formatClassSectionLabel(ref);
+  return null;
+}
+
 export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
+  const [classes, setClasses] = useState<TeacherClassOption[]>([]);
+  const [loadingClasses, setLoadingClasses] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [classId, setClassId] = useState('');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const loadClasses = useCallback(async () => {
+    setLoadingClasses(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const res = await fetch(`${API_BASE_URL}/api/teacher/classes`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        const options: TeacherClassOption[] = data.data
+          .map((c: { _id?: string; id?: string; classNumber?: string; section?: string; name?: string; className?: string }) => ({
+            id: String(c.id || c._id || ''),
+            classNumber: c.classNumber,
+            section: c.section,
+            name: c.name,
+            className: c.className,
+          }))
+          .filter((c: TeacherClassOption) => c.id);
+        setClasses(options);
+        if (options.length === 1) {
+          setClassId(options[0].id);
+        }
+      } else {
+        setClasses([]);
+      }
+    } catch {
+      setClasses([]);
+    } finally {
+      setLoadingClasses(false);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -62,11 +138,12 @@ export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
   }, []);
 
   useEffect(() => {
+    loadClasses();
     load();
-  }, [load]);
+  }, [loadClasses, load]);
 
   const handleSave = async () => {
-    if (!content.trim()) return;
+    if (!content.trim() || !classId) return;
     setSaving(true);
     setError(null);
     try {
@@ -79,6 +156,7 @@ export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
         },
         body: JSON.stringify({
           date,
+          classId,
           title: title.trim() || undefined,
           content: content.trim(),
         }),
@@ -112,6 +190,8 @@ export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
     }
   };
 
+  const canSave = Boolean(content.trim() && classId && classes.length > 0);
+
   return (
     <div
       className={cn(
@@ -126,7 +206,7 @@ export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
           </div>
           <div>
             <h3 className="text-base sm:text-lg font-bold tracking-tight text-gray-900 sm:text-xl">
-              Daily work diary
+              Daily
             </h3>
             <p className="text-xs sm:text-sm text-gray-600">
               Log what you covered today — visible to your students and school admin.
@@ -137,6 +217,33 @@ export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
 
       <div className="space-y-4 border-b border-indigo-100/80 pb-6">
         <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="diary-class">Class &amp; section</Label>
+            {loadingClasses ? (
+              <div className="flex h-10 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-500">
+                <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />
+                Loading classes…
+              </div>
+            ) : classes.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-amber-200 bg-amber-50 px-3 py-2 text-xs sm:text-sm text-amber-800">
+                No classes assigned yet. Contact your administrator to assign a class before
+                posting a daily entry.
+              </p>
+            ) : (
+              <Select value={classId} onValueChange={setClassId}>
+                <SelectTrigger id="diary-class" className="rounded-xl border-gray-200 bg-white">
+                  <SelectValue placeholder="Select class and section" />
+                </SelectTrigger>
+                <SelectContent>
+                  {classes.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {formatClassSectionLabel(c)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
           <div className="space-y-2">
             <Label htmlFor="diary-date">Date</Label>
             <Input
@@ -172,7 +279,7 @@ export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Button
             type="button"
-            disabled={saving || !content.trim()}
+            disabled={saving || !canSave}
             onClick={handleSave}
             className="h-11 w-full rounded-xl bg-indigo-600 font-semibold hover:bg-indigo-700 sm:w-auto"
           >
@@ -202,34 +309,46 @@ export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
           </p>
         ) : (
           <ul className="max-h-[min(360px,50vh)] space-y-3 overflow-y-auto pr-1">
-            {entries.map((e) => (
-              <li
-                key={e._id}
-                className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
-                      {formatDiaryDay(e.forDate)}
-                    </p>
-                    {e.title ? (
-                      <p className="mt-1 font-semibold text-gray-900">{e.title}</p>
-                    ) : null}
-                    <p className="mt-2 whitespace-pre-wrap text-xs sm:text-sm text-gray-700">{e.content}</p>
+            {entries.map((e) => {
+              const classLabel = entryClassLabel(e);
+              return (
+                <li
+                  key={e._id}
+                  className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex flex-wrap items-center gap-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">
+                          {formatDiaryDay(e.forDate)}
+                        </p>
+                        {classLabel ? (
+                          <Badge className="rounded-md bg-indigo-600 text-xs font-medium text-white hover:bg-indigo-600">
+                            {classLabel}
+                          </Badge>
+                        ) : null}
+                      </div>
+                      {e.title ? (
+                        <p className="mt-1 font-semibold text-gray-900">{e.title}</p>
+                      ) : null}
+                      <p className="mt-2 whitespace-pre-wrap text-xs sm:text-sm text-gray-700">
+                        {e.content}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 shrink-0 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                      onClick={() => handleDelete(e._id)}
+                      aria-label="Delete entry"
+                    >
+                      <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                    </Button>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 shrink-0 text-gray-400 hover:bg-red-50 hover:text-red-600"
-                    onClick={() => handleDelete(e._id)}
-                    aria-label="Delete entry"
-                  >
-                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                  </Button>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

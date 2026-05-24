@@ -22,6 +22,7 @@ import {
   Mail,
   Phone,
   BookOpen,
+  BookMarked,
   GraduationCap,
   CheckCircle,
   XCircle,
@@ -33,6 +34,7 @@ import {
   Eye,
   EyeOff
 } from 'lucide-react';
+import { AdminTeacherDailyDialog } from '@/components/admin/AdminTeacherDailyDialog';
 
 interface Teacher {
   id: string;
@@ -260,6 +262,7 @@ const TeacherManagement = () => {
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [assigningTeacher, setAssigningTeacher] = useState<Teacher | null>(null);
   const [assigningClassTeacher, setAssigningClassTeacher] = useState<Teacher | null>(null);
+  const [dailyDialogTeacher, setDailyDialogTeacher] = useState<Teacher | null>(null);
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
   const [newTeacher, setNewTeacher] = useState({
@@ -1498,8 +1501,18 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                         variant="outline" 
                         className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-xl"
                         onClick={() => openAssignDialog(teacher)}
+                        title="Assign subjects"
                       >
                         <BookOpen className="w-3 h-3 sm:w-4 sm:h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-xl"
+                        onClick={() => setDailyDialogTeacher(teacher)}
+                        title="View daily diary"
+                      >
+                        <BookMarked className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
                       <Button 
                         size="sm" 
@@ -1640,6 +1653,28 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
             </form>
           </DialogContent>
         </Dialog>
+
+        <AdminTeacherDailyDialog
+          open={!!dailyDialogTeacher}
+          onOpenChange={(open) => {
+            if (!open) setDailyDialogTeacher(null);
+          }}
+          teacherId={dailyDialogTeacher?.id ?? null}
+          teacherName={dailyDialogTeacher?.fullName ?? 'Teacher'}
+          assignedClasses={
+            dailyDialogTeacher
+              ? (dailyDialogTeacher.assignedClassIds ?? []).map((classId) => {
+                  const classItem = resolveAssignedClass(classId, classes);
+                  const label = classItem?.name
+                    ? classItem.name
+                    : classItem?.classNumber
+                      ? `Class ${classItem.classNumber}${classItem.section ? ` - ${classItem.section}` : ''}`
+                      : `Class ${classId}`;
+                  return { id: String(classItem?.id ?? classId), label };
+                })
+              : []
+          }
+        />
       </div>
     </div>
   );
