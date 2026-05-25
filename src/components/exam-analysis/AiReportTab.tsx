@@ -314,9 +314,10 @@ export default function AiReportTab({
           (s) =>
             !/scored about \d/i.test(s) &&
             !/^Attempt pattern:/i.test(s) &&
-            !/^When you did attempt a question, accuracy was/i.test(s)
+            !/^When you did attempt a question, accuracy was/i.test(s) &&
+            !lead.some((line) => line.replace(/\s+/g, ' ').trim() === s)
         );
-      return [...lead, ...parts].slice(0, 5);
+      return [...lead, ...parts].slice(0, 6);
     }
 
     return [
@@ -689,27 +690,20 @@ export default function AiReportTab({
       {/* Vidya report */}
       <ReportCard title="Vidya Performance Report" icon="✺" className="[&_h3]:mb-4">
         <div className="space-y-3">
+          {geminiParagraphs.map((p, i) => (
+            <p key={i} className="text-[13.5px] text-slate-600 leading-relaxed">
+              {p}
+            </p>
+          ))}
           {aiLoading && !aiAnalysis?.summary ? (
-            <div className="space-y-2 animate-pulse" aria-busy="true" aria-label="Loading report summary">
-              <div className="h-3 bg-slate-200 rounded w-full" />
-              <div className="h-3 bg-slate-200 rounded w-[92%]" />
-              <div className="h-3 bg-slate-200 rounded w-[80%]" />
-            </div>
-          ) : (
-            geminiParagraphs.map((p, i) => (
-              <p key={i} className="text-[13.5px] text-slate-600 leading-relaxed">
-                {p}
-              </p>
-            ))
-          )}
+            <p className="text-[12px] text-slate-400" aria-live="polite">
+              Loading personalised insights…
+            </p>
+          ) : null}
         </div>
         <div className="mt-4 rounded-[14px] px-4 py-3.5 bg-violet-50 border border-violet-200 text-violet-600 font-semibold text-[13.5px]">
-          {aiLoading && !aiAnalysis?.motivation ? (
-            <div className="h-3 bg-violet-200/80 rounded animate-pulse w-3/4" aria-hidden />
-          ) : (
-            aiAnalysis?.motivation ||
-            'Deep, consistent practice beats intensity spikes — small daily wins compound into a much stronger next attempt.'
-          )}
+          {aiAnalysis?.motivation ||
+            'Deep, consistent practice beats intensity spikes — small daily wins compound into a much stronger next attempt.'}
         </div>
       </ReportCard>
     </div>

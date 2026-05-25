@@ -1853,7 +1853,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                 </Badge>
               </div>
             </div>
-            {aiLoading && !explanationText ? (
+            {aiLoading && !explanationText && !item ? (
               <div className="mt-2 space-y-2 animate-pulse" aria-busy="true" aria-label="Loading explanation">
                 <div className="h-3 bg-slate-200 rounded w-full" />
                 <div className="h-3 bg-slate-200 rounded w-[92%]" />
