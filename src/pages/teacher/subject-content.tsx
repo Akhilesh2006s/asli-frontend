@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRoute, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,15 +10,13 @@ import {
 import {
   ArrowLeft,
   BookOpen,
-  Clock,
-  FileText,
   Filter,
   Play,
-  Video,
   X,
 } from 'lucide-react';
 import CalendarView from '@/components/student/calendar-view';
 import { API_BASE_URL } from '@/lib/api-config';
+import { normalizeClassNumber } from '@/lib/exam-classes';
 
 interface ContentItem {
   _id: string;
@@ -31,6 +27,14 @@ interface ContentItem {
   date: string;
   createdAt: string;
   deadline?: string;
+  classNumber?: string;
+}
+
+interface TeacherClass {
+  _id: string;
+  classNumber?: string;
+  section?: string;
+  name?: string;
 }
 
 interface Subject {
@@ -47,12 +51,39 @@ export default function TeacherSubjectContent() {
   const [contents, setContents] = useState<ContentItem[]>([]);
   const [loadingContents, setLoadingContents] = useState(true);
   const [selectedContentType, setSelectedContentType] = useState<string | null>(null);
+  const [selectedClassFilter, setSelectedClassFilter] = useState<string | null>(null);
+  const [teacherClasses, setTeacherClasses] = useState<TeacherClass[]>([]);
   const fetchGenRef = useRef(0);
 
   useEffect(() => {
     if (!params?.id) return;
     void fetchSubjectContent(params.id);
+    void fetchTeacherClasses();
   }, [params?.id]);
+
+  useEffect(() => {
+    setSelectedContentType(null);
+  }, [selectedClassFilter]);
+
+  const fetchTeacherClasses = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/teacher/classes`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) return;
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.includes('application/json')) return;
+      const data = await response.json();
+      const list = data.data || data || [];
+      setTeacherClasses(Array.isArray(list) ? list : []);
+    } catch (error) {
+      console.error('Failed to fetch teacher classes:', error);
+    }
+  };
 
   const fetchSubjectContent = async (subjectId: string) => {
     const fetchId = ++fetchGenRef.current;
@@ -120,22 +151,42 @@ export default function TeacherSubjectContent() {
     }
   };
 
-  const contentStats = useMemo(() => {
-    const videoCount = contents.filter((c) => c.type === 'Video').length;
-    const homeworkCount = contents.filter((c) => c.type === 'Homework').length;
-    const otherCount = contents.length - videoCount - homeworkCount;
-    return { videoCount, homeworkCount, otherCount, total: contents.length };
-  }, [contents]);
+  const classOptions = useMemo(() => {
+    const set = new Set<string>();
+    teacherClasses.forEach((c) => {
+      const n = normalizeClassNumber(c.classNumber);
+      if (n) set.add(n);
+    });
+    contents.forEach((c) => {
+      const n = normalizeClassNumber(c.classNumber);
+      if (n) set.add(n);
+    });
+    return Array.from(set).sort((a, b) => {
+      const na = parseInt(a, 10);
+      const nb = parseInt(b, 10);
+      if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+      return a.localeCompare(b, undefined, { numeric: true });
+    });
+  }, [teacherClasses, contents]);
+
+  const classFilteredContents = useMemo(() => {
+    if (!selectedClassFilter) return contents;
+    return contents.filter(
+      (c) => normalizeClassNumber(c.classNumber) === selectedClassFilter,
+    );
+  }, [contents, selectedClassFilter]);
 
   const filteredContents = useMemo(() => {
-    if (!selectedContentType) return contents;
-    return contents.filter((c) => c.type === selectedContentType);
-  }, [contents, selectedContentType]);
+    if (!selectedContentType) return classFilteredContents;
+    return classFilteredContents.filter((c) => c.type === selectedContentType);
+  }, [classFilteredContents, selectedContentType]);
 
   const uniqueContentTypes = useMemo(
-    () => Array.from(new Set(contents.map((c) => c.type))).sort(),
-    [contents],
+    () => Array.from(new Set(classFilteredContents.map((c) => c.type))).sort(),
+    [classFilteredContents],
   );
+
+  const hasActiveFilters = Boolean(selectedContentType || selectedClassFilter);
 
   if (loading) {
     return (
@@ -182,37 +233,6 @@ export default function TeacherSubjectContent() {
                   )}
                 </div>
               </div>
-
-              <div className="flex flex-wrap items-center gap-3 sm:gap-6 mb-6">
-                <Badge variant="outline" className="border-white/30 text-white bg-white/10">
-                  {contentStats.total} items
-                </Badge>
-                <div className="flex items-center space-x-1 text-blue-100 text-sm">
-                  <Video className="w-4 h-4" />
-                  <span>{contentStats.videoCount} videos</span>
-                </div>
-                <div className="flex items-center space-x-1 text-blue-100 text-sm">
-                  <FileText className="w-4 h-4" />
-                  <span>{contentStats.otherCount + contentStats.homeworkCount} resources</span>
-                </div>
-                <div className="flex items-center space-x-1 text-blue-100 text-sm">
-                  <Clock className="w-4 h-4" />
-                  <span>Super Admin catalog</span>
-                </div>
-              </div>
-
-              <div className="mb-2">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-blue-100">Content loaded</span>
-                  <span className="text-sm font-medium text-white">
-                    {loadingContents ? '…' : contentStats.total > 0 ? '100%' : '0%'}
-                  </span>
-                </div>
-                <Progress
-                  value={loadingContents ? 0 : contentStats.total > 0 ? 100 : 0}
-                  className="h-2 bg-white/20 [&>div]:bg-white"
-                />
-              </div>
             </div>
 
             <div className="absolute top-0 right-0 w-64 h-64 opacity-10 pointer-events-none">
@@ -237,48 +257,90 @@ export default function TeacherSubjectContent() {
               </p>
             </div>
 
-            {contents.length > 0 && (
-              <div className="flex items-center space-x-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="flex items-center space-x-2 bg-white">
-                      <Filter className="w-4 h-4" />
-                      <span>
-                        {selectedContentType ? `Filter: ${selectedContentType}` : 'Filter by Type'}
-                      </span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem
-                      onClick={() => setSelectedContentType(null)}
-                      className={!selectedContentType ? 'bg-blue-50' : ''}
-                    >
-                      All Types ({contents.length})
-                    </DropdownMenuItem>
-                    {uniqueContentTypes.map((type) => {
-                      const count = contents.filter((c) => c.type === type).length;
-                      return (
-                        <DropdownMenuItem
-                          key={type}
-                          onClick={() => setSelectedContentType(type)}
-                          className={selectedContentType === type ? 'bg-blue-50' : ''}
-                        >
-                          {type} ({count})
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+            {(contents.length > 0 || classOptions.length > 0) && (
+              <div className="flex items-center flex-wrap gap-2">
+                {classOptions.length > 0 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="flex items-center space-x-2 bg-white">
+                        <Filter className="w-4 h-4" />
+                        <span>
+                          {selectedClassFilter
+                            ? `Class ${selectedClassFilter}`
+                            : 'Filter by Class'}
+                        </span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem
+                        onClick={() => setSelectedClassFilter(null)}
+                        className={!selectedClassFilter ? 'bg-blue-50' : ''}
+                      >
+                        All Classes ({contents.length})
+                      </DropdownMenuItem>
+                      {classOptions.map((classNum) => {
+                        const count = contents.filter(
+                          (c) => normalizeClassNumber(c.classNumber) === classNum,
+                        ).length;
+                        return (
+                          <DropdownMenuItem
+                            key={classNum}
+                            onClick={() => setSelectedClassFilter(classNum)}
+                            className={selectedClassFilter === classNum ? 'bg-blue-50' : ''}
+                          >
+                            Class {classNum} ({count})
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
 
-                {selectedContentType && (
+                {contents.length > 0 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="flex items-center space-x-2 bg-white">
+                        <Filter className="w-4 h-4" />
+                        <span>
+                          {selectedContentType ? `Filter: ${selectedContentType}` : 'Filter by Type'}
+                        </span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem
+                        onClick={() => setSelectedContentType(null)}
+                        className={!selectedContentType ? 'bg-blue-50' : ''}
+                      >
+                        All Types ({classFilteredContents.length})
+                      </DropdownMenuItem>
+                      {uniqueContentTypes.map((type) => {
+                        const count = classFilteredContents.filter((c) => c.type === type).length;
+                        return (
+                          <DropdownMenuItem
+                            key={type}
+                            onClick={() => setSelectedContentType(type)}
+                            className={selectedContentType === type ? 'bg-blue-50' : ''}
+                          >
+                            {type} ({count})
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+
+                {hasActiveFilters && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setSelectedContentType(null)}
+                    onClick={() => {
+                      setSelectedContentType(null);
+                      setSelectedClassFilter(null);
+                    }}
                     className="flex items-center space-x-1"
                   >
                     <X className="w-4 h-4" />
-                    <span>Clear</span>
+                    <span>Clear filters</span>
                   </Button>
                 )}
               </div>
@@ -295,9 +357,13 @@ export default function TeacherSubjectContent() {
               <Play className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No content available</h3>
               <p className="text-gray-500 text-sm">
-                {selectedContentType
-                  ? `No ${selectedContentType} items for this subject yet.`
-                  : 'Content will appear here once it is added to your assigned subjects.'}
+                {selectedContentType && selectedClassFilter
+                  ? `No ${selectedContentType} items for Class ${selectedClassFilter} yet.`
+                  : selectedContentType
+                    ? `No ${selectedContentType} items for this subject yet.`
+                    : selectedClassFilter
+                      ? `No content for Class ${selectedClassFilter} in this subject yet.`
+                      : 'Content will appear here once it is added to your assigned subjects.'}
               </p>
             </div>
           ) : (
