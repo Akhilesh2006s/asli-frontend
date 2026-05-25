@@ -203,11 +203,13 @@ function mapTeacherFromApi(
     : [];
 
   const assignedRaw = t.assignedClassIds ?? savedAssignments[id] ?? [];
-  const assignedClassIds = [
-    ...new Set(
-      [...(Array.isArray(assignedRaw) ? assignedRaw.map((x) => String(x)).filter(Boolean) : []), ...fromAssignments, ...fromSummaries]
-    ),
-  ];
+  const assignedClassIds = Array.from(
+    new Set([
+      ...(Array.isArray(assignedRaw) ? assignedRaw.map((x) => String(x)).filter(Boolean) : []),
+      ...fromAssignments,
+      ...fromSummaries,
+    ])
+  );
 
   return {
     id,
