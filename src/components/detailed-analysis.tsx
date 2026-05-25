@@ -1319,13 +1319,6 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     [activePlanTopic?.title, selectedPlanDayIndex]
   );
 
-  const scrollToPlanQueue = useCallback(() => {
-    setSelectedPlanDayIndex(0);
-    requestAnimationFrame(() => {
-      planQueueRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  }, []);
-
   const carelessMistakeCount = useMemo(() => {
     let n = 0;
     analysisQuestions.forEach((q, i) => {
@@ -1814,57 +1807,124 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     </div>
   );
 
-  const getQuestionInsightByIndex = (questionIndex: number) =>
-    aiAnalysis?.questionInsights?.find(
-      (x) => Number(x.index) === questionIndex + 1 || Number(x.index) === questionIndex
-    );
-
-  const extractExplanationHintFromFix = (fixStrategy?: string) => {
-    const match = String(fixStrategy || '').match(/Review explanation hint:\s*"([^"]*)"/i);
-    return match?.[1]?.trim() || '';
+  const getQuestionInsightByIndex = (questionIndex: number) => {
+    const insights = aiAnalysis?.questionInsights;
+    if (!insights?.length) return undefined;
+    const question = analysisQuestions[questionIndex];
+    const qid = normalizeMongoId((question as { _id?: unknown })?._id);
+    if (qid) {
+      const byId = insights.find((x) => normalizeMongoId(x.questionId) === qid);
+      if (byId) return byId;
+    }
+    return insights.find((x) => Number(x.index) === questionIndex + 1);
   };
 
-  const getQuestionExplanationText = (questionIndex: number) => {
+  const getQuestionAnalysisBlocks = (questionIndex: number) => {
     const item = getQuestionInsightByIndex(questionIndex);
     const question = analysisQuestions[questionIndex];
-    const fromGemini = String(item?.geminiExplanation || '').trim();
-    if (fromGemini) return fromGemini;
-    const fromQuestion = String(question?.explanation || '').trim();
-    if (fromQuestion) return fromQuestion;
-    return extractExplanationHintFromFix(item?.fixStrategy);
+    const blocks: string[] = [];
+    const gap = String(item?.conceptGap || '').trim();
+    const fix = String(item?.fixStrategy || '').trim();
+    if (gap) blocks.push(gap);
+    if (fix) blocks.push(fix);
+    const solution = String(question?.explanation || item?.geminiExplanation || '').trim();
+    if (solution) blocks.push(`Solution: ${solution}`);
+    return blocks;
+  };
+
+  const resolveQuestionAnalysisStatus = (questionIndex: number) => {
+    const item = getQuestionInsightByIndex(questionIndex);
+    const fromInsight = String(item?.status || '').toLowerCase();
+    if (fromInsight === 'correct' || fromInsight === 'wrong' || fromInsight === 'unattempted') {
+      return fromInsight;
+    }
+    const question = analysisQuestions[questionIndex];
+    if (!question) return 'unattempted';
+    const ua = getUserAnswerForQuestion(question, questionIndex);
+    const attempted = ua !== undefined && ua !== null && ua !== '';
+    if (!attempted) return 'unattempted';
+    return compareAnswers(question, ua, question.correctAnswer) ? 'correct' : 'wrong';
   };
 
   const renderQuestionAnalysisSection = (questionIndex: number) => {
     const item = getQuestionInsightByIndex(questionIndex);
-    const explanationText = getQuestionExplanationText(questionIndex);
+    const analysisBlocks = getQuestionAnalysisBlocks(questionIndex);
+    const status = resolveQuestionAnalysisStatus(questionIndex);
+    const isCorrect = status === 'correct';
+    const isWrong = status === 'wrong';
+
+    const shellClass = isCorrect
+      ? 'mt-4 rounded-lg border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-teal-50 p-4'
+      : isWrong
+        ? 'mt-4 rounded-lg border-2 border-red-300 bg-gradient-to-br from-red-50 to-rose-50 p-4'
+        : 'mt-4 rounded-lg border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4';
+
+    const headingClass = isCorrect
+      ? 'text-sm font-semibold text-emerald-900 mb-3'
+      : isWrong
+        ? 'text-sm font-semibold text-red-900 mb-3'
+        : 'text-sm font-semibold text-gray-900 mb-3';
+
+    const bodyTextClass = isCorrect
+      ? 'text-xs sm:text-sm text-emerald-900 leading-relaxed'
+      : isWrong
+        ? 'text-xs sm:text-sm text-red-900 leading-relaxed'
+        : 'text-xs sm:text-sm text-gray-700 leading-relaxed';
+
+    const statusBadgeClass = isCorrect
+      ? 'uppercase text-[10px] border-emerald-400 bg-emerald-100 text-emerald-800'
+      : isWrong
+        ? 'uppercase text-[10px] border-red-400 bg-red-100 text-red-800'
+        : 'uppercase text-[10px]';
+
     return (
-      <div className="mt-4 rounded-lg border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-3">Question Analysis</h4>
+      <div className={shellClass}>
+        <h4 className={headingClass}>Question Analysis</h4>
         {item ? (
           <>
             <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="text-xs sm:text-sm font-semibold text-gray-900">Q{questionIndex + 1}</span>
+              <span
+                className={
+                  isCorrect
+                    ? 'text-xs sm:text-sm font-semibold text-emerald-900'
+                    : isWrong
+                      ? 'text-xs sm:text-sm font-semibold text-red-900'
+                      : 'text-xs sm:text-sm font-semibold text-gray-900'
+                }
+              >
+                Q{questionIndex + 1}
+              </span>
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="uppercase text-[10px]">
-                  {String(item.status || 'unattempted')}
+                <Badge variant="outline" className={statusBadgeClass}>
+                  {status}
                 </Badge>
                 <Badge variant="outline" className="uppercase text-[10px]">
                   {String(item.priority || 'medium')}
                 </Badge>
               </div>
             </div>
-            {aiLoading && !explanationText && !item ? (
+            {aiLoading && analysisBlocks.length === 0 ? (
               <div className="mt-2 space-y-2 animate-pulse" aria-busy="true" aria-label="Loading explanation">
-                <div className="h-3 bg-slate-200 rounded w-full" />
-                <div className="h-3 bg-slate-200 rounded w-[92%]" />
-                <div className="h-3 bg-slate-200 rounded w-[78%]" />
+                <div
+                  className={`h-3 rounded w-full ${isCorrect ? 'bg-emerald-200' : isWrong ? 'bg-red-200' : 'bg-slate-200'}`}
+                />
+                <div
+                  className={`h-3 rounded w-[92%] ${isCorrect ? 'bg-emerald-200' : isWrong ? 'bg-red-200' : 'bg-slate-200'}`}
+                />
+                <div
+                  className={`h-3 rounded w-[78%] ${isCorrect ? 'bg-emerald-200' : isWrong ? 'bg-red-200' : 'bg-slate-200'}`}
+                />
               </div>
-            ) : explanationText ? (
-              <p className="text-xs sm:text-sm text-gray-700 leading-relaxed mt-2">
-                {explanationText}
-              </p>
+            ) : analysisBlocks.length > 0 ? (
+              <div className="mt-2 space-y-2.5">
+                {analysisBlocks.map((block, bi) => (
+                  <p key={bi} className={bodyTextClass}>
+                    {block}
+                  </p>
+                ))}
+              </div>
             ) : (
-              <p className="text-gray-500 text-xs sm:text-sm mt-2">
+              <p className={`${bodyTextClass} mt-2 opacity-80`}>
                 No explanation available for this question.
               </p>
             )}
@@ -2456,15 +2516,10 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
 
         {activeTab === 'plan' && (
           <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-r from-purple-600 to-pink-500 text-white p-3 sm:p-4 lg:p-6 sm:p-8 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-bold">YOUR TOPIC PLAN</h2>
-                <p className="text-white/80 text-xs sm:text-sm mt-1">Personalised from your weak areas</p>
-                <p className="text-white/70 text-xs mt-2">7 focus topics · 70 questions · 7 quizzes</p>
-              </div>
-              <Button type="button" className="bg-white text-purple-700 hover:bg-white/90" onClick={scrollToPlanQueue}>
-                Start {planTopics[0]?.title || 'first topic'} →
-              </Button>
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-r from-purple-600 to-pink-500 text-white p-3 sm:p-4 lg:p-6 sm:p-8 rounded-2xl">
+              <h2 className="text-xl sm:text-2xl font-bold">YOUR TOPIC PLAN</h2>
+              <p className="text-white/80 text-xs sm:text-sm mt-1">Personalised from your weak areas</p>
+              <p className="text-white/70 text-xs mt-2">7 focus topics · 70 questions · 7 quizzes</p>
             </motion.div>
             <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 flex gap-3">
               <div className="w-10 h-10 rounded-full bg-[#7C3AED] text-white font-bold flex items-center justify-center shrink-0">V</div>
