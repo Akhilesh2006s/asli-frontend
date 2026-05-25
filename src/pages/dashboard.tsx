@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+﻿import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -14,13 +14,10 @@ import {
 import Navigation from "@/components/navigation";
 import {
   filterContentsBySchoolProgram,
-  getAllowedContentTypes,
   resolveIsAsliPrepExclusive,
-  type ContentTypeName,
 } from "@/lib/school-program";
 import { StudentTeacherDiaryFeed } from "@/components/student/StudentTeacherDiaryFeed";
 import StudentTimetableView from "@/components/student/StudentTimetableView";
-import ProgressChart from "@/components/progress-chart";
 import { 
   CheckCircle, 
   TrendingUp, 
@@ -74,7 +71,11 @@ import {
   Lightbulb,
   TrendingDown,
   ArrowRightCircle,
-  BookCheck
+  BookCheck,
+  Globe,
+  Flame,
+  Monitor,
+  type LucideIcon,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -87,7 +88,6 @@ import { buildExamCalendarEntries } from '@/lib/exam-calendar-entries';
 import { buildTimetableCalendarEntries } from '@/lib/timetable-calendar-entries';
 import { useTimetableEntries } from '@/hooks/useTimetable';
 import { format, startOfMonth, endOfMonth, startOfWeek, addDays, parseISO } from 'date-fns';
-import { collectVidyaSubjectLabels } from '@/lib/vidya-subjects';
 import { getUser as getStoredUser } from '@/lib/auth-utils';
 import { fetchAuthUser, peekCachedAuthUser } from '@/lib/auth-session';
 import { fetchDashboardBootstrap } from '@/lib/dashboard-bootstrap';
@@ -107,8 +107,6 @@ import {
 } from '@/utils/dashboard-stats-cache';
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import AdaptiveRecommendations from "@/components/dashboard/AdaptiveRecommendations";
-import AIChat from "@/components/ai-chat.tsx";
-import VidyaAIFloatingAssistant from "@/components/student/VidyaAIFloatingAssistant";
 
 // Mock user ID - in a real app, this would come from authentication
 const MOCK_USER_ID = "user-1";
@@ -122,7 +120,7 @@ function capStudyMinutes(minutes: number, max: number) {
   return Math.min(max, Math.max(0, Math.round(minutes)));
 }
 
-/** Backend week total already includes today — replace today's slice with live capped today. */
+/** Backend week total already includes today â€” replace today's slice with live capped today. */
 function mergeDisplayedStudyTime(
   baseline: {
     useBackend: boolean;
@@ -192,6 +190,48 @@ function buildScheduleCompletionStats(allContent: any[], allQuizzes: any[]) {
     completed,
     completionPercent,
   };
+}
+
+function getSubjectProgressIconMeta(name: string): {
+  Icon: LucideIcon;
+  iconClass: string;
+  bgClass: string;
+} {
+  const subjectName = (name || '').toLowerCase();
+  if (subjectName.includes('math') || subjectName.includes('mathematics')) {
+    return { Icon: Calculator, iconClass: 'text-orange-600', bgClass: 'bg-orange-50' };
+  }
+  if (subjectName.includes('physics')) {
+    return { Icon: Atom, iconClass: 'text-blue-600', bgClass: 'bg-blue-50' };
+  }
+  if (subjectName.includes('chem')) {
+    return { Icon: FlaskConical, iconClass: 'text-teal-600', bgClass: 'bg-teal-50' };
+  }
+  if (subjectName.includes('bio') || subjectName.includes('science')) {
+    return { Icon: Microscope, iconClass: 'text-emerald-600', bgClass: 'bg-emerald-50' };
+  }
+  if (subjectName.includes('english')) {
+    return { Icon: BookIcon, iconClass: 'text-indigo-600', bgClass: 'bg-indigo-50' };
+  }
+  if (subjectName.includes('hindi') || subjectName.includes('language')) {
+    return { Icon: BookOpen, iconClass: 'text-violet-600', bgClass: 'bg-violet-50' };
+  }
+  if (subjectName.includes('social') || subjectName.includes('history') || subjectName.includes('geo')) {
+    return { Icon: Globe, iconClass: 'text-amber-700', bgClass: 'bg-amber-50' };
+  }
+  if (subjectName.includes('computer') || subjectName.includes('cs')) {
+    return { Icon: Monitor, iconClass: 'text-sky-600', bgClass: 'bg-sky-50' };
+  }
+  return { Icon: BookOpen, iconClass: 'text-slate-600', bgClass: 'bg-slate-50' };
+}
+
+function SubjectProgressIcon({ name }: { name: string }) {
+  const { Icon, iconClass, bgClass } = getSubjectProgressIconMeta(name);
+  return (
+    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${bgClass}`}>
+      <Icon className={`h-4 w-4 ${iconClass}`} strokeWidth={2} aria-hidden />
+    </div>
+  );
 }
 
 function buildSessionTimeBaselineFromCache() {
@@ -294,7 +334,7 @@ export default function Dashboard() {
       });
 
       if (response.ok) {
-        console.log('✅ Overall progress saved to database:', progress);
+        console.log('âœ… Overall progress saved to database:', progress);
       } else {
         console.error('Failed to save overall progress to database');
       }
@@ -315,26 +355,6 @@ export default function Dashboard() {
       console.error('Error loading overall progress:', error);
     }
   };
-  const [learningPathTab, setLearningPathTab] = useState<'subjects' | 'quizzes'>('subjects');
-  const [vidyaAiTab, setVidyaAiTab] = useState<'student-tools' | 'chat'>('student-tools');
-  const [studentLearningMode, setStudentLearningMode] = useState<'explain' | 'quiz' | 'practice'>('explain');
-  const [quizzes, setQuizzes] = useState<any[]>([]);
-  const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
-  const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
-  const isAsliPrepExclusive = resolveIsAsliPrepExclusive(user);
-  const allowedBrowseTypes = getAllowedContentTypes(isAsliPrepExclusive);
-  const [contentTypeCounts, setContentTypeCounts] = useState({
-    TextBook: 0,
-    Workbook: 0,
-    Material: 0,
-    Audio: 0,
-    Homework: 0,
-    Video: 0,
-  });
-  const [isLoadingContentCounts, setIsLoadingContentCounts] = useState(false);
-  const [selectedBrowseType, setSelectedBrowseType] = useState<ContentTypeName | null>(null);
-  const [filteredContent, setFilteredContent] = useState<any[]>([]);
-  const [isLoadingFilteredContent, setIsLoadingFilteredContent] = useState(false);
   const [allContent, setAllContent] = useState<any[]>([]);
 
   // Single bootstrap: auth + subjects + content counts + quizzes (replaces 15+ separate calls)
@@ -375,7 +395,6 @@ export default function Dashboard() {
         }
 
         setSubjects(bootstrap.subjects || []);
-        setIsLoadingSubjects(false);
 
         const preview = Array.isArray(bootstrap.previewVideos) ? bootstrap.previewVideos : [];
         if (preview.length) {
@@ -388,11 +407,6 @@ export default function Dashboard() {
           resolveIsAsliPrepExclusive(bootstrap.user),
         );
         setAllContent(filtered);
-        setContentTypeCounts(bootstrap.contentTypeCounts);
-        setIsLoadingContentCounts(false);
-
-        setQuizzes(bootstrap.quizzes || []);
-        setIsLoadingQuizzes(false);
 
         if (bootstrap.studyStreak) setStudyStreak(bootstrap.studyStreak);
       } catch (error) {
@@ -406,14 +420,6 @@ export default function Dashboard() {
       cancelled = true;
     };
   }, []);
-
-  // Memoize filtered content (must be before useEffect that uses it)
-  const memoizedFilteredContent = useMemo(() => {
-    if (!selectedBrowseType || !allContent.length) return [];
-    return allContent.filter((content: any) => 
-      content.type && content.type.toLowerCase() === selectedBrowseType.toLowerCase()
-    );
-  }, [selectedBrowseType, allContent]);
 
   const adaptiveVideosList = useMemo(
     () => subjects.flatMap((s: any) => s.videos || []),
@@ -521,6 +527,11 @@ export default function Dashboard() {
     startDate: calendarMonthStart,
     endDate: calendarMonthEnd,
   });
+
+  const schoolDisplayName = useMemo(
+    () => String(user?.assignedAdmin?.schoolName || user?.schoolName || '').trim(),
+    [user?.assignedAdmin?.schoolName, user?.schoolName],
+  );
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -861,161 +872,61 @@ export default function Dashboard() {
     fetchDashboardData();
   }, []);
 
-  // Fetch assigned quizzes (skipped when dashboard-bootstrap wins the race)
+  // Fetch library content for homework/todos (fallback if bootstrap missed)
   useEffect(() => {
     const timer = window.setTimeout(async () => {
       if (bootstrapAppliedRef.current) return;
       try {
-        setIsLoadingQuizzes(true);
         const token = localStorage.getItem('authToken');
-        const response = await fetch(`${API_BASE_URL}/api/student/quizzes`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setQuizzes(data.data || []);
-        } else {
-          setQuizzes([]);
-        }
-      } catch (error) {
-        console.error('Failed to fetch quizzes:', error);
-        setQuizzes([]);
-      } finally {
-        setIsLoadingQuizzes(false);
-      }
-    }, 400);
-    return () => window.clearTimeout(timer);
-  }, []);
+        if (!token) return;
 
-  // Fetch content type counts for Digital Library (fallback if bootstrap missed)
-  useEffect(() => {
-    const timer = window.setTimeout(async () => {
-      if (bootstrapAppliedRef.current) return;
-      try {
-        setIsLoadingContentCounts(true);
-        const token = localStorage.getItem('authToken');
-        
-        if (!token) {
-          setIsLoadingContentCounts(false);
-          return;
-        }
-        
-        // Fetch all content to count by type (including homework)
         const response = await fetch(`${API_BASE_URL}/api/student/asli-prep-content`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const fetchedContent = data.data || data || [];
+
+        const homeworkResponse = await fetch(`${API_BASE_URL}/api/student/asli-prep-content?type=Homework`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        let homeworkContent: any[] = [];
+        if (homeworkResponse.ok) {
+          const homeworkData = await homeworkResponse.json();
+          homeworkContent = homeworkData.data || homeworkData || [];
+        }
+
+        const contentMap = new Map();
+        fetchedContent.forEach((content: any) => {
+          contentMap.set(content._id || content.id, content);
+        });
+        homeworkContent.forEach((content: any) => {
+          if (!contentMap.has(content._id || content.id)) {
+            contentMap.set(content._id || content.id, content);
           }
         });
-        
-        if (response.ok) {
-          const data = await response.json();
-          const fetchedContent = data.data || data || [];
-          
-          // Also explicitly fetch homework if not included
-          // This ensures homework is always included even if filtered out
-          const homeworkResponse = await fetch(`${API_BASE_URL}/api/student/asli-prep-content?type=Homework`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            }
-          });
-          
-          let homeworkContent: any[] = [];
-          if (homeworkResponse.ok) {
-            const homeworkData = await homeworkResponse.json();
-            homeworkContent = homeworkData.data || homeworkData || [];
-          }
-          
-          // Merge content, avoiding duplicates
-          const contentMap = new Map();
-          fetchedContent.forEach((content: any) => {
-            contentMap.set(content._id || content.id, content);
-          });
-          homeworkContent.forEach((content: any) => {
-            if (!contentMap.has(content._id || content.id)) {
-              contentMap.set(content._id || content.id, content);
-            }
-          });
-          
-          const allFetchedContent = filterContentsBySchoolProgram(
+
+        setAllContent(
+          filterContentsBySchoolProgram(
             Array.from(contentMap.values()),
             resolveIsAsliPrepExclusive(user),
-          );
-          setAllContent(allFetchedContent);
-          
-          // Count by type
-          const counts = {
-            TextBook: 0,
-            Workbook: 0,
-            Material: 0,
-            Audio: 0,
-            Homework: 0,
-            Video: 0,
-          };
-          
-          allFetchedContent.forEach((content: any) => {
-            const contentType = content.type;
-            // Normalize content type to match our keys (case-insensitive)
-            const normalizedType = contentType ? 
-              Object.keys(counts).find(key => key.toLowerCase() === contentType.toLowerCase()) : null;
-            
-            if (normalizedType) {
-              counts[normalizedType as keyof typeof counts]++;
-            } else if (contentType) {
-              // Log unexpected content types for debugging
-              console.log('Unexpected content type:', contentType, 'for content:', content.title);
-            }
-          });
-          
-          // Debug logging
-          console.log('📚 Content type counts:', counts);
-          console.log('📚 Total content fetched:', allFetchedContent.length);
-          const homeworkItems = allFetchedContent.filter((c: any) => 
-            c.type && c.type.toLowerCase() === 'homework'
-          );
-          console.log('📚 Homework content found:', homeworkItems.length);
-          if (homeworkItems.length > 0) {
-            console.log('📚 Homework items:', homeworkItems.map((h: any) => ({
-              id: h._id,
-              title: h.title,
-              subject: h.subject?.name || h.subject,
-              isActive: h.isActive,
-              isExclusive: h.isExclusive
-            })));
-          }
-          
-          setContentTypeCounts(counts);
-        } else {
-          console.error('Failed to fetch content. Status:', response.status);
-          const errorData = await response.json().catch(() => ({}));
-          console.error('Error data:', errorData);
-        }
+          ),
+        );
       } catch (error) {
-        console.error('Failed to fetch content counts:', error);
-      } finally {
-        setIsLoadingContentCounts(false);
+        console.error('Failed to fetch library content:', error);
       }
     }, 400);
     return () => window.clearTimeout(timer);
   }, [user?.isAsliPrepExclusive, user?.assignedAdmin?.isAsliPrepExclusive]);
-
-  // Update filteredContent state when memoized value changes
-  useEffect(() => {
-    if (!selectedBrowseType) {
-      setFilteredContent([]);
-      setIsLoadingFilteredContent(false);
-      return;
-    }
-
-    setIsLoadingFilteredContent(true);
-    setFilteredContent(memoizedFilteredContent);
-    setIsLoadingFilteredContent(false);
-  }, [selectedBrowseType, memoizedFilteredContent]);
 
   // Track study time using timestamp module (ignores background time)
   useEffect(() => {
@@ -1719,17 +1630,6 @@ export default function Dashboard() {
     return incompleteQuizzes.slice(0, 10);
   }, [incompleteQuizzes]);
 
-  const vidyaSubjectNames = useMemo(
-    () =>
-      collectVidyaSubjectLabels({
-        subjectProgress,
-        subjects,
-        assignedSubjects: user?.assignedSubjects,
-        assignedClassSubjects: user?.assignedClass?.assignedSubjects,
-      }),
-    [subjectProgress, subjects, user?.assignedSubjects, user?.assignedClass?.assignedSubjects]
-  );
-
   const [selectedTopicSubject, setSelectedTopicSubject] = useState<string>('');
 
   const topicWiseProgress = useMemo(() => {
@@ -1973,13 +1873,11 @@ export default function Dashboard() {
           <FloatingParticles /> */}
         </div>
         
-        <VidyaAIFloatingAssistant role="student" />
-        
         {/* Welcome Section */}
         <div className="mt-6 sm:mt-8 mb-6 relative z-10">
         {studyStreak && studyStreak.count > 0 && (
           <div className="mb-4 flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2.5">
-            <span className="text-lg sm:text-xl">🔥</span>
+            <Flame className="h-5 w-5 shrink-0 text-orange-500" aria-hidden />
             <div>
               <p className="text-xs sm:text-sm font-semibold text-orange-700">{studyStreak.count}-day study streak!</p>
               <p className="text-xs text-orange-600">{studyStreak.message || 'Keep it up!'}</p>
@@ -2235,7 +2133,7 @@ export default function Dashboard() {
                     month: 'short',
                     day: 'numeric'
                   })}
-                  {' · '}Class timetable is in the table below
+                  {' Â· '}Class timetable is in the table below
                 </p>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -2263,7 +2161,7 @@ export default function Dashboard() {
                         : entry.type.toUpperCase();
                     const timeLabel =
                       entry.type === 'timetable'
-                        ? `${entry.startTime || ''}${entry.endTime ? `–${entry.endTime}` : ''}`
+                        ? `${entry.startTime || ''}${entry.endTime ? `â€“${entry.endTime}` : ''}`
                         : entry.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     const isClickable = entry.type !== 'timetable';
                     return (
@@ -2294,7 +2192,7 @@ export default function Dashboard() {
                         )}
                         <p className="text-xs text-gray-500 mt-1">
                           {timeLabel}
-                          {entry.type === 'timetable' && entry.room ? ` · ${entry.room}` : ''}
+                          {entry.type === 'timetable' && entry.room ? ` Â· ${entry.room}` : ''}
                         </p>
                       </div>
                     );
@@ -2307,6 +2205,7 @@ export default function Dashboard() {
           <StudentTimetableView
             entries={monthTimetableEntries}
             isLoading={timetableLoading}
+            schoolName={schoolDisplayName}
           />
 
           {/* Today's Tasks */}
@@ -2693,7 +2592,7 @@ export default function Dashboard() {
                             <p className="text-xs text-gray-600 truncate">
                               {getSubjectName(homework)}
                               {homework.deadline
-                                ? ` • Due ${new Date(homework.deadline).toLocaleDateString('en-US', {
+                                ? ` â€¢ Due ${new Date(homework.deadline).toLocaleDateString('en-US', {
                                     month: 'short',
                                     day: 'numeric',
                                     year: 'numeric'
@@ -2777,11 +2676,9 @@ export default function Dashboard() {
         </div>
 
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:p-6 lg:p-8 relative z-10">
-          
-          {/* Left Column: Learning Path & Content */}
-          <div className="lg:col-span-2 space-y-3 sm:space-y-4 lg:space-y-6">
+        {/* Main Content */}
+        <div className="relative z-10 space-y-3 sm:space-y-4 sm:p-6 lg:space-y-6 lg:p-8">
+          <div className="min-w-0 space-y-3 sm:space-y-4 lg:space-y-6">
             
             {/* Learning Progress */}
             <Card className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl">
@@ -2804,40 +2701,27 @@ export default function Dashboard() {
                 </div>
 
                 {/* Subject Progress */}
-                <div className="space-y-4">
+                <div className="space-y-2.5">
                   {subjectProgress.length > 0 ? subjectProgress.map((subject, idx) => (
                     <div
                       key={subject.id || subject.name || `subject-${idx}`}
-                      className="rounded-2xl border border-orange-50 bg-white p-4 shadow-sm"
+                      className="rounded-xl border border-orange-50 bg-white p-3 shadow-sm"
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
-                            {(() => {
-                              const name = (subject.name || '').toLowerCase();
-                              if (name.includes('math')) return '📐';
-                              if (name.includes('physics')) return '⚛️';
-                              if (name.includes('chem')) return '🧪';
-                              if (name.includes('bio') || name.includes('science')) return '🔬';
-                              if (name.includes('english')) return '📖';
-                              if (name.includes('hindi') || name.includes('language')) return '📝';
-                              if (name.includes('social') || name.includes('history') || name.includes('geo')) return '🌍';
-                              if (name.includes('computer') || name.includes('cs')) return '💻';
-                              return '📘';
-                            })()}
-                          </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <SubjectProgressIcon name={subject.name || ''} />
                           <div className="min-w-0">
-                            <h3 className="font-semibold text-gray-900 truncate">{subject.name}</h3>
+                            <h3 className="font-semibold text-gray-900 truncate capitalize">{subject.name}</h3>
                             <p className="text-responsive-xs text-gray-500 truncate">{subject.currentTopic}</p>
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="text-2xl sm:text-3xl font-bold text-slate-900 leading-none">{subject.progress}%</p>
+                          <p className="text-lg font-bold text-slate-900 leading-none">{subject.progress}%</p>
                         </div>
                       </div>
-                      <div className="mt-3 h-2.5 w-full rounded-full bg-gray-100 overflow-hidden">
+                      <div className="mt-2 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
                         <div
-                          className="h-2.5 rounded-full bg-gradient-to-r from-orange-400 via-blue-500 to-teal-500"
+                          className="h-2 rounded-full bg-gradient-to-r from-orange-400 via-blue-500 to-teal-500"
                           style={{ width: `${subject.progress}%` }}
                         />
                       </div>
@@ -2937,800 +2821,8 @@ export default function Dashboard() {
             {/* Adaptive Learning - Recommendation Engine */}
             <AdaptiveRecommendations />
 
-            {/* Learning Paths */}
-            <div id="learning-paths-section" className="mb-6 scroll-mt-24">
-              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent mb-2">Learning Paths</h1>
-              
-              {/* Tabs */}
-              <div className="mb-6">
-                <div className="flex space-x-1 bg-gray-100 rounded-lg p-1 mb-6">
-                  <button
-                    onClick={() => setLearningPathTab('subjects')}
-                    className={`flex-1 px-3 sm:px-4 lg:px-6 py-3 text-xs sm:text-sm font-medium rounded-md transition-all ${
-                      learningPathTab === 'subjects'
-                        ? 'bg-white text-gray-900 shadow-sm border border-gray-300'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    Browse by Subject
-                  </button>
-                  <button
-                    onClick={() => setLearningPathTab('quizzes')}
-                    className={`flex-1 px-3 sm:px-4 lg:px-6 py-3 text-xs sm:text-sm font-medium rounded-md transition-all ${
-                      learningPathTab === 'quizzes'
-                        ? 'bg-white text-gray-900 shadow-sm border border-gray-300'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    My Quizzes
-                  </button>
-                </div>
-              </div>
-
-              {/* Browse by Subject Tab */}
-              {learningPathTab === 'subjects' && (
-                <>
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-700 mb-6">Browse by Subject</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:p-4 lg:p-6">
-                {isLoadingSubjects ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-64 w-full" />
-                  ))
-                ) : subjects.length === 0 ? (
-                  <div className="col-span-full text-center py-12">
-                    <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Subjects Available</h3>
-                    <p className="text-gray-500">Check back later for new learning content.</p>
-                  </div>
-                ) : (
-                  subjects.map((subject: any) => {
-                    const getSubjectIcon = (subjectName: string) => {
-                      const name = subjectName.toLowerCase();
-                      if (name.includes('math') || name.includes('mathematics')) return Calculator;
-                      if (name.includes('physics')) return Atom;
-                      if (name.includes('chemistry')) return FlaskConical;
-                      if (name.includes('biology')) return Microscope;
-                      if (name.includes('english')) return BookIcon;
-                      if (name.includes('science')) return Zap;
-                      return BookOpen;
-                    };
-                    
-                    const Icon = getSubjectIcon(subject.name);
-                    const assignedTeachers = subject.teachers || [];
-                    
-                    return (
-                      <Card 
-                        key={subject._id || subject.id} 
-                        className="hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200"
-                        onClick={() => setLocation(`/subject/${subject._id || subject.id}`)}
-                      >
-                        <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
-                          <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
-                            <Icon className="w-10 h-10 text-white" />
-                          </div>
-                          <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">{subject.name}</CardTitle>
-                        </CardContent>
-                      </Card>
-                    );
-                  })
-                )}
-                  </div>
-                </>
-              )}
-
-              {/* My Quizzes Tab */}
-              {learningPathTab === 'quizzes' && (
-                <div className="mb-8">
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-700 mb-6">My Quizzes</h2>
-                  {isLoadingQuizzes ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <Skeleton key={i} className="h-64 w-full" />
-                      ))}
-                    </div>
-                  ) : quizzes.length === 0 ? (
-                    <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">
-                      <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Quizzes Assigned</h3>
-                      <p className="text-gray-500">Your teacher hasn't assigned any quizzes yet. Check back later!</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
-                      {quizzes.map((quiz: any) => (
-                        <Card key={quiz._id} className="hover:shadow-lg transition-shadow duration-200">
-                          <CardHeader>
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-teal-500 rounded-lg flex items-center justify-center shadow-lg">
-                                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                              </div>
-                              {quiz.hasAttempted && (
-                                <Badge className="bg-green-100 text-green-700 border-green-300">
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  Completed
-                                </Badge>
-                              )}
-                            </div>
-                            <CardTitle className="text-base sm:text-lg">{quiz.title}</CardTitle>
-                            <p className="text-gray-600 text-xs sm:text-sm">{quiz.description || `Quiz on ${quiz.subject?.name || quiz.subject}`}</p>
-                          </CardHeader>
-                          <CardContent className="space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-center">
-                              <div className="bg-orange-50 rounded-lg p-2">
-                                <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 mx-auto mb-1" />
-                                <p className="text-xs font-medium text-orange-800">{quiz.duration || 60} min</p>
-                                <p className="text-xs text-orange-600">Duration</p>
-                              </div>
-                              <div className="bg-orange-50 rounded-lg p-2">
-                                <Target className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 mx-auto mb-1" />
-                                <p className="text-xs font-medium text-orange-800">{quiz.questions?.length || quiz.questionCount || 0}</p>
-                                <p className="text-xs text-orange-600">Questions</p>
-                              </div>
-                            </div>
-                            
-                            {quiz.hasAttempted && quiz.bestScore !== null && (
-                              <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs sm:text-sm text-green-700">Best Score:</span>
-                                  <span className="text-base sm:text-lg font-bold text-green-800">{quiz.bestScore}%</span>
-                                </div>
-                              </div>
-                            )}
-                            
-                            <Button
-                              className="w-full bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white"
-                              onClick={() => setLocation(`/quiz/${quiz._id}`)}
-                            >
-                              {quiz.hasAttempted ? 'Review Quiz' : 'Start Quiz'}
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Digital Library - Browse by Type */}
-            <div className="mb-6 bg-white rounded-2xl p-3 sm:p-4 lg:p-6 shadow-sm border border-gray-200">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Digital Library</h2>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-700 mb-4">Browse by Type</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6 mb-6">
-                {/* TextBook Card */}
-                <Card 
-                  className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
-                    selectedBrowseType === 'TextBook' ? 'ring-2 ring-orange-500' : ''
-                  }`}
-                  onClick={() => {
-                    const newType = selectedBrowseType === 'TextBook' ? null : 'TextBook';
-                    setSelectedBrowseType(newType);
-                  }}
-                >
-                  <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
-                      <BookOpen className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
-                    </div>
-                    <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">TextBook</CardTitle>
-                    <p className="text-xs sm:text-sm text-gray-500">
-                      {isLoadingContentCounts ? '...' : `${contentTypeCounts.TextBook} files`}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {allowedBrowseTypes.includes('Video') && (
-                  <Card
-                    className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
-                      selectedBrowseType === 'Video' ? 'ring-2 ring-orange-500' : ''
-                    }`}
-                    onClick={() => {
-                      const newType = selectedBrowseType === 'Video' ? null : 'Video';
-                      setSelectedBrowseType(newType);
-                    }}
-                  >
-                    <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
-                      <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
-                        <VideoIcon className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
-                      </div>
-                      <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Video</CardTitle>
-                      <p className="text-xs sm:text-sm text-gray-500">
-                        {isLoadingContentCounts ? '...' : `${contentTypeCounts.Video} files`}
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {allowedBrowseTypes.includes('Workbook') && (
-                  <Card
-                    className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
-                      selectedBrowseType === 'Workbook' ? 'ring-2 ring-orange-500' : ''
-                    }`}
-                    onClick={() => {
-                      const newType = selectedBrowseType === 'Workbook' ? null : 'Workbook';
-                      setSelectedBrowseType(newType);
-                    }}
-                  >
-                    <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
-                      <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
-                        <FileTextIcon className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
-                      </div>
-                      <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Workbook</CardTitle>
-                      <p className="text-xs sm:text-sm text-gray-500">
-                        {isLoadingContentCounts ? '...' : `${contentTypeCounts.Workbook} files`}
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {allowedBrowseTypes.includes('Material') && (
-                  <Card
-                    className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
-                      selectedBrowseType === 'Material' ? 'ring-2 ring-orange-500' : ''
-                    }`}
-                    onClick={() => {
-                      const newType = selectedBrowseType === 'Material' ? null : 'Material';
-                      setSelectedBrowseType(newType);
-                    }}
-                  >
-                    <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
-                      <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
-                        <File className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
-                      </div>
-                      <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Material</CardTitle>
-                      <p className="text-xs sm:text-sm text-gray-500">
-                        {isLoadingContentCounts ? '...' : `${contentTypeCounts.Material} files`}
-                      </p>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Audio Card */}
-                <Card 
-                  className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
-                    selectedBrowseType === 'Audio' ? 'ring-2 ring-orange-500' : ''
-                  }`}
-                  onClick={() => {
-                    const newType = selectedBrowseType === 'Audio' ? null : 'Audio';
-                    setSelectedBrowseType(newType);
-                  }}
-                >
-                  <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
-                      <Headphones className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
-                    </div>
-                    <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Audio</CardTitle>
-                    <p className="text-xs sm:text-sm text-gray-500">
-                      {isLoadingContentCounts ? '...' : `${contentTypeCounts.Audio} files`}
-                    </p>
-                  </CardContent>
-                </Card>
-
-                {/* Homework Card */}
-                <Card 
-                  className={`hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200 ${
-                    selectedBrowseType === 'Homework' ? 'ring-2 ring-orange-500' : ''
-                  }`}
-                  onClick={() => {
-                    const newType = selectedBrowseType === 'Homework' ? null : 'Homework';
-                    setSelectedBrowseType(newType);
-                  }}
-                >
-                  <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-gradient-to-br from-sky-400 to-teal-500 rounded-xl flex items-center justify-center shadow-md mb-4">
-                      <ClipboardList className="w-10 h-10 text-white" strokeWidth={2.5} fill="none" />
-                    </div>
-                    <CardTitle className="text-base sm:text-lg font-semibold text-gray-900 mb-1">Homework</CardTitle>
-                    <p className="text-xs sm:text-sm text-gray-500">
-                      {isLoadingContentCounts ? '...' : `${contentTypeCounts.Homework} files`}
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Expandable Content Section */}
-              {selectedBrowseType && (
-                <div className="mt-6 border-t border-gray-200 pt-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-base sm:text-lg font-semibold text-gray-900">
-                      {selectedBrowseType} ({filteredContent.length} {filteredContent.length === 1 ? 'file' : 'files'})
-                    </h4>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedBrowseType(null)}
-                      className="text-gray-500 hover:text-gray-700"
-                    >
-                      <ChevronUp className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                      Collapse
-                    </Button>
-                  </div>
-                  
-                  {isLoadingFilteredContent ? (
-                    <div className="text-center py-4 sm:py-6 lg:py-8">
-                      <div className="animate-spin rounded-full h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
-                      <p className="text-gray-600">Loading content...</p>
-                    </div>
-                  ) : filteredContent.length === 0 ? (
-                    <div className="text-center py-4 sm:py-6 lg:py-8">
-                      <p className="text-gray-500">No content found for this type.</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {filteredContent.map((content: any) => {
-                        const getContentIcon = () => {
-                          if (content.type === 'Video') return VideoIcon;
-                          if (content.fileUrl) {
-                            const url = content.fileUrl.toLowerCase();
-                            if (url.match(/\.(jpg|jpeg|png|gif|webp|svg)$/)) return ImageIcon;
-                            if (url.endsWith('.pdf') || url.includes('pdf')) return File;
-                          }
-                          return FileTextIcon;
-                        };
-                        
-                        const ContentIcon = getContentIcon();
-                        const isImage = content.fileUrl && content.fileUrl.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp|svg)$/);
-                        const isPDF = content.fileUrl && (content.fileUrl.toLowerCase().endsWith('.pdf') || content.fileUrl.includes('pdf'));
-                        
-                        return (
-                          <Card key={content._id || content.id} className="hover:shadow-md transition-shadow">
-                            <CardContent className="p-4">
-                              <div className="flex items-start space-x-3">
-                                <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                                  <ContentIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h5 className="font-semibold text-gray-900 mb-1 truncate">{content.title || 'Untitled'}</h5>
-                                  {content.description && (
-                                    <p className="text-xs sm:text-sm text-gray-600 mb-2 line-clamp-2">{content.description}</p>
-                                  )}
-                                  {content.subjectId && typeof content.subjectId === 'object' && content.subjectId.name && (
-                                    <Badge variant="outline" className="text-xs mb-2">
-                                      {content.subjectId.name}
-                                    </Badge>
-                                  )}
-                                  <div className="flex items-center space-x-2 mt-2">
-                                    {content.fileUrl && (
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="text-xs whitespace-nowrap"
-                                        onClick={() => {
-                                          setSelectedScheduleItem(content);
-                                          setIsPreviewOpen(true);
-                                        }}
-                                      >
-                                        {isImage ? 'View' : isPDF ? 'View only' : 'View'}
-                                      </Button>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
 
                   </div>
-
-          {/* Right Column: Vidya AI & Performance */}
-          <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-            
-            {/* Vidya AI Section */}
-            <Card id="vidya-ai-section" className="bg-white/60 backdrop-blur-xl border-white/20 shadow-xl scroll-mt-24">
-              <CardHeader>
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                  <img 
-                    src="/Vidya-ai.jpg" 
-                    alt="Vidya AI" 
-                    draggable={false}
-                    className="w-full h-full object-cover"
-                  />
-                  </div>
-                  <div>
-                    <CardTitle className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">Vidya AI</CardTitle>
-                    <p className="text-xs sm:text-sm text-gray-600">AI-powered study tools</p>
-                  </div>
-                </div>
-                
-                {/* Tabs */}
-                <div className="flex space-x-2 border-b border-gray-200">
-                  <button
-                    onClick={() => setVidyaAiTab('student-tools')}
-                    className={`px-4 py-2 text-xs sm:text-sm font-medium rounded-t-md transition-all ${
-                      vidyaAiTab === 'student-tools'
-                        ? 'bg-white text-blue-600 shadow-sm border border-gray-300 border-b-0'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    Student Tools
-                  </button>
-                  <button
-                    onClick={() => setVidyaAiTab('chat')}
-                    className={`px-4 py-2 text-xs sm:text-sm font-medium rounded-t-md transition-all ${
-                      vidyaAiTab === 'chat'
-                        ? 'bg-white text-blue-600 shadow-sm border border-gray-300 border-b-0'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    Chat
-                  </button>
-                </div>
-              </CardHeader>
-              
-              <CardContent className={vidyaAiTab === 'chat' ? 'flex flex-col overflow-hidden p-3 pt-0 sm:p-4 sm:pt-0 lg:p-6 lg:pt-0' : undefined}>
-                {vidyaAiTab === 'student-tools' && (
-                  <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-                    {/* Available Tools Section - Sidebar Style */}
-                    <div>
-                      <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Available Tools</h3>
-                      <p className="text-xs sm:text-sm text-gray-600 mb-4">Select a tool to get started. All tools use pre-generated content and Gemini AI.</p>
-
-                      {/* Tools List - Vertical scrollable sidebar */}
-                      <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
-                      {/* Tool 1: Smart Study Guide Generator */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/smart-study-guide-generator')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <BookMarked className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Smart Study Guide Generator</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Create personalized study guides tailored to your needs.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tool 2: Concept Breakdown Explainer */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/concept-breakdown-explainer')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Concept Breakdown Explainer</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Break down complex concepts into simple explanations.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tool 1: Smart Study Guide Generator */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/smart-study-guide-generator')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <BookMarked className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Smart Study Guide Generator</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Create personalized study guides tailored to your needs.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tool 2: Concept Breakdown Explainer */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/concept-breakdown-explainer')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Concept Breakdown Explainer</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Break down complex concepts into simple explanations.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tool 4: Smart Q&A Practice Generator */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/smart-qa-practice-generator')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Smart Q&A Practice Generator</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Generate practice questions with detailed answers.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tool 5: Chapter Summary Creator */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/chapter-summary-creator')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <FileTextIcon2 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Chapter Summary Creator</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Create concise summaries of chapters and topics.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tool 6: Key Points Extractor */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/key-points-formula-extractor')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Key className="w-4 h-4 sm:w-5 sm:h-5 text-teal-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Key Points Extractor</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Extract key points from any topic.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tool 7: Quick Assignment Builder */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/quick-assignment-builder')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <ClipboardListIcon className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Quick Assignment Builder</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Build structured assignments quickly and efficiently.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tool 8: Exam Readiness Checker */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/exam-readiness-checker')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <CheckCircle2Icon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Exam Readiness Checker</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Assess your readiness for upcoming exams.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tool 9: Project Layout Designer */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/project-layout-designer')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Layout className="w-4 h-4 sm:w-5 sm:h-5 text-teal-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Project Layout Designer</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Design structured layouts for your projects.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tool 10: Goal & Motivation Planner */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/goal-motivation-planner')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <TargetIcon className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Goal & Motivation Planner</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Set goals and create motivation plans for success.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tool 11: Worksheet & MCQ Generator */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/worksheet-mcq-generator')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <FileTextIcon2 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Worksheet & MCQ Generator</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Design custom worksheets and MCQs with various question types.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tool 12: Concept Mastery Helper */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/concept-mastery-helper')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-teal-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Concept Mastery Helper</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Break down complex concepts into digestible lessons.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tool 13: Flashcard Generator */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/flashcard-generator')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <BookMarked className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Flashcard Generator</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Build study flashcards for quick revision.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tool 14: Short Notes & Summaries Maker */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/short-notes-summaries-maker')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <FileTextIcon2 className="w-4 h-4 sm:w-5 sm:h-5 text-teal-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Short Notes & Summaries Maker</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Condense complex topics into concise notes.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tool 15: Homework Creator */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/homework-creator')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <ClipboardListIcon className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Homework Creator</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Generate meaningful homework assignments.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tool 16: Exam Question Paper Generator */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/exam-question-paper-generator')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <CheckCircle2Icon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Exam Question Paper Generator</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Create comprehensive exam papers with varying difficulty.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tool 17: Activity & Project Generator */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/activity-project-generator')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Activity & Project Generator</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Create engaging activities and projects tailored to your curriculum.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tool 18: Story & Passage Creator */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/story-passage-creator')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Story & Passage Creator</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Generate engaging stories and reading passages.</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Tool 19: Lesson Planner */}
-                      <div
-                        className="bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer border border-gray-200 hover:border-orange-300"
-                        onClick={() => setLocation('/student/tools/lesson-planner')}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-gray-900 mb-1 text-xs sm:text-sm">Lesson Planner</h4>
-                            <p className="text-xs text-gray-600 line-clamp-2">Plan structured lessons with objectives and activities.</p>
-                          </div>
-                        </div>
-                      </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {vidyaAiTab === 'chat' && (
-                  <div className="mx-auto flex w-full max-w-2xl min-h-0 flex-col overflow-hidden">
-                    <div className="flex h-[360px] max-h-[360px] flex-col overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-b from-sky-50 via-indigo-50 to-teal-50 p-1.5 shadow-md sm:h-[400px] sm:max-h-[400px]">
-                      <AIChat
-                        userId={String(user?._id || user?.id || localStorage.getItem('userId') || MOCK_USER_ID)}
-                        promptVariant="student"
-                        className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden"
-                        context={{
-                          studentName: user?.fullName || user?.name || "Student",
-                          subjectOptions: vidyaSubjectNames,
-                          currentSubject:
-                            vidyaSubjectNames[0] ||
-                            subjectProgress?.[0]?.name ||
-                            subjects?.[0]?.name ||
-                            "General Study",
-                          currentTopic: studentLearningMode === 'explain'
-                            ? "Explain concepts clearly"
-                            : studentLearningMode === 'quiz'
-                              ? "Quiz and revision support"
-                              : "Practice and problem solving",
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-                </CardContent>
-              </Card>
-
-            {/* Performance Dashboard */}
-            <ProgressChart 
-              subjects={subjectProgress.length > 0 ? subjectProgress : []}
-              overallProgress={overallProgress}
-            />
-
-          </div>
         </div>
 
 
@@ -4032,7 +3124,7 @@ export default function Dashboard() {
                 <p className="text-xs text-gray-600 mt-1">
                   Subject: {getSubjectName(selectedHomeworkForSubmit)}
                   {selectedHomeworkForSubmit.deadline
-                    ? ` • Due ${new Date(selectedHomeworkForSubmit.deadline).toLocaleDateString('en-US', {
+                    ? ` â€¢ Due ${new Date(selectedHomeworkForSubmit.deadline).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric'

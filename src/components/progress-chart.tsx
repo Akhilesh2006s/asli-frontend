@@ -51,7 +51,7 @@ export default function ProgressChart({ subjects, overallProgress, className }: 
           </Badge>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
+      <CardContent className="space-y-3">
         {/* Overall Progress */}
         <div>
           <div className="flex items-center justify-between mb-2">
@@ -62,28 +62,26 @@ export default function ProgressChart({ subjects, overallProgress, className }: 
         </div>
 
         {/* Subject-wise Progress */}
-        <div className="space-y-4">
-          <h4 className="font-medium text-gray-900">Subject-wise Progress</h4>
+        <div className="space-y-2.5">
+          <h4 className="text-sm font-medium text-gray-900">Subject-wise Progress</h4>
           {subjects.map((subject, index) => (
-            <div key={subject.id || subject.name || `subject-${index}`} className="subject-progress-card">
-              <div className="flex items-center space-x-3">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${subject.color}`}>
-                  <span className="text-xs sm:text-sm font-medium">
+            <div key={subject.id || subject.name || `subject-${index}`} className="rounded-lg border border-gray-200 bg-white p-3">
+              <div className="flex items-center gap-2.5">
+                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${subject.color}`}>
+                  <span className="text-[10px] font-medium">
                     {subject.name.substring(0, 2).toUpperCase()}
                   </span>
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-medium text-gray-900">{subject.name}</h3>
-                    <div className="flex items-center space-x-2">
-                      <Badge className={getTrendColor(subject.trend)}>
-                        {getTrendIcon(subject.trend)}
-                        {subject.progress}%
-                      </Badge>
-                    </div>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <h3 className="truncate text-sm font-medium text-gray-900">{subject.name}</h3>
+                    <Badge className={`shrink-0 text-[10px] ${getTrendColor(subject.trend)}`}>
+                      {getTrendIcon(subject.trend)}
+                      {subject.progress}%
+                    </Badge>
                   </div>
-                  <p className="text-xs sm:text-sm text-gray-600 mb-2">{subject.currentTopic}</p>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <p className="mb-1.5 truncate text-xs text-gray-600">{subject.currentTopic}</p>
+                  <div className="h-2 w-full rounded-full bg-gray-200">
                     <div
                       className="h-2 rounded-full transition-all duration-300 bg-gradient-to-r from-pink-500 to-purple-600"
                       style={{

@@ -18,11 +18,32 @@ import { cn } from '@/lib/utils';
 type Props = {
   entries?: TimetableEntry[];
   isLoading?: boolean;
+  /** School label above "Class Timetable" (from admin / student profile) */
+  schoolName?: string;
 };
+
+function resolveSchoolLabel(explicit?: string): string {
+  const trimmed = String(explicit || '').trim();
+  if (trimmed) return trimmed;
+  try {
+    const raw = localStorage.getItem('user');
+    if (!raw) return '';
+    const stored = JSON.parse(raw) as {
+      schoolName?: string;
+      assignedAdmin?: { schoolName?: string };
+    };
+    return (
+      String(stored?.assignedAdmin?.schoolName || stored?.schoolName || '').trim()
+    );
+  } catch {
+    return '';
+  }
+}
 
 export default function StudentTimetableView({
   entries: entriesProp,
   isLoading: isLoadingProp,
+  schoolName: schoolNameProp,
 }: Props) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -40,6 +61,7 @@ export default function StudentTimetableView({
 
   const placements = useMemo(() => buildWeekdayPlacements(rawEntries), [rawEntries]);
   const sessionCount = placements.length;
+  const schoolLabel = useMemo(() => resolveSchoolLabel(schoolNameProp), [schoolNameProp]);
 
   return (
     <div className="space-y-4">
@@ -55,9 +77,11 @@ export default function StudentTimetableView({
                 <CalendarDays className="w-6 h-6 text-white" />
               </motion.div>
               <div>
-                <p className="text-[10px] sm:text-xs font-semibold uppercase tracking-widest text-indigo-600">
-                  ASLILEARN AI
-                </p>
+                {schoolLabel ? (
+                  <p className="text-[10px] sm:text-xs font-semibold text-indigo-600 tracking-wide truncate max-w-[220px] sm:max-w-md">
+                    {schoolLabel}
+                  </p>
+                ) : null}
                 <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
                   Class Timetable
                 </CardTitle>
