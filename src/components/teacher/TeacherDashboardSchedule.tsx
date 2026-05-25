@@ -1,23 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format, isValid, parseISO } from 'date-fns';
-import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { CalendarWidget } from '@/components/teacher/CalendarWidget';
 import { TimetableSection } from '@/components/teacher/TimetableSection';
 import type { TimetableEntry, UnifiedScheduleEntry } from '@/components/teacher/schedule-types';
@@ -29,14 +18,6 @@ export type { TimetableEntry } from '@/components/teacher/schedule-types';
 
 type TeacherDashboardScheduleProps = {
   storageKey?: string;
-};
-
-type TeacherClassOption = {
-  id: string;
-  name: string;
-  classNumber: string;
-  section?: string;
-  subject?: string;
 };
 
 type TeacherRemoteEvent = {
@@ -60,14 +41,6 @@ export function TeacherDashboardSchedule({
   const [externalEvents, setExternalEvents] = useState<UnifiedScheduleEntry[]>([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<UnifiedScheduleEntry | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [formClassId, setFormClassId] = useState('');
-  const [formPeriod, setFormPeriod] = useState('');
-  const [formStart, setFormStart] = useState('09:00');
-  const [formEnd, setFormEnd] = useState('10:00');
-  const [formRoom, setFormRoom] = useState('');
-  const [classOptions, setClassOptions] = useState<TeacherClassOption[]>([]);
-  const [classesLoading, setClassesLoading] = useState(false);
 
   const lsKey = useMemo(
     () => `teacher-timetable:${storageKey.replace(/[^a-zA-Z0-9@._-]/g, '_')}`,
@@ -179,63 +152,6 @@ export function TeacherDashboardSchedule({
     fetchExternalEvents();
   }, [fetchExternalEvents]);
 
-  const fetchTeacherClasses = useCallback(async () => {
-    try {
-      setClassesLoading(true);
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        setClassOptions([]);
-        return;
-      }
-      const response = await fetch(`${API_BASE_URL}/api/teacher/classes`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to load classes (${response.status})`);
-      }
-      const payload = await response.json();
-      const rows = Array.isArray(payload?.data) ? payload.data : [];
-      const mapped: TeacherClassOption[] = rows.map((row: Record<string, unknown>) => {
-        const classNumber = String(row.classNumber ?? '').trim();
-        const section = String(row.section ?? '').trim();
-        const name =
-          String(row.name ?? '').trim() ||
-          `Class ${classNumber}${section ? ` · Sec ${section}` : ''}`;
-        return {
-          id: String(row._id || row.id || `${classNumber}-${section}`),
-          name,
-          classNumber,
-          section: section || undefined,
-          subject: String(row.subject ?? '').trim() || undefined,
-        };
-      });
-      setClassOptions(mapped.filter((c) => c.id && c.classNumber));
-    } catch (error) {
-      console.error('Failed to fetch teacher classes:', error);
-      setClassOptions([]);
-      toast({
-        variant: 'destructive',
-        title: 'Could not load classes',
-        description: 'Assign classes to your teacher account in admin, then try again.',
-      });
-    } finally {
-      setClassesLoading(false);
-    }
-  }, [toast]);
-
-  useEffect(() => {
-    fetchTeacherClasses();
-  }, [fetchTeacherClasses]);
-
-  useEffect(() => {
-    if (dialogOpen && classOptions.length > 0 && !formClassId) {
-      setFormClassId(classOptions[0].id);
-    }
-  }, [dialogOpen, classOptions, formClassId]);
-
   const isDateWithinEvent = useCallback(
     (date: Date, entry: UnifiedScheduleEntry) => {
       if (!isValid(date)) return false;
@@ -294,55 +210,8 @@ export function TeacherDashboardSchedule({
       ? format(selectedDate, 'EEEE, MMM d, yyyy')
       : 'Select a date';
 
-  const selectedClass = useMemo(
-    () => classOptions.find((c) => c.id === formClassId),
-    [classOptions, formClassId]
-  );
-
-  const buildSlotTitle = () => {
-    if (!selectedClass) return '';
-    const period = formPeriod.trim();
-    return period ? `${selectedClass.name} · ${period}` : selectedClass.name;
-  };
-
-  const addEntry = () => {
-    if (!dateKey || !selectedClass) return;
-    const title = buildSlotTitle();
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    setEntries((prev) => [
-      ...prev,
-      {
-        id,
-        date: dateKey,
-        startTime: formStart,
-        endTime: formEnd,
-        title,
-        room: formRoom.trim() || undefined,
-        classNumber: selectedClass.classNumber,
-        section: selectedClass.section,
-      },
-    ]);
-    setDialogOpen(false);
-    setFormClassId('');
-    setFormPeriod('');
-    setFormRoom('');
-  };
-
   const removeEntry = (id: string) => {
     setEntries((prev) => prev.filter((e) => e.id !== id));
-  };
-
-  const openAdd = () => {
-    if (!dateKey) return;
-    setFormClassId(classOptions[0]?.id || '');
-    setFormPeriod('');
-    setFormRoom('');
-    setFormStart('09:00');
-    setFormEnd('10:00');
-    setDialogOpen(true);
-    if (classOptions.length === 0) {
-      fetchTeacherClasses();
-    }
   };
 
   return (
@@ -364,9 +233,7 @@ export function TeacherDashboardSchedule({
           className="h-full min-h-[280px] flex-1"
           dateLabel={dateLabel}
           entries={dayEntries}
-          onAddSlot={openAdd}
           onRemoveSlot={removeEntry}
-          canAdd={Boolean(dateKey)}
           onEntryClick={(entry) => {
             setSelectedEntry(entry);
             setDetailsOpen(true);
@@ -374,117 +241,6 @@ export function TeacherDashboardSchedule({
         />
       </div>
       </div>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg font-semibold">Add timetable slot</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <p className="text-xs sm:text-sm text-gray-600">
-              Date:{' '}
-              <span className="font-medium text-gray-900">
-                {dateKey && selectedDate && isValid(selectedDate)
-                  ? format(selectedDate, 'MMMM d, yyyy')
-                  : '—'}
-              </span>
-            </p>
-            <div className="space-y-2">
-              <Label htmlFor="tt-class">Class</Label>
-              <Select
-                value={formClassId}
-                onValueChange={setFormClassId}
-                disabled={classesLoading || classOptions.length === 0}
-              >
-                <SelectTrigger id="tt-class" className="rounded-xl border-gray-200">
-                  <SelectValue
-                    placeholder={
-                      classesLoading
-                        ? 'Loading classes…'
-                        : classOptions.length === 0
-                          ? 'No classes assigned'
-                          : 'Select a class'
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {classOptions.map((cls) => (
-                    <SelectItem key={cls.id} value={cls.id}>
-                      {cls.name}
-                      {cls.subject && cls.subject !== 'N/A' ? ` (${cls.subject})` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {classOptions.length === 0 && !classesLoading ? (
-                <p className="text-xs text-amber-700">
-                  Ask your school admin to assign classes to your teacher profile.
-                </p>
-              ) : null}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="tt-period">Period / label (optional)</Label>
-              <Input
-                id="tt-period"
-                placeholder="e.g. Period 2 · Maths"
-                value={formPeriod}
-                onChange={(e) => setFormPeriod(e.target.value)}
-                className="rounded-xl border-gray-200"
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="tt-start">Start</Label>
-                <Input
-                  id="tt-start"
-                  type="time"
-                  value={formStart}
-                  onChange={(e) => setFormStart(e.target.value)}
-                  className="rounded-xl border-gray-200"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tt-end">End</Label>
-                <Input
-                  id="tt-end"
-                  type="time"
-                  value={formEnd}
-                  onChange={(e) => setFormEnd(e.target.value)}
-                  className="rounded-xl border-gray-200"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="tt-room">Room (optional)</Label>
-              <Input
-                id="tt-room"
-                placeholder="e.g. Room 7C"
-                value={formRoom}
-                onChange={(e) => setFormRoom(e.target.value)}
-                className="rounded-xl border-gray-200"
-              />
-            </div>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-xl"
-              onClick={() => setDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={addEntry}
-              disabled={!formClassId || classOptions.length === 0}
-              className="rounded-xl bg-indigo-600 font-semibold hover:bg-indigo-700"
-            >
-              Save slot
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
         <DialogContent className="sm:max-w-md">

@@ -1,14 +1,12 @@
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { UnifiedScheduleEntry } from '@/components/teacher/schedule-types';
-import { CalendarOff, Clock, MapPin, Plus, Trash2 } from 'lucide-react';
+import { CalendarOff, Clock, MapPin, Trash2 } from 'lucide-react';
 
 type TimetableSectionProps = {
   dateLabel: string;
   entries: UnifiedScheduleEntry[];
-  onAddSlot: () => void;
   onRemoveSlot: (id: string) => void;
-  canAdd: boolean;
   onEntryClick: (entry: UnifiedScheduleEntry) => void;
   className?: string;
 };
@@ -16,9 +14,7 @@ type TimetableSectionProps = {
 export function TimetableSection({
   dateLabel,
   entries,
-  onAddSlot,
   onRemoveSlot,
-  canAdd,
   onEntryClick,
   className,
 }: TimetableSectionProps) {
@@ -46,34 +42,16 @@ export function TimetableSection({
         className
       )}
     >
-      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-600 shadow-sm ring-4 ring-violet-600/10">
-              <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-white" aria-hidden />
-            </div>
-            <div>
-              <h4 className="text-sm sm:text-base font-semibold tracking-tight text-gray-900 sm:text-lg">
-                Schedule
-              </h4>
-              <p className="truncate text-xs text-gray-500 sm:text-sm">{dateLabel}</p>
-            </div>
-          </div>
+      <div className="mb-3 flex items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-600 shadow-sm ring-4 ring-violet-600/10">
+          <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-white" aria-hidden />
         </div>
-        <Button
-          type="button"
-          size="sm"
-          disabled={!canAdd}
-          className={cn(
-            'h-11 w-full shrink-0 rounded-xl px-4 font-semibold shadow-sm transition-all duration-200 sm:h-10 sm:w-auto',
-            'bg-indigo-600 text-white hover:bg-indigo-700',
-            'disabled:opacity-50'
-          )}
-          onClick={onAddSlot}
-        >
-          <Plus className="mr-1.5 h-3 w-3 sm:h-4 sm:w-4" aria-hidden />
-          Add Slot
-        </Button>
+        <div className="min-w-0">
+          <h4 className="text-sm sm:text-base font-semibold tracking-tight text-gray-900 sm:text-lg">
+            Schedule
+          </h4>
+          <p className="truncate text-xs text-gray-500 sm:text-sm">{dateLabel}</p>
+        </div>
       </div>
 
       {entries.length === 0 ? (
@@ -87,7 +65,7 @@ export function TimetableSection({
             <CalendarOff className="h-7 w-7" strokeWidth={1.5} aria-hidden />
           </div>
           <p className="text-sm sm:text-base font-semibold text-gray-900">No schedule for this day</p>
-          <p className="mt-1 max-w-xs text-xs sm:text-sm text-gray-500">Select another date or add a class slot</p>
+          <p className="mt-1 max-w-xs text-xs sm:text-sm text-gray-500">Select another date to view your schedule</p>
         </div>
       ) : (
         <ul className="flex max-h-[min(360px,50vh)] flex-1 flex-col gap-2 overflow-y-auto pr-0.5">
