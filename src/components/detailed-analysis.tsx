@@ -967,6 +967,9 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     const fetchAiReport = async () => {
       setAiLoading(true);
       setAiError('');
+      const controller = new AbortController();
+      const timeoutMs = 120_000;
+      const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
       try {
         const token = localStorage.getItem('authToken');
         const response = await fetch(`${API_BASE_URL}/api/student/exam-results/ai-analysis`, {
@@ -976,6 +979,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ result: displayResult, examTitle }),
+          signal: controller.signal,
         });
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || !payload?.success) {
@@ -987,9 +991,15 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
         }
       } catch (error: any) {
         if (!cancelled) {
-          setAiError(error?.message || 'AI report unavailable');
+          const aborted = error?.name === 'AbortError';
+          setAiError(
+            aborted
+              ? 'AI report is taking longer than expected. Refresh the page in a moment or try again.'
+              : error?.message || 'AI report unavailable',
+          );
         }
       } finally {
+        window.clearTimeout(timeoutId);
         if (!cancelled) {
           setAiLoading(false);
         }
@@ -1008,7 +1018,6 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     displayResult.obtainedMarks,
     displayResult.percentage,
     displayResult.attemptNumber,
-    displayResult.answers,
     displayResult._id,
     examTitle,
     reviewHydrated,

@@ -25,7 +25,9 @@ import {
 import {
   extractClassNumberFromSubjectName,
   extractPlainSubjectName,
+  isActiveCatalogSubject,
   isSoftDeletedSubjectName,
+  normalizeSubjectDisplayKey,
 } from '@/lib/subject-names';
 import {
   BookOpen,
@@ -214,7 +216,25 @@ function isCatalogSubjectId(id: string | null, catalog: SubjectItem[]): boolean 
 
 /** One sidebar row per subject title + class (board can differ on content vs catalog). */
 function subjectSidebarKey(name: string, classNum: string): string {
-  return `${extractPlainSubjectName(name).toLowerCase()}|${classNum}`;
+  return `${normalizeSubjectDisplayKey(name)}|${classNum}`;
+}
+
+/** All active catalog subjects that share a sidebar row (e.g. Mat + Maths duplicates). */
+function catalogSubjectsForSidebarRow(
+  catalog: SubjectItem[],
+  classNum: string,
+  row: SubjectItem
+): SubjectItem[] {
+  const normClass = normalizeClassNumber(classNum);
+  const key = subjectSidebarKey(row.name, normClass);
+  return catalog.filter((subj) => {
+    if (!isActiveCatalogSubject(subj)) return false;
+    const subjClass = subj.classNumber
+      ? normalizeClassNumber(subj.classNumber)
+      : normalizeClassNumber(extractClassNumberFromSubjectName(subj.name) || '');
+    if (subjClass !== normClass) return false;
+    return subjectSidebarKey(subj.name, normClass) === key;
+  });
 }
 
 function displaySubjectName(name: string): string {
@@ -248,7 +268,7 @@ function resolveCatalogSubjectIdForSave(
       ? normalizeClassNumber(s.classNumber)
       : normalizeClassNumber(extractClassNumberFromSubjectName(s.name) || '');
     if (sClass !== normClass) return false;
-    return extractPlainSubjectName(s.name).toLowerCase().trim() === plain;
+    return normalizeSubjectDisplayKey(s.name) === normalizeSubjectDisplayKey(row.name);
   });
 
   return match ? String(match._id) : null;
@@ -762,10 +782,13 @@ export default function SubjectContentManagement() {
     const map = new Map<string, SubjectItem>();
 
     subjects.forEach((subj) => {
+      if (!isActiveCatalogSubject(subj)) return;
+
       const subjClass = subj.classNumber
         ? normalizeClassNumber(subj.classNumber)
         : normalizeClassNumber(extractClassNumberFromSubjectName(subj.name) || '');
       const linkedViaContent = contents.some((item) => {
+        if (item.isActive === false) return false;
         if (normalizeClassNumber(effectiveContentClass(item, subjects) || '') !== normClass) {
           return false;
         }
@@ -778,8 +801,6 @@ export default function SubjectContentManagement() {
         const existing = map.get(groupKey);
         const preferThis =
           !existing ||
-          (isSoftDeletedSubjectName(existing.name) && !isSoftDeletedSubjectName(subj.name)) ||
-          (existing.isActive === false && subj.isActive !== false) ||
           (isInferredSubjectId(existing._id) && isMongoObjectId(subj._id));
         if (preferThis) {
           map.set(groupKey, {
@@ -792,10 +813,15 @@ export default function SubjectContentManagement() {
     });
 
     contents.forEach((item) => {
+      if (item.isActive === false) return;
       if (normalizeClassNumber(effectiveContentClass(item, subjects) || '') !== normClass) {
         return;
       }
       const sid = getContentSubjectId(item);
+      if (sid) {
+        const linked = subjects.find((s) => String(s._id) === String(sid));
+        if (linked && !isActiveCatalogSubject(linked)) return;
+      }
       const label = item.subject?.name
         ? displaySubjectName(item.subject.name)
         : inferSubjectLabelFromContent(item);
@@ -870,6 +896,8 @@ export default function SubjectContentManagement() {
       : '';
 
     return (item: ContentItem) => {
+      if (item.isActive === false) return false;
+
       const effClass = effectiveContentClass(item, subjects);
       if (normalizeClassNumber(effClass || '') !== selectedClassNumber) return false;
 
@@ -965,6 +993,8 @@ export default function SubjectContentManagement() {
             ...raw,
             _id: String(raw._id || raw.id),
             name: displaySubjectName(raw.name),
+            isActive:
+              raw.isActive !== false && !isSoftDeletedSubjectName(String(raw.name || '')),
             classNumber:
               raw.classNumber?.trim() ||
               extractClassNumberFromSubjectName(raw.name) ||
@@ -1285,27 +1315,67 @@ export default function SubjectContentManagement() {
   };
 
   const handleDeleteSubject = async (subjectId: string) => {
-    if (!window.confirm('Delete this subject and all its content?')) return;
+    const row =
+      subjectsForClass.find((s) => String(s._id) === String(subjectId)) ??
+      subjects.find((s) => String(s._id) === String(subjectId));
+    const targets =
+      row && selectedClassNumber
+        ? catalogSubjectsForSidebarRow(subjects, selectedClassNumber, row)
+        : subjects.filter(
+            (s) => String(s._id) === String(subjectId) && isActiveCatalogSubject(s)
+          );
+
+    if (targets.length === 0) {
+      toast({
+        title: 'Cannot delete',
+        description: 'This subject is not in the active catalog.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const label = row ? extractPlainSubjectName(row.name) : 'this subject';
+    const confirmMsg =
+      targets.length > 1
+        ? `Delete "${label}" and ${targets.length - 1} duplicate catalog entr${targets.length === 2 ? 'y' : 'ies'} (e.g. Mat/Maths variants)? All linked content will be removed.`
+        : `Delete "${label}" and all its content for this class?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
     setDeletingSubjectId(subjectId);
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(
-        `${API_BASE_URL}/api/super-admin/subjects/${subjectId}`,
-        {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      let deleted = 0;
+      let lastError = '';
 
-      if (response.ok) {
+      for (const target of targets) {
+        const response = await fetch(
+          `${API_BASE_URL}/api/super-admin/subjects/${target._id}`,
+          {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && data.success !== false) {
+          deleted += 1;
+        } else {
+          lastError = data.message || 'Failed to delete subject';
+        }
+      }
+
+      if (deleted > 0) {
         toast({
           title: 'Subject deleted',
-          description: 'Subject and related content deleted successfully.',
+          description:
+            deleted > 1
+              ? `Removed ${deleted} catalog entries and related content.`
+              : 'Subject and related content deleted successfully.',
         });
-        if (selectedSubjectId === subjectId) {
+        if (targets.some((t) => String(t._id) === String(selectedSubjectId))) {
           setSelectedSubjectId(null);
         }
         await fetchSubjects();
@@ -1313,7 +1383,7 @@ export default function SubjectContentManagement() {
       } else {
         toast({
           title: 'Error',
-          description: 'Failed to delete subject',
+          description: lastError || 'Failed to delete subject',
           variant: 'destructive',
         });
       }

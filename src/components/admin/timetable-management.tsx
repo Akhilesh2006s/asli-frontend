@@ -1,9 +1,8 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  format, startOfMonth, endOfMonth, startOfWeek, endOfWeek,
-  eachDayOfInterval, addMonths, subMonths, addWeeks, subWeeks,
-  addDays, isSameDay, isSameMonth, parseISO, isValid,
+  format, startOfWeek, eachDayOfInterval, addWeeks, subWeeks,
+  addDays, isSameDay, parseISO, isValid,
 } from 'date-fns';
 import {
   ChevronLeft, ChevronRight, Plus, Upload, Download, Trash2,
@@ -16,8 +15,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { API_BASE_URL } from '@/lib/api-config';
@@ -30,20 +27,24 @@ import {
 import type { TimetableEntry, TimetableFilters, SessionType } from '@/types/timetable';
 import { SESSION_TYPE_COLORS, STATUS_COLORS, COLOR_PRESETS } from '@/types/timetable';
 import { cn } from '@/lib/utils';
+import { WeeklyTimetableGrid } from '@/components/timetable/WeeklyTimetableGrid';
+import { colorTagForSubject, dateForWeekdayIndex, getWeekDates, type WeekdayIndex } from '@/lib/student-timetable-utils';
 
-type ViewMode = 'month' | 'week' | 'teacher' | 'class' | 'room';
+const FORM_INPUT =
+  'rounded-xl border-orange-200 bg-white min-w-0 w-full h-10 text-sm focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-0 focus-visible:border-orange-500 selection:bg-orange-200 selection:text-orange-950';
+const FORM_SELECT_TRIGGER =
+  'rounded-xl border-orange-200 bg-white w-full min-w-0 h-10 focus:ring-2 focus:ring-orange-500 focus:ring-offset-0 focus:border-orange-500';
 
-const VIEW_MODES: ViewMode[] = ['month', 'week', 'teacher', 'class', 'room'];
+type ViewMode = 'week' | 'teacher' | 'class' | 'room';
+
+const VIEW_MODES: ViewMode[] = ['week', 'teacher', 'class', 'room'];
 
 function viewLabel(v: ViewMode): string {
   if (v === 'teacher') return 'Teacher View';
   if (v === 'class') return 'Class View';
   if (v === 'room') return 'Room View';
-  if (v === 'week') return 'Week';
-  return 'Month';
+  return 'Week Schedule';
 }
-
-const isCalendarView = (v: ViewMode) => v === 'month' || v === 'week';
 
 const SESSION_TYPES: SessionType[] = ['Lecture', 'Lab', 'Exam', 'Workshop', 'Activity', 'Holiday', 'Special Class'];
 
@@ -55,6 +56,54 @@ function refId(v: string | { _id?: string } | undefined): string {
 function refName(v: string | { name?: string; fullName?: string } | undefined, fallback = ''): string {
   if (!v || typeof v === 'string') return fallback;
   return v.name || v.fullName || fallback;
+}
+
+function entityId(value: { _id?: string; id?: string } | string | null | undefined): string {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  const id = value._id ?? value.id;
+  return id != null ? String(id) : '';
+}
+
+type ClassOption = {
+  _id: string;
+  classNumber: string;
+  section: string;
+  assignedSubjects?: Array<{ _id: string; name: string }>;
+};
+
+function normalizeClassOptions(raw: unknown): ClassOption[] {
+  const rows = Array.isArray(raw) ? raw : [];
+  return rows
+    .map((row) => {
+      const record = row as Record<string, unknown>;
+      return {
+        _id: entityId(record as { _id?: string; id?: string }),
+        classNumber: String(record.classNumber ?? ''),
+        section: String(record.section ?? ''),
+        assignedSubjects: Array.isArray(record.assignedSubjects)
+          ? (record.assignedSubjects as Array<Record<string, unknown>>).map((s) => ({
+              _id: entityId(s as { _id?: string; id?: string }),
+              name: String(s.name ?? ''),
+            }))
+          : undefined,
+      };
+    })
+    .filter((c) => c._id);
+}
+
+function normalizeSubjectOptions(raw: unknown): Array<{ _id: string; name: string }> {
+  const rows = Array.isArray(raw) ? raw : (raw as { data?: unknown[] })?.data || (raw as { subjects?: unknown[] })?.subjects || [];
+  return (Array.isArray(rows) ? rows : [])
+    .map((s) => {
+      const record = s as { _id?: string; id?: string; name?: string };
+      return {
+        _id: entityId(record),
+        name: String(record.name ?? '').trim(),
+      };
+    })
+    .filter((s) => s._id && s.name)
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function entryClasses(entry: TimetableEntry) {
@@ -110,7 +159,7 @@ const emptyForm = (): {
 
 export default function TimetableManagement() {
   const { toast } = useToast();
-  const [viewMode, setViewMode] = useState<ViewMode>('month');
+  const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [filters, setFilters] = useState<TimetableFilters>({});
   const [formOpen, setFormOpen] = useState(false);
@@ -119,21 +168,43 @@ export default function TimetableManagement() {
   const [conflictDialog, setConflictDialog] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-  const [classes, setClasses] = useState<Array<{ _id: string; classNumber: string; section: string; assignedSubjects?: Array<{ _id: string; name: string }> }>>([]);
+  const [classes, setClasses] = useState<ClassOption[]>([]);
   const [teachers, setTeachers] = useState<Array<{ _id: string; fullName: string; email: string }>>([]);
   const [subjects, setSubjects] = useState<Array<{ _id: string; name: string }>>([]);
 
-  const rangeStart = useMemo(() => {
-    if (viewMode === 'month') return format(startOfMonth(currentDate), 'yyyy-MM-dd');
-    return format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-  }, [viewMode, currentDate]);
+  const weekStartDate = useMemo(
+    () => startOfWeek(currentDate, { weekStartsOn: 1 }),
+    [currentDate]
+  );
 
-  const rangeEnd = useMemo(() => {
-    if (viewMode === 'month') return format(endOfMonth(currentDate), 'yyyy-MM-dd');
-    return format(endOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-  }, [viewMode, currentDate]);
+  const rangeStart = useMemo(
+    () => format(weekStartDate, 'yyyy-MM-dd'),
+    [weekStartDate]
+  );
 
-  const queryFilters = useMemo(() => ({ ...filters, startDate: rangeStart, endDate: rangeEnd }), [filters, rangeStart, rangeEnd]);
+  const rangeEnd = useMemo(
+    () => format(addDays(weekStartDate, 5), 'yyyy-MM-dd'),
+    [weekStartDate]
+  );
+
+  const queryFilters = useMemo((): TimetableFilters => {
+    const base: TimetableFilters = {
+      classId: filters.classId,
+      teacherId: filters.teacherId,
+      subjectId: filters.subjectId,
+      room: filters.room,
+      status: filters.status,
+      sessionType: filters.sessionType,
+      sectionId: filters.sectionId,
+    };
+    if (viewMode === 'week') return base;
+    return {
+      ...base,
+      startDate: filters.startDate || rangeStart,
+      endDate: filters.endDate || rangeEnd,
+    };
+  }, [viewMode, filters.classId, filters.teacherId, filters.subjectId, filters.room, filters.status, filters.sessionType, filters.sectionId, filters.startDate, filters.endDate, rangeStart, rangeEnd]);
+
   const { data: entries = [], isLoading, refetch } = useTimetableEntries(queryFilters);
 
   const displayEntries = entries;
@@ -152,9 +223,18 @@ export default function TimetableManagement() {
       fetch(`${API_BASE_URL}/api/admin/teachers`, { headers }).then((r) => r.json()),
       fetch(`${API_BASE_URL}/api/admin/subjects`, { headers }).then((r) => r.json()),
     ]).then(([cls, tch, sub]) => {
-      setClasses(cls?.data || cls?.classes || cls || []);
-      setTeachers(tch?.data || tch?.teachers || tch || []);
-      setSubjects(sub?.data || sub?.subjects || sub || []);
+      const classRows = cls?.data || cls?.classes || cls || [];
+      const teacherRows = Array.isArray(tch) ? tch : tch?.data || tch?.teachers || [];
+      const subjectRows = Array.isArray(sub) ? sub : sub?.data || sub?.subjects || [];
+      setClasses(normalizeClassOptions(classRows));
+      setTeachers(
+        (Array.isArray(teacherRows) ? teacherRows : []).map((t: { _id?: string; id?: string; fullName?: string; email?: string }) => ({
+          _id: entityId(t),
+          fullName: t.fullName || '',
+          email: t.email || '',
+        })).filter((t) => t._id)
+      );
+      setSubjects(normalizeSubjectOptions(subjectRows));
     }).catch(console.error);
   }, []);
 
@@ -163,22 +243,24 @@ export default function TimetableManagement() {
     const cls = classes.find((c) => c._id === form.classId);
     if (cls) {
       setForm((f) => ({ ...f, sectionId: cls.section }));
-      if (cls.assignedSubjects?.length) {
-        setSubjects(cls.assignedSubjects.map((s) => ({ _id: s._id, name: s.name })));
-      }
     }
   }, [form.classId, classes]);
 
-  const filteredSubjects = useMemo(() => {
-    if (!form.classId) return subjects;
-    const cls = classes.find((c) => c._id === form.classId);
-    if (cls?.assignedSubjects?.length) return cls.assignedSubjects.map((s) => ({ _id: s._id, name: s.name }));
-    return subjects;
-  }, [form.classId, classes, subjects]);
+  const subjectOptions = useMemo(() => {
+    const map = new Map(subjects.map((s) => [s._id, s]));
+    if (form.subjectId && !map.has(form.subjectId)) {
+      const name = refName(editingEntry?.subjectId) || 'Unknown subject';
+      map.set(form.subjectId, { _id: form.subjectId, name });
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [subjects, form.subjectId, editingEntry]);
 
-  const openAdd = (date?: Date) => {
+  const openAdd = (date?: Date, hour?: number, dayIndex?: WeekdayIndex) => {
     setEditingEntry(null);
-    setForm({ ...emptyForm(), date: format(date || currentDate, 'yyyy-MM-dd') });
+    const d = date ?? (dayIndex != null ? dateForWeekdayIndex(dayIndex) : new Date());
+    const startTime = hour != null ? `${String(hour).padStart(2, '0')}:00` : '09:00';
+    const endTime = hour != null ? `${String(Math.min(hour + 1, 23)).padStart(2, '0')}:00` : '10:00';
+    setForm({ ...emptyForm(), date: format(d, 'yyyy-MM-dd'), startTime, endTime });
     setFormOpen(true);
   };
 
@@ -204,7 +286,7 @@ export default function TimetableManagement() {
       status: entry.status,
       priority: entry.priority ?? 0,
       notes: entry.notes || '',
-      colorTag: entry.colorTag || COLOR_PRESETS[0],
+      colorTag: entry.colorTag || colorTagForSubject(refName(entry.subjectId)),
       attachment: entry.attachment || '',
     });
     setFormOpen(true);
@@ -306,7 +388,11 @@ export default function TimetableManagement() {
 
   const bulkDeleteSummary = useMemo(() => {
     const parts = [`${displayEntries.length} ${displayEntries.length === 1 ? 'entry' : 'entries'}`];
-    parts.push(`${queryFilters.startDate} to ${queryFilters.endDate}`);
+    if (queryFilters.startDate && queryFilters.endDate) {
+      parts.push(`${queryFilters.startDate} to ${queryFilters.endDate}`);
+    } else {
+      parts.push('weekly pattern (all dates)');
+    }
     if (filters.classId) {
       const cls = classes.find((c) => c._id === filters.classId);
       if (cls) parts.push(`class ${cls.classNumber}-${cls.section}`);
@@ -320,120 +406,10 @@ export default function TimetableManagement() {
 
   const entriesForDate = (d: Date) => displayEntries.filter((e) => isSameDay(parseISO(e.date), d));
 
-  const monthDays = useMemo(() => {
-    const start = startOfWeek(startOfMonth(currentDate), { weekStartsOn: 0 });
-    const end = endOfWeek(endOfMonth(currentDate), { weekStartsOn: 0 });
-    return eachDayOfInterval({ start, end });
-  }, [currentDate]);
+  const weekDates = useMemo(() => getWeekDates(weekStartDate), [weekStartDate]);
 
-  const weekDays = useMemo(() => {
-    const start = startOfWeek(currentDate, { weekStartsOn: 1 });
-    return eachDayOfInterval({ start, end: addDays(start, 6) });
-  }, [currentDate]);
-
-  const dateRangeLabel = useMemo(() => {
-    if (viewMode === 'month') return format(currentDate, 'MMMM yyyy');
-    if (viewMode === 'week') {
-      const start = weekDays[0];
-      const end = weekDays[6];
-      return `${format(start, 'MMM d')} – ${format(end, 'MMM d, yyyy')}`;
-    }
-    return format(currentDate, 'MMM d, yyyy');
-  }, [viewMode, currentDate, weekDays]);
-
-  const navPrev = () => {
-    if (viewMode === 'month') setCurrentDate(subMonths(currentDate, 1));
-    else setCurrentDate(subWeeks(currentDate, 1));
-  };
-
-  const navNext = () => {
-    if (viewMode === 'month') setCurrentDate(addMonths(currentDate, 1));
-    else setCurrentDate(addWeeks(currentDate, 1));
-  };
-
-  const renderWeekView = () => (
-    <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-2xl overflow-hidden">
-      {weekDays.map((day) => (
-        <motion.div
-          key={`hdr-${day.toISOString()}`}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gray-50 p-2 text-center text-xs font-semibold text-gray-600"
-        >
-          <span className="block">{format(day, 'EEE')}</span>
-          <span className="block text-gray-800">{format(day, 'd')}</span>
-        </motion.div>
-      ))}
-      {weekDays.map((day) => {
-        const dayEntries = entriesForDate(day)
-          .slice()
-          .sort((a, b) => a.startTime.localeCompare(b.startTime));
-        const isToday = isSameDay(day, new Date());
-        return (
-          <motion.div
-            key={day.toISOString()}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={cn(
-              'bg-white min-h-[140px] p-2 cursor-pointer hover:bg-sky-50/50',
-              isToday && 'ring-2 ring-inset ring-orange-400'
-            )}
-            onClick={() => openAdd(day)}
-          >
-            {dayEntries.length === 0 ? (
-              <p className="text-[10px] text-gray-400 text-center mt-4">No entries</p>
-            ) : (
-              dayEntries.map((e) => (
-                <div
-                  key={e._id}
-                  className={cn('text-[11px] rounded px-1.5 py-1 mb-1 cursor-pointer', entryClasses(e))}
-                  style={e.colorTag ? { backgroundColor: e.colorTag, color: '#fff', borderColor: e.colorTag } : undefined}
-                  onClick={(ev) => { ev.stopPropagation(); openEdit(e); }}
-                >
-                  <span className="font-medium">{e.startTime}</span>
-                  <span className="block truncate">{refName(e.subjectId)}</span>
-                </div>
-              ))
-            )}
-          </motion.div>
-        );
-      })}
-    </div>
-  );
-
-  const renderMonthView = () => (
-    <div className="grid grid-cols-7 gap-px bg-gray-200 rounded-2xl overflow-hidden">
-      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-        <motion.div key={d} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="bg-gray-50 p-2 text-center text-xs font-semibold text-gray-600">{d}</motion.div>
-      ))}
-      {monthDays.map((day) => {
-        const dayEntries = entriesForDate(day);
-        const inMonth = isSameMonth(day, currentDate);
-        return (
-          <motion.div
-            key={day.toISOString()}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={cn('bg-white min-h-[90px] p-1.5 cursor-pointer hover:bg-sky-50/50', !inMonth && 'opacity-40')}
-            onClick={() => openAdd(day)}
-          >
-            <p className="text-xs font-medium text-gray-700 mb-1">{format(day, 'd')}</p>
-            {dayEntries.slice(0, 3).map((e) => (
-              <div
-                key={e._id}
-                className={cn('text-[10px] rounded px-1 py-0.5 mb-0.5 truncate cursor-pointer', entryClasses(e))}
-                style={e.colorTag ? { backgroundColor: e.colorTag, color: '#fff', borderColor: e.colorTag } : undefined}
-                onClick={(ev) => { ev.stopPropagation(); openEdit(e); }}
-              >
-                {e.startTime} {refName(e.subjectId)}
-              </div>
-            ))}
-            {dayEntries.length > 3 && <p className="text-[10px] text-gray-500">+{dayEntries.length - 3} more</p>}
-          </motion.div>
-        );
-      })}
-    </div>
-  );
+  const navPrev = () => setCurrentDate(subWeeks(currentDate, 1));
+  const navNext = () => setCurrentDate(addWeeks(currentDate, 1));
 
   const renderMatrixView = (rowKey: 'teacher' | 'class' | 'room') => {
     const rows = new Map<string, string>();
@@ -445,7 +421,7 @@ export default function TimetableManagement() {
       else { key = e.room || 'No Room'; label = e.room || 'No Room'; }
       if (key) rows.set(key, label);
     });
-    const weekdays = weekDays.slice(0, 5);
+    const weekdays = weekDates;
     return (
       <div className="overflow-x-auto rounded-2xl border">
         <Table>
@@ -501,8 +477,12 @@ export default function TimetableManagement() {
             {teachers.map((t) => <SelectItem key={t._id} value={t._id}>{t.fullName}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Input type="date" className="w-[140px] rounded-xl bg-white border-orange-200" value={filters.startDate || rangeStart} onChange={(e) => setFilters((f) => ({ ...f, startDate: e.target.value }))} />
-        <Input type="date" className="w-[140px] rounded-xl bg-white border-orange-200" value={filters.endDate || rangeEnd} onChange={(e) => setFilters((f) => ({ ...f, endDate: e.target.value }))} />
+        {viewMode !== 'week' && (
+          <>
+            <Input type="date" className="w-[140px] rounded-xl bg-white border-orange-200" value={filters.startDate || rangeStart} onChange={(e) => setFilters((f) => ({ ...f, startDate: e.target.value }))} />
+            <Input type="date" className="w-[140px] rounded-xl bg-white border-orange-200" value={filters.endDate || rangeEnd} onChange={(e) => setFilters((f) => ({ ...f, endDate: e.target.value }))} />
+          </>
+        )}
         <Button type="button" variant="outline" size="sm" className="rounded-xl border-orange-200 text-orange-700" onClick={() => exportTimetableCSV(queryFilters)}>
           <Download className="w-4 h-4 mr-1" />Export
         </Button>
@@ -513,7 +493,7 @@ export default function TimetableManagement() {
               variant="outline"
               size="sm"
               className="rounded-xl border-red-200 text-red-700 hover:bg-red-50"
-              disabled={displayEntries.length === 0 || bulkDeleteMut.isPending}
+              disabled={displayEntries.length === 0 || bulkDeleteMut.isPending || viewMode === 'week'}
             >
               <Trash2 className="w-4 h-4 mr-1" />
               Delete visible
@@ -626,34 +606,48 @@ export default function TimetableManagement() {
 
       {actionBar}
 
-      <Card className="rounded-2xl shadow-sm border border-white/20">
-        <CardContent className="p-4 space-y-4">
-          <div className="flex flex-wrap gap-1">
-                {VIEW_MODES.map((v) => (
-                    <Button
-                      key={v}
-                      size="sm"
-                      variant={viewMode === v ? 'default' : 'outline'}
-                      className={cn(
-                        'rounded-xl',
-                        viewMode === v && 'bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 border-0'
-                      )}
-                      onClick={() => setViewMode(v)}
-                    >
-                      {viewLabel(v)}
-                    </Button>
-                  ))}
+      <Card className="rounded-2xl shadow-lg border border-orange-100/60 overflow-hidden">
+        <CardContent className="p-0 sm:p-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 border-b border-orange-100 bg-gradient-to-r from-orange-50 to-white">
+            <div className="flex flex-wrap gap-1.5">
+              {VIEW_MODES.map((v) => (
+                <Button
+                  key={v}
+                  size="sm"
+                  variant={viewMode === v ? 'default' : 'outline'}
+                  className={cn(
+                    'rounded-xl text-xs',
+                    viewMode === v
+                      ? 'bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 border-0 shadow-sm'
+                      : 'border-orange-200 text-orange-800 hover:bg-orange-50'
+                  )}
+                  onClick={() => setViewMode(v)}
+                >
+                  {viewLabel(v)}
+                </Button>
+              ))}
+            </div>
+            {viewMode !== 'week' && (
+              <div className="flex items-center gap-2 rounded-xl border border-orange-200 bg-white px-1 py-0.5 shadow-sm">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={navPrev}>
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <span className="text-sm font-bold text-gray-900 px-2">Filter by date range</span>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={navNext}>
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
               </div>
+            )}
+            {viewMode === 'week' && (
+              <p className="text-sm font-medium text-orange-800">Weekly pattern · Monday – Saturday</p>
+            )}
+          </div>
 
-              <div className="flex items-center justify-between">
-                <Button variant="ghost" size="icon" onClick={navPrev}><ChevronLeft /></Button>
-                <span className="font-semibold text-gray-800">{dateRangeLabel}</span>
-                <Button variant="ghost" size="icon" onClick={navNext}><ChevronRight /></Button>
-              </div>
+          <div className="p-4 space-y-4">
 
               {isLoading ? (
                 <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-12 bg-gray-100 animate-pulse rounded-xl" />)}</div>
-              ) : displayEntries.length === 0 && !isCalendarView(viewMode) ? (
+              ) : displayEntries.length === 0 && viewMode !== 'week' ? (
                 <div className="text-center py-16 text-gray-500">
                   <CalendarDays className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                   <p className="font-medium">No timetable entries</p>
@@ -661,77 +655,155 @@ export default function TimetableManagement() {
                 </div>
               ) : (
                 <>
-                  {viewMode === 'month' && renderMonthView()}
-                  {viewMode === 'week' && renderWeekView()}
+                  {viewMode === 'week' && (
+                    <WeeklyTimetableGrid
+                      entries={displayEntries}
+                      variant="admin"
+                      interactive
+                      onEntryClick={openEdit}
+                      onEmptyClick={(dayIndex, hour) => openAdd(undefined, hour, dayIndex)}
+                    />
+                  )}
                   {viewMode === 'teacher' && renderMatrixView('teacher')}
                   {viewMode === 'class' && renderMatrixView('class')}
                   {viewMode === 'room' && renderMatrixView('room')}
                 </>
               )}
-            </CardContent>
+          </div>
+        </CardContent>
       </Card>
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl">
-          <DialogHeader><DialogTitle>{editingEntry ? 'Edit Entry' : 'Add Entry'}</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label>Date</Label><Input type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} /></div>
-              <div><Label>Day</Label><Input disabled value={form.date && isValid(parseISO(form.date)) ? format(parseISO(form.date), 'EEEE') : ''} /></div>
-              <div><Label>Start</Label><Input type="time" value={form.startTime} onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))} /></div>
-              <div><Label>End</Label><Input type="time" value={form.endTime} onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))} /></div>
-            </div>
-            <Select value={form.classId} onValueChange={(v) => setForm((f) => ({ ...f, classId: v }))}>
-              <SelectTrigger className="rounded-xl"><SelectValue placeholder="Class *" /></SelectTrigger>
-              <SelectContent>{classes.map((c) => <SelectItem key={c._id} value={c._id}>{c.classNumber}-{c.section}</SelectItem>)}</SelectContent>
-            </Select>
-            <Input placeholder="Section" value={form.sectionId} onChange={(e) => setForm((f) => ({ ...f, sectionId: e.target.value.toUpperCase() }))} />
-            <Select value={form.subjectId} onValueChange={(v) => setForm((f) => ({ ...f, subjectId: v }))}>
-              <SelectTrigger className="rounded-xl"><SelectValue placeholder="Subject *" /></SelectTrigger>
-              <SelectContent>{filteredSubjects.map((s) => <SelectItem key={s._id} value={s._id}>{s.name}</SelectItem>)}</SelectContent>
-            </Select>
-            <Select value={form.teacherId} onValueChange={(v) => setForm((f) => ({ ...f, teacherId: v }))}>
-              <SelectTrigger className="rounded-xl"><SelectValue placeholder="Teacher *" /></SelectTrigger>
-              <SelectContent>{teachers.map((t) => <SelectItem key={t._id} value={t._id}>{t.fullName}</SelectItem>)}</SelectContent>
-            </Select>
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label>Room</Label><Input value={form.room} onChange={(e) => setForm((f) => ({ ...f, room: e.target.value }))} /></div>
-              <div><Label>Building</Label><Input value={form.building} onChange={(e) => setForm((f) => ({ ...f, building: e.target.value }))} /></div>
-            </div>
-            <Select value={form.sessionType} onValueChange={(v) => setForm((f) => ({ ...f, sessionType: v as SessionType }))}>
-              <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-              <SelectContent>{SESSION_TYPES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-            </Select>
-              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2"><Switch checked={form.attendanceRequired} onCheckedChange={(v) => setForm((f) => ({ ...f, attendanceRequired: v }))} /><Label>Attendance Required</Label></motion.div>
-            <Select value={form.repeatRule} onValueChange={(v) => setForm((f) => ({ ...f, repeatRule: v as typeof form.repeatRule }))}>
-              <SelectTrigger className="rounded-xl"><SelectValue placeholder="Repeat" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                <SelectItem value="daily">Daily</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
-              </SelectContent>
-            </Select>
-            {form.repeatRule !== 'none' && (
-              <div className="grid grid-cols-2 gap-3">
-                <div><Label>From</Label><Input type="date" value={form.effectiveFrom} onChange={(e) => setForm((f) => ({ ...f, effectiveFrom: e.target.value }))} /></div>
-                <div><Label>To</Label><Input type="date" value={form.effectiveTo} onChange={(e) => setForm((f) => ({ ...f, effectiveTo: e.target.value }))} /></div>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border-orange-100">
+          <DialogHeader>
+            <DialogTitle className="text-orange-900">{editingEntry ? 'Edit Entry' : 'Add Entry'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 min-w-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+              <div className="space-y-1.5 min-w-0">
+                <Label className="text-gray-700">Date</Label>
+                <Input
+                  type="date"
+                  className={FORM_INPUT}
+                  value={form.date}
+                  onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+                />
               </div>
-            )}
-            <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v as typeof form.status }))}>
-              <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Scheduled">Scheduled</SelectItem>
-                <SelectItem value="Completed">Completed</SelectItem>
-                <SelectItem value="Cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-            <Textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
-            <div className="flex flex-wrap gap-2">
-              {COLOR_PRESETS.map((c) => (
-                <button key={c} type="button" className={cn('w-8 h-8 rounded-full border-2', form.colorTag === c ? 'border-gray-900 scale-110' : 'border-transparent')} style={{ backgroundColor: c }} onClick={() => setForm((f) => ({ ...f, colorTag: c }))} />
-              ))}
+              <div className="space-y-1.5 min-w-0">
+                <Label className="text-gray-700">Day</Label>
+                <Input
+                  disabled
+                  className={cn(FORM_INPUT, 'bg-orange-50/50 text-gray-700')}
+                  value={form.date && isValid(parseISO(form.date)) ? format(parseISO(form.date), 'EEEE') : ''}
+                />
+              </div>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+              <div className="space-y-1.5 min-w-0 isolate">
+                <Label className="text-gray-700">Start</Label>
+                <Input
+                  type="time"
+                  className={FORM_INPUT}
+                  value={form.startTime}
+                  onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5 min-w-0 isolate">
+                <Label className="text-gray-700">End</Label>
+                <Input
+                  type="time"
+                  className={FORM_INPUT}
+                  value={form.endTime}
+                  onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+              <div className="space-y-1.5 min-w-0">
+                <Label className="text-gray-700">Class *</Label>
+                <Select
+                  value={form.classId || undefined}
+                  onValueChange={(v) => setForm((f) => ({ ...f, classId: v, subjectId: '' }))}
+                >
+                  <SelectTrigger className={FORM_SELECT_TRIGGER}><SelectValue placeholder="Select class" /></SelectTrigger>
+                  <SelectContent>{classes.map((c) => <SelectItem key={c._id} value={c._id}>{c.classNumber}-{c.section}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 min-w-0">
+                <Label className="text-gray-700">Section</Label>
+                <Input
+                  placeholder="e.g. A"
+                  className={FORM_INPUT}
+                  value={form.sectionId}
+                  onChange={(e) => setForm((f) => ({ ...f, sectionId: e.target.value.toUpperCase() }))}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+              <div className="space-y-1.5 min-w-0">
+                <Label className="text-gray-700">Subject *</Label>
+                <Select
+                  value={form.subjectId || undefined}
+                  onValueChange={(v) => {
+                    const sub = subjectOptions.find((s) => s._id === v);
+                    setForm((f) => ({
+                      ...f,
+                      subjectId: v,
+                      colorTag: sub ? colorTagForSubject(sub.name) : f.colorTag,
+                    }));
+                  }}
+                >
+                  <SelectTrigger className={FORM_SELECT_TRIGGER}><SelectValue placeholder="Select subject" /></SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {subjectOptions.map((s) => (
+                      <SelectItem key={s._id} value={s._id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 min-w-0">
+                <Label className="text-gray-700">Teacher *</Label>
+                <Select value={form.teacherId} onValueChange={(v) => setForm((f) => ({ ...f, teacherId: v }))}>
+                  <SelectTrigger className={FORM_SELECT_TRIGGER}><SelectValue placeholder="Select teacher" /></SelectTrigger>
+                  <SelectContent>{teachers.map((t) => <SelectItem key={t._id} value={t._id}>{t.fullName}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+              <div className="space-y-1.5 min-w-0">
+                <Label className="text-gray-700">Room</Label>
+                <Input className={FORM_INPUT} value={form.room} onChange={(e) => setForm((f) => ({ ...f, room: e.target.value }))} />
+              </div>
+              <div className="space-y-1.5 min-w-0">
+                <Label className="text-gray-700">Building</Label>
+                <Input className={FORM_INPUT} value={form.building} onChange={(e) => setForm((f) => ({ ...f, building: e.target.value }))} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
+              <div className="space-y-1.5 min-w-0">
+                <Label className="text-gray-700">Session type</Label>
+                <Select value={form.sessionType} onValueChange={(v) => setForm((f) => ({ ...f, sessionType: v as SessionType }))}>
+                  <SelectTrigger className={FORM_SELECT_TRIGGER}><SelectValue /></SelectTrigger>
+                  <SelectContent>{SESSION_TYPES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 min-w-0">
+                <Label className="text-gray-700">Status</Label>
+                <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v as typeof form.status }))}>
+                  <SelectTrigger className={FORM_SELECT_TRIGGER}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Scheduled">Scheduled</SelectItem>
+                    <SelectItem value="Completed">Completed</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
           </div>
           <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between gap-2">
             <div className="flex flex-wrap gap-2 w-full sm:w-auto">
@@ -804,7 +876,7 @@ export default function TimetableManagement() {
             </div>
             <div className="flex gap-2 w-full sm:w-auto sm:ml-auto">
               <Button type="button" variant="ghost" onClick={() => setForm(emptyForm())}>Reset</Button>
-              <Button type="button" className="rounded-xl bg-sky-600 hover:bg-sky-700" onClick={() => handleSave()} disabled={createMut.isPending || updateMut.isPending}>
+              <Button type="button" className="rounded-xl bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600" onClick={() => handleSave()} disabled={createMut.isPending || updateMut.isPending}>
                 Save
               </Button>
             </div>

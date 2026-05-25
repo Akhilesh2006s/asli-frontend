@@ -40,7 +40,20 @@ export function formatSubjectDisplayLabel(name: string): string {
 export function normalizeSubjectDisplayKey(name: string): string {
   const plain = extractPlainSubjectName(name || '').trim().toLowerCase();
   if (plain === 'bio' || plain === 'biology') return 'biology';
+  if (plain === 'math' || plain === 'maths' || plain === 'mat' || plain === 'mathematics') {
+    return 'math';
+  }
   return plain;
+}
+
+/** Active catalog row (not soft-deleted / inactive). */
+export function isActiveCatalogSubject(subject: {
+  name?: string;
+  isActive?: boolean;
+}): boolean {
+  if (subject.isActive === false) return false;
+  if (isSoftDeletedSubjectName(subject.name || '')) return false;
+  return true;
 }
 
 export function getSubjectClassLabel(subject: {

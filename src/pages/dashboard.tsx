@@ -517,24 +517,10 @@ export default function Dashboard() {
 
   const calendarMonthStart = format(startOfMonth(calendarMonth), 'yyyy-MM-dd');
   const calendarMonthEnd = format(endOfMonth(calendarMonth), 'yyyy-MM-dd');
-  const { data: timetableEntries = [], isLoading: timetableLoading } = useTimetableEntries({
+  const { data: monthTimetableEntries = [], isLoading: timetableLoading } = useTimetableEntries({
     startDate: calendarMonthStart,
     endDate: calendarMonthEnd,
   });
-
-  const timetableWeekStart = useMemo(
-    () => startOfWeek(selectedCalendarDate, { weekStartsOn: 1 }),
-    [selectedCalendarDate]
-  );
-
-  const handleTimetableWeekChange = (weekStart: Date) => {
-    setSelectedCalendarDate(weekStart);
-    setCalendarMonth(new Date(weekStart.getFullYear(), weekStart.getMonth(), 1));
-    const y = weekStart.getFullYear();
-    const m = String(weekStart.getMonth() + 1).padStart(2, '0');
-    const d = String(weekStart.getDate()).padStart(2, '0');
-    setCalendarJumpDate(`${y}-${m}-${d}`);
-  };
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -1920,10 +1906,10 @@ export default function Dashboard() {
       .filter(Boolean) as any[];
 
     const examEntries = buildExamCalendarEntries(exams);
-    const timetableCalendarEntries = buildTimetableCalendarEntries(timetableEntries);
+    const timetableCalendarEntries = buildTimetableCalendarEntries(monthTimetableEntries);
 
     return [...contentEntries, ...quizEntries, ...examEntries, ...timetableCalendarEntries];
-  }, [incompleteContent, incompleteQuizzes, exams, getSubjectName, timetableEntries]);
+  }, [incompleteContent, incompleteQuizzes, exams, getSubjectName, monthTimetableEntries]);
 
   const entriesByDate = useMemo(() => {
     return calendarEntries.reduce((acc: Record<string, any[]>, entry: any) => {
@@ -1987,13 +1973,7 @@ export default function Dashboard() {
           <FloatingParticles /> */}
         </div>
         
-        <VidyaAIFloatingAssistant
-          role="student"
-          onClick={() => {
-            setVidyaAiTab('chat');
-            document.getElementById('vidya-ai-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }}
-        />
+        <VidyaAIFloatingAssistant role="student" />
         
         {/* Welcome Section */}
         <div className="mt-6 sm:mt-8 mb-6 relative z-10">
@@ -2325,11 +2305,8 @@ export default function Dashboard() {
           </div>
 
           <StudentTimetableView
-            entries={timetableEntries}
+            entries={monthTimetableEntries}
             isLoading={timetableLoading}
-            selectedDate={selectedCalendarDate}
-            weekAnchor={timetableWeekStart}
-            onWeekChange={handleTimetableWeekChange}
           />
 
           {/* Today's Tasks */}
@@ -3385,7 +3362,7 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
               
-              <CardContent>
+              <CardContent className={vidyaAiTab === 'chat' ? 'flex flex-col overflow-hidden p-3 pt-0 sm:p-4 sm:pt-0 lg:p-6 lg:pt-0' : undefined}>
                 {vidyaAiTab === 'student-tools' && (
                   <div className="space-y-3 sm:space-y-4 lg:space-y-6">
                     {/* Available Tools Section - Sidebar Style */}
@@ -3720,88 +3697,27 @@ export default function Dashboard() {
                 )}
 
                 {vidyaAiTab === 'chat' && (
-                  <div className="space-y-4 max-w-2xl mx-auto">
-                    <div className="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-sky-200 shadow-sm">
-                            <img
-                              src="/Vidya-ai.jpg"
-                              alt="Vidya AI Avatar"
-                              draggable={false}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                          <span className="absolute -right-1 -bottom-1 text-xs sm:text-sm animate-bounce">✨</span>
-                        </div>
-                        <div>
-                          <h3 className="text-lg sm:text-xl font-bold text-slate-900">Your AI Study Buddy</h3>
-                          <p className="text-xs sm:text-sm text-slate-600">Ask anything and learn smarter</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 p-3 shadow-sm">
-                      <p className="text-xs uppercase tracking-wide text-slate-500">Learning progress</p>
-                      <p className="text-xs sm:text-sm font-semibold text-emerald-700 mt-1">{overallProgress}%</p>
-                      <p className="mt-1 text-xs text-slate-600">Pick your subject in the chat panel so Vidya stays on-topic.</p>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 rounded-xl bg-white border border-slate-200 p-2 shadow-sm">
-                      <button
-                        onClick={() => setStudentLearningMode('explain')}
-                        className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-all ${
-                          studentLearningMode === 'explain'
-                            ? 'bg-sky-600 text-white'
-                            : 'text-slate-700 hover:bg-slate-100'
-                        }`}
-                      >
-                        Explain Mode
-                      </button>
-                      <button
-                        onClick={() => setStudentLearningMode('quiz')}
-                        className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-all ${
-                          studentLearningMode === 'quiz'
-                            ? 'bg-sky-600 text-white'
-                            : 'text-slate-700 hover:bg-slate-100'
-                        }`}
-                      >
-                        Quiz Mode
-                      </button>
-                      <button
-                        onClick={() => setStudentLearningMode('practice')}
-                        className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg transition-all ${
-                          studentLearningMode === 'practice'
-                            ? 'bg-sky-600 text-white'
-                            : 'text-slate-700 hover:bg-slate-100'
-                        }`}
-                      >
-                        Practice Mode
-                      </button>
-                    </div>
-
-                    <div className="rounded-2xl border border-sky-100 bg-gradient-to-b from-sky-50 via-indigo-50 to-teal-50 p-3 shadow-md">
-                      <div className="flex h-[min(72vh,780px)] min-h-[420px] flex-col overflow-hidden rounded-2xl border border-white/80 bg-white/85 shadow-sm backdrop-blur-sm sm:min-h-[480px]">
-                        <AIChat
-                          userId={String(user?._id || user?.id || localStorage.getItem('userId') || MOCK_USER_ID)}
-                          promptVariant="student"
-                          className="flex min-h-0 w-full max-w-2xl flex-1 flex-col overflow-hidden mx-auto"
-                          context={{
-                            studentName: user?.fullName || user?.name || "Student",
-                            subjectOptions: vidyaSubjectNames,
-                            currentSubject:
-                              vidyaSubjectNames[0] ||
-                              subjectProgress?.[0]?.name ||
-                              subjects?.[0]?.name ||
-                              "General Study",
-                            currentTopic: studentLearningMode === 'explain'
-                              ? "Explain concepts clearly"
-                              : studentLearningMode === 'quiz'
-                                ? "Quiz and revision support"
-                                : "Practice and problem solving",
-                          }}
-                        />
-                      </div>
+                  <div className="mx-auto flex w-full max-w-2xl min-h-0 flex-col overflow-hidden">
+                    <div className="flex h-[360px] max-h-[360px] flex-col overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-b from-sky-50 via-indigo-50 to-teal-50 p-1.5 shadow-md sm:h-[400px] sm:max-h-[400px]">
+                      <AIChat
+                        userId={String(user?._id || user?.id || localStorage.getItem('userId') || MOCK_USER_ID)}
+                        promptVariant="student"
+                        className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden"
+                        context={{
+                          studentName: user?.fullName || user?.name || "Student",
+                          subjectOptions: vidyaSubjectNames,
+                          currentSubject:
+                            vidyaSubjectNames[0] ||
+                            subjectProgress?.[0]?.name ||
+                            subjects?.[0]?.name ||
+                            "General Study",
+                          currentTopic: studentLearningMode === 'explain'
+                            ? "Explain concepts clearly"
+                            : studentLearningMode === 'quiz'
+                              ? "Quiz and revision support"
+                              : "Practice and problem solving",
+                        }}
+                      />
                     </div>
                   </div>
                 )}

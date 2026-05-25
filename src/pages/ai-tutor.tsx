@@ -44,6 +44,10 @@ export default function AITutor() {
     const params = new URLSearchParams(search || "");
     return params.get("prompt");
   }, [search]);
+  const openChatFromUrl = useMemo(() => {
+    const params = new URLSearchParams(search || "");
+    return params.get("tool") === "chat";
+  }, [search]);
 
   // Student AI Tools — Class 6–10
   const studentTools = [
@@ -421,20 +425,20 @@ export default function AITutor() {
     return (
       <>
         <Navigation />
-        <div className="h-screen overflow-hidden bg-gradient-to-br from-teal-100 via-teal-50 to-teal-100">
-          <div className="container mx-auto flex h-full min-h-0 flex-col px-4 pt-20 sm:pt-24 py-3 sm:py-4 lg:py-6">
+        <div className="h-[100dvh] max-h-[100dvh] overflow-hidden bg-gradient-to-br from-teal-100 via-teal-50 to-teal-100">
+          <div className="container mx-auto flex h-full min-h-0 max-h-full flex-col px-4 pb-3 pt-20 sm:pb-4 sm:pt-24 lg:pb-6">
             <Button
               variant="outline"
               onClick={() => setSelectedTool(null)}
-              className="mb-4"
+              className="mb-3 shrink-0 sm:mb-4"
             >
               <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 mr-2 rotate-180" />
               Back to Tools
             </Button>
-            <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md">
+            <div className="flex min-h-0 max-h-full flex-1 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md">
               <AIChat 
                 userId={userId}
-                className="h-full min-h-0 flex-1"
+                className="flex h-full min-h-0 max-h-full w-full flex-1 flex-col overflow-hidden"
                 context={{
                   studentName: user?.fullName || user?.email?.split('@')[0] || "Student",
                   subjectOptions: vidyaSubjectNames,
