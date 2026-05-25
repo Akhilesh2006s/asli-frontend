@@ -77,6 +77,8 @@ interface ContentItem {
   };
   classNumber?: string;
   topic?: string;
+  chapter?: string;
+  module?: string;
   date: string;
   fileUrl: string;
   fileUrls?: string[];
@@ -87,6 +89,31 @@ interface ContentItem {
   image?: string;
   duration?: number;
   createdAt: string;
+}
+
+const VIDEO_NUMBER_PATTERN = /^[1-9]\d*$/;
+
+function videoNumberOnly(value: string): string {
+  return String(value || '').replace(/\D/g, '');
+}
+
+function isVideoNumber(value: string): boolean {
+  return VIDEO_NUMBER_PATTERN.test(String(value || '').trim());
+}
+
+/** Video cards: "chapter - 1 module - 1 · Title" */
+function getVideoContentDisplayTitle(
+  item: Pick<ContentItem, 'type' | 'title' | 'chapter' | 'module'>
+): string {
+  const title = String(item.title || '').trim();
+  if (item.type !== 'Video') return title;
+
+  const chapter = videoNumberOnly(item.chapter || '');
+  const module = videoNumberOnly(item.module || '');
+  if (!chapter && !module) return title;
+  if (chapter && module) return `chapter - ${chapter} module - ${module} · ${title}`;
+  if (chapter) return `chapter - ${chapter} · ${title}`;
+  return `module - ${module} · ${title}`;
 }
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
@@ -684,6 +711,8 @@ export default function SubjectContentManagement() {
     date: '',
     fileUrl: '',
     thumbnailUrl: '',
+    chapter: '',
+    module: '',
   });
   const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
@@ -1024,6 +1053,8 @@ export default function SubjectContentManagement() {
   const normalizeContentRows = (rows: ContentItem[]) =>
     rows.map((row: ContentItem) => ({
       ...row,
+      chapter: row.chapter ? videoNumberOnly(row.chapter) || undefined : undefined,
+      module: row.module ? videoNumberOnly(row.module) || undefined : undefined,
       classNumber:
         row.classNumber?.trim() ||
         row.subject?.classNumber?.trim() ||
@@ -1424,6 +1455,8 @@ export default function SubjectContentManagement() {
       date: '',
       fileUrl: '',
       thumbnailUrl: '',
+      chapter: '',
+      module: '',
     });
     setEditingContentId(null);
     setEditContentContext(null);
@@ -1468,6 +1501,8 @@ export default function SubjectContentManagement() {
       date: new Date(content.date || content.createdAt).toISOString().slice(0, 10),
       fileUrl: content.fileUrl || '',
       thumbnailUrl: content.thumbnailUrl || '',
+      chapter: videoNumberOnly(content.chapter || ''),
+      module: videoNumberOnly(content.module || ''),
     });
     setSelectedUploadFile(null);
     setIsAddContentOpen(true);
@@ -1502,6 +1537,18 @@ export default function SubjectContentManagement() {
       toast({
         title: 'Validation error',
         description: 'Select a class before adding content.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const saveContentType = editingItem?.type ?? contentForm.type;
+    const chapterNum = videoNumberOnly(contentForm.chapter);
+    const moduleNum = videoNumberOnly(contentForm.module);
+    if (saveContentType === 'Video' && (!isVideoNumber(chapterNum) || !isVideoNumber(moduleNum))) {
+      toast({
+        title: 'Validation error',
+        description: 'Chapter and module must be numbers only (e.g. 1).',
         variant: 'destructive',
       });
       return;
@@ -1615,6 +1662,11 @@ export default function SubjectContentManagement() {
       if (contentForm.date?.trim()) {
         body.date = contentForm.date.trim();
       }
+      if (saveContentType === 'Video') {
+        body.chapter = chapterNum;
+        body.module = moduleNum;
+      }
+
       if (!editingContentId) {
         body.type = contentForm.type;
         body.board = normalizedSubBoard;
@@ -1646,6 +1698,15 @@ export default function SubjectContentManagement() {
       const data = await response.json().catch(() => ({}));
 
       if (response.ok && data.success) {
+        const savedRow = data.data as ContentItem | undefined;
+        if (savedRow?._id) {
+          const normalized = normalizeContentRows([savedRow])[0];
+          setContents((prev) =>
+            prev.map((c) =>
+              String(c._id) === String(normalized._id) ? { ...c, ...normalized } : c
+            )
+          );
+        }
         toast({
           title: editingContentId ? 'Content updated' : 'Content added',
           description: editingContentId
@@ -2163,7 +2224,7 @@ export default function SubjectContentManagement() {
                             <div className="p-4 flex-1 flex flex-col space-y-2">
                               <div className="flex items-start justify-between gap-2">
                                 <h4 className="font-semibold text-gray-900 text-xs sm:text-sm line-clamp-2">
-                                  {content.title}
+                                  {getVideoContentDisplayTitle(content)}
                                 </h4>
                               </div>
                               <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
@@ -2611,7 +2672,13 @@ export default function SubjectContentManagement() {
                   value={contentForm.type}
                   disabled={Boolean(editingContentId)}
                   onValueChange={(value: ContentType) => {
-                    setContentForm((prev) => ({ ...prev, type: value, fileUrl: '' }));
+                    setContentForm((prev) => ({
+                      ...prev,
+                      type: value,
+                      fileUrl: '',
+                      chapter: value === 'Video' ? prev.chapter : '',
+                      module: value === 'Video' ? prev.module : '',
+                    }));
                     setSelectedUploadFile(null);
                   }}
                 >
@@ -2643,21 +2710,63 @@ export default function SubjectContentManagement() {
               </div>
             </div>
             {contentForm.type === 'Video' ? (
-              <div>
-                <Label>
-                  Video URL <span className="text-destructive" aria-hidden="true">*</span>
-                </Label>
-                <Input
-                  value={contentForm.fileUrl}
-                  onChange={(e) =>
-                    setContentForm((prev) => ({ ...prev, fileUrl: e.target.value }))
-                  }
-                  placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Paste a YouTube, Vimeo, or direct https video link.
-                </p>
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label>
+                      Chapter <span className="text-destructive" aria-hidden="true">*</span>
+                    </Label>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={contentForm.chapter}
+                      required
+                      onChange={(e) =>
+                        setContentForm((prev) => ({
+                          ...prev,
+                          chapter: videoNumberOnly(e.target.value),
+                        }))
+                      }
+                      placeholder="1"
+                    />
+                  </div>
+                  <div>
+                    <Label>
+                      Module <span className="text-destructive" aria-hidden="true">*</span>
+                    </Label>
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={contentForm.module}
+                      required
+                      onChange={(e) =>
+                        setContentForm((prev) => ({
+                          ...prev,
+                          module: videoNumberOnly(e.target.value),
+                        }))
+                      }
+                      placeholder="1"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label>
+                    Video URL <span className="text-destructive" aria-hidden="true">*</span>
+                  </Label>
+                  <Input
+                    value={contentForm.fileUrl}
+                    onChange={(e) =>
+                      setContentForm((prev) => ({ ...prev, fileUrl: e.target.value }))
+                    }
+                    placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Paste a YouTube, Vimeo, or direct https video link.
+                  </p>
+                </div>
+              </>
             ) : contentForm.type === 'Audio' ? (
               <div className="space-y-4">
                 <div>
@@ -2828,7 +2937,9 @@ export default function SubjectContentManagement() {
         <DialogContent className="flex max-h-[92vh] w-full max-w-[min(100vw-1.5rem,1280px)] flex-col gap-4 overflow-hidden p-3 sm:p-4 lg:p-6">
           <DialogHeader>
             <DialogTitle className="pr-8">
-              {contentPreviewItem?.title ?? 'Content preview'}
+              {contentPreviewItem
+                ? getVideoContentDisplayTitle(contentPreviewItem)
+                : 'Content preview'}
             </DialogTitle>
             <DialogDescription>
               {contentPreviewItem

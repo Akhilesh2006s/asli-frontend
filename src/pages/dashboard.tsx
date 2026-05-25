@@ -16,6 +16,14 @@ import {
   filterContentsBySchoolProgram,
   resolveIsAsliPrepExclusive,
 } from "@/lib/school-program";
+import {
+  buildTodaysTasksContentList,
+  getContentSubjectId,
+  getVideoDisplayTitle,
+  isVideoContentType,
+  nextChapterCompletedDates,
+  type ChapterCompletedDates,
+} from "@/lib/video-chapter-schedule";
 import { StudentTeacherDiaryFeed } from "@/components/student/StudentTeacherDiaryFeed";
 import StudentTimetableView from "@/components/student/StudentTimetableView";
 import { 
@@ -159,10 +167,28 @@ function collectCompletedContentIds(): Set<string> {
         completed.forEach((id: string) => completedContentIds.add(String(id)));
       }
     });
+    collectScheduleCompletedIdsOnly().forEach((id) => completedContentIds.add(id));
   } catch {
     // ignore
   }
   return completedContentIds;
+}
+
+/** Today's Tasks checkbox only — do not use subject library completion for non-video. */
+function collectScheduleCompletedIdsOnly(): Set<string> {
+  const ids = new Set<string>();
+  try {
+    const storedSchedule = localStorage.getItem('completed_schedule_items');
+    if (!storedSchedule) return ids;
+    const data = JSON.parse(storedSchedule);
+    const today = new Date().toDateString();
+    if (data.date === today && Array.isArray(data.completedIds)) {
+      data.completedIds.forEach((id: string) => ids.add(String(id)));
+    }
+  } catch {
+    // ignore
+  }
+  return ids;
 }
 
 function buildScheduleCompletionStats(allContent: any[], allQuizzes: any[]) {
@@ -459,6 +485,10 @@ export default function Dashboard() {
   const sessionTimeBaselineRef = useRef(buildSessionTimeBaselineFromCache());
   const dashboardStatsCacheRef = useRef(initialDashboardStatsCache);
   const [incompleteContent, setIncompleteContent] = useState<any[]>([]);
+  const [scheduleAllContent, setScheduleAllContent] = useState<any[]>([]);
+  const [videoChapterProgressBySubject, setVideoChapterProgressBySubject] = useState<
+    Record<string, ChapterCompletedDates>
+  >({});
   const [incompleteQuizzes, setIncompleteQuizzes] = useState<any[]>([]);
   const [scheduleCompletionStats, setScheduleCompletionStats] = useState({
     total: 0,
@@ -1196,27 +1226,50 @@ export default function Dashboard() {
           allQuizzes = quizzesData.data || quizzesData || [];
         }
 
+        let chapterProgressBySubject: Record<string, ChapterCompletedDates> = {};
+        try {
+          const progressRes = await fetch(`${API_BASE_URL}/api/student/video-chapter-progress`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          if (progressRes.ok) {
+            const progressJson = await progressRes.json();
+            if (progressJson.success && progressJson.data) {
+              chapterProgressBySubject = progressJson.data;
+            }
+          }
+        } catch {
+          // use local progress only
+        }
+
+        setVideoChapterProgressBySubject(chapterProgressBySubject);
+
+        const programFiltered = filterContentsBySchoolProgram(
+          allContent,
+          resolveIsAsliPrepExclusive(user)
+        );
+        setScheduleAllContent(programFiltered);
+
         const completedContentIds = collectCompletedContentIds();
-        const completionStats = buildScheduleCompletionStats(allContent, allQuizzes);
+        const completionStats = buildScheduleCompletionStats(programFiltered, allQuizzes);
         setScheduleCompletionStats(completionStats);
 
-        // Filter incomplete content
-        const incomplete = allContent.filter((content: any) => {
-          const contentId = content._id || content.id;
-          const isHomework = String(content.type || '').toLowerCase() === 'homework';
-          return !isHomework && !completedContentIds.has(String(contentId));
-        });
+        // Non-video: Today's Tasks completion only. Video: chapter progress uses full completion set.
+        const slicedContent = buildTodaysTasksContentList(
+          programFiltered,
+          completedContentIds,
+          chapterProgressBySubject,
+          {
+            nonVideoCompletedIds: collectScheduleCompletedIdsOnly(),
+            includeHomework: true,
+          }
+        );
 
         // Filter incomplete quizzes (not attempted or not completed)
         const incompleteQuiz = allQuizzes.filter((quiz: any) => {
           return !quiz.hasAttempted || !quiz.completedAt;
-        });
-
-        // Sort by creation date (newest first) and limit to 10 items
-        incomplete.sort((a: any, b: any) => {
-          const dateA = new Date(a.createdAt || a.date || 0).getTime();
-          const dateB = new Date(b.createdAt || b.date || 0).getTime();
-          return dateB - dateA;
         });
 
         incompleteQuiz.sort((a: any, b: any) => {
@@ -1224,8 +1277,6 @@ export default function Dashboard() {
           const dateB = new Date(b.createdAt || 0).getTime();
           return dateB - dateA;
         });
-
-        const slicedContent = incomplete.slice(0, 10);
         const slicedQuizzes = incompleteQuiz.slice(0, 10);
         setIncompleteContent(slicedContent);
         setIncompleteQuizzes(slicedQuizzes);
@@ -1255,7 +1306,28 @@ export default function Dashboard() {
     };
 
     fetchScheduleItems();
-  }, []);
+  }, [user?.isAsliPrepExclusive, user?.assignedAdmin?.isAsliPrepExclusive, user?._id]);
+
+  // When library content loads, refresh Today's Tasks so non-video types appear
+  useEffect(() => {
+    if (!user) return;
+    const raw = allContent.length > 0 ? allContent : scheduleAllContent;
+    if (!raw.length) return;
+
+    const programFiltered = filterContentsBySchoolProgram(
+      raw,
+      resolveIsAsliPrepExclusive(user)
+    );
+    setScheduleAllContent(programFiltered);
+
+    const videoCompletedIds = collectCompletedContentIds();
+    setIncompleteContent(
+      buildTodaysTasksContentList(programFiltered, videoCompletedIds, videoChapterProgressBySubject, {
+        nonVideoCompletedIds: collectScheduleCompletedIdsOnly(),
+        includeHomework: true,
+      })
+    );
+  }, [allContent, user, videoChapterProgressBySubject, completedScheduleIds]);
 
   // Load completed schedule items from localStorage (only for today)
   useEffect(() => {
@@ -1331,10 +1403,40 @@ export default function Dashboard() {
     return () => clearInterval(dateCheckInterval);
   }, []);
 
+  const persistVideoChapterProgress = async (
+    subjectId: string,
+    dates: ChapterCompletedDates
+  ) => {
+    const token = localStorage.getItem('authToken');
+    if (!token || !subjectId) return;
+    try {
+      await fetch(`${API_BASE_URL}/api/student/video-chapter-progress`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ subjectId, chapterCompletedAt: dates }),
+      });
+    } catch (err) {
+      console.error('Failed to save video chapter progress:', err);
+    }
+  };
+
+  const rebuildIncompleteSchedule = (
+    allContent: any[],
+    videoCompletedIds: Set<string>,
+    chapterProgress: Record<string, ChapterCompletedDates>
+  ) =>
+    buildTodaysTasksContentList(allContent, videoCompletedIds, chapterProgress, {
+      nonVideoCompletedIds: collectScheduleCompletedIdsOnly(),
+      includeHomework: true,
+    });
+
   // Handle completion toggle (mark done / undo)
   const handleToggleScheduleComplete = (item: any, isQuiz: boolean = false) => {
     const TODAY_KEY = new Date().toDateString();
-    const itemId = item._id || item.id;
+    const itemId = String(item._id || item.id);
     const newCompleted = new Set(completedScheduleIds);
     const isCurrentlyCompleted = newCompleted.has(itemId);
 
@@ -1345,29 +1447,85 @@ export default function Dashboard() {
     }
 
     setCompletedScheduleIds(newCompleted);
-    
+
     // Save to localStorage with today's date
-    localStorage.setItem('completed_schedule_items', JSON.stringify({
-      date: TODAY_KEY,
-      completedIds: Array.from(newCompleted)
-    }));
-    
+    localStorage.setItem(
+      'completed_schedule_items',
+      JSON.stringify({
+        date: TODAY_KEY,
+        completedIds: Array.from(newCompleted),
+      })
+    );
+
+    const subjectId = !isQuiz ? getContentSubjectId(item) : '';
+
     // If it's content, keep subject progress storage in sync as well.
-    if (!isQuiz && item.subjectId) {
-      const subjectId = typeof item.subjectId === 'object' ? item.subjectId._id : item.subjectId;
+    if (!isQuiz && subjectId) {
       const subjectKey = `completed_content_${subjectId}`;
       const stored = localStorage.getItem(subjectKey);
       let completed = stored ? JSON.parse(stored) : [];
 
       if (isCurrentlyCompleted) {
-        completed = completed.filter((id: string) => id !== itemId);
+        completed = completed.filter((id: string) => String(id) !== itemId);
         localStorage.setItem(subjectKey, JSON.stringify(completed));
       } else if (!completed.includes(itemId)) {
         completed.push(itemId);
         localStorage.setItem(subjectKey, JSON.stringify(completed));
       }
     }
-    
+
+    if (!isQuiz && isVideoContentType(item.type)) {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        fetch(`${API_BASE_URL}/api/student/content-progress`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contentId: itemId,
+            completed: !isCurrentlyCompleted,
+            progress: !isCurrentlyCompleted ? 100 : 0,
+          }),
+        }).catch((err) => console.error('content-progress save failed:', err));
+      }
+    }
+
+    const mergedCompleted = new Set(collectCompletedContentIds());
+    newCompleted.forEach((id) => mergedCompleted.add(id));
+
+    let chapterProgressForRebuild = videoChapterProgressBySubject;
+    if (!isQuiz && item.type === 'Video' && subjectId && scheduleAllContent.length > 0 && !isCurrentlyCompleted) {
+      const currentDates = videoChapterProgressBySubject[subjectId] || {};
+      const updatedDates = nextChapterCompletedDates(
+        subjectId,
+        scheduleAllContent,
+        mergedCompleted,
+        currentDates
+      );
+      if (updatedDates) {
+        chapterProgressForRebuild = {
+          ...videoChapterProgressBySubject,
+          [subjectId]: updatedDates,
+        };
+        setVideoChapterProgressBySubject(chapterProgressForRebuild);
+        void persistVideoChapterProgress(subjectId, updatedDates);
+      }
+    }
+
+    if (scheduleAllContent.length > 0) {
+      const mergedCompletedForList = new Set(collectCompletedContentIds());
+      newCompleted.forEach((id) => mergedCompletedForList.add(id));
+      setIncompleteContent(
+        rebuildIncompleteSchedule(
+          scheduleAllContent,
+          mergedCompletedForList,
+          chapterProgressForRebuild
+        )
+      );
+    }
+
     // Close preview
     setIsPreviewOpen(false);
     setSelectedScheduleItem(null);
@@ -2329,6 +2487,7 @@ export default function Dashboard() {
 
                     const isCompleted = completedScheduleIds.has(content._id);
                     const isHomework = content.type === 'Homework';
+                    const isVideo = isVideoContentType(content.type);
                     const deadline = content.deadline ? new Date(content.deadline) : null;
                     const isOverdue = deadline && deadline < new Date() && !isCompleted;
                     
@@ -2343,9 +2502,19 @@ export default function Dashboard() {
                       >
                         <button
                           type="button"
-                          aria-label={isCompleted ? "Undo completed task" : "Mark task as completed"}
+                          aria-label={
+                            isVideo && !isCompleted
+                              ? 'Watch video'
+                              : isCompleted
+                                ? 'Undo completed task'
+                                : 'Mark task as completed'
+                          }
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (isVideo && !isCompleted) {
+                              handleOpenPreview(content, false);
+                              return;
+                            }
                             handleToggleScheduleComplete(content, false);
                           }}
                           className="flex-shrink-0"
@@ -2354,6 +2523,10 @@ export default function Dashboard() {
                             <div className="w-7 h-7 bg-emerald-500 rounded-full flex items-center justify-center">
                               <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                             </div>
+                          ) : isVideo ? (
+                            <div className="w-7 h-7 border-2 border-sky-400 rounded-full flex items-center justify-center bg-sky-50">
+                              <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-600 ml-0.5" />
+                            </div>
                           ) : (
                             <div className="w-7 h-7 border-2 border-gray-300 rounded-full"></div>
                           )}
@@ -2361,7 +2534,9 @@ export default function Dashboard() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <h4 className={`font-semibold text-gray-900 truncate ${isCompleted ? 'line-through text-gray-400' : ''}`}>
-                              {getContentTypeLabel(content.type || 'Material')} {content.title || 'Content'}
+                              {isVideo
+                                ? getVideoDisplayTitle(content)
+                                : `${getContentTypeLabel(content.type || 'Material')} ${content.title || 'Content'}`}
                             </h4>
                             <Badge className={`${getPriorityColorForContent()} text-[10px]`}>{getPriorityLabel()}</Badge>
                           </div>
