@@ -142,8 +142,6 @@ const ClassDashboard = () => {
   const [isAssigningSubjects, setIsAssigningSubjects] = useState(false);
   const [selectedClassesForPromotion, setSelectedClassesForPromotion] = useState<Set<string>>(new Set());
   const [isPromoting, setIsPromoting] = useState(false);
-  const [completedStudents, setCompletedStudents] = useState<Student[]>([]);
-  const [isLoadingCompletedStudents, setIsLoadingCompletedStudents] = useState(false);
   const [selectedStudentForAnalysis, setSelectedStudentForAnalysis] = useState<Student | null>(null);
   const [isStudentAnalysisDialogOpen, setIsStudentAnalysisDialogOpen] = useState(false);
   const [studentAnalysis, setStudentAnalysis] = useState<any>(null);
@@ -373,62 +371,6 @@ const ClassDashboard = () => {
       });
     } finally {
       setIsLoadingAnalysis(false);
-    }
-  };
-
-  const fetchCompletedStudents = async () => {
-    try {
-      setIsLoadingCompletedStudents(true);
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/admin/students`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const responseData = await response.json();
-      const data = responseData.data || responseData;
-      
-      if (!Array.isArray(data)) {
-        console.error('Expected array but got:', responseData);
-        throw new Error('Invalid data format received from server');
-      }
-      
-      // Filter students who have completed (classNumber === 'Finished' or isActive === false)
-      const completed = data
-        .filter((user: any) => {
-          const classNum = user.classNumber || '';
-          const isFinished = classNum === 'Finished' || classNum === 'finished' || 
-                           (user.isActive === false && (classNum.includes('12') || classNum === '12'));
-          return isFinished;
-        })
-        .map((user: any) => ({
-          id: user._id || user.id,
-          name: user.fullName || user.name || 'Unknown Student',
-          email: user.email || '',
-          classNumber: user.classNumber || 'Finished',
-          phone: user.phone || '',
-          status: 'completed' as const,
-          createdAt: user.createdAt || new Date().toISOString(),
-          lastLogin: user.lastLogin || null,
-          assignedClass: user.assignedClass?._id || user.assignedClass || null
-        }));
-      
-      setCompletedStudents(completed);
-    } catch (error) {
-      console.error('Failed to fetch completed students:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch completed students',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsLoadingCompletedStudents(false);
     }
   };
 
@@ -994,27 +936,28 @@ const ClassDashboard = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="classes" className="space-y-3 sm:space-y-4 lg:space-y-6" onValueChange={(value) => {
-          if (value === 'completed-students') {
-            fetchCompletedStudents();
-          }
-        }}>
-          <TabsList className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-3xl p-1">
-            <TabsTrigger value="classes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white rounded-2xl">
-              <GraduationCap className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+        <Tabs defaultValue="classes" className="space-y-3 sm:space-y-4 lg:space-y-6">
+          <TabsList className="h-auto min-h-[3.25rem] gap-1.5 bg-white/80 backdrop-blur-xl border border-white/20 rounded-3xl p-2 sm:p-2.5">
+            <TabsTrigger
+              value="classes"
+              className="rounded-2xl px-4 py-2.5 text-sm font-semibold sm:px-6 sm:py-3 sm:text-base data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
+            >
+              <GraduationCap className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
               Classes
             </TabsTrigger>
-            <TabsTrigger value="assign-subjects" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white rounded-2xl">
-              <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+            <TabsTrigger
+              value="assign-subjects"
+              className="rounded-2xl px-4 py-2.5 text-sm font-semibold sm:px-6 sm:py-3 sm:text-base data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
+            >
+              <BookOpen className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
               Assign Subjects
             </TabsTrigger>
-            <TabsTrigger value="promote-class" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white rounded-2xl">
-              <ArrowUp className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+            <TabsTrigger
+              value="promote-class"
+              className="rounded-2xl px-4 py-2.5 text-sm font-semibold sm:px-6 sm:py-3 sm:text-base data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
+            >
+              <ArrowUp className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
               Promote Class
-            </TabsTrigger>
-            <TabsTrigger value="completed-students" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white rounded-2xl">
-              <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-              Completed Students
             </TabsTrigger>
           </TabsList>
 
@@ -1670,112 +1613,6 @@ const ClassDashboard = () => {
                     )}
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="completed-students" className="space-y-3 sm:space-y-4 lg:space-y-6">
-            <Card className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-500 bg-clip-text text-transparent">
-                      Completed Students
-                    </CardTitle>
-                    <p className="text-gray-600 mt-2">Students who have completed Class 12 and finished their academic career</p>
-                  </div>
-                  <Button
-                    onClick={fetchCompletedStudents}
-                    disabled={isLoadingCompletedStudents}
-                    className="bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white"
-                  >
-                    {isLoadingCompletedStudents ? (
-                      <>
-                        <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                        Refresh
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
-                {isLoadingCompletedStudents ? (
-                  <div className="text-center py-12">
-                    <Loader2 className="w-12 h-12 mx-auto mb-4 text-gray-400 animate-spin" />
-                    <p className="text-gray-600">Loading completed students...</p>
-                  </div>
-                ) : completedStudents.length > 0 ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <Badge variant="outline" className="text-base sm:text-lg px-4 py-2">
-                        Total: {completedStudents.length} student{completedStudents.length !== 1 ? 's' : ''}
-                      </Badge>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {completedStudents.map((student) => (
-                        <motion.div
-                          key={student.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200 hover:shadow-lg transition-all"
-                        >
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center space-x-3">
-                              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold text-base sm:text-lg shadow-md">
-                                {student.name.charAt(0).toUpperCase()}
-                              </div>
-                              <div>
-                                <h4 className="font-semibold text-gray-900">{student.name}</h4>
-                                <p className="text-xs text-gray-600">{student.email}</p>
-                              </div>
-                            </div>
-                            <Badge className="bg-gradient-to-r from-green-600 to-emerald-600 text-white border-0">
-                              Completed
-                            </Badge>
-                          </div>
-                          <div className="space-y-2 mt-4 pt-4 border-t border-green-200">
-                            <div className="flex items-center justify-between text-xs sm:text-sm">
-                              <span className="text-gray-600">Status:</span>
-                              <span className="font-medium text-green-700">Finished Academic Career</span>
-                            </div>
-                            {student.phone && (
-                              <div className="flex items-center justify-between text-xs sm:text-sm">
-                                <span className="text-gray-600">Phone:</span>
-                                <span className="font-medium text-gray-900">{student.phone}</span>
-                              </div>
-                            )}
-                            {student.createdAt && (
-                              <div className="flex items-center justify-between text-xs sm:text-sm">
-                                <span className="text-gray-600">Joined:</span>
-                                <span className="font-medium text-gray-900">
-                                  {new Date(student.createdAt).toLocaleDateString()}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <CheckCircle2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-600 text-base sm:text-lg mb-2">No completed students found</p>
-                    <p className="text-gray-500 text-xs sm:text-sm">Students who complete Class 12 will appear here</p>
-                    <Button
-                      onClick={fetchCompletedStudents}
-                      className="mt-4 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white"
-                    >
-                      <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                      Refresh List
-                    </Button>
-                  </div>
-                )}
               </CardContent>
             </Card>
           </TabsContent>
