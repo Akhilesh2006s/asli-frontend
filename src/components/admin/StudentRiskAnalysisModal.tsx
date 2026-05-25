@@ -82,15 +82,23 @@ export function StudentRiskAnalysisModal({
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [noExamData, setNoExamData] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
+
+  const isNoExamDataResponse = (message?: string) =>
+    Boolean(
+      message?.includes('No exam data available') ||
+        message?.includes('complete at least one exam')
+    );
 
   const fetchAnalysis = async () => {
     if (!studentId) return;
 
     setIsLoading(true);
     setError(null);
+    setNoExamData(false);
 
     try {
       const token = localStorage.getItem('authToken');
@@ -123,21 +131,28 @@ export function StudentRiskAnalysisModal({
 
       if (response.ok && data.success) {
         setAnalysisData(data.data);
+      } else if (isNoExamDataResponse(data.message)) {
+        setNoExamData(true);
       } else {
         setError(data.message || 'Failed to analyze student risk');
         toast({
           title: 'Error',
           description: data.message || 'Failed to analyze student risk',
-          variant: 'destructive'
+          variant: 'destructive',
         });
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch analysis');
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to fetch analysis',
-        variant: 'destructive'
-      });
+      const message = err.message || 'Failed to fetch analysis';
+      if (isNoExamDataResponse(message)) {
+        setNoExamData(true);
+      } else {
+        setError(message);
+        toast({
+          title: 'Error',
+          description: message,
+          variant: 'destructive',
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -149,6 +164,7 @@ export function StudentRiskAnalysisModal({
     } else {
       setAnalysisData(null);
       setError(null);
+      setNoExamData(false);
     }
   }, [open, studentId, analysisType, timeRange]);
 
@@ -210,6 +226,23 @@ export function StudentRiskAnalysisModal({
             <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 animate-spin text-orange-500 mb-4" />
             <p className="text-gray-600">Analyzing student performance with AI...</p>
             <p className="text-xs sm:text-sm text-gray-500 mt-2">This may take a few moments</p>
+          </div>
+        )}
+
+        {noExamData && !isLoading && (
+          <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 text-orange-500">
+              <Brain className="h-7 w-7" aria-hidden />
+            </div>
+            <p className="text-base font-semibold text-gray-900">Not enough data yet</p>
+            <p className="mt-2 max-w-md text-sm text-gray-600">
+              {studentName ? `${studentName} hasn't` : "This student hasn't"} completed any
+              exams in the selected period. AI risk analysis will be available after their
+              first exam result is recorded.
+            </p>
+            <Button variant="outline" className="mt-6" onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
           </div>
         )}
 
