@@ -20,6 +20,12 @@ const TOOL_LABELS: Record<string, string> = {
   "flashcard-generator": "Flashcard Generator",
   "daily-class-plan-maker": "Daily Class Plan",
   "exam-question-paper-generator": "Exam Question Paper",
+  "smart-study-guide-generator": "Smart Study Guide Generator",
+  "concept-breakdown-explainer": "Concept Breakdown Explainer",
+  "smart-qa-practice-generator": "Smart Q&A Practice Generator",
+  "chapter-summary-creator": "Chapter Summary Creator",
+  "key-points-formula-extractor": "Key Points Extractor",
+  "quick-assignment-builder": "Quick Assignment Builder",
 };
 
 const STEPS = ["Tool", "Class", "Subject", "Topic", "Subtopic", "Records"] as const;

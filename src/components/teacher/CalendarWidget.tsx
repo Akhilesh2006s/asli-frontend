@@ -10,6 +10,8 @@ type CalendarWidgetProps = {
   hasScheduleOnDate: (date: Date) => boolean;
   hasExamOnDate: (date: Date) => boolean;
   hasAdminEventOnDate: (date: Date) => boolean;
+  /** Hide inner title when parent section already has a header */
+  compact?: boolean;
 };
 
 export function CalendarWidget({
@@ -18,27 +20,30 @@ export function CalendarWidget({
   hasScheduleOnDate,
   hasExamOnDate,
   hasAdminEventOnDate,
+  compact = false,
 }: CalendarWidgetProps) {
   return (
     <div
       className={cn(
-        'rounded-2xl border border-gray-200/90 bg-white p-4 sm:p-5',
+        'h-full w-full rounded-xl border border-gray-200/90 bg-white p-3 sm:p-4',
         'shadow-[0_1px_3px_rgba(15,23,42,0.06),0_4px_12px_rgba(15,23,42,0.04)]'
       )}
     >
-      <div className="mb-4 flex items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 shadow-sm ring-4 ring-indigo-600/10">
-          <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-white" aria-hidden />
+      {!compact && (
+        <div className="mb-3 flex items-center gap-2">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-600 shadow-sm">
+            <CalendarDays className="h-4 w-4 text-white" aria-hidden />
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold tracking-tight text-gray-900">
+              Pick a day
+            </h4>
+            <p className="text-xs text-gray-500">View slots for that date</p>
+          </div>
         </div>
-        <div>
-          <h4 className="text-sm sm:text-base font-semibold tracking-tight text-gray-900 sm:text-lg">
-            Calendar
-          </h4>
-          <p className="text-xs text-gray-500 sm:text-sm">Select a day to view your timetable</p>
-        </div>
-      </div>
+      )}
 
-      <div className="flex justify-center overflow-x-auto rounded-xl border border-gray-100 bg-gray-50/50 px-1 py-3 sm:px-2">
+      <div className="flex w-full justify-center overflow-x-auto rounded-lg border border-gray-100 bg-gray-50/50 px-1 py-2">
         <Calendar
           mode="single"
           selected={selected}

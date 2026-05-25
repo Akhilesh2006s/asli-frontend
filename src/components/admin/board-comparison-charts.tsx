@@ -109,20 +109,22 @@ export default function BoardComparisonCharts() {
         
         if (result.data && result.data.stats) {
           const stats = result.data.stats;
-          const participation = result.data.schoolParticipation || [];
           const totalStudents = stats.students || 0;
           const totalAttempts = stats.examResults || 0;
-          const participationRate = totalStudents > 0 
-            ? ((totalAttempts / (totalStudents * (stats.exams || 1))) * 100).toFixed(1)
-            : '0.0';
-          
+          const participationRate =
+            typeof stats.participationRate === 'string' || typeof stats.participationRate === 'number'
+              ? String(stats.participationRate)
+              : totalStudents > 0 && totalAttempts > 0
+                ? Math.min(100, (totalAttempts / totalStudents) * 100).toFixed(1)
+                : '0.0';
+
           return {
             board: boardName,
             students: totalStudents,
             exams: stats.exams || 0,
             totalAttempts: totalAttempts,
             averageScore: stats.averageScore || '0.00',
-            participationRate: participationRate
+            participationRate,
           };
         }
         return {

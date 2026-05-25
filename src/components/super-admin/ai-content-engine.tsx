@@ -140,6 +140,12 @@ export default function AIContentEngine() {
       { value: "flashcard-generator", label: "Flashcard Generator" },
       { value: "daily-class-plan-maker", label: "Daily Class Plan" },
       { value: "exam-question-paper-generator", label: "Exam Question Paper" },
+      { value: "smart-study-guide-generator", label: "Smart Study Guide Generator" },
+      { value: "concept-breakdown-explainer", label: "Concept Breakdown Explainer" },
+      { value: "smart-qa-practice-generator", label: "Smart Q&A Practice Generator" },
+      { value: "chapter-summary-creator", label: "Chapter Summary Creator" },
+      { value: "key-points-formula-extractor", label: "Key Points Extractor" },
+      { value: "quick-assignment-builder", label: "Quick Assignment Builder" },
     ],
     [],
   );
@@ -338,7 +344,17 @@ export default function AIContentEngine() {
       case "story-passage-creator":
         return "Open View for the full story & passage layout.";
       case "worksheet-mcq-generator":
-        return "Open View for worksheet sections, questions, and answer key.";
+      case "smart-qa-practice-generator":
+      case "quick-assignment-builder":
+        return "Open View for practice questions, answers, and marking details.";
+      case "smart-study-guide-generator":
+        return "Open View for study guide objectives, concepts, formulas, and revision checklist.";
+      case "concept-breakdown-explainer":
+        return "Open View for concept breakdown with steps, examples, and quick checks.";
+      case "chapter-summary-creator":
+        return "Open View for chapter summary, takeaways, and review points.";
+      case "key-points-formula-extractor":
+        return "Open View for key points, definitions, and formulas.";
       default:
         return "Open View for the full lesson layout — objectives, materials, steps, and rubrics.";
     }
@@ -350,7 +366,10 @@ export default function AIContentEngine() {
     const kind =
       item.toolType === "story-passage-creator"
         ? "story"
-        : item.toolType === "short-notes-summaries-maker"
+        : item.toolType === "short-notes-summaries-maker" ||
+            item.toolType === "chapter-summary-creator" ||
+            item.toolType === "smart-study-guide-generator" ||
+            item.toolType === "key-points-formula-extractor"
           ? "shortNotes"
           : item.toolType === "flashcard-generator"
             ? "flashcards"
@@ -360,7 +379,11 @@ export default function AIContentEngine() {
       item.toolType !== "short-notes-summaries-maker" &&
       item.toolType !== "story-passage-creator" &&
       item.toolType !== "flashcard-generator" &&
+      item.toolType !== "chapter-summary-creator" &&
+      item.toolType !== "smart-study-guide-generator" &&
+      item.toolType !== "key-points-formula-extractor" &&
       (item.toolType === "concept-mastery-helper" ||
+        item.toolType === "concept-breakdown-explainer" ||
         kind === "concept" ||
         String(fallback.concept_name || "").trim())
     ) {
@@ -656,7 +679,12 @@ export default function AIContentEngine() {
       );
     }
 
-    if (item.toolType === "worksheet-mcq-generator" || kind === "worksheet") {
+    if (
+      item.toolType === "worksheet-mcq-generator" ||
+      item.toolType === "smart-qa-practice-generator" ||
+      item.toolType === "quick-assignment-builder" ||
+      kind === "worksheet"
+    ) {
       const fb = fallback as Record<string, unknown>;
       const rc = content as Record<string, unknown>;
       const pickStr = (...keys: string[]) => {

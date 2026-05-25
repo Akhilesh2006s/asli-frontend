@@ -188,10 +188,26 @@ function mapTeacherFromApi(
     .map(mapSubjectFromApi)
     .filter((s): s is Subject => s != null);
 
-  const assignedRaw = t.assignedClassIds ?? savedAssignments[id] ?? [];
-  const assignedClassIds = Array.isArray(assignedRaw)
-    ? assignedRaw.map((x) => String(x)).filter(Boolean)
+  const fromAssignments = Array.isArray((t as Teacher & { assignments?: { classId?: string }[] }).assignments)
+    ? (t as Teacher & { assignments?: { classId?: string }[] }).assignments!.map((a) =>
+        String(a.classId || '')
+      ).filter(Boolean)
     : [];
+
+  const fromSummaries = Array.isArray(
+    (t as Teacher & { assignedClassSummaries?: { id: string }[] }).assignedClassSummaries
+  )
+    ? (t as Teacher & { assignedClassSummaries?: { id: string }[] }).assignedClassSummaries!.map(
+        (c) => String(c.id)
+      )
+    : [];
+
+  const assignedRaw = t.assignedClassIds ?? savedAssignments[id] ?? [];
+  const assignedClassIds = [
+    ...new Set(
+      [...(Array.isArray(assignedRaw) ? assignedRaw.map((x) => String(x)).filter(Boolean) : []), ...fromAssignments, ...fromSummaries]
+    ),
+  ];
 
   return {
     id,
@@ -1456,8 +1472,11 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                           const classItem = resolveAssignedClass(classId, classes);
                           if (!classItem) {
                             return (
-                              <div key={classId} className="bg-gray-50 rounded-lg p-3 border border-gray-200 min-h-[4.5rem]">
-                                <span className="text-gray-500 text-xs">Class ID: {classId}</span>
+                              <div key={classId} className="bg-amber-50 rounded-lg p-3 border border-amber-200 min-h-[4.5rem]">
+                                <span className="text-amber-800 text-xs font-medium">
+                                  Assigned (class not found — re-assign from Class Management)
+                                </span>
+                                <span className="text-gray-500 text-xs block mt-1">ID: {classId}</span>
                               </div>
                             );
                           }

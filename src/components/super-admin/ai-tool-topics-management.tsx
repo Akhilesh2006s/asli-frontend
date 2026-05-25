@@ -122,6 +122,12 @@ export default function AiToolTopicsManagement() {
   };
 
   const fetchRows = async () => {
+    if (!selectedTopic && !search.trim()) {
+      setRows([]);
+      setTotal(0);
+      return;
+    }
+
     try {
       const params = new URLSearchParams({ page: '1', limit: '200' });
       if (search.trim()) params.set('search', search.trim());
@@ -290,6 +296,13 @@ export default function AiToolTopicsManagement() {
   }, [selectedBoard, selectedClass, selectedSubject, selectedTopic]);
 
   const boardTabs = useMemo(() => availableBoards, [availableBoards]);
+
+  const visibleRows = useMemo(() => {
+    if (!selectedTopic) return rows;
+    return rows.filter(
+      (row) => buildDisplayTopicName(row.label, row.topicName) === selectedTopic,
+    );
+  }, [rows, selectedTopic]);
 
   const openCreate = () => {
     setEditingId(null);
@@ -598,14 +611,20 @@ export default function AiToolTopicsManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.length === 0 ? (
+                {!selectedTopic && !search.trim() ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                      Select a topic above to view its sub topics below.
+                    </TableCell>
+                  </TableRow>
+                ) : visibleRows.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground">
                       No AI tool topics found.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  rows.map((row) => (
+                  visibleRows.map((row) => (
                     <TableRow key={row._id}>
                       <TableCell>{row.board}</TableCell>
                       <TableCell>{row.classLabel}</TableCell>
@@ -628,7 +647,9 @@ export default function AiToolTopicsManagement() {
               </TableBody>
             </Table>
           </div>
-          <p className="text-xs sm:text-sm text-muted-foreground">Total records: {total}</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            Total records: {selectedTopic || search.trim() ? visibleRows.length : 0}
+          </p>
         </CardContent>
       </Card>
 

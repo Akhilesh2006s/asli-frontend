@@ -26,7 +26,13 @@ type ToolId =
   | "short-notes-summaries-maker"
   | "flashcard-generator"
   | "daily-class-plan-maker"
-  | "exam-question-paper-generator";
+  | "exam-question-paper-generator"
+  | "smart-study-guide-generator"
+  | "concept-breakdown-explainer"
+  | "smart-qa-practice-generator"
+  | "chapter-summary-creator"
+  | "key-points-formula-extractor"
+  | "quick-assignment-builder";
 
 const TOOLS: Array<{ id: ToolId; name: string; description: string }> = [
   { id: "activity-project-generator", name: "Activity & Project Generator", description: "Create engaging activities and projects." },
@@ -40,6 +46,12 @@ const TOOLS: Array<{ id: ToolId; name: string; description: string }> = [
   { id: "flashcard-generator", name: "Flashcard Generator", description: "Generate question-answer flashcards." },
   { id: "daily-class-plan-maker", name: "Daily Class Plan", description: "Create day-wise classroom plans." },
   { id: "exam-question-paper-generator", name: "Exam Question Paper", description: "Generate section-wise exam papers." },
+  { id: "smart-study-guide-generator", name: "Smart Study Guide Generator", description: "Create personalized study guides with key concepts and revision checklists." },
+  { id: "concept-breakdown-explainer", name: "Concept Breakdown Explainer", description: "Break complex concepts into simple step-by-step explanations." },
+  { id: "smart-qa-practice-generator", name: "Smart Q&A Practice Generator", description: "Generate practice questions with step-by-step answers." },
+  { id: "chapter-summary-creator", name: "Chapter Summary Creator", description: "Create concise chapter summaries and key takeaways." },
+  { id: "key-points-formula-extractor", name: "Key Points Extractor", description: "Extract key points, definitions, and formulas from a topic." },
+  { id: "quick-assignment-builder", name: "Quick Assignment Builder", description: "Build structured assignments with marking criteria." },
 ];
 
 type GeneratorRecord = {
@@ -151,12 +163,16 @@ export default function SuperAdminAiGenerator() {
 
   const buildExtraParams = () => {
     const payload: Record<string, any> = {};
-    if (selectedTool === "worksheet-mcq-generator") {
+    if (selectedTool === "worksheet-mcq-generator" || selectedTool === "smart-qa-practice-generator") {
       payload.questionType = questionType;
       payload.questionCount = Number(questionCount) || 10;
       payload.difficulty = difficulty;
     }
-    if (selectedTool === "homework-creator" || selectedTool === "exam-question-paper-generator") {
+    if (
+      selectedTool === "homework-creator" ||
+      selectedTool === "exam-question-paper-generator" ||
+      selectedTool === "quick-assignment-builder"
+    ) {
       payload.duration = Number(duration) || 30;
     }
     return payload;
@@ -444,17 +460,19 @@ export default function SuperAdminAiGenerator() {
             </Select>
           </div>
 
-          {selectedTool === "worksheet-mcq-generator" && (
+          {(selectedTool === "worksheet-mcq-generator" || selectedTool === "smart-qa-practice-generator") && (
             <>
-              <div>
-                <Label>Question Type</Label>
-                <Select value={questionType} onValueChange={setQuestionType}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {["Single Option", "Multiple Option", "Integer Type", "All Types"].map((q) => <SelectItem key={q} value={q}>{q}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+              {selectedTool === "worksheet-mcq-generator" && (
+                <div>
+                  <Label>Question Type</Label>
+                  <Select value={questionType} onValueChange={setQuestionType}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {["Single Option", "Multiple Option", "Integer Type", "All Types"].map((q) => <SelectItem key={q} value={q}>{q}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div>
                 <Label>Question Count</Label>
                 <Input value={questionCount} onChange={(e) => setQuestionCount(e.target.value)} />
@@ -469,7 +487,9 @@ export default function SuperAdminAiGenerator() {
             </>
           )}
 
-          {(selectedTool === "homework-creator" || selectedTool === "exam-question-paper-generator") && (
+          {(selectedTool === "homework-creator" ||
+            selectedTool === "exam-question-paper-generator" ||
+            selectedTool === "quick-assignment-builder") && (
             <div>
               <Label>Duration (minutes)</Label>
               <Input value={duration} onChange={(e) => setDuration(e.target.value)} />

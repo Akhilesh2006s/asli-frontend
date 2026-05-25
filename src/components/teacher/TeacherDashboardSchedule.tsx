@@ -346,21 +346,11 @@ export function TeacherDashboardSchedule({
   };
 
   return (
-    <div className="grid w-full grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2 lg:items-start lg:gap-4 xl:gap-5">
-      <div className="min-w-0">
-        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
-          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Legend</span>
-          <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">
-            Class (blue)
-          </span>
-          <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">
-            Exam (red)
-          </span>
-          <span className="rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-700">
-            Admin Event (purple)
-          </span>
-        </div>
+    <div className="w-full space-y-3">
+      <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 sm:items-stretch">
+      <div className="min-w-0 w-full">
         <CalendarWidget
+          compact
           selected={selectedDate}
           onSelect={setSelectedDate}
           hasScheduleOnDate={scheduleMatcher}
@@ -369,8 +359,9 @@ export function TeacherDashboardSchedule({
         />
       </div>
 
-      <div className="min-w-0">
+      <div className="min-w-0 flex w-full flex-col">
         <TimetableSection
+          className="h-full min-h-[280px] flex-1"
           dateLabel={dateLabel}
           entries={dayEntries}
           onAddSlot={openAdd}
@@ -381,6 +372,7 @@ export function TeacherDashboardSchedule({
             setDetailsOpen(true);
           }}
         />
+      </div>
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

@@ -188,7 +188,11 @@ export function buildWeekdayPlacements(entries: TimetableEntry[]): GridPlacement
     const dayIndex = entryWeekdayIndex(entry);
     const slotHour = getSlotHour(entry.startTime);
     if (dayIndex === null || slotHour === null) continue;
-    const dedupeKey = `${dayIndex}-${slotHour}-${entry.startTime}-${refName(entry.subjectId)}`;
+    const classKey =
+      typeof entry.classId === 'object'
+        ? String(entry.classId._id || entry.classId.classNumber || '')
+        : String(entry.classId || '');
+    const dedupeKey = `${dayIndex}-${slotHour}-${entry.startTime}-${classKey}-${entry.sectionId || ''}`;
     if (seen.has(dedupeKey)) continue;
     seen.add(dedupeKey);
     placements.push({ entry, dayIndex, slotHour });
@@ -250,4 +254,18 @@ export function getWeekDates(weekStart: Date): Date[] {
 export function formatWeekRange(weekStart: Date): string {
   const weekEnd = addDays(weekStart, 5);
   return `${format(weekStart, 'MMM d')} – ${format(weekEnd, 'MMM d, yyyy')}`;
+}
+
+/** Teacher grid: class · section · room (replaces subject name on cards). */
+export function teacherSlotLabel(entry: TimetableEntry): string {
+  const parts: string[] = [];
+  if (typeof entry.classId === 'object' && entry.classId?.classNumber) {
+    parts.push(`Class ${entry.classId.classNumber}`);
+  }
+  const section =
+    entry.sectionId ||
+    (typeof entry.classId === 'object' ? entry.classId.section : '');
+  if (section) parts.push(`Sec ${section}`);
+  if (entry.room?.trim()) parts.push(`Room ${entry.room.trim()}`);
+  return parts.length > 0 ? parts.join(' · ') : '—';
 }

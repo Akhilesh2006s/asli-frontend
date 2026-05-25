@@ -845,48 +845,6 @@ const AdminDashboard = () => {
                 </div>
               </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg rounded-responsive p-responsive hover:shadow-xl transition-all duration-300"
-              >
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                      <Play className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white/90 text-responsive-xs font-medium">Videos</p>
-                      <p className="text-responsive-xl font-bold text-white">
-                        {isLoadingStats ? '...' : (stats.totalVideos || 0)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-responsive p-responsive hover:shadow-xl transition-all duration-300"
-              >
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                      <Target className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white/90 text-responsive-xs font-medium">Assessments</p>
-                      <p className="text-responsive-xl font-bold text-white">
-                        {isLoadingStats ? '...' : (stats.totalAssessments || 0)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-
             </div>
 
             <AtRiskStudentsPanel />
@@ -1162,7 +1120,7 @@ const AdminDashboard = () => {
                   })}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="rounded-xl bg-white border border-sky-100 px-4 py-3 shadow-sm">
                     <p className="text-xs uppercase tracking-wide text-slate-500">Total Students</p>
                     <p className="text-xl sm:text-2xl font-bold text-sky-700 mt-1">{isLoadingStats ? "..." : stats.totalStudents}</p>
@@ -1170,10 +1128,6 @@ const AdminDashboard = () => {
                   <div className="rounded-xl bg-white border border-teal-100 px-4 py-3 shadow-sm">
                     <p className="text-xs uppercase tracking-wide text-slate-500">Active Classes</p>
                     <p className="text-xl sm:text-2xl font-bold text-teal-700 mt-1">{isLoadingStats ? "..." : stats.totalClasses}</p>
-                  </div>
-                  <div className="rounded-xl bg-white border border-cyan-100 px-4 py-3 shadow-sm">
-                    <p className="text-xs uppercase tracking-wide text-slate-500">Exams Scheduled</p>
-                    <p className="text-xl sm:text-2xl font-bold text-cyan-700 mt-1">{isLoadingStats ? "..." : stats.totalAssessments}</p>
                   </div>
                 </div>
 

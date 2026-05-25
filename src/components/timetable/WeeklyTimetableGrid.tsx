@@ -22,7 +22,7 @@ function formatSlotRange(hour: number): string {
 
 export type WeeklyTimetableGridProps = {
   entries: TimetableEntry[];
-  variant?: 'admin' | 'student';
+  variant?: 'admin' | 'student' | 'teacher';
   interactive?: boolean;
   onEntryClick?: (entry: TimetableEntry) => void;
   onEmptyClick?: (dayIndex: WeekdayIndex, hour: number) => void;
@@ -60,6 +60,21 @@ const themes = {
     todayAccent: 'from-sky-500 to-indigo-400',
     rowHover: 'hover:bg-sky-50/30',
   },
+  teacher: {
+    shell: 'border-orange-200/70 bg-white',
+    header: 'bg-[#D3723E] text-white',
+    headerCorner: 'bg-[#B85F34] text-white border-white/15',
+    timeCol: 'bg-white border-gray-100/80',
+    timeColAlt: 'bg-white border-gray-100/80',
+    dayCol: 'bg-[#FFF9F2] border-orange-100/60 text-[#4A3121]',
+    dayColToday: 'bg-[#FFF0E6] border-orange-200/80',
+    todayBadge: 'bg-[#D3723E] text-white',
+    todayText: 'text-[#4A3121]',
+    timelineLine: 'bg-white/35',
+    timelineDot: 'bg-white ring-white/50',
+    todayAccent: 'from-[#D3723E] to-[#E8936A]',
+    rowHover: 'hover:bg-orange-50/25',
+  },
 };
 
 export function WeeklyTimetableGrid({
@@ -70,7 +85,8 @@ export function WeeklyTimetableGrid({
   onEmptyClick,
   className,
 }: WeeklyTimetableGridProps) {
-  const t = themes[variant];
+  const t = themes[variant] ?? themes.student;
+  const labelMode = variant === 'teacher' ? 'teacher' : 'subject';
   const placements = buildWeekdayPlacements(entries);
   const timeSlots = getTimeSlotsForEntries();
   const now = new Date();
@@ -196,6 +212,7 @@ export function WeeklyTimetableGrid({
                           entries={cellEntries}
                           now={now}
                           compact
+                          labelMode={labelMode}
                           interactive={interactive}
                           onEntryClick={onEntryClick}
                           onEmptyClick={
@@ -219,7 +236,12 @@ export function WeeklyTimetableGrid({
           <span className={cn('w-2 h-2 rounded-full', t.timelineDot)} />
           Monday – Saturday · same weekly pattern
         </span>
-        {interactive && <span>Click empty slot to add · click class to edit</span>}
+        {interactive && variant !== 'teacher' && (
+          <span>Click empty slot to add · click class to edit</span>
+        )}
+        {variant === 'teacher' && onEntryClick && (
+          <span>Click a class to mark as completed</span>
+        )}
       </div>
     </div>
   );

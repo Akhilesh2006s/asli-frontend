@@ -210,7 +210,7 @@ interface Assessment {
 
 const TeacherDashboard = () => {
   const [dashboardSubTab, setDashboardSubTab] = useState<
-    'ai-classes' | 'students' | 'eduott' | 'vidya-ai' | 'timetable'
+    'ai-classes' | 'students' | 'eduott' | 'vidya-ai' | 'learning-paths'
   >('ai-classes');
   const [stats, setStats] = useState<TeacherStats>({
     totalStudents: 0,
@@ -253,13 +253,14 @@ const TeacherDashboard = () => {
     const q = raw.startsWith('?') ? raw.slice(1) : raw;
     const tab = new URLSearchParams(q).get('tab');
     if (
+      tab === 'learning-paths' ||
       tab === 'timetable' ||
       tab === 'students' ||
       tab === 'eduott' ||
       tab === 'vidya-ai' ||
       tab === 'ai-classes'
     ) {
-      setDashboardSubTab(tab);
+      setDashboardSubTab(tab === 'timetable' ? 'ai-classes' : tab);
     }
   }, [search]);
   const [subjectsWithContent, setSubjectsWithContent] = useState<any[]>([]);
@@ -387,8 +388,13 @@ const TeacherDashboard = () => {
   useEffect(() => {
     // Check for saved tab preference from tool pages first
     const savedTab = localStorage.getItem('teacherDashboardTab');
-    if (savedTab && ['ai-classes', 'students', 'eduott', 'vidya-ai'].includes(savedTab)) {
-      setDashboardSubTab(savedTab as 'ai-classes' | 'students' | 'eduott' | 'vidya-ai');
+    if (
+      savedTab &&
+      ['ai-classes', 'students', 'eduott', 'vidya-ai', 'learning-paths'].includes(savedTab)
+    ) {
+      setDashboardSubTab(
+        savedTab as 'ai-classes' | 'students' | 'eduott' | 'vidya-ai' | 'learning-paths'
+      );
       // Clear it after using so it doesn't persist on refresh
       localStorage.removeItem('teacherDashboardTab');
     }
@@ -2145,12 +2151,12 @@ const TeacherDashboard = () => {
                     EduOTT
                   </Button>
                   <Button
-                    variant={dashboardSubTab === 'timetable' ? 'default' : 'outline'}
-                    className={`${dashboardSubTab === 'timetable' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} whitespace-nowrap`}
-                    onClick={() => setDashboardSubTab('timetable')}
+                    variant={dashboardSubTab === 'learning-paths' ? 'default' : 'outline'}
+                    className={`${dashboardSubTab === 'learning-paths' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} whitespace-nowrap`}
+                    onClick={() => setDashboardSubTab('learning-paths')}
                   >
-                    <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                    My Timetable
+                    <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                    Learning Paths
                   </Button>
                   <Button
                     variant={dashboardSubTab === 'vidya-ai' ? 'default' : 'outline'}
@@ -2192,11 +2198,11 @@ const TeacherDashboard = () => {
                 </Button>
               </div>
 
-              {/* Dashboard tab: summary stats, My Classes, Learning Paths */}
+              {/* Dashboard tab: summary stats, My Classes, Timetable, Schedule */}
               {dashboardSubTab === 'ai-classes' && (
                 <>
               {/* Stats Cards — Dashboard only (hidden on My Students, EduOTT, Vidya AI) */}
-              <div className="grid-responsive-4 gap-responsive mb-8">
+              <div className="grid-responsive-3 gap-responsive mb-8">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -2263,36 +2269,14 @@ const TeacherDashboard = () => {
                   </div>
                 </motion.div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  className="group relative overflow-hidden bg-gradient-to-br from-orange-400 to-orange-500 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
-                >
-                  <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-                  <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                        <Target className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
-                      </div>
-                      <div className="text-right">
-                        <p className="text-white/90 text-responsive-xs font-medium">Assessments</p>
-                        <p className="text-responsive-xl font-bold text-white">
-                          {stats.totalAssessments || 0}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-
               </div>
 
-              {/* My Classes */}
+              {/* My Classes — dedicated card grid */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="font-inter rounded-2xl border border-gray-200/80 bg-[#F9FAFB] p-4 sm:p-5 lg:p-6 shadow-[0_4px_24px_rgba(15,23,42,0.06)]"
+                className="font-inter mb-6 rounded-2xl border border-gray-200/80 bg-[#F9FAFB] p-4 sm:p-5 lg:p-6 shadow-[0_4px_24px_rgba(15,23,42,0.06)]"
               >
                 <div className="mb-5 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
@@ -2305,209 +2289,244 @@ const TeacherDashboard = () => {
                   </div>
                 </div>
 
-                {/* Stack vertically so a short class card never sits beside a tall calendar stack (no dead area below the card) */}
-                <div className="flex flex-col gap-5">
-                  <div className="w-full min-w-0">
-                    <div
-                      className={
-                        assignedClasses.length > 1
-                          ? 'grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5'
-                          : 'grid grid-cols-1 gap-4 sm:gap-5'
-                      }
-                    >
-                      {assignedClasses.length > 0 ? (
-                        assignedClasses.map((classItem, index) => {
-                          const classId = classItem.id || index.toString();
-                          return (
-                            <ClassCard
-                              key={classId}
-                              name={classItem.name}
-                              subject={classItem.subject}
-                              studentCount={classItem.studentCount}
-                              schedule={classItem.schedule}
-                              room={classItem.room}
-                              expanded={expandedClasses.has(classId)}
-                              students={classItem.students}
-                              onToggleStudents={() => {
-                                setExpandedClasses((prev) => {
-                                  const next = new Set(prev);
-                                  if (next.has(classId)) next.delete(classId);
-                                  else next.add(classId);
-                                  return next;
-                                });
-                              }}
-                              onViewStudentAnalysis={(studentId) => {
-                                setDashboardSubTab('students');
-                                setStudentsSubTab('track-progress');
-                                if (classItem.classNumber != null && classItem.classNumber !== '') {
-                                  setFilterByClass(String(classItem.classNumber));
-                                } else {
-                                  setFilterByClass('all');
-                                }
-                                setFilterByStudent(studentId);
-                                window.setTimeout(() => {
-                                  document
-                                    .getElementById('teacher-student-progress')
-                                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                }, 150);
-                              }}
-                            />
-                          );
-                        })
-                      ) : (
-                        <div className="col-span-full rounded-2xl border border-dashed border-gray-200 bg-white p-4 sm:p-6 lg:p-8 text-center shadow-sm">
-                          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100 text-gray-400">
-                            <Users className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8" />
-                          </div>
-                          <h3 className="mb-2 text-lg sm:text-xl font-semibold text-gray-900">
-                            No classes assigned
-                          </h3>
-                          <p className="mb-4 text-gray-600">
-                            You haven&apos;t been assigned to any classes yet. Contact your administrator.
-                          </p>
-                          <Button className="w-full rounded-xl bg-indigo-600 font-semibold text-white shadow-sm hover:bg-indigo-700 sm:w-auto">
-                            Request class assignment
-                          </Button>
-                        </div>
-                      )}
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+                  {assignedClasses.length > 0 ? (
+                    assignedClasses.map((classItem, index) => {
+                      const classId = classItem.id || index.toString();
+                      return (
+                        <ClassCard
+                          key={classId}
+                          name={classItem.name}
+                          subject={classItem.subject}
+                          studentCount={classItem.studentCount}
+                          schedule={classItem.schedule}
+                          room={classItem.room}
+                          expanded={expandedClasses.has(classId)}
+                          students={classItem.students}
+                          onToggleStudents={() => {
+                            setExpandedClasses((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(classId)) next.delete(classId);
+                              else next.add(classId);
+                              return next;
+                            });
+                          }}
+                          onViewStudentAnalysis={(studentId) => {
+                            setDashboardSubTab('students');
+                            setStudentsSubTab('track-progress');
+                            if (classItem.classNumber != null && classItem.classNumber !== '') {
+                              setFilterByClass(String(classItem.classNumber));
+                            } else {
+                              setFilterByClass('all');
+                            }
+                            setFilterByStudent(studentId);
+                            window.setTimeout(() => {
+                              document
+                                .getElementById('teacher-student-progress')
+                                ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }, 150);
+                          }}
+                        />
+                      );
+                    })
+                  ) : (
+                    <div className="col-span-full rounded-2xl border border-dashed border-gray-200 bg-white p-4 sm:p-6 lg:p-8 text-center shadow-sm">
+                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100 text-gray-400">
+                        <Users className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8" />
+                      </div>
+                      <h3 className="mb-2 text-lg sm:text-xl font-semibold text-gray-900">
+                        No classes assigned
+                      </h3>
+                      <p className="mb-4 text-gray-600">
+                        You haven&apos;t been assigned to any classes yet. Contact your administrator.
+                      </p>
+                      <Button className="w-full rounded-xl bg-indigo-600 font-semibold text-white shadow-sm hover:bg-indigo-700 sm:w-auto">
+                        Request class assignment
+                      </Button>
                     </div>
-                  </div>
-
-                  <div className="w-full min-w-0">
-                    <TeacherDashboardSchedule
-                      storageKey={teacherEmail || localStorage.getItem('userEmail') || 'teacher'}
-                    />
-                  </div>
+                  )}
                 </div>
               </motion.div>
 
-              {/* Learning Paths Section */}
+              {/* Weekly timetable — Mon–Sat grid from admin Timetable Management */}
+              <motion.div
+                id="teacher-weekly-timetable"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.62 }}
+                className="mb-6"
+              >
+                <TeacherTimetableDashboard />
+              </motion.div>
+
+              {/* Schedule & calendar — separate grid section */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 }}
-                className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
+                transition={{ delay: 0.65 }}
+                className="font-inter mb-8 rounded-2xl border border-gray-200/80 bg-white p-4 sm:p-5 lg:p-6 shadow-[0_4px_24px_rgba(15,23,42,0.06)]"
               >
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-violet-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
-                      <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                <div className="mb-5 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500 shadow-sm ring-4 ring-orange-500/10">
+                      <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                     </div>
-                    <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">Learning Paths</h3>
+                    <div>
+                      <h3 className="text-lg sm:text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">
+                        Schedule &amp; Calendar
+                      </h3>
+                      <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                        Pick a date and manage your daily class slots
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                {isLoadingSubjects ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="bg-gray-100 rounded-xl p-3 sm:p-4 lg:p-6 animate-pulse">
-                        <div className="h-32 bg-gray-200 rounded-lg mb-4"></div>
-                        <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                        <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-                      </div>
-                    ))}
-                  </div>
-                ) : subjectsWithContent.length === 0 ? (
-                  <div className="text-center py-12">
-                    <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Subjects Available</h3>
-                    <p className="text-gray-500">No subjects have been assigned to you yet.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
-                    {subjectsWithContent.map((subject: any) => {
-                      const getSubjectIcon = (subjectName: string) => {
-                        if (subjectName.toLowerCase().includes('math')) return Target;
-                        if (subjectName.toLowerCase().includes('science') || subjectName.toLowerCase().includes('physics') || subjectName.toLowerCase().includes('chemistry')) return Zap;
-                        if (subjectName.toLowerCase().includes('english')) return BookOpen;
-                        return BookOpen;
-                      };
-                      
-                      const Icon = getSubjectIcon(subject.name);
-                      
-                      return (
-                        <div
-                          key={subject._id || subject.id}
-                          className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-200 hover:scale-105 h-full flex flex-col"
-                        >
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                              <Icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                            </div>
-                            <Badge variant="secondary" className="text-xs">
-                              {subject.totalContent || 0} items
-                            </Badge>
-                          </div>
-                          <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-2 break-words leading-tight">
-                            {subject.name}
-                          </h4>
-                          <p className="text-gray-600 text-xs sm:text-sm mb-4 min-h-[40px] line-clamp-2">
-                            {subject.description || `Content for ${subject.name}`}
-                          </p>
-                          
-                          {/* Content Stats */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-center mb-4">
-                            <div className="bg-blue-50 rounded-lg p-2">
-                              <Play className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 mx-auto mb-1" />
-                              <p className="text-xs font-medium text-blue-800">{subject.videos?.length || 0}</p>
-                              <p className="text-xs text-blue-600">Videos</p>
-                            </div>
-                            <div className="bg-green-50 rounded-lg p-2">
-                              <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 mx-auto mb-1" />
-                              <p className="text-xs font-medium text-green-800">{subject.assessments?.length || 0}</p>
-                              <p className="text-xs text-green-600">Quizzes</p>
-                            </div>
-                            <div className="bg-orange-50 rounded-lg p-2">
-                              <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 mx-auto mb-1" />
-                              <p className="text-xs font-medium text-orange-800">{subject.asliPrepContent?.length || 0}</p>
-                              <p className="text-xs text-orange-600">Content</p>
-                            </div>
-                          </div>
-
-                          {/* Recent Content Preview */}
-                          <div className="mb-4 min-h-[98px]">
-                            <p className="text-xs font-semibold text-gray-700 mb-2">Recent Videos:</p>
-                            {subject.videos?.length > 0 ? (
-                              <div className="space-y-1">
-                                {subject.videos.slice(0, 2).map((video: any, idx: number) => (
-                                  <div key={video._id || idx} className="bg-gray-50 rounded-lg p-2 text-xs">
-                                    <p className="text-gray-900 font-medium truncate">{video.title || 'Untitled Video'}</p>
-                                    {video.duration && (
-                                      <p className="text-gray-600 text-xs">Duration: {video.duration} min</p>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="bg-gray-50 rounded-lg p-2 text-xs text-gray-500">
-                                No recent videos
-                              </div>
-                            )}
-                          </div>
-
-                          <Button 
-                            className="w-full mt-auto bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
-                            onClick={() => setLocation(`/teacher/subject/${subject._id || subject.id}`)}
-                          >
-                            View Content
-                            <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2" />
-                          </Button>
-                        </div>
-                      );
-                    })}
-                    </div>
-                  )}
-                </motion.div>
+                <TeacherDashboardSchedule
+                  storageKey={teacherEmail || localStorage.getItem('userEmail') || 'teacher'}
+                />
+              </motion.div>
                 </>
               )}
 
-              {/* My Timetable Tab */}
-              {dashboardSubTab === 'timetable' && (
+              {/* Learning Paths tab */}
+              {dashboardSubTab === 'learning-paths' && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
+                  className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
                 >
-                  <TeacherTimetableDashboard />
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gradient-to-r from-violet-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
+                        <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                      </div>
+                      <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
+                        Learning Paths
+                      </h3>
+                    </div>
+                  </div>
+
+                  {isLoadingSubjects ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="bg-gray-100 rounded-xl p-3 sm:p-4 lg:p-6 animate-pulse">
+                          <div className="h-32 bg-gray-200 rounded-lg mb-4"></div>
+                          <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                          <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : subjectsWithContent.length === 0 ? (
+                    <div className="text-center py-12">
+                      <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">
+                        No Subjects Available
+                      </h3>
+                      <p className="text-gray-500">No subjects have been assigned to you yet.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
+                      {subjectsWithContent.map((subject: any) => {
+                        const getSubjectIcon = (subjectName: string) => {
+                          if (subjectName.toLowerCase().includes('math')) return Target;
+                          if (
+                            subjectName.toLowerCase().includes('science') ||
+                            subjectName.toLowerCase().includes('physics') ||
+                            subjectName.toLowerCase().includes('chemistry')
+                          )
+                            return Zap;
+                          if (subjectName.toLowerCase().includes('english')) return BookOpen;
+                          return BookOpen;
+                        };
+
+                        const Icon = getSubjectIcon(subject.name);
+
+                        return (
+                          <div
+                            key={subject._id || subject.id}
+                            className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-200 hover:scale-105 h-full flex flex-col"
+                          >
+                            <div className="flex items-center justify-between mb-4">
+                              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                                <Icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
+                              </div>
+                              <Badge variant="secondary" className="text-xs">
+                                {subject.totalContent || 0} items
+                              </Badge>
+                            </div>
+                            <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-2 break-words leading-tight">
+                              {subject.name}
+                            </h4>
+                            <p className="text-gray-600 text-xs sm:text-sm mb-4 min-h-[40px] line-clamp-2">
+                              {subject.description || `Content for ${subject.name}`}
+                            </p>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-center mb-4">
+                              <div className="bg-blue-50 rounded-lg p-2">
+                                <Play className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 mx-auto mb-1" />
+                                <p className="text-xs font-medium text-blue-800">
+                                  {subject.videos?.length || 0}
+                                </p>
+                                <p className="text-xs text-blue-600">Videos</p>
+                              </div>
+                              <div className="bg-green-50 rounded-lg p-2">
+                                <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 mx-auto mb-1" />
+                                <p className="text-xs font-medium text-green-800">
+                                  {subject.assessments?.length || 0}
+                                </p>
+                                <p className="text-xs text-green-600">Quizzes</p>
+                              </div>
+                              <div className="bg-orange-50 rounded-lg p-2">
+                                <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 mx-auto mb-1" />
+                                <p className="text-xs font-medium text-orange-800">
+                                  {subject.asliPrepContent?.length || 0}
+                                </p>
+                                <p className="text-xs text-orange-600">Content</p>
+                              </div>
+                            </div>
+
+                            <div className="mb-4 min-h-[98px]">
+                              <p className="text-xs font-semibold text-gray-700 mb-2">Recent Videos:</p>
+                              {subject.videos?.length > 0 ? (
+                                <div className="space-y-1">
+                                  {subject.videos.slice(0, 2).map((video: any, idx: number) => (
+                                    <div
+                                      key={video._id || idx}
+                                      className="bg-gray-50 rounded-lg p-2 text-xs"
+                                    >
+                                      <p className="text-gray-900 font-medium truncate">
+                                        {video.title || 'Untitled Video'}
+                                      </p>
+                                      {video.duration && (
+                                        <p className="text-gray-600 text-xs">
+                                          Duration: {video.duration} min
+                                        </p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="bg-gray-50 rounded-lg p-2 text-xs text-gray-500">
+                                  No recent videos
+                                </div>
+                              )}
+                            </div>
+
+                            <Button
+                              className="w-full mt-auto bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
+                              onClick={() =>
+                                setLocation(`/teacher/subject/${subject._id || subject.id}`)
+                              }
+                            >
+                              View Content
+                              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2" />
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </motion.div>
               )}
 

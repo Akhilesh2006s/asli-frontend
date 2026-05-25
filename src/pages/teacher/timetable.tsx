@@ -6,7 +6,7 @@ export default function TeacherTimetablePage() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    setLocation('/teacher/dashboard?tab=timetable');
+    setLocation('/teacher/dashboard');
   }, [setLocation]);
 
   return (

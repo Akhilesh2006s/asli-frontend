@@ -28,7 +28,6 @@ import {
   Image as ImageIcon,
   FileText as FileTextIcon,
   X,
-  Download,
   Eye,
   ClipboardList,
   Headphones,
@@ -47,7 +46,6 @@ import { useState, useEffect } from "react";
 import {
   API_BASE_URL,
   getStudentPdfPreviewIframeSrc,
-  shouldFetchDirectly,
 } from "@/lib/api-config";
 import VidyaAIFloatingAssistant from "@/components/student/VidyaAIFloatingAssistant";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -78,7 +76,6 @@ export default function LearningPaths() {
   const [filteredContent, setFilteredContent] = useState<any[]>([]);
   const [isLoadingFilteredContent, setIsLoadingFilteredContent] = useState(false);
   const [allLibraryContent, setAllLibraryContent] = useState<any[]>([]);
-  const [downloadingContentId, setDownloadingContentId] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewContent, setPreviewContent] = useState<any | null>(null);
 
@@ -113,61 +110,6 @@ export default function LearningPaths() {
     const match = url.match(regExp);
     if (!match || match[2].length !== 11) return null;
     return `https://www.youtube.com/embed/${match[2]}`;
-  };
-
-  const handleContentDownload = async (content: any) => {
-    const fileUrl = content?.fileUrl;
-    if (!fileUrl) return;
-
-    const contentId = content?._id || content?.id || content?.title || "";
-    setDownloadingContentId(String(contentId));
-
-    try {
-      if (shouldFetchDirectly(fileUrl)) {
-        window.open(fileUrl, "_blank");
-        return;
-      }
-
-      // Direct browser download is generally faster and avoids proxy hop.
-      const directLink = document.createElement("a");
-      directLink.href = fileUrl;
-      directLink.download = content.title || "download";
-      directLink.rel = "noopener noreferrer";
-      directLink.target = "_blank";
-      document.body.appendChild(directLink);
-      directLink.click();
-      document.body.removeChild(directLink);
-    } catch (directError) {
-      try {
-        // Fallback to authenticated backend proxy when direct download is blocked.
-        const token = localStorage.getItem("authToken");
-        const fileName = content.title || "download";
-        const response = await fetch(
-          `${API_BASE_URL}/api/student/content-download?url=${encodeURIComponent(fileUrl)}&filename=${encodeURIComponent(fileName)}`,
-          {
-            headers: {
-              ...(token ? { Authorization: `Bearer ${token}` } : {})
-            }
-          }
-        );
-        if (!response.ok) {
-          throw new Error(`Download request failed: ${response.status}`);
-        }
-        const blob = await response.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = blobUrl;
-        link.download = content.title || "download";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(blobUrl);
-      } catch (proxyError) {
-        console.error("Download failed:", proxyError);
-      }
-    } finally {
-      setDownloadingContentId(null);
-    }
   };
 
   // Fetch user data
@@ -1089,8 +1031,7 @@ export default function LearningPaths() {
                             <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                             View
                         </Button>
-                          {content.fileUrl && (
-                            isYouTubeUrl(content.fileUrl) ? (
+                          {content.fileUrl && isYouTubeUrl(content.fileUrl) && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1102,17 +1043,6 @@ export default function LearningPaths() {
                               >
                                 <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
                               </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleContentDownload(content)}
-                                title="Download file"
-                                disabled={downloadingContentId === String(content._id || content.id || content.title || "")}
-                              >
-                                <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                              </Button>
-                            )
                           )}
                         </div>
                     </CardContent>

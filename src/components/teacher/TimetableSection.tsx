@@ -10,6 +10,7 @@ type TimetableSectionProps = {
   onRemoveSlot: (id: string) => void;
   canAdd: boolean;
   onEntryClick: (entry: UnifiedScheduleEntry) => void;
+  className?: string;
 };
 
 export function TimetableSection({
@@ -19,6 +20,7 @@ export function TimetableSection({
   onRemoveSlot,
   canAdd,
   onEntryClick,
+  className,
 }: TimetableSectionProps) {
   const getEventBadgeClasses = (eventType: UnifiedScheduleEntry['eventType']) => {
     if (eventType === 'exam') {
@@ -39,11 +41,12 @@ export function TimetableSection({
   return (
     <div
       className={cn(
-        'flex min-h-[240px] flex-col rounded-2xl border border-gray-200/90 bg-white p-4 sm:p-5',
-        'shadow-[0_1px_3px_rgba(15,23,42,0.06),0_4px_12px_rgba(15,23,42,0.04)]'
+        'flex min-h-[280px] flex-col rounded-xl border border-gray-200/90 bg-white p-3 sm:p-4',
+        'shadow-[0_1px_3px_rgba(15,23,42,0.06),0_4px_12px_rgba(15,23,42,0.04)]',
+        className
       )}
     >
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-600 shadow-sm ring-4 ring-violet-600/10">
@@ -51,7 +54,7 @@ export function TimetableSection({
             </div>
             <div>
               <h4 className="text-sm sm:text-base font-semibold tracking-tight text-gray-900 sm:text-lg">
-                Timetable
+                Schedule
               </h4>
               <p className="truncate text-xs text-gray-500 sm:text-sm">{dateLabel}</p>
             </div>
@@ -87,12 +90,12 @@ export function TimetableSection({
           <p className="mt-1 max-w-xs text-xs sm:text-sm text-gray-500">Select another date or add a class slot</p>
         </div>
       ) : (
-        <ul className="flex max-h-[420px] flex-col gap-3 overflow-y-auto pr-0.5">
+        <ul className="flex max-h-[min(360px,50vh)] flex-1 flex-col gap-2 overflow-y-auto pr-0.5">
           {entries.map((e) => (
             <li
               key={e.id}
               className={cn(
-                'group flex items-start justify-between gap-3 rounded-xl border border-gray-100 bg-white p-4',
+                'group flex items-start justify-between gap-2 rounded-lg border border-gray-100 bg-white p-3',
                 'shadow-sm transition-all duration-200',
                 'hover:border-indigo-100 hover:shadow-md'
               )}

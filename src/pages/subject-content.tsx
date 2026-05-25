@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useRoute } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -15,7 +14,6 @@ import {
   Play, 
   Clock, 
   Users, 
-  Star,
   BookOpen,
   Target,
   Award,
@@ -376,16 +374,6 @@ export default function SubjectContent() {
     setSelectedVideo(null);
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'Beginner': return 'bg-green-100 text-green-600';
-      case 'Intermediate': return 'bg-yellow-100 text-yellow-600';
-      case 'Advanced': return 'bg-orange-100 text-orange-600';
-      case 'Expert': return 'bg-red-100 text-red-600';
-      default: return 'bg-gray-100 text-gray-600';
-    }
-  };
-
   const getIcon = (iconName: string) => {
     switch (iconName) {
       case 'BookOpen': return BookOpen;
@@ -460,27 +448,6 @@ export default function SubjectContent() {
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-bold mb-2">{subject.name}</h1>
                   <p className="text-blue-100">{subject.description}</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-6 mb-6">
-                <Badge className={getDifficultyColor(subject.difficulty)}>
-                  {subject.difficulty}
-                </Badge>
-                <Badge variant="outline" className="border-white/30 text-white">
-                  {subject.category}
-                </Badge>
-                <div className="flex items-center space-x-1 text-blue-100">
-                  <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span>{subject.duration}</span>
-                </div>
-                <div className="flex items-center space-x-1 text-blue-100">
-                  <Users className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span>{subject.students} students</span>
-                </div>
-                <div className="flex items-center space-x-1 text-blue-100">
-                  <Star className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span>{subject.rating}</span>
                 </div>
               </div>
 

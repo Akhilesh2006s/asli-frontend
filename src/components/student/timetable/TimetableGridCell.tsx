@@ -2,13 +2,21 @@ import { motion } from 'framer-motion';
 import { Clock, MapPin, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { TimetableEntry } from '@/types/timetable';
-import { entryAccentStyle, getSubjectTheme, refName, isEntryOngoing } from '@/lib/student-timetable-utils';
+import {
+  entryAccentStyle,
+  getSubjectTheme,
+  isEntryOngoing,
+  refName,
+  teacherSlotLabel,
+} from '@/lib/student-timetable-utils';
 import { cn } from '@/lib/utils';
 
 type TimetableGridCellProps = {
   entries: TimetableEntry[];
   now?: Date;
   compact?: boolean;
+  /** Teacher view: show class · section · room instead of subject name */
+  labelMode?: 'subject' | 'teacher';
   interactive?: boolean;
   onEntryClick?: (entry: TimetableEntry) => void;
   onEmptyClick?: () => void;
@@ -18,6 +26,7 @@ export function TimetableGridCell({
   entries,
   now = new Date(),
   compact,
+  labelMode = 'subject',
   interactive,
   onEntryClick,
   onEmptyClick,
@@ -47,11 +56,13 @@ export function TimetableGridCell({
   return (
     <div className={cn('flex w-full flex-col gap-1', compact ? 'min-h-[44px]' : 'min-h-[72px] sm:min-h-[88px]')}>
       {entries.map((entry) => {
+        const isTeacher = labelMode === 'teacher';
         const subject = refName(entry.subjectId) || 'Class';
         const theme = getSubjectTheme(subject);
-        const accent = entryAccentStyle(entry.colorTag);
+        const accent = isTeacher ? undefined : entryAccentStyle(entry.colorTag);
         const ongoing = isEntryOngoing(entry, now);
         const isLab = entry.sessionType === 'Lab';
+        const primaryLabel = isTeacher ? teacherSlotLabel(entry) : subject;
 
         return (
           <motion.div
@@ -64,29 +75,38 @@ export function TimetableGridCell({
             onClick={interactive && onEntryClick ? () => onEntryClick(entry) : undefined}
             style={accent}
             className={cn(
-              'relative rounded-md border shadow-sm overflow-hidden',
+              'relative rounded-lg border shadow-sm overflow-hidden',
               interactive && onEntryClick ? 'cursor-pointer' : 'cursor-default',
-              compact ? 'p-1.5' : 'rounded-lg p-2 sm:p-2.5',
-              !accent && 'bg-gradient-to-br',
-              !accent && theme.bg,
-              !accent && theme.border,
-              !accent && theme.gradient,
-              accent && 'border-2',
-              ongoing && 'ring-2 ring-sky-400 ring-offset-1 shadow-md z-[1]'
+              compact ? 'p-2' : 'p-2 sm:p-2.5',
+              isTeacher && 'bg-[#F0EBFF] border-violet-200/70',
+              !isTeacher && !accent && 'bg-gradient-to-br',
+              !isTeacher && !accent && theme.bg,
+              !isTeacher && !accent && theme.border,
+              !isTeacher && !accent && theme.gradient,
+              !isTeacher && accent && 'border-2',
+              ongoing && 'ring-2 ring-orange-400 ring-offset-1 shadow-md z-[1]'
             )}
           >
             {ongoing && (
               <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500" />
               </span>
             )}
 
-            <p className={cn('font-bold text-[11px] sm:text-xs leading-tight pr-3 uppercase tracking-wide', theme.text)}>
-              {subject}
+            <p
+              className={cn(
+                'font-bold leading-tight pr-2',
+                compact ? 'text-[10px] sm:text-[11px]' : 'text-[11px] sm:text-xs',
+                isTeacher
+                  ? 'text-[#6C5CE7] uppercase tracking-wide'
+                  : cn('uppercase tracking-wide', theme.text)
+              )}
+            >
+              {primaryLabel}
             </p>
 
-            {!compact && (
+            {!compact && !isTeacher && (
               <>
                 <p className="text-[10px] sm:text-[11px] text-gray-600 mt-1 flex items-center gap-1 truncate">
                   <User className="w-3 h-3 shrink-0 text-gray-400" />
@@ -105,15 +125,26 @@ export function TimetableGridCell({
               </>
             )}
 
-            <Badge
-              className={cn(
-                'font-semibold border-0',
-                compact ? 'mt-0.5 text-[8px] px-1 py-0 h-4' : 'mt-1.5 text-[9px] sm:text-[10px] px-1.5 py-0 h-5',
-                isLab ? 'bg-purple-100 text-purple-700' : theme.badge
-              )}
-            >
-              {entry.sessionType === 'Lab' ? 'Lab' : 'Lecture'}
-            </Badge>
+            {isTeacher ? (
+              <p
+                className={cn(
+                  'text-[#6C5CE7]/85 font-medium',
+                  compact ? 'mt-0.5 text-[9px]' : 'mt-1 text-[10px]'
+                )}
+              >
+                {entry.sessionType}
+              </p>
+            ) : (
+              <Badge
+                className={cn(
+                  'font-semibold border-0',
+                  compact ? 'mt-0.5 text-[8px] px-1 py-0 h-4' : 'mt-1.5 text-[9px] sm:text-[10px] px-1.5 py-0 h-5',
+                  isLab ? 'bg-purple-100 text-purple-700' : theme.badge
+                )}
+              >
+                {entry.sessionType === 'Lab' ? 'Lab' : 'Lecture'}
+              </Badge>
+            )}
           </motion.div>
         );
       })}

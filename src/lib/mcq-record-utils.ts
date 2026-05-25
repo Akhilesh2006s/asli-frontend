@@ -14,6 +14,8 @@ const MCQ_TOOLS = new Set([
   "worksheet-mcq-generator",
   "homework-creator",
   "exam-question-paper-generator",
+  "smart-qa-practice-generator",
+  "quick-assignment-builder",
 ]);
 
 export function isMcqTool(toolName?: string): boolean {
