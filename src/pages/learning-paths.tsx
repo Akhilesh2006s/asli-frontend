@@ -50,6 +50,7 @@ import {
 import VidyaAIFloatingAssistant from "@/components/student/VidyaAIFloatingAssistant";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import DriveViewer from "@/components/drive-viewer";
+import { getStudentDisplayName } from "@/lib/auth-utils";
 
 export default function LearningPaths() {
   const [, setLocation] = useLocation();
@@ -640,7 +641,7 @@ export default function LearningPaths() {
           <div className="gradient-primary rounded-2xl p-5 sm:p-8 text-white relative overflow-hidden">
             <div className="relative z-10">
               <h1 className="text-xl sm:text-2xl sm:text-3xl font-bold mb-2 break-words">
-                Learning Paths for {user?.email || 'Student'}
+                Learning Paths for {getStudentDisplayName(user)}
               </h1>
               <p className="text-blue-100 mb-6">
                 Choose your learning journey and master your subjects with our structured courses

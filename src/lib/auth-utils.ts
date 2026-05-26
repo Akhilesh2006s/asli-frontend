@@ -103,4 +103,25 @@ export const setUser = (user: any): void => {
   localStorage.setItem('user', JSON.stringify(user));
 };
 
+type StudentUserLike = { fullName?: string; name?: string; email?: string } | null | undefined;
+
+/** First name from profile — for short greetings (e.g. "Welcome back, Rahul!"). */
+export function getStudentWelcomeName(user: StudentUserLike): string {
+  const full = String(user?.fullName || user?.name || '').trim();
+  if (full) {
+    const first = full.split(/\s+/).filter(Boolean)[0];
+    return first || full;
+  }
+  const fromEmail = String(user?.email || '').split('@')[0]?.trim();
+  return fromEmail || 'Student';
+}
+
+/** Full name when set — for headings (e.g. "Learning Paths for Rahul Kumar"). */
+export function getStudentDisplayName(user: StudentUserLike): string {
+  const full = String(user?.fullName || user?.name || '').trim();
+  if (full) return full;
+  const fromEmail = String(user?.email || '').split('@')[0]?.trim();
+  return fromEmail || 'Student';
+}
+
 

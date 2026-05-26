@@ -20,6 +20,7 @@ import {
   buildTodaysTasksContentList,
   getContentSubjectId,
   getVideoDisplayTitle,
+  isHomeworkContentType,
   isVideoContentType,
   nextChapterCompletedDates,
   type ChapterCompletedDates,
@@ -96,7 +97,7 @@ import { buildExamCalendarEntries } from '@/lib/exam-calendar-entries';
 import { buildTimetableCalendarEntries } from '@/lib/timetable-calendar-entries';
 import { useTimetableEntries } from '@/hooks/useTimetable';
 import { format, startOfMonth, endOfMonth, startOfWeek, addDays, parseISO } from 'date-fns';
-import { getUser as getStoredUser } from '@/lib/auth-utils';
+import { getUser as getStoredUser, getStudentDisplayName } from '@/lib/auth-utils';
 import { fetchAuthUser, peekCachedAuthUser } from '@/lib/auth-session';
 import { fetchDashboardBootstrap } from '@/lib/dashboard-bootstrap';
 import {
@@ -1923,25 +1924,6 @@ export default function Dashboard() {
   };
 
   const calendarEntries = useMemo(() => {
-    const contentEntries = incompleteContent
-      .map((content: any) => {
-        const date =
-          parseDate(content.deadline) ||
-          parseDate(content.dueDate) ||
-          parseDate(content.scheduledDate) ||
-          parseDate(content.publishDate);
-        if (!date) return null;
-        return {
-          id: content._id || content.id,
-          type: 'content' as const,
-          title: content.title || 'Study Content',
-          subject: getSubjectName(content),
-          date,
-          source: content,
-        };
-      })
-      .filter(Boolean) as any[];
-
     const quizEntries = incompleteQuizzes
       .map((quiz: any) => {
         const date =
@@ -1966,8 +1948,8 @@ export default function Dashboard() {
     const examEntries = buildExamCalendarEntries(exams);
     const timetableCalendarEntries = buildTimetableCalendarEntries(monthTimetableEntries);
 
-    return [...contentEntries, ...quizEntries, ...examEntries, ...timetableCalendarEntries];
-  }, [incompleteContent, incompleteQuizzes, exams, getSubjectName, monthTimetableEntries]);
+    return [...quizEntries, ...examEntries, ...timetableCalendarEntries];
+  }, [incompleteQuizzes, exams, monthTimetableEntries]);
 
   const entriesByDate = useMemo(() => {
     return calendarEntries.reduce((acc: Record<string, any[]>, entry: any) => {
@@ -1980,7 +1962,9 @@ export default function Dashboard() {
 
   const selectedDateEntries = useMemo(() => {
     const key = formatDateKey(selectedCalendarDate);
-    const entries = (entriesByDate[key] || []).filter((e: { type?: string }) => e.type !== 'timetable');
+    const entries = (entriesByDate[key] || []).filter(
+      (e: { type?: string }) => e.type !== 'timetable' && e.type !== 'content'
+    );
     return [...entries].sort((a, b) => a.date.getTime() - b.date.getTime());
   }, [selectedCalendarDate, entriesByDate]);
 
@@ -2048,7 +2032,7 @@ export default function Dashboard() {
               {/* Left side - Text content */}
               <div className="flex-1 min-w-0">
                 <h1 className="text-base sm:text-xl lg:text-3xl font-bold mb-1 sm:mb-2 leading-tight">
-                  Welcome back, {user?.email?.split('@')[0] || user?.fullName?.split(' ')[0] || 'Student'}!
+                  Welcome back, {getStudentDisplayName(user)}!
                 </h1>
                 <p className="text-white/90 mb-2 sm:mb-4 text-[11px] sm:text-sm leading-snug line-clamp-3 sm:line-clamp-none">
                   Ready to continue your {user?.educationStream || 'JEE'} preparation journey? Your Vidya AI has personalized recommendations waiting.
@@ -2194,7 +2178,7 @@ export default function Dashboard() {
                   <div>
                     <CardTitle className="text-lg sm:text-xl font-bold text-gray-900">Study Calendar</CardTitle>
                     <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                      Content and quizzes by due date; exams on start and end dates only
+                      Quizzes by due date; exams on their scheduled dates
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
@@ -2250,7 +2234,10 @@ export default function Dashboard() {
                     if (!day) return <div key={`empty-${idx}`} className="h-12" />;
                     const dayKey = formatDateKey(day);
                     const isSelected = formatDateKey(selectedCalendarDate) === dayKey;
-                    const itemCount = (entriesByDate[dayKey] || []).length;
+                    const itemCount = (entriesByDate[dayKey] || []).filter(
+                      (entry: { type?: string }) =>
+                        entry.type !== 'timetable' && entry.type !== 'content'
+                    ).length;
                     const isToday = formatDateKey(new Date()) === dayKey;
                     return (
                       <button
@@ -2291,7 +2278,7 @@ export default function Dashboard() {
                     month: 'short',
                     day: 'numeric'
                   })}
-                  {' Â· '}Class timetable is in the table below
+                  {' · '}Class timetable is in the table below
                 </p>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -2395,18 +2382,6 @@ export default function Dashboard() {
                 <div className="space-y-2">
                   {/* Incomplete Quizzes */}
                   {incompleteQuizzes.map((quiz: any) => {
-                    const getPriorityColor = (difficulty: string) => {
-                      if (difficulty === 'Hard' || difficulty === 'Expert') return 'bg-red-100 text-red-700';
-                      if (difficulty === 'Medium') return 'bg-orange-100 text-orange-700';
-                      return 'bg-blue-100 text-blue-700';
-                    };
-
-                    const getPriorityLabel = (difficulty: string) => {
-                      if (difficulty === 'Hard' || difficulty === 'Expert') return 'high';
-                      if (difficulty === 'Medium') return 'medium';
-                      return 'low';
-                    };
-
                     const isCompleted = completedScheduleIds.has(quiz._id);
                     
                     const timeLabel = getTaskTimeLabel(quiz, true);
@@ -2440,9 +2415,6 @@ export default function Dashboard() {
                             <h4 className={`font-semibold text-gray-900 truncate ${isCompleted ? 'line-through text-gray-400' : ''}`}>
                               Complete {quiz.title || 'Quiz'}
                             </h4>
-                            <Badge className={`${getPriorityColor(quiz.difficulty || 'Easy')} text-[10px]`}>
-                              {getPriorityLabel(quiz.difficulty || 'Easy')}
-                            </Badge>
                           </div>
                           <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
                             <span className="truncate">
@@ -2467,22 +2439,6 @@ export default function Dashboard() {
 
                   {/* Incomplete Content */}
                   {incompleteContent.map((content: any) => {
-                    const getPriorityColorForContent = () => {
-                      // Homework is always high priority
-                      if (content.type === 'Homework') {
-                        return 'bg-red-100 text-red-700';
-                      }
-                      // You can add logic here based on content properties
-                      return 'bg-blue-100 text-blue-700';
-                    };
-
-                    const getPriorityLabel = () => {
-                      if (content.type === 'Homework') {
-                        return 'high';
-                      }
-                      return 'medium';
-                    };
-                    
                     const subjectName = getSubjectName(content);
 
                     const isCompleted = completedScheduleIds.has(content._id);
@@ -2538,7 +2494,6 @@ export default function Dashboard() {
                                 ? getVideoDisplayTitle(content)
                                 : `${getContentTypeLabel(content.type || 'Material')} ${content.title || 'Content'}`}
                             </h4>
-                            <Badge className={`${getPriorityColorForContent()} text-[10px]`}>{getPriorityLabel()}</Badge>
                           </div>
                           <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
                             <span className="truncate">{subjectName}</span>
