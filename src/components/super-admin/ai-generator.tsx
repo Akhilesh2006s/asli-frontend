@@ -46,12 +46,12 @@ const TOOLS: Array<{ id: ToolId; name: string; description: string }> = [
   { id: "flashcard-generator", name: "Flashcard Generator", description: "Generate question-answer flashcards." },
   { id: "daily-class-plan-maker", name: "Daily Class Plan", description: "Create day-wise classroom plans." },
   { id: "exam-question-paper-generator", name: "Exam Question Paper", description: "Generate section-wise exam papers." },
-  { id: "smart-study-guide-generator", name: "Smart Study Guide Generator", description: "Create personalized study guides with key concepts and revision checklists." },
-  { id: "concept-breakdown-explainer", name: "Concept Breakdown Explainer", description: "Break complex concepts into simple step-by-step explanations." },
-  { id: "smart-qa-practice-generator", name: "Smart Q&A Practice Generator", description: "Generate practice questions with step-by-step answers." },
-  { id: "chapter-summary-creator", name: "Chapter Summary Creator", description: "Create concise chapter summaries and key takeaways." },
-  { id: "key-points-formula-extractor", name: "Key Points Extractor", description: "Extract key points, definitions, and formulas from a topic." },
-  { id: "quick-assignment-builder", name: "Quick Assignment Builder", description: "Build structured assignments with marking criteria." },
+  { id: "smart-study-guide-generator", name: "Smart Study Guide Generator", description: "11-section study guides with overview, concepts, practice questions, and improvement tips." },
+  { id: "concept-breakdown-explainer", name: "Concept Breakdown Explainer", description: "9-section concept breakdown with Indian-context examples and thinking prompts." },
+  { id: "smart-qa-practice-generator", name: "Smart Q&A Practice Generator", description: "14-section practice sets with MCQs, sections A–G, answer key, and Bloom/difficulty tags." },
+  { id: "chapter-summary-creator", name: "Chapter Summary Creator", description: "11-section chapter summaries with concepts, exam points, and recall questions." },
+  { id: "key-points-formula-extractor", name: "Key Points Extractor", description: "10-section key points: concepts, definitions, formulae, keywords, exam points, mnemonics, and one-minute summary." },
+  { id: "quick-assignment-builder", name: "Quick Assignment Builder", description: "11-section assignment: objectives, concept questions, application tasks, rubric, and learning outcomes." },
 ];
 
 type GeneratorRecord = {

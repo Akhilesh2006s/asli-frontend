@@ -306,7 +306,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
-      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true }
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
   'concept-breakdown-explainer': {
@@ -316,7 +317,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
-      { name: 'concept', label: 'Concept *', type: 'select', required: true, placeholder: 'Select concept', isNCERT: true }
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
   'smart-qa-practice-generator': {
@@ -327,6 +329,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
       { name: 'questionCount', label: 'Number of Questions', type: 'number', placeholder: '10' },
       { name: 'difficulty', label: 'Difficulty', type: 'select', options: ['easy', 'medium', 'hard'] }
     ]
@@ -338,27 +341,30 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
-      { name: 'chapter', label: 'Chapter/Topic *', type: 'select', required: true, placeholder: 'Select chapter/topic', isNCERT: true }
+      { name: 'chapter', label: 'Chapter/Topic *', type: 'select', required: true, placeholder: 'Select chapter/topic', isNCERT: true },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
   'key-points-formula-extractor': {
     name: 'Key Points Extractor',
-    description: 'Extract key points from any topic',
+    description: '10-section revision sheet: concepts, definitions, formulae, keywords, exam points, and one-minute summary',
     icon: Key,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
-      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true }
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
   'quick-assignment-builder': {
     name: 'Quick Assignment Builder',
-    description: 'Build structured assignments quickly and efficiently',
+    description: '11-section assignment with concept questions, application tasks, rubric, and learning outcomes',
     icon: ClipboardList,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
-      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true }
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
   'exam-readiness-checker': {
@@ -527,10 +533,12 @@ export default function StudentToolPage() {
   const boardOptions = getAiToolBoardOptions(isAsliPrepExclusive, schoolBoardName);
   const selectedBoard = formParams.board || getDefaultAiToolBoard(isAsliPrepExclusive, schoolBoardName);
 
+  const cascadeTopic = formParams.topic || formParams.chapter || '';
+
   const cascade = useCurriculumCascade(
     formParams.gradeLevel,
     formParams.subject,
-    formParams.topic,
+    cascadeTopic,
     selectedBoard,
   );
 
@@ -719,7 +727,7 @@ export default function StudentToolPage() {
         delete newParams.chapter;
         delete newParams.projectTopic;
       }
-      if (name === 'topic') {
+      if (name === 'topic' || name === 'chapter') {
         delete newParams.subTopic;
       }
       if (name === 'board') {
@@ -1788,7 +1796,7 @@ export default function StudentToolPage() {
                     isDisabled =
                       !formParams.gradeLevel ||
                       !formParams.subject ||
-                      !formParams.topic ||
+                      !(formParams.topic || formParams.chapter) ||
                       cascade.loadingSubtopics;
                   }
 
@@ -1823,7 +1831,7 @@ export default function StudentToolPage() {
                               ? 'No data available'
                               : field.placeholder || 'Select topic';
                     } else if (field.isCascadeSubtopic) {
-                      placeholderText = !formParams.topic
+                      placeholderText = !(formParams.topic || formParams.chapter)
                         ? 'Select Topic first'
                         : cascade.loadingSubtopics
                           ? 'Loading subtopics...'
