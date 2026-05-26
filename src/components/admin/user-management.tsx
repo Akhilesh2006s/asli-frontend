@@ -684,9 +684,9 @@ const UserManagement = () => {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: typeof indexKey === 'number' ? 0.03 * indexKey : 0 }}
-      className="group relative bg-white/80 backdrop-blur-xl rounded-xl p-4 border border-sky-200 hover:border-sky-400 hover:shadow-lg transition-all duration-200"
+      className="group relative min-w-0 overflow-hidden bg-white/80 backdrop-blur-xl rounded-xl p-4 border border-sky-200 hover:border-sky-400 hover:shadow-lg transition-all duration-200"
     >
-      <div className="flex items-start justify-between gap-2 mb-3">
+      <div className="flex items-start justify-between gap-2 mb-3 min-w-0">
         <div className="flex items-center space-x-3 min-w-0 flex-1">
           <div className="relative">
             <div className="w-11 h-11 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow-md">
@@ -697,13 +697,13 @@ const UserManagement = () => {
             }`} />
           </div>
           <div className="min-w-0">
-            <h4 className="font-semibold text-sky-900 text-xs sm:text-sm leading-tight break-words">
+            <h4 className="font-semibold text-sky-900 text-xs sm:text-sm leading-tight truncate">
               {student.name || 'Unknown Student'}
             </h4>
-            <p className="text-sky-700 text-xs break-all">{student.email || 'No email'}</p>
+            <p className="text-sky-700 text-xs truncate">{student.email || 'No email'}</p>
           </div>
         </div>
-        <Badge className="bg-sky-100 text-sky-700 border border-sky-200 text-[10px] shrink-0 max-w-[40%] truncate">
+        <Badge className="bg-sky-100 text-sky-700 border border-sky-200 text-[10px] shrink-0 whitespace-nowrap">
           {student.classNumber || 'N/A'}
         </Badge>
       </div>
@@ -721,8 +721,9 @@ const UserManagement = () => {
         </div>
       </div>
 
-      <div className="pt-3 border-t border-sky-200 space-y-2 sm:space-y-0 sm:flex sm:items-center sm:justify-between board:justify-start board:gap-3 board:flex-nowrap">
-        <div className="flex items-center gap-1.5 board:shrink-0">
+      <div className="pt-3 border-t border-sky-200 w-full min-w-0 overflow-hidden">
+        <div className="flex flex-col gap-2 min-w-0 sm:flex-row sm:items-center sm:justify-between board:flex-row board:items-center board:justify-start board:gap-2 board:flex-wrap uhd:flex-nowrap uhd:max-w-full">
+        <div className="flex items-center gap-1.5 shrink-0">
           <Button
             variant="ghost"
             size="sm"
@@ -757,7 +758,7 @@ const UserManagement = () => {
         <Button
           variant="outline"
           size="sm"
-          className="w-full sm:w-auto board:shrink-0 board:w-auto text-sky-600 hover:text-sky-800 border-sky-200 hover:bg-sky-50 rounded-lg h-9 text-xs sm:text-sm whitespace-nowrap"
+          className="w-full sm:w-auto shrink-0 text-sky-600 hover:text-sky-800 border-sky-200 hover:bg-sky-50 rounded-lg h-9 text-xs sm:text-sm whitespace-nowrap board:w-auto"
           onClick={() => {
             setSelectedStudentForClass(student);
             setIsAssignClassDialogOpen(true);
@@ -766,6 +767,7 @@ const UserManagement = () => {
           <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 shrink-0" />
           Assign Class
         </Button>
+        </div>
       </div>
     </motion.div>
   );
@@ -1362,7 +1364,7 @@ const UserManagement = () => {
           {filteredStudents.length > 0 ? (
             <div className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 lg:space-y-6">
               {studentViewMode === 'all' && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 board:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 board:grid-cols-4 uhd:grid-cols-5 gap-4 [&>*]:min-w-0">
                   {filteredStudents.map((student, index) => renderStudentCard(student, index))}
                 </div>
               )}
@@ -1408,7 +1410,7 @@ const UserManagement = () => {
                                     </Badge>
                                   </button>
                                   {!isSectionCollapsed && (
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 board:grid-cols-4 gap-4 mt-3">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 board:grid-cols-4 uhd:grid-cols-5 gap-4 mt-3 [&>*]:min-w-0">
                                       {classSectionGroups[classKey][sectionKey].map((student, idx) => renderStudentCard(student, `${sectionScopeKey}-${idx}`))}
                                     </div>
                                   )}
@@ -1453,7 +1455,7 @@ const UserManagement = () => {
                                     {sectionClassGroups[sectionKey][classKey].length}
                                   </Badge>
                                 </div>
-                                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 board:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 board:grid-cols-4 uhd:grid-cols-5 gap-4 [&>*]:min-w-0">
                                   {sectionClassGroups[sectionKey][classKey].map((student, idx) =>
                                     renderStudentCard(student, `${sectionKey}-${classKey}-${idx}`)
                                   )}

@@ -13,8 +13,10 @@ export default {
       'lg': '1024px',
       'xl': '1280px',
       '2xl': '1536px',
-      /** Large classroom panels / 4K displays — does not affect typical laptops */
+      /** Large classroom panels — 2K+ */
       'board': '2560px',
+      /** 4K digital boards (3840×2160) — laptop layouts unchanged below this width */
+      'uhd': '3840px',
     },
     extend: {
       fontSize: {

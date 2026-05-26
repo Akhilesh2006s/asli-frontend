@@ -1037,7 +1037,7 @@ const ClassDashboard = () => {
             </div>
 
             {/* Classes Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 board:grid-cols-4 gap-3 sm:p-4 lg:p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 board:grid-cols-4 uhd:grid-cols-5 gap-3 sm:p-4 lg:p-6 [&>*]:min-w-0">
           {filteredClasses.length > 0 ? (
             filteredClasses.map((classItem, index) => {
               const isExpanded = expandedClassId === classItem.id;
@@ -1047,64 +1047,66 @@ const ClassDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className={`group relative overflow-hidden bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 border ${
+                className={`group relative min-w-0 overflow-hidden bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-300 border ${
                   isExpanded ? 'border-sky-400 border-2' : 'border-white/20'
                 }`}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-sky-400/10 to-blue-500/10 backdrop-blur-sm"></div>
-                <div className="relative z-10 p-3 sm:p-4 lg:p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-3 bg-white/40 rounded-xl backdrop-blur-sm">
+                <div className="relative z-10 p-3 sm:p-4 lg:p-6 min-w-0">
+                  <div className="flex items-start justify-between gap-2 mb-4 min-w-0">
+                    <div className="flex items-center space-x-3 min-w-0 flex-1">
+                      <div className="p-3 bg-white/40 rounded-xl backdrop-blur-sm shrink-0">
                         <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-sky-600" />
                       </div>
-                      <div>
-                        <h3 className="font-bold text-sky-900 text-base sm:text-lg">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-bold text-sky-900 text-base sm:text-lg truncate">
                           {classItem.name || `Class ${classItem.classNumber}${classItem.section || ''}`}
                         </h3>
                         {classItem.description && (
-                          <p className="text-sky-700 text-xs sm:text-sm mt-1">{classItem.description}</p>
+                          <p className="text-sky-700 text-xs sm:text-sm mt-1 truncate">{classItem.description}</p>
                         )}
                       </div>
                     </div>
-                    <Badge className="bg-green-100 text-green-800">Active</Badge>
+                    <Badge className="bg-green-100 text-green-800 shrink-0 whitespace-nowrap">Active</Badge>
                   </div>
                   
                   <div className="space-y-3 mb-6">
-                    <div className="flex items-center justify-between text-xs sm:text-sm">
-                      <div className="flex items-center text-sky-700">
-                        <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600" />
-                        <span>Students:</span>
+                    <div className="flex items-center justify-between gap-2 text-xs sm:text-sm min-w-0">
+                      <div className="flex items-center text-sky-700 min-w-0">
+                        <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600 shrink-0" />
+                        <span className="shrink-0">Students:</span>
                       </div>
-                      <span className="font-medium text-sky-900">{classItem.studentCount || 0}</span>
+                      <span className="font-medium text-sky-900 shrink-0">{classItem.studentCount || 0}</span>
                     </div>
                     {classItem.teachers && classItem.teachers.length > 0 && (
-                      <div className="flex items-center justify-between text-xs sm:text-sm">
-                        <div className="flex items-center text-sky-700">
-                          <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600" />
-                          <span>Teachers:</span>
+                      <div className="flex items-center justify-between gap-2 text-xs sm:text-sm min-w-0">
+                        <div className="flex items-center text-sky-700 min-w-0">
+                          <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600 shrink-0" />
+                          <span className="shrink-0">Teachers:</span>
                         </div>
-                        <span className="font-medium text-sky-900">
+                        <span className="font-medium text-sky-900 shrink-0 whitespace-nowrap">
                           {classItem.teachers.length} {classItem.teachers.length === 1 ? 'teacher' : 'teachers'}
                         </span>
                       </div>
                     )}
                     {(!classItem.teachers || classItem.teachers.length === 0) && (
-                      <div className="flex items-center justify-between text-xs sm:text-sm">
-                        <div className="flex items-center text-sky-700">
-                          <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600" />
-                          <span>Teachers:</span>
+                      <div className="flex items-center justify-between gap-2 text-xs sm:text-sm min-w-0">
+                        <div className="flex items-center text-sky-700 min-w-0">
+                          <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600 shrink-0" />
+                          <span className="shrink-0">Teachers:</span>
                         </div>
-                        <span className="font-medium text-sky-500 text-xs">No teachers assigned</span>
+                        <span className="font-medium text-sky-500 text-xs shrink-0 whitespace-nowrap text-right">
+                          No teachers assigned
+                        </span>
                       </div>
                     )}
                     {classItem.section && (
-                      <div className="flex items-center justify-between text-xs sm:text-sm">
-                        <div className="flex items-center text-sky-700">
-                          <GraduationCap className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600" />
-                          <span>Section:</span>
+                      <div className="flex items-center justify-between gap-2 text-xs sm:text-sm min-w-0">
+                        <div className="flex items-center text-sky-700 min-w-0">
+                          <GraduationCap className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600 shrink-0" />
+                          <span className="shrink-0">Section:</span>
                         </div>
-                        <span className="font-medium text-sky-900">{classItem.section}</span>
+                        <span className="font-medium text-sky-900 shrink-0">{classItem.section}</span>
                       </div>
                     )}
                   </div>
@@ -1169,34 +1171,39 @@ const ClassDashboard = () => {
                     }`}>
                       {classItem.students && classItem.students.length > 0 ? (
                         classItem.students.map(student => (
-                        <div key={student.id} className="flex items-center gap-2 min-w-0 bg-white/50 rounded-lg p-2 hover:bg-white/70 transition-colors">
-                          <div className="min-w-0 flex-1">
+                        <div
+                          key={student.id}
+                          className="flex flex-col gap-2 min-w-0 sm:flex-row sm:items-center sm:gap-2 bg-white/50 rounded-lg p-2 hover:bg-white/70 transition-colors uhd:flex-col uhd:items-stretch"
+                        >
+                          <div className="min-w-0 w-full sm:flex-1">
                             <p className="text-xs sm:text-sm font-medium text-sky-900 truncate">{student.name}</p>
                             <p className="text-xs text-sky-600 truncate">{student.email}</p>
                           </div>
-                          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                          <div className="flex items-center gap-1.5 shrink-0 sm:ml-auto uhd:justify-end">
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 hover:bg-sky-100"
+                              className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 hover:bg-sky-100"
                               onClick={() => handleViewStudentAnalysis(student)}
                               title="View Student Analysis"
                             >
-                              <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600" />
+                              <Eye className="w-4 h-4 text-sky-600" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 hover:bg-orange-100"
+                              className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 hover:bg-orange-100"
                               onClick={() => {
                                 setSelectedStudentForAIRisk(student);
                                 setIsAIRiskAnalysisModalOpen(true);
                               }}
                               title="AI Risk Analysis"
                             >
-                              <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+                              <Brain className="w-4 h-4 text-orange-600" />
                             </Button>
-                            <Badge variant="outline" className={`text-xs ${
+                            <Badge
+                              variant="outline"
+                              className={`text-xs shrink-0 whitespace-nowrap capitalize ${
                               student.status === 'active' 
                                 ? 'border-green-200 text-green-700 bg-green-50' 
                                 : 'border-gray-200 text-gray-700 bg-gray-50'
