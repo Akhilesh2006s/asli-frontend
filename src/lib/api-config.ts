@@ -69,6 +69,37 @@ export function appendPdfViewerChromelessHash(src: string): string {
   }
 }
 
+/** Absolute URL for a stored content file path or full URL. */
+export function normalizeContentFileUrl(fileUrl: string): string {
+  if (!fileUrl?.trim()) return "";
+  const raw = fileUrl.trim();
+  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+  if (raw.startsWith("//")) return `https:${raw}`;
+  if (raw.startsWith("/")) return `${API_BASE_URL}${raw}`;
+  return `${API_BASE_URL}/${raw}`;
+}
+
+/**
+ * PDF bytes via API proxy + JWT query (iframe and PDF.js).
+ * Use on digital boards where embedded browser PDF plugins fail.
+ */
+export function getPdfContentPreviewProxyUrl(fileUrl: string, title?: string): string {
+  const absolute = normalizeContentFileUrl(fileUrl);
+  if (!absolute) return "";
+  if (shouldFetchDirectly(absolute)) return absolute;
+
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("authToken") || ""
+      : "";
+  return (
+    `${API_BASE_URL}/api/student/content-preview` +
+    `?url=${encodeURIComponent(absolute)}` +
+    `&filename=${encodeURIComponent(title || "preview.pdf")}` +
+    `&token=${encodeURIComponent(token)}`
+  );
+}
+
 function resolvePdfPreviewBaseUrl(fileUrl: string, title?: string): string {
   if (!fileUrl) return "";
 
@@ -80,16 +111,7 @@ function resolvePdfPreviewBaseUrl(fileUrl: string, title?: string): string {
     return fileUrl;
   }
 
-  const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("authToken") || ""
-      : "";
-  return (
-    `${API_BASE_URL}/api/student/content-preview` +
-    `?url=${encodeURIComponent(fileUrl)}` +
-    `&filename=${encodeURIComponent(title || "preview.pdf")}` +
-    `&token=${encodeURIComponent(token)}`
-  );
+  return getPdfContentPreviewProxyUrl(fileUrl, title);
 }
 
 /**

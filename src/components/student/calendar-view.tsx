@@ -21,7 +21,8 @@ import {
   Upload,
   CheckCircle2
 } from 'lucide-react';
-import { API_BASE_URL, getStudentPdfPreviewIframeSrc } from '@/lib/api-config';
+import { API_BASE_URL } from '@/lib/api-config';
+import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 import { useToast } from '@/hooks/use-toast';
 
 interface ContentItem {
@@ -328,13 +329,11 @@ export default function CalendarView({
     }
 
     if (isPDF) {
-      const iframeSrc = getStudentPdfPreviewIframeSrc(previewUrl, content.title);
       return (
-        <iframe
-          key={iframeSrc}
-          title={content.title || 'PDF Preview'}
-          src={iframeSrc}
-          className="h-[min(78vh,900px)] w-full border-0 bg-white rounded-lg"
+        <PdfPreviewPanel
+          fileUrl={content.fileUrl}
+          title={content.title}
+          className="w-full"
         />
       );
     }
@@ -504,8 +503,8 @@ export default function CalendarView({
 
       {/* Preview Dialog */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden board:max-h-[92dvh] board:max-w-[min(92vw,1400px)] uhd:max-w-[min(90vw,1600px)]">
+          <DialogHeader className="shrink-0">
             <DialogTitle className="text-lg sm:text-xl font-semibold">{selectedContent?.title}</DialogTitle>
             <DialogDescription>
               {selectedContent?.description || 'Content preview'}
@@ -513,9 +512,9 @@ export default function CalendarView({
           </DialogHeader>
           
           {selectedContent && (
-            <div className="space-y-4">
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
               {/* File Preview */}
-              <div className="w-full min-h-[400px] bg-gray-50 rounded-lg overflow-hidden">
+              <div className="flex min-h-[min(400px,50dvh)] flex-1 flex-col overflow-hidden rounded-lg bg-gray-50 board:min-h-[min(60dvh,720px)]">
                 {renderFilePreview(selectedContent)}
               </div>
 

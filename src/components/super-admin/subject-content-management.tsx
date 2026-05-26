@@ -17,6 +17,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { API_BASE_URL, getEmbeddedPdfIframeSrc, isOurBackendPdfUrl } from '@/lib/api-config';
+import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 import { useToast } from '@/hooks/use-toast';
 import {
   getCurriculumClassLabels,
@@ -3019,13 +3020,10 @@ export default function SubjectContentManagement() {
                     </audio>
                   </div>
                 ) : isPdfUrl(contentPreviewUrl) ? (
-                  <iframe
+                  <PdfPreviewPanel
+                    fileUrl={contentPreviewItem.fileUrl}
                     title={contentPreviewItem.title}
-                    src={getEmbeddedPdfIframeSrc(
-                      contentPreviewUrl,
-                      contentPreviewItem.title
-                    )}
-                    className="h-[min(78vh,900px)] w-full border-0 bg-white"
+                    className="w-full"
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center gap-4 p-4 sm:p-6 lg:p-8 text-center text-xs sm:text-sm text-muted-foreground">
