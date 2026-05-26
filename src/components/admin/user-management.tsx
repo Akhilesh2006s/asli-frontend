@@ -721,8 +721,8 @@ const UserManagement = () => {
         </div>
       </div>
 
-      <div className="pt-3 border-t border-sky-200 space-y-2 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
-        <div className="flex items-center gap-1.5">
+      <div className="pt-3 border-t border-sky-200 space-y-2 sm:space-y-0 sm:flex sm:items-center sm:justify-between board:justify-start board:gap-3 board:flex-nowrap">
+        <div className="flex items-center gap-1.5 board:shrink-0">
           <Button
             variant="ghost"
             size="sm"
@@ -757,13 +757,13 @@ const UserManagement = () => {
         <Button
           variant="outline"
           size="sm"
-          className="w-full sm:w-auto text-sky-600 hover:text-sky-800 border-sky-200 hover:bg-sky-50 rounded-lg h-9 text-xs sm:text-sm"
+          className="w-full sm:w-auto board:shrink-0 board:w-auto text-sky-600 hover:text-sky-800 border-sky-200 hover:bg-sky-50 rounded-lg h-9 text-xs sm:text-sm whitespace-nowrap"
           onClick={() => {
             setSelectedStudentForClass(student);
             setIsAssignClassDialogOpen(true);
           }}
         >
-          <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5" />
+          <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 shrink-0" />
           Assign Class
         </Button>
       </div>
@@ -1362,7 +1362,7 @@ const UserManagement = () => {
           {filteredStudents.length > 0 ? (
             <div className="p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 lg:space-y-6">
               {studentViewMode === 'all' && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 board:grid-cols-4 gap-4">
                   {filteredStudents.map((student, index) => renderStudentCard(student, index))}
                 </div>
               )}
@@ -1408,7 +1408,7 @@ const UserManagement = () => {
                                     </Badge>
                                   </button>
                                   {!isSectionCollapsed && (
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mt-3">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 board:grid-cols-4 gap-4 mt-3">
                                       {classSectionGroups[classKey][sectionKey].map((student, idx) => renderStudentCard(student, `${sectionScopeKey}-${idx}`))}
                                     </div>
                                   )}
@@ -1453,7 +1453,7 @@ const UserManagement = () => {
                                     {sectionClassGroups[sectionKey][classKey].length}
                                   </Badge>
                                 </div>
-                                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 board:grid-cols-4 gap-4">
                                   {sectionClassGroups[sectionKey][classKey].map((student, idx) =>
                                     renderStudentCard(student, `${sectionKey}-${classKey}-${idx}`)
                                   )}

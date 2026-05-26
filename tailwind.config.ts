@@ -1,4 +1,6 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
+import tailwindcssTypography from "@tailwindcss/typography";
 
 export default {
   darkMode: ["class"],
@@ -11,6 +13,8 @@ export default {
       'lg': '1024px',
       'xl': '1280px',
       '2xl': '1536px',
+      /** Large classroom panels / 4K displays — does not affect typical laptops */
+      'board': '2560px',
     },
     extend: {
       fontSize: {
@@ -176,5 +180,5 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
+  plugins: [tailwindcssAnimate, tailwindcssTypography],
 } satisfies Config;
