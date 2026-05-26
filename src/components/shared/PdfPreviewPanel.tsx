@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Document, Page, pdfjs } from 'react-pdf';
+import * as pdfjs from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { ExternalLink, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,8 +9,6 @@ import {
   normalizeContentFileUrl,
 } from '@/lib/api-config';
 import { detectDigitalBoard } from '@/hooks/use-digital-board';
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
@@ -20,7 +18,49 @@ interface PdfPreviewPanelProps {
   className?: string;
 }
 
-/** PDF.js on panels only — laptops keep iframe (see detectDigitalBoard). */
+function isPdfBuffer(buffer: ArrayBuffer): boolean {
+  if (buffer.byteLength < 5) return false;
+  const h = new Uint8Array(buffer, 0, 5);
+  return (
+    h[0] === 0x25 &&
+    h[1] === 0x50 &&
+    h[2] === 0x44 &&
+    h[3] === 0x46 &&
+    h[4] === 0x2d
+  );
+}
+
+/** Same fetch strategy as working PDF thumbnails in subject-content-management. */
+async function fetchPdfBytes(fileUrl: string, title?: string): Promise<ArrayBuffer> {
+  const absolute = normalizeContentFileUrl(fileUrl);
+  const proxy = getPdfContentPreviewProxyUrl(fileUrl, title);
+  const candidates = [absolute, proxy].filter(Boolean);
+  const seen = new Set<string>();
+  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') || '' : '';
+
+  for (const url of candidates) {
+    if (seen.has(url)) continue;
+    seen.add(url);
+
+    const isStaticUpload = /\/uploads\//i.test(url);
+    try {
+      const res = await fetch(url, {
+        method: 'GET',
+        credentials: isStaticUpload ? 'omit' : 'include',
+        headers:
+          !isStaticUpload && token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+      if (!res.ok) continue;
+      const buf = await res.arrayBuffer();
+      if (isPdfBuffer(buf)) return buf;
+    } catch {
+      /* try next URL */
+    }
+  }
+
+  throw new Error('PDF_FETCH_FAILED');
+}
+
 function useCanvasPdfPreview(): boolean {
   const [useCanvas, setUseCanvas] = useState(detectDigitalBoard);
 
@@ -37,10 +77,10 @@ function useCanvasPdfPreview(): boolean {
 export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfPreviewPanelProps) {
   const useCanvasPreview = useCanvasPdfPreview();
   const containerRef = useRef<HTMLDivElement>(null);
+  const canvasHostRef = useRef<HTMLDivElement>(null);
   const [pageWidth, setPageWidth] = useState(720);
-  const [numPages, setNumPages] = useState(0);
-  const [pdfError, setPdfError] = useState<string | null>(null);
   const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
 
   const absoluteUrl = normalizeContentFileUrl(fileUrl);
@@ -67,37 +107,28 @@ export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfP
 
   useEffect(() => {
     if (!useCanvasPreview) {
-      setPdfData(null);
       setLoadingPdf(false);
       setPdfError(null);
-      setNumPages(0);
-      return;
-    }
-
-    if (!proxyUrl) {
-      setPdfError('No preview URL available.');
+      setPdfData(null);
+      if (canvasHostRef.current) canvasHostRef.current.innerHTML = '';
       return;
     }
 
     let cancelled = false;
     setLoadingPdf(true);
     setPdfError(null);
-    setNumPages(0);
     setPdfData(null);
+    if (canvasHostRef.current) canvasHostRef.current.innerHTML = '';
 
-    fetch(proxyUrl)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.arrayBuffer();
-      })
-      .then((buffer) => {
-        if (cancelled) return;
-        if (!buffer?.byteLength) throw new Error('Empty PDF');
-        setPdfData(buffer);
+    fetchPdfBytes(fileUrl, title)
+      .then((buf) => {
+        if (!cancelled) setPdfData(buf);
       })
       .catch(() => {
         if (!cancelled) {
-          setPdfError('Could not load this PDF on the display. Use Open in new tab.');
+          setPdfError(
+            'Could not download this PDF on the display. Check network or use Open in new tab.'
+          );
         }
       })
       .finally(() => {
@@ -107,7 +138,50 @@ export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfP
     return () => {
       cancelled = true;
     };
-  }, [useCanvasPreview, proxyUrl]);
+  }, [useCanvasPreview, fileUrl, title]);
+
+  useEffect(() => {
+    if (!useCanvasPreview || !pdfData || pdfError || !canvasHostRef.current) return;
+    if (pageWidth < 80) return;
+
+    let cancelled = false;
+    const host = canvasHostRef.current;
+    host.innerHTML = '';
+
+    (async () => {
+      if (cancelled) return;
+
+      const pdf = await pdfjs.getDocument({ data: pdfData }).promise;
+      try {
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
+          if (cancelled) break;
+          const page = await pdf.getPage(pageNum);
+          const base = page.getViewport({ scale: 1 });
+          const scale = pageWidth / base.width;
+          const viewport = page.getViewport({ scale });
+          const canvas = document.createElement('canvas');
+          canvas.className = 'mb-4 max-w-full shadow-md bg-white';
+          canvas.width = Math.floor(viewport.width);
+          canvas.height = Math.floor(viewport.height);
+          const ctx = canvas.getContext('2d');
+          if (!ctx) continue;
+          await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+          host.appendChild(canvas);
+        }
+      } finally {
+        await pdf.destroy();
+      }
+    })().catch(() => {
+      if (!cancelled) {
+        setPdfError('Could not render this PDF. The file may be damaged or unsupported on this display.');
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      host.innerHTML = '';
+    };
+  }, [useCanvasPreview, pdfData, pdfError, pageWidth]);
 
   if (!absoluteUrl) {
     return (
@@ -129,7 +203,7 @@ export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfP
     );
   }
 
-  /** Digital board — PDF.js canvas (no iframe; panel browsers lack inline PDF). */
+  /** Digital board — pdfjs canvas (panel browsers lack reliable iframe / react-pdf). */
   return (
     <div className={`flex min-h-0 flex-1 flex-col gap-3 ${className}`}>
       <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
@@ -149,36 +223,15 @@ export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfP
             <span className="text-sm">Loading document…</span>
           </div>
         ) : pdfError ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+          <div className="flex flex-col items-center justify-center gap-3 py-12 text-center px-4">
             <p className="text-sm text-muted-foreground">{pdfError}</p>
             <Button type="button" onClick={openInNewTab}>
               Open PDF in new tab
             </Button>
           </div>
-        ) : pdfData ? (
-          <Document
-            file={{ data: pdfData }}
-            onLoadSuccess={({ numPages: n }) => {
-              setNumPages(n);
-              setPdfError(null);
-            }}
-            onLoadError={() => {
-              setPdfError('Could not render this PDF. Use Open in new tab.');
-            }}
-            className="flex flex-col items-center gap-4"
-          >
-            {Array.from({ length: numPages }, (_, index) => (
-              <Page
-                key={`page-${index + 1}`}
-                pageNumber={index + 1}
-                width={pageWidth}
-                className="shadow-md bg-white"
-                renderTextLayer
-                renderAnnotationLayer
-              />
-            ))}
-          </Document>
-        ) : null}
+        ) : (
+          <div ref={canvasHostRef} className="flex flex-col items-center" />
+        )}
       </div>
     </div>
   );
