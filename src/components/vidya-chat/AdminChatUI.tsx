@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BarChart3, CalendarDays, Image as ImageIcon, Loader2, Mic, Send, Sparkles, Users } from "lucide-react";
+import { BarChart3, CalendarDays, Image as ImageIcon, Loader2, Mic, Send, Sparkles, Trash2, Users } from "lucide-react";
 import type { UseVidyaChatResult } from "./types";
 
 interface AdminChatUIProps {
@@ -52,16 +52,29 @@ export function AdminChatUI({ model, className }: AdminChatUIProps) {
     <div className={`${className ?? ""} flex h-full min-h-0 flex-col rounded-2xl border border-sky-100 bg-gradient-to-b from-sky-50 via-cyan-50 to-teal-50`}>
       <div className="mx-auto flex h-full w-full max-w-5xl min-h-0 flex-col">
         <div className="border-b border-sky-100 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-sky-500 to-teal-500 shadow-sm">
-              <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-sky-500 to-teal-500 shadow-sm">
+                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-base sm:text-lg font-semibold text-slate-900">School AI Assistant</h3>
+                <p className="text-xs sm:text-sm text-slate-600">
+                  School-scoped metrics from your live database — ask counts, exams, attendance proxy, and AI usage.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-semibold text-slate-900">School AI Assistant</h3>
-              <p className="text-xs sm:text-sm text-slate-600">
-                School-scoped metrics from your live database — ask counts, exams, attendance proxy, and AI usage.
-              </p>
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0 border-sky-200 bg-white text-sky-800 shadow-sm hover:bg-sky-50"
+              onClick={model.clearChat}
+              disabled={model.isPending || model.isClearingChat || model.displayMessages.length === 0}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {model.isClearingChat ? "Clearing..." : "Clear Chat"}
+            </Button>
           </div>
         </div>
 
@@ -105,17 +118,6 @@ export function AdminChatUI({ model, className }: AdminChatUIProps) {
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
-        <div className="mx-auto mb-3 flex max-w-3xl justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 px-2 text-xs"
-            onClick={model.clearChat}
-            disabled={model.isPending || model.isClearingChat || model.displayMessages.length === 0}
-          >
-            {model.isClearingChat ? "Clearing..." : "Clear Chat"}
-          </Button>
-        </div>
         {model.displayMessages.length === 0 ? (
           <div className="mx-auto max-w-3xl py-4 sm:py-6 lg:py-8 text-center">
             <h4 className="text-base sm:text-lg font-semibold text-slate-900">How can I support school operations?</h4>

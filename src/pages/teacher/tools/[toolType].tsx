@@ -32,6 +32,11 @@ import { ConceptMasteryViewer } from '@/components/concept-mastery-viewer';
 import { LessonPlannerViewer } from '@/components/lesson-planner-viewer';
 import { ActivityProjectViewer } from '@/components/activity-project-viewer';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
+import {
+  buildAiToolGenerationSummary,
+  resolveAiToolSourceLabel,
+  type AiToolGenerationMeta,
+} from '@/lib/ai-tool-generation-summary';
 import { useCurriculumCascade, isGradeWithScienceCurriculumDropdowns } from '@/hooks/use-curriculum-cascade';
 
 interface ToolConfig {
@@ -385,6 +390,16 @@ export default function TeacherToolPage() {
   // Get tool type from route params
   const toolType = params?.toolType || '';
   const config = TOOL_CONFIGS[toolType];
+
+  const generationContextSummary = useMemo(
+    () =>
+      buildAiToolGenerationSummary(
+        formParams,
+        (responseMeta as AiToolGenerationMeta | null) ?? null,
+        config?.name,
+      ),
+    [formParams, responseMeta, config?.name],
+  );
 
   // No PDF auto-fill needed - users can enter any topic with Gemini API
 
@@ -847,7 +862,7 @@ export default function TeacherToolPage() {
       });
 
       const responseText = await response.text();
-      let data: { success?: boolean; data?: { content?: string; rawData?: unknown; metadata?: { source?: string; sourceLabel?: string; aiUnavailable?: boolean; chunksUsed?: number; citations?: CitationItem[] } }; message?: string; code?: string } = {};
+      let data: { success?: boolean; data?: { content?: string; rawData?: unknown; metadata?: AiToolGenerationMeta & { aiUnavailable?: boolean; chunksUsed?: number; citations?: CitationItem[] } }; message?: string; code?: string } = {};
       try {
         data = responseText ? JSON.parse(responseText) : {};
       } catch {
@@ -881,7 +896,7 @@ export default function TeacherToolPage() {
 
       if (data.success && data?.data?.content && String(data.data.content).trim().length > 0) {
         const sourceLabel =
-          data.data.metadata?.sourceLabel ||
+          resolveAiToolSourceLabel(data.data.metadata) ||
           (data.data.metadata?.source === 'pdf-extracted' ? 'Textbook (PDF)' : 'Question Bank (CSV)');
         const fromAiFailure = !!data.data.metadata?.aiUnavailable;
         setContentSource(sourceLabel);
@@ -987,7 +1002,14 @@ export default function TeacherToolPage() {
           setGeneratedContent(String(fallbackContent));
           setRawGeneratedContent(null);
           setContentSource('Previously generated content');
-          setResponseMeta({ source: 'cache', sourceLabel: 'Previously generated content', chunksUsed: 0 });
+          setResponseMeta({
+            source: fallbackJson?.data?.source || 'fallback-db',
+            sourceLabel: fallbackJson?.data?.sourceLabel || 'Previously generated content',
+            matchType: fallbackJson?.data?.matchType,
+            totalCandidates: fallbackJson?.data?.totalCandidates,
+            selectedIndex: fallbackJson?.data?.selectedIndex,
+            chunksUsed: 0,
+          });
           setIsFallbackContent(true);
           toast({
             title: 'Fallback Loaded',
@@ -1863,6 +1885,11 @@ export default function TeacherToolPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>Generated Content</CardTitle>
+                  {generatedContent && generationContextSummary ? (
+                    <p className="text-xs text-slate-600 mt-1.5 leading-relaxed" role="status">
+                      {generationContextSummary}
+                    </p>
+                  ) : null}
                   {generatedContent && contentSource && (
                     <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                       <span>Source:</span>
@@ -1872,7 +1899,10 @@ export default function TeacherToolPage() {
                             ? 'text-amber-600'
                             : contentSource.includes('PDF')
                               ? 'text-blue-600'
-                              : 'text-purple-600'
+                              : contentSource.includes('AI Tool') ||
+                                  contentSource.includes('Previously generated')
+                                ? 'text-emerald-700'
+                                : 'text-purple-600'
                         }`}
                       >
                         {contentSource}

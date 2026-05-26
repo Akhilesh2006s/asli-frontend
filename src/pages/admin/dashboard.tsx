@@ -1138,11 +1138,27 @@ const AdminDashboard = () => {
                 <AtRiskStudentsPanel />
 
                 <div className="w-full max-w-5xl mx-auto rounded-2xl bg-gradient-to-b from-sky-50 via-cyan-50 to-teal-50 p-4 border border-white/70 shadow-xl">
-                  <div className="rounded-t-2xl border-b border-sky-100 bg-white/90 px-5 py-4">
-                    <h3 className="text-sm sm:text-base font-semibold text-gray-800">Chat with Vidya AI</h3>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Ask about your school&apos;s students, attendance, exams, and performance data.
-                    </p>
+                  <div className="rounded-t-2xl border-b border-sky-100 bg-white/90 px-5 py-4 flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="text-sm sm:text-base font-semibold text-gray-800">Chat with Vidya AI</h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Ask about your school&apos;s students, attendance, exams, and performance data.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 border-sky-200 text-sky-800 hover:bg-sky-50"
+                      onClick={() =>
+                        window.dispatchEvent(
+                          new CustomEvent("vidya-chat-clear", { detail: { role: "admin" } })
+                        )
+                      }
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Clear Chat
+                    </Button>
                   </div>
                   <div className="bg-white/85 rounded-b-2xl border-x border-b border-sky-100 shadow-md" style={{ minHeight: '600px' }}>
                     {adminId ? (

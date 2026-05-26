@@ -38,6 +38,11 @@ import { ConceptMasteryViewer } from '@/components/concept-mastery-viewer';
 import { LessonPlannerViewer } from '@/components/lesson-planner-viewer';
 import { ActivityProjectViewer } from '@/components/activity-project-viewer';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
+import {
+  buildAiToolGenerationSummary,
+  resolveAiToolSourceLabel,
+  type AiToolGenerationMeta,
+} from '@/lib/ai-tool-generation-summary';
 
 /** Radix Select shows a blank label when `value` is not listed in items (e.g. URL-preset or taxonomy drift). */
 function mergeSelectedIntoOptions(options: string[], selected: unknown): string[] {
@@ -512,15 +517,6 @@ export default function StudentToolPage() {
     () => stripStructuredAiToolMetadata(generatedContent),
     [generatedContent],
   );
-  const generationContextSummary = useMemo(() => {
-    const parts: string[] = [];
-    if (formParams.board) parts.push(String(formParams.board));
-    if (formParams.gradeLevel) parts.push(String(formParams.gradeLevel));
-    if (formParams.subject) parts.push(String(formParams.subject));
-    if (formParams.topic) parts.push(String(formParams.topic));
-    if (formParams.subTopic) parts.push(`Sub topic: ${String(formParams.subTopic)}`);
-    return parts.join(' · ');
-  }, [formParams.board, formParams.gradeLevel, formParams.subject, formParams.topic, formParams.subTopic]);
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -552,6 +548,16 @@ export default function StudentToolPage() {
 
   const toolType = params?.toolType || '';
   const config = TOOL_CONFIGS[toolType];
+
+  const generationContextSummary = useMemo(
+    () =>
+      buildAiToolGenerationSummary(
+        formParams,
+        (responseMeta as AiToolGenerationMeta | null) ?? null,
+        config?.name,
+      ),
+    [formParams, responseMeta, config?.name],
+  );
 
   // Fetch user data to get assigned class
   useEffect(() => {
@@ -808,14 +814,18 @@ export default function StudentToolPage() {
         data?: {
           content?: string;
           rawData?: unknown;
-          metadata?: { source?: string; sourceLabel?: string; aiUnavailable?: boolean; chunksUsed?: number; citations?: CitationItem[] };
+          metadata?: AiToolGenerationMeta & {
+            aiUnavailable?: boolean;
+            chunksUsed?: number;
+            citations?: CitationItem[];
+          };
         };
       }) => {
         if (!data.success || !data?.data?.content || String(data.data.content).trim().length === 0) {
           throw new Error(data.message || 'AI returned empty response');
         }
         const sourceLabel =
-          data.data.metadata?.sourceLabel ||
+          resolveAiToolSourceLabel(data.data.metadata) ||
           (data.data.metadata?.source === 'pdf-extracted' ? 'Textbook (PDF)' : 'Question Bank (CSV)');
         const fromAiFailure = !!data.data.metadata?.aiUnavailable;
         setContentSource(sourceLabel);
@@ -1044,7 +1054,14 @@ export default function StudentToolPage() {
             setGeneratedContent(String(fallbackContent));
             setRawGeneratedContent(null);
             setContentSource('Previously generated content');
-            setResponseMeta({ source: 'cache', sourceLabel: 'Previously generated content', chunksUsed: 0 });
+            setResponseMeta({
+              source: fallbackJson?.data?.source || 'fallback-db',
+              sourceLabel: fallbackJson?.data?.sourceLabel || 'Previously generated content',
+              matchType: fallbackJson?.data?.matchType,
+              totalCandidates: fallbackJson?.data?.totalCandidates,
+              selectedIndex: fallbackJson?.data?.selectedIndex,
+              chunksUsed: 0,
+            });
             toast({
               title: 'Fallback loaded',
               description: 'Source: Previously generated content',
@@ -1554,7 +1571,7 @@ export default function StudentToolPage() {
           windowWidth: contentElement.scrollWidth,
           windowHeight: contentElement.scrollHeight
         },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
       };
 
       await html2pdf().set(opt).from(contentElement as HTMLElement).save();
@@ -1922,7 +1939,16 @@ export default function StudentToolPage() {
                     {generatedContent && contentSource && (
                       <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                         <span>Source:</span>
-                        <span className={`font-medium ${contentSource.includes('PDF') ? 'text-blue-600' : 'text-purple-600'}`}>
+                        <span
+                          className={`font-medium ${
+                            contentSource.includes('PDF')
+                              ? 'text-blue-600'
+                              : contentSource.includes('AI Tool') ||
+                                  contentSource.includes('Previously generated')
+                                ? 'text-emerald-700'
+                                : 'text-purple-600'
+                          }`}
+                        >
                           {contentSource}
                         </span>
                       </p>

@@ -1963,8 +1963,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
           <button type="button" onClick={() => setActiveTab('questions')} className={tabBtnClass('questions')}>Questions</button>
           <button type="button" onClick={() => setActiveTab('advanced')} className={tabBtnClass('advanced')}>Advanced</button>
           <button type="button" onClick={() => setActiveTab('insights')} className={tabBtnClass('insights')}>Insights</button>
-          <button type="button" onClick={() => setActiveTab('plan')} className={`${tabBtnClass('plan')} flex items-center gap-2`}>
-            <span className="bg-emerald-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">NEW</span>
+          <button type="button" onClick={() => setActiveTab('plan')} className={tabBtnClass('plan')}>
             Plan
           </button>
         </div>

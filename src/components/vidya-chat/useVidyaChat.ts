@@ -512,6 +512,18 @@ export function useVidyaChat({
     };
   }, [role, sendMessageMutation.isPending, context, userId, selectedSubject]);
 
+  useEffect(() => {
+    const onClear = (event: Event) => {
+      const detail = (event as CustomEvent<{ role?: VidyaChatRole }>).detail;
+      if (detail?.role && detail.role !== role) return;
+      if (clearChatMutation.isPending) return;
+      clearChatMutation.mutate();
+    };
+
+    window.addEventListener("vidya-chat-clear", onClear);
+    return () => window.removeEventListener("vidya-chat-clear", onClear);
+  }, [role, clearChatMutation.isPending]);
+
   const onPromptClick = (question: string) => {
     setMessage(question);
     setTimeout(() => sendSpecificMessage(question), 100);
