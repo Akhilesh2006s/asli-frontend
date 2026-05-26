@@ -133,9 +133,15 @@ function resolveFileUrl(url: string) {
   return `${API_BASE_URL}/${url}`;
 }
 
+const EMPTY_REASON_MESSAGES: Record<string, string> = {
+  student_not_found: 'Your student profile could not be loaded. Try signing out and back in.',
+  no_subjects: 'No subjects are assigned to your class yet. Ask your teacher or admin to assign subjects.',
+};
+
 export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsProps) {
   const [, setLocation] = useLocation();
   const [cards, setCards] = useState<AdaptiveCard[]>([]);
+  const [meta, setMeta] = useState<AdaptiveApiPayload['meta']>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<RecommendedItem | null>(null);
@@ -163,10 +169,12 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
       const json = await response.json();
       const payload = parseAdaptivePayload(json);
       setCards(payload.cards);
+      setMeta(payload.meta);
     } catch (e) {
       console.error('Adaptive learning fetch failed:', e);
       setError(e instanceof Error ? e.message : 'Could not load recommendations');
       setCards([]);
+      setMeta(undefined);
     } finally {
       setLoading(false);
     }
@@ -269,16 +277,30 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
   }
 
   if (cards.length === 0) {
+    const reasonKey = meta?.reason ? String(meta.reason) : '';
+    const reasonMessage = reasonKey ? EMPTY_REASON_MESSAGES[reasonKey] : null;
+    const analyzed = meta?.examResultsAnalyzed ?? 0;
+    const libraryItems = meta?.libraryItemsLoaded ?? 0;
+
     return (
       <Card className="bg-gradient-to-br from-purple-50 via-blue-50 to-teal-50 border-2 border-purple-200 shadow-xl">
         <CardHeader>{headerBlock}</CardHeader>
         <CardContent className="space-y-4">
           <div className="bg-white/80 backdrop-blur-sm rounded-lg p-3 sm:p-4 lg:p-6 border border-purple-100 text-center">
-            <p className="text-gray-600 mb-2">No adaptive recommendations yet.</p>
-            <p className="text-xs sm:text-sm text-gray-500">
-              Attempt exams so we can infer weak chapters and topics, then map them to notes, videos,
-              quizzes, and papers in your class library.
+            <p className="text-gray-600 mb-2">
+              {reasonMessage || 'No adaptive recommendations yet.'}
             </p>
+            <p className="text-xs sm:text-sm text-gray-500">
+              {reasonMessage
+                ? 'Once subjects and library content are set up, recommendations will appear here.'
+                : 'Attempt exams so we can infer weak chapters and topics, then map them to notes, videos, quizzes, and papers in your class library.'}
+            </p>
+            {!reasonMessage && (analyzed > 0 || libraryItems > 0) ? (
+              <p className="text-[11px] text-gray-400 mt-2">
+                Analyzed {analyzed} exam attempt{analyzed === 1 ? '' : 's'} · {libraryItems} library
+                item{libraryItems === 1 ? '' : 's'} loaded
+              </p>
+            ) : null}
           </div>
         </CardContent>
       </Card>
