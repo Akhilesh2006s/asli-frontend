@@ -1,562 +1,833 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Clock, Target, GraduationCap, Lightbulb, FileText, CheckCircle, Award } from 'lucide-react';
+import {
+  BookOpen,
+  Calendar,
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  FileText,
+  GraduationCap,
+  HelpCircle,
+  Lightbulb,
+  ListChecks,
+  MessageCircle,
+  Package,
+  Sparkles,
+  Target,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
-
-interface Lesson {
-  lesson_name: string;
-  subject_area?: string;
-  duration?: { periods: number; minutes_per_period: number };
-  learning_objectives?: string[];
-  teaching_learning_materials?: string[];
-  previous_knowledge?: string[];
-  introduction?: { time_minutes: number; activities: string[] };
-  presentation?: { time_minutes: number; methods: string[]; key_vocabulary?: string[] };
-  explanation_discussion?: { time_minutes: number; discussion_points: string[] };
-  activities?: { time_minutes: number; class_activities: string[] };
-  values_and_moral?: string[];
-  homework?: string[];
-  evaluation?: string[];
-}
+import {
+  lessonHasVisibleContent,
+  resolveLessonsFromPayload,
+  type NormalizedLesson,
+} from '@/lib/parse-lesson-planner';
+import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 
 interface LessonPlannerViewerProps {
   content: string;
-  rawContent?: any;
+  rawContent?: unknown;
+  className?: string;
+  variant?: 'default' | 'student' | 'teacher';
 }
 
-function lessonPlannerDisplayMarkdown(content: string, rawContent: any): string | null {
-  try {
-    const d = JSON.parse(content);
-    if (d.formatted != null && String(d.formatted).trim()) return String(d.formatted);
-  } catch {
-    /* plain text */
-  }
-  if (rawContent && typeof rawContent === 'object' && rawContent.markdown) {
-    const m = String(rawContent.markdown).trim();
-    if (m) return m;
-  }
-  const t = String(content || '').trim();
-  return t.length > 0 ? t : null;
-}
+/* ——— Shared lesson sections ——— */
 
-export function LessonPlannerViewer({ content, rawContent }: LessonPlannerViewerProps) {
-  const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [markdownFallback, setMarkdownFallback] = useState<string | null>(null);
-  const [selectedLessonIndex, setSelectedLessonIndex] = useState<number | null>(null);
-  const [bookName, setBookName] = useState<string>('');
-  const [className, setClassName] = useState<string>('');
-
-  useEffect(() => {
-    let parsedLessons: Lesson[] = [];
-    let book = '';
-    let classNum = '';
-    let mdFallback: string | null = null;
-
-    try {
-      const contentData = JSON.parse(content);
-      if (contentData.raw && contentData.raw.lessons) {
-        parsedLessons = contentData.raw.lessons;
-        book = contentData.raw.book || '';
-        classNum = contentData.raw.class || '';
-        const formattedStr =
-          contentData.formatted != null ? String(contentData.formatted) : '';
-        if (formattedStr.trim() && parsedLessons.length > 0) {
-          const fromFormatted = parseLessons(formattedStr);
-          parsedLessons = parsedLessons.map((lesson, i) => {
-            const alt = fromFormatted.lessons[i];
-            if (!alt?.lesson_name || lesson.lesson_name) return lesson;
-            return { ...lesson, ...alt };
-          });
-        }
-        if (parsedLessons.length === 0 && formattedStr.trim()) {
-          const parsed = parseLessons(formattedStr);
-          parsedLessons = parsed.lessons;
-          book = parsed.book || book;
-          classNum = parsed.class || classNum;
-        }
-      } else if (contentData.formatted != null) {
-        const formatted = String(contentData.formatted);
-        const parsed = parseLessons(formatted);
-        parsedLessons = parsed.lessons;
-        book = parsed.book;
-        classNum = parsed.class;
-        if (parsedLessons.length === 0 && formatted.trim()) mdFallback = formatted;
-      } else {
-        const parsed = parseLessons(content);
-        parsedLessons = parsed.lessons;
-        book = parsed.book;
-        classNum = parsed.class;
-      }
-    } catch {
-      if (rawContent) {
-        if (rawContent.lessons) {
-          parsedLessons = rawContent.lessons;
-          book = rawContent.book || '';
-          classNum = rawContent.class || '';
-        } else if (rawContent.lesson_plans) {
-          parsedLessons = rawContent.lesson_plans;
-          book = rawContent.book || '';
-          classNum = rawContent.class || '';
-        }
-      }
-      if (parsedLessons.length === 0) {
-        const parsed = parseLessons(content);
-        parsedLessons = parsed.lessons;
-        book = parsed.book;
-        classNum = parsed.class;
-      }
-      if (parsedLessons.length === 0) {
-        mdFallback = lessonPlannerDisplayMarkdown(content, rawContent);
-      }
-    }
-
-    if (parsedLessons.length === 0 && !mdFallback) {
-      mdFallback = lessonPlannerDisplayMarkdown(content, rawContent);
-    }
-
-    setLessons(parsedLessons);
-    setMarkdownFallback(mdFallback);
-    setBookName(book);
-    setClassName(classNum);
-    if (parsedLessons.length > 0) {
-      setSelectedLessonIndex(0);
-    } else {
-      setSelectedLessonIndex(null);
-    }
-  }, [content, rawContent]);
-
-  const selectedLesson = selectedLessonIndex !== null ? lessons[selectedLessonIndex] : null;
-
-  if (lessons.length === 0) {
-    if (markdownFallback) {
-      return (
-        <div className="space-y-4 w-full max-w-4xl mx-auto">
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs sm:text-sm text-amber-950">
-            <p className="font-medium m-0">Showing saved lesson as text</p>
-            <p className="mt-1 mb-0 text-amber-900/90">
-              Interactive lesson cards were not detected (e.g. plain Markdown from AI or database fallback). The full plan is below.
-            </p>
-          </div>
-          <div
-            className="prose prose-sm max-w-none max-h-[80vh] overflow-y-auto rounded-lg border border-gray-200 bg-white p-3 sm:p-4 lg:p-6 shadow-sm prose-headings:text-gray-900 prose-p:text-gray-700"
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(markdownFallback) }}
-          />
-        </div>
-      );
-    }
-    return (
-      <div className="text-center py-12 text-gray-500">
-        <p>No lesson plans found in the generated content.</p>
-      </div>
-    );
-  }
-
+function EmptySectionHint({ audience = 'student' }: { audience?: 'student' | 'teacher' }) {
   return (
-    <div className="w-full h-full" style={{
-      background: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
-      minHeight: '100vh',
-      padding: '2rem'
-    }}>
-      {/* Header */}
-      <div className="mb-6 text-center">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2" style={{
-          background: 'linear-gradient(90deg, #00f5ff, #ff00ff, #00ff00)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          textShadow: '0 0 30px rgba(0, 245, 255, 0.5)',
-          filter: 'drop-shadow(0 0 10px rgba(0, 245, 255, 0.8))'
-        }}>
-          📚 Lesson Planner
-        </h1>
-        {bookName && (
-          <p className="text-lg sm:text-xl text-white/80">
-            {className && `Class ${className} • `}{bookName}
-          </p>
-        )}
-      </div>
+    <p className="text-sm text-stone-400 italic rounded-lg border border-dashed border-stone-200 bg-stone-50 px-2.5 py-1.5">
+      {audience === 'teacher'
+        ? 'Not included in this generation — try regenerating with more detail if you need this section.'
+        : 'Not included in this lesson plan.'}
+    </p>
+  );
+}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:p-4 lg:p-6 max-w-7xl mx-auto">
-        {/* Left Side: Lesson List */}
-        <div className="space-y-4">
-          <div className="text-white mb-4">
-            <h2 className="text-xl sm:text-2xl font-semibold mb-2" style={{
-              textShadow: '0 0 20px rgba(0, 245, 255, 0.6)'
-            }}>
-              Lessons ({lessons.length})
-            </h2>
-          </div>
-          <div className="space-y-3 max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
-            {lessons.map((lesson, index) => (
-              <motion.div
-                key={index}
-                onClick={() => setSelectedLessonIndex(index)}
-                className={`p-4 rounded-lg cursor-pointer transition-all ${
-                  selectedLessonIndex === index
-                    ? 'ring-4 ring-cyan-400 shadow-2xl'
-                    : 'hover:ring-2 hover:ring-cyan-400/50'
-                }`}
-                style={{
-                  background: selectedLessonIndex === index
-                    ? 'linear-gradient(135deg, rgba(0, 245, 255, 0.2), rgba(255, 0, 255, 0.2))'
-                    : 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))',
-                  backdropFilter: 'blur(10px)',
-                  border: selectedLessonIndex === index
-                    ? '2px solid rgba(0, 245, 255, 0.6)'
-                    : '1px solid rgba(255, 255, 255, 0.1)',
-                  boxShadow: selectedLessonIndex === index
-                    ? '0 0 30px rgba(0, 245, 255, 0.4), inset 0 0 20px rgba(255, 0, 255, 0.2)'
-                    : '0 4px 15px rgba(0, 0, 0, 0.2)'
-                }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+function BulletList({ items, icon: Icon, iconClass }: { items: string[]; icon: LucideIcon; iconClass: string }) {
+  return (
+    <ul className="space-y-2">
+      {items.map((line, i) => (
+        <li key={i} className="flex gap-2 text-sm text-slate-800">
+          <Icon className={cn('h-4 w-4 shrink-0 mt-0.5', iconClass)} aria-hidden />
+          <span className="whitespace-pre-wrap">{line}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+type LessonSectionDef = {
+  num: number;
+  title: string;
+  icon: LucideIcon;
+  stripe: string;
+  iconWrap: string;
+  hasContent: (l: NormalizedLesson) => boolean;
+  render: (l: NormalizedLesson) => ReactNode;
+};
+
+const LESSON_TEMPLATE_SECTIONS: LessonSectionDef[] = [
+  {
+    num: 2,
+    title: 'Learning objectives',
+    icon: Target,
+    stripe: 'border-cyan-500',
+    iconWrap: 'bg-cyan-100 text-cyan-800',
+    hasContent: (l) => l.learningObjectives.length > 0,
+    render: (l) => <BulletList items={l.learningObjectives} icon={Target} iconClass="text-cyan-600" />,
+  },
+  {
+    num: 3,
+    title: 'NCF competency / learning outcome alignment',
+    icon: GraduationCap,
+    stripe: 'border-blue-500',
+    iconWrap: 'bg-blue-100 text-blue-800',
+    hasContent: (l) => l.ncfAlignment.length > 0,
+    render: (l) => <BulletList items={l.ncfAlignment} icon={GraduationCap} iconClass="text-blue-600" />,
+  },
+  {
+    num: 4,
+    title: 'Prior knowledge / diagnostic question',
+    icon: HelpCircle,
+    stripe: 'border-violet-500',
+    iconWrap: 'bg-violet-100 text-violet-800',
+    hasContent: (l) => !!l.priorKnowledge,
+    render: (l) => <p className="text-sm whitespace-pre-wrap text-slate-800">{l.priorKnowledge}</p>,
+  },
+  {
+    num: 5,
+    title: 'Introduction / warm-up',
+    icon: Lightbulb,
+    stripe: 'border-amber-500',
+    iconWrap: 'bg-amber-100 text-amber-900',
+    hasContent: (l) => !!l.introductionWarmup,
+    render: (l) => <p className="text-sm whitespace-pre-wrap text-slate-800">{l.introductionWarmup}</p>,
+  },
+  {
+    num: 6,
+    title: 'Teaching strategy',
+    icon: BookOpen,
+    stripe: 'border-teal-500',
+    iconWrap: 'bg-teal-100 text-teal-800',
+    hasContent: (l) => !!l.teachingStrategy || l.keyVocabulary.length > 0,
+    render: (l) => (
+      <div className="space-y-2">
+        {l.teachingStrategy ? (
+          <p className="text-sm whitespace-pre-wrap text-slate-800">{l.teachingStrategy}</p>
+        ) : null}
+        {l.keyVocabulary.length > 0 ? (
+          <div className="flex flex-wrap gap-2 pt-1">
+            {l.keyVocabulary.map((w, i) => (
+              <span
+                key={i}
+                className="rounded-xl border border-teal-100 bg-teal-50 px-2.5 py-1 text-xs text-teal-900"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" style={{ filter: 'drop-shadow(0 0 5px rgba(0, 245, 255, 0.8))' }} />
-                      <h3 className="text-base sm:text-lg font-semibold text-white">
-                        {index + 1}. {lesson.lesson_name}
-                      </h3>
-                    </div>
-                    {lesson.subject_area && (
-                      <span className="inline-block px-2 py-1 text-xs rounded-full text-white/70 bg-white/10 mb-2">
-                        {lesson.subject_area}
-                      </span>
-                    )}
-                    {lesson.duration && (
-                      <div className="flex items-center gap-1 text-xs sm:text-sm text-white/70">
-                        <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span>
-                          {lesson.duration.periods} periods × {lesson.duration.minutes_per_period} min
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
+                {w}
+              </span>
             ))}
           </div>
-        </div>
-
-        {/* Right Side: Lesson Details */}
-        <div className="space-y-4">
-          {selectedLesson ? (
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={selectedLessonIndex}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="p-3 sm:p-4 lg:p-6 rounded-xl"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05))',
-                  backdropFilter: 'blur(20px)',
-                  border: '2px solid rgba(0, 245, 255, 0.3)',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), inset 0 0 40px rgba(0, 245, 255, 0.1)',
-                  maxHeight: 'calc(100vh - 200px)',
-                  overflowY: 'auto'
-                }}
+        ) : null}
+      </div>
+    ),
+  },
+  {
+    num: 7,
+    title: 'Classroom activities',
+    icon: ListChecks,
+    stripe: 'border-emerald-500',
+    iconWrap: 'bg-emerald-100 text-emerald-800',
+    hasContent: (l) => l.classroomActivities.length > 0,
+    render: (l) => (
+      <ol className="space-y-2">
+        {l.classroomActivities.map((step, i) => (
+          <li key={i} className="flex gap-2 text-sm text-slate-800">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white">
+              {i + 1}
+            </span>
+            <span>{step}</span>
+          </li>
+        ))}
+      </ol>
+    ),
+  },
+  {
+    num: 8,
+    title: 'Teacher talk points',
+    icon: MessageCircle,
+    stripe: 'border-indigo-500',
+    iconWrap: 'bg-indigo-100 text-indigo-700',
+    hasContent: (l) => l.teacherTalkPoints.length > 0,
+    render: (l) => <BulletList items={l.teacherTalkPoints} icon={MessageCircle} iconClass="text-indigo-600" />,
+  },
+  {
+    num: 9,
+    title: 'Student tasks',
+    icon: Users,
+    stripe: 'border-sky-500',
+    iconWrap: 'bg-sky-100 text-sky-800',
+    hasContent: (l) => l.studentTasks.length > 0,
+    render: (l) => <BulletList items={l.studentTasks} icon={Users} iconClass="text-sky-600" />,
+  },
+  {
+    num: 10,
+    title: 'Formative assessment questions',
+    icon: ClipboardList,
+    stripe: 'border-rose-500',
+    iconWrap: 'bg-rose-100 text-rose-800',
+    hasContent: (l) => l.formativeQuestions.length > 0,
+    render: (l) => (
+      <div className="space-y-2">
+        {l.formativeQuestions.map((q, i) => (
+          <div
+            key={i}
+            className="flex gap-3 rounded-xl border border-rose-100 bg-rose-50/40 px-3 py-2"
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rose-600 text-xs font-bold text-white">
+              {i + 1}
+            </span>
+            <p className="text-sm text-slate-800 pt-0.5">{q}</p>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
+    num: 11,
+    title: 'Differentiation plan',
+    icon: Sparkles,
+    stripe: 'border-pink-500',
+    iconWrap: 'bg-pink-100 text-pink-800',
+    hasContent: (l) => !!l.differentiationPlan || l.valuesAndMoral.length > 0,
+    render: (l) => (
+      <div className="space-y-2 text-sm text-slate-800">
+        {l.differentiationPlan ? <p className="whitespace-pre-wrap">{l.differentiationPlan}</p> : null}
+        {l.valuesAndMoral.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {l.valuesAndMoral.map((v, i) => (
+              <span
+                key={i}
+                className="rounded-full border border-pink-100 bg-pink-50 px-2.5 py-1 text-xs text-pink-900"
               >
-                {/* Lesson Header */}
-                <div className="mb-6 pb-4 border-b border-white/20">
-                  <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2" style={{
-                    textShadow: '0 0 20px rgba(0, 245, 255, 0.6)'
-                  }}>
-                    {selectedLesson.lesson_name}
-                  </h2>
-                  {selectedLesson.subject_area && (
-                    <span className="inline-block px-3 py-1 text-xs sm:text-sm rounded-full text-white bg-gradient-to-r from-cyan-500 to-purple-500 mb-2">
-                      {selectedLesson.subject_area}
-                    </span>
-                  )}
-                  {selectedLesson.duration && (
-                    <div className="flex items-center gap-2 text-white/80">
-                      <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" style={{ filter: 'drop-shadow(0 0 5px rgba(0, 245, 255, 0.8))' }} />
-                      <span>
-                        {selectedLesson.duration.periods} periods × {selectedLesson.duration.minutes_per_period} minutes each
-                      </span>
-                    </div>
-                  )}
-                </div>
+                {v}
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    ),
+  },
+  {
+    num: 12,
+    title: 'Homework / practice',
+    icon: FileText,
+    stripe: 'border-orange-500',
+    iconWrap: 'bg-orange-100 text-orange-900',
+    hasContent: (l) => !!l.homeworkPractice,
+    render: (l) => <p className="text-sm whitespace-pre-wrap text-slate-800">{l.homeworkPractice}</p>,
+  },
+  {
+    num: 13,
+    title: 'Teaching aids required',
+    icon: Package,
+    stripe: 'border-lime-600',
+    iconWrap: 'bg-lime-100 text-lime-900',
+    hasContent: (l) => l.teachingAids.length > 0,
+    render: (l) => (
+      <ul className="flex flex-wrap gap-2">
+        {l.teachingAids.map((m, i) => (
+          <li
+            key={i}
+            className="rounded-xl border border-lime-100 bg-lime-50 px-2.5 py-1.5 text-sm text-lime-950 list-none"
+          >
+            {m}
+          </li>
+        ))}
+      </ul>
+    ),
+  },
+  {
+    num: 14,
+    title: 'Closure / exit ticket',
+    icon: CheckCircle2,
+    stripe: 'border-cyan-600',
+    iconWrap: 'bg-cyan-100 text-cyan-900',
+    hasContent: (l) => !!l.closureExitTicket || l.timeline.length > 0,
+    render: (l) => (
+      <div className="space-y-3 text-sm text-slate-800">
+        {l.closureExitTicket ? (
+          <p className="whitespace-pre-wrap rounded-lg border-l-4 border-cyan-400 bg-cyan-50/50 px-3 py-2.5">
+            {l.closureExitTicket}
+          </p>
+        ) : null}
+        {l.timeline.length > 0 ? (
+          <div>
+            <p className="text-xs font-semibold text-slate-700 mb-2">Period / time cues</p>
+            <BulletList items={l.timeline} icon={Clock} iconClass="text-cyan-600" />
+          </div>
+        ) : null}
+      </div>
+    ),
+  },
+];
 
-                {/* Learning Objectives */}
-                {selectedLesson.learning_objectives && selectedLesson.learning_objectives.length > 0 && (
-                  <SectionCard
-                    icon={<Target className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
-                    title="Learning Objectives"
-                    color="from-cyan-400 to-blue-500"
-                  >
-                    <ul className="space-y-2">
-                      {selectedLesson.learning_objectives.map((obj, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-white/90">
-                          <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400 flex-shrink-0 mt-0.5" style={{ filter: 'drop-shadow(0 0 5px rgba(0, 245, 255, 0.8))' }} />
-                          <span>{obj}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </SectionCard>
-                )}
+function countFilledLessonSections(lesson: NormalizedLesson): number {
+  return LESSON_TEMPLATE_SECTIONS.filter((s) => s.hasContent(lesson)).length;
+}
 
-                {/* Teaching Materials */}
-                {selectedLesson.teaching_learning_materials && selectedLesson.teaching_learning_materials.length > 0 && (
-                  <SectionCard
-                    icon={<GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
-                    title="Teaching Materials"
-                    color="from-purple-400 to-pink-500"
-                  >
-                    <ul className="space-y-2">
-                      {selectedLesson.teaching_learning_materials.map((material, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-white/90">
-                          <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 flex-shrink-0 mt-0.5" style={{ filter: 'drop-shadow(0 0 5px rgba(168, 85, 247, 0.8))' }} />
-                          <span>{material}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </SectionCard>
-                )}
+function PlanSectionCard({
+  sectionNum,
+  title,
+  icon: Icon,
+  stripe,
+  iconWrap,
+  children,
+}: {
+  sectionNum: string;
+  title: string;
+  icon: LucideIcon;
+  stripe: string;
+  iconWrap: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="h-fit w-full rounded-2xl bg-white border border-stone-200/90 shadow-sm overflow-hidden">
+      <div className={cn('flex items-center gap-2.5 px-3 py-2.5 border-l-[5px]', stripe)}>
+        <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', iconWrap)}>
+          <Icon className="h-4 w-4" aria-hidden />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400">{sectionNum}</p>
+          <h4 className="text-xs font-bold text-stone-900 leading-snug">{title}</h4>
+        </div>
+      </div>
+      <div className="px-3 pb-3 pt-1">{children}</div>
+    </section>
+  );
+}
 
-                {/* Prerequisites */}
-                {selectedLesson.previous_knowledge && selectedLesson.previous_knowledge.length > 0 && (
-                  <SectionCard
-                    icon={<Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
-                    title="Prerequisites"
-                    color="from-yellow-400 to-orange-500"
-                  >
-                    <ul className="space-y-2">
-                      {selectedLesson.previous_knowledge.map((knowledge, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-white/90">
-                          <span className="w-2 h-2 rounded-full bg-yellow-400 flex-shrink-0 mt-2" style={{ filter: 'drop-shadow(0 0 5px rgba(251, 191, 36, 0.8))' }} />
-                          <span>{knowledge}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </SectionCard>
-                )}
+/** Teacher-only: lesson flow grouped by class phase (distinct from activity “kit” cards). */
+const LESSON_FLOW_PHASES = [
+  {
+    id: 'prepare',
+    label: 'Before class',
+    hint: 'Objectives, prior knowledge & warm-up',
+    dotClass: 'bg-sky-600 ring-sky-200',
+    badgeClass: 'bg-sky-100 text-sky-900 border-sky-200',
+  },
+  {
+    id: 'teach',
+    label: 'During class',
+    hint: 'Teaching, activities & student work',
+    dotClass: 'bg-teal-600 ring-teal-200',
+    badgeClass: 'bg-teal-100 text-teal-900 border-teal-200',
+  },
+  {
+    id: 'wrap',
+    label: 'Wrap-up',
+    hint: 'Assessment, homework & closure',
+    dotClass: 'bg-amber-600 ring-amber-200',
+    badgeClass: 'bg-amber-100 text-amber-950 border-amber-200',
+  },
+] as const;
 
-                {/* Introduction */}
-                {selectedLesson.introduction && (
-                  <SectionCard
-                    icon={<Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
-                    title={`Introduction (${selectedLesson.introduction.time_minutes || 5} minutes)`}
-                    color="from-green-400 to-emerald-500"
-                  >
-                    {selectedLesson.introduction.activities && (
-                      <ul className="space-y-2">
-                        {selectedLesson.introduction.activities.map((activity, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-white/90">
-                            <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0 mt-2" style={{ filter: 'drop-shadow(0 0 5px rgba(74, 222, 128, 0.8))' }} />
-                            <span>{activity}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </SectionCard>
-                )}
+const SECTION_PHASE: Record<number, (typeof LESSON_FLOW_PHASES)[number]['id']> = {
+  2: 'prepare',
+  3: 'prepare',
+  4: 'prepare',
+  5: 'prepare',
+  6: 'teach',
+  7: 'teach',
+  8: 'teach',
+  9: 'teach',
+  10: 'wrap',
+  11: 'wrap',
+  12: 'wrap',
+  13: 'wrap',
+  14: 'wrap',
+};
 
-                {/* Presentation */}
-                {selectedLesson.presentation && (
-                  <SectionCard
-                    icon={<BookOpen className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
-                    title={`Presentation (${selectedLesson.presentation.time_minutes || 15} minutes)`}
-                    color="from-blue-400 to-indigo-500"
-                  >
-                    {selectedLesson.presentation.methods && (
-                      <ul className="space-y-2 mb-4">
-                        {selectedLesson.presentation.methods.map((method, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-white/90">
-                            <span className="w-2 h-2 rounded-full bg-blue-400 flex-shrink-0 mt-2" style={{ filter: 'drop-shadow(0 0 5px rgba(96, 165, 250, 0.8))' }} />
-                            <span>{method}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {selectedLesson.presentation.key_vocabulary && selectedLesson.presentation.key_vocabulary.length > 0 && (
-                      <div>
-                        <h4 className="text-white font-semibold mb-2">Key Vocabulary:</h4>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedLesson.presentation.key_vocabulary.map((vocab, idx) => (
-                            <span
-                              key={idx}
-                              className="px-3 py-1 rounded-full text-xs sm:text-sm text-white bg-gradient-to-r from-blue-500 to-indigo-600"
-                              style={{
-                                boxShadow: '0 0 10px rgba(96, 165, 250, 0.5)'
-                              }}
-                            >
-                              {vocab}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </SectionCard>
-                )}
+function PlannerTimelineStep({
+  sectionNum,
+  title,
+  icon: Icon,
+  dotClass,
+  isLast,
+  children,
+}: {
+  sectionNum: number;
+  title: string;
+  icon: LucideIcon;
+  dotClass: string;
+  isLast: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="relative flex gap-3 sm:gap-4">
+      <div className="flex flex-col items-center pt-0.5">
+        <div
+          className={cn(
+            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm ring-4',
+            dotClass,
+          )}
+        >
+          {sectionNum}
+        </div>
+        {!isLast ? (
+          <div
+            className="w-px flex-1 min-h-[20px] mt-2 bg-gradient-to-b from-slate-300 via-slate-200 to-transparent"
+            aria-hidden
+          />
+        ) : null}
+      </div>
+      <article className="mb-5 min-w-0 flex-1 rounded-xl border border-slate-200/90 bg-white p-3.5 sm:p-4 shadow-sm last:mb-0">
+        <header className="mb-2.5 flex items-center gap-2 border-b border-slate-100 pb-2">
+          <Icon className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+          <h4 className="text-sm font-semibold text-slate-900 leading-snug">{title}</h4>
+        </header>
+        <div className="text-sm leading-relaxed text-slate-800">{children}</div>
+      </article>
+    </div>
+  );
+}
 
-                {/* Explanation & Discussion */}
-                {selectedLesson.explanation_discussion && (
-                  <SectionCard
-                    icon={<Award className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
-                    title={`Explanation & Discussion (${selectedLesson.explanation_discussion.time_minutes || 10} minutes)`}
-                    color="from-pink-400 to-rose-500"
-                  >
-                    {selectedLesson.explanation_discussion.discussion_points && (
-                      <ul className="space-y-2">
-                        {selectedLesson.explanation_discussion.discussion_points.map((point, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-white/90">
-                            <span className="w-2 h-2 rounded-full bg-pink-400 flex-shrink-0 mt-2" style={{ filter: 'drop-shadow(0 0 5px rgba(244, 114, 182, 0.8))' }} />
-                            <span>{point}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </SectionCard>
-                )}
+function TeacherLessonCard({ lesson }: { lesson: NormalizedLesson }) {
+  const filled = countFilledLessonSections(lesson);
+  const total = LESSON_TEMPLATE_SECTIONS.length;
+  const progressPct = Math.round((filled / total) * 100);
+  const activeSections = LESSON_TEMPLATE_SECTIONS.filter((sec) => sec.hasContent(lesson));
 
-                {/* Activities */}
-                {selectedLesson.activities && (
-                  <SectionCard
-                    icon={<Award className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
-                    title={`Activities (${selectedLesson.activities.time_minutes || 5} minutes)`}
-                    color="from-violet-400 to-purple-500"
-                  >
-                    {selectedLesson.activities.class_activities && (
-                      <ul className="space-y-2">
-                        {selectedLesson.activities.class_activities.map((activity, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-white/90">
-                            <span className="w-2 h-2 rounded-full bg-violet-400 flex-shrink-0 mt-2" style={{ filter: 'drop-shadow(0 0 5px rgba(167, 139, 250, 0.8))' }} />
-                            <span>{activity}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </SectionCard>
-                )}
+  return (
+    <div className="space-y-5">
+      {/* Planner page header — notebook style, not “kit” hero */}
+      <div className="rounded-xl border-2 border-dashed border-amber-300/70 bg-gradient-to-br from-amber-50/90 via-white to-sky-50/40 px-4 py-4 sm:px-5 sm:py-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-800/80 mb-1">
+              Lesson · Period plan
+            </p>
+            <h4 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight font-serif">
+              {lesson.lessonName}
+            </h4>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Badge className="rounded border-amber-200 bg-amber-100/80 text-amber-950 hover:bg-amber-100/80 font-medium">
+                Lesson {lesson.sl}
+              </Badge>
+              {lesson.subjectArea ? (
+                <span className="text-xs text-slate-600">{lesson.subjectArea}</span>
+              ) : null}
+              {lesson.durationLabel ? (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-teal-800">
+                  <Clock className="h-3.5 w-3.5" aria-hidden />
+                  {lesson.durationLabel}
+                </span>
+              ) : null}
+            </div>
+          </div>
+          <div className="shrink-0 w-full sm:w-36">
+            <p className="text-[10px] font-semibold uppercase text-slate-500 mb-1">Flow ready</p>
+            <div className="h-2.5 rounded-full bg-slate-200 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-sky-500 via-teal-500 to-amber-500"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1 text-right">
+              {filled}/{total} blocks
+            </p>
+          </div>
+        </div>
+      </div>
 
-                {/* Values & Moral */}
-                {selectedLesson.values_and_moral && selectedLesson.values_and_moral.length > 0 && (
-                  <SectionCard
-                    icon={<Award className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
-                    title="Values & Moral"
-                    color="from-amber-400 to-yellow-500"
-                  >
-                    <div className="flex flex-wrap gap-2">
-                      {selectedLesson.values_and_moral.map((value, idx) => (
-                        <span
-                          key={idx}
-                          className="px-3 py-1 rounded-full text-xs sm:text-sm text-white bg-gradient-to-r from-amber-500 to-yellow-600"
-                          style={{
-                            boxShadow: '0 0 10px rgba(245, 158, 11, 0.5)'
-                          }}
-                        >
-                          {value}
-                        </span>
-                      ))}
-                    </div>
-                  </SectionCard>
-                )}
+      {LESSON_FLOW_PHASES.map((phase) => {
+        const phaseSections = activeSections.filter((sec) => SECTION_PHASE[sec.num] === phase.id);
+        if (!phaseSections.length) return null;
 
-                {/* Homework */}
-                {selectedLesson.homework && selectedLesson.homework.length > 0 && (
-                  <SectionCard
-                    icon={<FileText className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
-                    title="Homework"
-                    color="from-teal-400 to-cyan-500"
-                  >
-                    <ul className="space-y-2">
-                      {selectedLesson.homework.map((hw, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-white/90">
-                          <span className="w-2 h-2 rounded-full bg-teal-400 flex-shrink-0 mt-2" style={{ filter: 'drop-shadow(0 0 5px rgba(45, 212, 191, 0.8))' }} />
-                          <span>{hw}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </SectionCard>
-                )}
+        return (
+          <section key={phase.id} aria-label={phase.label}>
+            <div
+              className={cn(
+                'mb-3 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2',
+                phase.badgeClass,
+              )}
+            >
+              <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', phase.dotClass.split(' ')[0])} />
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide">{phase.label}</p>
+                <p className="text-[11px] opacity-80">{phase.hint}</p>
+              </div>
+            </div>
+            <div className="pl-1 sm:pl-2">
+              {phaseSections.map((sec, idx) => (
+                <PlannerTimelineStep
+                  key={sec.num}
+                  sectionNum={sec.num}
+                  title={sec.title}
+                  icon={sec.icon}
+                  dotClass={phase.dotClass}
+                  isLast={idx === phaseSections.length - 1}
+                >
+                  {sec.render(lesson)}
+                </PlannerTimelineStep>
+              ))}
+            </div>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
 
-                {/* Evaluation */}
-                {selectedLesson.evaluation && selectedLesson.evaluation.length > 0 && (
-                  <SectionCard
-                    icon={<CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />}
-                    title="Evaluation"
-                    color="from-red-400 to-pink-500"
-                  >
-                    <ul className="space-y-2">
-                      {selectedLesson.evaluation.map((evalItem, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-white/90">
-                          <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-400 flex-shrink-0 mt-0.5" style={{ filter: 'drop-shadow(0 0 5px rgba(248, 113, 113, 0.8))' }} />
-                          <span>{evalItem}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </SectionCard>
+function TeacherLessonShell({
+  lessonCount,
+  bookName,
+  classLabel,
+  children,
+}: {
+  lessonCount: number;
+  bookName: string;
+  classLabel: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="w-full">
+      <div className="relative overflow-hidden rounded-2xl border-2 border-amber-200/80 shadow-lg shadow-amber-900/5">
+        {/* Ruled planner paper */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-[0.35]"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(148,163,184,0.35) 1px, transparent 1px)',
+            backgroundSize: '100% 28px',
+            backgroundPosition: '0 72px',
+          }}
+          aria-hidden
+        />
+        <div className="relative border-b border-slate-700/20 bg-gradient-to-br from-slate-800 via-teal-900 to-sky-900 px-4 py-4 sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-amber-400/90 text-slate-900 shadow-md rotate-[-2deg]">
+                <Calendar className="h-6 w-6" aria-hidden />
+              </div>
+              <div className="text-white">
+                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-200/90">
+                  Lesson Planner
+                </p>
+                <h3 className="text-lg font-bold sm:text-xl font-serif">Classroom day flow</h3>
+                {(classLabel || bookName) && (
+                  <p className="text-xs text-sky-100/85 mt-0.5">
+                    {[classLabel && `Class ${classLabel}`, bookName].filter(Boolean).join(' · ')}
+                  </p>
                 )}
-              </motion.div>
-            </AnimatePresence>
-          ) : (
-            <div className="text-center py-12 text-white/60">
-              <p>Select a lesson to view details</p>
+              </div>
+            </div>
+            {lessonCount > 1 ? (
+              <span className="rounded-md bg-white/10 px-3 py-1.5 text-xs font-semibold text-amber-100 ring-1 ring-white/20">
+                {lessonCount} periods
+              </span>
+            ) : lessonCount === 1 ? (
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-400/20 px-3 py-1.5 text-xs font-semibold text-amber-100 ring-1 ring-amber-300/30">
+                <Clock className="h-3.5 w-3.5" aria-hidden />
+                One lesson block
+              </span>
+            ) : null}
+          </div>
+        </div>
+        <div className="relative bg-[#fffdf8]/95 p-3 sm:p-5 max-h-[min(80vh,900px)] overflow-y-auto">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TeacherMarkdownBody({ markdown }: { markdown: string }) {
+  return (
+    <div
+      className="prose prose-sm max-w-none rounded-xl border border-slate-200 bg-white/90 p-4 sm:p-5 shadow-sm prose-headings:font-serif prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700"
+      dangerouslySetInnerHTML={{ __html: renderMarkdown(markdown) }}
+    />
+  );
+}
+
+/* ——— Student UI ——— */
+
+function StudentLessonCard({ lesson }: { lesson: NormalizedLesson }) {
+  return (
+    <div className="space-y-2">
+      <div className="relative overflow-hidden rounded-2xl bg-white border border-cyan-200 shadow-md">
+        <div className="absolute inset-0 bg-gradient-to-br from-cyan-50/90 via-white to-sky-50/50" />
+        <div className="relative p-3 sm:p-4">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-700 mb-1">
+            1. Lesson title
+          </p>
+          <Badge className="mb-1.5 border-0 bg-cyan-100 text-cyan-900 hover:bg-cyan-100">
+            Lesson {lesson.sl}
+          </Badge>
+          <h4 className="text-xl sm:text-2xl font-bold text-slate-900 leading-snug">{lesson.lessonName}</h4>
+          {(lesson.subjectArea || lesson.durationLabel) && (
+            <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
+              {lesson.subjectArea ? (
+                <span className="rounded-full bg-slate-100 px-2.5 py-0.5">{lesson.subjectArea}</span>
+              ) : null}
+              {lesson.durationLabel ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-cyan-50 px-2.5 py-0.5 text-cyan-900">
+                  <Clock className="h-3 w-3" aria-hidden />
+                  {lesson.durationLabel}
+                </span>
+              ) : null}
             </div>
           )}
         </div>
       </div>
-    </div>
-  );
-}
 
-function SectionCard({ icon, title, color, children }: { icon: React.ReactNode; title: string; color: string; children: React.ReactNode }) {
-  return (
-    <div className="mb-6 p-4 rounded-lg" style={{
-      background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05))',
-      border: '1px solid rgba(255, 255, 255, 0.2)',
-      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'
-    }}>
-      <div className="flex items-center gap-3 mb-3">
-        <div className={`p-2 rounded-lg bg-gradient-to-r ${color}`} style={{
-          boxShadow: '0 0 15px rgba(0, 0, 0, 0.3)'
-        }}>
-          {icon}
-        </div>
-        <h3 className="text-lg sm:text-xl font-semibold text-white" style={{
-          textShadow: '0 0 10px rgba(255, 255, 255, 0.3)'
-        }}>
-          {title}
-        </h3>
+      <div className="columns-1 sm:columns-2 gap-2">
+        {LESSON_TEMPLATE_SECTIONS.map((sec) => (
+          <div key={sec.num} className="mb-2 break-inside-avoid">
+            <PlanSectionCard
+              sectionNum={`Section ${sec.num}`}
+              title={sec.title}
+              icon={sec.icon}
+              stripe={sec.stripe}
+              iconWrap={sec.iconWrap}
+            >
+              {sec.hasContent(lesson) ? sec.render(lesson) : <EmptySectionHint audience="student" />}
+            </PlanSectionCard>
+          </div>
+        ))}
       </div>
-      <div>{children}</div>
     </div>
   );
 }
 
-function parseLessons(content: string): { lessons: Lesson[]; book: string; class: string } {
-  const lessons: Lesson[] = [];
-  let book = '';
-  let classNum = '';
+function StudentMarkdownBody({ markdown }: { markdown: string }) {
+  return (
+    <div
+      className="prose prose-sm max-w-none rounded-2xl border border-cyan-100 bg-white p-4 shadow-sm prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700"
+      dangerouslySetInnerHTML={{ __html: renderMarkdown(markdown) }}
+    />
+  );
+}
 
-  // Try to parse from HTML markers
-  const lessonRegex = /__LESSON_CARD_START__\n([\s\S]*?)\n__LESSON_CARD_END__/g;
-  const matches = Array.from(content.matchAll(lessonRegex));
+function StudentLessonShell({
+  lessonCount,
+  bookName,
+  classLabel,
+  children,
+}: {
+  lessonCount: number;
+  bookName: string;
+  classLabel: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="w-full">
+      <div
+        className="relative overflow-hidden rounded-3xl border border-cyan-200/80 shadow-xl shadow-cyan-200/30"
+        style={{
+          backgroundColor: '#ecfeff',
+          backgroundImage: 'radial-gradient(circle, rgba(6,182,212,0.1) 1px, transparent 1px)',
+          backgroundSize: '22px 22px',
+        }}
+      >
+        <div className="border-b border-cyan-100 bg-gradient-to-r from-cyan-600 via-sky-600 to-teal-500 px-4 py-4 sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 text-white">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+                <Calendar className="h-5 w-5" aria-hidden />
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-cyan-100">Lesson studio</p>
+                <h3 className="text-lg font-bold">Lesson Planner</h3>
+                {(classLabel || bookName) && (
+                  <p className="text-xs text-cyan-100/90 mt-0.5">
+                    {[classLabel && `Class ${classLabel}`, bookName].filter(Boolean).join(' · ')}
+                  </p>
+                )}
+              </div>
+            </div>
+            {lessonCount > 0 ? (
+              <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white">
+                {lessonCount} lesson{lessonCount !== 1 ? 's' : ''}
+              </span>
+            ) : null}
+          </div>
+        </div>
+        <div className="p-3 sm:p-4">{children}</div>
+      </div>
+    </div>
+  );
+}
 
-  for (const match of matches) {
-    // Parse lesson from HTML (simplified - would need more robust parsing)
-    const lessonNameMatch = match[1].match(/<h3[^>]*>(.*?)<\/h3>/);
-    if (lessonNameMatch) {
-      lessons.push({
-        lesson_name: lessonNameMatch[1].trim()
-      });
+export function LessonPlannerViewer({
+  content,
+  rawContent,
+  className,
+  variant = 'default',
+}: LessonPlannerViewerProps) {
+  const parsedContent = useMemo(
+    () => stripStructuredAiToolMetadata(String(content || '')),
+    [content],
+  );
+
+  const resolved = useMemo(
+    () => resolveLessonsFromPayload(parsedContent, rawContent),
+    [parsedContent, rawContent],
+  );
+
+  const [lessonIdx, setLessonIdx] = useState(0);
+
+  if (variant === 'student') {
+    const lessons = resolved.lessons;
+    const useMarkdown =
+      !!resolved.markdownFallback &&
+      (!lessons.length || !lessons.some(lessonHasVisibleContent));
+
+    if (useMarkdown && resolved.markdownFallback) {
+      return (
+        <div className={className}>
+          <StudentLessonShell
+            lessonCount={0}
+            bookName={resolved.book}
+            classLabel={resolved.className}
+          >
+            <StudentMarkdownBody markdown={resolved.markdownFallback} />
+          </StudentLessonShell>
+        </div>
+      );
     }
+
+    if (!lessons.length) {
+      return (
+        <div className={cn('text-center py-12 text-gray-500', className)}>
+          <p>No lesson plans found in the generated content.</p>
+        </div>
+      );
+    }
+
+    const safeIdx = Math.min(lessonIdx, lessons.length - 1);
+    const current = lessons[safeIdx];
+
+    return (
+      <div className={className}>
+        <StudentLessonShell
+          lessonCount={lessons.length}
+          bookName={resolved.book}
+          classLabel={resolved.className}
+        >
+          {lessons.length > 1 ? (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {lessons.map((l, i) => (
+                <button
+                  key={`${l.lessonName}-${i}`}
+                  type="button"
+                  onClick={() => setLessonIdx(i)}
+                  className={cn(
+                    'rounded-full px-3 py-1 text-xs font-bold transition-all max-w-full truncate',
+                    i === safeIdx
+                      ? 'bg-cyan-600 text-white shadow-md'
+                      : 'bg-white text-cyan-800 border border-cyan-100',
+                  )}
+                >
+                  {l.lessonName}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={safeIdx}
+              className="h-fit"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
+            >
+              <StudentLessonCard lesson={current} />
+            </motion.div>
+          </AnimatePresence>
+        </StudentLessonShell>
+      </div>
+    );
   }
 
-  // Fallback: parse from markdown
-  if (lessons.length === 0) {
-    const lessonRegex = /### Lesson \d+: (.*?)\n/g;
-    const lessonMatches = Array.from(content.matchAll(lessonRegex));
-    
-    lessonMatches.forEach((match) => {
-      lessons.push({
-        lesson_name: match[1].trim()
-      });
-    });
+  const lessons = resolved.lessons;
+  const useMarkdown =
+    !!resolved.markdownFallback && (!lessons.length || !lessons.some(lessonHasVisibleContent));
+
+  if (useMarkdown && resolved.markdownFallback) {
+    return (
+      <div className={className}>
+        <TeacherLessonShell
+          lessonCount={0}
+          bookName={resolved.book}
+          classLabel={resolved.className}
+        >
+          <TeacherMarkdownBody markdown={resolved.markdownFallback} />
+        </TeacherLessonShell>
+      </div>
+    );
   }
 
-  return { lessons, book, class: classNum };
+  if (!lessons.length) {
+    return (
+      <div
+        className={cn(
+          'rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 px-6 py-14 text-center',
+          className,
+        )}
+      >
+        <Calendar className="mx-auto h-10 w-10 text-amber-500/70 mb-3" aria-hidden />
+        <p className="text-sm font-medium text-stone-700">No lesson plan found for this selection</p>
+        <p className="text-xs text-stone-500 mt-1">Try generating again or pick another topic.</p>
+      </div>
+    );
+  }
+
+  const safeIdx = Math.min(lessonIdx, lessons.length - 1);
+  const current = lessons[safeIdx];
+
+  return (
+    <div className={className}>
+      <TeacherLessonShell
+        lessonCount={lessons.length}
+        bookName={resolved.book}
+        classLabel={resolved.className}
+      >
+        {lessons.length > 1 ? (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {lessons.map((l, i) => (
+              <button
+                key={`${l.lessonName}-${i}`}
+                type="button"
+                onClick={() => setLessonIdx(i)}
+                className={cn(
+                  'rounded-full px-4 py-1.5 text-xs font-bold transition-all max-w-full truncate',
+                  i === safeIdx
+                    ? 'bg-teal-800 text-amber-50 shadow-md ring-2 ring-amber-300/50'
+                    : 'bg-white text-slate-800 border border-amber-200 hover:bg-amber-50/80',
+                )}
+              >
+                Lesson {i + 1}: {l.lessonName}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={safeIdx}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+          >
+            <TeacherLessonCard lesson={current} />
+          </motion.div>
+        </AnimatePresence>
+      </TeacherLessonShell>
+    </div>
+  );
 }

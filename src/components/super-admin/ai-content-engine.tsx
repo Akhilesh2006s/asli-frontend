@@ -11,6 +11,12 @@ import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
 import { cn } from "@/lib/utils";
 import { toCurriculumSelectRows, type CurriculumSelectRow } from "@/lib/vidya-subjects";
+import {
+  filterSubjectRowsForAiTool,
+  isStoryPassageLanguageSubject,
+  STORY_PASSAGE_TOOL_ID,
+  subjectLabelFromRows,
+} from "@/lib/ai-tool-subject-rules";
 import { isDeprecatedAiToolIdentifier } from "@/lib/ai-tool-registry";
 import {
   Wrench,
@@ -158,6 +164,11 @@ export default function AIContentEngine() {
   const reqStar = <span className="text-red-600">*</span>;
   const getToolLabel = (toolValue?: string) =>
     toolOptions.find((tool) => tool.value === String(toolValue || "").trim())?.label || toolValue || "-";
+
+  const subjectRowsForTool = useMemo(
+    () => filterSubjectRowsForAiTool(toolType, subjectRows),
+    [toolType, subjectRows],
+  );
 
   const parseQuestionBlob = (blob: string) => {
     const cleaned = String(blob || "")
@@ -4245,10 +4256,38 @@ export default function AIContentEngine() {
     fetchSubtopics(classLabel, subject, topic);
   }, [classLabel, subject, topic, board]);
 
+  useEffect(() => {
+    if (toolType !== STORY_PASSAGE_TOOL_ID) return;
+    const label = subjectLabelFromRows(subjectRows, subject);
+    if (!subject || isStoryPassageLanguageSubject(label)) return;
+    setSubject("");
+    setTopic("");
+    setSubTopic("");
+  }, [toolType, subject, subjectRows]);
+
+  const handleToolTypeChange = (value: string) => {
+    setToolType(value);
+    if (value === STORY_PASSAGE_TOOL_ID) {
+      const label = subjectLabelFromRows(subjectRows, subject);
+      if (subject && !isStoryPassageLanguageSubject(label)) {
+        setSubject("");
+        setTopic("");
+        setSubTopic("");
+      }
+    }
+  };
+
   const handleUpload = async () => {
     if (!pdfFile || !board || !subject || !classLabel || !topic || !toolType) {
       setUploadError("Choose a PDF file, board, class, subject, topic, and tool.");
       toast({ title: "Missing fields", description: "Choose a PDF file, board, class, subject, topic, and tool." });
+      return;
+    }
+    const subjectLabel = subjectLabelFromRows(subjectRows, subject);
+    if (toolType === STORY_PASSAGE_TOOL_ID && !isStoryPassageLanguageSubject(subjectLabel)) {
+      const msg = "Story & Passage Creator works only with English or Hindi subjects.";
+      setUploadError(msg);
+      toast({ title: "English or Hindi only", description: msg, variant: "destructive" });
       return;
     }
     if (pdfFile.size > AI_PDF_MAX_BYTES) {
@@ -4267,6 +4306,7 @@ export default function AIContentEngine() {
       form.append("file", pdfFile);
       form.append("board", board);
       form.append("subject", subject);
+      form.append("subjectLabel", subjectLabel);
       form.append("class", classLabel);
       form.append("chapter", topic);
       form.append("topic", topic);
@@ -4519,7 +4559,7 @@ export default function AIContentEngine() {
                 />
               </SelectTrigger>
               <SelectContent>
-                {subjectRows.map((row) => (
+                {subjectRowsForTool.map((row) => (
                   <SelectItem key={row.value} value={row.value}>
                     {row.label}
                   </SelectItem>
@@ -4590,7 +4630,7 @@ export default function AIContentEngine() {
             <Label className={labelClassName}>
               Tool {reqStar}
             </Label>
-            <Select value={toolType} onValueChange={setToolType}>
+            <Select value={toolType} onValueChange={handleToolTypeChange}>
               <SelectTrigger className={fieldClassName}>
                 <SelectValue placeholder="Select tool" />
               </SelectTrigger>
@@ -4602,6 +4642,11 @@ export default function AIContentEngine() {
                 ))}
               </SelectContent>
             </Select>
+            {toolType === STORY_PASSAGE_TOOL_ID ? (
+              <p className="mt-1.5 text-xs text-blue-800">
+                English and Hindi subjects only for Story &amp; Passage Creator.
+              </p>
+            ) : null}
           </div>
 
           <div className="flex items-end md:col-span-2 lg:col-span-4">

@@ -14,6 +14,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
 import { extractMcqQuestionsFromRecord, isMcqTool } from "@/lib/mcq-record-utils";
 import { GeneratedRecordBody } from "@/components/super-admin/generated-record-body";
+import { FlashcardViewer } from "@/components/flashcard-viewer";
+import {
+  filterSubjectsForAiTool,
+  isStoryPassageLanguageSubject,
+  STORY_PASSAGE_TOOL_ID,
+} from "@/lib/ai-tool-subject-rules";
 
 type ToolId =
   | "activity-project-generator"
@@ -41,7 +47,7 @@ const TOOLS: Array<{ id: ToolId; name: string; description: string }> = [
   { id: "lesson-planner", name: "Lesson Planner", description: "Build structured lesson plans." },
   { id: "homework-creator", name: "Homework Creator", description: "Generate homework tasks and practice sets." },
   { id: "rubrics-evaluation-generator", name: "Rubrics, Evaluation & Report Card", description: "Create rubric and evaluation criteria." },
-  { id: "story-passage-creator", name: "Story & Passage Creator", description: "Generate stories and comprehension passages." },
+  { id: "story-passage-creator", name: "Story & Passage Creator", description: "Stories and passages (English & Hindi only)." },
   { id: "short-notes-summaries-maker", name: "Short Notes & Summaries", description: "Create concise revision notes." },
   { id: "flashcard-generator", name: "Flashcard Generator", description: "Generate question-answer flashcards." },
   { id: "daily-class-plan-maker", name: "Daily Class Plan", description: "Create day-wise classroom plans." },
@@ -113,6 +119,11 @@ export default function SuperAdminAiGenerator() {
     loadingTopics,
     loadingSubtopics,
   } = useCurriculumCascade(classNumber || undefined, subject || undefined, topic || undefined, board || undefined);
+
+  const subjectsForTool = useMemo(
+    () => filterSubjectsForAiTool(selectedTool || "", subjects),
+    [selectedTool, subjects],
+  );
 
   const currentTool = useMemo(() => TOOLS.find((t) => t.id === selectedTool), [selectedTool]);
   const authHeaders = (): Record<string, string> => {
@@ -233,6 +244,23 @@ export default function SuperAdminAiGenerator() {
     setSubTopic("");
   };
 
+  const handleToolSelect = (toolId: ToolId) => {
+    setSelectedTool(toolId);
+    if (toolId === STORY_PASSAGE_TOOL_ID && subject && !isStoryPassageLanguageSubject(subject)) {
+      setSubject("");
+      setTopic("");
+      setSubTopic("");
+    }
+  };
+
+  useEffect(() => {
+    if (selectedTool !== STORY_PASSAGE_TOOL_ID) return;
+    if (!subject || isStoryPassageLanguageSubject(subject)) return;
+    setSubject("");
+    setTopic("");
+    setSubTopic("");
+  }, [selectedTool, subject]);
+
   const generate = async () => {
     if (!selectedTool || !board || !classNumber || !subject || !subTopic) {
       toast({ title: "Missing fields", description: "Tool, board, class, subject and sub topic are required.", variant: "destructive" });
@@ -240,6 +268,14 @@ export default function SuperAdminAiGenerator() {
     }
     if (!topic && !["lesson-planner", "activity-project-generator", "story-passage-creator"].includes(selectedTool)) {
       toast({ title: "Missing topic", description: "Topic is required for this tool.", variant: "destructive" });
+      return;
+    }
+    if (selectedTool === STORY_PASSAGE_TOOL_ID && !isStoryPassageLanguageSubject(subject)) {
+      toast({
+        title: "English or Hindi only",
+        description: "Story & Passage Creator works only with English or Hindi subjects.",
+        variant: "destructive",
+      });
       return;
     }
     setIsGenerating(true);
@@ -390,7 +426,7 @@ export default function SuperAdminAiGenerator() {
           {TOOLS.map((tool) => (
             <button
               key={tool.id}
-              onClick={() => setSelectedTool(tool.id)}
+              onClick={() => handleToolSelect(tool.id)}
               className={`rounded-xl border p-4 text-left transition ${selectedTool === tool.id ? "border-orange-400 bg-orange-50" : "bg-white hover:bg-slate-50"}`}
             >
               <div className="flex items-start gap-3">
@@ -415,6 +451,11 @@ export default function SuperAdminAiGenerator() {
           <div className="lg:col-span-3">
             <Label>Selected Tool</Label>
             <div className="mt-1">{currentTool ? <Badge>{currentTool.name}</Badge> : <Badge variant="secondary">No tool selected</Badge>}</div>
+            {selectedTool === STORY_PASSAGE_TOOL_ID ? (
+              <p className="mt-2 text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded-md px-2 py-1.5">
+                English and Hindi subjects only for Story &amp; Passage Creator.
+              </p>
+            ) : null}
           </div>
           <div>
             <Label>Board</Label>
@@ -436,9 +477,25 @@ export default function SuperAdminAiGenerator() {
             <Label>Subject</Label>
             <Select value={subject} onValueChange={handleSubjectChange} disabled={!classNumber || loadingSubjects}>
               <SelectTrigger>
-                <SelectValue placeholder={!classNumber ? "Select class first" : (loadingSubjects ? "Loading subjects..." : "Select subject")} />
+                <SelectValue
+                  placeholder={
+                    !classNumber
+                      ? "Select class first"
+                      : loadingSubjects
+                        ? "Loading subjects..."
+                        : selectedTool === STORY_PASSAGE_TOOL_ID && subjectsForTool.length === 0
+                          ? "English or Hindi only"
+                          : "Select subject"
+                  }
+                />
               </SelectTrigger>
-              <SelectContent>{subjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                {subjectsForTool.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
           <div>
@@ -730,7 +787,12 @@ export default function SuperAdminAiGenerator() {
             <DialogTitle>Generated Record</DialogTitle>
           </DialogHeader>
           <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm">
-            <GeneratedRecordBody content={String(activeRecord?.generatedContent || "")} />
+            {activeRecord?.toolSlug === "flashcard-generator" ||
+            activeRecord?.toolName === "flashcard-generator" ? (
+              <FlashcardViewer content={String(activeRecord?.generatedContent || "")} />
+            ) : (
+              <GeneratedRecordBody content={String(activeRecord?.generatedContent || "")} />
+            )}
           </div>
         </DialogContent>
       </Dialog>

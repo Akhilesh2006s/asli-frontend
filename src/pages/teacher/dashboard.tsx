@@ -2829,7 +2829,7 @@ const TeacherDashboard = () => {
                         </div>
                             <div>
                               <h4 className="font-bold text-gray-900 mb-1">Story & Passage Creator</h4>
-                              <p className="text-xs sm:text-sm text-gray-600">Generate engaging stories and reading passages.</p>
+                              <p className="text-xs sm:text-sm text-gray-600">Generate stories and reading passages (English &amp; Hindi only).</p>
                           </div>
                           </div>
                         </motion.div>

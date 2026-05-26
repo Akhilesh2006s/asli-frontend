@@ -37,12 +37,17 @@ import { ShortNotesViewer } from '@/components/short-notes-viewer';
 import { ConceptMasteryViewer } from '@/components/concept-mastery-viewer';
 import { LessonPlannerViewer } from '@/components/lesson-planner-viewer';
 import { ActivityProjectViewer } from '@/components/activity-project-viewer';
+import { StoryPassageViewer } from '@/components/story-passage-viewer';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import {
   buildAiToolGenerationSummary,
-  resolveAiToolSourceLabel,
   type AiToolGenerationMeta,
 } from '@/lib/ai-tool-generation-summary';
+import {
+  filterSubjectsForAiTool,
+  isStoryPassageLanguageSubject,
+  STORY_PASSAGE_TOOL_ID,
+} from '@/lib/ai-tool-subject-rules';
 
 /** Radix Select shows a blank label when `value` is not listed in items (e.g. URL-preset or taxonomy drift). */
 function mergeSelectedIntoOptions(options: string[], selected: unknown): string[] {
@@ -516,7 +521,6 @@ export default function StudentToolPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState('');
   const [rawGeneratedContent, setRawGeneratedContent] = useState<any>(null);
-  const [contentSource, setContentSource] = useState<string>('');
   const [responseMeta, setResponseMeta] = useState<any>(null);
   const [fallbackEmptyMessage, setFallbackEmptyMessage] = useState<string>('');
   const displayGeneratedContent = useMemo(
@@ -555,6 +559,11 @@ export default function StudentToolPage() {
   })();
 
   const toolType = params?.toolType || '';
+
+  const subjectsForTool = useMemo(
+    () => filterSubjectsForAiTool(toolType, availableSubjects),
+    [toolType, availableSubjects],
+  );
   const config = TOOL_CONFIGS[toolType];
 
   const generationContextSummary = useMemo(
@@ -694,6 +703,19 @@ export default function StudentToolPage() {
     setAvailableNCERTTopics(topics);
   }, [formParams.gradeLevel, formParams.subject, cascade.topics, cascade.loadingTopics]);
 
+  useEffect(() => {
+    if (toolType !== STORY_PASSAGE_TOOL_ID) return;
+    const sub = formParams.subject;
+    if (!sub || isStoryPassageLanguageSubject(sub)) return;
+    setFormParams((prev) => {
+      const next = { ...prev };
+      delete next.subject;
+      delete next.topic;
+      delete next.subTopic;
+      return next;
+    });
+  }, [toolType, formParams.subject]);
+
   if (!config) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -748,11 +770,11 @@ export default function StudentToolPage() {
       return field.options;
     }
     
-    // For subject field, use availableSubjects if fetched dynamically
+    // For subject field, use curriculum subjects (Story & Passage → English/Hindi only)
     if (field.name === 'subject' && field.dependsOn === 'gradeLevel') {
       const classValue = formParams[field.dependsOn];
-      if (classValue && availableSubjects.length > 0) {
-        return availableSubjects;
+      if (classValue && subjectsForTool.length > 0) {
+        return subjectsForTool;
       }
       return [];
     }
@@ -792,11 +814,22 @@ export default function StudentToolPage() {
       return;
     }
 
+    if (
+      toolType === STORY_PASSAGE_TOOL_ID &&
+      !isStoryPassageLanguageSubject(String(formParams.subject || ''))
+    ) {
+      toast({
+        title: 'English or Hindi only',
+        description: 'Story & Passage Creator works only with English or Hindi subjects.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsGenerating(true);
     // Prevent stale previous output from looking like a successful new topic render
     setGeneratedContent('');
     setRawGeneratedContent(null);
-    setContentSource('');
     setResponseMeta(null);
     setFallbackEmptyMessage('');
     try {
@@ -832,16 +865,12 @@ export default function StudentToolPage() {
         if (!data.success || !data?.data?.content || String(data.data.content).trim().length === 0) {
           throw new Error(data.message || 'AI returned empty response');
         }
-        const sourceLabel =
-          resolveAiToolSourceLabel(data.data.metadata) ||
-          (data.data.metadata?.source === 'pdf-extracted' ? 'Textbook (PDF)' : 'Question Bank (CSV)');
         const fromAiFailure = !!data.data.metadata?.aiUnavailable;
-        setContentSource(sourceLabel);
         setResponseMeta(data.data.metadata || null);
         const okTitle = fromAiFailure ? 'Stored content (AI unavailable)' : 'Success';
         const okDescription = fromAiFailure
-          ? `Showing ${sourceLabel}.`
-          : `Content generated successfully from ${sourceLabel}!`;
+          ? 'Showing stored content.'
+          : 'Content generated successfully!';
 
         if (data.data.rawData) {
           setRawGeneratedContent(data.data.rawData);
@@ -921,7 +950,6 @@ export default function StudentToolPage() {
           if (response.status === 503 && data?.code === 'AI_UNAVAILABLE_NO_FALLBACK') {
             setGeneratedContent('');
             setRawGeneratedContent(null);
-            setContentSource('');
             setResponseMeta(null);
             setFallbackEmptyMessage(
               data.message ||
@@ -988,7 +1016,6 @@ export default function StudentToolPage() {
           if (response.status === 503 && data?.code === 'AI_UNAVAILABLE_NO_FALLBACK') {
             setGeneratedContent('');
             setRawGeneratedContent(null);
-            setContentSource('');
             setResponseMeta(null);
             setFallbackEmptyMessage(
               data.message ||
@@ -1061,23 +1088,18 @@ export default function StudentToolPage() {
           if (fallbackJson?.success && String(fallbackContent).trim().length > 0) {
             setGeneratedContent(String(fallbackContent));
             setRawGeneratedContent(null);
-            setContentSource('Previously generated content');
             setResponseMeta({
-              source: fallbackJson?.data?.source || 'fallback-db',
-              sourceLabel: fallbackJson?.data?.sourceLabel || 'Previously generated content',
               matchType: fallbackJson?.data?.matchType,
               totalCandidates: fallbackJson?.data?.totalCandidates,
               selectedIndex: fallbackJson?.data?.selectedIndex,
-              chunksUsed: 0,
             });
             toast({
               title: 'Fallback loaded',
-              description: 'Source: Previously generated content',
+              description: 'Showing previously generated content.',
             });
           } else {
             setGeneratedContent('');
             setRawGeneratedContent(null);
-            setContentSource('');
             setResponseMeta(null);
             const savedPart =
               fallbackJson?.message ||
@@ -1094,7 +1116,6 @@ export default function StudentToolPage() {
           console.error('Fallback error:', fallbackError);
           setGeneratedContent('');
           setRawGeneratedContent(null);
-          setContentSource('');
           setResponseMeta(null);
           const fe = String((fallbackError as Error)?.message || 'Fallback lookup failed');
           const combined = `${errMsg} ${fe}`;
@@ -1737,19 +1758,19 @@ export default function StudentToolPage() {
           </div>
         </motion.div>
 
-        <div className={`grid grid-cols-1 ${toolType === 'flashcard-generator' ? 'lg:grid-cols-3' : (toolType === 'short-notes-summaries-maker' || toolType === 'concept-mastery-helper' || toolType === 'lesson-planner') ? 'grid-cols-1' : 'lg:grid-cols-2'} gap-3 sm:p-4 lg:p-6`}>
-          {/* Left Panel: Tool Parameters */}
+        <div className="flex flex-col gap-4 sm:gap-6">
+          {/* Tool parameters — compact 3-column grid (~3 rows), then generate */}
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className={toolType === 'flashcard-generator' ? 'lg:col-span-1' : ''}
           >
             <Card className="bg-white shadow-lg">
               <CardHeader>
                 <CardTitle>Tool Parameters</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="board">Board *</Label>
                   <Select
@@ -1768,6 +1789,12 @@ export default function StudentToolPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                {toolType === STORY_PASSAGE_TOOL_ID ? (
+                  <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+                    Story &amp; Passage Creator is available for <strong>English</strong> and{' '}
+                    <strong>Hindi</strong> subjects only.
+                  </p>
+                ) : null}
                 {config.fields.map((field) => {
                   let fieldOptions = getFieldOptions(field);
                   let isDisabled = !!(field.dependsOn && !formParams[field.dependsOn]);
@@ -1778,7 +1805,7 @@ export default function StudentToolPage() {
                     isDisabled = cascade.loadingClasses && classSelectOptions.length === 0;
                     loadingDropdown = cascade.loadingClasses;
                   } else if (field.name === 'subject' && field.dependsOn === 'gradeLevel') {
-                    fieldOptions = availableSubjects;
+                    fieldOptions = subjectsForTool;
                     loadingDropdown = cascade.loadingSubjects;
                     isDisabled =
                       !formParams.gradeLevel ||
@@ -1811,8 +1838,10 @@ export default function StudentToolPage() {
                       placeholderText =
                         !formParams.gradeLevel || cascade.loadingSubjects
                           ? 'Select Class first'
-                          : availableSubjects.length === 0
-                            ? 'No data available'
+                          : subjectsForTool.length === 0
+                            ? toolType === STORY_PASSAGE_TOOL_ID
+                              ? 'English or Hindi only for this tool'
+                              : 'No data available'
                             : field.placeholder || placeholderText;
                     } else if (
                       field.isNCERT &&
@@ -1848,7 +1877,10 @@ export default function StudentToolPage() {
                     : fieldOptions;
 
                   return (
-                    <div key={field.name}>
+                    <div
+                      key={field.name}
+                      className={field.type === 'textarea' ? 'sm:col-span-2 lg:col-span-3' : ''}
+                    >
                       <Label htmlFor={field.name} className="flex items-center gap-2">
                         {field.label}
                         {loadingDropdown && <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-blue-600" aria-hidden />}
@@ -1890,7 +1922,7 @@ export default function StudentToolPage() {
                           value={formParams[field.name] || ''}
                           onChange={(e) => handleInputChange(field.name, e.target.value)}
                           placeholder={field.placeholder}
-                          rows={4}
+                          rows={3}
                         />
                       ) : (
                         <Input
@@ -1905,7 +1937,8 @@ export default function StudentToolPage() {
                     </div>
                   );
                 })}
-                
+                </div>
+
                 <Button
                   onClick={handleGenerate}
                   disabled={isGenerating}
@@ -1927,46 +1960,53 @@ export default function StudentToolPage() {
             </Card>
           </motion.div>
 
-          {/* Right Panel: Generated Content */}
+          {/* Generated content — full width below parameters */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-            className={toolType === 'flashcard-generator' ? 'lg:col-span-2' : (toolType === 'short-notes-summaries-maker' || toolType === 'concept-mastery-helper' || toolType === 'lesson-planner') ? 'col-span-1' : ''}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+            className="w-full"
           >
-            <Card className="bg-white shadow-lg">
-              <CardHeader>
+            <Card
+              className={
+                (toolType === 'flashcard-generator' ||
+                  toolType === 'activity-project-generator' ||
+                  toolType === 'story-passage-creator' ||
+                  toolType === 'lesson-planner') &&
+                generatedContent
+                  ? 'overflow-hidden border-0 bg-transparent shadow-none'
+                  : 'bg-white shadow-lg'
+              }
+            >
+              <CardHeader
+                className={
+                  (toolType === 'flashcard-generator' ||
+                    toolType === 'activity-project-generator' ||
+                    toolType === 'story-passage-creator' ||
+                    toolType === 'lesson-planner') &&
+                  generatedContent
+                    ? 'px-0 pt-0'
+                    : ''
+                }
+              >
                 <div className="flex items-center justify-between">
                   <div>
-                  <CardTitle>Generated Content</CardTitle>
+                  <CardTitle>
+                    {toolType === 'flashcard-generator'
+                      ? 'Your study deck'
+                      : toolType === 'activity-project-generator'
+                        ? 'Your activity guide'
+                        : toolType === 'story-passage-creator'
+                          ? 'Your reading studio'
+                          : toolType === 'lesson-planner'
+                            ? 'Your lesson studio'
+                            : 'Generated Content'}
+                  </CardTitle>
                     {generatedContent && generationContextSummary ? (
                       <p className="text-xs text-slate-600 mt-1.5 leading-relaxed" role="status">
                         {generationContextSummary}
                       </p>
                     ) : null}
-                    {generatedContent && contentSource && (
-                      <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                        <span>Source:</span>
-                        <span
-                          className={`font-medium ${
-                            contentSource.includes('PDF')
-                              ? 'text-blue-600'
-                              : contentSource.includes('AI Tool') ||
-                                  contentSource.includes('Previously generated')
-                                ? 'text-emerald-700'
-                                : 'text-purple-600'
-                          }`}
-                        >
-                          {contentSource}
-                        </span>
-                      </p>
-                    )}
-                    {generatedContent && responseMeta && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Mode: <span className="font-medium">{responseMeta.source || 'unknown'}</span>
-                        {typeof responseMeta.chunksUsed === 'number' ? ` | Chunks: ${responseMeta.chunksUsed}` : ''}
-                      </p>
-                    )}
                   {generatedContent && Array.isArray(responseMeta?.citations) && responseMeta.citations.length > 0 && (
                     <div className="mt-2 rounded-md border bg-blue-50/40 p-2 max-h-32 overflow-y-auto">
                       <p className="text-[11px] font-semibold text-blue-700 mb-1">Top Citations</p>
@@ -1994,7 +2034,17 @@ export default function StudentToolPage() {
                   )}
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent
+                className={
+                  (toolType === 'flashcard-generator' ||
+                    toolType === 'activity-project-generator' ||
+                    toolType === 'story-passage-creator' ||
+                    toolType === 'lesson-planner') &&
+                  generatedContent
+                    ? 'p-0'
+                    : ''
+                }
+              >
                 {isGenerating ? (
                   <div className="flex flex-col items-center justify-center py-20 space-y-3 sm:space-y-4 lg:space-y-6">
                     <div className="relative">
@@ -2015,28 +2065,29 @@ export default function StudentToolPage() {
                   </div>
                 ) : generatedContent ? (
                   toolType === 'flashcard-generator' ? (
-                    <FlashcardViewer content={displayGeneratedContent} />
+                    <FlashcardViewer content={displayGeneratedContent} variant="student" />
                   ) : toolType === 'short-notes-summaries-maker' ? (
                     <ShortNotesViewer content={displayGeneratedContent} />
                   ) : toolType === 'concept-mastery-helper' ? (
                     <ConceptMasteryViewer content={displayGeneratedContent} />
                   ) : toolType === 'lesson-planner' ? (
-                    <LessonPlannerViewer content={displayGeneratedContent} rawContent={rawGeneratedContent} />
+                    <LessonPlannerViewer
+                      content={displayGeneratedContent}
+                      rawContent={rawGeneratedContent}
+                      variant="student"
+                    />
                   ) : toolType === 'activity-project-generator' ? (
-                    rawGeneratedContent?.activities?.length ? (
-                      <ActivityProjectViewer activities={rawGeneratedContent.activities} />
-                    ) : (
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 lg:p-6 max-h-[80vh] overflow-y-auto shadow-sm"
-                      >
-                        <div
-                          className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900"
-                          dangerouslySetInnerHTML={{ __html: renderMarkdown(displayGeneratedContent) }}
-                        />
-                      </motion.div>
-                    )
+                    <ActivityProjectViewer
+                      activities={rawGeneratedContent?.activities}
+                      content={generatedContent}
+                      variant="student"
+                    />
+                  ) : toolType === 'story-passage-creator' ? (
+                    <StoryPassageViewer
+                      content={generatedContent}
+                      rawData={rawGeneratedContent}
+                      variant="student"
+                    />
                   ) : (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}

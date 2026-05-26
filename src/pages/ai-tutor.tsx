@@ -27,6 +27,10 @@ import { useLocation, useSearch } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { API_BASE_URL } from "@/lib/api-config";
 import { collectVidyaSubjectLabels } from "@/lib/vidya-subjects";
+import {
+  hasStoryPassageLanguageSubject,
+  STORY_PASSAGE_TOOL_ID,
+} from "@/lib/ai-tool-subject-rules";
 
 // Mock user ID - in a real app, this would come from authentication
 const MOCK_USER_ID = "user-1";
@@ -129,7 +133,7 @@ export default function AITutor() {
       name: 'Story & Passage Creator',
       icon: FileText,
       color: 'from-blue-400 to-blue-500',
-      description: 'Create stories and passages'
+      description: 'Stories and passages (English & Hindi only)'
     },
     {
       id: 'lesson-planner',
@@ -287,6 +291,14 @@ export default function AITutor() {
       }),
     [subjectProgress, subjects, user?.assignedSubjects, user?.assignedClass?.assignedSubjects]
   );
+
+  const visibleStudentTools = useMemo(() => {
+    return studentTools.filter((tool) => {
+      if (tool.id !== STORY_PASSAGE_TOOL_ID) return true;
+      if (vidyaSubjectNames.length === 0) return true;
+      return hasStoryPassageLanguageSubject(vidyaSubjectNames);
+    });
+  }, [vidyaSubjectNames]);
 
   // Fetch user's chat sessions
   const { data: chatSessions = [], isLoading: sessionsLoading } = useQuery<any[]>({
@@ -473,14 +485,14 @@ export default function AITutor() {
                 <p className="text-gray-600">Select a tool to get started with AI-powered learning</p>
               </div>
               <div className="rounded-xl border border-teal-100 bg-gradient-to-r from-sky-50 to-teal-50 px-4 py-3 text-xs sm:text-sm text-gray-700">
-                <span className="font-semibold text-gray-900">{studentTools.length}</span> tools available
+                <span className="font-semibold text-gray-900">{visibleStudentTools.length}</span> tools available
               </div>
             </div>
           </div>
 
           {/* Tools Grid - 3 per row */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
-            {studentTools.map((tool) => {
+            {visibleStudentTools.map((tool) => {
               const Icon = tool.icon;
               return (
                 <button

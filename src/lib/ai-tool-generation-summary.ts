@@ -24,23 +24,6 @@ const MATCH_TYPE_LABELS: Record<string, string> = {
   "fuzzy-any-tool": "Fuzzy match",
 };
 
-export function resolveAiToolSourceLabel(meta?: AiToolGenerationMeta | null): string {
-  if (!meta) return "";
-  if (meta.sourceLabel?.trim()) return meta.sourceLabel.trim();
-  const src = String(meta.source || "").toLowerCase();
-  if (
-    src.includes("ai-tool") ||
-    src === "super-admin-ai-tool-data" ||
-    src === "fallback-db"
-  ) {
-    return src === "fallback-db" ? "Previously generated content" : "AI Tool Data";
-  }
-  if (src === "pdf-extracted") return "Textbook (PDF)";
-  if (src === "csv" || src.includes("question-bank")) return "Question Bank (CSV)";
-  if (src === "rag" || src === "cache") return "Previously generated content";
-  return "";
-}
-
 function humanizeMatchType(matchType?: string | null): string {
   const key = String(matchType || "").trim();
   if (!key) return "";
@@ -76,9 +59,6 @@ export function buildAiToolGenerationSummary(
     form.topic || form.concept || form.chapter || form.projectTopic;
   if (topic) parts.push(String(topic).trim());
   if (form.subTopic?.trim()) parts.push(`Sub topic: ${String(form.subTopic).trim()}`);
-
-  const sourceLabel = resolveAiToolSourceLabel(meta);
-  if (sourceLabel) parts.push(sourceLabel);
 
   const matchLabel = humanizeMatchType(meta?.matchType);
   if (matchLabel) parts.push(`Lookup: ${matchLabel}`);
