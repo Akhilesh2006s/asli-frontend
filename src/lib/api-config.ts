@@ -101,14 +101,15 @@ export function getPdfContentPreviewProxyUrl(fileUrl: string, title?: string): s
 }
 
 function resolvePdfPreviewBaseUrl(fileUrl: string, title?: string): string {
-  if (!fileUrl) return "";
+  const absolute = normalizeContentFileUrl(fileUrl);
+  if (!absolute) return "";
 
-  if (isOurBackendPdfUrl(fileUrl)) {
-    return fileUrl;
+  if (shouldFetchDirectly(absolute)) {
+    return absolute;
   }
 
-  if (shouldFetchDirectly(fileUrl)) {
-    return fileUrl;
+  if (isOurBackendPdfUrl(absolute)) {
+    return absolute;
   }
 
   return getPdfContentPreviewProxyUrl(fileUrl, title);

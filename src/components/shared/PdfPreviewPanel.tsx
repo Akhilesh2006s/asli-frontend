@@ -29,7 +29,7 @@ export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfP
 
   const absoluteUrl = normalizeContentFileUrl(fileUrl);
   const proxyUrl = getPdfContentPreviewProxyUrl(fileUrl, title);
-  const iframeSrc = getEmbeddedPdfIframeSrc(fileUrl, title);
+  const iframeSrc = getEmbeddedPdfIframeSrc(absoluteUrl || fileUrl, title);
 
   const openInNewTab = useCallback(() => {
     const target = proxyUrl || absoluteUrl;
