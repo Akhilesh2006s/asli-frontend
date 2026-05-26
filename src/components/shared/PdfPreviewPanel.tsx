@@ -8,7 +8,7 @@ import {
   getPdfContentPreviewProxyUrl,
   normalizeContentFileUrl,
 } from '@/lib/api-config';
-import { useDigitalBoard } from '@/hooks/use-digital-board';
+import { detectDigitalBoard } from '@/hooks/use-digital-board';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
@@ -20,8 +20,22 @@ interface PdfPreviewPanelProps {
   className?: string;
 }
 
+/** PDF.js on panels only — laptops keep iframe (see detectDigitalBoard). */
+function useCanvasPdfPreview(): boolean {
+  const [useCanvas, setUseCanvas] = useState(detectDigitalBoard);
+
+  useEffect(() => {
+    const update = () => setUseCanvas(detectDigitalBoard());
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  return useCanvas;
+}
+
 export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfPreviewPanelProps) {
-  const isDigitalBoard = useDigitalBoard();
+  const useCanvasPreview = useCanvasPdfPreview();
   const containerRef = useRef<HTMLDivElement>(null);
   const [pageWidth, setPageWidth] = useState(720);
   const [numPages, setNumPages] = useState(0);
@@ -39,7 +53,7 @@ export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfP
   }, [proxyUrl, absoluteUrl]);
 
   useEffect(() => {
-    if (!isDigitalBoard || !containerRef.current) return;
+    if (!useCanvasPreview || !containerRef.current) return;
     const el = containerRef.current;
     const update = () => {
       const w = el.clientWidth;
@@ -49,10 +63,10 @@ export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfP
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [isDigitalBoard]);
+  }, [useCanvasPreview]);
 
   useEffect(() => {
-    if (!isDigitalBoard) {
+    if (!useCanvasPreview) {
       setPdfData(null);
       setLoadingPdf(false);
       setPdfError(null);
@@ -93,7 +107,7 @@ export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfP
     return () => {
       cancelled = true;
     };
-  }, [isDigitalBoard, proxyUrl]);
+  }, [useCanvasPreview, proxyUrl]);
 
   if (!absoluteUrl) {
     return (
@@ -102,7 +116,7 @@ export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfP
   }
 
   /** Laptop / tablet / phone — iframe only (unchanged). */
-  if (!isDigitalBoard) {
+  if (!useCanvasPreview) {
     return (
       <div className={`flex flex-col gap-2 ${className}`}>
         <iframe
