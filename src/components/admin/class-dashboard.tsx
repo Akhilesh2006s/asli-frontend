@@ -1037,7 +1037,7 @@ const ClassDashboard = () => {
             </div>
 
             {/* Classes Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 board:grid-cols-4 gap-3 sm:p-4 lg:p-6">
           {filteredClasses.length > 0 ? (
             filteredClasses.map((classItem, index) => {
               const isExpanded = expandedClassId === classItem.id;
@@ -1115,17 +1115,25 @@ const ClassDashboard = () => {
                       <h4 className="font-semibold text-sky-900 text-xs sm:text-sm">Assigned Teachers:</h4>
                       <div className="space-y-2">
                         {classItem.teachers.map(teacher => (
-                          <div key={teacher.id} className="flex items-center justify-between bg-sky-50 rounded-lg p-2 hover:bg-sky-100 transition-colors border border-sky-200">
-                            <div className="flex items-center space-x-2">
-                              <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-gradient-to-br from-sky-400 to-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                          <div
+                            key={teacher.id}
+                            className="flex items-center gap-2 min-w-0 bg-sky-50 rounded-lg p-2 hover:bg-sky-100 transition-colors border border-sky-200"
+                          >
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 shrink-0 bg-gradient-to-br from-sky-400 to-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
                                 {teacher.name.charAt(0).toUpperCase()}
                               </div>
-                              <div>
-                                <p className="text-xs sm:text-sm font-medium text-sky-900">{teacher.name}</p>
-                                <p className="text-xs text-sky-600">{teacher.email}</p>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs sm:text-sm font-medium text-sky-900 truncate">
+                                  {teacher.name}
+                                </p>
+                                <p className="text-xs text-sky-600 truncate">{teacher.email}</p>
                               </div>
                             </div>
-                            <Badge variant="outline" className="border-sky-300 text-sky-700 bg-sky-100 text-xs">
+                            <Badge
+                              variant="outline"
+                              className="shrink-0 border-sky-300 text-sky-700 bg-sky-100 text-xs whitespace-nowrap"
+                            >
                               Teacher
                             </Badge>
                           </div>
@@ -1161,10 +1169,10 @@ const ClassDashboard = () => {
                     }`}>
                       {classItem.students && classItem.students.length > 0 ? (
                         classItem.students.map(student => (
-                        <div key={student.id} className="flex items-center justify-between bg-white/50 rounded-lg p-2 hover:bg-white/70 transition-colors">
-                          <div>
-                            <p className="text-xs sm:text-sm font-medium text-sky-900">{student.name}</p>
-                            <p className="text-xs text-sky-600">{student.email}</p>
+                        <div key={student.id} className="flex items-center gap-2 min-w-0 bg-white/50 rounded-lg p-2 hover:bg-white/70 transition-colors">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs sm:text-sm font-medium text-sky-900 truncate">{student.name}</p>
+                            <p className="text-xs text-sky-600 truncate">{student.email}</p>
                           </div>
                           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                             <Button
