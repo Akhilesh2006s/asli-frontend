@@ -398,7 +398,6 @@ function TeacherLessonCard({ lesson }: { lesson: NormalizedLesson }) {
   const filled = countFilledLessonSections(lesson);
   const total = LESSON_TEMPLATE_SECTIONS.length;
   const progressPct = Math.round((filled / total) * 100);
-  const activeSections = LESSON_TEMPLATE_SECTIONS.filter((sec) => sec.hasContent(lesson));
 
   return (
     <div className="space-y-5">
@@ -443,8 +442,9 @@ function TeacherLessonCard({ lesson }: { lesson: NormalizedLesson }) {
       </div>
 
       {LESSON_FLOW_PHASES.map((phase) => {
-        const phaseSections = activeSections.filter((sec) => SECTION_PHASE[sec.num] === phase.id);
-        if (!phaseSections.length) return null;
+        const phaseSections = LESSON_TEMPLATE_SECTIONS.filter(
+          (sec) => SECTION_PHASE[sec.num] === phase.id,
+        );
 
         return (
           <section key={phase.id} aria-label={phase.label}>
@@ -470,7 +470,11 @@ function TeacherLessonCard({ lesson }: { lesson: NormalizedLesson }) {
                   dotClass={phase.dotClass}
                   isLast={idx === phaseSections.length - 1}
                 >
-                  {sec.render(lesson)}
+                  {sec.hasContent(lesson) ? (
+                    sec.render(lesson)
+                  ) : (
+                    <EmptySectionHint audience="teacher" />
+                  )}
                 </PlannerTimelineStep>
               ))}
             </div>

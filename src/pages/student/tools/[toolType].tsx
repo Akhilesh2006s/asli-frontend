@@ -2072,7 +2072,7 @@ export default function StudentToolPage() {
                     <ConceptMasteryViewer content={displayGeneratedContent} />
                   ) : toolType === 'lesson-planner' ? (
                     <LessonPlannerViewer
-                      content={displayGeneratedContent}
+                      content={generatedContent}
                       rawContent={rawGeneratedContent}
                       variant="student"
                     />

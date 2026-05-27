@@ -7,6 +7,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Eye, FileDown, Loader2, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
@@ -15,6 +26,11 @@ import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
 import { extractMcqQuestionsFromRecord, isMcqTool } from "@/lib/mcq-record-utils";
 import { GeneratedRecordBody } from "@/components/super-admin/generated-record-body";
 import { FlashcardViewer } from "@/components/flashcard-viewer";
+import { HomeworkCreatorViewer } from "@/components/homework-creator-viewer";
+import { LessonPlannerViewer } from "@/components/lesson-planner-viewer";
+import { RubricsEvaluationViewer } from "@/components/rubrics-evaluation-viewer";
+import { StoryPassageViewer } from "@/components/story-passage-viewer";
+import { ShortNotesViewer } from "@/components/short-notes-viewer";
 import { WorksheetMcqViewer } from "@/components/worksheet-mcq-viewer";
 import {
   filterSubjectsForAiTool,
@@ -109,7 +125,10 @@ export default function SuperAdminAiGenerator() {
   const [duration, setDuration] = useState("30");
   const [isGenerating, setIsGenerating] = useState(false);
   const [recordsTree, setRecordsTree] = useState<GroupedTool[]>([]);
+  const [recordsTotal, setRecordsTotal] = useState(0);
   const [recordsLoading, setRecordsLoading] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
   const [activeRecord, setActiveRecord] = useState<any | null>(null);
   const [editRecord, setEditRecord] = useState<any | null>(null);
   const [editContent, setEditContent] = useState("");
@@ -208,8 +227,10 @@ export default function SuperAdminAiGenerator() {
       const json = await res.json();
       if (!res.ok || !json?.success) throw new Error(json?.message || "Failed to load records");
       setRecordsTree(Array.isArray(json?.data?.grouped) ? json.data.grouped : []);
+      setRecordsTotal(Number(json?.data?.total || 0));
     } catch (error: any) {
       setRecordsTree([]);
+      setRecordsTotal(0);
       toast({
         title: "Records load failed",
         description: error?.message || "Could not load records.",
@@ -400,6 +421,37 @@ export default function SuperAdminAiGenerator() {
     }
   };
 
+  const deleteAllRecords = async () => {
+    setIsDeletingAll(true);
+    try {
+      const qs = new URLSearchParams();
+      if (recordsBoardFilter && recordsBoardFilter !== "__all__") {
+        qs.set("board", recordsBoardFilter);
+      }
+      const res = await fetch(`${API_BASE_URL}/api/ai-generator/records/all?${qs.toString()}`, {
+        method: "DELETE",
+        headers: { ...authHeaders() },
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.success) throw new Error(json?.message || "Delete all failed");
+      const count = Number(json?.data?.deletedCount ?? 0);
+      toast({
+        title: "Deleted",
+        description: json?.message || `Deleted ${count} record${count === 1 ? "" : "s"}.`,
+      });
+      setIsDeleteAllDialogOpen(false);
+      await loadRecords();
+    } catch (error: any) {
+      toast({
+        title: "Delete all failed",
+        description: error?.message || "Could not delete all records.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingAll(false);
+    }
+  };
+
   const openPdf = async (id: string) => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/ai-generator/pdf/${id}`, {
@@ -571,21 +623,63 @@ export default function SuperAdminAiGenerator() {
         <CardHeader className="space-y-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <CardTitle className="mb-0">Records</CardTitle>
-            <div className="flex flex-col gap-1.5 sm:w-64">
-              <Label className="text-xs text-slate-600">Filter by board</Label>
-              <Select value={recordsBoardFilter} onValueChange={setRecordsBoardFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Board" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">All boards</SelectItem>
-                  {boardOptions.map((b) => (
-                    <SelectItem key={b} value={b}>
-                      {b}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <div className="flex flex-col gap-1.5 sm:w-64">
+                <Label className="text-xs text-slate-600">Filter by board</Label>
+                <Select value={recordsBoardFilter} onValueChange={setRecordsBoardFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Board" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">All boards</SelectItem>
+                    {boardOptions.map((b) => (
+                      <SelectItem key={b} value={b}>
+                        {b}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <AlertDialog open={isDeleteAllDialogOpen} onOpenChange={setIsDeleteAllDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="shrink-0"
+                    disabled={recordsLoading || recordsTotal === 0 || isDeletingAll}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                    {isDeletingAll ? "Deleting..." : "Delete All"}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete all records?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete{" "}
+                      <span className="font-medium text-slate-900">{recordsTotal}</span> AI Generator record
+                      {recordsTotal === 1 ? "" : "s"}
+                      {recordsBoardFilter === "__all__"
+                        ? " across all boards."
+                        : ` for board “${recordsBoardFilter}”.`}
+                      {" "}This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-red-600 hover:bg-red-700"
+                      disabled={isDeletingAll}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        void deleteAllRecords();
+                      }}
+                    >
+                      {isDeletingAll ? "Deleting..." : "Delete All"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
           <p className="text-xs text-slate-500">
@@ -802,6 +896,36 @@ export default function SuperAdminAiGenerator() {
                 content={String(activeRecord?.generatedContent || "")}
                 variant="teacher"
               />
+            ) : activeRecord?.toolSlug === "lesson-planner" ||
+              activeRecord?.toolName === "lesson-planner" ||
+              activeRecord?.toolSlug === "daily-class-plan-maker" ||
+              activeRecord?.toolName === "daily-class-plan-maker" ? (
+              <LessonPlannerViewer
+                content={String(activeRecord?.generatedContent || "")}
+                rawContent={activeRecord}
+                variant="teacher"
+              />
+            ) : activeRecord?.toolSlug === "homework-creator" ||
+              activeRecord?.toolName === "homework-creator" ? (
+              <HomeworkCreatorViewer
+                content={String(activeRecord?.generatedContent || "")}
+                rawContent={activeRecord}
+              />
+            ) : activeRecord?.toolSlug === "rubrics-evaluation-generator" ||
+              activeRecord?.toolName === "rubrics-evaluation-generator" ? (
+              <RubricsEvaluationViewer
+                content={String(activeRecord?.generatedContent || "")}
+                rawContent={activeRecord}
+              />
+            ) : activeRecord?.toolSlug === "story-passage-creator" ||
+              activeRecord?.toolName === "story-passage-creator" ? (
+              <StoryPassageViewer
+                content={String(activeRecord?.generatedContent || "")}
+                rawData={activeRecord}
+              />
+            ) : activeRecord?.toolSlug === "short-notes-summaries-maker" ||
+              activeRecord?.toolName === "short-notes-summaries-maker" ? (
+              <ShortNotesViewer content={String(activeRecord?.generatedContent || "")} />
             ) : (
               <GeneratedRecordBody content={String(activeRecord?.generatedContent || "")} />
             )}

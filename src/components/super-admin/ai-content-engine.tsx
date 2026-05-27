@@ -18,6 +18,7 @@ import {
   subjectLabelFromRows,
 } from "@/lib/ai-tool-subject-rules";
 import { isDeprecatedAiToolIdentifier } from "@/lib/ai-tool-registry";
+import { coerceHomeworkText as coerceHomeworkFieldText } from "@/lib/coerce-homework-text";
 import {
   Wrench,
   School,
@@ -726,7 +727,8 @@ export default function AIContentEngine() {
       const pickStr = (...keys: string[]) => {
         for (const k of keys) {
           const v = rc[k] ?? fb[k];
-          if (v != null && String(v).trim()) return String(v).trim();
+          const text = coerceHomeworkFieldText(v);
+          if (text) return text;
         }
         return "";
       };
@@ -735,9 +737,13 @@ export default function AIContentEngine() {
           if (v == null) return [];
           if (Array.isArray(v)) {
             return v.flatMap((x) => {
-              if (typeof x === "string") return [String(x).trim()].filter(Boolean);
-              return [];
+              const line = coerceHomeworkFieldText(x);
+              return line ? [line] : [];
             });
+          }
+          if (typeof v === "object") {
+            const line = coerceHomeworkFieldText(v);
+            return line ? [line] : [];
           }
           if (typeof v === "string" && v.trim()) {
             return v

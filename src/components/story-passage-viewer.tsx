@@ -18,7 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import {
-  resolveStoryContent,
+  resolveStoryFromPayload,
   type ParsedStory,
   type ParsedPassagesBundle,
   type ResolvedStoryContent,
@@ -76,28 +76,28 @@ function DefaultPassagesBundle({ bundle }: { bundle: ParsedPassagesBundle }) {
   );
 }
 
-function DefaultStoryCard({ story }: { story: ParsedStory }) {
+function TeacherStoryReading({ story }: { story: ParsedStory }) {
   return (
-    <div className="max-h-[80vh] overflow-y-auto space-y-4 p-1">
-      <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4">
+    <div className="max-h-[80vh] overflow-y-auto space-y-3 p-1">
+      <div className="rounded-xl border border-indigo-200 bg-indigo-50/80 p-4">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Section 1</p>
         <h2 className="text-lg font-bold text-gray-900">{story.title}</h2>
-        {story.alignment ? <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">{story.alignment}</p> : null}
       </div>
-      {story.passage ? (
-        <div className="rounded-xl border bg-white p-4">
-          <p className="text-sm leading-relaxed text-gray-800 whitespace-pre-wrap">{story.passage}</p>
-        </div>
-      ) : null}
-      {story.questions.length > 0 ? (
-        <div className="rounded-xl border bg-white p-4">
-          <p className="text-xs font-semibold text-gray-500 mb-2">Questions</p>
-          <ol className="list-decimal list-inside space-y-1 text-sm">
-            {story.questions.map((q, i) => (
-              <li key={i}>{q.question}</li>
-            ))}
-          </ol>
-        </div>
-      ) : null}
+      <div className="columns-1 lg:columns-2 gap-3">
+        {STORY_TEMPLATE_SECTIONS.filter((sec) => sec.num > 1).map((sec) => (
+          <div key={sec.num} className="mb-3 break-inside-avoid">
+            <StorySectionCard
+              sectionNum={`Section ${sec.num}`}
+              title={sec.title}
+              icon={sec.icon}
+              stripe={sec.stripe}
+              iconWrap={sec.iconWrap}
+            >
+              {sec.hasContent(story) ? sec.render(story) : <EmptySectionHint />}
+            </StorySectionCard>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -123,16 +123,36 @@ type StorySectionDef = {
 const STORY_TEMPLATE_SECTIONS: StorySectionDef[] = [
   {
     num: 1,
-    title: 'Alignment block (NEP/NCF, skill focus, UDL)',
-    icon: GraduationCap,
-    stripe: 'border-blue-500',
-    iconWrap: 'bg-blue-100 text-blue-700',
-    hasContent: (s) => !!s.alignment,
-    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.alignment}</p>,
+    title: 'Story / Passage Title',
+    icon: BookMarked,
+    stripe: 'border-indigo-500',
+    iconWrap: 'bg-indigo-100 text-indigo-700',
+    hasContent: (s) => !!s.title,
+    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.title}</p>,
   },
   {
     num: 2,
-    title: 'Learning objectives',
+    title: 'Topic and Subtopic Connection',
+    icon: Target,
+    stripe: 'border-cyan-500',
+    iconWrap: 'bg-cyan-100 text-cyan-700',
+    hasContent: (s) => !!s.topicSubtopicConnection || !!s.alignment,
+    render: (s) => (
+      <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.topicSubtopicConnection || s.alignment}</p>
+    ),
+  },
+  {
+    num: 3,
+    title: 'Prior Knowledge Required',
+    icon: Lightbulb,
+    stripe: 'border-amber-500',
+    iconWrap: 'bg-amber-100 text-amber-700',
+    hasContent: (s) => !!s.priorKnowledgeRequired,
+    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.priorKnowledgeRequired}</p>,
+  },
+  {
+    num: 4,
+    title: 'Learning Objectives – Bloom’s Taxonomy Aligned',
     icon: Target,
     stripe: 'border-violet-500',
     iconWrap: 'bg-violet-100 text-violet-700',
@@ -149,21 +169,17 @@ const STORY_TEMPLATE_SECTIONS: StorySectionDef[] = [
     ),
   },
   {
-    num: 3,
-    title: 'Passage',
-    icon: BookOpen,
-    stripe: 'border-amber-500',
-    iconWrap: 'bg-amber-100 text-amber-800',
-    hasContent: (s) => !!s.passage,
-    render: (s) => (
-      <p className="font-serif text-base sm:text-lg leading-[1.85] text-slate-800 whitespace-pre-wrap">
-        {s.passage}
-      </p>
-    ),
+    num: 5,
+    title: 'NCF Competency / Learning Outcome Alignment',
+    icon: GraduationCap,
+    stripe: 'border-blue-500',
+    iconWrap: 'bg-blue-100 text-blue-700',
+    hasContent: (s) => !!s.ncfAlignment || !!s.alignment,
+    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.ncfAlignment || s.alignment}</p>,
   },
   {
-    num: 4,
-    title: 'Vocabulary support',
+    num: 6,
+    title: 'Vocabulary Warm-up',
     icon: BookMarked,
     stripe: 'border-teal-500',
     iconWrap: 'bg-teal-100 text-teal-800',
@@ -182,15 +198,37 @@ const STORY_TEMPLATE_SECTIONS: StorySectionDef[] = [
     ),
   },
   {
-    num: 5,
-    title: 'Comprehension and thinking questions',
+    num: 7,
+    title: 'Pre-reading Thinking Prompt',
+    icon: HelpCircle,
+    stripe: 'border-fuchsia-500',
+    iconWrap: 'bg-fuchsia-100 text-fuchsia-700',
+    hasContent: (s) => !!s.preReadingPrompt,
+    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.preReadingPrompt}</p>,
+  },
+  {
+    num: 8,
+    title: 'Story / Passage Content',
+    icon: BookOpen,
+    stripe: 'border-amber-500',
+    iconWrap: 'bg-amber-100 text-amber-800',
+    hasContent: (s) => !!s.passage,
+    render: (s) => (
+      <p className="font-serif text-base sm:text-lg leading-[1.85] text-slate-800 whitespace-pre-wrap">
+        {s.passage}
+      </p>
+    ),
+  },
+  {
+    num: 9,
+    title: 'Read and Recall Questions',
     icon: HelpCircle,
     stripe: 'border-indigo-500',
     iconWrap: 'bg-indigo-100 text-indigo-700',
-    hasContent: (s) => s.questions.length > 0,
+    hasContent: (s) => s.readRecallQuestions.length > 0 || s.questions.length > 0,
     render: (s) => (
       <div className="space-y-2">
-        {s.questions.map((q, i) => (
+        {(s.readRecallQuestions.length ? s.readRecallQuestions : s.questions).map((q, i) => (
           <div
             key={i}
             className="flex gap-3 rounded-xl border border-indigo-100 bg-indigo-50/30 px-3 py-2"
@@ -205,26 +243,88 @@ const STORY_TEMPLATE_SECTIONS: StorySectionDef[] = [
     ),
   },
   {
-    num: 6,
-    title: 'Answer hints',
-    icon: Lightbulb,
-    stripe: 'border-yellow-500',
-    iconWrap: 'bg-yellow-100 text-yellow-800',
-    hasContent: (s) => s.answerHints.length > 0,
+    num: 10,
+    title: 'Think and Infer Questions',
+    icon: HelpCircle,
+    stripe: 'border-sky-500',
+    iconWrap: 'bg-sky-100 text-sky-700',
+    hasContent: (s) => s.thinkInferQuestions.length > 0,
     render: (s) => (
-      <ul className="space-y-2">
-        {s.answerHints.map((h, i) => (
-          <li key={i} className="flex gap-2 text-sm text-amber-950">
-            <Sparkles className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" aria-hidden />
-            {h}
-          </li>
+      <div className="space-y-2">
+        {s.thinkInferQuestions.map((q, i) => (
+          <div key={i} className="flex gap-3 rounded-xl border border-sky-100 bg-sky-50/30 px-3 py-2">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-600 text-xs font-bold text-white">
+              {i + 1}
+            </span>
+            <p className="text-sm text-slate-800 pt-0.5">{q.question}</p>
+          </div>
         ))}
-      </ul>
+      </div>
     ),
   },
   {
-    num: 7,
-    title: 'Differentiation',
+    num: 11,
+    title: 'Apply and Connect Questions',
+    icon: HelpCircle,
+    stripe: 'border-emerald-500',
+    iconWrap: 'bg-emerald-100 text-emerald-700',
+    hasContent: (s) => s.applyConnectQuestions.length > 0,
+    render: (s) => (
+      <div className="space-y-2">
+        {s.applyConnectQuestions.map((q, i) => (
+          <div key={i} className="flex gap-3 rounded-xl border border-emerald-100 bg-emerald-50/30 px-3 py-2">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-xs font-bold text-white">
+              {i + 1}
+            </span>
+            <p className="text-sm text-slate-800 pt-0.5">{q.question}</p>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
+    num: 12,
+    title: 'Vocabulary and Grammar Practice',
+    icon: BookMarked,
+    stripe: 'border-teal-500',
+    iconWrap: 'bg-teal-100 text-teal-800',
+    hasContent: (s) => !!s.vocabularyGrammarPractice,
+    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.vocabularyGrammarPractice}</p>,
+  },
+  {
+    num: 13,
+    title: 'Creative Response Activity',
+    icon: Sparkles,
+    stripe: 'border-pink-500',
+    iconWrap: 'bg-pink-100 text-pink-700',
+    hasContent: (s) => !!s.creativeResponseActivity,
+    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.creativeResponseActivity}</p>,
+  },
+  {
+    num: 14,
+    title: 'Answer Key / Suggested Responses',
+    icon: Lightbulb,
+    stripe: 'border-yellow-500',
+    iconWrap: 'bg-yellow-100 text-yellow-800',
+    hasContent: (s) => !!s.answerKeySuggestedResponses || s.answerHints.length > 0,
+    render: (s) => (
+      <p className="whitespace-pre-wrap text-sm leading-relaxed">
+        {s.answerKeySuggestedResponses || s.answerHints.join('\n')}
+      </p>
+    ),
+  },
+  {
+    num: 15,
+    title: 'Common Mistakes to Avoid',
+    icon: Lightbulb,
+    stripe: 'border-rose-500',
+    iconWrap: 'bg-rose-100 text-rose-700',
+    hasContent: (s) => !!s.commonMistakesToAvoid,
+    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.commonMistakesToAvoid}</p>,
+  },
+  {
+    num: 16,
+    title: 'Differentiation Support',
     icon: Users,
     stripe: 'border-pink-500',
     iconWrap: 'bg-pink-100 text-pink-700',
@@ -247,24 +347,22 @@ const STORY_TEMPLATE_SECTIONS: StorySectionDef[] = [
     ),
   },
   {
-    num: 8,
+    num: 17,
+    title: 'Expected Learning Outcomes',
+    icon: GraduationCap,
+    stripe: 'border-violet-500',
+    iconWrap: 'bg-violet-100 text-violet-700',
+    hasContent: (s) => !!s.expectedLearningOutcomes,
+    render: (s) => <p className="whitespace-pre-wrap text-sm">{s.expectedLearningOutcomes}</p>,
+  },
+  {
+    num: 18,
     title: 'Real-life application',
     icon: Sparkles,
     stripe: 'border-sky-500',
     iconWrap: 'bg-sky-100 text-sky-800',
     hasContent: (s) => !!s.realLifeApplication,
     render: (s) => <p className="whitespace-pre-wrap text-sm">{s.realLifeApplication}</p>,
-  },
-  {
-    num: 9,
-    title: 'Reflection / exit ticket',
-    icon: MessageCircle,
-    stripe: 'border-indigo-400',
-    iconWrap: 'bg-indigo-100 text-indigo-800',
-    hasContent: (s) => !!s.reflection,
-    render: (s) => (
-      <p className="whitespace-pre-wrap text-sm italic text-slate-700">{s.reflection}</p>
-    ),
   },
 ];
 
@@ -491,7 +589,7 @@ export function StoryPassageViewer({
   );
 
   const resolved = useMemo(
-    () => resolveStoryContent(parsedContent, rawData),
+    () => resolveStoryFromPayload(parsedContent, rawData),
     [parsedContent, rawData],
   );
   const [storyIdx, setStoryIdx] = useState(0);
@@ -584,7 +682,7 @@ export function StoryPassageViewer({
   return (
     <div className={cn('space-y-4', className)}>
       {resolved.stories.map((story, i) => (
-        <DefaultStoryCard key={`${story.title}-${i}`} story={story} />
+        <TeacherStoryReading key={`${story.title}-${i}`} story={story} />
       ))}
     </div>
   );

@@ -140,6 +140,10 @@ function toWorksheetQuestions(value: unknown): WorksheetQuestion[] {
 
 export function mapSectionName(name: string): string {
   const n = String(name || '').trim();
+  if (/^multiple\s*choice\s*questions?$/i.test(n)) return WORKSHEET_SECTION_ORDER[0];
+  if (/^fill\s*in\s*the\s*blanks?$/i.test(n)) return WORKSHEET_SECTION_ORDER[1];
+  if (/^very\s*short\s*answer\s*questions?$/i.test(n)) return WORKSHEET_SECTION_ORDER[2];
+  if (/^short\s*answer\s*questions?$/i.test(n) && !/very/i.test(n)) return WORKSHEET_SECTION_ORDER[3];
   if (/^section\s*a|mcq|multiple\s*choice/i.test(n)) return WORKSHEET_SECTION_ORDER[0];
   if (/^section\s*b|fill|blank|fib/i.test(n)) return WORKSHEET_SECTION_ORDER[1];
   if (/^section\s*c|very\s*short|vsa/i.test(n)) return WORKSHEET_SECTION_ORDER[2];
@@ -151,6 +155,11 @@ export function mapSectionName(name: string): string {
 
 function inferSectionForQuestion(q: WorksheetQuestion): string {
   let sec = String(q.section || '').trim();
+  const qType = String(q.type || '').trim();
+  if (/multiple\s*choice/i.test(qType)) return WORKSHEET_SECTION_ORDER[0];
+  if (/fill\s*in/i.test(qType)) return WORKSHEET_SECTION_ORDER[1];
+  if (/very\s*short/i.test(qType)) return WORKSHEET_SECTION_ORDER[2];
+  if (/short\s*answer/i.test(qType) && !/very/i.test(qType)) return WORKSHEET_SECTION_ORDER[3];
   if (sec && sec !== 'Questions') return mapSectionName(sec);
   const qt = q.question;
   const words = qt.split(/\s+/).filter(Boolean).length;
@@ -171,7 +180,10 @@ function inferSectionForQuestion(q: WorksheetQuestion): string {
   if (looksPromptLike && /(?:in your daily life|around you|at home|in school)\b/i.test(qt)) {
     return WORKSHEET_SECTION_ORDER[4];
   }
-  if (/\?/.test(qt) && words <= 14) return WORKSHEET_SECTION_ORDER[2];
+  const marks = q.marks;
+  if (marks != null && marks >= 3) return WORKSHEET_SECTION_ORDER[3];
+  if (marks != null && marks > 0 && marks <= 2) return WORKSHEET_SECTION_ORDER[2];
+  if (/\?/.test(qt) && words <= 12) return WORKSHEET_SECTION_ORDER[2];
   if (/\?/.test(qt)) return WORKSHEET_SECTION_ORDER[3];
   if (words >= 10) return WORKSHEET_SECTION_ORDER[3];
   return WORKSHEET_SECTION_ORDER[2];
@@ -183,6 +195,31 @@ function isLikelyCompetencyQuestionText(text: string): boolean {
   return /(?:real[\s-]*life|application|competency|case[\s-]*based|scenario|daily\s+life|at\s+home|in\s+school|how\s+would\s+you|what\s+would\s+you\s+do|design|plan|investigate|experiment|observe|compare)/i.test(
     q,
   );
+}
+
+function balanceWorksheetSectionList(sections: WorksheetSection[]): WorksheetSection[] {
+  const dKey = WORKSHEET_SECTION_ORDER[3];
+  const cKey = WORKSHEET_SECTION_ORDER[2];
+  const dSec = sections.find((s) => s.label === dKey);
+  const cSec = sections.find((s) => s.label === cKey);
+  if (!dSec || !cSec || dSec.questions.length > 0 || cSec.questions.length < 2) return sections;
+
+  const longest = [...cSec.questions].sort(
+    (a, b) =>
+      String(b.question || '').split(/\s+/).filter(Boolean).length -
+      String(a.question || '').split(/\s+/).filter(Boolean).length,
+  )[0];
+  if (!longest) return sections;
+
+  return sections.map((sec) => {
+    if (sec.label === cKey) {
+      return { ...sec, questions: sec.questions.filter((q) => q !== longest) };
+    }
+    if (sec.label === dKey) {
+      return { ...sec, questions: [{ ...longest, section: dKey }] };
+    }
+    return sec;
+  });
 }
 
 function buildSectionsFromQuestions(questions: WorksheetQuestion[]): WorksheetSection[] {
@@ -213,16 +250,18 @@ function buildSectionsFromQuestions(questions: WorksheetQuestion[]): WorksheetSe
       sectionMap.set(eKey, eQuestions);
     }
   }
-  return WORKSHEET_SECTION_ORDER.map((label) => {
-    const meta = SECTION_META[label];
-    return {
-      id: meta.id,
-      order: meta.order,
-      label,
-      displayLabel: `${meta.displayPrefix}. ${label}`,
-      questions: sectionMap.get(label) || [],
-    };
-  });
+  return balanceWorksheetSectionList(
+    WORKSHEET_SECTION_ORDER.map((label) => {
+      const meta = SECTION_META[label];
+      return {
+        id: meta.id,
+        order: meta.order,
+        label,
+        displayLabel: `${meta.displayPrefix}. ${label}`,
+        questions: sectionMap.get(label) || [],
+      };
+    }),
+  );
 }
 
 function expandRawRecord(raw: Record<string, unknown>): Record<string, unknown> {
@@ -301,16 +340,18 @@ function materializeWorksheet(raw: Record<string, unknown>): NormalizedWorksheet
     }
   }
 
-  const sections = WORKSHEET_SECTION_ORDER.map((label) => {
-    const meta = SECTION_META[label];
-    return {
-      id: meta.id,
-      order: meta.order,
-      label,
-      displayLabel: `${meta.displayPrefix}. ${label}`,
-      questions: sectionMap.get(label) || [],
-    };
-  });
+  const sections = balanceWorksheetSectionList(
+    WORKSHEET_SECTION_ORDER.map((label) => {
+      const meta = SECTION_META[label];
+      return {
+        id: meta.id,
+        order: meta.order,
+        label,
+        displayLabel: `${meta.displayPrefix}. ${label}`,
+        questions: sectionMap.get(label) || [],
+      };
+    }),
+  );
 
   return {
     title: String(r.title || r.worksheet_title || 'Worksheet').trim(),
@@ -573,16 +614,18 @@ function parseWorksheetFromMarkdown(text: string): NormalizedWorksheet | null {
   // Fallback: parse questions from entire body if no section blocks were found.
   let sections = buildSectionsFromQuestions([]);
   if (sectionMap.size) {
-    sections = WORKSHEET_SECTION_ORDER.map((label) => {
-      const meta = SECTION_META[label];
-      return {
-        id: meta.id,
-        order: meta.order,
-        label,
-        displayLabel: `${meta.displayPrefix}. ${label}`,
-        questions: sectionMap.get(label) || [],
-      };
-    });
+    sections = balanceWorksheetSectionList(
+      WORKSHEET_SECTION_ORDER.map((label) => {
+        const meta = SECTION_META[label];
+        return {
+          id: meta.id,
+          order: meta.order,
+          label,
+          displayLabel: `${meta.displayPrefix}. ${label}`,
+          questions: sectionMap.get(label) || [],
+        };
+      }),
+    );
   } else {
     const qs = parseQuestionsFromLines(body.split('\n'));
     sections = buildSectionsFromQuestions(qs);

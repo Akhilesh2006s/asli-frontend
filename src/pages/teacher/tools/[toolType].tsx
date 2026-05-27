@@ -31,9 +31,13 @@ import { FlashcardViewer } from '@/components/flashcard-viewer';
 import { ShortNotesViewer } from '@/components/short-notes-viewer';
 import { ConceptMasteryViewer } from '@/components/concept-mastery-viewer';
 import { LessonPlannerViewer } from '@/components/lesson-planner-viewer';
+import { DailyClassPlanViewer } from '@/components/daily-class-plan-viewer';
+import { HomeworkCreatorViewer } from '@/components/homework-creator-viewer.tsx';
+import { ExamQuestionPaperViewer } from '@/components/exam-question-paper-viewer';
 import { ActivityProjectViewer } from '@/components/activity-project-viewer';
 import { StoryPassageViewer } from '@/components/story-passage-viewer';
 import { WorksheetMcqViewer } from '@/components/worksheet-mcq-viewer';
+import { RubricsEvaluationViewer } from '@/components/rubrics-evaluation-viewer';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import {
   buildAiToolGenerationSummary,
@@ -143,13 +147,11 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     description: 'Create assessment criteria, rubrics, and comprehensive student progress reports with feedback',
     icon: Sparkles,
     fields: [
-      { name: 'outputType', label: 'Output Type *', type: 'select', required: true, options: ['Rubrics & Evaluation', 'Report Card'], placeholder: 'Select what to generate' },
-      { name: 'studentName', label: 'Student Name', type: 'select', required: false, placeholder: 'Select student (for Report Card)', isStudentSelect: true, dependsOn: 'outputType', showWhen: (values: any) => values.outputType === 'Report Card' },
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
-      { name: 'assignmentType', label: 'Assignment Type', type: 'text', required: false, placeholder: 'e.g., Project, Essay, Lab Report (for Rubrics)', showWhen: (values: any) => values.outputType === 'Rubrics & Evaluation' },
-      { name: 'term', label: 'Term', type: 'text', placeholder: 'e.g., First Term (for Report Card)', showWhen: (values: any) => values.outputType === 'Report Card' },
-      { name: 'subTopic', label: 'Sub Topic *', type: 'text', required: true, placeholder: 'Enter sub topic' }
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
+      { name: 'assignmentType', label: 'Assignment Type', type: 'text', required: false, placeholder: 'e.g., Project, Essay, Lab Report' }
     ]
   },
   'story-passage-creator': {
@@ -193,8 +195,9 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'date', label: 'Date', type: 'text', placeholder: 'e.g., 2025-01-15' },
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subjects', label: 'Subjects *', type: 'select', required: true, dependsOn: 'gradeLevel' },
-      { name: 'subTopic', label: 'Sub Topic *', type: 'text', required: true, placeholder: 'Enter sub topic' },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
       { name: 'timeSlots', label: 'Time Slots', type: 'text', placeholder: 'e.g., 9:00-10:00, 10:15-11:15' }
     ]
   },
@@ -809,6 +812,22 @@ export default function TeacherToolPage() {
       }
 
       if (!response.ok) {
+        if (response.status === 404 && data?.code === 'AI_TOOL_DATA_NOT_FOUND') {
+          setGeneratedContent('');
+          setRawGeneratedContent(null);
+          setResponseMeta(null);
+          setIsFallbackContent(false);
+          setFallbackEmptyMessage(
+            data.message ||
+              `No ${config?.name || 'tool'} content found for this selection. Ask Super Admin to add it in AI Tool Generations.`,
+          );
+          toast({
+            title: 'No content found',
+            description: data.message || 'No matching content for this tool and selection.',
+            variant: 'destructive',
+          });
+          return;
+        }
         if (response.status === 503 && data?.code === 'AI_UNAVAILABLE_NO_FALLBACK') {
           setGeneratedContent('');
           setRawGeneratedContent(null);
@@ -851,7 +870,9 @@ export default function TeacherToolPage() {
               toolType === 'concept-mastery-helper' || 
               toolType === 'lesson-planner' ||
               toolType === 'flashcard-generator' ||
-              toolType === 'worksheet-mcq-generator') {
+              toolType === 'worksheet-mcq-generator' ||
+              toolType === 'homework-creator' ||
+              toolType === 'daily-class-plan-maker') {
             // Store in a way the viewer can access
             const contentWithData = JSON.stringify({
               formatted: data.data.content,
@@ -895,6 +916,13 @@ export default function TeacherToolPage() {
         setFallbackEmptyMessage(errMsg);
         toast({
           title: 'Cannot generate',
+          description: errMsg,
+          variant: 'destructive',
+        });
+      } else if (/AI_TOOL_DATA_NOT_FOUND/i.test(errMsg)) {
+        setFallbackEmptyMessage(errMsg);
+        toast({
+          title: 'No content found',
           description: errMsg,
           variant: 'destructive',
         });
@@ -1831,24 +1859,40 @@ export default function TeacherToolPage() {
                 'overflow-hidden',
               toolType === 'activity-project-generator' && generatedContent && 'border-indigo-100',
               toolType === 'lesson-planner' && generatedContent && 'border-amber-200/80',
+              toolType === 'daily-class-plan-maker' && generatedContent && 'border-indigo-200/80',
               toolType === 'concept-mastery-helper' && generatedContent && 'border-fuchsia-200/80',
               toolType === 'worksheet-mcq-generator' && generatedContent && 'border-emerald-200/80',
+              toolType === 'homework-creator' && generatedContent && 'border-orange-200/80',
+              toolType === 'exam-question-paper-generator' && generatedContent && 'border-slate-300/90',
+              toolType === 'short-notes-summaries-maker' && generatedContent && 'border-cyan-200/80',
             )}
           >
             <CardHeader
               className={
                 (toolType === 'activity-project-generator' ||
                   toolType === 'lesson-planner' ||
+                  toolType === 'daily-class-plan-maker' ||
                   toolType === 'concept-mastery-helper' ||
-                  toolType === 'worksheet-mcq-generator') &&
+                  toolType === 'worksheet-mcq-generator' ||
+                  toolType === 'homework-creator' ||
+                  toolType === 'exam-question-paper-generator' ||
+                  toolType === 'short-notes-summaries-maker') &&
                 generatedContent
                   ? toolType === 'lesson-planner'
                     ? 'border-b bg-gradient-to-r from-amber-50/90 via-white to-teal-50/50'
+                    : toolType === 'daily-class-plan-maker'
+                      ? 'border-b bg-gradient-to-r from-violet-50/90 via-white to-sky-50/50'
                     : toolType === 'concept-mastery-helper'
                       ? 'border-b bg-gradient-to-r from-fuchsia-50/90 via-white to-violet-50/50'
                       : toolType === 'worksheet-mcq-generator'
                         ? 'border-b bg-gradient-to-r from-emerald-50/90 via-white to-teal-50/50'
-                        : 'border-b bg-gradient-to-r from-slate-50 to-indigo-50/40'
+                        : toolType === 'homework-creator'
+                          ? 'border-b bg-gradient-to-r from-orange-50/90 via-white to-amber-50/50'
+                          : toolType === 'exam-question-paper-generator'
+                            ? 'border-b bg-gradient-to-r from-slate-100/90 via-white to-indigo-50/60'
+                            : toolType === 'short-notes-summaries-maker'
+                              ? 'border-b bg-gradient-to-r from-cyan-50/90 via-white to-sky-50/60'
+                            : 'border-b bg-gradient-to-r from-slate-50 to-indigo-50/40'
                   : ''
               }
             >
@@ -1859,11 +1903,19 @@ export default function TeacherToolPage() {
                       ? 'Your lesson kit'
                       : toolType === 'lesson-planner' && generatedContent
                         ? 'Classroom day flow'
+                        : toolType === 'daily-class-plan-maker' && generatedContent
+                          ? 'Your day at a glance'
                         : toolType === 'concept-mastery-helper' && generatedContent
                           ? 'Concept teaching reference'
                           : toolType === 'worksheet-mcq-generator' && generatedContent
                             ? 'Your worksheet pack'
-                            : 'Generated Content'}
+                            : toolType === 'homework-creator' && generatedContent
+                              ? 'Your homework pack'
+                              : toolType === 'exam-question-paper-generator' && generatedContent
+                                ? 'Your exam control room'
+                                : toolType === 'short-notes-summaries-maker' && generatedContent
+                                  ? 'Quick revision notebook'
+                                : 'Generated Content'}
                   </CardTitle>
                   {generatedContent && generationContextSummary ? (
                     <p className="text-xs text-slate-600 mt-1.5 leading-relaxed" role="status">
@@ -1901,8 +1953,12 @@ export default function TeacherToolPage() {
               className={
                 (toolType === 'activity-project-generator' ||
                   toolType === 'lesson-planner' ||
+                  toolType === 'daily-class-plan-maker' ||
                   toolType === 'concept-mastery-helper' ||
-                  toolType === 'worksheet-mcq-generator') &&
+                  toolType === 'worksheet-mcq-generator' ||
+                  toolType === 'homework-creator' ||
+                  toolType === 'exam-question-paper-generator' ||
+                  toolType === 'short-notes-summaries-maker') &&
                 generatedContent &&
                 !isGenerating
                   ? 'p-0'
@@ -1931,7 +1987,17 @@ export default function TeacherToolPage() {
                 toolType === 'flashcard-generator' ? (
                   <FlashcardViewer content={displayGeneratedContent} />
                 ) : toolType === 'short-notes-summaries-maker' ? (
-                  <ShortNotesViewer content={displayGeneratedContent} />
+                  <div className="bg-gradient-to-b from-cyan-50/60 via-white to-sky-50/40 p-4 sm:p-5 lg:p-6">
+                    <div className="mb-3 flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[11px] font-medium text-cyan-800">
+                        Revision-ready format
+                      </span>
+                      <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-medium text-sky-800">
+                        Teacher focus view
+                      </span>
+                    </div>
+                    <ShortNotesViewer content={displayGeneratedContent} />
+                  </div>
                 ) : toolType === 'concept-mastery-helper' ? (
                   <ConceptMasteryViewer
                     content={displayGeneratedContent}
@@ -1940,6 +2006,12 @@ export default function TeacherToolPage() {
                   />
                 ) : toolType === 'lesson-planner' ? (
                   <LessonPlannerViewer
+                    content={generatedContent}
+                    rawContent={rawGeneratedContent}
+                    variant="teacher"
+                  />
+                ) : toolType === 'daily-class-plan-maker' ? (
+                  <DailyClassPlanViewer
                     content={displayGeneratedContent}
                     rawContent={rawGeneratedContent}
                     variant="teacher"
@@ -1960,6 +2032,21 @@ export default function TeacherToolPage() {
                     content={displayGeneratedContent}
                     rawContent={rawGeneratedContent}
                     variant="teacher"
+                  />
+                ) : toolType === 'homework-creator' ? (
+                  <HomeworkCreatorViewer
+                    content={displayGeneratedContent}
+                    rawContent={rawGeneratedContent}
+                  />
+                ) : toolType === 'exam-question-paper-generator' ? (
+                  <ExamQuestionPaperViewer
+                    content={displayGeneratedContent}
+                    rawContent={rawGeneratedContent}
+                  />
+                ) : toolType === 'rubrics-evaluation-generator' ? (
+                  <RubricsEvaluationViewer
+                    content={displayGeneratedContent}
+                    rawContent={rawGeneratedContent}
                   />
                 ) : (
                   <motion.div

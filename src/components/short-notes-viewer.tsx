@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
 
 interface Note {
@@ -13,6 +11,49 @@ interface Note {
 
 interface ShortNotesViewerProps {
   content: string;
+}
+
+type SummaryBlock = {
+  title: string;
+  body: string;
+};
+
+function summaryBlocksFromMarkdown(markdown: string): SummaryBlock[] {
+  const text = String(markdown || '').trim();
+  if (!text) return [];
+  const lines = text.split('\n');
+  const blocks: SummaryBlock[] = [];
+  let currentTitle = '';
+  let buffer: string[] = [];
+
+  const flush = () => {
+    const body = buffer.join('\n').trim();
+    if (currentTitle || body) {
+      blocks.push({
+        title: currentTitle || `Section ${blocks.length + 1}`,
+        body,
+      });
+    }
+    buffer = [];
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    const headingMatch =
+      line.match(/^#{1,3}\s+(.+)$/) ||
+      line.match(/^\*\*(\d{1,2}\.\s*.+?)\*\*$/) ||
+      line.match(/^(\d{1,2}\.\s+.+)$/);
+
+    if (headingMatch) {
+      if (currentTitle || buffer.length) flush();
+      currentTitle = headingMatch[1].trim();
+      continue;
+    }
+    buffer.push(rawLine);
+  }
+  if (currentTitle || buffer.length) flush();
+
+  return blocks.filter((b) => b.title || b.body);
 }
 
 /**
@@ -123,269 +164,160 @@ export function ShortNotesViewer({ content }: ShortNotesViewerProps) {
 
   const currentNote = notes[currentIndex];
   const progress = ((currentIndex + 1) / notes.length) * 100;
-
-  const handlePrevious = () => {
-    if (currentIndex > 0 && !isTurning) {
-      setIsTurning(true);
-      setDirection('left');
-      setTimeout(() => {
-        setCurrentIndex(prev => prev - 1);
-        setIsTurning(false);
-      }, 400);
-    }
-  };
-
-  const handleNext = () => {
-    if (currentIndex < notes.length - 1 && !isTurning) {
-      setIsTurning(true);
-      setDirection('right');
-      setTimeout(() => {
-        setCurrentIndex(prev => prev + 1);
-        setIsTurning(false);
-      }, 400);
-    }
-  };
+  const summaryBlocks = summaryBlocksFromMarkdown(currentNote.summary || '');
+  const hasSideContent = Boolean(
+    currentNote.importance ||
+    (currentNote.quick_facts && currentNote.quick_facts.length > 0),
+  );
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[700px] space-y-3 sm:space-y-4 lg:space-y-6 relative w-full">
-      {/* Instructions */}
-      <div className="text-xs sm:text-sm text-gray-600 text-center mb-2">
-        <p>Use <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">←</kbd> / <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">→</kbd> to turn pages</p>
-      </div>
-
-      {/* Book Page Container with 3D Perspective */}
-      <div className="relative w-full max-w-5xl" style={{ perspective: '2000px', perspectiveOrigin: 'center center' }}>
-        <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
-            key={currentIndex}
-            custom={direction}
-            initial={{ 
-              rotateY: direction === 'right' ? 90 : -90,
-              opacity: 0,
-              scale: 0.95
-            }}
-            animate={{ 
-              rotateY: 0,
-              opacity: 1,
-              scale: 1
-            }}
-            exit={{ 
-              rotateY: direction === 'right' ? -90 : 90,
-              opacity: 0,
-              scale: 0.95
-            }}
-            transition={{ 
-              duration: 0.6,
-              ease: [0.4, 0, 0.2, 1]
-            }}
-            style={{
-              transformStyle: 'preserve-3d',
-              transformOrigin: 'center center'
-            }}
-            className="w-full"
-          >
-            {/* Book Page - Rectangle Shape */}
-            <div 
-              className="relative mx-auto shadow-2xl"
-              style={{
-                width: '100%',
-                maxWidth: '900px',
-                minHeight: '650px',
-                background: 'linear-gradient(135deg, #fafafa 0%, #ffffff 100%)',
-                border: '1px solid #d1d5db',
-                borderRadius: '4px',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05)',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              {/* Book binding effect on left */}
-              <div 
-                className="absolute left-0 top-0 bottom-0 w-2"
-                style={{
-                  background: 'linear-gradient(to right, rgba(0,0,0,0.08), rgba(0,0,0,0.02), transparent)',
-                  zIndex: 10
-                }}
-              />
-              
-              {/* Page content */}
-              <div className="p-10 h-full" style={{ minHeight: '650px' }}>
-                {/* Concept Header - Rectangle Card */}
-                <div 
-                  className="mb-6 p-4 rounded-lg"
-                  style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
-                  }}
-                >
-                  <h2 className="text-white text-xl sm:text-2xl font-bold mb-0" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
-                    🎯 {currentNote.concept_name}
-                  </h2>
-                </div>
-
-                {/* Content Area */}
-                <div className="space-y-4" style={{ maxHeight: '500px', overflowY: 'auto' }}>
-                  {/* Summary Section - Rectangle Card */}
-                  {currentNote.summary && (
-                    <div 
-                      className="bg-white p-3 sm:p-4 lg:p-6 shadow-md border-l-4 mb-4"
-                      style={{ 
-                        borderColor: '#667eea',
-                        borderRadius: '8px',
-                        border: '1px solid #e5e7eb',
-                        borderLeft: '4px solid #667eea'
-                      }}
-                    >
-                      <div className="flex items-center mb-3">
-                        <div 
-                          className="w-10 h-10 rounded-lg flex items-center justify-center mr-3 shadow-sm"
-                          style={{ background: 'linear-gradient(135deg, #667eea, #764ba2)' }}
-                        >
-                          <span className="text-lg sm:text-xl">📋</span>
-                        </div>
-                        <h3 className="text-base sm:text-lg font-semibold m-0" style={{ color: '#667eea' }}>Summary</h3>
-                      </div>
-                      <div
-                        className="short-notes-markdown prose prose-sm max-w-none text-gray-700 leading-relaxed m-0"
-                        style={{ fontSize: '0.95rem', lineHeight: '1.8' }}
-                        dangerouslySetInnerHTML={{
-                          __html: renderMarkdown(currentNote.summary || ''),
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {/* Importance Section - Rectangle Card */}
-                  {currentNote.importance && (
-                    <div 
-                      className="bg-white p-3 sm:p-4 lg:p-6 shadow-md border-l-4 mb-4"
-                      style={{ 
-                        borderColor: '#f59e0b',
-                        borderRadius: '8px',
-                        border: '1px solid #e5e7eb',
-                        borderLeft: '4px solid #f59e0b'
-                      }}
-                    >
-                      <div className="flex items-center mb-3">
-                        <div 
-                          className="w-10 h-10 rounded-lg flex items-center justify-center mr-3 shadow-sm"
-                          style={{ background: 'linear-gradient(135deg, #f59e0b, #f97316)' }}
-                        >
-                          <span className="text-lg sm:text-xl">⭐</span>
-                        </div>
-                        <h3 className="text-base sm:text-lg font-semibold m-0" style={{ color: '#f59e0b' }}>Importance</h3>
-                      </div>
-                      <div
-                        className="short-notes-markdown prose prose-sm max-w-none text-gray-700 leading-relaxed m-0"
-                        style={{ fontSize: '0.95rem', lineHeight: '1.8' }}
-                        dangerouslySetInnerHTML={{
-                          __html: renderMarkdown(currentNote.importance || ''),
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {/* Quick Facts Section - Rectangle Card */}
-                  {currentNote.quick_facts && currentNote.quick_facts.length > 0 && (
-                    <div 
-                      className="bg-white p-3 sm:p-4 lg:p-6 shadow-md border-l-4"
-                      style={{ 
-                        borderColor: '#10b981',
-                        borderRadius: '8px',
-                        border: '1px solid #e5e7eb',
-                        borderLeft: '4px solid #10b981'
-                      }}
-                    >
-                      <div className="flex items-center mb-3">
-                        <div 
-                          className="w-10 h-10 rounded-lg flex items-center justify-center mr-3 shadow-sm"
-                          style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
-                        >
-                          <span className="text-lg sm:text-xl">⚡</span>
-                        </div>
-                        <h3 className="text-base sm:text-lg font-semibold m-0" style={{ color: '#10b981' }}>Quick Facts</h3>
-                      </div>
-                      <ul className="list-none p-0 m-0 space-y-2">
-                        {currentNote.quick_facts.map((fact, factIndex) => (
-                          <li 
-                            key={factIndex}
-                            className="flex items-start p-3 rounded"
-                            style={{
-                              background: 'linear-gradient(90deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.03) 100%)',
-                              borderLeft: '3px solid #10b981',
-                              borderRadius: '4px'
-                            }}
-                          >
-                            <span 
-                              className="flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 rounded-full flex items-center justify-center text-white text-xs font-semibold mr-3 mt-0.5"
-                              style={{ background: '#10b981' }}
-                            >
-                              {factIndex + 1}
-                            </span>
-                            <span className="text-gray-700 flex-1" style={{ fontSize: '0.95rem', lineHeight: '1.7' }}>
-                              {fact}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Page number indicator */}
-              <div 
-                className="absolute bottom-4 right-8 text-xs sm:text-sm text-gray-500"
-                style={{ fontFamily: 'serif' }}
-              >
-                Page {currentIndex + 1}
-              </div>
+    <div className="w-full space-y-5">
+      <section className="relative overflow-hidden rounded-[28px] border border-violet-200/70 bg-gradient-to-br from-slate-950 via-violet-950 to-fuchsia-900 px-5 py-5 text-white shadow-[0_24px_60px_-24px_rgba(79,70,229,0.75)] sm:px-7 sm:py-6">
+        <div className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-cyan-300/25 blur-3xl" />
+        <div className="pointer-events-none absolute -left-10 -bottom-12 h-48 w-56 rounded-full bg-fuchsia-400/20 blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.14),transparent_58%)]" />
+        <div className="relative space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-violet-200">
+                Revision Studio
+              </p>
+              <h2 className="text-2xl font-bold leading-tight sm:text-3xl">Short Notes & Summaries</h2>
             </div>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Navigation */}
-      <div className="flex items-center justify-center space-x-4 w-full max-w-5xl z-50 relative mt-6">
-        <Button
-          variant="outline"
-          size="lg"
-          onClick={handlePrevious}
-          disabled={currentIndex === 0 || isTurning}
-          className="rounded-lg px-3 sm:px-4 lg:px-6 py-3 shadow-md hover:shadow-lg transition-shadow"
-          type="button"
-        >
-          <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-          Previous Page
-        </Button>
-
-        {/* Progress bar */}
-        <div className="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
-          <motion.div
-            className="h-full bg-gradient-to-r from-purple-500 to-indigo-600"
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.4 }}
-          />
+            <div className="rounded-2xl border border-white/20 bg-white/10 px-3 py-2 text-right backdrop-blur-md">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-violet-200">Progress</p>
+              <p className="text-sm font-semibold text-violet-50">{currentIndex + 1} / {notes.length}</p>
+            </div>
+          </div>
+          <p className="max-w-2xl text-sm text-violet-100/90 sm:text-[15px]">
+            Premium revision cards with focused summaries, key ideas, and exam-ready understanding.
+          </p>
+          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-white/20">
+            <motion.div
+              className="h-full bg-gradient-to-r from-cyan-300 via-emerald-300 to-lime-300 shadow-[0_0_20px_rgba(110,231,183,0.65)]"
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.4 }}
+            />
+          </div>
         </div>
+      </section>
 
-        <Button
-          variant="outline"
-          size="lg"
-          onClick={handleNext}
-          disabled={currentIndex === notes.length - 1 || isTurning}
-          className="rounded-lg px-3 sm:px-4 lg:px-6 py-3 shadow-md hover:shadow-lg transition-shadow"
-          type="button"
+      {notes.length > 1 ? (
+        <section className="rounded-2xl border border-slate-200 bg-white/85 p-3 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.35)] backdrop-blur-sm">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Concept navigator</p>
+          <div className="flex flex-wrap gap-2">
+            {notes.map((note, idx) => (
+              <button
+                key={`${note.concept_name}-${idx}`}
+                type="button"
+                onClick={() => {
+                  if (isTurning || idx === currentIndex) return;
+                  setDirection(idx > currentIndex ? 'right' : 'left');
+                  setCurrentIndex(idx);
+                }}
+                className={`group rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all sm:text-sm ${
+                  idx === currentIndex
+                    ? 'border-violet-300 bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md shadow-violet-200'
+                    : 'border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-violet-200 hover:text-violet-700'
+                }`}
+              >
+                <span className="opacity-85 group-hover:opacity-100">{idx + 1}.</span>{' '}
+                {note.concept_name || `Concept ${idx + 1}`}
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <AnimatePresence mode="wait" custom={direction}>
+        <motion.div
+          key={currentIndex}
+          custom={direction}
+          initial={{ x: direction === 'right' ? 24 : -24, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: direction === 'right' ? -24 : 24, opacity: 0 }}
+          transition={{ duration: 0.22 }}
+          className="grid grid-cols-1 gap-4 lg:grid-cols-12"
         >
-          Next Page
-          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
-        </Button>
-      </div>
+          <section
+            className={`overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_24px_48px_-30px_rgba(30,41,59,0.6)] ${
+              hasSideContent ? 'lg:col-span-8' : 'lg:col-span-12'
+            }`}
+          >
+              <div className="border-b border-slate-100 bg-gradient-to-r from-indigo-50 via-white to-fuchsia-50/50 px-5 py-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-indigo-500">Current concept</p>
+                <h3 className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl">
+                  {currentNote.concept_name}
+                </h3>
+              </div>
+              {currentNote.summary ? (
+                <div className="space-y-3 p-5">
+                  {summaryBlocks.length > 1 ? (
+                    <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                      {summaryBlocks.map((block, blockIndex) => (
+                        <section
+                          key={`${block.title}-${blockIndex}`}
+                          className="rounded-2xl border border-slate-100 bg-gradient-to-r from-white via-indigo-50/30 to-white p-4 shadow-sm"
+                        >
+                          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-indigo-500 mb-1.5">
+                            Insight {blockIndex + 1}
+                          </p>
+                          <h4 className="text-base font-bold text-slate-900 mb-2">{block.title}</h4>
+                          <div
+                            className="short-notes-markdown prose prose-sm max-w-none text-slate-700 leading-relaxed prose-p:text-slate-700 prose-li:text-slate-700 prose-li:marker:text-indigo-300 prose-strong:text-slate-900"
+                            dangerouslySetInnerHTML={{ __html: renderMarkdown(block.body || '') }}
+                          />
+                        </section>
+                      ))}
+                    </div>
+                  ) : (
+                    <div
+                      className="short-notes-markdown prose prose-sm max-w-none text-slate-700 leading-relaxed prose-headings:text-slate-900 prose-headings:font-bold prose-h2:text-2xl prose-h3:text-xl prose-p:text-slate-700 prose-li:text-slate-700 prose-li:marker:text-indigo-300 prose-strong:text-slate-900"
+                      dangerouslySetInnerHTML={{ __html: renderMarkdown(currentNote.summary || '') }}
+                    />
+                  )}
+                </div>
+              ) : (
+                <div className="p-4 text-sm italic text-slate-400">No summary available.</div>
+              )}
+            </section>
 
-      {/* Page counter */}
-      <div className="text-xs sm:text-sm text-gray-600 font-medium">
-        Page {currentIndex + 1} of {notes.length}
-      </div>
+          {hasSideContent ? (
+            <div className="space-y-3 lg:col-span-4">
+              {currentNote.importance ? (
+                <section className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50/85 via-white to-orange-50/55 p-5 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-amber-700 mb-1">
+                    Why it matters
+                  </p>
+                  <div
+                    className="short-notes-markdown prose prose-sm max-w-none text-slate-700 prose-strong:text-slate-900"
+                    dangerouslySetInnerHTML={{ __html: renderMarkdown(currentNote.importance || '') }}
+                  />
+                </section>
+              ) : null}
+
+              {currentNote.quick_facts && currentNote.quick_facts.length > 0 ? (
+                <section className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/70 to-white p-5 shadow-sm">
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-700">
+                    Quick facts
+                  </p>
+                  <ul className="space-y-2">
+                    {currentNote.quick_facts.map((fact, idx) => (
+                      <li key={`${fact}-${idx}`} className="flex items-start gap-2 text-sm text-slate-700">
+                        <span className="mt-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-100 text-[11px] font-bold text-emerald-700">
+                          {idx + 1}
+                        </span>
+                        <span>{fact}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
+            </div>
+          ) : null}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

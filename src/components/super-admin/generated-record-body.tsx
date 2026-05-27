@@ -30,6 +30,22 @@ const MAJOR_DOT_SHORT_RE = /^(\d{1,2})\.\s+(.+)$/;
 /** Subsections: "a. Title" or "a) Title" */
 const SUBSECTION_RE = /^([a-zA-Z])[\.\)]\s+(.+)$/;
 
+/** Lesson planner template sections use "2. Learning Objectives" … "14. Closure". */
+const LESSON_TEMPLATE_SECTION_HINT =
+  /learning\s+objectives?|ncf|competency|prior\s+knowledge|diagnostic|introduction|warm[-\s]?up|teaching\s+strategy|classroom\s+activit|teacher\s+talk|student\s+tasks?|formative|assessment\s+questions?|differentiation|homework|practice|teaching\s+aids|materials?\s+required|closure|exit\s+ticket|timeline|period\s*\/\s*time/i;
+
+/** True for "7. Classroom Activities", not for "1. Brainstorming session…". */
+function isLessonTemplateMajorSection(line: string): boolean {
+  const m = line.match(MAJOR_DOT_SHORT_RE);
+  if (!m) return false;
+  const num = Number(m[1]);
+  const title = String(m[2] || "").trim();
+  if (num < 2 || num > 14) return false;
+  if (line.length > 72) return false;
+  if (/^\d{1,2}\.\s+\d/.test(line)) return false;
+  return LESSON_TEMPLATE_SECTION_HINT.test(title);
+}
+
 function parseSegments(lines: string[]): Segment[] {
   const segments: Segment[] = [];
   let bufPara: string[] = [];
@@ -79,12 +95,19 @@ function parseSegments(lines: string[]): Segment[] {
       continue;
     }
 
-    const dotShort = t.match(MAJOR_DOT_SHORT_RE);
-    if (dotShort && t.length <= 72 && !/^\d{1,2}\.\s+\d/.test(t)) {
+    if (isLessonTemplateMajorSection(t)) {
       flushBullets();
       flushPara();
-      currentMainTitle = dotShort[2]?.trim() || t;
+      const m = t.match(MAJOR_DOT_SHORT_RE);
+      currentMainTitle = m?.[2]?.trim() || t;
       segments.push({ kind: "h1", title: t });
+      continue;
+    }
+
+    const numberedStep = t.match(MAJOR_DOT_SHORT_RE);
+    if (numberedStep && Number(numberedStep[1]) >= 1 && Number(numberedStep[1]) <= 20) {
+      flushPara();
+      bufBullets.push(String(numberedStep[2] || t).trim());
       continue;
     }
 
