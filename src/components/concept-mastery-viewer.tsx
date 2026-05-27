@@ -457,7 +457,7 @@ function enrichGeminiMarkdownConcept(
     if (parts.length > 0) L = parts.join('\n\n');
   }
   if (!L) {
-    const legacy = conceptContent.match(/\*\*Explanation:\*\*\s*\n([\s\S]*?)(?=\n\n\*\*|$)/s);
+    const legacy = conceptContent.match(/\*\*Explanation:\*\*\s*\n([\s\S]*?)(?=\n\n\*\*|$)/);
     if (legacy) L = legacy[1].trim();
   }
   if (!L) {
@@ -470,7 +470,7 @@ function enrichGeminiMarkdownConcept(
     if (!R) R = extractMarkdownH2Section(conceptContent, 'Real-World Example');
   }
   if (!R) {
-    const legacy = conceptContent.match(/\*\*Real-world Example:\*\*\s*\n([\s\S]*?)(?=\n\n\*\*|$)/s);
+    const legacy = conceptContent.match(/\*\*Real-world Example:\*\*\s*\n([\s\S]*?)(?=\n\n\*\*|$)/);
     if (legacy) R = legacy[1].trim();
   }
 
@@ -540,7 +540,9 @@ function parseConcepts(content: string): Concept[] {
     const pointsSection = cardContent.match(/<h3[^>]*>Key Points<\/h3>[\s\S]*?<ul[^>]*>([\s\S]*?)<\/ul>/i);
     if (pointsSection) {
       const pointsContent = pointsSection[1];
-      const pointMatches = pointsContent.matchAll(/<span[^>]*>(.*?)<\/span>/g);
+      const pointMatches = Array.from(
+        pointsContent.matchAll(/<span[^>]*>(.*?)<\/span>/g),
+      );
       for (const pointMatch of pointMatches) {
         const point = pointMatch[1]
           .replace(/&nbsp;/g, ' ')
@@ -553,7 +555,9 @@ function parseConcepts(content: string): Concept[] {
         }
       }
       if (keyPoints.length === 0) {
-        const liMatches = pointsContent.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi);
+        const liMatches = Array.from(
+          pointsContent.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi),
+        );
         for (const li of liMatches) {
           const text = stripHtmlBasic(li[1]);
           if (text) keyPoints.push(text);
@@ -589,12 +593,14 @@ function parseConcepts(content: string): Concept[] {
       
       let lesson: string | undefined;
       const explanationMatch = conceptContent.match(
-        /\*\*Explanation:\*\*\s*\n([\s\S]*?)(?=\n\n\*\*Real-world Example:|\n\n\*\*Key Points:|$)/s,
+        /\*\*Explanation:\*\*\s*\n([\s\S]*?)(?=\n\n\*\*Real-world Example:|\n\n\*\*Key Points:|$)/,
       );
       if (explanationMatch) lesson = explanationMatch[1].trim();
       
       let realExample: string | undefined;
-      const exampleMatch = conceptContent.match(/\*\*Real-world Example:\*\*\s*\n([\s\S]*?)(?=\n\n\*\*Key Points:|$)/s);
+      const exampleMatch = conceptContent.match(
+        /\*\*Real-world Example:\*\*\s*\n([\s\S]*?)(?=\n\n\*\*Key Points:|$)/,
+      );
       if (exampleMatch) realExample = exampleMatch[1].trim();
       
       let keyPoints: string[] | undefined;

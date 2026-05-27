@@ -442,7 +442,9 @@ function parseNotes(content: string): Note[] {
     if (factsSection) {
       const factsContent = factsSection[1];
       // Extract all list items
-      const factMatches = factsContent.matchAll(/<li[^>]*>[\s\S]*?<span[^>]*>(.*?)<\/span>/g);
+      const factMatches = Array.from(
+        factsContent.matchAll(/<li[^>]*>[\s\S]*?<span[^>]*>(.*?)<\/span>/g),
+      );
       for (const factMatch of factMatches) {
         const fact = factMatch[1]
           .replace(/&nbsp;/g, ' ')
@@ -500,11 +502,15 @@ function parseNotes(content: string): Note[] {
       const noteContent = content.substring(startIndex, endIndex);
       
       // Extract summary
-      const summaryMatch = noteContent.match(/\*\*Summary:\*\*\s*\n(.*?)(?=\n\n\*\*Importance:|$)/s);
+      const summaryMatch = noteContent.match(
+        /\*\*Summary:\*\*\s*\n([\s\S]*?)(?=\n\n\*\*Importance:|$)/,
+      );
       const summary = summaryMatch ? summaryMatch[1].trim() : undefined;
       
       // Extract importance
-      const importanceMatch = noteContent.match(/\*\*Importance:\*\*\s*\n(.*?)(?=\n\n\*\*Quick Facts:|$)/s);
+      const importanceMatch = noteContent.match(
+        /\*\*Importance:\*\*\s*\n([\s\S]*?)(?=\n\n\*\*Quick Facts:|$)/,
+      );
       const importance = importanceMatch ? importanceMatch[1].trim() : undefined;
       
       // Extract quick facts
