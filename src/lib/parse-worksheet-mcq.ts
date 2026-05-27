@@ -153,20 +153,27 @@ function inferSectionForQuestion(q: WorksheetQuestion): string {
   let sec = String(q.section || '').trim();
   if (sec && sec !== 'Questions') return mapSectionName(sec);
   const qt = q.question;
+  const words = qt.split(/\s+/).filter(Boolean).length;
+  const competencyCue =
+    /(?:real[\s-]*life|application|competency|case[\s-]*based|scenario|daily\s+life|at\s+home|in\s+school|how\s+would\s+you|what\s+would\s+you\s+do|design|plan|investigate|experiment|observe|compare)\b/i.test(
+      qt,
+    );
+  const looksPromptLike =
+    /\?/.test(qt) ||
+    /^(?:imagine|suppose|consider|how would you|what would you do|design|plan|investigate|observe|compare)\b/i.test(
+      qt,
+    );
   if (q.options.length > 0) return WORKSHEET_SECTION_ORDER[0];
   if (/_{2,}/.test(qt)) return WORKSHEET_SECTION_ORDER[1];
-  if (/competency|real[\s-]*life|application|case[\s-]*based|scenario/i.test(qt)) {
+  if (competencyCue && looksPromptLike) {
     return WORKSHEET_SECTION_ORDER[4];
   }
-  if (
-    /(?:imagine|suppose|consider|how would you|what would you do|in your daily life|around you|at home|in school)\b/i.test(
-      qt,
-    )
-  ) {
+  if (looksPromptLike && /(?:in your daily life|around you|at home|in school)\b/i.test(qt)) {
     return WORKSHEET_SECTION_ORDER[4];
   }
-  if (/\?/.test(qt) && qt.split(/\s+/).length <= 22) return WORKSHEET_SECTION_ORDER[2];
+  if (/\?/.test(qt) && words <= 14) return WORKSHEET_SECTION_ORDER[2];
   if (/\?/.test(qt)) return WORKSHEET_SECTION_ORDER[3];
+  if (words >= 10) return WORKSHEET_SECTION_ORDER[3];
   return WORKSHEET_SECTION_ORDER[2];
 }
 
@@ -189,12 +196,21 @@ function buildSectionsFromQuestions(questions: WorksheetQuestion[]): WorksheetSe
   const eKey = WORKSHEET_SECTION_ORDER[4];
   const dQuestions = sectionMap.get(dKey) || [];
   const eQuestions = sectionMap.get(eKey) || [];
-  if (eQuestions.length === 0 && dQuestions.length > 0) {
+  if (eQuestions.length === 0 && dQuestions.length > 1) {
     const moveIdx = dQuestions.findIndex((q) => isLikelyCompetencyQuestionText(q.question));
     if (moveIdx >= 0) {
       const [moved] = dQuestions.splice(moveIdx, 1);
       sectionMap.set(dKey, dQuestions);
       sectionMap.set(eKey, [...eQuestions, moved]);
+    }
+  }
+  if (dQuestions.length === 0 && eQuestions.length > 1) {
+    const moveBackIdx = eQuestions.findIndex((q) => !isLikelyCompetencyQuestionText(q.question));
+    const idx = moveBackIdx >= 0 ? moveBackIdx : eQuestions.length - 1;
+    const [movedBack] = eQuestions.splice(idx, 1);
+    if (movedBack) {
+      sectionMap.set(dKey, [...dQuestions, movedBack]);
+      sectionMap.set(eKey, eQuestions);
     }
   }
   return WORKSHEET_SECTION_ORDER.map((label) => {
@@ -375,7 +391,16 @@ function parseQuestionsFromLines(
       if (opts.length >= 2) current.options = opts;
     }
     optionBuf = [];
-    if (current.question.trim()) out.push(current);
+    const qText = current.question.trim();
+    const wordCount = qText.split(/\s+/).filter(Boolean).length;
+    const looksLikeAnswerFragment =
+      !/\?/.test(qText) &&
+      !/_{2,}/.test(qText) &&
+      !/^(what|why|how|which|who|when|where|define|explain|state|list|name|describe|give|write|compare|differentiate|justify|identify|predict|design|plan)\b/i.test(
+        qText,
+      ) &&
+      (wordCount <= 3 || /[,;:]$/.test(qText));
+    if (qText && !looksLikeAnswerFragment) out.push(current);
     current = null;
   };
 
@@ -414,7 +439,11 @@ function parseQuestionsFromLines(
         ) {
           return m;
         }
-        if (opts.relaxedNumbered && candidate.length >= 3) {
+        if (
+          opts.relaxedNumbered &&
+          candidate.length >= 15 &&
+          candidate.split(/\s+/).filter(Boolean).length >= 4
+        ) {
           return m;
         }
         return null;

@@ -1184,12 +1184,23 @@ export default function AIContentEngine() {
         for (const q of flatQs) {
           let sec = String((q as { section?: string }).section || "").trim();
           const qt = String(q.question || "");
+          const words = qt.split(/\s+/).filter(Boolean).length;
+          const competencyCue =
+            /(?:real[\s-]*life|application|competency|case[\s-]*based|scenario|daily\s+life|at\s+home|in\s+school|how\s+would\s+you|what\s+would\s+you\s+do|design|plan|investigate|experiment|observe|compare)\b/i.test(
+              qt,
+            );
+          const looksPromptLike =
+            /\?/.test(qt) ||
+            /^(?:imagine|suppose|consider|how would you|what would you do|design|plan|investigate|observe|compare)\b/i.test(
+              qt,
+            );
           if (!sec || sec === "Questions") {
             if ((q as { options?: string[] }).options?.length) sec = WORKSHEET_SECTION_ORDER[0];
             else if (/_{2,}/.test(qt)) sec = WORKSHEET_SECTION_ORDER[1];
-            else if (/competency|real[\s-]*life|application/i.test(qt)) sec = WORKSHEET_SECTION_ORDER[4];
-            else if (/\?/.test(qt) && qt.split(/\s+/).length <= 22) sec = WORKSHEET_SECTION_ORDER[2];
+            else if (competencyCue && looksPromptLike) sec = WORKSHEET_SECTION_ORDER[4];
+            else if (/\?/.test(qt) && words <= 14) sec = WORKSHEET_SECTION_ORDER[2];
             else if (/\?/.test(qt)) sec = WORKSHEET_SECTION_ORDER[3];
+            else if (words >= 10) sec = WORKSHEET_SECTION_ORDER[3];
             else sec = WORKSHEET_SECTION_ORDER[2];
           }
           addToSection(mapSectionName(sec), [q]);
@@ -1204,6 +1215,35 @@ export default function AIContentEngine() {
           else sec = WORKSHEET_SECTION_ORDER[0];
         }
         addToSection(mapSectionName(sec), [single]);
+      }
+      const dKey = WORKSHEET_SECTION_ORDER[3];
+      const eKey = WORKSHEET_SECTION_ORDER[4];
+      const dQuestions = [...(sectionMap.get(dKey) || [])];
+      const eQuestions = [...(sectionMap.get(eKey) || [])];
+      if (eQuestions.length === 0 && dQuestions.length > 1) {
+        const preferredIdx = dQuestions.findIndex((q) =>
+          /(?:competency|real[\s-]*life|application|case[\s-]*based|scenario|how would you|what would you do|daily life|at home|in school)/i.test(
+            String(q?.question || ""),
+          ),
+        );
+        if (preferredIdx >= 0) {
+          const [moved] = dQuestions.splice(preferredIdx, 1);
+          sectionMap.set(dKey, dQuestions);
+          sectionMap.set(eKey, [...eQuestions, moved]);
+        }
+      }
+      if (dQuestions.length === 0 && eQuestions.length > 1) {
+        const moveBackIdx = eQuestions.findIndex((q) =>
+          !/(?:competency|real[\s-]*life|application|case[\s-]*based|scenario|daily\s+life|at\s+home|in\s+school|how would you|what would you do|design|plan|investigate|experiment|observe|compare)\b/i.test(
+            String(q?.question || ""),
+          ),
+        );
+        const idx = moveBackIdx >= 0 ? moveBackIdx : eQuestions.length - 1;
+        const [movedBack] = eQuestions.splice(idx, 1);
+        if (movedBack) {
+          sectionMap.set(dKey, [...dQuestions, movedBack]);
+          sectionMap.set(eKey, eQuestions);
+        }
       }
       const sections = WORKSHEET_SECTION_ORDER.map((sectionName, idx) => ({
         sectionName,
