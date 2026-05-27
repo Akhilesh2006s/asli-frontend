@@ -212,7 +212,8 @@ export function useCurriculumCascade(
         if (cancelled) return;
         const curriculumTopics = rowsToNames((data as { data?: CurriculumRow[] }).data);
         const managedTopics = (managed as { data?: { topics?: string[] } })?.data?.topics || [];
-        setTopics([...new Set([...curriculumTopics, ...managedTopics])].filter(Boolean));
+        const allTopics = curriculumTopics.concat(managedTopics).filter(Boolean);
+        setTopics(allTopics.filter((topic, index) => allTopics.indexOf(topic) === index));
       } catch {
         if (!cancelled) setTopics([]);
       } finally {
@@ -251,7 +252,8 @@ export function useCurriculumCascade(
         if (cancelled) return;
         const curriculumSubtopics = rowsToNames((data as { data?: CurriculumRow[] }).data);
         const managedSubtopics = (managed as { data?: { subTopics?: string[] } })?.data?.subTopics || [];
-        setSubtopics([...new Set([...curriculumSubtopics, ...managedSubtopics])].filter(Boolean));
+        const allSubtopics = curriculumSubtopics.concat(managedSubtopics).filter(Boolean);
+        setSubtopics(allSubtopics.filter((subtopic, index) => allSubtopics.indexOf(subtopic) === index));
       } catch {
         if (!cancelled) setSubtopics([]);
       } finally {
