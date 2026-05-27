@@ -2125,10 +2125,10 @@ const TeacherDashboard = () => {
         <div className="space-y-4 sm:space-y-6 lg:space-y-8">
           {/* Dashboard Sub-Tabs */}
               <div className="bg-gradient-to-b from-orange-400 to-orange-500 rounded-3xl p-4 shadow-xl border border-orange-300">
-                <div className="flex items-center space-x-2 overflow-x-auto pb-1">
+                <div className="flex items-center gap-2 w-full">
                   <Button
                     variant={dashboardSubTab === 'ai-classes' ? 'default' : 'outline'}
-                    className={`${dashboardSubTab === 'ai-classes' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} whitespace-nowrap`}
+                    className={`${dashboardSubTab === 'ai-classes' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} whitespace-nowrap flex-1 justify-center`}
                     onClick={() => setDashboardSubTab('ai-classes')}
                   >
                     <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
@@ -2136,7 +2136,7 @@ const TeacherDashboard = () => {
                   </Button>
                   <Button
                     variant={dashboardSubTab === 'students' ? 'default' : 'outline'}
-                    className={`${dashboardSubTab === 'students' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} whitespace-nowrap`}
+                    className={`${dashboardSubTab === 'students' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} whitespace-nowrap flex-1 justify-center`}
                     onClick={() => setDashboardSubTab('students')}
                   >
                     <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
@@ -2144,7 +2144,7 @@ const TeacherDashboard = () => {
                   </Button>
                   <Button
                     variant={dashboardSubTab === 'eduott' ? 'default' : 'outline'}
-                    className={dashboardSubTab === 'eduott' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'}
+                    className={`${dashboardSubTab === 'eduott' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} flex-1 justify-center`}
                     onClick={() => setDashboardSubTab('eduott')}
                   >
                     <VideoIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
@@ -2152,7 +2152,7 @@ const TeacherDashboard = () => {
                   </Button>
                   <Button
                     variant={dashboardSubTab === 'learning-paths' ? 'default' : 'outline'}
-                    className={`${dashboardSubTab === 'learning-paths' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} whitespace-nowrap`}
+                    className={`${dashboardSubTab === 'learning-paths' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} whitespace-nowrap flex-1 justify-center`}
                     onClick={() => setDashboardSubTab('learning-paths')}
                   >
                     <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
@@ -2160,7 +2160,7 @@ const TeacherDashboard = () => {
                   </Button>
                   <Button
                     variant={dashboardSubTab === 'vidya-ai' ? 'default' : 'outline'}
-                    className={dashboardSubTab === 'vidya-ai' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'}
+                    className={`${dashboardSubTab === 'vidya-ai' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} flex-1 justify-center`}
                     onClick={() => {
                       setDashboardSubTab('vidya-ai');
                       localStorage.removeItem('teacherDashboardTab'); // Clear saved tab when manually selected

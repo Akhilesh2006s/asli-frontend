@@ -116,6 +116,10 @@ const Login = () => {
     });
   };
 
+  const handleForgotPassword = () => {
+    setError('Please contact admin to reset your password.');
+  };
+
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 relative overflow-hidden">
       {/* Animated Gradient Background */}
@@ -340,9 +344,13 @@ const Login = () => {
                         Remember me
                       </Label>
                     </div>
-                    <Link href="/auth/forgot-password" className="text-xs sm:text-sm font-medium text-sky-600 hover:text-sky-700 transition-colors">
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      className="text-xs sm:text-sm font-medium text-sky-600 hover:text-sky-700 transition-colors"
+                    >
                       Forgot password?
-                    </Link>
+                    </button>
                   </motion.div>
 
                   <motion.div

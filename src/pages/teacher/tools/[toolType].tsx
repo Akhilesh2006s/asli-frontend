@@ -1826,15 +1826,20 @@ export default function TeacherToolPage() {
               'w-full overflow-hidden',
               toolType === 'activity-project-generator' && generatedContent && 'border-indigo-100',
               toolType === 'lesson-planner' && generatedContent && 'border-amber-200/80',
+              toolType === 'concept-mastery-helper' && generatedContent && 'border-fuchsia-200/80',
             )}
           >
             <CardHeader
               className={
-                (toolType === 'activity-project-generator' || toolType === 'lesson-planner') &&
+                (toolType === 'activity-project-generator' ||
+                  toolType === 'lesson-planner' ||
+                  toolType === 'concept-mastery-helper') &&
                 generatedContent
                   ? toolType === 'lesson-planner'
                     ? 'border-b bg-gradient-to-r from-amber-50/90 via-white to-teal-50/50'
-                    : 'border-b bg-gradient-to-r from-slate-50 to-indigo-50/40'
+                    : toolType === 'concept-mastery-helper'
+                      ? 'border-b bg-gradient-to-r from-fuchsia-50/90 via-white to-violet-50/50'
+                      : 'border-b bg-gradient-to-r from-slate-50 to-indigo-50/40'
                   : ''
               }
             >
@@ -1845,7 +1850,9 @@ export default function TeacherToolPage() {
                       ? 'Your lesson kit'
                       : toolType === 'lesson-planner' && generatedContent
                         ? 'Classroom day flow'
-                        : 'Generated Content'}
+                        : toolType === 'concept-mastery-helper' && generatedContent
+                          ? 'Concept teaching reference'
+                          : 'Generated Content'}
                   </CardTitle>
                   {generatedContent && generationContextSummary ? (
                     <p className="text-xs text-slate-600 mt-1.5 leading-relaxed" role="status">
@@ -1881,7 +1888,9 @@ export default function TeacherToolPage() {
             </CardHeader>
             <CardContent
               className={
-                (toolType === 'activity-project-generator' || toolType === 'lesson-planner') &&
+                (toolType === 'activity-project-generator' ||
+                  toolType === 'lesson-planner' ||
+                  toolType === 'concept-mastery-helper') &&
                 generatedContent &&
                 !isGenerating
                   ? 'p-0'
@@ -1912,7 +1921,11 @@ export default function TeacherToolPage() {
                 ) : toolType === 'short-notes-summaries-maker' ? (
                   <ShortNotesViewer content={displayGeneratedContent} />
                 ) : toolType === 'concept-mastery-helper' ? (
-                  <ConceptMasteryViewer content={displayGeneratedContent} />
+                  <ConceptMasteryViewer
+                    content={displayGeneratedContent}
+                    rawContent={rawGeneratedContent}
+                    variant="teacher"
+                  />
                 ) : toolType === 'lesson-planner' ? (
                   <LessonPlannerViewer
                     content={displayGeneratedContent}

@@ -1,629 +1,627 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, BookOpen, Lightbulb, Target } from 'lucide-react';
+import {
+  AlertTriangle,
+  BookOpen,
+  Brain,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  Eye,
+  GraduationCap,
+  HelpCircle,
+  Lightbulb,
+  ListChecks,
+  Sparkles,
+  Target,
+  type LucideIcon,
+} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
+import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
+import {
+  conceptHasVisibleContent,
+  resolveConceptsFromPayload,
+  type NormalizedConcept,
+} from '@/lib/parse-concept-mastery';
 
-interface Concept {
-  concept_name: string;
-  difficulty?: string;
-  lesson?: string;
-  real_example?: string;
-  key_points?: string[];
-}
-
-interface ConceptMasteryViewerProps {
+export interface ConceptMasteryViewerProps {
   content: string;
+  rawContent?: unknown;
+  className?: string;
+  variant?: 'default' | 'student' | 'teacher';
 }
 
-export function ConceptMasteryViewer({ content }: ConceptMasteryViewerProps) {
-  const [concepts, setConcepts] = useState<Concept[]>([]);
-  const [markdownFallback, setMarkdownFallback] = useState<string | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isTurning, setIsTurning] = useState(false);
-  const [direction, setDirection] = useState<'left' | 'right'>('right');
+type ConceptSectionDef = {
+  num: number;
+  title: string;
+  icon: LucideIcon;
+  stripe: string;
+  iconWrap: string;
+  hasContent: (c: NormalizedConcept) => boolean;
+  render: (c: NormalizedConcept) => ReactNode;
+};
 
-  useEffect(() => {
-    let parsedConcepts: Concept[] = [];
-    let mdFallback: string | null = null;
+const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
+  {
+    num: 1,
+    title: 'Simple definition',
+    icon: BookOpen,
+    stripe: 'border-fuchsia-500',
+    iconWrap: 'bg-fuchsia-100 text-fuchsia-800',
+    hasContent: (c) => !!c.simpleDefinition,
+    render: (c) => <p className="whitespace-pre-wrap text-slate-800">{c.simpleDefinition}</p>,
+  },
+  {
+    num: 2,
+    title: 'Why this concept is important',
+    icon: Target,
+    stripe: 'border-violet-500',
+    iconWrap: 'bg-violet-100 text-violet-800',
+    hasContent: (c) => !!c.whyImportant,
+    render: (c) => <p className="whitespace-pre-wrap text-slate-800">{c.whyImportant}</p>,
+  },
+  {
+    num: 3,
+    title: 'Prior knowledge needed',
+    icon: HelpCircle,
+    stripe: 'border-purple-500',
+    iconWrap: 'bg-purple-100 text-purple-800',
+    hasContent: (c) => !!c.priorKnowledge,
+    render: (c) => <p className="whitespace-pre-wrap text-slate-800">{c.priorKnowledge}</p>,
+  },
+  {
+    num: 4,
+    title: 'Step-by-step explanation',
+    icon: Lightbulb,
+    stripe: 'border-indigo-500',
+    iconWrap: 'bg-indigo-100 text-indigo-800',
+    hasContent: (c) => !!c.explanation,
+    render: (c) => (
+      <p className="whitespace-pre-wrap text-slate-800 leading-relaxed">{c.explanation}</p>
+    ),
+  },
+  {
+    num: 5,
+    title: 'Diagram / visualisation suggestion',
+    icon: Eye,
+    stripe: 'border-blue-500',
+    iconWrap: 'bg-blue-100 text-blue-800',
+    hasContent: (c) => !!c.diagramSuggestion,
+    render: (c) => (
+      <p className="whitespace-pre-wrap rounded-lg border border-dashed border-blue-200 bg-blue-50/60 px-3 py-2.5 text-slate-800 italic">
+        {c.diagramSuggestion}
+      </p>
+    ),
+  },
+  {
+    num: 6,
+    title: 'Real-life examples',
+    icon: Sparkles,
+    stripe: 'border-cyan-500',
+    iconWrap: 'bg-cyan-100 text-cyan-900',
+    hasContent: (c) => !!c.realLifeExamples,
+    render: (c) => <p className="whitespace-pre-wrap text-slate-800">{c.realLifeExamples}</p>,
+  },
+  {
+    num: 7,
+    title: 'Common misconceptions and corrections',
+    icon: AlertTriangle,
+    stripe: 'border-amber-500',
+    iconWrap: 'bg-amber-100 text-amber-900',
+    hasContent: (c) => c.misconceptions.length > 0,
+    render: (c) => (
+      <ul className="space-y-2">
+        {c.misconceptions.map((line, i) => (
+          <li
+            key={i}
+            className="flex gap-2 rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2 text-sm text-slate-800"
+          >
+            <span className="font-bold text-amber-700 shrink-0">!</span>
+            <span>{line}</span>
+          </li>
+        ))}
+      </ul>
+    ),
+  },
+  {
+    num: 8,
+    title: 'Concept check questions',
+    icon: ClipboardList,
+    stripe: 'border-rose-500',
+    iconWrap: 'bg-rose-100 text-rose-800',
+    hasContent: (c) => c.conceptCheckQuestions.length > 0,
+    render: (c) => (
+      <ol className="space-y-2 list-none pl-0">
+        {c.conceptCheckQuestions.map((q, i) => (
+          <li key={i} className="flex gap-2.5 text-sm text-slate-800">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-rose-600 text-[11px] font-bold text-white">
+              {i + 1}
+            </span>
+            <span className="pt-0.5">{q}</span>
+          </li>
+        ))}
+      </ol>
+    ),
+  },
+  {
+    num: 9,
+    title: 'Key points to remember',
+    icon: ListChecks,
+    stripe: 'border-emerald-500',
+    iconWrap: 'bg-emerald-100 text-emerald-800',
+    hasContent: (c) => c.keyPoints.length > 0,
+    render: (c) => (
+      <ul className="space-y-2">
+        {c.keyPoints.map((point, i) => (
+          <li key={i} className="flex gap-2 text-sm text-slate-800">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+            <span>{point}</span>
+          </li>
+        ))}
+      </ul>
+    ),
+  },
+  {
+    num: 10,
+    title: 'Exam tips',
+    icon: GraduationCap,
+    stripe: 'border-sky-500',
+    iconWrap: 'bg-sky-100 text-sky-800',
+    hasContent: (c) => !!c.examTips,
+    render: (c) => (
+      <p className="whitespace-pre-wrap rounded-lg bg-sky-50 border border-sky-100 px-3 py-2.5 text-slate-800">
+        {c.examTips}
+      </p>
+    ),
+  },
+  {
+    num: 11,
+    title: 'Higher-order thinking question',
+    icon: Brain,
+    stripe: 'border-pink-500',
+    iconWrap: 'bg-pink-100 text-pink-800',
+    hasContent: (c) => !!c.hotsQuestion,
+    render: (c) => (
+      <p className="whitespace-pre-wrap font-medium text-slate-900 border-l-4 border-pink-400 pl-3">
+        {c.hotsQuestion}
+      </p>
+    ),
+  },
+  {
+    num: 12,
+    title: 'Quick self-reflection prompt',
+    icon: Sparkles,
+    stripe: 'border-fuchsia-600',
+    iconWrap: 'bg-fuchsia-50 text-fuchsia-900',
+    hasContent: (c) => !!c.reflectionPrompt,
+    render: (c) => (
+      <p className="whitespace-pre-wrap italic text-slate-700 rounded-lg bg-fuchsia-50/80 px-3 py-2.5">
+        {c.reflectionPrompt}
+      </p>
+    ),
+  },
+];
 
-    const setFallbackIfNeeded = (text: string, afterParse: Concept[]) => {
-      if (afterParse.length === 0 && String(text || '').trim().length > 0) {
-        mdFallback = text;
-      }
-    };
+function countFilledSections(c: NormalizedConcept): number {
+  return CONCEPT_TEMPLATE_SECTIONS.filter((s) => s.hasContent(c)).length;
+}
 
-    try {
-      const contentData = JSON.parse(content);
-      if (contentData.raw && contentData.raw.concepts) {
-        parsedConcepts = contentData.raw.concepts.map((concept: any) => ({
-          concept_name: concept.concept_name || '',
-          difficulty: concept.difficulty,
-          lesson: concept.lesson,
-          real_example: concept.real_example,
-          key_points: concept.key_points
-        }));
-        const formattedStr =
-          contentData.formatted != null ? String(contentData.formatted) : '';
-        if (formattedStr.trim()) {
-          const fromFormatted = parseConcepts(formattedStr);
-          parsedConcepts = parsedConcepts.map((c, i) => {
-            const alt =
-              fromFormatted.find(
-                (f) =>
-                  f.concept_name.trim().toLowerCase() === c.concept_name.trim().toLowerCase(),
-              ) || fromFormatted[i];
-            if (!alt) return c;
-            return {
-              ...c,
-              lesson: c.lesson || alt.lesson,
-              real_example: c.real_example || alt.real_example,
-              key_points:
-                c.key_points && c.key_points.length > 0 ? c.key_points : alt.key_points,
-              difficulty: c.difficulty || alt.difficulty,
-            };
-          });
-        }
-      } else if (contentData.formatted != null) {
-        const formatted = String(contentData.formatted);
-        parsedConcepts = parseConcepts(formatted);
-        setFallbackIfNeeded(formatted, parsedConcepts);
-      } else {
-        parsedConcepts = parseConcepts(content);
-        setFallbackIfNeeded(content, parsedConcepts);
-      }
-    } catch {
-      parsedConcepts = parseConcepts(content);
-      setFallbackIfNeeded(content, parsedConcepts);
-    }
+const CONCEPT_PHASES = [
+  {
+    id: 'understand',
+    label: 'Build understanding',
+    hint: 'Definition, importance & prerequisites',
+    badge: 'bg-fuchsia-100 text-fuchsia-950 border-fuchsia-200',
+    nums: [1, 2, 3],
+  },
+  {
+    id: 'learn',
+    label: 'Teach the concept',
+    hint: 'Explanation, visuals & examples',
+    badge: 'bg-violet-100 text-violet-950 border-violet-200',
+    nums: [4, 5, 6],
+  },
+  {
+    id: 'master',
+    label: 'Check mastery',
+    hint: 'Questions, tips & reflection',
+    badge: 'bg-indigo-100 text-indigo-950 border-indigo-200',
+    nums: [7, 8, 9, 10, 11, 12],
+  },
+] as const;
 
-    setConcepts(parsedConcepts);
-    setMarkdownFallback(mdFallback);
-    setCurrentIndex(0);
-  }, [content]);
-
-  const handlePrevious = () => {
-    if (currentIndex > 0 && !isTurning) {
-      setIsTurning(true);
-      setDirection('left');
-      setTimeout(() => {
-        setCurrentIndex(prev => prev - 1);
-        setIsTurning(false);
-      }, 400);
-    }
-  };
-
-  const handleNext = () => {
-    if (currentIndex < concepts.length - 1 && !isTurning) {
-      setIsTurning(true);
-      setDirection('right');
-      setTimeout(() => {
-        setCurrentIndex(prev => prev + 1);
-        setIsTurning(false);
-      }, 400);
-    }
-  };
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowLeft' && currentIndex > 0 && !isTurning) {
-        e.preventDefault();
-        handlePrevious();
-      } else if (e.key === 'ArrowRight' && currentIndex < concepts.length - 1 && !isTurning) {
-        e.preventDefault();
-        handleNext();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [currentIndex, concepts.length, isTurning]);
-
-  if (concepts.length === 0) {
-    if (markdownFallback) {
-      return (
-        <div className="space-y-4 w-full max-w-5xl mx-auto">
-          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs sm:text-sm text-amber-900">
-            <p className="font-medium m-0">Showing saved content as text</p>
-            <p className="mt-1 mb-0 text-amber-800/90">
-              This copy does not use the interactive concept-card format (e.g. it came from the database fallback). The full text is below.
-            </p>
-          </div>
-          <div
-            className="prose prose-sm max-w-none max-h-[80vh] overflow-y-auto rounded-lg border border-gray-200 bg-white p-3 sm:p-4 lg:p-6 shadow-sm prose-headings:text-gray-900 prose-p:text-gray-700"
-            dangerouslySetInnerHTML={{ __html: renderMarkdown(markdownFallback) }}
-          />
-        </div>
-      );
-    }
-    return (
-      <div className="text-center py-12 text-gray-500">
-        <p>No concepts found in the generated content.</p>
-      </div>
-    );
+function difficultyStyles(difficulty?: string) {
+  switch (difficulty?.toLowerCase()) {
+    case 'easy':
+      return 'bg-emerald-600 text-white';
+    case 'medium':
+      return 'bg-amber-500 text-white';
+    case 'hard':
+      return 'bg-rose-600 text-white';
+    default:
+      return 'bg-slate-500 text-white';
   }
+}
 
-  const currentConcept = concepts[currentIndex];
-  const progress = ((currentIndex + 1) / concepts.length) * 100;
-  
-  // Get difficulty color
-  const getDifficultyColor = (difficulty?: string) => {
-    switch (difficulty?.toLowerCase()) {
-      case 'easy': return { bg: '#10b981', text: 'white' };
-      case 'medium': return { bg: '#f59e0b', text: 'white' };
-      case 'hard': return { bg: '#ef4444', text: 'white' };
-      default: return { bg: '#6b7280', text: 'white' };
-    }
-  };
-  
-  const difficultyColor = getDifficultyColor(currentConcept.difficulty);
+function ConceptSectionBlock({
+  sectionNum,
+  title,
+  icon: Icon,
+  stripe,
+  iconWrap,
+  children,
+}: {
+  sectionNum: string;
+  title: string;
+  icon: LucideIcon;
+  stripe: string;
+  iconWrap: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
+      <div className={cn('flex items-center gap-2.5 px-3 py-2.5 border-l-[5px]', stripe)}>
+        <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', iconWrap)}>
+          <Icon className="h-4 w-4" aria-hidden />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{sectionNum}</p>
+          <h4 className="text-sm font-bold text-slate-900 leading-tight">{title}</h4>
+        </div>
+      </div>
+      <div className="px-3 pb-3 pt-1 text-sm">{children}</div>
+    </section>
+  );
+}
+
+function TeacherConceptCard({ concept }: { concept: NormalizedConcept }) {
+  const filled = countFilledSections(concept);
+  const total = CONCEPT_TEMPLATE_SECTIONS.length;
+  const progressPct = Math.round((filled / total) * 100);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[700px] space-y-3 sm:space-y-4 lg:space-y-6 relative w-full">
-      {/* Instructions */}
-      <div className="text-xs sm:text-sm text-gray-600 text-center mb-2">
-        <p>Use <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">←</kbd> / <kbd className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">→</kbd> to navigate concepts</p>
+    <div className="space-y-4">
+      <div className="rounded-2xl border-2 border-fuchsia-200/80 bg-gradient-to-br from-fuchsia-50/90 via-white to-violet-50/50 p-4 sm:p-5 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0 flex gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-600 to-violet-600 text-white shadow-md">
+              <Brain className="h-6 w-6" aria-hidden />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-fuchsia-700/90">
+                Concept {concept.sl}
+              </p>
+              <h4 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
+                {concept.conceptName}
+              </h4>
+              {concept.difficulty ? (
+                <span
+                  className={cn(
+                    'mt-2 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide',
+                    difficultyStyles(concept.difficulty),
+                  )}
+                >
+                  {concept.difficulty}
+                </span>
+              ) : null}
+            </div>
+          </div>
+          <div className="shrink-0 w-full sm:w-32">
+            <p className="text-[10px] font-semibold uppercase text-slate-500 mb-1">Coverage</p>
+            <div className="h-2 rounded-full bg-fuchsia-100 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-indigo-500"
+                style={{ width: `${progressPct}%` }}
+              />
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1 text-right">
+              {filled}/{total} sections
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* Concept Card Container with 3D Perspective */}
-      <div className="relative w-full max-w-5xl" style={{ perspective: '2000px', perspectiveOrigin: 'center center' }}>
-        <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
-            key={currentIndex}
-            custom={direction}
-            initial={{ 
-              rotateY: direction === 'right' ? 90 : -90,
-              opacity: 0,
-              scale: 0.95
-            }}
-            animate={{ 
-              rotateY: 0,
-              opacity: 1,
-              scale: 1
-            }}
-            exit={{ 
-              rotateY: direction === 'right' ? -90 : 90,
-              opacity: 0,
-              scale: 0.95
-            }}
-            transition={{ 
-              duration: 0.6,
-              ease: [0.4, 0, 0.2, 1]
-            }}
-            style={{
-              transformStyle: 'preserve-3d',
-              transformOrigin: 'center center'
-            }}
-            className="w-full"
-          >
-            {/* Concept Card - Rectangle Shape with Modern Design */}
-            <div 
-              className="relative mx-auto shadow-2xl"
-              style={{
-                width: '100%',
-                maxWidth: '900px',
-                minHeight: '650px',
-                background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-                border: '2px solid #bae6fd',
-                borderRadius: '12px',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(59, 130, 246, 0.1)',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              {/* Decorative top border */}
-              <div 
-                className="absolute top-0 left-0 right-0 h-2"
-                style={{
-                  background: 'linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899)'
-                }}
-              />
-              
-              {/* Page content */}
-              <div className="p-10 h-full" style={{ minHeight: '650px' }}>
-                {/* Concept Header */}
-                <div className="mb-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div 
-                        className="w-14 h-14 rounded-xl flex items-center justify-center shadow-lg"
-                        style={{ background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)' }}
-                      >
-                        <BookOpen className="w-7 h-7 text-white" />
-                      </div>
-                      <div>
-                        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-0">
-                          {currentConcept.concept_name}
-                        </h2>
-                        {currentConcept.difficulty && (
-                          <span 
-                            className="inline-block px-3 py-1 rounded-full text-xs font-semibold mt-2"
-                            style={{ 
-                              background: difficultyColor.bg,
-                              color: difficultyColor.text
-                            }}
-                          >
-                            {currentConcept.difficulty.toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+      {CONCEPT_PHASES.map((phase) => {
+        const sections = CONCEPT_TEMPLATE_SECTIONS.filter(
+          (s) => (phase.nums as readonly number[]).includes(s.num) && s.hasContent(concept),
+        );
+        if (!sections.length) return null;
 
-                {/* Content Area */}
-                <div className="space-y-3 sm:space-y-4 lg:space-y-6" style={{ maxHeight: '500px', overflowY: 'auto' }}>
-                  {/* Lesson/Explanation Section */}
-                  {currentConcept.lesson && (
-                    <div 
-                      className="bg-white p-3 sm:p-4 lg:p-6 shadow-md border-l-4"
-                      style={{ 
-                        borderColor: '#3b82f6',
-                        borderRadius: '8px',
-                        border: '1px solid #e5e7eb',
-                        borderLeft: '4px solid #3b82f6'
-                      }}
-                    >
-                      <div className="flex items-center mb-3">
-                        <div 
-                          className="w-10 h-10 rounded-lg flex items-center justify-center mr-3 shadow-sm"
-                          style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)' }}
-                        >
-                          <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                        </div>
-                        <h3 className="text-base sm:text-lg font-semibold m-0" style={{ color: '#3b82f6' }}>Lesson Explanation</h3>
-                      </div>
-                      <p className="text-gray-700 leading-relaxed m-0" style={{ fontSize: '0.95rem', lineHeight: '1.8' }}>
-                        {currentConcept.lesson}
-                      </p>
-                    </div>
-                  )}
+        return (
+          <div key={phase.id}>
+            <div className={cn('mb-2.5 rounded-lg border px-3 py-2', phase.badge)}>
+              <p className="text-xs font-bold uppercase tracking-wide">{phase.label}</p>
+              <p className="text-[11px] opacity-80">{phase.hint}</p>
+            </div>
+            <div className="space-y-2.5">
+              {sections.map((sec) => (
+                <ConceptSectionBlock
+                  key={sec.num}
+                  sectionNum={`Section ${sec.num}`}
+                  title={sec.title}
+                  icon={sec.icon}
+                  stripe={sec.stripe}
+                  iconWrap={sec.iconWrap}
+                >
+                  {sec.render(concept)}
+                </ConceptSectionBlock>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
-                  {/* Real-world Example Section */}
-                  {currentConcept.real_example && (
-                    <div 
-                      className="bg-white p-3 sm:p-4 lg:p-6 shadow-md border-l-4"
-                      style={{ 
-                        borderColor: '#8b5cf6',
-                        borderRadius: '8px',
-                        border: '1px solid #e5e7eb',
-                        borderLeft: '4px solid #8b5cf6'
-                      }}
-                    >
-                      <div className="flex items-center mb-3">
-                        <div 
-                          className="w-10 h-10 rounded-lg flex items-center justify-center mr-3 shadow-sm"
-                          style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)' }}
-                        >
-                          <Target className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                        </div>
-                        <h3 className="text-base sm:text-lg font-semibold m-0" style={{ color: '#8b5cf6' }}>Real-world Example</h3>
-                      </div>
-                      <p className="text-gray-700 leading-relaxed m-0" style={{ fontSize: '0.95rem', lineHeight: '1.8' }}>
-                        {currentConcept.real_example}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Key Points Section */}
-                  {currentConcept.key_points && currentConcept.key_points.length > 0 && (
-                    <div 
-                      className="bg-white p-3 sm:p-4 lg:p-6 shadow-md border-l-4"
-                      style={{ 
-                        borderColor: '#10b981',
-                        borderRadius: '8px',
-                        border: '1px solid #e5e7eb',
-                        borderLeft: '4px solid #10b981'
-                      }}
-                    >
-                      <div className="flex items-center mb-4">
-                        <div 
-                          className="w-10 h-10 rounded-lg flex items-center justify-center mr-3 shadow-sm"
-                          style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
-                        >
-                          <Target className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                        </div>
-                        <h3 className="text-base sm:text-lg font-semibold m-0" style={{ color: '#10b981' }}>Key Points</h3>
-                      </div>
-                      <ul className="list-none p-0 m-0 space-y-3">
-                        {currentConcept.key_points.map((point, pointIndex) => (
-                          <li 
-                            key={pointIndex}
-                            className="flex items-start p-3 rounded-lg"
-                            style={{
-                              background: 'linear-gradient(90deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.03) 100%)',
-                              borderLeft: '3px solid #10b981',
-                              borderRadius: '4px'
-                            }}
-                          >
-                            <span 
-                              className="flex-shrink-0 w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 rounded-full flex items-center justify-center text-white text-xs font-semibold mr-3 mt-0.5"
-                              style={{ background: '#10b981' }}
-                            >
-                              {pointIndex + 1}
-                            </span>
-                            <span className="text-gray-700 flex-1" style={{ fontSize: '0.95rem', lineHeight: '1.7' }}>
-                              {point}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
+function TeacherConceptShell({ conceptCount, children }: { conceptCount: number; children: ReactNode }) {
+  return (
+    <div className="w-full">
+      <div className="relative overflow-hidden rounded-2xl border-2 border-fuchsia-200/70 shadow-lg shadow-fuchsia-900/5">
+        <div
+          className="absolute inset-0 pointer-events-none opacity-30"
+          style={{
+            backgroundImage:
+              'radial-gradient(circle at 20% 20%, rgba(192,38,211,0.08) 0%, transparent 45%), radial-gradient(circle at 80% 0%, rgba(124,58,237,0.08) 0%, transparent 40%)',
+          }}
+          aria-hidden
+        />
+        <div className="relative border-b border-fuchsia-900/20 bg-gradient-to-br from-fuchsia-900 via-violet-900 to-indigo-900 px-4 py-4 sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 text-white">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 ring-2 ring-fuchsia-300/30">
+                <Brain className="h-5 w-5" aria-hidden />
               </div>
-              
-              {/* Page number indicator */}
-              <div 
-                className="absolute bottom-4 right-8 text-xs sm:text-sm text-gray-500 font-medium"
-                style={{ fontFamily: 'serif' }}
-              >
-                Concept {currentIndex + 1}
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-fuchsia-200">
+                  Concept Mastery Helper
+                </p>
+                <h3 className="text-lg font-bold sm:text-xl">Teaching reference</h3>
+                <p className="text-xs text-fuchsia-100/85 mt-0.5">12-part concept breakdown for your class</p>
               </div>
             </div>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Navigation */}
-      <div className="flex items-center justify-center space-x-4 w-full max-w-5xl z-50 relative mt-6">
-        <Button
-          variant="outline"
-          size="lg"
-          onClick={handlePrevious}
-          disabled={currentIndex === 0 || isTurning}
-          className="rounded-lg px-3 sm:px-4 lg:px-6 py-3 shadow-md hover:shadow-lg transition-shadow"
-          type="button"
-        >
-          <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-          Previous Concept
-        </Button>
-
-        {/* Progress bar */}
-        <div className="flex-1 bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
-          <motion.div
-            className="h-full bg-gradient-to-r from-blue-500 to-purple-600"
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.4 }}
-          />
+            {conceptCount > 1 ? (
+              <Badge className="bg-white/15 text-white border-0 hover:bg-white/15">
+                {conceptCount} concepts
+              </Badge>
+            ) : conceptCount === 1 ? (
+              <Badge className="bg-fuchsia-400/25 text-fuchsia-50 border-fuchsia-300/30 hover:bg-fuchsia-400/25">
+                1 concept
+              </Badge>
+            ) : null}
+          </div>
         </div>
-
-        <Button
-          variant="outline"
-          size="lg"
-          onClick={handleNext}
-          disabled={currentIndex === concepts.length - 1 || isTurning}
-          className="rounded-lg px-3 sm:px-4 lg:px-6 py-3 shadow-md hover:shadow-lg transition-shadow"
-          type="button"
-        >
-          Next Concept
-          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 ml-2" />
-        </Button>
-      </div>
-
-      {/* Concept counter */}
-      <div className="text-xs sm:text-sm text-gray-600 font-medium">
-        Concept {currentIndex + 1} of {concepts.length}
+        <div className="relative bg-[#fdfaff]/95 p-3 sm:p-5 max-h-[min(80vh,900px)] overflow-y-auto">
+          {children}
+        </div>
       </div>
     </div>
   );
 }
 
-/** Plain text from HTML fragments (lesson / example blocks may use multiple tags). */
-function stripHtmlBasic(html: string): string {
-  if (!html) return '';
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(p|div|h[1-6])>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
+/** Student / legacy: flip-card explorer for quick review */
+function FlipCardConceptView({ concepts }: { concepts: NormalizedConcept[] }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isTurning, setIsTurning] = useState(false);
+  const [direction, setDirection] = useState<'left' | 'right'>('right');
 
-/** Content under a ## heading until the next ## or end (Gemini / NCERT-style markdown). */
-function extractMarkdownH2Section(body: string, title: string): string | undefined {
-  const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const re = new RegExp(`(?:^|\\n)##\\s*${escaped}\\s*\\n([\\s\\S]*?)(?=\\n##\\s|$)`, 'i');
-  const m = body.match(re);
-  return m ? m[1].trim() : undefined;
-}
+  const current = concepts[Math.min(currentIndex, concepts.length - 1)];
+  const progress = ((currentIndex + 1) / concepts.length) * 100;
 
-/** Fill lesson / example / bullets when the model used Gemini section headings instead of **Explanation:** */
-function enrichGeminiMarkdownConcept(
-  conceptContent: string,
-  conceptName: string,
-  difficulty: string | undefined,
-  lesson: string | undefined,
-  realExample: string | undefined,
-  keyPoints: string[] | undefined,
-): Concept {
-  let L = lesson;
-  let R = realExample;
-  let K = keyPoints?.length ? keyPoints : undefined;
-
-  if (!L) {
-    const overview = extractMarkdownH2Section(conceptContent, 'Concept Overview');
-    const steps = extractMarkdownH2Section(conceptContent, 'Step-by-Step Explanation');
-    const keyComp = extractMarkdownH2Section(conceptContent, 'Key Components Breakdown');
-    const parts = [overview, keyComp, steps].filter(Boolean);
-    if (parts.length > 0) L = parts.join('\n\n');
-  }
-  if (!L) {
-    const legacy = conceptContent.match(/\*\*Explanation:\*\*\s*\n([\s\S]*?)(?=\n\n\*\*|$)/);
-    if (legacy) L = legacy[1].trim();
-  }
-  if (!L) {
-    const rest = conceptContent.replace(/^###[^\n]*\n+/, '').trim();
-    if (rest.length > 0) L = rest;
-  }
-
-  if (!R) {
-    R = extractMarkdownH2Section(conceptContent, 'Real-World Examples');
-    if (!R) R = extractMarkdownH2Section(conceptContent, 'Real-World Example');
-  }
-  if (!R) {
-    const legacy = conceptContent.match(/\*\*Real-world Example:\*\*\s*\n([\s\S]*?)(?=\n\n\*\*|$)/);
-    if (legacy) R = legacy[1].trim();
-  }
-
-  if (!K || K.length === 0) {
-    const summary = extractMarkdownH2Section(conceptContent, 'Summary and Key Takeaways');
-    const misconceptions = extractMarkdownH2Section(conceptContent, 'Common Misconceptions');
-    const practice = extractMarkdownH2Section(conceptContent, 'Practice Exercises');
-    const blob = [summary, misconceptions, practice].filter(Boolean).join('\n\n');
-    if (blob) {
-      const bullets = blob
-        .split('\n')
-        .map((line) => line.trim())
-        .filter((line) => /^[-*]\s/.test(line))
-        .map((line) => line.replace(/^[-*]\s+/, '').trim())
-        .filter(Boolean);
-      if (bullets.length > 0) K = bullets;
-    }
-  }
-
-  return {
-    concept_name: conceptName,
-    difficulty,
-    lesson: L,
-    real_example: R,
-    key_points: K && K.length > 0 ? K : undefined,
+  const go = (dir: 'left' | 'right') => {
+    if (isTurning) return;
+    if (dir === 'left' && currentIndex === 0) return;
+    if (dir === 'right' && currentIndex >= concepts.length - 1) return;
+    setIsTurning(true);
+    setDirection(dir);
+    setTimeout(() => {
+      setCurrentIndex((i) => (dir === 'right' ? i + 1 : i - 1));
+      setIsTurning(false);
+    }, 350);
   };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') go('left');
+      if (e.key === 'ArrowRight') go('right');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [currentIndex, isTurning, concepts.length]);
+
+  return (
+    <div className="flex flex-col items-center w-full max-w-4xl mx-auto py-4 space-y-4">
+      <p className="text-xs text-slate-500 text-center">
+        Use <kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-[10px] font-mono">←</kbd>{' '}
+        <kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-[10px] font-mono">→</kbd> to browse concepts
+      </p>
+
+      <div className="w-full" style={{ perspective: '1200px' }}>
+        <AnimatePresence mode="wait" custom={direction}>
+          <motion.div
+            key={currentIndex}
+            custom={direction}
+            initial={{ rotateY: direction === 'right' ? 70 : -70, opacity: 0 }}
+            animate={{ rotateY: 0, opacity: 1 }}
+            exit={{ rotateY: direction === 'right' ? -70 : 70, opacity: 0 }}
+            transition={{ duration: 0.35 }}
+            className="rounded-2xl border border-cyan-200 bg-gradient-to-br from-cyan-50 to-white p-6 sm:p-8 shadow-lg min-h-[320px]"
+          >
+            <div className="flex items-start justify-between gap-2 mb-4">
+              <h2 className="text-xl font-bold text-slate-900">{current.conceptName}</h2>
+              {current.difficulty ? (
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-0.5 text-[10px] font-bold uppercase',
+                    difficultyStyles(current.difficulty),
+                  )}
+                >
+                  {current.difficulty}
+                </span>
+              ) : null}
+            </div>
+            <div className="space-y-4 max-h-[420px] overflow-y-auto text-sm text-slate-700">
+              {current.explanation ? (
+                <div>
+                  <h3 className="font-semibold text-indigo-700 mb-1">Explanation</h3>
+                  <p className="whitespace-pre-wrap leading-relaxed">{current.explanation}</p>
+                </div>
+              ) : null}
+              {current.realLifeExamples ? (
+                <div>
+                  <h3 className="font-semibold text-violet-700 mb-1">Real-life example</h3>
+                  <p className="whitespace-pre-wrap leading-relaxed">{current.realLifeExamples}</p>
+                </div>
+              ) : null}
+              {current.keyPoints.length > 0 ? (
+                <div>
+                  <h3 className="font-semibold text-emerald-700 mb-2">Key points</h3>
+                  <ul className="space-y-1.5">
+                    {current.keyPoints.map((p, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="text-emerald-600 font-bold">{i + 1}.</span>
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      <div className="flex items-center gap-3 w-full max-w-lg">
+        <Button type="button" variant="outline" size="sm" onClick={() => go('left')} disabled={currentIndex === 0 || isTurning}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden">
+          <motion.div
+            className="h-full bg-gradient-to-r from-cyan-500 to-violet-500"
+            animate={{ width: `${progress}%` }}
+          />
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => go('right')}
+          disabled={currentIndex >= concepts.length - 1 || isTurning}
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+      <p className="text-xs text-slate-500">
+        Concept {currentIndex + 1} of {concepts.length}
+      </p>
+    </div>
+  );
 }
 
-function parseConcepts(content: string): Concept[] {
-  const concepts: Concept[] = [];
-  
-  // Try to parse from HTML card markers
-  const conceptRegex = /__CONCEPT_CARD_START__\n([\s\S]*?)\n__CONCEPT_CARD_END__/g;
-  const matches = Array.from(content.matchAll(conceptRegex));
-  
-  for (const match of matches) {
-    const cardContent = match[1];
-    
-    // Title: formatter uses plain <h2>; older samples used 📚 inside the heading
-    const conceptMatch = cardContent.match(/<h2[^>]*>([\s\S]*?)<\/h2>/i);
-    let conceptName = conceptMatch
-      ? conceptMatch[1].replace(/📚\s*/g, '').replace(/<[^>]+>/g, '').trim()
-      : '';
-    
-    // Extract difficulty (badge span after title)
-    const difficultyMatch = cardContent.match(/<span[^>]*>(EASY|MEDIUM|HARD)<\/span>/i);
-    const difficulty = difficultyMatch ? difficultyMatch[1].toLowerCase() : undefined;
-    
-    // Lesson: full block after h3 "Lesson Explanation" (multi-<p> safe)
-    let lesson: string | undefined;
-    const lessonBlock = cardContent.match(
-      /<h3[^>]*>Lesson Explanation<\/h3>([\s\S]*?)(?=<h3[^>]*>|$)/i,
+export function ConceptMasteryViewer({
+  content,
+  rawContent,
+  className,
+  variant = 'default',
+}: ConceptMasteryViewerProps) {
+  const parsedContent = useMemo(
+    () => stripStructuredAiToolMetadata(String(content || '')),
+    [content],
+  );
+
+  const resolved = useMemo(
+    () => resolveConceptsFromPayload(parsedContent, rawContent),
+    [parsedContent, rawContent],
+  );
+
+  const [conceptIdx, setConceptIdx] = useState(0);
+
+  const useTeacher = variant === 'teacher' || variant === 'default';
+  const useMarkdown =
+    !!resolved.markdownFallback &&
+    (!resolved.concepts.length || !resolved.concepts.some(conceptHasVisibleContent));
+
+  if (useMarkdown && resolved.markdownFallback) {
+    const body = (
+      <div
+        className="prose prose-sm max-w-none rounded-xl border border-fuchsia-100 bg-white p-4 sm:p-5 shadow-sm"
+        dangerouslySetInnerHTML={{ __html: renderMarkdown(resolved.markdownFallback) }}
+      />
     );
-    if (lessonBlock) {
-      lesson = stripHtmlBasic(lessonBlock[1]);
+    if (useTeacher) {
+      return (
+        <div className={className}>
+          <TeacherConceptShell conceptCount={0}>{body}</TeacherConceptShell>
+        </div>
+      );
     }
-    
-    let realExample: string | undefined;
-    const exampleBlock = cardContent.match(
-      /<h3[^>]*>Real-world Example<\/h3>([\s\S]*?)(?=<h3[^>]*>|$)/i,
+    return <div className={cn('w-full', className)}>{body}</div>;
+  }
+
+  if (!resolved.concepts.length) {
+    return (
+      <div
+        className={cn(
+          'rounded-2xl border border-dashed border-fuchsia-200 bg-fuchsia-50/50 px-6 py-14 text-center',
+          className,
+        )}
+      >
+        <Brain className="mx-auto h-10 w-10 text-fuchsia-300 mb-3" aria-hidden />
+        <p className="text-sm font-medium text-slate-700">No concepts found for this selection</p>
+        <p className="text-xs text-slate-500 mt-1">Try generating again or pick another topic.</p>
+      </div>
     );
-    if (exampleBlock) {
-      realExample = stripHtmlBasic(exampleBlock[1]);
-    }
-    
-    const keyPoints: string[] = [];
-    const pointsSection = cardContent.match(/<h3[^>]*>Key Points<\/h3>[\s\S]*?<ul[^>]*>([\s\S]*?)<\/ul>/i);
-    if (pointsSection) {
-      const pointsContent = pointsSection[1];
-      const pointMatches = Array.from(
-        pointsContent.matchAll(/<span[^>]*>(.*?)<\/span>/g),
-      );
-      for (const pointMatch of pointMatches) {
-        const point = pointMatch[1]
-          .replace(/&nbsp;/g, ' ')
-          .replace(/&amp;/g, '&')
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .trim();
-        if (point && !point.match(/^\d+$/)) {
-          keyPoints.push(point);
-        }
-      }
-      if (keyPoints.length === 0) {
-        const liMatches = Array.from(
-          pointsContent.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi),
-        );
-        for (const li of liMatches) {
-          const text = stripHtmlBasic(li[1]);
-          if (text) keyPoints.push(text);
-        }
-      }
-    }
-    
-    if (conceptName) {
-      concepts.push({
-        concept_name: conceptName,
-        difficulty,
-        lesson,
-        real_example: realExample,
-        key_points: keyPoints.length > 0 ? keyPoints : undefined
-      });
-    }
   }
-  
-  // Fallback: parse from markdown format (### 1. Title or ### Title)
-  if (concepts.length === 0) {
-    const conceptHeaderRegex = /(?:^|\n)###\s*(?:\d+\.\s*)?([^\n]+)\n/g;
-    const conceptMatches = Array.from(content.matchAll(conceptHeaderRegex));
-    
-    conceptMatches.forEach((match, index) => {
-      const conceptName = match[1].trim();
-      const startIndex = match.index ?? 0;
-      const nextMatch = conceptMatches[index + 1];
-      const endIndex = nextMatch ? nextMatch.index ?? content.length : content.length;
-      const conceptContent = content.substring(startIndex, endIndex);
-      
-      const difficultyMatch = conceptContent.match(/\*\*Difficulty:\*\*\s*(.*?)\n/);
-      const difficulty = difficultyMatch ? difficultyMatch[1].trim().toLowerCase() : undefined;
-      
-      let lesson: string | undefined;
-      const explanationMatch = conceptContent.match(
-        /\*\*Explanation:\*\*\s*\n([\s\S]*?)(?=\n\n\*\*Real-world Example:|\n\n\*\*Key Points:|$)/,
-      );
-      if (explanationMatch) lesson = explanationMatch[1].trim();
-      
-      let realExample: string | undefined;
-      const exampleMatch = conceptContent.match(
-        /\*\*Real-world Example:\*\*\s*\n([\s\S]*?)(?=\n\n\*\*Key Points:|$)/,
-      );
-      if (exampleMatch) realExample = exampleMatch[1].trim();
-      
-      let keyPoints: string[] | undefined;
-      const pointsMatch = conceptContent.match(/\*\*Key Points:\*\*\s*\n((?:- .+\n?)+)/);
-      if (pointsMatch) {
-        keyPoints = pointsMatch[1]
-          .split('\n')
-          .filter((line) => line.trim().startsWith('-'))
-          .map((line) => line.replace(/^-\s*/, '').trim());
-      }
-      
-      concepts.push(
-        enrichGeminiMarkdownConcept(
-          conceptContent,
-          conceptName,
-          difficulty,
-          lesson,
-          realExample,
-          keyPoints,
-        ),
-      );
-    });
+
+  if (!useTeacher) {
+    return (
+      <div className={className}>
+        <FlipCardConceptView concepts={resolved.concepts} />
+      </div>
+    );
   }
-  
-  return concepts;
+
+  const safeIdx = Math.min(conceptIdx, resolved.concepts.length - 1);
+  const current = resolved.concepts[safeIdx];
+
+  return (
+    <div className={className}>
+      <TeacherConceptShell conceptCount={resolved.concepts.length}>
+        {resolved.concepts.length > 1 ? (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {resolved.concepts.map((c, i) => (
+              <button
+                key={`${c.conceptName}-${i}`}
+                type="button"
+                onClick={() => setConceptIdx(i)}
+                className={cn(
+                  'rounded-lg px-3 py-1.5 text-xs font-semibold transition-all max-w-[200px] truncate border',
+                  i === safeIdx
+                    ? 'bg-fuchsia-700 text-white border-fuchsia-800 shadow-md'
+                    : 'bg-white text-fuchsia-900 border-fuchsia-200 hover:bg-fuchsia-50',
+                )}
+                title={c.conceptName}
+              >
+                {c.conceptName}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={safeIdx}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+          >
+            <TeacherConceptCard concept={current} />
+          </motion.div>
+        </AnimatePresence>
+      </TeacherConceptShell>
+    </div>
+  );
 }
