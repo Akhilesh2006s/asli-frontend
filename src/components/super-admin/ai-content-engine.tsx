@@ -3681,9 +3681,87 @@ export default function AIContentEngine() {
       let sections = Array.isArray(content.sections)
         ? (content.sections as { sectionName?: string; title?: string; questions?: unknown[] }[])
         : (fallback.sections as { sectionName?: string; title?: string; questions?: unknown[] }[]) || [];
+      if (!sections.length) {
+        const sectionSeeds: Array<{ sectionName: string; questions: unknown[] }> = [
+          {
+            sectionName: "Section A: MCQs",
+            questions: Array.isArray(rc.section_a)
+              ? (rc.section_a as unknown[])
+              : Array.isArray(fb.section_a)
+                ? (fb.section_a as unknown[])
+                : [],
+          },
+          {
+            sectionName: "Section B: Very Short Answer Questions",
+            questions: Array.isArray(rc.section_b)
+              ? (rc.section_b as unknown[])
+              : Array.isArray(fb.section_b)
+                ? (fb.section_b as unknown[])
+                : [],
+          },
+          {
+            sectionName: "Section C: Short Answer Questions",
+            questions: Array.isArray(rc.section_c)
+              ? (rc.section_c as unknown[])
+              : Array.isArray(fb.section_c)
+                ? (fb.section_c as unknown[])
+                : [],
+          },
+          {
+            sectionName: "Section D: Long Answer Questions",
+            questions: Array.isArray(rc.section_d)
+              ? (rc.section_d as unknown[])
+              : Array.isArray(fb.section_d)
+                ? (fb.section_d as unknown[])
+                : [],
+          },
+          {
+            sectionName: "Section E: Case-based / Competency Questions",
+            questions: Array.isArray(rc.section_e)
+              ? (rc.section_e as unknown[])
+              : Array.isArray(fb.section_e)
+                ? (fb.section_e as unknown[])
+                : [],
+          },
+        ];
+        sections = sectionSeeds.filter((s) => Array.isArray(s.questions) && s.questions.length > 0);
+      }
       if (!sections.length && String(fb.question || "").trim()) {
         sections = [{ sectionName: String(fb.section || "Questions"), questions: [fb] }];
       }
+      const sectionOrder = [
+        "Section A: MCQs",
+        "Section B: Very Short Answer Questions",
+        "Section C: Short Answer Questions",
+        "Section D: Long Answer Questions",
+        "Section E: Case-based / Competency Questions",
+      ];
+      const canonicalExamSectionName = (name: string) => {
+        const n = String(name || "").toLowerCase().trim();
+        if (/^section\s*a|mcq|multiple\s*choice/.test(n)) return sectionOrder[0];
+        if (/^section\s*b|very\s*short|vsa/.test(n)) return sectionOrder[1];
+        if (/^section\s*c|short\s*answer/.test(n) && !/very\s*short|vsa/.test(n)) return sectionOrder[2];
+        if (/^section\s*d|long\s*answer|essay/.test(n)) return sectionOrder[3];
+        if (/^section\s*e|case|competency|competence/.test(n)) return sectionOrder[4];
+        return "";
+      };
+      const orderedSectionMap = new Map<string, unknown[]>(
+        sectionOrder.map((name) => [name, [] as unknown[]]),
+      );
+      for (const sec of sections) {
+        const questions = Array.isArray(sec?.questions) ? sec.questions : [];
+        const canonical = canonicalExamSectionName(String(sec?.sectionName || sec?.title || ""));
+        if (canonical) {
+          orderedSectionMap.set(canonical, [...(orderedSectionMap.get(canonical) || []), ...questions]);
+          continue;
+        }
+        // If section label is generic (e.g. "Questions"), default to Section A.
+        orderedSectionMap.set(sectionOrder[0], [...(orderedSectionMap.get(sectionOrder[0]) || []), ...questions]);
+      }
+      const displaySections = sectionOrder.map((name) => ({
+        sectionName: name,
+        questions: orderedSectionMap.get(name) || [],
+      }));
       const examTitle =
         pickStr("paperTitle", "paper_title", "title") || activityTitleForDisplay("Exam Paper", item);
       return (
@@ -3706,9 +3784,12 @@ export default function AIContentEngine() {
               <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">{pickStr("blueprint", "design_grid")}</p>
             </div>
           ) : null}
-          {sections.map((section: any, sIdx: number) => (
+          {displaySections.map((section: any, sIdx: number) => (
             <div key={`${item._id}-sec-${sIdx}`} className="rounded-xl border bg-white p-4 shadow-sm">
               <p className="text-xs sm:text-sm font-semibold">{String(section?.sectionName || section?.title || `Section ${sIdx + 1}`)}</p>
+              {toQuestionArray(section?.questions || []).length === 0 ? (
+                <p className="text-xs text-slate-500 italic mt-2">No questions listed.</p>
+              ) : null}
               {toQuestionArray(section?.questions || []).map((q, qIdx) => {
                 const qx = q as { question_number?: number; marks?: number };
                 return (
