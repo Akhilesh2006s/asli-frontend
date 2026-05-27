@@ -85,9 +85,6 @@ export function filterIncompleteVideosForTodaysTasks(
   completedIds: Set<string>,
   progressBySubject: Record<string, ChapterCompletedDates>
 ): typeof incompleteVideos {
-  const withChapter = incompleteVideos.filter(
-    (c) => isVideoContentType(c.type) && videoNumberOnly(c.chapter)
-  );
   const withoutChapter = incompleteVideos.filter(
     (c) => isVideoContentType(c.type) && !videoNumberOnly(c.chapter)
   );
@@ -103,10 +100,10 @@ export function filterIncompleteVideosForTodaysTasks(
     const dates = progressBySubject[subjectId] || {};
     const activeChapter = getActiveChapterNumber(allSubjectVideos, completedIds, dates);
     if (!activeChapter) continue;
+    // Include completed modules in the active chapter so they stay visible when checked off.
     visible.push(
-      ...withChapter.filter(
-        (v) =>
-          getContentSubjectId(v) === subjectId && videoNumberOnly(v.chapter) === activeChapter
+      ...allSubjectVideos.filter(
+        (v) => videoNumberOnly(v.chapter) === activeChapter
       )
     );
   }
@@ -132,13 +129,11 @@ export function isHomeworkContentType(type: string | undefined): boolean {
 }
 
 export type BuildTodaysTasksOptions = {
-  /** Completion IDs for TextBook, Audio, Material, Workbook, Homework (Today's Tasks only). */
-  nonVideoCompletedIds?: Set<string>;
   maxNonVideo?: number;
   includeHomework?: boolean;
 };
 
-/** Non-video: all incomplete (capped). Video: current chapter modules only (not capped). */
+/** Non-video: newest items (capped). Video: current chapter modules (not capped), including completed. */
 export function buildTodaysTasksContentList(
   allContent: {
     type?: string;
@@ -156,13 +151,11 @@ export function buildTodaysTasksContentList(
 ) {
   const maxNonVideo = options.maxNonVideo ?? TODAYS_TASKS_MAX_NON_VIDEO;
   const includeHomework = options.includeHomework ?? true;
-  const nonVideoCompleted = options.nonVideoCompletedIds ?? videoCompletedIds;
 
   const incompleteNonVideo = allContent.filter((content) => {
-    const contentId = String(content._id || content.id);
     if (isVideoContentType(content.type)) return false;
     if (!includeHomework && isHomeworkContentType(content.type)) return false;
-    return !nonVideoCompleted.has(contentId);
+    return true;
   });
 
   const incompleteVideos = allContent.filter((content) => {

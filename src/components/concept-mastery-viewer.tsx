@@ -19,10 +19,12 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { renderMarkdown } from '@/lib/render-teacher-markdown';
+import { formatInlineMarkdown, renderMarkdown } from '@/lib/render-teacher-markdown';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import {
   conceptHasVisibleContent,
+  fillConceptGapsFromMarkdown,
+  parseSingleConceptDocument,
   resolveConceptsFromPayload,
   type NormalizedConcept,
 } from '@/lib/parse-concept-mastery';
@@ -44,6 +46,28 @@ type ConceptSectionDef = {
   render: (c: NormalizedConcept) => ReactNode;
 };
 
+const CONCEPT_PROSE_CLASS =
+  'prose prose-sm max-w-none break-words text-slate-800 [&_p]:leading-relaxed [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:my-2 [&_ol]:my-2 [&_strong]:font-semibold [&_pre]:overflow-x-auto';
+
+function ConceptProse({ text, className }: { text: string; className?: string }) {
+  if (!String(text || '').trim()) return null;
+  return (
+    <div
+      className={cn(CONCEPT_PROSE_CLASS, className)}
+      dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }}
+    />
+  );
+}
+
+function ConceptInline({ text, className }: { text: string; className?: string }) {
+  return (
+    <span
+      className={className}
+      dangerouslySetInnerHTML={{ __html: formatInlineMarkdown(text) }}
+    />
+  );
+}
+
 const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
   {
     num: 1,
@@ -52,7 +76,7 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
     stripe: 'border-fuchsia-500',
     iconWrap: 'bg-fuchsia-100 text-fuchsia-800',
     hasContent: (c) => !!c.simpleDefinition,
-    render: (c) => <p className="whitespace-pre-wrap text-slate-800">{c.simpleDefinition}</p>,
+    render: (c) => <ConceptProse text={c.simpleDefinition} />,
   },
   {
     num: 2,
@@ -61,7 +85,7 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
     stripe: 'border-violet-500',
     iconWrap: 'bg-violet-100 text-violet-800',
     hasContent: (c) => !!c.whyImportant,
-    render: (c) => <p className="whitespace-pre-wrap text-slate-800">{c.whyImportant}</p>,
+    render: (c) => <ConceptProse text={c.whyImportant} />,
   },
   {
     num: 3,
@@ -70,7 +94,7 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
     stripe: 'border-purple-500',
     iconWrap: 'bg-purple-100 text-purple-800',
     hasContent: (c) => !!c.priorKnowledge,
-    render: (c) => <p className="whitespace-pre-wrap text-slate-800">{c.priorKnowledge}</p>,
+    render: (c) => <ConceptProse text={c.priorKnowledge} />,
   },
   {
     num: 4,
@@ -79,9 +103,7 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
     stripe: 'border-indigo-500',
     iconWrap: 'bg-indigo-100 text-indigo-800',
     hasContent: (c) => !!c.explanation,
-    render: (c) => (
-      <p className="whitespace-pre-wrap text-slate-800 leading-relaxed">{c.explanation}</p>
-    ),
+    render: (c) => <ExplanationBody text={c.explanation} />,
   },
   {
     num: 5,
@@ -91,9 +113,10 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
     iconWrap: 'bg-blue-100 text-blue-800',
     hasContent: (c) => !!c.diagramSuggestion,
     render: (c) => (
-      <p className="whitespace-pre-wrap rounded-lg border border-dashed border-blue-200 bg-blue-50/60 px-3 py-2.5 text-slate-800 italic">
-        {c.diagramSuggestion}
-      </p>
+      <ConceptProse
+        text={c.diagramSuggestion}
+        className="rounded-lg border border-dashed border-blue-200 bg-blue-50/60 px-3 py-2.5 italic"
+      />
     ),
   },
   {
@@ -103,7 +126,7 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
     stripe: 'border-cyan-500',
     iconWrap: 'bg-cyan-100 text-cyan-900',
     hasContent: (c) => !!c.realLifeExamples,
-    render: (c) => <p className="whitespace-pre-wrap text-slate-800">{c.realLifeExamples}</p>,
+    render: (c) => <ConceptProse text={c.realLifeExamples} />,
   },
   {
     num: 7,
@@ -120,7 +143,7 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
             className="flex gap-2 rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2 text-sm text-slate-800"
           >
             <span className="font-bold text-amber-700 shrink-0">!</span>
-            <span>{line}</span>
+            <ConceptInline text={line} />
           </li>
         ))}
       </ul>
@@ -140,7 +163,7 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-rose-600 text-[11px] font-bold text-white">
               {i + 1}
             </span>
-            <span className="pt-0.5">{q}</span>
+            <ConceptInline text={q} className="pt-0.5" />
           </li>
         ))}
       </ol>
@@ -158,7 +181,7 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
         {c.keyPoints.map((point, i) => (
           <li key={i} className="flex gap-2 text-sm text-slate-800">
             <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
-            <span>{point}</span>
+            <ConceptInline text={point} />
           </li>
         ))}
       </ul>
@@ -172,9 +195,10 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
     iconWrap: 'bg-sky-100 text-sky-800',
     hasContent: (c) => !!c.examTips,
     render: (c) => (
-      <p className="whitespace-pre-wrap rounded-lg bg-sky-50 border border-sky-100 px-3 py-2.5 text-slate-800">
-        {c.examTips}
-      </p>
+      <ConceptProse
+        text={c.examTips}
+        className="rounded-lg bg-sky-50 border border-sky-100 px-3 py-2.5"
+      />
     ),
   },
   {
@@ -185,9 +209,10 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
     iconWrap: 'bg-pink-100 text-pink-800',
     hasContent: (c) => !!c.hotsQuestion,
     render: (c) => (
-      <p className="whitespace-pre-wrap font-medium text-slate-900 border-l-4 border-pink-400 pl-3">
-        {c.hotsQuestion}
-      </p>
+      <ConceptProse
+        text={c.hotsQuestion}
+        className="font-medium border-l-4 border-pink-400 pl-3"
+      />
     ),
   },
   {
@@ -198,9 +223,10 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
     iconWrap: 'bg-fuchsia-50 text-fuchsia-900',
     hasContent: (c) => !!c.reflectionPrompt,
     render: (c) => (
-      <p className="whitespace-pre-wrap italic text-slate-700 rounded-lg bg-fuchsia-50/80 px-3 py-2.5">
-        {c.reflectionPrompt}
-      </p>
+      <ConceptProse
+        text={c.reflectionPrompt}
+        className="italic rounded-lg bg-fuchsia-50/80 px-3 py-2.5"
+      />
     ),
   },
 ];
@@ -209,29 +235,54 @@ function countFilledSections(c: NormalizedConcept): number {
   return CONCEPT_TEMPLATE_SECTIONS.filter((s) => s.hasContent(c)).length;
 }
 
-const CONCEPT_PHASES = [
+const CONCEPT_FLOW_PHASES = [
   {
     id: 'understand',
     label: 'Build understanding',
     hint: 'Definition, importance & prerequisites',
-    badge: 'bg-fuchsia-100 text-fuchsia-950 border-fuchsia-200',
-    nums: [1, 2, 3],
+    dotClass: 'bg-fuchsia-600 ring-fuchsia-200',
+    badgeClass: 'bg-fuchsia-100 text-fuchsia-950 border-fuchsia-200',
   },
   {
     id: 'learn',
     label: 'Teach the concept',
     hint: 'Explanation, visuals & examples',
-    badge: 'bg-violet-100 text-violet-950 border-violet-200',
-    nums: [4, 5, 6],
+    dotClass: 'bg-violet-600 ring-violet-200',
+    badgeClass: 'bg-violet-100 text-violet-950 border-violet-200',
   },
   {
     id: 'master',
     label: 'Check mastery',
     hint: 'Questions, tips & reflection',
-    badge: 'bg-indigo-100 text-indigo-950 border-indigo-200',
-    nums: [7, 8, 9, 10, 11, 12],
+    dotClass: 'bg-indigo-600 ring-indigo-200',
+    badgeClass: 'bg-indigo-100 text-indigo-950 border-indigo-200',
   },
 ] as const;
+
+const SECTION_PHASE: Record<number, (typeof CONCEPT_FLOW_PHASES)[number]['id']> = {
+  1: 'understand',
+  2: 'understand',
+  3: 'understand',
+  4: 'learn',
+  5: 'learn',
+  6: 'learn',
+  7: 'master',
+  8: 'master',
+  9: 'master',
+  10: 'master',
+  11: 'master',
+  12: 'master',
+};
+
+/** Step-by-step explanation — render full markdown so no sub-step is dropped. */
+function ExplanationBody({ text }: { text: string }) {
+  return (
+    <ConceptProse
+      text={text}
+      className="[&_ol]:space-y-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:mb-2"
+    />
+  );
+}
 
 function difficultyStyles(difficulty?: string) {
   switch (difficulty?.toLowerCase()) {
@@ -246,34 +297,47 @@ function difficultyStyles(difficulty?: string) {
   }
 }
 
-function ConceptSectionBlock({
+function ConceptTimelineStep({
   sectionNum,
   title,
   icon: Icon,
-  stripe,
-  iconWrap,
+  dotClass,
+  isLast,
   children,
 }: {
-  sectionNum: string;
+  sectionNum: number;
   title: string;
   icon: LucideIcon;
-  stripe: string;
-  iconWrap: string;
+  dotClass: string;
+  isLast: boolean;
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
-      <div className={cn('flex items-center gap-2.5 px-3 py-2.5 border-l-[5px]', stripe)}>
-        <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', iconWrap)}>
-          <Icon className="h-4 w-4" aria-hidden />
+    <div className="relative flex gap-3 sm:gap-4">
+      <div className="flex flex-col items-center pt-0.5">
+        <div
+          className={cn(
+            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm ring-4',
+            dotClass,
+          )}
+        >
+          {sectionNum}
         </div>
-        <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{sectionNum}</p>
-          <h4 className="text-sm font-bold text-slate-900 leading-tight">{title}</h4>
-        </div>
+        {!isLast ? (
+          <div
+            className="w-px flex-1 min-h-[20px] mt-2 bg-gradient-to-b from-slate-300 via-slate-200 to-transparent"
+            aria-hidden
+          />
+        ) : null}
       </div>
-      <div className="px-3 pb-3 pt-1 text-sm">{children}</div>
-    </section>
+      <article className="mb-5 min-w-0 flex-1 rounded-xl border border-slate-200/90 bg-white p-3.5 sm:p-4 shadow-sm last:mb-0">
+        <header className="mb-2.5 flex items-center gap-2 border-b border-slate-100 pb-2">
+          <Icon className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+          <h4 className="text-sm font-semibold text-slate-900 leading-snug">{title}</h4>
+        </header>
+        <div className="text-sm leading-relaxed text-slate-800">{children}</div>
+      </article>
+    </div>
   );
 }
 
@@ -281,26 +345,27 @@ function TeacherConceptCard({ concept }: { concept: NormalizedConcept }) {
   const filled = countFilledSections(concept);
   const total = CONCEPT_TEMPLATE_SECTIONS.length;
   const progressPct = Math.round((filled / total) * 100);
+  const activeSections = CONCEPT_TEMPLATE_SECTIONS.filter((sec) => sec.hasContent(concept));
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border-2 border-fuchsia-200/80 bg-gradient-to-br from-fuchsia-50/90 via-white to-violet-50/50 p-4 sm:p-5 shadow-sm">
+    <div className="space-y-5">
+      <div className="rounded-xl border-2 border-dashed border-fuchsia-300/70 bg-gradient-to-br from-fuchsia-50/90 via-white to-violet-50/40 px-4 py-4 sm:px-5 sm:py-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0 flex gap-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-fuchsia-600 to-violet-600 text-white shadow-md">
-              <Brain className="h-6 w-6" aria-hidden />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-fuchsia-700/90">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-fuchsia-800/80 mb-1">
+              Concept · Teaching reference
+            </p>
+            <h4 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight font-serif">
+              {concept.conceptName}
+            </h4>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Badge className="rounded border-fuchsia-200 bg-fuchsia-100/80 text-fuchsia-950 hover:bg-fuchsia-100/80 font-medium">
                 Concept {concept.sl}
-              </p>
-              <h4 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
-                {concept.conceptName}
-              </h4>
+              </Badge>
               {concept.difficulty ? (
                 <span
                   className={cn(
-                    'mt-2 inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide',
+                    'rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide',
                     difficultyStyles(concept.difficulty),
                   )}
                 >
@@ -309,88 +374,105 @@ function TeacherConceptCard({ concept }: { concept: NormalizedConcept }) {
               ) : null}
             </div>
           </div>
-          <div className="shrink-0 w-full sm:w-32">
-            <p className="text-[10px] font-semibold uppercase text-slate-500 mb-1">Coverage</p>
-            <div className="h-2 rounded-full bg-fuchsia-100 overflow-hidden">
+          <div className="shrink-0 w-full sm:w-36">
+            <p className="text-[10px] font-semibold uppercase text-slate-500 mb-1">Sections ready</p>
+            <div className="h-2.5 rounded-full bg-slate-200 overflow-hidden">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-indigo-500"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
             <p className="text-[11px] text-slate-500 mt-1 text-right">
-              {filled}/{total} sections
+              {filled}/{total} blocks
             </p>
           </div>
         </div>
       </div>
 
-      {CONCEPT_PHASES.map((phase) => {
-        const sections = CONCEPT_TEMPLATE_SECTIONS.filter(
-          (s) => (phase.nums as readonly number[]).includes(s.num) && s.hasContent(concept),
-        );
-        if (!sections.length) return null;
+      {CONCEPT_FLOW_PHASES.map((phase) => {
+        const phaseSections = activeSections.filter((sec) => SECTION_PHASE[sec.num] === phase.id);
+        if (!phaseSections.length) return null;
 
         return (
-          <div key={phase.id}>
-            <div className={cn('mb-2.5 rounded-lg border px-3 py-2', phase.badge)}>
-              <p className="text-xs font-bold uppercase tracking-wide">{phase.label}</p>
-              <p className="text-[11px] opacity-80">{phase.hint}</p>
+          <section key={phase.id} aria-label={phase.label}>
+            <div
+              className={cn(
+                'mb-3 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2',
+                phase.badgeClass,
+              )}
+            >
+              <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', phase.dotClass.split(' ')[0])} />
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide">{phase.label}</p>
+                <p className="text-[11px] opacity-80">{phase.hint}</p>
+              </div>
             </div>
-            <div className="space-y-2.5">
-              {sections.map((sec) => (
-                <ConceptSectionBlock
+            <div className="pl-1 sm:pl-2">
+              {phaseSections.map((sec, idx) => (
+                <ConceptTimelineStep
                   key={sec.num}
-                  sectionNum={`Section ${sec.num}`}
+                  sectionNum={sec.num}
                   title={sec.title}
                   icon={sec.icon}
-                  stripe={sec.stripe}
-                  iconWrap={sec.iconWrap}
+                  dotClass={phase.dotClass}
+                  isLast={idx === phaseSections.length - 1}
                 >
                   {sec.render(concept)}
-                </ConceptSectionBlock>
+                </ConceptTimelineStep>
               ))}
             </div>
-          </div>
+          </section>
         );
       })}
     </div>
   );
 }
 
+function TeacherMarkdownBody({ markdown }: { markdown: string }) {
+  return (
+    <div
+      className="prose prose-sm max-w-none rounded-xl border border-slate-200 bg-white/90 p-4 sm:p-5 shadow-sm prose-headings:font-serif prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700"
+      dangerouslySetInnerHTML={{ __html: renderMarkdown(markdown) }}
+    />
+  );
+}
+
 function TeacherConceptShell({ conceptCount, children }: { conceptCount: number; children: ReactNode }) {
   return (
     <div className="w-full">
-      <div className="relative overflow-hidden rounded-2xl border-2 border-fuchsia-200/70 shadow-lg shadow-fuchsia-900/5">
+      <div className="relative overflow-hidden rounded-2xl border-2 border-fuchsia-200/80 shadow-lg shadow-fuchsia-900/5">
         <div
-          className="absolute inset-0 pointer-events-none opacity-30"
+          className="absolute inset-0 pointer-events-none opacity-[0.35]"
           style={{
-            backgroundImage:
-              'radial-gradient(circle at 20% 20%, rgba(192,38,211,0.08) 0%, transparent 45%), radial-gradient(circle at 80% 0%, rgba(124,58,237,0.08) 0%, transparent 40%)',
+            backgroundImage: 'linear-gradient(rgba(148,163,184,0.35) 1px, transparent 1px)',
+            backgroundSize: '100% 28px',
+            backgroundPosition: '0 72px',
           }}
           aria-hidden
         />
-        <div className="relative border-b border-fuchsia-900/20 bg-gradient-to-br from-fuchsia-900 via-violet-900 to-indigo-900 px-4 py-4 sm:px-6">
+        <div className="relative border-b border-slate-700/20 bg-gradient-to-br from-slate-800 via-violet-900 to-fuchsia-900 px-4 py-4 sm:px-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3 text-white">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 ring-2 ring-fuchsia-300/30">
-                <Brain className="h-5 w-5" aria-hidden />
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-fuchsia-400/90 text-slate-900 shadow-md rotate-[-2deg]">
+                <Brain className="h-6 w-6" aria-hidden />
               </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-fuchsia-200">
+              <div className="text-white">
+                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-fuchsia-200/90">
                   Concept Mastery Helper
                 </p>
-                <h3 className="text-lg font-bold sm:text-xl">Teaching reference</h3>
-                <p className="text-xs text-fuchsia-100/85 mt-0.5">12-part concept breakdown for your class</p>
+                <h3 className="text-lg font-bold sm:text-xl font-serif">Concept teaching flow</h3>
+                <p className="text-xs text-fuchsia-100/85 mt-0.5">12-part breakdown for your class</p>
               </div>
             </div>
             {conceptCount > 1 ? (
-              <Badge className="bg-white/15 text-white border-0 hover:bg-white/15">
+              <span className="rounded-md bg-white/10 px-3 py-1.5 text-xs font-semibold text-fuchsia-100 ring-1 ring-white/20">
                 {conceptCount} concepts
-              </Badge>
+              </span>
             ) : conceptCount === 1 ? (
-              <Badge className="bg-fuchsia-400/25 text-fuchsia-50 border-fuchsia-300/30 hover:bg-fuchsia-400/25">
-                1 concept
-              </Badge>
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-fuchsia-400/20 px-3 py-1.5 text-xs font-semibold text-fuchsia-100 ring-1 ring-fuchsia-300/30">
+                <Sparkles className="h-3.5 w-3.5" aria-hidden />
+                One concept
+              </span>
             ) : null}
           </div>
         </div>
@@ -532,46 +614,91 @@ export function ConceptMasteryViewer({
     [content],
   );
 
-  const resolved = useMemo(
-    () => resolveConceptsFromPayload(parsedContent, rawContent),
-    [parsedContent, rawContent],
-  );
+  const markdownSource = useMemo(() => {
+    const text = parsedContent.trim();
+    if (!text) return '';
+    try {
+      const envelope = JSON.parse(text) as Record<string, unknown>;
+      if (envelope.formatted != null) return String(envelope.formatted).trim();
+      if (envelope.markdown != null) return String(envelope.markdown).trim();
+    } catch {
+      /* plain markdown */
+    }
+    return text;
+  }, [parsedContent]);
+
+  const resolved = useMemo(() => {
+    const base = resolveConceptsFromPayload(parsedContent, rawContent);
+    if (base.concepts.some(conceptHasVisibleContent)) return base;
+    const reparsed = parseSingleConceptDocument(parsedContent);
+    if (reparsed) {
+      return { concepts: [reparsed], markdownFallback: null };
+    }
+    if (base.markdownFallback) {
+      const fromMd = parseSingleConceptDocument(base.markdownFallback);
+      if (fromMd) return { concepts: [fromMd], markdownFallback: null };
+    }
+    return base;
+  }, [parsedContent, rawContent]);
 
   const [conceptIdx, setConceptIdx] = useState(0);
 
   const useTeacher = variant === 'teacher' || variant === 'default';
+  const safeIdx = Math.min(
+    conceptIdx,
+    Math.max(0, resolved.concepts.length - 1),
+  );
+  const current = useMemo(() => {
+    const c = resolved.concepts[safeIdx];
+    if (!c) return c;
+    let enriched = c;
+    if (markdownSource) {
+      enriched = fillConceptGapsFromMarkdown(enriched, markdownSource);
+    }
+    if (resolved.markdownFallback?.trim()) {
+      enriched = fillConceptGapsFromMarkdown(enriched, resolved.markdownFallback);
+    }
+    if (conceptHasVisibleContent(enriched)) return enriched;
+    const reparsed = parseSingleConceptDocument(markdownSource || parsedContent);
+    if (reparsed) return reparsed;
+    return enriched;
+  }, [resolved.concepts, resolved.markdownFallback, safeIdx, markdownSource, parsedContent]);
+
   const useMarkdown =
     !!resolved.markdownFallback &&
     (!resolved.concepts.length || !resolved.concepts.some(conceptHasVisibleContent));
 
   if (useMarkdown && resolved.markdownFallback) {
-    const body = (
-      <div
-        className="prose prose-sm max-w-none rounded-xl border border-fuchsia-100 bg-white p-4 sm:p-5 shadow-sm"
-        dangerouslySetInnerHTML={{ __html: renderMarkdown(resolved.markdownFallback) }}
-      />
-    );
     if (useTeacher) {
       return (
         <div className={className}>
-          <TeacherConceptShell conceptCount={0}>{body}</TeacherConceptShell>
+          <TeacherConceptShell conceptCount={0}>
+            <TeacherMarkdownBody markdown={resolved.markdownFallback} />
+          </TeacherConceptShell>
         </div>
       );
     }
-    return <div className={cn('w-full', className)}>{body}</div>;
+    return (
+      <div className={cn('w-full', className)}>
+        <div
+          className="prose prose-sm max-w-none rounded-xl border border-fuchsia-100 bg-white p-4 sm:p-5 shadow-sm"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(resolved.markdownFallback) }}
+        />
+      </div>
+    );
   }
 
   if (!resolved.concepts.length) {
     return (
       <div
         className={cn(
-          'rounded-2xl border border-dashed border-fuchsia-200 bg-fuchsia-50/50 px-6 py-14 text-center',
+          'rounded-2xl border border-dashed border-fuchsia-300 bg-fuchsia-50/60 px-6 py-14 text-center',
           className,
         )}
       >
-        <Brain className="mx-auto h-10 w-10 text-fuchsia-300 mb-3" aria-hidden />
-        <p className="text-sm font-medium text-slate-700">No concepts found for this selection</p>
-        <p className="text-xs text-slate-500 mt-1">Try generating again or pick another topic.</p>
+        <Brain className="mx-auto h-10 w-10 text-fuchsia-500/70 mb-3" aria-hidden />
+        <p className="text-sm font-medium text-stone-700">No concepts found for this selection</p>
+        <p className="text-xs text-stone-500 mt-1">Try generating again or pick another topic.</p>
       </div>
     );
   }
@@ -584,28 +711,25 @@ export function ConceptMasteryViewer({
     );
   }
 
-  const safeIdx = Math.min(conceptIdx, resolved.concepts.length - 1);
-  const current = resolved.concepts[safeIdx];
-
   return (
     <div className={className}>
       <TeacherConceptShell conceptCount={resolved.concepts.length}>
         {resolved.concepts.length > 1 ? (
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="flex flex-wrap gap-2 mb-3">
             {resolved.concepts.map((c, i) => (
               <button
                 key={`${c.conceptName}-${i}`}
                 type="button"
                 onClick={() => setConceptIdx(i)}
                 className={cn(
-                  'rounded-lg px-3 py-1.5 text-xs font-semibold transition-all max-w-[200px] truncate border',
+                  'rounded-full px-4 py-1.5 text-xs font-bold transition-all max-w-full truncate',
                   i === safeIdx
-                    ? 'bg-fuchsia-700 text-white border-fuchsia-800 shadow-md'
-                    : 'bg-white text-fuchsia-900 border-fuchsia-200 hover:bg-fuchsia-50',
+                    ? 'bg-violet-900 text-fuchsia-50 shadow-md ring-2 ring-fuchsia-300/50'
+                    : 'bg-white text-slate-800 border border-fuchsia-200 hover:bg-fuchsia-50/80',
                 )}
                 title={c.conceptName}
               >
-                {c.conceptName}
+                Concept {i + 1}: {c.conceptName}
               </button>
             ))}
           </div>
@@ -613,12 +737,13 @@ export function ConceptMasteryViewer({
         <AnimatePresence mode="wait">
           <motion.div
             key={safeIdx}
+            className="h-fit"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.2 }}
           >
-            <TeacherConceptCard concept={current} />
+            {current ? <TeacherConceptCard concept={current} /> : null}
           </motion.div>
         </AnimatePresence>
       </TeacherConceptShell>

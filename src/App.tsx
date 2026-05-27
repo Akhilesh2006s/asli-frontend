@@ -27,6 +27,7 @@ const AsliPrepContentPage = lazy(() => import("./pages/asli-prep-content"));
 const SubjectContent = lazy(() => import("./pages/subject-content"));
 const EduOTT = lazy(() => import("./pages/edu-ott"));
 import { EduOTTFilterProvider } from "@/contexts/edu-ott-filter-context";
+import StudentPageLoader from "@/components/student/StudentPageLoader";
 
 function EduOTTWithFilters() {
   return (
@@ -95,12 +96,7 @@ function App() {
         <Toaster />
         <Suspense
           fallback={
-            <div className="min-h-screen bg-sky-50 flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
-                <p className="text-sm text-gray-600">Loading page...</p>
-              </div>
-            </div>
+            <StudentPageLoader message="Loading page..." />
           }
         >
           <Router />

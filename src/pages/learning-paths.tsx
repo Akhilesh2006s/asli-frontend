@@ -33,6 +33,7 @@ import {
   Headphones,
   ExternalLink,
   Video,
+  Loader2,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -79,6 +80,16 @@ export default function LearningPaths() {
   const [allLibraryContent, setAllLibraryContent] = useState<any[]>([]);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewContent, setPreviewContent] = useState<any | null>(null);
+  const [isNavigatingToSubject, setIsNavigatingToSubject] = useState(false);
+
+  const prefetchSubjectPage = () => {
+    void import("@/pages/subject-content");
+  };
+
+  const handleSubjectClick = (subjectId: string) => {
+    setIsNavigatingToSubject(true);
+    setLocation(`/subject/${subjectId}`);
+  };
 
   const isYouTubeUrl = (url?: string) => {
     if (!url) return false;
@@ -611,27 +622,20 @@ export default function LearningPaths() {
     }
   ];
 
-  if (isLoadingUser) {
-    return (
-      <>
-        <Navigation />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
-          <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-            <Skeleton className="h-48 w-full rounded-2xl" />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-64 w-full" />
-              ))}
-            </div>
-          </div>
-        </div>
-      </>
-    );
-  }
-
   return (
     <>
       <Navigation />
+      {isNavigatingToSubject && (
+        <div
+          className="fixed inset-0 z-[100] bg-sky-50/90 backdrop-blur-sm flex flex-col items-center justify-center"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <Loader2 className="w-10 h-10 text-sky-500 animate-spin mb-3" aria-hidden />
+          <p className="text-sm text-gray-600 font-medium">Opening subject...</p>
+        </div>
+      )}
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-8 bg-sky-50 min-h-screen relative">
         
         {!isMobile && <VidyaAIFloatingAssistant />}
@@ -641,7 +645,7 @@ export default function LearningPaths() {
           <div className="gradient-primary rounded-2xl p-5 sm:p-8 text-white relative overflow-hidden">
             <div className="relative z-10">
               <h1 className="text-xl sm:text-2xl sm:text-3xl font-bold mb-2 break-words">
-                Learning Paths for {getStudentDisplayName(user)}
+                Learning Paths for {isLoadingUser ? "..." : getStudentDisplayName(user)}
               </h1>
               <p className="text-blue-100 mb-6">
                 Choose your learning journey and master your subjects with our structured courses
@@ -689,9 +693,10 @@ export default function LearningPaths() {
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Browse by Subject</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:p-4 lg:p-6">
             {isLoadingSubjects ? (
-              Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-64 w-full" />
-              ))
+              <div className="col-span-full flex flex-col items-center justify-center py-20">
+                <Loader2 className="w-10 h-10 text-sky-500 animate-spin mb-3" aria-hidden />
+                <p className="text-sm text-gray-600 font-medium">Loading subjects...</p>
+              </div>
             ) : subjects.length === 0 ? (
               <div className="col-span-full text-center py-12">
                 <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -724,7 +729,9 @@ export default function LearningPaths() {
                   <Card 
                     key={subject._id || subject.id} 
                     className="hover:shadow-lg transition-shadow duration-200 cursor-pointer bg-white border border-gray-200"
-                        onClick={() => setLocation(`/subject/${subject._id || subject.id}`)}
+                    onMouseEnter={prefetchSubjectPage}
+                    onFocus={prefetchSubjectPage}
+                    onClick={() => handleSubjectClick(subject._id || subject.id)}
                   >
                     <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col items-center text-center">
                       <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md mb-4">
@@ -745,10 +752,9 @@ export default function LearningPaths() {
         <div className="mb-8 max-w-7xl mx-auto">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">My Quizzes</h2>
           {isLoadingQuizzes ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-64 w-full" />
-              ))}
+            <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-gray-200">
+              <Loader2 className="w-10 h-10 text-sky-500 animate-spin mb-3" aria-hidden />
+              <p className="text-sm text-gray-600 font-medium">Loading quizzes...</p>
             </div>
           ) : quizzes.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-2xl border border-gray-200">

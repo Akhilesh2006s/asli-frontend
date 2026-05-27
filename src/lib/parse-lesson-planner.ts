@@ -48,11 +48,58 @@ const SECTION_HEADING_MD_RE = /^#{1,3}\s+(\d{1,2})\.\s*(.+?)\s*$/i;
 const SECTION_HEADING_BOLD_RE = /^\*\*(\d{1,2})\.\s*(.+?)\*\*\s*$/i;
 const SECTION_PLAIN_RE = /^(\d{1,2})\.\s+(.+?)\s*$/i;
 
-function stripOrderedPrefix(line: string): string {
-  return String(line || '')
-    .replace(/^\s*\d+[\).\s]+/i, '')
-    .replace(/^\s*[-*•]\s*/, '')
+/** Plain text for UI — no **bold**, bullets, or heading markers. */
+export function stripDisplayMarkdown(text: string): string {
+  return String(text || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/\*([^*\n]+)\*/g, '$1')
+    .replace(/_([^_\n]+)_/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
     .trim();
+}
+
+function stripOrderedPrefix(line: string): string {
+  return stripDisplayMarkdown(
+    String(line || '')
+      .replace(/^\s*\d+[\).\s]+/i, '')
+      .replace(/^\s*[-*•]\s*/, '')
+      .trim(),
+  );
+}
+
+const PERIOD_TIME_CUES_SPLIT_RE =
+  /(?:\n|^)\s*(?:\*\*)?Period\s*\/\s*time\s*cues:?(?:\*\*)?\s*(?:\n|$)/i;
+
+function splitClosureAndTimeline(raw: string): { closure: string; extraTimeline: string[] } {
+  const text = String(raw || '').trim();
+  if (!text) return { closure: '', extraTimeline: [] };
+  const match = text.match(PERIOD_TIME_CUES_SPLIT_RE);
+  if (!match || match.index == null) {
+    return { closure: stripDisplayMarkdown(text), extraTimeline: [] };
+  }
+  const closurePart = text.slice(0, match.index).trim();
+  const after = text.slice(match.index + match[0].length).trim();
+  return {
+    closure: stripDisplayMarkdown(closurePart),
+    extraTimeline: linesToList(after),
+  };
+}
+
+function mergeTimelineLists(base: string[], extra: string[]): string[] {
+  if (!extra.length) return base;
+  const seen = new Set(base.map((t) => t.toLowerCase()));
+  const out = [...base];
+  for (const item of extra) {
+    const key = item.toLowerCase();
+    if (!seen.has(key)) {
+      out.push(item);
+      seen.add(key);
+    }
+  }
+  return out;
 }
 
 function coalesceLines(v: unknown): string[] {
@@ -64,8 +111,10 @@ function coalesceLines(v: unknown): string[] {
 }
 
 function coalesceText(v: unknown): string {
-  if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter(Boolean).join('\n');
-  return String(v ?? '').trim();
+  if (Array.isArray(v)) {
+    return stripDisplayMarkdown(v.map((x) => String(x).trim()).filter(Boolean).join('\n'));
+  }
+  return stripDisplayMarkdown(String(v ?? ''));
 }
 
 function coalesceNcf(v: unknown): string[] {
@@ -223,8 +272,15 @@ function rawRecordFromSectionMap(
   const aids = linesToList(get(13));
   if (aids.length) raw.teaching_aids_required = aids;
 
-  const closure = get(14);
-  if (closure) raw.closure_exit_ticket = closure;
+  const closureBlock = get(14);
+  if (closureBlock) {
+    const { closure, extraTimeline } = splitClosureAndTimeline(closureBlock);
+    if (closure) raw.closure_exit_ticket = closure;
+    if (extraTimeline.length) {
+      const existing = coalesceLines(raw.timeline);
+      raw.timeline = mergeTimelineLists(existing, extraTimeline);
+    }
+  }
 
   return raw;
 }
@@ -288,8 +344,12 @@ export function normalizeLesson(raw: Record<string, unknown>, idx: number): Norm
     coalesceText(o.prior_knowledge_diagnostic || o.diagnostic_question) ||
     coalesceLines(o.previous_knowledge).join('\n');
 
-  const timeline = coalesceLines(o.timeline || o.schedule);
-  const closure = coalesceText(o.closure_exit_ticket || o.reflection_exit_ticket || o.exit_ticket);
+  let timeline = coalesceLines(o.timeline || o.schedule);
+  const closureSplit = splitClosureAndTimeline(
+    coalesceText(o.closure_exit_ticket || o.reflection_exit_ticket || o.exit_ticket),
+  );
+  const closure = closureSplit.closure;
+  timeline = mergeTimelineLists(timeline, closureSplit.extraTimeline);
 
   return {
     sl: Number(o.sl_no) || idx + 1,

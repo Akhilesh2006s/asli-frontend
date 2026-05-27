@@ -5,23 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import Navigation from "@/components/navigation";
 import { 
   User, 
   Settings, 
-  Award, 
-  Target, 
   TrendingUp,
   Calendar,
-  Clock,
-  BookOpen,
-  Star,
-  Trophy,
-  Flame,
   Edit,
   Save,
   X,
@@ -50,7 +40,7 @@ export default function Profile() {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  // Exam results (used as "test attempts" for achievements / quick stats)
+  // Exam results (used for overview stats / quick stats)
   const [examResults, setExamResults] = useState<any[]>([]);
   const [rankings, setRankings] = useState<any[]>([]);
   const [progressRecords, setProgressRecords] = useState<any[]>([]);
@@ -160,9 +150,6 @@ export default function Profile() {
     };
     fetchOverviewData();
   }, []);
-
-  // Use exam results as "attempts" for achievements and quick stats
-  const attempts = examResults;
 
   // Update profile mutation (use apiFetch so request goes to backend URL with auth token)
   const updateProfileMutation = useMutation({
@@ -281,46 +268,6 @@ export default function Profile() {
     updateProfileMutation.mutate({ profilePhoto: "" });
   };
 
-  // Calculate achievements
-  const achievements = [
-    {
-      id: "streak_master",
-      title: "Study Streak Master",
-      description: `${stats.streak} days continuous learning`,
-      icon: Flame,
-      color: "bg-orange-100 text-orange-600",
-      unlocked: stats.streak >= 7,
-      progress: Math.min((stats.streak / 30) * 100, 100)
-    },
-    {
-      id: "question_solver",
-      title: "Problem Solver",
-      description: `${stats.questionsAnswered.toLocaleString()} questions solved`,
-      icon: Target,
-      color: "bg-blue-100 text-blue-600",
-      unlocked: stats.questionsAnswered >= 100,
-      progress: Math.min((stats.questionsAnswered / 1000) * 100, 100)
-    },
-    {
-      id: "accuracy_expert",
-      title: "Accuracy Expert",
-      description: `${stats.accuracyRate}% average accuracy`,
-      icon: Star,
-      color: "bg-yellow-100 text-yellow-600",
-      unlocked: stats.accuracyRate >= 75,
-      progress: Math.min((stats.accuracyRate / 90) * 100, 100)
-    },
-    {
-      id: "test_champion",
-      title: "Test Champion",
-      description: `${(attempts as any[]).length} tests completed`,
-      icon: Trophy,
-      color: "bg-green-100 text-green-600",
-      unlocked: (attempts as any[]).length >= 5,
-      progress: Math.min(((attempts as any[]).length / 20) * 100, 100)
-    }
-  ];
-
   if (isLoading) {
     return (
       <>
@@ -328,15 +275,9 @@ export default function Profile() {
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
           <div className="space-y-4 sm:space-y-6 lg:space-y-8">
             <Skeleton className="h-32 w-full" />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:p-6 lg:p-8">
-              <div className="lg:col-span-2 space-y-3 sm:space-y-4 lg:space-y-6">
-                <Skeleton className="h-64 w-full" />
-                <Skeleton className="h-64 w-full" />
-              </div>
-              <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-                <Skeleton className="h-48 w-full" />
-                <Skeleton className="h-48 w-full" />
-              </div>
+            <div className="space-y-3 sm:space-y-4 lg:space-y-6 sm:p-6 lg:p-8">
+              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-64 w-full" />
             </div>
           </div>
         </div>
@@ -601,19 +542,9 @@ export default function Profile() {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-4 sm:p-6 lg:p-8">
-          
-          {/* Main Content */}
-          <div className="lg:col-span-2">
-            <Tabs defaultValue="overview" className="space-y-3 sm:space-y-4 lg:space-y-6">
-              <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="achievements">Achievements</TabsTrigger>
-                <TabsTrigger value="progress">Progress</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
-              </TabsList>
+        <div className="space-y-3 sm:space-y-4 lg:space-y-6 sm:p-6 lg:p-8">
+                {profileSettingsSection}
 
-              <TabsContent value="overview" className="space-y-3 sm:space-y-4 lg:space-y-6">
                 {/* Performance Stats */}
                 <Card>
                   <CardHeader>
@@ -705,189 +636,6 @@ export default function Profile() {
                     )}
                   </CardContent>
                 </Card>
-              </TabsContent>
-
-              <TabsContent value="achievements" className="space-y-3 sm:space-y-4 lg:space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Award className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                      Achievements & Badges
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {achievements.map((achievement) => {
-                      const Icon = achievement.icon;
-                      return (
-                        <div key={achievement.id} className="p-4 border rounded-lg">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center space-x-3">
-                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${achievement.color}`}>
-                                <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
-                              </div>
-                              <div>
-                                <h4 className="font-medium text-gray-900">{achievement.title}</h4>
-                                <p className="text-xs sm:text-sm text-gray-600">{achievement.description}</p>
-                              </div>
-                            </div>
-                            <Badge className={achievement.unlocked ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}>
-                              {achievement.unlocked ? 'Unlocked' : 'Locked'}
-                            </Badge>
-                          </div>
-                          <Progress value={achievement.progress} className="h-2" />
-                          <p className="text-xs text-gray-500 mt-1">
-                            {Math.round(achievement.progress)}% complete
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="progress" className="space-y-3 sm:space-y-4 lg:space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                      Learning Progress
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
-                    {/* Subject Progress */}
-                    <div>
-                      <h4 className="font-medium mb-4">Subject-wise Progress</h4>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs sm:text-sm font-medium">Physics</span>
-                          <span className="text-xs sm:text-sm text-gray-600">75%</span>
-                        </div>
-                        <Progress value={75} className="h-2" />
-                        
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs sm:text-sm font-medium">Chemistry</span>
-                          <span className="text-xs sm:text-sm text-gray-600">62%</span>
-                        </div>
-                        <Progress value={62} className="h-2" />
-                        
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs sm:text-sm font-medium">Mathematics</span>
-                          <span className="text-xs sm:text-sm text-gray-600">58%</span>
-                        </div>
-                        <Progress value={58} className="h-2" />
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Study Goals */}
-                    <div>
-                      <h4 className="font-medium mb-4">Study Goals</h4>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                              <Target className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
-                            </div>
-                            <span className="text-xs sm:text-sm font-medium">Daily Study Goal</span>
-                          </div>
-                          <Badge className="bg-blue-100 text-blue-800">3 hours</Badge>
-                        </div>
-                        
-                        <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                              <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
-                            </div>
-                            <span className="text-xs sm:text-sm font-medium">Weekly Target</span>
-                          </div>
-                          <Badge className="bg-green-100 text-green-800">20 hours</Badge>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="settings" className="space-y-3 sm:space-y-4 lg:space-y-6">
-                {profileSettingsSection}
-              </TabsContent>
-            </Tabs>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-            
-            {/* Quick Stats */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs sm:text-sm text-gray-600">Tests Completed</span>
-                  <span className="font-semibold">{(attempts as any[]).length}</span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-xs sm:text-sm text-gray-600">Best Score</span>
-                  <span className="font-semibold">
-                    {(attempts as any[]).length > 0
-                      ? `${Math.max(...(attempts as any[]).map((a: any) => {
-                          if (a.percentage != null) return Math.round(a.percentage);
-                          if (a.totalMarks > 0 && a.obtainedMarks != null) return Math.round((a.obtainedMarks / a.totalMarks) * 100);
-                          if (a.totalQuestions > 0 && a.correctAnswers != null) return Math.round((a.correctAnswers / a.totalQuestions) * 100);
-                          return 0;
-                        }))}%`
-                      : 'N/A'
-                    }
-                  </span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-xs sm:text-sm text-gray-600">Study Hours</span>
-                  <span className="font-semibold">
-                    {overviewLoading ? '…' : `${weeklyHoursTotal}h this week`}
-                  </span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-xs sm:text-sm text-gray-600">Achievements</span>
-                  <span className="font-semibold">
-                    {achievements.filter(a => a.unlocked).length}/{achievements.length}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Recent Activity */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center space-x-3 text-xs sm:text-sm">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-gray-600">Completed Physics test</span>
-                </div>
-                
-                <div className="flex items-center space-x-3 text-xs sm:text-sm">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-gray-600">Watched Chemistry lecture</span>
-                </div>
-                
-                <div className="flex items-center space-x-3 text-xs sm:text-sm">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <span className="text-gray-600">Asked Vidya AI a question</span>
-                </div>
-                
-                <div className="flex items-center space-x-3 text-xs sm:text-sm">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span className="text-gray-600">Achieved study streak milestone</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </div>
     </>

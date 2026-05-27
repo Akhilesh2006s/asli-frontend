@@ -33,6 +33,7 @@ import { ConceptMasteryViewer } from '@/components/concept-mastery-viewer';
 import { LessonPlannerViewer } from '@/components/lesson-planner-viewer';
 import { ActivityProjectViewer } from '@/components/activity-project-viewer';
 import { StoryPassageViewer } from '@/components/story-passage-viewer';
+import { WorksheetMcqViewer } from '@/components/worksheet-mcq-viewer';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import {
   buildAiToolGenerationSummary,
@@ -849,7 +850,8 @@ export default function TeacherToolPage() {
           if (toolType === 'short-notes-summaries-maker' || 
               toolType === 'concept-mastery-helper' || 
               toolType === 'lesson-planner' ||
-              toolType === 'flashcard-generator') {
+              toolType === 'flashcard-generator' ||
+              toolType === 'worksheet-mcq-generator') {
             // Store in a way the viewer can access
             const contentWithData = JSON.stringify({
               formatted: data.data.content,
@@ -1823,23 +1825,30 @@ export default function TeacherToolPage() {
           {/* Generated content — full width below parameters */}
           <Card
             className={cn(
-              'w-full overflow-hidden',
+              'w-full',
+              toolType !== 'concept-mastery-helper' &&
+                toolType !== 'worksheet-mcq-generator' &&
+                'overflow-hidden',
               toolType === 'activity-project-generator' && generatedContent && 'border-indigo-100',
               toolType === 'lesson-planner' && generatedContent && 'border-amber-200/80',
               toolType === 'concept-mastery-helper' && generatedContent && 'border-fuchsia-200/80',
+              toolType === 'worksheet-mcq-generator' && generatedContent && 'border-emerald-200/80',
             )}
           >
             <CardHeader
               className={
                 (toolType === 'activity-project-generator' ||
                   toolType === 'lesson-planner' ||
-                  toolType === 'concept-mastery-helper') &&
+                  toolType === 'concept-mastery-helper' ||
+                  toolType === 'worksheet-mcq-generator') &&
                 generatedContent
                   ? toolType === 'lesson-planner'
                     ? 'border-b bg-gradient-to-r from-amber-50/90 via-white to-teal-50/50'
                     : toolType === 'concept-mastery-helper'
                       ? 'border-b bg-gradient-to-r from-fuchsia-50/90 via-white to-violet-50/50'
-                      : 'border-b bg-gradient-to-r from-slate-50 to-indigo-50/40'
+                      : toolType === 'worksheet-mcq-generator'
+                        ? 'border-b bg-gradient-to-r from-emerald-50/90 via-white to-teal-50/50'
+                        : 'border-b bg-gradient-to-r from-slate-50 to-indigo-50/40'
                   : ''
               }
             >
@@ -1852,7 +1861,9 @@ export default function TeacherToolPage() {
                         ? 'Classroom day flow'
                         : toolType === 'concept-mastery-helper' && generatedContent
                           ? 'Concept teaching reference'
-                          : 'Generated Content'}
+                          : toolType === 'worksheet-mcq-generator' && generatedContent
+                            ? 'Your worksheet pack'
+                            : 'Generated Content'}
                   </CardTitle>
                   {generatedContent && generationContextSummary ? (
                     <p className="text-xs text-slate-600 mt-1.5 leading-relaxed" role="status">
@@ -1890,7 +1901,8 @@ export default function TeacherToolPage() {
               className={
                 (toolType === 'activity-project-generator' ||
                   toolType === 'lesson-planner' ||
-                  toolType === 'concept-mastery-helper') &&
+                  toolType === 'concept-mastery-helper' ||
+                  toolType === 'worksheet-mcq-generator') &&
                 generatedContent &&
                 !isGenerating
                   ? 'p-0'
@@ -1942,6 +1954,12 @@ export default function TeacherToolPage() {
                   <StoryPassageViewer
                     content={displayGeneratedContent}
                     rawData={rawGeneratedContent}
+                  />
+                ) : toolType === 'worksheet-mcq-generator' ? (
+                  <WorksheetMcqViewer
+                    content={displayGeneratedContent}
+                    rawContent={rawGeneratedContent}
+                    variant="teacher"
                   />
                 ) : (
                   <motion.div

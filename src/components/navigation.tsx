@@ -128,6 +128,25 @@ export default function Navigation() {
     }
   };
 
+  const prefetchStudentRoute = (path: string) => {
+    switch (path) {
+      case "/learning-paths":
+        void import("@/pages/learning-paths");
+        break;
+      case "/edu-ott":
+        void import("@/pages/edu-ott");
+        break;
+      case "/student-exams":
+        void import("@/pages/student-exams");
+        break;
+      case "/ai-tutor":
+        void import("@/pages/ai-tutor");
+        break;
+      default:
+        break;
+    }
+  };
+
   const navItems = [
     { path: "/learning-paths", label: "Learning Paths", icon: BookOpen },
     { path: "/edu-ott", label: "EduOTT", icon: Video },
@@ -146,28 +165,12 @@ export default function Navigation() {
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = location === item.path;
-        
-        if (item.onClick) {
-          return (
-            <Button
-              key={item.path}
-              variant="ghost"
-              onClick={item.onClick}
-              className={`w-full justify-start rounded-xl transition-all duration-300 group ${
-                isActive 
-                  ? "bg-gradient-to-r from-sky-300 to-teal-400 text-white shadow-lg scale-105" 
-                  : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700 hover:scale-105"
-              }`}
-            >
-              <Icon className={`w-3 h-3 sm:w-4 sm:h-4 mr-3 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
-              <span className="font-medium">{item.label}</span>
-            </Button>
-          );
-        }
-        
+
         return (
           <Link key={item.path} href={item.path}>
             <Button
+              onMouseEnter={() => prefetchStudentRoute(item.path)}
+              onFocus={() => prefetchStudentRoute(item.path)}
               variant="ghost"
               className={`w-full justify-start rounded-xl transition-all duration-300 group ${
                 isActive 
@@ -215,29 +218,13 @@ export default function Navigation() {
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location === item.path;
-                  
-                  if (item.onClick) {
-                    return (
-                      <button
-                        key={item.path}
-                        onClick={item.onClick}
-                        className={`relative px-3 lg:px-5 py-2 lg:py-2.5 rounded-full transition-all duration-300 flex items-center space-x-1.5 lg:space-x-2 group ${
-                          isActive 
-                            ? "bg-gradient-to-r from-sky-300 to-teal-400 text-white shadow-lg scale-105" 
-                            : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700"
-                        }`}
-                      >
-                        <Icon className={`w-3 h-3 sm:w-4 sm:h-4 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
-                        <span className="font-medium text-xs lg:text-sm">{getCompactLabel(item.label)}</span>
-                        {isActive && (
-                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full"></div>
-                        )}
-                      </button>
-                    );
-                  }
+
                   return (
                     <Link key={item.path} href={item.path}>
-                      <button className={`relative px-3 lg:px-5 py-2 lg:py-2.5 rounded-full transition-all duration-300 flex items-center space-x-1.5 lg:space-x-2 group ${
+                      <button
+                        onMouseEnter={() => prefetchStudentRoute(item.path)}
+                        onFocus={() => prefetchStudentRoute(item.path)}
+                        className={`relative px-3 lg:px-5 py-2 lg:py-2.5 rounded-full transition-all duration-300 flex items-center space-x-1.5 lg:space-x-2 group ${
                         isActive 
                           ? "bg-gradient-to-r from-sky-300 to-teal-400 text-white shadow-lg scale-105" 
                           : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700"

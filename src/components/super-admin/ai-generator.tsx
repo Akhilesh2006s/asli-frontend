@@ -15,6 +15,7 @@ import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
 import { extractMcqQuestionsFromRecord, isMcqTool } from "@/lib/mcq-record-utils";
 import { GeneratedRecordBody } from "@/components/super-admin/generated-record-body";
 import { FlashcardViewer } from "@/components/flashcard-viewer";
+import { WorksheetMcqViewer } from "@/components/worksheet-mcq-viewer";
 import {
   filterSubjectsForAiTool,
   isStoryPassageLanguageSubject,
@@ -71,6 +72,11 @@ type GroupedTopic = { topicName: string; subtopics: GroupedSubtopic[] };
 type GroupedSubject = { subjectName: string; topics: GroupedTopic[] };
 type GroupedClass = { className: string; boardName?: string; subjects: GroupedSubject[] };
 type GroupedTool = { toolName: string; toolSlug: string; classes: GroupedClass[] };
+
+function isWorksheetToolValue(v: unknown): boolean {
+  const t = String(v || "").trim().toLowerCase();
+  return t === "worksheet-mcq-generator" || (t.includes("worksheet") && t.includes("mcq"));
+}
 
 function toDisplayPlainText(content: string) {
   return String(content || "")
@@ -790,6 +796,12 @@ export default function SuperAdminAiGenerator() {
             {activeRecord?.toolSlug === "flashcard-generator" ||
             activeRecord?.toolName === "flashcard-generator" ? (
               <FlashcardViewer content={String(activeRecord?.generatedContent || "")} />
+            ) : isWorksheetToolValue(activeRecord?.toolSlug) ||
+              isWorksheetToolValue(activeRecord?.toolName) ? (
+              <WorksheetMcqViewer
+                content={String(activeRecord?.generatedContent || "")}
+                variant="teacher"
+              />
             ) : (
               <GeneratedRecordBody content={String(activeRecord?.generatedContent || "")} />
             )}

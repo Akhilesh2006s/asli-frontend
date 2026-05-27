@@ -21,6 +21,7 @@ import {
   type McqQuestion,
 } from "@/lib/mcq-record-utils";
 import { GeneratedRecordBody } from "@/components/super-admin/generated-record-body";
+import { WorksheetMcqViewer } from "@/components/worksheet-mcq-viewer";
 
 function labelEmpty(v: string) {
   return v === "" || v == null ? "(None)" : v;
@@ -47,6 +48,11 @@ function toEditablePlainText(content: string) {
     .replace(/!\[(.*?)\]\((.*?)\)/g, "$1")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function isWorksheetToolValue(v: unknown): boolean {
+  const t = String(v || "").trim().toLowerCase();
+  return t === "worksheet-mcq-generator" || (t.includes("worksheet") && t.includes("mcq"));
 }
 
 export function SubtopicRecordsSection({
@@ -416,6 +422,14 @@ export function SubtopicRecordsSection({
                       metadata: viewDetail.metadata,
                     })
                   : [];
+                const resolvedTool = String(viewDetail?.toolName || parents.toolName || "");
+                if (isWorksheetToolValue(resolvedTool)) {
+                  return (
+                    <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
+                      <WorksheetMcqViewer content={String(fullText || "")} variant="teacher" />
+                    </div>
+                  );
+                }
                 if (dialogQs.length > 0) {
                   return (
                     <div className="space-y-4 max-h-[min(70vh,620px)] overflow-y-auto pr-1">

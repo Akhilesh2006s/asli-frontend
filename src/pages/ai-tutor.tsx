@@ -471,26 +471,26 @@ export default function AITutor() {
     <>
       <Navigation />
       <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-teal-50">
-        <div className="container mx-auto px-4 pt-20 sm:pt-24 py-4 sm:py-6 lg:py-8">
+        <div className="container mx-auto px-4 pt-24 sm:pt-28 lg:pt-32 pb-4 sm:pb-6 lg:pb-8">
           {/* Header */}
           <div className="mb-8 rounded-2xl border border-sky-100 bg-white/90 backdrop-blur-sm shadow-sm p-5 sm:p-7">
-            <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex flex-col gap-4">
               <div>
-                <p className="inline-flex items-center rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold tracking-wide text-sky-700 mb-3">
+                <p className="inline-flex items-center rounded-full bg-sky-100 px-3 py-1 text-[11px] sm:text-xs font-semibold tracking-wide text-sky-700 mb-3">
                   ASLILEARN AI ASSISTANTS
                 </p>
-                <h1 className="text-xl sm:text-2xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-teal-600 bg-clip-text text-transparent mb-2">
-                  AI Tools
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 via-sky-600 to-teal-600 bg-clip-text text-transparent mb-2">
+                  Smart AI tools for every study moment
                 </h1>
-                <p className="text-gray-600">Select a tool to get started with AI-powered learning</p>
-              </div>
-              <div className="rounded-xl border border-teal-100 bg-gradient-to-r from-sky-50 to-teal-50 px-4 py-3 text-xs sm:text-sm text-gray-700">
-                <span className="font-semibold text-gray-900">{visibleStudentTools.length}</span> tools available
+                <p className="text-gray-600 text-sm sm:text-base max-w-xl">
+                  Search, filter and launch the right AI helper for doubts, practice, revision and exams – all in one place.
+                </p>
               </div>
             </div>
+
           </div>
 
-          {/* Tools Grid - 3 per row */}
+          {/* Tools Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
             {visibleStudentTools.map((tool) => {
               const Icon = tool.icon;
@@ -498,19 +498,26 @@ export default function AITutor() {
                 <button
                   key={tool.id}
                   onClick={() => handleToolClick(tool.id)}
-                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-left min-h-[200px] sm:min-h-[220px]"
+                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-left min-h-[210px] sm:min-h-[230px]"
                 >
                   <div className="absolute top-0 right-0 h-24 w-24 rounded-full bg-gradient-to-br from-sky-100 to-teal-100 blur-2xl opacity-70 group-hover:opacity-100 transition-opacity" />
                   <div className="relative z-10">
                     <div className="mb-3 flex items-center justify-between">
                       <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-r ${tool.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
-                        <Icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 sm:w-7 sm:h-7 text-white" />
+                        <Icon className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
                       </div>
-                      <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-medium text-sky-700">
-                        AI Powered
-                      </span>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-medium text-sky-700">
+                          AI Powered
+                        </span>
+                        {(tool as any).category && (
+                          <span className="rounded-full bg-slate-50 px-2.5 py-0.5 text-[10px] font-medium text-slate-600">
+                            {(tool as any).category}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <h3 className="text-sm sm:text-base sm:text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors leading-snug">
+                    <h3 className="text-sm sm:text-base lg:text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors leading-snug">
                       {tool.name}
                     </h3>
                     <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 min-h-[38px] sm:min-h-[40px]">

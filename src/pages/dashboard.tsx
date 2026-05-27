@@ -1262,10 +1262,7 @@ export default function Dashboard() {
           programFiltered,
           completedContentIds,
           chapterProgressBySubject,
-          {
-            nonVideoCompletedIds: collectScheduleCompletedIdsOnly(),
-            includeHomework: true,
-          }
+          { includeHomework: true }
         );
 
         // Filter incomplete quizzes (not attempted or not completed)
@@ -1324,11 +1321,10 @@ export default function Dashboard() {
     const videoCompletedIds = collectCompletedContentIds();
     setIncompleteContent(
       buildTodaysTasksContentList(programFiltered, videoCompletedIds, videoChapterProgressBySubject, {
-        nonVideoCompletedIds: collectScheduleCompletedIdsOnly(),
         includeHomework: true,
       })
     );
-  }, [allContent, user, videoChapterProgressBySubject, completedScheduleIds]);
+  }, [allContent, user, videoChapterProgressBySubject]);
 
   // Load completed schedule items from localStorage (only for today)
   useEffect(() => {
@@ -1424,16 +1420,6 @@ export default function Dashboard() {
     }
   };
 
-  const rebuildIncompleteSchedule = (
-    allContent: any[],
-    videoCompletedIds: Set<string>,
-    chapterProgress: Record<string, ChapterCompletedDates>
-  ) =>
-    buildTodaysTasksContentList(allContent, videoCompletedIds, chapterProgress, {
-      nonVideoCompletedIds: collectScheduleCompletedIdsOnly(),
-      includeHomework: true,
-    });
-
   // Handle completion toggle (mark done / undo)
   const handleToggleScheduleComplete = (item: any, isQuiz: boolean = false) => {
     const TODAY_KEY = new Date().toDateString();
@@ -1513,18 +1499,6 @@ export default function Dashboard() {
         setVideoChapterProgressBySubject(chapterProgressForRebuild);
         void persistVideoChapterProgress(subjectId, updatedDates);
       }
-    }
-
-    if (scheduleAllContent.length > 0) {
-      const mergedCompletedForList = new Set(collectCompletedContentIds());
-      newCompleted.forEach((id) => mergedCompletedForList.add(id));
-      setIncompleteContent(
-        rebuildIncompleteSchedule(
-          scheduleAllContent,
-          mergedCompletedForList,
-          chapterProgressForRebuild
-        )
-      );
     }
 
     // Close preview
@@ -2382,7 +2356,7 @@ export default function Dashboard() {
                 <div className="space-y-2">
                   {/* Incomplete Quizzes */}
                   {incompleteQuizzes.map((quiz: any) => {
-                    const isCompleted = completedScheduleIds.has(quiz._id);
+                    const isCompleted = completedScheduleIds.has(String(quiz._id || quiz.id));
                     
                     const timeLabel = getTaskTimeLabel(quiz, true);
                     return (
@@ -2441,7 +2415,7 @@ export default function Dashboard() {
                   {incompleteContent.map((content: any) => {
                     const subjectName = getSubjectName(content);
 
-                    const isCompleted = completedScheduleIds.has(content._id);
+                    const isCompleted = completedScheduleIds.has(String(content._id || content.id));
                     const isHomework = content.type === 'Homework';
                     const isVideo = isVideoContentType(content.type);
                     const deadline = content.deadline ? new Date(content.deadline) : null;

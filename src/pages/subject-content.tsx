@@ -23,9 +23,10 @@ import {
   Video,
   Youtube,
   Filter,
-  X
+  X,
 } from 'lucide-react';
 import Navigation from '@/components/navigation';
+import StudentPageLoader from '@/components/student/StudentPageLoader';
 import VideoModal from '@/components/video-modal';
 import CalendarView from '@/components/student/calendar-view';
 import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
@@ -384,14 +385,7 @@ export default function SubjectContent() {
   };
 
   if (loading) {
-    return (
-      <>
-        <Navigation />
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 py-4 sm:py-6 lg:py-8">
-          <div className="text-center">Loading subject content...</div>
-        </div>
-      </>
-    );
+    return <StudentPageLoader message="Loading subject content..." />;
   }
 
   if (!subject) {
@@ -401,13 +395,13 @@ export default function SubjectContent() {
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           <div className="text-center">
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">Subject not found</h1>
-            <Link href="/dashboard">
+            <Link href="/learning-paths">
               <Button
                 variant="outline"
                 className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
               >
                 <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                Back to Dashboard
+                Back to Learning Path
               </Button>
             </Link>
           </div>
@@ -428,13 +422,13 @@ export default function SubjectContent() {
         {/* Header Section */}
         <div className="mb-8">
           <div className="flex items-center mb-4">
-            <Link href="/dashboard">
+            <Link href="/learning-paths">
               <Button 
                 variant="outline" 
                 className="mr-4 bg-white/90 backdrop-blur-sm border-blue-200 text-blue-700 shadow-sm hover:bg-blue-50 hover:text-blue-800 hover:shadow-md transition-all"
               >
                 <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                Back to Dashboard
+                Back to Learning Path
               </Button>
             </Link>
           </div>
