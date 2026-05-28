@@ -32,12 +32,20 @@ import 'katex/dist/katex.min.css';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
 import html2pdf from 'html2pdf.js';
-import { FlashcardViewer } from '@/components/flashcard-viewer';
+import { MyStudyDecksViewer } from '@/components/my-study-decks-viewer';
 import { ShortNotesViewer } from '@/components/short-notes-viewer';
 import { ConceptMasteryViewer } from '@/components/concept-mastery-viewer';
 import { LessonPlannerViewer } from '@/components/lesson-planner-viewer';
 import { ActivityProjectViewer } from '@/components/activity-project-viewer';
 import { StoryPassageViewer } from '@/components/story-passage-viewer';
+import { ExamQuestionPaperViewer } from '@/components/exam-question-paper-viewer';
+import { MockTestViewer } from '@/components/mock-test-viewer';
+import { SmartStudyGuideViewer } from '@/components/smart-study-guide-viewer';
+import { ConceptBreakdownViewer } from '@/components/concept-breakdown-viewer';
+import { PracticeQaViewer } from '@/components/practice-qa-viewer';
+import { ChapterSummaryViewer } from '@/components/chapter-summary-viewer';
+import { KeyPointsViewer } from '@/components/key-points-viewer';
+import { QuickAssignmentViewer } from '@/components/quick-assignment-viewer';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import {
   buildAiToolGenerationSummary,
@@ -45,8 +53,9 @@ import {
 } from '@/lib/ai-tool-generation-summary';
 import {
   filterSubjectsForAiTool,
+  isStoryLanguageTool,
   isStoryPassageLanguageSubject,
-  STORY_PASSAGE_TOOL_ID,
+  READING_PRACTICE_TOOL_ID,
 } from '@/lib/ai-tool-subject-rules';
 
 /** Radix Select shows a blank label when `value` is not listed in items (e.g. URL-preset or taxonomy drift). */
@@ -57,9 +66,12 @@ function mergeSelectedIntoOptions(options: string[], selected: unknown): string[
   return [v, ...options];
 }
 
+type RenderMarkdownVariant = 'default' | 'smart-study-guide';
+
 // Import the renderMarkdown function from teacher tool page
-const renderMarkdown = (text: string) => {
+const renderMarkdown = (text: string, variant: RenderMarkdownVariant = 'default') => {
   if (!text) return '';
+  const isSmartStudyGuide = variant === 'smart-study-guide';
   
   // Handle JSON-wrapped content (for special viewers, but extract formatted content for display)
   let processedText = text;
@@ -149,6 +161,16 @@ const renderMarkdown = (text: string) => {
       continue;
     }
 
+    // Smart guide: convert numbered chapter rows to section banners
+    if (isSmartStudyGuide && /^\d+\.\s+.+/.test(trimmed) && !/^\d+\.\s+\[[^\]]+\]\s+/i.test(trimmed)) {
+      closeList();
+      const sectionTitle = trimmed.replace(/^\d+\.\s+/, '').trim();
+      html += `<div class="my-6 rounded-2xl border border-indigo-200/70 bg-gradient-to-r from-indigo-50 to-cyan-50 px-4 py-3 sm:px-5">
+        <h2 class="m-0 text-base font-bold text-indigo-900 sm:text-lg">${formatInline(sectionTitle)}</h2>
+      </div>`;
+      continue;
+    }
+
     // Emphasize generated question rows for better scanability
     if (/^\d+\.\s+\[[^\]]+\]\s+/i.test(trimmed)) {
       closeList();
@@ -197,23 +219,39 @@ const renderMarkdown = (text: string) => {
         if (inList) {
           html += listType === 'ul' ? '</ul>' : '</ol>';
         }
-        html += '<ol class="list-decimal ml-6 mb-4 space-y-1">';
+        html += isSmartStudyGuide
+          ? '<ol class="mb-5 ml-6 list-decimal space-y-2 text-[15px] text-slate-700 marker:font-semibold marker:text-indigo-500">'
+          : '<ol class="list-decimal ml-6 mb-4 space-y-1">';
         inList = true;
         listType = 'ol';
       }
       const content = trimmed.replace(/^\d+\.\s+/, '');
-      html += `<li class="mb-1">${formatInline(content)}</li>`;
+      html += `<li class="${isSmartStudyGuide ? 'pl-1' : 'mb-1'}">${formatInline(content)}</li>`;
     } else if (/^[-*]\s+/.test(trimmed)) {
       if (!inList || listType !== 'ul') {
         if (inList) {
           html += listType === 'ul' ? '</ul>' : '</ol>';
         }
-        html += '<ul class="list-disc ml-6 mb-4 space-y-1">';
+        html += isSmartStudyGuide
+          ? '<ul class="mb-6 grid gap-3 sm:grid-cols-2">'
+          : '<ul class="list-disc ml-6 mb-4 space-y-1">';
         inList = true;
         listType = 'ul';
       }
       const content = trimmed.replace(/^[-*]\s+/, '');
-      html += `<li class="mb-1">${formatInline(content)}</li>`;
+      if (isSmartStudyGuide) {
+        const conceptMatch = content.match(/^([A-Za-z][^—:\-.]{2,80})\s*[—:]\s+(.+)$/);
+        if (conceptMatch) {
+          html += `<li class="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4 shadow-sm">
+            <p class="mb-1 text-sm font-semibold tracking-tight text-indigo-900">${formatInline(conceptMatch[1].trim())}</p>
+            <p class="m-0 text-[14px] leading-7 text-slate-700">${formatInline(conceptMatch[2].trim())}</p>
+          </li>`;
+        } else {
+          html += `<li class="rounded-2xl border border-slate-200 bg-white p-4 text-[14px] leading-7 text-slate-700 shadow-sm">${formatInline(content)}</li>`;
+        }
+      } else {
+        html += `<li class="mb-1">${formatInline(content)}</li>`;
+      }
     } else if (!trimmed) {
       if (inList) {
         html += listType === 'ul' ? '</ul>' : '</ol>';
@@ -229,7 +267,9 @@ const renderMarkdown = (text: string) => {
         inList = false;
         listType = null;
       }
-      html += `<p class="mb-4 text-gray-700 leading-relaxed">${formatInline(line)}</p>`;
+      html += isSmartStudyGuide
+        ? `<p class="mb-4 text-[15px] leading-8 text-slate-700">${formatInline(line)}</p>`
+        : `<p class="mb-4 text-gray-700 leading-relaxed">${formatInline(line)}</p>`;
     }
   }
   
@@ -321,7 +361,7 @@ type CitationItem = {
 const TOOL_CONFIGS: Record<string, ToolConfig> = {
   'smart-study-guide-generator': {
     name: 'Smart Study Guide Generator',
-    description: 'Create personalized study guides tailored to your needs',
+    description: '11-section premium study guides with concepts, formulae, practice MCQs, and revision notes',
     icon: BookMarked,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
@@ -332,7 +372,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
   },
   'concept-breakdown-explainer': {
     name: 'Concept Breakdown Explainer',
-    description: 'Break down complex concepts into simple explanations',
+    description: '9-section concept breakdown with steps, Indian-context examples, and thinking prompts',
     icon: Brain,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
@@ -444,9 +484,20 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
+  'my-study-decks': {
+    name: 'My Study Decks',
+    description: '12-section study decks with flashcards, difficulty tags, and self-check',
+    icon: BookMarked,
+    fields: [
+      { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
+    ]
+  },
   'flashcard-generator': {
-    name: 'Flashcard Generator',
-    description: 'Build study flashcards for quick revision',
+    name: 'My Study Decks',
+    description: 'Legacy route — same as My Study Decks',
     icon: BookMarked,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
@@ -478,9 +529,23 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'duration', label: 'Expected Duration (minutes)', type: 'number', placeholder: '30' }
     ]
   },
+  'mock-test-builder': {
+    name: 'Mock Test Builder',
+    description: '12-section mock tests with question paper, answer key, solutions, and remedial guidance',
+    icon: CheckCircle2,
+    fields: [
+      { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
+      { name: 'questionCount', label: 'Number of Questions', type: 'number', placeholder: '20' },
+      { name: 'duration', label: 'Test Duration (minutes)', type: 'number', placeholder: '90' },
+      { name: 'difficulty', label: 'Difficulty Mix', type: 'select', options: ['easy', 'medium', 'hard', 'mixed'] }
+    ]
+  },
   'exam-question-paper-generator': {
-    name: 'Exam Question Paper Generator',
-    description: 'Create comprehensive exam papers with varying difficulty',
+    name: 'Mock Test Builder',
+    description: 'Legacy route — same as Mock Test Builder',
     icon: CheckCircle2,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
@@ -492,9 +557,9 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'difficulty', label: 'Difficulty Mix', type: 'select', options: ['easy', 'medium', 'hard', 'mixed'] }
     ]
   },
-  'activity-project-generator': {
-    name: 'Activity & Project Generator',
-    description: 'Create engaging activities and projects tailored to your curriculum',
+  'project-idea-lab': {
+    name: 'Project Idea Lab',
+    description: 'Discover student project ideas with safety, observation, and self-assessment sections',
     icon: Layout,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
@@ -503,9 +568,20 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
-  'story-passage-creator': {
-    name: 'Story & Passage Creator',
-    description: 'Generate engaging stories and reading passages (Available for English and Hindi only)',
+  'activity-project-generator': {
+    name: 'Project Idea Lab',
+    description: 'Discover student project ideas (legacy route)',
+    icon: Layout,
+    fields: [
+      { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
+      { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all projects if not selected)', isNCERT: true },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
+    ]
+  },
+  'reading-practice-room': {
+    name: 'Reading Practice Room',
+    description: 'Reading practice sets with passage, vocabulary, and recall/infer/connect questions (English & Hindi only)',
     icon: FileText,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
@@ -515,14 +591,37 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'length', label: 'Length', type: 'select', options: ['short', 'medium', 'long'] }
     ]
   },
-  'lesson-planner': {
-    name: 'Lesson Planner',
-    description: 'Plan structured lessons with objectives and activities',
+  'story-passage-creator': {
+    name: 'Reading Practice Room',
+    description: 'Legacy route — same as Reading Practice Room',
+    icon: FileText,
+    fields: [
+      { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
+      { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all passages if not selected)', isNCERT: true },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
+      { name: 'length', label: 'Length', type: 'select', options: ['short', 'medium', 'long'] }
+    ]
+  },
+  'study-schedule-maker': {
+    name: 'Study Schedule Maker',
+    description: 'Build a timed study schedule with concept slots, practice, and self-checkpoints',
     icon: Calendar,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
-      { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all lessons if not selected)', isNCERT: true },
+      { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all schedules if not selected)', isNCERT: true },
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
+    ]
+  },
+  'lesson-planner': {
+    name: 'Study Schedule Maker',
+    description: 'Legacy route — same as Study Schedule Maker',
+    icon: Calendar,
+    fields: [
+      { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
+      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
+      { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional)', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   }
@@ -574,12 +673,38 @@ export default function StudentToolPage() {
   })();
 
   const toolType = params?.toolType || '';
+  const isProjectIdeaLab =
+    toolType === 'project-idea-lab' || toolType === 'activity-project-generator';
+  const isStudySchedule =
+    toolType === 'study-schedule-maker' || toolType === 'lesson-planner';
+  const isReadingPractice =
+    toolType === 'reading-practice-room' || toolType === 'story-passage-creator';
+  const apiToolType =
+    toolType === 'activity-project-generator'
+      ? 'project-idea-lab'
+      : toolType === 'lesson-planner'
+        ? 'study-schedule-maker'
+        : toolType === 'story-passage-creator'
+          ? 'reading-practice-room'
+          : toolType === 'flashcard-generator'
+            ? 'my-study-decks'
+            : toolType === 'exam-question-paper-generator'
+              ? 'mock-test-builder'
+              : toolType;
+  const isMyStudyDecks =
+    toolType === 'my-study-decks' || toolType === 'flashcard-generator';
+  const isMockTest =
+    toolType === 'mock-test-builder' || toolType === 'exam-question-paper-generator';
 
   const subjectsForTool = useMemo(
-    () => filterSubjectsForAiTool(toolType, availableSubjects),
-    [toolType, availableSubjects],
+    () => filterSubjectsForAiTool(apiToolType, availableSubjects),
+    [apiToolType, availableSubjects],
   );
-  const config = TOOL_CONFIGS[toolType];
+  const config =
+    TOOL_CONFIGS[toolType] ||
+    (isProjectIdeaLab ? TOOL_CONFIGS['project-idea-lab'] : undefined) ||
+    (isStudySchedule ? TOOL_CONFIGS['study-schedule-maker'] : undefined) ||
+    (isReadingPractice ? TOOL_CONFIGS['reading-practice-room'] : undefined);
 
   const generationContextSummary = useMemo(
     () =>
@@ -719,7 +844,7 @@ export default function StudentToolPage() {
   }, [formParams.gradeLevel, formParams.subject, cascade.topics, cascade.loadingTopics]);
 
   useEffect(() => {
-    if (toolType !== STORY_PASSAGE_TOOL_ID) return;
+    if (!isReadingPractice) return;
     const sub = formParams.subject;
     if (!sub || isStoryPassageLanguageSubject(sub)) return;
     setFormParams((prev) => {
@@ -830,7 +955,7 @@ export default function StudentToolPage() {
     }
 
     if (
-      toolType === STORY_PASSAGE_TOOL_ID &&
+      isReadingPractice &&
       !isStoryPassageLanguageSubject(String(formParams.subject || ''))
     ) {
       toast({
@@ -853,13 +978,9 @@ export default function StudentToolPage() {
       const teacherTools = [
         'worksheet-mcq-generator',
         'concept-mastery-helper',
-        'flashcard-generator',
         'short-notes-summaries-maker',
         'homework-creator',
-        'exam-question-paper-generator',
-        'activity-project-generator',
-        'story-passage-creator',
-        'lesson-planner',
+        'reading-practice-room',
       ];
 
       const isTeacherTool = teacherTools.includes(toolType);
@@ -892,8 +1013,8 @@ export default function StudentToolPage() {
           if (
             toolType === 'short-notes-summaries-maker' ||
             toolType === 'concept-mastery-helper' ||
-            toolType === 'lesson-planner' ||
-            toolType === 'flashcard-generator'
+            isStudySchedule ||
+            isMyStudyDecks
           ) {
             const contentWithData = JSON.stringify({
               formatted: data.data.content,
@@ -993,7 +1114,7 @@ export default function StudentToolPage() {
           formParams.projectTopic ||
           '';
         const requestBody: Record<string, unknown> = {
-          toolType,
+          toolType: apiToolType,
           ...formParams,
           board: selectedBoard,
           gradeLevel: mapGradeLevelForIitBoard(selectedBoard, formParams.gradeLevel),
@@ -1084,7 +1205,7 @@ export default function StudentToolPage() {
             subject: String(selectedSubject),
             topic: String(mappedTopic),
             subTopic: String(formParams.subTopic || ''),
-            toolType: String(toolType || ''),
+            toolType: String(apiToolType || ''),
           });
           const token = localStorage.getItem('authToken');
           const fallbackRes = await fetch(
@@ -1589,7 +1710,10 @@ export default function StudentToolPage() {
         tempDiv.style.padding = '20mm';
         tempDiv.style.fontFamily = 'Arial, sans-serif';
         tempDiv.style.backgroundColor = 'white';
-        tempDiv.innerHTML = renderMarkdown(displayGeneratedContent);
+        tempDiv.innerHTML = renderMarkdown(
+          displayGeneratedContent,
+          toolType === 'smart-study-guide-generator' ? 'smart-study-guide' : 'default',
+        );
         document.body.appendChild(tempDiv);
         contentElement = tempDiv;
       } else {
@@ -1646,7 +1770,7 @@ export default function StudentToolPage() {
       setIsDownloading(true);
       
       // For exam papers, extract questions from rawGeneratedContent
-      if (toolType === 'exam-question-paper-generator' && rawGeneratedContent) {
+      if (isMockTest && rawGeneratedContent) {
         const csvRows: string[] = [];
         
         // CSV Headers
@@ -1744,8 +1868,28 @@ export default function StudentToolPage() {
     }
   };
 
+  const isSmartStudyGuide = toolType === 'smart-study-guide-generator';
+  const defaultResultWrapperClass =
+    'rounded-xl border border-slate-200/80 bg-gradient-to-b from-white to-slate-50/30 p-3 sm:p-4 lg:p-6 max-h-[80vh] overflow-y-auto shadow-inner';
+  const smartStudyGuideWrapperClass =
+    'rounded-3xl border border-indigo-100 bg-white p-4 sm:p-6 lg:p-8 max-h-[80vh] overflow-y-auto shadow-[0_24px_70px_-36px_rgba(79,70,229,0.35)]';
+  const defaultProseClass =
+    'prose prose-sm max-w-none leading-relaxed prose-headings:text-slate-900 prose-headings:tracking-tight prose-h2:mt-7 prose-h2:border-b prose-h2:border-slate-200 prose-h2:pb-2 prose-h3:mt-6 prose-h3:text-slate-800 prose-p:text-slate-700 prose-p:leading-7 prose-strong:text-slate-900 prose-li:text-slate-700 prose-code:text-slate-800 prose-img:rounded-lg prose-img:shadow-md prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-gray-300 prose-th:bg-gray-50 prose-th:p-2 prose-td:border prose-td:border-gray-300 prose-td:p-2';
+  const smartStudyGuideProseClass =
+    'prose prose-sm sm:prose-base max-w-none leading-relaxed prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-slate-900 prose-h1:text-2xl prose-h2:mt-8 prose-h2:text-indigo-900 prose-h3:mt-6 prose-h3:text-slate-800 prose-p:text-slate-700 prose-p:leading-8 prose-strong:text-slate-900 prose-blockquote:rounded-r-xl prose-blockquote:border-l-4 prose-blockquote:border-cyan-300 prose-blockquote:bg-cyan-50/50 prose-blockquote:py-1 prose-blockquote:pl-4 prose-blockquote:text-slate-700 prose-code:rounded prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:text-slate-800 prose-pre:rounded-xl prose-pre:border prose-pre:border-slate-200 prose-pre:bg-slate-950 prose-pre:text-slate-100 prose-img:rounded-xl prose-img:shadow-lg prose-table:w-full prose-table:border-separate prose-table:border-spacing-0 prose-th:border prose-th:border-indigo-200 prose-th:bg-indigo-50 prose-th:p-2 prose-td:border prose-td:border-slate-200 prose-td:p-2';
+  const pageWrapperClass = isSmartStudyGuide
+    ? 'min-h-screen bg-[radial-gradient(circle_at_top,_rgba(79,70,229,0.14),_transparent_35%),radial-gradient(circle_at_20%_80%,_rgba(6,182,212,0.12),_transparent_30%),linear-gradient(to_bottom_right,_#f8fbff,_#eef2ff,_#f5f3ff)] p-4 sm:p-6 lg:p-8'
+    : 'min-h-screen bg-gradient-to-br from-sky-50 to-teal-50 p-4 sm:p-6 lg:p-8';
+  const parameterCardClass = isSmartStudyGuide
+    ? 'border border-indigo-100/80 bg-white/85 shadow-[0_22px_55px_-30px_rgba(79,70,229,0.45)] backdrop-blur'
+    : 'bg-white shadow-lg';
+  const parameterHeaderTitle = isSmartStudyGuide ? 'Customize your premium guide' : 'Tool Parameters';
+  const generateButtonClass = isSmartStudyGuide
+    ? 'w-full bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 text-white shadow-lg shadow-indigo-200 transition-all hover:scale-[1.01] hover:from-indigo-700 hover:via-blue-700 hover:to-cyan-700'
+    : 'w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 to-teal-50 p-4 sm:p-6 lg:p-8">
+    <div className={pageWrapperClass}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
@@ -1763,12 +1907,24 @@ export default function StudentToolPage() {
           </Button>
           
           <div className="flex items-center space-x-3 mb-4 min-w-0">
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+            <div
+              className={
+                isSmartStudyGuide
+                  ? 'w-12 h-12 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-500'
+                  : 'w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg'
+              }
+            >
               <Icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
             </div>
             <div className="min-w-0">
               <h1 className="text-xl sm:text-2xl sm:text-3xl font-bold text-gray-900 break-words">{config.name}</h1>
-              <p className="text-gray-600">{config.description}</p>
+              <p className={isSmartStudyGuide ? 'text-slate-700' : 'text-gray-600'}>{config.description}</p>
+              {isSmartStudyGuide ? (
+                <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-indigo-700">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Premium student experience
+                </div>
+              ) : null}
             </div>
           </div>
         </motion.div>
@@ -1780,9 +1936,9 @@ export default function StudentToolPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <Card className="bg-white shadow-lg">
+            <Card className={parameterCardClass}>
               <CardHeader>
-                <CardTitle>Tool Parameters</CardTitle>
+                <CardTitle>{parameterHeaderTitle}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1804,7 +1960,7 @@ export default function StudentToolPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                {toolType === STORY_PASSAGE_TOOL_ID ? (
+                {isReadingPractice ? (
                   <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
                     Story &amp; Passage Creator is available for <strong>English</strong> and{' '}
                     <strong>Hindi</strong> subjects only.
@@ -1854,7 +2010,7 @@ export default function StudentToolPage() {
                         !formParams.gradeLevel || cascade.loadingSubjects
                           ? 'Select Class first'
                           : subjectsForTool.length === 0
-                            ? toolType === STORY_PASSAGE_TOOL_ID
+                            ? isReadingPractice
                               ? 'English or Hindi only for this tool'
                               : 'No data available'
                             : field.placeholder || placeholderText;
@@ -1957,7 +2113,7 @@ export default function StudentToolPage() {
                 <Button
                   onClick={handleGenerate}
                   disabled={isGenerating}
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                  className={generateButtonClass}
                 >
                   {isGenerating ? (
                     <>
@@ -1984,41 +2140,53 @@ export default function StudentToolPage() {
           >
             <Card
               className={
-                (toolType === 'flashcard-generator' ||
-                  toolType === 'activity-project-generator' ||
-                  toolType === 'story-passage-creator' ||
-                  toolType === 'lesson-planner') &&
+                (isMyStudyDecks ||
+                  isProjectIdeaLab ||
+                  isReadingPractice ||
+                  isStudySchedule) &&
                 generatedContent
                   ? 'overflow-hidden border-0 bg-transparent shadow-none'
-                  : 'overflow-hidden border border-slate-200/80 bg-white shadow-[0_14px_40px_-22px_rgba(15,23,42,0.35)]'
+                  : isSmartStudyGuide
+                    ? 'overflow-hidden border border-indigo-100/90 bg-white/90 shadow-[0_25px_60px_-28px_rgba(79,70,229,0.45)] backdrop-blur'
+                    : 'overflow-hidden border border-slate-200/80 bg-white shadow-[0_14px_40px_-22px_rgba(15,23,42,0.35)]'
               }
             >
               <CardHeader
                 className={
-                  (toolType === 'flashcard-generator' ||
-                    toolType === 'activity-project-generator' ||
-                    toolType === 'story-passage-creator' ||
-                    toolType === 'lesson-planner') &&
+                  (isMyStudyDecks ||
+                    isProjectIdeaLab ||
+                    isReadingPractice ||
+                    isStudySchedule) &&
                   generatedContent
                     ? 'px-0 pt-0'
-                    : 'border-b border-slate-100 bg-gradient-to-r from-slate-50 via-blue-50/40 to-indigo-50/40 pb-4'
+                    : isSmartStudyGuide
+                      ? 'border-b border-indigo-100 bg-gradient-to-r from-indigo-50/70 via-blue-50/40 to-cyan-50/40 pb-4'
+                      : 'border-b border-slate-100 bg-gradient-to-r from-slate-50 via-blue-50/40 to-indigo-50/40 pb-4'
                 }
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="space-y-2">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700">
+                    <div
+                      className={
+                        isSmartStudyGuide
+                          ? 'inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-indigo-700'
+                          : 'inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700'
+                      }
+                    >
                       <Sparkles className="h-3.5 w-3.5" />
-                      AI Result Panel
+                      {isSmartStudyGuide ? 'Premium Result Panel' : 'AI Result Panel'}
                     </div>
                   <CardTitle>
-                    {toolType === 'flashcard-generator'
+                    {isMyStudyDecks
                       ? 'Your study deck'
-                      : toolType === 'activity-project-generator'
-                        ? 'Your activity guide'
-                        : toolType === 'story-passage-creator'
+                      : isProjectIdeaLab
+                        ? 'Your project idea lab'
+                        : isReadingPractice
                           ? 'Your reading studio'
-                          : toolType === 'lesson-planner'
-                            ? 'Your lesson studio'
+                          : isStudySchedule
+                            ? 'Your study schedule'
+                            : toolType === 'smart-study-guide-generator'
+                              ? 'Your smart study guide'
                             : 'Generated Content'}
                   </CardTitle>
                     {generationContextSummary ? (
@@ -2057,10 +2225,10 @@ export default function StudentToolPage() {
               </CardHeader>
               <CardContent
                 className={
-                  (toolType === 'flashcard-generator' ||
-                    toolType === 'activity-project-generator' ||
-                    toolType === 'story-passage-creator' ||
-                    toolType === 'lesson-planner') &&
+                  (isMyStudyDecks ||
+                    isProjectIdeaLab ||
+                    isReadingPractice ||
+                    isStudySchedule) &&
                   generatedContent
                     ? 'p-0'
                     : ''
@@ -2091,40 +2259,86 @@ export default function StudentToolPage() {
                   </div>
                   </div>
                 ) : generatedContent ? (
-                  toolType === 'flashcard-generator' ? (
-                    <FlashcardViewer content={displayGeneratedContent} variant="student" />
+                  isMyStudyDecks ? (
+                    <MyStudyDecksViewer
+                      content={displayGeneratedContent}
+                      rawContent={rawGeneratedContent}
+                    />
                   ) : toolType === 'short-notes-summaries-maker' ? (
                     <ShortNotesViewer content={displayGeneratedContent} />
                   ) : toolType === 'concept-mastery-helper' ? (
                     <ConceptMasteryViewer content={displayGeneratedContent} />
-                  ) : toolType === 'lesson-planner' ? (
+                  ) : isStudySchedule ? (
                     <LessonPlannerViewer
                       content={generatedContent}
                       rawContent={rawGeneratedContent}
                       variant="student"
                     />
-                  ) : toolType === 'activity-project-generator' ? (
+                  ) : isProjectIdeaLab ? (
                     <ActivityProjectViewer
                       activities={rawGeneratedContent?.activities}
                       content={generatedContent}
                       variant="student"
                     />
-                  ) : toolType === 'story-passage-creator' ? (
+                  ) : isReadingPractice ? (
                     <StoryPassageViewer
                       content={generatedContent}
                       rawData={rawGeneratedContent}
                       variant="student"
                     />
+                  ) : toolType === 'mock-test-builder' ? (
+                    <MockTestViewer
+                      content={displayGeneratedContent}
+                      rawContent={rawGeneratedContent}
+                    />
+                  ) : toolType === 'exam-question-paper-generator' ? (
+                    <ExamQuestionPaperViewer
+                      content={displayGeneratedContent}
+                      rawContent={rawGeneratedContent}
+                      variant="teacher"
+                    />
+                  ) : isSmartStudyGuide ? (
+                    <SmartStudyGuideViewer
+                      content={displayGeneratedContent}
+                      rawContent={rawGeneratedContent}
+                    />
+                  ) : toolType === 'concept-breakdown-explainer' ? (
+                    <ConceptBreakdownViewer
+                      content={displayGeneratedContent}
+                      rawContent={rawGeneratedContent}
+                    />
+                  ) : toolType === 'smart-qa-practice-generator' ? (
+                    <PracticeQaViewer
+                      content={displayGeneratedContent}
+                      rawContent={rawGeneratedContent}
+                    />
+                  ) : toolType === 'chapter-summary-creator' ? (
+                    <ChapterSummaryViewer
+                      content={displayGeneratedContent}
+                      rawContent={rawGeneratedContent}
+                    />
+                  ) : toolType === 'key-points-formula-extractor' ? (
+                    <KeyPointsViewer
+                      content={displayGeneratedContent}
+                      rawContent={rawGeneratedContent}
+                    />
+                  ) : toolType === 'quick-assignment-builder' ? (
+                    <QuickAssignmentViewer
+                      content={displayGeneratedContent}
+                      rawContent={rawGeneratedContent}
+                    />
                   ) : (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="rounded-xl border border-slate-200/80 bg-gradient-to-b from-white to-slate-50/30 p-3 sm:p-4 lg:p-6 max-h-[80vh] overflow-y-auto shadow-inner"
+                      className={defaultResultWrapperClass}
                     >
                       <div
-                        className="prose prose-sm max-w-none leading-relaxed prose-headings:text-slate-900 prose-headings:tracking-tight prose-h2:mt-7 prose-h2:border-b prose-h2:border-slate-200 prose-h2:pb-2 prose-h3:mt-6 prose-h3:text-slate-800 prose-p:text-slate-700 prose-p:leading-7 prose-strong:text-slate-900 prose-li:text-slate-700 prose-code:text-slate-800 prose-img:rounded-lg prose-img:shadow-md prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-gray-300 prose-th:bg-gray-50 prose-th:p-2 prose-td:border prose-td:border-gray-300 prose-td:p-2"
-                    dangerouslySetInnerHTML={{ __html: renderMarkdown(displayGeneratedContent) }}
-                  />
+                        className={defaultProseClass}
+                        dangerouslySetInnerHTML={{
+                          __html: renderMarkdown(displayGeneratedContent, 'default'),
+                        }}
+                      />
                     </motion.div>
                   )
                 ) : (

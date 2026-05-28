@@ -22,6 +22,7 @@ import {
   type ParsedStory,
   type ParsedPassagesBundle,
   type ResolvedStoryContent,
+  type StoryQuestion,
 } from '@/lib/parse-story-content';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 
@@ -84,7 +85,7 @@ function TeacherStoryReading({ story }: { story: ParsedStory }) {
         <h2 className="text-lg font-bold text-gray-900">{story.title}</h2>
       </div>
       <div className="columns-1 lg:columns-2 gap-3">
-        {STORY_TEMPLATE_SECTIONS.filter((sec) => sec.num > 1).map((sec) => (
+        {TEACHER_STORY_PASSAGE_SECTIONS.filter((sec) => sec.num > 1).map((sec) => (
           <div key={sec.num} className="mb-3 break-inside-avoid">
             <StorySectionCard
               sectionNum={`Section ${sec.num}`}
@@ -120,7 +121,228 @@ type StorySectionDef = {
   render: (s: ParsedStory) => ReactNode;
 };
 
-const STORY_TEMPLATE_SECTIONS: StorySectionDef[] = [
+const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
+  {
+    num: 1,
+    title: 'Reading Practice Title',
+    icon: BookMarked,
+    stripe: 'border-indigo-500',
+    iconWrap: 'bg-indigo-100 text-indigo-700',
+    hasContent: (s) => !!s.title,
+    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed font-medium">{s.title}</p>,
+  },
+  {
+    num: 2,
+    title: 'Subtopic Link and Prior Knowledge Required',
+    icon: Target,
+    stripe: 'border-cyan-500',
+    iconWrap: 'bg-cyan-100 text-cyan-700',
+    hasContent: (s) =>
+      !!s.subtopicLinkPriorKnowledge || !!s.topicSubtopicConnection || !!s.priorKnowledgeRequired,
+    render: (s) => (
+      <p className="whitespace-pre-wrap text-sm leading-relaxed">
+        {s.subtopicLinkPriorKnowledge ||
+          [s.topicSubtopicConnection, s.priorKnowledgeRequired].filter(Boolean).join('\n')}
+      </p>
+    ),
+  },
+  {
+    num: 3,
+    title: "Learning Objectives - Bloom's Taxonomy Aligned",
+    icon: Target,
+    stripe: 'border-violet-500',
+    iconWrap: 'bg-violet-100 text-violet-700',
+    hasContent: (s) => s.learningObjectives.length > 0,
+    render: (s) => (
+      <ul className="space-y-2">
+        {s.learningObjectives.map((o, i) => (
+          <li key={i} className="flex gap-2 rounded-lg bg-violet-50/80 px-3 py-2 text-sm">
+            <Target className="h-4 w-4 shrink-0 text-violet-600 mt-0.5" aria-hidden />
+            {o}
+          </li>
+        ))}
+      </ul>
+    ),
+  },
+  {
+    num: 4,
+    title: 'NCF Competency / Learning Outcome Alignment',
+    icon: GraduationCap,
+    stripe: 'border-blue-500',
+    iconWrap: 'bg-blue-100 text-blue-700',
+    hasContent: (s) => !!s.ncfAlignment || !!s.alignment,
+    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.ncfAlignment || s.alignment}</p>,
+  },
+  {
+    num: 5,
+    title: 'Vocabulary Warm-up',
+    icon: BookMarked,
+    stripe: 'border-teal-500',
+    iconWrap: 'bg-teal-100 text-teal-800',
+    hasContent: (s) => s.vocabulary.length > 0,
+    render: (s) => (
+      <div className="flex flex-wrap gap-2">
+        {s.vocabulary.map((word, i) => (
+          <span
+            key={i}
+            className="rounded-xl border border-teal-100 bg-teal-50 px-3 py-2 text-sm text-teal-900"
+          >
+            {word}
+          </span>
+        ))}
+      </div>
+    ),
+  },
+  {
+    num: 6,
+    title: 'Passage / Story',
+    icon: BookOpen,
+    stripe: 'border-amber-500',
+    iconWrap: 'bg-amber-100 text-amber-800',
+    hasContent: (s) => !!s.passage,
+    render: (s) => (
+      <p className="font-serif text-base sm:text-lg leading-[1.85] text-slate-800 whitespace-pre-wrap">
+        {s.passage}
+      </p>
+    ),
+  },
+  {
+    num: 7,
+    title: 'Read and Recall Questions',
+    icon: HelpCircle,
+    stripe: 'border-indigo-500',
+    iconWrap: 'bg-indigo-100 text-indigo-700',
+    hasContent: (s) => s.readRecallQuestions.length > 0 || s.questions.length > 0,
+    render: (s) => (
+      <div className="space-y-2">
+        {(s.readRecallQuestions.length ? s.readRecallQuestions : s.questions).map((q, i) => (
+          <div
+            key={i}
+            className="flex gap-3 rounded-xl border border-indigo-100 bg-indigo-50/30 px-3 py-2"
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-xs font-bold text-white">
+              {i + 1}
+            </span>
+            <p className="text-sm text-slate-800 pt-0.5">{q.question}</p>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
+    num: 8,
+    title: 'Think and Infer Questions',
+    icon: HelpCircle,
+    stripe: 'border-sky-500',
+    iconWrap: 'bg-sky-100 text-sky-700',
+    hasContent: (s) => s.thinkInferQuestions.length > 0,
+    render: (s) => (
+      <div className="space-y-2">
+        {s.thinkInferQuestions.map((q, i) => (
+          <div key={i} className="flex gap-3 rounded-xl border border-sky-100 bg-sky-50/30 px-3 py-2">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-600 text-xs font-bold text-white">
+              {i + 1}
+            </span>
+            <p className="text-sm text-slate-800 pt-0.5">{q.question}</p>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
+    num: 9,
+    title: 'Apply and Connect Questions',
+    icon: HelpCircle,
+    stripe: 'border-emerald-500',
+    iconWrap: 'bg-emerald-100 text-emerald-700',
+    hasContent: (s) => s.applyConnectQuestions.length > 0,
+    render: (s) => (
+      <div className="space-y-2">
+        {s.applyConnectQuestions.map((q, i) => (
+          <div key={i} className="flex gap-3 rounded-xl border border-emerald-100 bg-emerald-50/30 px-3 py-2">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-xs font-bold text-white">
+              {i + 1}
+            </span>
+            <p className="text-sm text-slate-800 pt-0.5">{q.question}</p>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
+    num: 10,
+    title: 'Vocabulary Practice',
+    icon: BookMarked,
+    stripe: 'border-teal-500',
+    iconWrap: 'bg-teal-100 text-teal-800',
+    hasContent: (s) => s.vocabularyPractice.length > 0 || !!s.vocabularyGrammarPractice,
+    render: (s) =>
+      s.vocabularyPractice.length > 0 ? (
+        <ul className="space-y-2 text-sm">
+          {s.vocabularyPractice.map((item, i) => (
+            <li key={i} className="rounded-lg bg-teal-50/80 px-3 py-2">
+              {item}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.vocabularyGrammarPractice}</p>
+      ),
+  },
+  {
+    num: 11,
+    title: 'Answer Key / Suggested Responses',
+    icon: Lightbulb,
+    stripe: 'border-yellow-500',
+    iconWrap: 'bg-yellow-100 text-yellow-800',
+    hasContent: (s) => !!s.answerKeySuggestedResponses || s.answerHints.length > 0,
+    render: (s) => (
+      <p className="whitespace-pre-wrap text-sm leading-relaxed">
+        {s.answerKeySuggestedResponses || s.answerHints.join('\n')}
+      </p>
+    ),
+  },
+  {
+    num: 12,
+    title: 'Expected Learning Outcomes',
+    icon: GraduationCap,
+    stripe: 'border-violet-500',
+    iconWrap: 'bg-violet-100 text-violet-700',
+    hasContent: (s) => !!s.expectedLearningOutcomes,
+    render: (s) => <p className="whitespace-pre-wrap text-sm">{s.expectedLearningOutcomes}</p>,
+  },
+  {
+    num: 13,
+    title: 'Reflection / Exit Ticket',
+    icon: MessageCircle,
+    stripe: 'border-fuchsia-500',
+    iconWrap: 'bg-fuchsia-100 text-fuchsia-700',
+    hasContent: (s) => !!s.reflection,
+    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.reflection}</p>,
+  },
+];
+
+function renderStoryQuestionList(questions: StoryQuestion[], accent: string, badge: string) {
+  return (
+    <div className="space-y-2">
+      {questions.map((q, i) => (
+        <div key={i} className={cn('flex gap-3 rounded-xl border px-3 py-2', accent)}>
+          <span
+            className={cn(
+              'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white',
+              badge,
+            )}
+          >
+            {i + 1}
+          </span>
+          <p className="text-sm text-slate-800 pt-0.5">{q.question}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
   {
     num: 1,
     title: 'Story / Passage Title',
@@ -128,7 +350,7 @@ const STORY_TEMPLATE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-indigo-500',
     iconWrap: 'bg-indigo-100 text-indigo-700',
     hasContent: (s) => !!s.title,
-    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.title}</p>,
+    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed font-medium">{s.title}</p>,
   },
   {
     num: 2,
@@ -136,23 +358,21 @@ const STORY_TEMPLATE_SECTIONS: StorySectionDef[] = [
     icon: Target,
     stripe: 'border-cyan-500',
     iconWrap: 'bg-cyan-100 text-cyan-700',
-    hasContent: (s) => !!s.topicSubtopicConnection || !!s.alignment,
-    render: (s) => (
-      <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.topicSubtopicConnection || s.alignment}</p>
-    ),
+    hasContent: (s) => !!s.topicSubtopicConnection,
+    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.topicSubtopicConnection}</p>,
   },
   {
     num: 3,
     title: 'Prior Knowledge Required',
-    icon: Lightbulb,
-    stripe: 'border-amber-500',
-    iconWrap: 'bg-amber-100 text-amber-700',
+    icon: Target,
+    stripe: 'border-sky-500',
+    iconWrap: 'bg-sky-100 text-sky-700',
     hasContent: (s) => !!s.priorKnowledgeRequired,
     render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.priorKnowledgeRequired}</p>,
   },
   {
     num: 4,
-    title: 'Learning Objectives – Bloom’s Taxonomy Aligned',
+    title: "Learning Objectives – Bloom's Taxonomy Aligned",
     icon: Target,
     stripe: 'border-violet-500',
     iconWrap: 'bg-violet-100 text-violet-700',
@@ -174,8 +394,8 @@ const STORY_TEMPLATE_SECTIONS: StorySectionDef[] = [
     icon: GraduationCap,
     stripe: 'border-blue-500',
     iconWrap: 'bg-blue-100 text-blue-700',
-    hasContent: (s) => !!s.ncfAlignment || !!s.alignment,
-    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.ncfAlignment || s.alignment}</p>,
+    hasContent: (s) => !!s.ncfAlignment,
+    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.ncfAlignment}</p>,
   },
   {
     num: 6,
@@ -200,9 +420,9 @@ const STORY_TEMPLATE_SECTIONS: StorySectionDef[] = [
   {
     num: 7,
     title: 'Pre-reading Thinking Prompt',
-    icon: HelpCircle,
-    stripe: 'border-fuchsia-500',
-    iconWrap: 'bg-fuchsia-100 text-fuchsia-700',
+    icon: Lightbulb,
+    stripe: 'border-amber-500',
+    iconWrap: 'bg-amber-100 text-amber-800',
     hasContent: (s) => !!s.preReadingPrompt,
     render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.preReadingPrompt}</p>,
   },
@@ -225,22 +445,9 @@ const STORY_TEMPLATE_SECTIONS: StorySectionDef[] = [
     icon: HelpCircle,
     stripe: 'border-indigo-500',
     iconWrap: 'bg-indigo-100 text-indigo-700',
-    hasContent: (s) => s.readRecallQuestions.length > 0 || s.questions.length > 0,
-    render: (s) => (
-      <div className="space-y-2">
-        {(s.readRecallQuestions.length ? s.readRecallQuestions : s.questions).map((q, i) => (
-          <div
-            key={i}
-            className="flex gap-3 rounded-xl border border-indigo-100 bg-indigo-50/30 px-3 py-2"
-          >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-xs font-bold text-white">
-              {i + 1}
-            </span>
-            <p className="text-sm text-slate-800 pt-0.5">{q.question}</p>
-          </div>
-        ))}
-      </div>
-    ),
+    hasContent: (s) => s.readRecallQuestions.length > 0,
+    render: (s) =>
+      renderStoryQuestionList(s.readRecallQuestions, 'border-indigo-100 bg-indigo-50/30', 'bg-indigo-600'),
   },
   {
     num: 10,
@@ -249,18 +456,8 @@ const STORY_TEMPLATE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-sky-500',
     iconWrap: 'bg-sky-100 text-sky-700',
     hasContent: (s) => s.thinkInferQuestions.length > 0,
-    render: (s) => (
-      <div className="space-y-2">
-        {s.thinkInferQuestions.map((q, i) => (
-          <div key={i} className="flex gap-3 rounded-xl border border-sky-100 bg-sky-50/30 px-3 py-2">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-600 text-xs font-bold text-white">
-              {i + 1}
-            </span>
-            <p className="text-sm text-slate-800 pt-0.5">{q.question}</p>
-          </div>
-        ))}
-      </div>
-    ),
+    render: (s) =>
+      renderStoryQuestionList(s.thinkInferQuestions, 'border-sky-100 bg-sky-50/30', 'bg-sky-600'),
   },
   {
     num: 11,
@@ -269,18 +466,8 @@ const STORY_TEMPLATE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-emerald-500',
     iconWrap: 'bg-emerald-100 text-emerald-700',
     hasContent: (s) => s.applyConnectQuestions.length > 0,
-    render: (s) => (
-      <div className="space-y-2">
-        {s.applyConnectQuestions.map((q, i) => (
-          <div key={i} className="flex gap-3 rounded-xl border border-emerald-100 bg-emerald-50/30 px-3 py-2">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-xs font-bold text-white">
-              {i + 1}
-            </span>
-            <p className="text-sm text-slate-800 pt-0.5">{q.question}</p>
-          </div>
-        ))}
-      </div>
-    ),
+    render: (s) =>
+      renderStoryQuestionList(s.applyConnectQuestions, 'border-emerald-100 bg-emerald-50/30', 'bg-emerald-600'),
   },
   {
     num: 12,
@@ -288,15 +475,26 @@ const STORY_TEMPLATE_SECTIONS: StorySectionDef[] = [
     icon: BookMarked,
     stripe: 'border-teal-500',
     iconWrap: 'bg-teal-100 text-teal-800',
-    hasContent: (s) => !!s.vocabularyGrammarPractice,
-    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.vocabularyGrammarPractice}</p>,
+    hasContent: (s) => !!s.vocabularyGrammarPractice || s.vocabularyPractice.length > 0,
+    render: (s) =>
+      s.vocabularyGrammarPractice ? (
+        <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.vocabularyGrammarPractice}</p>
+      ) : (
+        <ul className="space-y-2 text-sm">
+          {s.vocabularyPractice.map((item, i) => (
+            <li key={i} className="rounded-lg bg-teal-50/80 px-3 py-2">
+              {item}
+            </li>
+          ))}
+        </ul>
+      ),
   },
   {
     num: 13,
     title: 'Creative Response Activity',
     icon: Sparkles,
-    stripe: 'border-pink-500',
-    iconWrap: 'bg-pink-100 text-pink-700',
+    stripe: 'border-purple-500',
+    iconWrap: 'bg-purple-100 text-purple-700',
     hasContent: (s) => !!s.creativeResponseActivity,
     render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.creativeResponseActivity}</p>,
   },
@@ -316,7 +514,7 @@ const STORY_TEMPLATE_SECTIONS: StorySectionDef[] = [
   {
     num: 15,
     title: 'Common Mistakes to Avoid',
-    icon: Lightbulb,
+    icon: MessageCircle,
     stripe: 'border-rose-500',
     iconWrap: 'bg-rose-100 text-rose-700',
     hasContent: (s) => !!s.commonMistakesToAvoid,
@@ -326,25 +524,10 @@ const STORY_TEMPLATE_SECTIONS: StorySectionDef[] = [
     num: 16,
     title: 'Differentiation Support',
     icon: Users,
-    stripe: 'border-pink-500',
-    iconWrap: 'bg-pink-100 text-pink-700',
-    hasContent: (s) => !!(s.differentiationSupport || s.differentiationExtension),
-    render: (s) => (
-      <div className="space-y-2 text-sm">
-        {s.differentiationSupport ? (
-          <p>
-            <span className="font-semibold text-pink-800">Support: </span>
-            {s.differentiationSupport}
-          </p>
-        ) : null}
-        {s.differentiationExtension ? (
-          <p>
-            <span className="font-semibold text-pink-800">Extension: </span>
-            {s.differentiationExtension}
-          </p>
-        ) : null}
-      </div>
-    ),
+    stripe: 'border-emerald-500',
+    iconWrap: 'bg-emerald-100 text-emerald-700',
+    hasContent: (s) => !!s.differentiationSupport,
+    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.differentiationSupport}</p>,
   },
   {
     num: 17,
@@ -357,12 +540,21 @@ const STORY_TEMPLATE_SECTIONS: StorySectionDef[] = [
   },
   {
     num: 18,
-    title: 'Real-life application',
-    icon: Sparkles,
-    stripe: 'border-sky-500',
-    iconWrap: 'bg-sky-100 text-sky-800',
+    title: 'Real-life Application',
+    icon: Lightbulb,
+    stripe: 'border-orange-500',
+    iconWrap: 'bg-orange-100 text-orange-800',
     hasContent: (s) => !!s.realLifeApplication,
-    render: (s) => <p className="whitespace-pre-wrap text-sm">{s.realLifeApplication}</p>,
+    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.realLifeApplication}</p>,
+  },
+  {
+    num: 19,
+    title: 'Reflection / Exit Ticket',
+    icon: MessageCircle,
+    stripe: 'border-fuchsia-500',
+    iconWrap: 'bg-fuchsia-100 text-fuchsia-700',
+    hasContent: (s) => !!s.reflection,
+    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.reflection}</p>,
   },
 ];
 
@@ -415,7 +607,7 @@ function StudentStoryReading({ story }: { story: ParsedStory }) {
 
       {/* Masonry: only a small gap between boxes; height follows content */}
       <div className="columns-1 sm:columns-2 gap-2">
-        {STORY_TEMPLATE_SECTIONS.map((sec) => (
+        {READING_PRACTICE_SECTIONS.map((sec) => (
           <div key={sec.num} className="mb-2 break-inside-avoid">
             <StorySectionCard
               sectionNum={`Section ${sec.num}`}
@@ -561,7 +753,7 @@ function StudentStoryShell({
                 <p className="text-xs font-semibold uppercase tracking-widest text-indigo-100">
                   Reading studio
                 </p>
-                <h3 className="text-lg font-bold">Story &amp; Passage</h3>
+                <h3 className="text-lg font-bold">Reading Practice Room</h3>
               </div>
             </div>
             {count > 0 ? (

@@ -77,7 +77,7 @@ function isRubricsToolValue(v: unknown): boolean {
 
 function isStoryPassageToolValue(v: unknown): boolean {
   const t = String(v || "").trim().toLowerCase();
-  return t === "story-passage-creator";
+  return t === "story-passage-creator" || t === "reading-practice-room";
 }
 
 function isShortNotesToolValue(v: unknown): boolean {

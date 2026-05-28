@@ -9,10 +9,62 @@ import {
   type ExamQuestion,
 } from '@/lib/parse-exam-question-paper';
 
+type MockTestMeta = {
+  mockTestTitle: string;
+  testPurposeSubtopicLink: string;
+  learningObjectives: string[];
+  ncfCompetencyAlignment: string;
+  stepByStepSolutionsExplanations: string;
+  remedialRevisionSuggestions: string[];
+  expectedLearningOutcomes: string[];
+  realLifeApplication: string;
+  reflectionExitTicket: string;
+};
+
 interface ExamQuestionPaperViewerProps {
   content: string;
   rawContent?: unknown;
   className?: string;
+  /** Student Mock Test Builder (12-section) vs teacher Exam Question Paper (11-section). */
+  variant?: 'student' | 'teacher';
+}
+
+function extractMockTestMeta(rawContent?: unknown): MockTestMeta | null {
+  const pick = (obj: Record<string, unknown> | undefined) => obj || {};
+  const candidates: Record<string, unknown>[] = [];
+  if (rawContent && typeof rawContent === 'object' && !Array.isArray(rawContent)) {
+    candidates.push(rawContent as Record<string, unknown>);
+    const render = (rawContent as Record<string, unknown>).renderContent;
+    if (render && typeof render === 'object') candidates.push(render as Record<string, unknown>);
+  }
+  for (const c of candidates) {
+    const title = String(c.mockTestTitle || c.mock_test_title || c.paperTitle || c.paper_title || '').trim();
+    if (!title && !c.testPurposeSubtopicLink && !c.test_purpose_subtopic_link) continue;
+    const toList = (v: unknown) =>
+      Array.isArray(v) ? v.map((x) => String(x || '').trim()).filter(Boolean) : [];
+    return {
+      mockTestTitle: title || 'Mock Test',
+      testPurposeSubtopicLink: String(
+        c.testPurposeSubtopicLink || c.test_purpose_subtopic_link || '',
+      ).trim(),
+      learningObjectives: toList(c.learningObjectives || c.learning_objectives),
+      ncfCompetencyAlignment: String(
+        c.ncfCompetencyAlignment || c.ncf_competency_alignment || '',
+      ).trim(),
+      stepByStepSolutionsExplanations: String(
+        c.stepByStepSolutionsExplanations || c.step_by_step_solutions_explanations || '',
+      ).trim(),
+      remedialRevisionSuggestions: toList(
+        c.remedialRevisionSuggestions || c.remedial_revision_suggestions,
+      ),
+      expectedLearningOutcomes: toList(c.expectedLearningOutcomes || c.expected_learning_outcomes),
+      realLifeApplication: String(c.realLifeApplication || c.real_life_application || '').trim(),
+      reflectionExitTicket: String(
+        c.reflectionExitTicket || c.reflection_exit_ticket || '',
+      ).trim(),
+    };
+  }
+  return null;
 }
 
 function QuestionCard({ question, index }: { question: ExamQuestion; index: number }) {
@@ -65,7 +117,13 @@ function InfoPanel({ title, value, className }: { title: string; value: string; 
   );
 }
 
-export function ExamQuestionPaperViewer({ content, rawContent, className }: ExamQuestionPaperViewerProps) {
+export function ExamQuestionPaperViewer({
+  content,
+  rawContent,
+  className,
+  variant = 'teacher',
+}: ExamQuestionPaperViewerProps) {
+  const mockMeta = variant === 'student' ? extractMockTestMeta(rawContent) : null;
   const parsedContent = useMemo(
     () => stripStructuredAiToolMetadata(String(content || '')),
     [content],
@@ -109,8 +167,12 @@ export function ExamQuestionPaperViewer({ content, rawContent, className }: Exam
   return (
     <div className={cn('space-y-4', className)}>
       <header className="overflow-hidden rounded-2xl border border-slate-700 bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-800 p-5 text-white shadow-lg">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-indigo-200">Assessment Studio</p>
-        <h2 className="mt-1 text-xl font-bold">{paper.paperTitle || 'Exam Question Paper'}</h2>
+        <p className="text-[11px] uppercase tracking-[0.18em] text-indigo-200">
+          {variant === 'student' ? 'Mock Test Builder' : 'Exam Question Paper Generator'}
+        </p>
+        <h2 className="mt-1 text-xl font-bold">
+          {mockMeta?.mockTestTitle || paper.paperTitle || (variant === 'student' ? 'Mock Test' : 'Exam Question Paper')}
+        </h2>
         <div className="mt-3 flex flex-wrap gap-2">
           <Badge className="bg-white/15 text-white hover:bg-white/15">{totalQuestions} Questions</Badge>
           <Badge className="bg-white/15 text-white hover:bg-white/15">{totalMarks || '-'} Total Marks</Badge>
@@ -118,10 +180,23 @@ export function ExamQuestionPaperViewer({ content, rawContent, className }: Exam
         </div>
       </header>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <InfoPanel title="General Instructions" value={paper.instructions} className="border-indigo-100 bg-indigo-50/40" />
-        <InfoPanel title="Blueprint / Design Grid" value={paper.blueprint} className="border-cyan-100 bg-cyan-50/40" />
-      </div>
+      {variant === 'student' && mockMeta ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <InfoPanel title="Test Purpose and Subtopic Link" value={mockMeta.testPurposeSubtopicLink} className="border-indigo-100 bg-indigo-50/40" />
+          <InfoPanel
+            title="Learning Objectives – Bloom's"
+            value={mockMeta.learningObjectives.join('\n')}
+            className="border-violet-100 bg-violet-50/40"
+          />
+          <InfoPanel title="NCF Competency / Learning Outcome" value={mockMeta.ncfCompetencyAlignment} className="border-cyan-100 bg-cyan-50/40" />
+          <InfoPanel title="Instructions for Students" value={paper.instructions} className="border-slate-200 bg-slate-50/80" />
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <InfoPanel title="General Instructions" value={paper.instructions} className="border-indigo-100 bg-indigo-50/40" />
+          <InfoPanel title="Blueprint / Design Grid" value={paper.blueprint} className="border-cyan-100 bg-cyan-50/40" />
+        </div>
+      )}
 
       <div className="space-y-4">
         {paper.sections.map((section) => (
@@ -145,16 +220,41 @@ export function ExamQuestionPaperViewer({ content, rawContent, className }: Exam
         ))}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <InfoPanel title="Internal Choices" value={paper.internalChoices} className="border-violet-100 bg-violet-50/40" />
-        <InfoPanel title="Answer Key" value={paper.answerKey} className="border-emerald-100 bg-emerald-50/40" />
-        <InfoPanel title="Marking Scheme" value={paper.markingScheme} className="border-amber-100 bg-amber-50/40" />
-      </div>
-      <InfoPanel
-        title="Rubric for Open-ended Questions"
-        value={paper.openEndedRubric}
-        className="border-rose-100 bg-rose-50/40"
-      />
+      {variant === 'student' && mockMeta ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <InfoPanel title="Answer Key" value={paper.answerKey} className="border-emerald-100 bg-emerald-50/40" />
+          <InfoPanel
+            title="Step-by-step Solutions / Explanations"
+            value={mockMeta.stepByStepSolutionsExplanations}
+            className="border-sky-100 bg-sky-50/40"
+          />
+          <InfoPanel
+            title="Remedial Revision Suggestions"
+            value={mockMeta.remedialRevisionSuggestions.join('\n')}
+            className="border-orange-100 bg-orange-50/40"
+          />
+          <InfoPanel
+            title="Expected Learning Outcomes"
+            value={mockMeta.expectedLearningOutcomes.join('\n')}
+            className="border-teal-100 bg-teal-50/40"
+          />
+          <InfoPanel title="Real-life Application" value={mockMeta.realLifeApplication} className="border-lime-100 bg-lime-50/40" />
+          <InfoPanel title="Reflection / Exit Ticket" value={mockMeta.reflectionExitTicket} className="border-rose-100 bg-rose-50/40" />
+        </div>
+      ) : (
+        <>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <InfoPanel title="Internal Choices" value={paper.internalChoices} className="border-violet-100 bg-violet-50/40" />
+            <InfoPanel title="Answer Key" value={paper.answerKey} className="border-emerald-100 bg-emerald-50/40" />
+            <InfoPanel title="Marking Scheme" value={paper.markingScheme} className="border-amber-100 bg-amber-50/40" />
+          </div>
+          <InfoPanel
+            title="Rubric for Open-ended Questions"
+            value={paper.openEndedRubric}
+            className="border-rose-100 bg-rose-50/40"
+          />
+        </>
+      )}
     </div>
   );
 }

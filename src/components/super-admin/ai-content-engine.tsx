@@ -14,10 +14,17 @@ import { toCurriculumSelectRows, type CurriculumSelectRow } from "@/lib/vidya-su
 import {
   filterSubjectRowsForAiTool,
   isStoryPassageLanguageSubject,
-  STORY_PASSAGE_TOOL_ID,
+  isStoryLanguageTool,
   subjectLabelFromRows,
 } from "@/lib/ai-tool-subject-rules";
 import { isDeprecatedAiToolIdentifier } from "@/lib/ai-tool-registry";
+import { StoryPassageViewer } from "@/components/story-passage-viewer";
+import { SmartStudyGuideViewer } from "@/components/smart-study-guide-viewer";
+import { ConceptBreakdownViewer } from "@/components/concept-breakdown-viewer";
+import { PracticeQaViewer } from "@/components/practice-qa-viewer";
+import { ChapterSummaryViewer } from "@/components/chapter-summary-viewer";
+import { KeyPointsViewer } from "@/components/key-points-viewer";
+import { QuickAssignmentViewer } from "@/components/quick-assignment-viewer";
 import { coerceHomeworkText as coerceHomeworkFieldText } from "@/lib/coerce-homework-text";
 import {
   Wrench,
@@ -138,17 +145,22 @@ export default function AIContentEngine() {
 
   const toolOptions = useMemo(
     () => [
-      { value: "activity-project-generator", label: "Activity & Project Generator" },
+      { value: "activity-project-generator", label: "Activity / Project Generator" },
+      { value: "project-idea-lab", label: "Project Idea Lab" },
       { value: "worksheet-mcq-generator", label: "Worksheet & MCQ Generator" },
       { value: "concept-mastery-helper", label: "Concept Mastery Helper" },
       { value: "lesson-planner", label: "Lesson Planner" },
+      { value: "study-schedule-maker", label: "Study Schedule Maker" },
       { value: "homework-creator", label: "Homework Creator" },
       { value: "rubrics-evaluation-generator", label: "Rubrics, Evaluation & Report Card" },
-      { value: "story-passage-creator", label: "Story & Passage Creator" },
+      { value: "reading-practice-room", label: "Reading Practice Room" },
+      { value: "story-passage-creator", label: "Story and Passage Creator" },
       { value: "short-notes-summaries-maker", label: "Short Notes & Summaries" },
-      { value: "flashcard-generator", label: "Flashcard Generator" },
+      { value: "my-study-decks", label: "My Study Decks" },
+      { value: "flashcard-generator", label: "Flash Card Generator" },
       { value: "daily-class-plan-maker", label: "Daily Class Plan" },
-      { value: "exam-question-paper-generator", label: "Exam Question Paper" },
+      { value: "mock-test-builder", label: "Mock Test Builder" },
+      { value: "exam-question-paper-generator", label: "Exam Question Paper Generator" },
       { value: "smart-study-guide-generator", label: "Smart Study Guide Generator" },
       { value: "concept-breakdown-explainer", label: "Concept Breakdown Explainer" },
       { value: "smart-qa-practice-generator", label: "Smart Q&A Practice Generator" },
@@ -331,10 +343,10 @@ export default function AIContentEngine() {
         : null;
     const pick = (o: Record<string, unknown> | null) => {
       if (!o) return "";
-      if (record.toolType === "flashcard-generator") {
+      if (record.toolType === "my-study-decks" || record.toolType === "flashcard-generator") {
         const cards = Array.isArray(o.cards) ? o.cards : [];
         const first = cards[0] && typeof cards[0] === "object" ? (cards[0] as Record<string, unknown>) : null;
-        return String(o.front || first?.front || o.title || "").trim();
+        return String(o.deckTitle || o.front || first?.front || o.title || "").trim();
       }
       return String(o.concept_name || o.title || o.name || o.lesson_name || "").trim();
     };
@@ -351,26 +363,34 @@ export default function AIContentEngine() {
 
   const pdfRecordViewHint = (record: PdfItem): string => {
     switch (record.toolType) {
+      case "my-study-decks":
+        return "Open View for the 12-section study deck: objectives, flashcard set, difficulty tags, self-check, and reflection.";
       case "flashcard-generator":
-        return "Open View for this card — Front, Back, Memory Cue, Skill Focus, Example Use, Peer Prompt, and Reflection.";
+        return "Open View for the 18-section Flash Card Generator: typed card groups, difficulty tags, memory hooks, self-check round, and reflection.";
       case "short-notes-summaries-maker":
         return "Open View for the full 10-section short notes layout.";
+      case "reading-practice-room":
+        return "Open View for the 13-section Reading Practice Room: passage, recall/infer/connect questions, vocabulary practice, answer key, and reflection.";
       case "story-passage-creator":
-        return "Open View for the full story & passage layout.";
+        return "Open View for the 19-section Story and Passage Creator: topic link, passage, recall/infer/connect questions, creative response, answer key, and reflection.";
       case "worksheet-mcq-generator":
         return "Open View for practice questions, answers, and marking details.";
       case "quick-assignment-builder":
         return "Open View for the 11-section assignment: objectives, concept questions, application tasks, rubric, and outcomes.";
       case "smart-qa-practice-generator":
-        return "Open View for the 14-section practice set: sections A–G, real-life questions, answer key, and Bloom/difficulty tags.";
+        return "Open View for the 11-section practice set: sections A–G and answer key with explanations.";
       case "smart-study-guide-generator":
         return "Open View for the 11-section study guide: overview, objectives, concepts, practice questions, and improvement tips.";
       case "concept-breakdown-explainer":
         return "Open View for the 9-section concept breakdown: definition, steps, Indian-context examples, and thinking prompts.";
       case "chapter-summary-creator":
-        return "Open View for the 11-section chapter summary: overview, concepts, exam points, and recall questions.";
+        return "Open View for the 10-section chapter summary: overview, concepts, revision notes, and recall questions.";
       case "key-points-formula-extractor":
         return "Open View for the 10-section key points layout: concepts, definitions, formulae, exam points, and one-minute summary.";
+      case "mock-test-builder":
+        return "Open View for the 12-section mock test: title, purpose, objectives, question paper, answer key, solutions, remedial plan, outcomes, real-life application, and reflection.";
+      case "exam-question-paper-generator":
+        return "Open View for the 11-section exam paper: blueprint, sections A–E, answer key, marking scheme, and open-ended rubric.";
       default:
         return "Open View for the full lesson layout — objectives, materials, steps, and rubrics.";
     }
@@ -380,7 +400,7 @@ export default function AIContentEngine() {
     const content = (item.renderContent && typeof item.renderContent === "object" ? item.renderContent : null) || {};
     const fallback = (item.structuredContent && typeof item.structuredContent === "object" ? item.structuredContent : null) || {};
     const kind =
-      item.toolType === "story-passage-creator"
+      item.toolType === "reading-practice-room" || item.toolType === "story-passage-creator"
         ? "story"
         : item.toolType === "short-notes-summaries-maker"
           ? "shortNotes"
@@ -396,194 +416,33 @@ export default function AIContentEngine() {
           ? "conceptBreakdown"
         : item.toolType === "smart-qa-practice-generator"
           ? "practiceQa"
-          : item.toolType === "flashcard-generator"
+          : item.toolType === "my-study-decks" || item.toolType === "flashcard-generator"
             ? "flashcards"
-            : String(content.kind || "").trim();
+            : item.toolType === "mock-test-builder"
+              ? "mockTest"
+              : item.toolType === "exam-question-paper-generator"
+                ? "examPaper"
+                : String(content.kind || "").trim();
 
     if (item.toolType === "concept-breakdown-explainer" || kind === "conceptBreakdown") {
-      const fb = fallback as Record<string, unknown>;
-      const rc = content as Record<string, unknown>;
-      const pickStr = (...keys: string[]) => {
-        for (const k of keys) {
-          const v = rc[k] ?? fb[k];
-          if (v != null && String(v).trim()) return String(v).trim();
-        }
-        return "";
-      };
-      const listFrom = (primary: unknown, ...alts: unknown[]): string[] => {
-        const pull = (v: unknown): string[] => {
-          if (v == null) return [];
-          if (Array.isArray(v)) {
-            return v.flatMap((x) => {
-              if (typeof x === "string") return [String(x).trim()].filter(Boolean);
-              return [];
-            });
-          }
-          if (typeof v === "string" && v.trim()) {
-            return v
-              .split(/\n+/)
-              .map((ln) => ln.replace(/^\s*[-*•]\s*|\s*\d+[\).\s]+/i, "").trim())
-              .filter(Boolean);
-          }
-          return [];
-        };
-        const a = pull(primary);
-        if (a.length) return a;
-        for (const x of alts) {
-          const b = pull(x);
-          if (b.length) return b;
-        }
-        return [];
-      };
-      const conceptTitle =
-        pickStr("concept_title", "concept_name", "title", "name") || "Concept";
-      const section = (label: string, children: ReactNode) => (
-        <div className="rounded-xl border bg-white p-3 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500">{label}</p>
-          <div className="mt-2">{children}</div>
-        </div>
-      );
-      const emptyHint = (text: string) => <p className="text-xs text-slate-500 italic">{text}</p>;
-      const importantTerms = (() => {
-        const raw = rc.important_terms ?? fb.important_terms ?? fb.keywords ?? fb.terms;
-        if (!Array.isArray(raw)) return [];
-        return raw
-          .map((t) => {
-            if (t && typeof t === "object") {
-              const row = t as Record<string, unknown>;
-              return {
-                term: String(row.term || row.keyword || row.name || "").trim(),
-                definition: String(row.definition || "").trim(),
-              };
-            }
-            return { term: String(t ?? "").trim(), definition: "" };
-          })
-          .filter((t) => t.term);
-      })();
-
       return (
-        <div className="space-y-3">
-          <div className="space-y-0.5">
-            {renderSectionHeader(<Lightbulb className="h-3 w-3 sm:h-4 sm:w-4" />, conceptTitle)}
-            <p className="text-xs text-slate-500 pl-9">Concept Breakdown Explainer — 9-section template</p>
-          </div>
-          {section(
-            "1. Concept Title",
-            <p className="text-xs sm:text-sm font-medium text-slate-900">{conceptTitle}</p>,
-          )}
-          {section(
-            "2. Simple Definition",
-            pickStr("simple_definition", "simple_explanation", "explanation") ? (
-              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                {pickStr("simple_definition", "simple_explanation", "explanation")}
-              </p>
-            ) : (
-              emptyHint("No simple definition.")
-            ),
-          )}
-          {section(
-            "3. Step-by-step Concept Breakdown",
-            listFrom(rc.breakdown_steps, fb.breakdown_steps, fb.steps).length > 0 ? (
-              <ol className="text-xs sm:text-sm space-y-1 text-slate-800 list-decimal pl-4">
-                {listFrom(rc.breakdown_steps, fb.breakdown_steps, fb.steps).map((step, i) => (
-                  <li key={`${item._id}-cbd-step-${i}`}>{step}</li>
-                ))}
-              </ol>
-            ) : (
-              emptyHint("No breakdown steps.")
-            ),
-          )}
-          {section(
-            "4. Real-life and Indian Context Examples",
-            listFrom(
-              rc.real_life_examples,
-              fb.real_life_examples,
-              fb.indian_context_examples,
-              fb.examples,
-            ).length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {listFrom(
-                  rc.real_life_examples,
-                  fb.real_life_examples,
-                  fb.indian_context_examples,
-                  fb.examples,
-                ).map((ex, i) => (
-                  <li key={`${item._id}-cbd-ex-${i}`}>- {ex}</li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No examples.")
-            ),
-          )}
-          {section(
-            "5. Important Terms and Keywords",
-            importantTerms.length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {importantTerms.map((t, i) => (
-                  <li key={`${item._id}-cbd-term-${i}`}>
-                    <span className="font-medium">{t.term}</span>
-                    {t.definition ? ` — ${t.definition}` : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No terms or keywords.")
-            ),
-          )}
-          {section(
-            "6. Concept Check Questions",
-            listFrom(rc.concept_check_questions, fb.concept_check_questions, fb.quick_check_questions)
-              .length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {listFrom(
-                  rc.concept_check_questions,
-                  fb.concept_check_questions,
-                  fb.quick_check_questions,
-                ).map((q, i) => (
-                  <li key={`${item._id}-cbd-qc-${i}`}>- {q}</li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No concept check questions.")
-            ),
-          )}
-          {section(
-            "7. Application-based Thinking Question",
-            pickStr("application_thinking_question", "application_question") ? (
-              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                {pickStr("application_thinking_question", "application_question")}
-              </p>
-            ) : (
-              emptyHint("No application-based question.")
-            ),
-          )}
-          {section(
-            "8. Higher-order Thinking Prompt",
-            pickStr("higher_order_thinking_prompt", "hots_prompt", "hots_question") ? (
-              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                {pickStr("higher_order_thinking_prompt", "hots_prompt", "hots_question")}
-              </p>
-            ) : (
-              emptyHint("No higher-order thinking prompt.")
-            ),
-          )}
-          {section(
-            "9. Quick Revision Summary",
-            pickStr("quick_revision_summary", "revision_summary", "summary") ? (
-              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                {pickStr("quick_revision_summary", "revision_summary", "summary")}
-              </p>
-            ) : (
-              emptyHint("No quick revision summary.")
-            ),
-          )}
-        </div>
+        <ConceptBreakdownViewer
+          content={String(item.generatedContent || "").trim()}
+          rawContent={{
+            ...(fallback as Record<string, unknown>),
+            ...(content as Record<string, unknown>),
+            structuredContent: fallback,
+            renderContent: content,
+          }}
+        />
       );
     }
 
-    if (
+        if (
       item.toolType !== "short-notes-summaries-maker" &&
+      item.toolType !== "reading-practice-room" &&
       item.toolType !== "story-passage-creator" &&
+      item.toolType !== "my-study-decks" &&
       item.toolType !== "flashcard-generator" &&
       item.toolType !== "chapter-summary-creator" &&
       item.toolType !== "smart-study-guide-generator" &&
@@ -891,234 +750,16 @@ export default function AIContentEngine() {
     }
 
     if (item.toolType === "smart-qa-practice-generator" || kind === "practiceQa") {
-      const fb = fallback as Record<string, unknown>;
-      const rc = content as Record<string, unknown>;
-      const pickStr = (...keys: string[]) => {
-        for (const k of keys) {
-          const v = rc[k] ?? fb[k];
-          if (v != null && String(v).trim()) return String(v).trim();
-        }
-        return "";
-      };
-      const PRACTICE_QA_SECTION_ORDER = [
-        "Section A: MCQs",
-        "Section B: Fill in the Blanks",
-        "Section C: Match the Following",
-        "Section D: Very Short Answer Questions",
-        "Section E: Short Answer Questions",
-        "Section F: Application / Case-based Questions",
-        "Section G: HOTS / Analytical Questions",
-      ];
-      const mapSectionName = (name: string) => {
-        const n = String(name || "").trim();
-        if (/^section\s*a|mcq|multiple\s*choice/i.test(n)) return PRACTICE_QA_SECTION_ORDER[0];
-        if (/^section\s*b|fill|blank|fib/i.test(n)) return PRACTICE_QA_SECTION_ORDER[1];
-        if (/^section\s*c|match/i.test(n)) return PRACTICE_QA_SECTION_ORDER[2];
-        if (/^section\s*d|very\s*short|vsa/i.test(n)) return PRACTICE_QA_SECTION_ORDER[3];
-        if (/^section\s*e|short\s*answer/i.test(n) && !/very/i.test(n)) return PRACTICE_QA_SECTION_ORDER[4];
-        if (/^section\s*f|application|case/i.test(n)) return PRACTICE_QA_SECTION_ORDER[5];
-        if (/^section\s*g|hots|analytical/i.test(n)) return PRACTICE_QA_SECTION_ORDER[6];
-        return PRACTICE_QA_SECTION_ORDER.includes(n) ? n : n;
-      };
-      const sectionsRaw = (rc.sections ?? fb.sections ?? []) as {
-        sectionName?: string;
-        title?: string;
-        questions?: unknown[];
-      }[];
-      const sectionMap = new Map<string, ReturnType<typeof toQuestionArray>>();
-      const addToSection = (name: string, qs: ReturnType<typeof toQuestionArray>) => {
-        const key = mapSectionName(name);
-        const prev = sectionMap.get(key) || [];
-        sectionMap.set(key, [...prev, ...qs]);
-      };
-      if (Array.isArray(sectionsRaw)) {
-        for (const sec of sectionsRaw) {
-          addToSection(String(sec?.sectionName || sec?.title || "Section"), toQuestionArray(sec?.questions || []));
-        }
-      }
-      const flatQs = toQuestionArray(rc.questions || fb.questions || fb.practice_questions || []);
-      if (flatQs.length) {
-        for (const q of flatQs) {
-          let sec = String((q as { section?: string }).section || "").trim();
-          const qt = String(q.question || "");
-          if (!sec || sec === "Questions") {
-            if ((q as { options?: string[] }).options?.length) sec = PRACTICE_QA_SECTION_ORDER[0];
-            else if (/_{2,}/.test(qt)) sec = PRACTICE_QA_SECTION_ORDER[1];
-            else if (/match\s*(the\s*)?following/i.test(qt)) sec = PRACTICE_QA_SECTION_ORDER[2];
-            else if (/application|case[\s-]*based/i.test(qt)) sec = PRACTICE_QA_SECTION_ORDER[5];
-            else if (/hots|analytical/i.test(qt)) sec = PRACTICE_QA_SECTION_ORDER[6];
-            else if (/\?/.test(qt) && qt.split(/\s+/).length <= 22) sec = PRACTICE_QA_SECTION_ORDER[3];
-            else if (/\?/.test(qt)) sec = PRACTICE_QA_SECTION_ORDER[4];
-            else sec = PRACTICE_QA_SECTION_ORDER[3];
-          }
-          addToSection(mapSectionName(sec), [q]);
-        }
-      }
-      const sections = PRACTICE_QA_SECTION_ORDER.map((sectionName, idx) => ({
-        sectionName,
-        displayLabel: `${4 + idx}. ${sectionName}`,
-        questions: sectionMap.get(sectionName) || [],
-      }));
-      const realLifeQs = toQuestionArray(
-        rc.realLifeProblemSolvingQuestions ||
-          fb.real_life_problem_solving_questions ||
-          fb.real_life_questions ||
-          [],
-      );
-      const listFrom = (primary: unknown, ...alts: unknown[]): string[] => {
-        const pull = (v: unknown): string[] => {
-          if (v == null) return [];
-          if (Array.isArray(v)) return v.map((x) => String(x ?? "").trim()).filter(Boolean);
-          if (typeof v === "string" && v.trim()) {
-            return v
-              .split(/\n+/)
-              .map((ln) => ln.replace(/^\s*[-*•]\s*|\s*\d+[\).\s]+/i, "").trim())
-              .filter(Boolean);
-          }
-          return [];
-        };
-        const a = pull(primary);
-        if (a.length) return a;
-        for (const x of alts) {
-          const b = pull(x);
-          if (b.length) return b;
-        }
-        return [];
-      };
-      const pqTitle = pickStr("title", "practice_set_title", "name") || activityTitleForDisplay("Practice Q&A", item);
-      const objectives = listFrom(rc.learningObjectives, fb.learning_objectives, fb.objectives);
-      const section = (label: string, children: ReactNode) => (
-        <div className="rounded-xl border bg-white p-3 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500">{label}</p>
-          <div className="mt-2">{children}</div>
-        </div>
-      );
-      const renderQuestion = (q: ReturnType<typeof toQuestionArray>[0], key: string) => {
-        const qx = q as {
-          question_number?: number;
-          marks?: number;
-          type?: string;
-          bloom_level?: string;
-          difficulty_tag?: string;
-          explanation?: string;
-        };
-        return (
-          <div key={key} className="rounded-lg border border-slate-100 p-3 space-y-2">
-            <p className="text-xs sm:text-sm font-medium">
-              Q{qx.question_number != null ? String(qx.question_number) : ""}. {q.question}
-              {qx.type ? (
-                <span className="ml-2 text-xs font-normal text-slate-500">({qx.type})</span>
-              ) : null}
-            </p>
-            {q.options.length > 0 && (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-700">
-                {q.options.map((opt: string, idx: number) => (
-                  <li key={`${key}-o-${idx}`} className="flex items-start gap-2">
-                    <span className="mt-1 inline-block h-2.5 w-2.5 rounded-full border border-slate-500" />
-                    <span>{opt.replace(/^[A-D][\).]\s*/i, `${String.fromCharCode(65 + idx)}) `)}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {q.answer ? (
-              <p className="text-xs text-emerald-700">
-                <span className="font-medium">Answer:</span> {q.answer}
-              </p>
-            ) : null}
-            {qx.explanation ? (
-              <p className="text-xs text-slate-700">
-                <span className="font-medium">Explanation:</span> {qx.explanation}
-              </p>
-            ) : null}
-            {(qx.bloom_level || qx.difficulty_tag) && (
-              <p className="text-xs text-slate-500">
-                {qx.bloom_level ? (
-                  <span>
-                    <span className="font-medium">Bloom:</span> {qx.bloom_level}
-                  </span>
-                ) : null}
-                {qx.bloom_level && qx.difficulty_tag ? " · " : null}
-                {qx.difficulty_tag ? (
-                  <span>
-                    <span className="font-medium">Difficulty:</span> {qx.difficulty_tag}
-                  </span>
-                ) : null}
-              </p>
-            )}
-          </div>
-        );
-      };
-
       return (
-        <div className="space-y-3">
-          <div className="space-y-0.5">
-            {renderSectionHeader(<HelpCircle className="h-3 w-3 sm:h-4 sm:w-4" />, pqTitle)}
-            <p className="text-xs text-slate-500 pl-9">Smart Q&amp;A Practice — 14-section template</p>
-          </div>
-          {section("1. Practice Set Title", <p className="text-xs sm:text-sm font-medium text-slate-900">{pqTitle}</p>)}
-          {objectives.length > 0
-            ? section(
-                "2. Learning Objectives",
-                <ul className="text-xs sm:text-sm space-y-1">
-                  {objectives.map((line, i) => (
-                    <li key={`${item._id}-pqa-lo-${i}`}>- {line}</li>
-                  ))}
-                </ul>,
-              )
-            : section("2. Learning Objectives", <p className="text-xs text-slate-500 italic">No objectives.</p>)}
-          {pickStr("instructions", "student_instructions")
-            ? section(
-                "3. Instructions to Students",
-                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                  {pickStr("instructions", "student_instructions")}
-                </p>,
-              )
-            : section("3. Instructions to Students", <p className="text-xs text-slate-500 italic">No instructions.</p>)}
-          {sections.map((sec, sIdx) =>
-            section(
-              sec.displayLabel || sec.sectionName,
-              sec.questions.length > 0 ? (
-                <div className="space-y-3">
-                  {sec.questions.map((q, qIdx) =>
-                    renderQuestion(q, `${item._id}-pqa-${sIdx}-q-${qIdx}`),
-                  )}
-                </div>
-              ) : (
-                <p className="text-xs text-slate-500 italic">No questions in this section.</p>
-              ),
-            ),
-          )}
-          {section(
-            "11. Real-life Problem-solving Questions",
-            realLifeQs.length > 0 ? (
-              <div className="space-y-3">
-                {realLifeQs.map((q, qIdx) => renderQuestion(q, `${item._id}-pqa-rl-${qIdx}`))}
-              </div>
-            ) : (
-              <p className="text-xs text-slate-500 italic">No real-life problem-solving questions.</p>
-            ),
-          )}
-          {pickStr("answerKeyWithExplanations", "answer_key_with_explanations", "answer_key", "answerKey")
-            ? section(
-                "12. Answer Key with Explanations",
-                <pre className="text-xs text-slate-800 whitespace-pre-wrap font-sans leading-relaxed">
-                  {pickStr("answerKeyWithExplanations", "answer_key_with_explanations", "answer_key", "answerKey")}
-                </pre>,
-              )
-            : section("12. Answer Key with Explanations", <p className="text-xs text-slate-500 italic">No answer key.</p>)}
-          {section(
-            "13. Bloom's Level Tag for Each Question",
-            <p className="text-xs text-slate-500 italic">
-              Shown per question above when extracted or generated.
-            </p>,
-          )}
-          {section(
-            "14. Difficulty Tag for Each Question",
-            <p className="text-xs text-slate-500 italic">
-              Shown per question above when extracted or generated.
-            </p>,
-          )}
-        </div>
+        <PracticeQaViewer
+          content={String(item.generatedContent || "").trim()}
+          rawContent={{
+            ...(fallback as Record<string, unknown>),
+            ...(content as Record<string, unknown>),
+            structuredContent: fallback,
+            renderContent: content,
+          }}
+        />
       );
     }
 
@@ -1396,14 +1037,16 @@ export default function AIContentEngine() {
         item.toolType !== "concept-mastery-helper" &&
         item.toolType !== "homework-creator" &&
         item.toolType !== "worksheet-mcq-generator" &&
-        item.toolType !== "story-passage-creator" &&
+        item.toolType !== "reading-practice-room" &&
+      item.toolType !== "story-passage-creator" &&
         item.toolType !== "short-notes-summaries-maker" &&
         item.toolType !== "quick-assignment-builder") ||
       (Array.isArray(fallback.questions) &&
         item.toolType !== "concept-mastery-helper" &&
         item.toolType !== "homework-creator" &&
         item.toolType !== "worksheet-mcq-generator" &&
-        item.toolType !== "story-passage-creator" &&
+        item.toolType !== "reading-practice-room" &&
+      item.toolType !== "story-passage-creator" &&
         item.toolType !== "short-notes-summaries-maker" &&
         item.toolType !== "quick-assignment-builder")
     ) {
@@ -1456,11 +1099,13 @@ export default function AIContentEngine() {
     }
 
     if (
+      item.toolType === "my-study-decks" ||
       item.toolType === "flashcard-generator" ||
       kind === "flashcards" ||
       Array.isArray(content.cards) ||
       Array.isArray(fallback.cards)
     ) {
+      const isTeacherFlashcards = item.toolType === "flashcard-generator";
       const fb = fallback as Record<string, unknown>;
       const rc = content as Record<string, unknown>;
       const pickCardStr = (card: Record<string, unknown>, ...keys: string[]) => {
@@ -1475,10 +1120,21 @@ export default function AIContentEngine() {
         return {
           front: pickCardStr(c, "front"),
           back: pickCardStr(c, "back"),
+          difficultyTagForEachCard: pickCardStr(
+            c,
+            "difficultyTagForEachCard",
+            "difficulty_tag_for_each_card",
+            "difficulty_tag",
+            "difficulty_level",
+            "skillFocus",
+            "skill_focus",
+            "bloom_level",
+          ),
           memoryCue: pickCardStr(c, "memoryCue", "memory_cue", "hint"),
           skillFocus: pickCardStr(c, "skillFocus", "skill_focus", "bloom_level"),
           exampleUse: pickCardStr(c, "exampleUse", "example_use", "real_life_link"),
           peerPrompt: pickCardStr(c, "peerPrompt", "peer_prompt"),
+          selfCheckRound: pickCardStr(c, "selfCheckRound", "self_check_round", "self_check"),
           reflection: pickCardStr(c, "reflection", "reflection_prompt", "self_check"),
         };
       };
@@ -1491,6 +1147,20 @@ export default function AIContentEngine() {
             : [];
       const cards = rawCards.map(normalizeCard).filter((c) => c.front || c.back);
       const deckTitle = pickCardStr(rc, "title") || pickCardStr(fb, "deck_title", "title") || "Flashcards";
+      const listValues = (value: unknown): string[] =>
+        Array.isArray(value)
+          ? value.map((v) => String(v || "").trim()).filter(Boolean)
+          : String(value || "")
+              .split(/\n|;/)
+              .map((v) => v.trim())
+              .filter(Boolean);
+      const rootText = (...keys: string[]) => {
+        for (const key of keys) {
+          const value = rc[key] ?? fb[key];
+          if (value != null && String(value).trim()) return String(value).trim();
+        }
+        return "";
+      };
       const fieldRow = (label: string, value: string) =>
         value ? (
           <p className="text-xs sm:text-sm text-slate-800">
@@ -1500,29 +1170,143 @@ export default function AIContentEngine() {
       return (
         <div className="space-y-3">
           {renderSectionHeader(<Layers className="h-3 w-3 sm:h-4 sm:w-4" />, deckTitle)}
-          <p className="text-xs text-slate-500 pl-9">Flashcard Generator — 7-field template per card</p>
+          <p className="text-xs text-slate-500 pl-9">
+            {isTeacherFlashcards ? "Flash Card Generator — 18-section template" : "My Study Decks — 12-point template"}
+          </p>
+          {isTeacherFlashcards ? (
+            <div className="rounded-xl border bg-white p-4 space-y-2 shadow-sm">
+              {fieldRow(
+                "Topic and Subtopic Link",
+                rootText("topic_and_subtopic_link", "subtopic_link"),
+              )}
+              {fieldRow("Prior Knowledge Required", rootText("prior_knowledge_required"))}
+              {(() => {
+                const rows = listValues(rc.learningObjectives ?? fb.learning_objectives ?? fb.objectives);
+                return rows.length ? (
+                  <p className="text-xs sm:text-sm text-slate-800">
+                    <span className="font-medium text-slate-600">Learning Objectives – Bloom&apos;s:</span> {rows.join(" | ")}
+                  </p>
+                ) : null;
+              })()}
+              {fieldRow(
+                "NCF Competency / Learning Outcome Alignment",
+                rootText("ncf_competency_alignment", "learning_outcome_alignment"),
+              )}
+              {fieldRow(
+                "Self-Check Rapid Recall Round",
+                rootText("self_check_rapid_recall_round", "self_check_round"),
+              )}
+              {(() => {
+                const rows = listValues(rc.common_mistakes_to_avoid ?? fb.common_mistakes_to_avoid);
+                return rows.length ? (
+                  <p className="text-xs sm:text-sm text-slate-800">
+                    <span className="font-medium text-slate-600">Common Mistakes to Avoid:</span> {rows.join(" | ")}
+                  </p>
+                ) : null;
+              })()}
+              {fieldRow("Differentiation Support", rootText("differentiation_support", "differentiation"))}
+              {(() => {
+                const rows = listValues(rc.expected_learning_outcomes ?? fb.expected_learning_outcomes);
+                return rows.length ? (
+                  <p className="text-xs sm:text-sm text-slate-800">
+                    <span className="font-medium text-slate-600">Expected Learning Outcomes:</span> {rows.join(" | ")}
+                  </p>
+                ) : null;
+              })()}
+              {fieldRow(
+                "Real-life Connection",
+                rootText("real_life_connection", "real_life_application"),
+              )}
+              {fieldRow(
+                "Reflection / Exit Ticket",
+                rootText("reflection_exit_ticket", "reflection"),
+              )}
+            </div>
+          ) : null}
+          {!isTeacherFlashcards ? (
+            <div className="rounded-xl border bg-white p-4 space-y-2 shadow-sm">
+              {fieldRow(
+                "Subtopic Link and Prior Knowledge Required",
+                rootText("subtopicLinkPriorKnowledgeRequired", "subtopic_link_prior_knowledge_required", "prior_knowledge_required"),
+              )}
+              {(() => {
+                const rows = listValues(rc.learningObjectives ?? fb.learning_objectives ?? fb.objectives);
+                return rows.length ? (
+                  <p className="text-xs sm:text-sm text-slate-800">
+                    <span className="font-medium text-slate-600">Learning Objectives - Bloom&apos;s Taxonomy Aligned:</span> {rows.join(" | ")}
+                  </p>
+                ) : null;
+              })()}
+              {fieldRow(
+                "NCF Competency / Learning Outcome Alignment",
+                rootText("ncfCompetencyAlignment", "ncf_competency_alignment", "learning_outcome_alignment"),
+              )}
+              {(() => {
+                const rows = listValues(rc.commonMistakesToAvoid ?? fb.common_mistakes_to_avoid ?? fb.common_mistakes);
+                return rows.length ? (
+                  <p className="text-xs sm:text-sm text-slate-800">
+                    <span className="font-medium text-slate-600">Common Mistakes to Avoid:</span> {rows.join(" | ")}
+                  </p>
+                ) : null;
+              })()}
+              {(() => {
+                const rows = listValues(rc.expectedLearningOutcomes ?? fb.expected_learning_outcomes);
+                return rows.length ? (
+                  <p className="text-xs sm:text-sm text-slate-800">
+                    <span className="font-medium text-slate-600">Expected Learning Outcomes:</span> {rows.join(" | ")}
+                  </p>
+                ) : null;
+              })()}
+              {fieldRow(
+                "Real-life Application",
+                rootText("realLifeApplication", "real_life_application", "example_use", "real_life_link"),
+              )}
+              {fieldRow(
+                "Reflection / Exit Ticket",
+                rootText("reflectionExitTicket", "reflection_exit_ticket", "reflection", "reflection_prompt"),
+              )}
+            </div>
+          ) : null}
           <div className="grid gap-3 md:grid-cols-2">
           {cards.map((card, idx) => (
             <div key={`${item._id}-card-${idx}`} className="rounded-xl border bg-white p-4 space-y-2 shadow-sm">
               <p className="text-xs font-semibold text-slate-500">Card {idx + 1}</p>
               {fieldRow("Front", card.front)}
               {fieldRow("Back", card.back)}
-              {fieldRow("Memory Cue", card.memoryCue)}
-              {fieldRow("Skill Focus", card.skillFocus)}
-              {fieldRow("Example Use", card.exampleUse)}
-              {fieldRow("Peer Prompt", card.peerPrompt)}
-              {fieldRow("Reflection", card.reflection)}
+              {fieldRow("Difficulty Tag for Each Card", card.difficultyTagForEachCard)}
+              {fieldRow("Memory Hook / Quick Tip", card.memoryCue)}
+              {!isTeacherFlashcards ? fieldRow("Self-Check Round", card.selfCheckRound || card.peerPrompt) : null}
+              {!isTeacherFlashcards ? fieldRow("Skill Focus", card.skillFocus) : null}
+              {!isTeacherFlashcards ? fieldRow("Example Use", card.exampleUse) : null}
+              {!isTeacherFlashcards ? fieldRow("Peer Prompt", card.peerPrompt) : null}
+              {!isTeacherFlashcards ? fieldRow("Reflection", card.reflection) : null}
             </div>
           ))}
           </div>
           {cards.length === 0 ? (
-            <p className="text-xs text-slate-500 italic">No flashcards extracted. Re-upload with Flashcard Generator selected.</p>
+            <p className="text-xs text-slate-500 italic">
+              {isTeacherFlashcards
+                ? "No flashcards extracted. Re-upload with Flash Card Generator selected."
+                : "No flashcards extracted. Re-upload with My Study Decks selected."}
+            </p>
           ) : null}
         </div>
       );
     }
 
-    if (item.toolType === "story-passage-creator" || kind === "story") {
+    if (
+      item.toolType === "reading-practice-room" ||
+      item.toolType === "story-passage-creator" ||
+      kind === "story"
+    ) {
+      if (item.toolType === "story-passage-creator") {
+        return (
+          <StoryPassageViewer
+            content={String(item.generatedContent || "").trim()}
+            rawData={content && typeof content === "object" ? content : fallback}
+          />
+        );
+      }
       const fb = fallback as Record<string, unknown>;
       const rc = content as Record<string, unknown>;
       const pickStr = (...keys: string[]) => {
@@ -1561,12 +1345,35 @@ export default function AIContentEngine() {
         }
         return [];
       };
-      const storyTitle = pickStr("title") || "Story";
+      const storyTitle =
+        pickStr("readingPracticeTitle", "reading_practice_title", "title") || "Reading Practice";
       const passage = pickStr("passage", "content");
-      const questions = toQuestionArray(rc.questions || fb.questions || []);
+      const subtopicPrior = pickStr(
+        "subtopicLinkPriorKnowledge",
+        "subtopic_link_prior_knowledge",
+        "subtopic_link",
+      );
       const objectives = listFrom(rc.learningObjectives, fb.learning_objectives, fb.objectives);
-      const vocabulary = listFrom(rc.vocabularySupport, fb.vocabulary_support, fb.vocabulary);
-      const answerHints = listFrom(rc.answerHints, fb.answer_hints);
+      const ncfAlignment = pickStr("ncfCompetencyAlignment", "ncf_competency_alignment", "alignment_block");
+      const vocabularyWarmup = listFrom(
+        rc.vocabularyWarmup,
+        fb.vocabulary_warmup,
+        fb.vocabulary_support,
+        fb.vocabulary,
+      );
+      const recallQs = toQuestionArray(
+        rc.readAndRecallQuestions || fb.read_and_recall_questions || rc.questions || fb.questions || [],
+      );
+      const inferQs = toQuestionArray(rc.thinkAndInferQuestions || fb.think_and_infer_questions || []);
+      const connectQs = toQuestionArray(rc.applyAndConnectQuestions || fb.apply_and_connect_questions || []);
+      const vocabPractice = listFrom(rc.vocabularyPractice, fb.vocabulary_practice);
+      const answerKey = listFrom(
+        rc.answerKeySuggestedResponses,
+        fb.answer_key_suggested_responses,
+        rc.answerHints,
+        fb.answer_hints,
+      );
+      const expectedOutcomes = listFrom(rc.expectedLearningOutcomes, fb.expected_learning_outcomes);
       const metaClass = pickStr("classLabel", "class_label") || String(item.classLabel || "").trim();
       const metaSubject = pickStr("subject") || String(item.subject || "").trim();
       const metaSubtopic = pickStr("subtopic", "subtopic_link") || String(item.subTopic || "").trim();
@@ -1578,22 +1385,13 @@ export default function AIContentEngine() {
           <div className="mt-2">{children}</div>
         </div>
       );
-      const alignment =
-        pickStr("alignmentBlock", "alignment_block") ||
-        [
-          pickStr("nepNcfFocus", "nep_ncf_focus") ? `NEP/NCF Focus: ${pickStr("nepNcfFocus", "nep_ncf_focus")}` : "",
-          pickStr("skillFocus", "skill_focus") ? `Skill Focus: ${pickStr("skillFocus", "skill_focus")}` : "",
-          pickStr("udlSupport", "udl_support", "udl") ? `UDL: ${pickStr("udlSupport", "udl_support", "udl")}` : "",
-        ]
-          .filter(Boolean)
-          .join(" ");
       const emptyHint = (text: string) => <p className="text-xs text-slate-500 italic">{text}</p>;
 
       return (
         <div className="space-y-3">
           <div className="space-y-0.5">
             {renderSectionHeader(<BookText className="h-3 w-3 sm:h-4 sm:w-4" />, storyTitle)}
-            <p className="text-xs text-slate-500 pl-9">Story &amp; Passage — 9-section template</p>
+            <p className="text-xs text-slate-500 pl-9">Reading Practice Room — 13-section template</p>
           </div>
           {(metaClass || metaSubject || metaSubtopic || metaBloom || metaDifficulty) && (
             <div className="flex flex-wrap gap-2 text-xs">
@@ -1615,15 +1413,19 @@ export default function AIContentEngine() {
             </div>
           )}
           {section(
-            "1. Alignment Block",
-            alignment ? (
-              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{alignment}</p>
+            "1. Reading Practice Title",
+            <p className="text-xs sm:text-sm text-slate-800 font-medium">{storyTitle}</p>,
+          )}
+          {section(
+            "2. Subtopic Link and Prior Knowledge Required",
+            subtopicPrior ? (
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{subtopicPrior}</p>
             ) : (
-              emptyHint("Re-upload with Story & Passage Creator to extract NEP/NCF, skill focus, and UDL.")
+              emptyHint("No subtopic link or prior knowledge extracted.")
             ),
           )}
           {section(
-            "2. Learning Objectives",
+            "3. Learning Objectives - Bloom's Taxonomy Aligned",
             objectives.length > 0 ? (
               <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
                 {objectives.map((o, i) => (
@@ -1635,88 +1437,116 @@ export default function AIContentEngine() {
             ),
           )}
           {section(
-            "3. Passage",
-            passage ? (
-              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{passage}</p>
+            "4. NCF Competency / Learning Outcome Alignment",
+            ncfAlignment ? (
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{ncfAlignment}</p>
             ) : (
-              emptyHint("Passage text missing — re-upload the story PDF.")
+              emptyHint("No NCF competency alignment extracted.")
             ),
           )}
           {section(
-            "4. Vocabulary Support",
-            vocabulary.length > 0 ? (
+            "5. Vocabulary Warm-up",
+            vocabularyWarmup.length > 0 ? (
               <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {vocabulary.map((v, i) => (
+                {vocabularyWarmup.map((v, i) => (
                   <li key={`${item._id}-story-voc-${i}`}>- {v}</li>
                 ))}
               </ul>
             ) : (
-              emptyHint("No vocabulary list extracted.")
+              emptyHint("No vocabulary warm-up extracted.")
             ),
           )}
           {section(
-            "5. Comprehension and Thinking Questions",
-            questions.length > 0 ? (
+            "6. Passage / Story",
+            passage ? (
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{passage}</p>
+            ) : (
+              emptyHint("Passage text missing — re-upload the reading practice PDF.")
+            ),
+          )}
+          {section(
+            "7. Read and Recall Questions",
+            recallQs.length > 0 ? (
               <div className="space-y-2">
-                {questions.map((q, i) => (
-                  <p key={`${item._id}-story-q-${i}`} className="text-xs sm:text-sm text-slate-800">
+                {recallQs.map((q, i) => (
+                  <p key={`${item._id}-story-recall-${i}`} className="text-xs sm:text-sm text-slate-800">
                     Q{i + 1}. {q.question}
                   </p>
                 ))}
               </div>
             ) : (
-              emptyHint("No comprehension questions extracted.")
+              emptyHint("No read and recall questions extracted.")
             ),
           )}
           {section(
-            "6. Answer Hints",
-            answerHints.length > 0 ? (
+            "8. Think and Infer Questions",
+            inferQs.length > 0 ? (
+              <div className="space-y-2">
+                {inferQs.map((q, i) => (
+                  <p key={`${item._id}-story-infer-${i}`} className="text-xs sm:text-sm text-slate-800">
+                    Q{i + 1}. {q.question}
+                  </p>
+                ))}
+              </div>
+            ) : (
+              emptyHint("No think and infer questions extracted.")
+            ),
+          )}
+          {section(
+            "9. Apply and Connect Questions",
+            connectQs.length > 0 ? (
+              <div className="space-y-2">
+                {connectQs.map((q, i) => (
+                  <p key={`${item._id}-story-connect-${i}`} className="text-xs sm:text-sm text-slate-800">
+                    Q{i + 1}. {q.question}
+                  </p>
+                ))}
+              </div>
+            ) : (
+              emptyHint("No apply and connect questions extracted.")
+            ),
+          )}
+          {section(
+            "10. Vocabulary Practice",
+            vocabPractice.length > 0 ? (
               <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {answerHints.map((h, i) => (
-                  <li key={`${item._id}-story-hint-${i}`}>- {h}</li>
+                {vocabPractice.map((v, i) => (
+                  <li key={`${item._id}-story-vp-${i}`}>- {v}</li>
                 ))}
               </ul>
             ) : (
-              emptyHint("No answer hints extracted.")
+              emptyHint("No vocabulary practice extracted.")
             ),
           )}
           {section(
-            "7. Differentiation",
-            pickStr("differentiationSupport", "differentiation_support") ||
-              pickStr("differentiationExtension", "differentiation_extension") ? (
-              <div className="space-y-2 text-xs sm:text-sm text-slate-800">
-                {pickStr("differentiationSupport", "differentiation_support") ? (
-                  <p>
-                    <span className="font-medium">Support:</span>{" "}
-                    {pickStr("differentiationSupport", "differentiation_support")}
-                  </p>
-                ) : null}
-                {pickStr("differentiationExtension", "differentiation_extension") ? (
-                  <p>
-                    <span className="font-medium">Extension:</span>{" "}
-                    {pickStr("differentiationExtension", "differentiation_extension")}
-                  </p>
-                ) : null}
-              </div>
+            "11. Answer Key / Suggested Responses",
+            answerKey.length > 0 ? (
+              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
+                {answerKey.map((h, i) => (
+                  <li key={`${item._id}-story-ans-${i}`}>- {h}</li>
+                ))}
+              </ul>
             ) : (
-              emptyHint("No differentiation support or extension extracted.")
+              emptyHint("No answer key extracted.")
             ),
           )}
           {section(
-            "8. Real-life Application",
-            pickStr("realLifeApplication", "real_life_application", "real_life_link") ? (
-              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                {pickStr("realLifeApplication", "real_life_application", "real_life_link")}
-              </p>
+            "12. Expected Learning Outcomes",
+            expectedOutcomes.length > 0 ? (
+              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
+                {expectedOutcomes.map((o, i) => (
+                  <li key={`${item._id}-story-out-${i}`}>- {o}</li>
+                ))}
+              </ul>
             ) : (
-              emptyHint("No real-life application extracted.")
+              emptyHint("No expected learning outcomes extracted.")
             ),
           )}
           {section(
-            "9. Reflection / Exit Ticket",
-            pickStr("reflectionPrompt", "reflection_prompt", "reflection_exit_ticket") ? (
+            "13. Reflection / Exit Ticket",
+            pickStr("reflectionExitTicket", "reflection_exit_ticket", "reflection_prompt", "reflectionPrompt") ? (
               <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                {pickStr("reflectionPrompt", "reflection_prompt", "reflection_exit_ticket")}
+                {pickStr("reflectionExitTicket", "reflection_exit_ticket", "reflection_prompt", "reflectionPrompt")}
               </p>
             ) : (
               emptyHint("No reflection / exit ticket extracted.")
@@ -1726,1070 +1556,59 @@ export default function AIContentEngine() {
       );
     }
 
-    if (item.toolType === "smart-study-guide-generator" || kind === "studyGuide") {
-      const fb = fallback as Record<string, unknown>;
-      const rc = content as Record<string, unknown>;
-      const pickStr = (...keys: string[]) => {
-        for (const k of keys) {
-          const v = rc[k] ?? fb[k];
-          if (v != null && String(v).trim()) return String(v).trim();
-        }
-        return "";
-      };
-      const listFrom = (primary: unknown, ...alts: unknown[]): string[] => {
-        const pull = (v: unknown): string[] => {
-          if (v == null) return [];
-          if (Array.isArray(v)) {
-            return v.flatMap((x) => {
-              if (typeof x === "string") return [String(x).trim()].filter(Boolean);
-              return [];
-            });
-          }
-          if (typeof v === "string" && v.trim()) {
-            return v
-              .split(/\n+/)
-              .map((ln) => ln.replace(/^\s*[-*•]\s*|\s*\d+[\).\s]+/i, "").trim())
-              .filter(Boolean);
-          }
-          return [];
-        };
-        const a = pull(primary);
-        if (a.length) return a;
-        for (const x of alts) {
-          const b = pull(x);
-          if (b.length) return b;
-        }
-        return [];
-      };
-      const guideTitle = pickStr("title") || "Study Guide";
-      const section = (label: string, children: ReactNode) => (
-        <div className="rounded-xl border bg-white p-3 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500">{label}</p>
-          <div className="mt-2">{children}</div>
-        </div>
-      );
-      const emptyHint = (text: string) => <p className="text-xs text-slate-500 italic">{text}</p>;
-      const keyConcepts = (() => {
-        const raw = rc.key_concepts ?? fb.key_concepts ?? fb.concepts;
-        if (!Array.isArray(raw)) return [];
-        return raw
-          .map((c) => {
-            if (c && typeof c === "object") {
-              const row = c as Record<string, unknown>;
-              return {
-                name: String(row.name || row.concept || "").trim(),
-                explanation: String(row.explanation || "").trim(),
-              };
-            }
-            return { name: String(c ?? "").trim(), explanation: "" };
-          })
-          .filter((c) => c.name);
-      })();
-      const definitions = (() => {
-        const raw = rc.definitions ?? fb.definitions;
-        if (!Array.isArray(raw)) return [];
-        return raw
-          .map((d) => {
-            if (d && typeof d === "object") {
-              const row = d as Record<string, unknown>;
-              return {
-                term: String(row.term || row.name || "").trim(),
-                definition: String(row.definition || "").trim(),
-              };
-            }
-            return { term: String(d ?? "").trim(), definition: "" };
-          })
-          .filter((d) => d.term);
-      })();
-      const formulae = (() => {
-        const raw = rc.formulae ?? fb.formulae ?? fb.formulas;
-        if (!Array.isArray(raw)) return [];
-        return raw
-          .map((f) => {
-            if (f && typeof f === "object") {
-              const row = f as Record<string, unknown>;
-              return {
-                name: String(row.name || "").trim(),
-                formula: String(row.formula || "").trim(),
-                note: String(row.note || "").trim(),
-              };
-            }
-            return { name: "", formula: String(f ?? "").trim(), note: "" };
-          })
-          .filter((f) => f.formula || f.name);
-      })();
-      const practiceQuestions = (() => {
-        const raw = rc.practice_questions ?? fb.practice_questions ?? fb.questions;
-        if (!Array.isArray(raw)) return [];
-        return raw
-          .map((q) => {
-            if (q && typeof q === "object") {
-              const row = q as Record<string, unknown>;
-              return {
-                question: String(row.question || "").trim(),
-                type: String(row.type || "subjective").trim(),
-                answer: String(row.answer || "").trim(),
-                options: Array.isArray(row.options)
-                  ? row.options.map((o) => String(o ?? "").trim()).filter(Boolean)
-                  : [],
-              };
-            }
-            return { question: String(q ?? "").trim(), type: "subjective", answer: "", options: [] };
-          })
-          .filter((q) => q.question);
-      })();
-
+    if (item.toolType === "chapter-summary-creator" || kind === "chapterSummary") {
       return (
-        <div className="space-y-3">
-          <div className="space-y-0.5">
-            {renderSectionHeader(<BookOpen className="h-3 w-3 sm:h-4 sm:w-4" />, guideTitle)}
-            <p className="text-xs text-slate-500 pl-9">Smart Study Guide — 11-section template</p>
-          </div>
-          {section(
-            "1. Study Guide Title",
-            <p className="text-xs sm:text-sm font-medium text-slate-900">{guideTitle}</p>,
-          )}
-          {section(
-            "2. Chapter and Subtopic Overview",
-            pickStr("chapter_subtopic_overview", "chapter_overview", "overview") ? (
-              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                {pickStr("chapter_subtopic_overview", "chapter_overview", "overview")}
-              </p>
-            ) : (
-              emptyHint("No chapter/subtopic overview.")
-            ),
-          )}
-          {section(
-            "3. Learning Objectives",
-            listFrom(rc.learningObjectives, fb.learning_objectives, fb.objectives).length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {listFrom(rc.learningObjectives, fb.learning_objectives, fb.objectives).map((o, i) => (
-                  <li key={`${item._id}-sg-lo-${i}`}>- {o}</li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No learning objectives.")
-            ),
-          )}
-          {section(
-            "4. Prior Knowledge Required",
-            listFrom(rc.prior_knowledge_required, fb.prior_knowledge_required, fb.prior_knowledge).length >
-            0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {listFrom(rc.prior_knowledge_required, fb.prior_knowledge_required, fb.prior_knowledge).map(
-                  (p, i) => (
-                    <li key={`${item._id}-sg-pk-${i}`}>- {p}</li>
-                  ),
-                )}
-              </ul>
-            ) : (
-              emptyHint("No prior knowledge listed.")
-            ),
-          )}
-          {section(
-            "5. Key Concepts Explained in Simple Language",
-            keyConcepts.length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-2 text-slate-800">
-                {keyConcepts.map((c, i) => (
-                  <li key={`${item._id}-sg-kc-${i}`}>
-                    <span className="font-medium">{c.name}</span>
-                    {c.explanation ? ` — ${c.explanation}` : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No key concepts.")
-            ),
-          )}
-          {section(
-            "6. Important Definitions and Formulae",
-            definitions.length > 0 || formulae.length > 0 ? (
-              <div className="space-y-2 text-xs sm:text-sm text-slate-800">
-                {definitions.map((d, i) => (
-                  <p key={`${item._id}-sg-def-${i}`}>
-                    <span className="font-medium">{d.term}</span>
-                    {d.definition ? ` — ${d.definition}` : null}
-                  </p>
-                ))}
-                {formulae.map((f, i) => (
-                  <p key={`${item._id}-sg-fm-${i}`}>
-                    {f.name ? <span className="font-medium">{f.name}: </span> : null}
-                    {f.formula}
-                    {f.note ? <span className="text-slate-500"> ({f.note})</span> : null}
-                  </p>
-                ))}
-              </div>
-            ) : (
-              emptyHint("No definitions or formulae.")
-            ),
-          )}
-          {section(
-            "7. Concept Flow / Mind Map Suggestion",
-            pickStr("concept_flow_mind_map", "concept_flow", "mind_map") ? (
-              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                {pickStr("concept_flow_mind_map", "concept_flow", "mind_map")}
-              </p>
-            ) : (
-              emptyHint("No concept flow or mind map suggestion.")
-            ),
-          )}
-          {section(
-            "8. Real-life Examples and Applications",
-            listFrom(rc.real_life_examples, fb.real_life_examples, fb.real_life_applications, fb.examples)
-              .length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {listFrom(
-                  rc.real_life_examples,
-                  fb.real_life_examples,
-                  fb.real_life_applications,
-                  fb.examples,
-                ).map((ex, i) => (
-                  <li key={`${item._id}-sg-rl-${i}`}>- {ex}</li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No real-life examples.")
-            ),
-          )}
-          {section(
-            "9. Quick Revision Notes",
-            listFrom(
-              rc.quick_revision_notes,
-              fb.quick_revision_notes,
-              fb.revision_checklist,
-              fb.quick_review,
-            ).length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {listFrom(
-                  rc.quick_revision_notes,
-                  fb.quick_revision_notes,
-                  fb.revision_checklist,
-                  fb.quick_review,
-                ).map((n, i) => (
-                  <li key={`${item._id}-sg-rev-${i}`}>- {n}</li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No quick revision notes.")
-            ),
-          )}
-          {section(
-            "10. Practice Questions (Objective + Subjective)",
-            practiceQuestions.length > 0 ? (
-              <div className="space-y-3 text-xs sm:text-sm text-slate-800">
-                {practiceQuestions.map((q, i) => (
-                  <div key={`${item._id}-sg-pq-${i}`} className="rounded-lg border border-slate-100 p-2">
-                    <p className="font-medium">
-                      Q{i + 1}. [{q.type}] {q.question}
-                    </p>
-                    {q.options.length > 0 && (
-                      <ul className="mt-1 space-y-0.5 pl-3">
-                        {q.options.map((opt, oi) => (
-                          <li key={`${item._id}-sg-pq-${i}-o-${oi}`}>
-                            {String.fromCharCode(65 + oi)}) {opt}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {q.answer ? (
-                      <p className="mt-1 text-emerald-700">
-                        <span className="font-medium">Answer:</span> {q.answer}
-                      </p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              emptyHint("No practice questions.")
-            ),
-          )}
-          {section(
-            "11. Tips for Further Improvement",
-            listFrom(rc.improvement_tips, fb.improvement_tips, fb.study_tips, fb.tips).length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {listFrom(rc.improvement_tips, fb.improvement_tips, fb.study_tips, fb.tips).map((t, i) => (
-                  <li key={`${item._id}-sg-tip-${i}`}>- {t}</li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No improvement tips.")
-            ),
-          )}
-        </div>
+        <ChapterSummaryViewer
+          content={String(item.generatedContent || "").trim()}
+          rawContent={{
+            ...(fallback as Record<string, unknown>),
+            ...(content as Record<string, unknown>),
+            structuredContent: fallback,
+            renderContent: content,
+          }}
+        />
       );
     }
 
-    if (item.toolType === "chapter-summary-creator" || kind === "chapterSummary") {
-      const fb = fallback as Record<string, unknown>;
-      const rc = content as Record<string, unknown>;
-      const pickStr = (...keys: string[]) => {
-        for (const k of keys) {
-          const v = rc[k] ?? fb[k];
-          if (v != null && String(v).trim()) return String(v).trim();
-        }
-        return "";
-      };
-      const listFrom = (primary: unknown, ...alts: unknown[]): string[] => {
-        const pull = (v: unknown): string[] => {
-          if (v == null) return [];
-          if (Array.isArray(v)) {
-            return v.flatMap((x) => {
-              if (typeof x === "string") return [String(x).trim()].filter(Boolean);
-              return [];
-            });
-          }
-          if (typeof v === "string" && v.trim()) {
-            return v
-              .split(/\n+/)
-              .map((ln) => ln.replace(/^\s*[-*•]\s*|\s*\d+[\).\s]+/i, "").trim())
-              .filter(Boolean);
-          }
-          return [];
-        };
-        const a = pull(primary);
-        if (a.length) return a;
-        for (const x of alts) {
-          const b = pull(x);
-          if (b.length) return b;
-        }
-        return [];
-      };
-      const csTitle =
-        pickStr("chapter_summary_title", "chapter_title", "title", "name") || "Chapter Summary";
-      const section = (label: string, children: ReactNode) => (
-        <div className="rounded-xl border bg-white p-3 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500">{label}</p>
-          <div className="mt-2">{children}</div>
-        </div>
-      );
-      const emptyHint = (text: string) => <p className="text-xs text-slate-500 italic">{text}</p>;
-      const importantConcepts = (() => {
-        const raw = rc.important_concepts ?? fb.important_concepts ?? fb.key_concepts ?? fb.concepts;
-        if (!Array.isArray(raw)) return [];
-        return raw
-          .map((c) => {
-            if (c && typeof c === "object") {
-              const row = c as Record<string, unknown>;
-              return {
-                name: String(row.name || row.concept || "").trim(),
-                explanation: String(row.explanation || "").trim(),
-              };
-            }
-            return { name: String(c ?? "").trim(), explanation: "" };
-          })
-          .filter((c) => c.name);
-      })();
-      const definitions = (() => {
-        const raw = rc.definitions ?? fb.definitions;
-        if (!Array.isArray(raw)) return [];
-        return raw
-          .map((d) => {
-            if (d && typeof d === "object") {
-              const row = d as Record<string, unknown>;
-              return {
-                term: String(row.term || row.name || "").trim(),
-                definition: String(row.definition || "").trim(),
-              };
-            }
-            return { term: String(d ?? "").trim(), definition: "" };
-          })
-          .filter((d) => d.term);
-      })();
-      const formulae = (() => {
-        const raw = rc.formulae ?? fb.formulae ?? fb.formulas;
-        if (!Array.isArray(raw)) return [];
-        return raw
-          .map((f) => {
-            if (f && typeof f === "object") {
-              const row = f as Record<string, unknown>;
-              return {
-                name: String(row.name || "").trim(),
-                formula: String(row.formula || row.rule || "").trim(),
-                note: String(row.note || "").trim(),
-              };
-            }
-            return { name: "", formula: String(f ?? "").trim(), note: "" };
-          })
-          .filter((f) => f.formula || f.name);
-      })();
-
+    if (item.toolType === "smart-study-guide-generator" || kind === "studyGuide") {
       return (
-        <div className="space-y-3">
-          <div className="space-y-0.5">
-            {renderSectionHeader(<BookText className="h-3 w-3 sm:h-4 sm:w-4" />, csTitle)}
-            <p className="text-xs text-slate-500 pl-9">Chapter Summary Creator — 11-section template</p>
-          </div>
-          {section(
-            "1. Chapter Summary Title",
-            <p className="text-xs sm:text-sm font-medium text-slate-900">{csTitle}</p>,
-          )}
-          {section(
-            "2. Overview of the Chapter",
-            pickStr("chapter_overview", "overview", "summary", "chapter_summary") ? (
-              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">
-                {pickStr("chapter_overview", "overview", "summary", "chapter_summary")}
-              </p>
-            ) : (
-              emptyHint("No chapter overview.")
-            ),
-          )}
-          {section(
-            "3. Learning Objectives",
-            listFrom(rc.learningObjectives, fb.learning_objectives, fb.objectives).length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {listFrom(rc.learningObjectives, fb.learning_objectives, fb.objectives).map((o, i) => (
-                  <li key={`${item._id}-cs-lo-${i}`}>- {o}</li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No learning objectives.")
-            ),
-          )}
-          {section(
-            "4. Important Concepts and Explanations",
-            importantConcepts.length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-2 text-slate-800">
-                {importantConcepts.map((c, i) => (
-                  <li key={`${item._id}-cs-c-${i}`}>
-                    <span className="font-medium">{c.name}</span>
-                    {c.explanation ? ` — ${c.explanation}` : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No important concepts.")
-            ),
-          )}
-          {section(
-            "5. Key Definitions and Terms",
-            definitions.length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {definitions.map((d, i) => (
-                  <li key={`${item._id}-cs-def-${i}`}>
-                    <span className="font-medium">{d.term}</span>
-                    {d.definition ? ` — ${d.definition}` : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No definitions.")
-            ),
-          )}
-          {section(
-            "6. Formulae / Rules / Important Facts",
-            formulae.length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {formulae.map((f, i) => (
-                  <li key={`${item._id}-cs-fm-${i}`}>
-                    {f.name ? <span className="font-medium">{f.name}: </span> : null}
-                    {f.formula}
-                    {f.note ? <span className="text-slate-500"> ({f.note})</span> : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No formulae or rules.")
-            ),
-          )}
-          {section(
-            "7. Concept Connections",
-            pickStr("concept_connections", "connections") ? (
-              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                {pickStr("concept_connections", "connections")}
-              </p>
-            ) : (
-              emptyHint("No concept connections.")
-            ),
-          )}
-          {section(
-            "8. Real-life Applications",
-            listFrom(rc.real_life_applications, fb.real_life_applications, fb.applications, fb.examples)
-              .length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {listFrom(
-                  rc.real_life_applications,
-                  fb.real_life_applications,
-                  fb.applications,
-                  fb.examples,
-                ).map((a, i) => (
-                  <li key={`${item._id}-cs-rl-${i}`}>- {a}</li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No real-life applications.")
-            ),
-          )}
-          {section(
-            "9. Important Exam Points",
-            listFrom(
-              rc.important_exam_points,
-              fb.important_exam_points,
-              fb.exam_points,
-              fb.key_takeaways,
-            ).length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {listFrom(
-                  rc.important_exam_points,
-                  fb.important_exam_points,
-                  fb.exam_points,
-                  fb.key_takeaways,
-                ).map((p, i) => (
-                  <li key={`${item._id}-cs-exam-${i}`}>- {p}</li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No exam points.")
-            ),
-          )}
-          {section(
-            "10. Quick Revision Notes",
-            listFrom(
-              rc.quick_revision_notes,
-              fb.quick_revision_notes,
-              fb.review_points,
-              fb.quick_review,
-            ).length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {listFrom(
-                  rc.quick_revision_notes,
-                  fb.quick_revision_notes,
-                  fb.review_points,
-                  fb.quick_review,
-                ).map((n, i) => (
-                  <li key={`${item._id}-cs-rev-${i}`}>- {n}</li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No quick revision notes.")
-            ),
-          )}
-          {section(
-            "11. Practice Recall Questions",
-            listFrom(
-              rc.practice_recall_questions,
-              fb.practice_recall_questions,
-              fb.recall_questions,
-            ).length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {listFrom(
-                  rc.practice_recall_questions,
-                  fb.practice_recall_questions,
-                  fb.recall_questions,
-                ).map((q, i) => (
-                  <li key={`${item._id}-cs-recall-${i}`}>- {q}</li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No practice recall questions.")
-            ),
-          )}
-        </div>
+        <SmartStudyGuideViewer
+          content={String(item.generatedContent || "").trim()}
+          rawContent={{
+            ...(fallback as Record<string, unknown>),
+            ...(content as Record<string, unknown>),
+            structuredContent: fallback,
+            renderContent: content,
+          }}
+        />
       );
     }
 
     if (item.toolType === "key-points-formula-extractor" || kind === "keyPoints") {
-      const fb = fallback as Record<string, unknown>;
-      const rc = content as Record<string, unknown>;
-      const pickStr = (...keys: string[]) => {
-        for (const k of keys) {
-          const v = rc[k] ?? fb[k];
-          if (v != null && String(v).trim()) return String(v).trim();
-        }
-        return "";
-      };
-      const listFrom = (primary: unknown, ...alts: unknown[]): string[] => {
-        const pull = (v: unknown): string[] => {
-          if (v == null) return [];
-          if (Array.isArray(v)) {
-            return v.flatMap((x) => {
-              if (typeof x === "string") return [String(x).trim()].filter(Boolean);
-              return [];
-            });
-          }
-          if (typeof v === "string" && v.trim()) {
-            return v
-              .split(/\n+/)
-              .map((ln) => ln.replace(/^\s*[-*•]\s*|\s*\d+[\).\s]+/i, "").trim())
-              .filter(Boolean);
-          }
-          return [];
-        };
-        const a = pull(primary);
-        if (a.length) return a;
-        for (const x of alts) {
-          const b = pull(x);
-          if (b.length) return b;
-        }
-        return [];
-      };
-      const kpTitle = pickStr("topic_title", "title", "name") || "Key Points";
-      const section = (label: string, children: ReactNode) => (
-        <div className="rounded-xl border bg-white p-3 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500">{label}</p>
-          <div className="mt-2">{children}</div>
-        </div>
-      );
-      const emptyHint = (text: string) => <p className="text-xs text-slate-500 italic">{text}</p>;
-      const importantConcepts = (() => {
-        const raw = rc.important_concepts ?? fb.important_concepts ?? fb.key_concepts ?? fb.concepts;
-        if (!Array.isArray(raw)) return [];
-        return raw
-          .map((c) => {
-            if (c && typeof c === "object") {
-              const row = c as Record<string, unknown>;
-              return {
-                name: String(row.name || row.concept || row.point || "").trim(),
-                explanation: String(row.explanation || row.detail || "").trim(),
-              };
-            }
-            return { name: String(c ?? "").trim(), explanation: "" };
-          })
-          .filter((c) => c.name);
-      })();
-      const definitions = (() => {
-        const raw = rc.essential_definitions ?? fb.essential_definitions ?? fb.definitions;
-        if (!Array.isArray(raw)) return [];
-        return raw
-          .map((d) => {
-            if (d && typeof d === "object") {
-              const row = d as Record<string, unknown>;
-              return {
-                term: String(row.term || row.name || "").trim(),
-                definition: String(row.definition || "").trim(),
-              };
-            }
-            return { term: String(d ?? "").trim(), definition: "" };
-          })
-          .filter((d) => d.term);
-      })();
-      const formulae = (() => {
-        const raw = rc.formulae ?? fb.formulae ?? fb.formulas;
-        if (!Array.isArray(raw)) return [];
-        return raw
-          .map((f) => {
-            if (f && typeof f === "object") {
-              const row = f as Record<string, unknown>;
-              return {
-                name: String(row.name || "").trim(),
-                formula: String(row.formula || row.rule || "").trim(),
-                note: String(row.note || row.when_to_use || "").trim(),
-              };
-            }
-            return { name: "", formula: String(f ?? "").trim(), note: "" };
-          })
-          .filter((f) => f.formula || f.name);
-      })();
-      const keywords = (() => {
-        const raw = rc.keywords_terminologies ?? fb.keywords_terminologies ?? fb.keywords;
-        if (!Array.isArray(raw)) return [];
-        return raw
-          .map((k) => {
-            if (k && typeof k === "object") {
-              const row = k as Record<string, unknown>;
-              return {
-                term: String(row.term || row.keyword || row.name || "").trim(),
-                meaning: String(row.meaning || row.definition || "").trim(),
-              };
-            }
-            return { term: String(k ?? "").trim(), meaning: "" };
-          })
-          .filter((k) => k.term);
-      })();
-
       return (
-        <div className="space-y-3">
-          <div className="space-y-0.5">
-            {renderSectionHeader(<Key className="h-3 w-3 sm:h-4 sm:w-4" />, kpTitle)}
-            <p className="text-xs text-slate-500 pl-9">Key Points Extractor — 10-section template</p>
-          </div>
-          {section(
-            "1. Topic Title",
-            <p className="text-xs sm:text-sm font-medium text-slate-900">{kpTitle}</p>,
-          )}
-          {section(
-            "2. Most Important Concepts",
-            importantConcepts.length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-2 text-slate-800">
-                {importantConcepts.map((c, i) => (
-                  <li key={`${item._id}-kp-c-${i}`}>
-                    <span className="font-medium">{c.name}</span>
-                    {c.explanation ? ` — ${c.explanation}` : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No important concepts.")
-            ),
-          )}
-          {section(
-            "3. Essential Definitions",
-            definitions.length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {definitions.map((d, i) => (
-                  <li key={`${item._id}-kp-def-${i}`}>
-                    <span className="font-medium">{d.term}</span>
-                    {d.definition ? ` — ${d.definition}` : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No essential definitions.")
-            ),
-          )}
-          {section(
-            "4. Important Formulae / Rules",
-            formulae.length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {formulae.map((f, i) => (
-                  <li key={`${item._id}-kp-fm-${i}`}>
-                    {f.name ? <span className="font-medium">{f.name}: </span> : null}
-                    {f.formula}
-                    {f.note ? <span className="text-slate-500"> ({f.note})</span> : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No formulae or rules.")
-            ),
-          )}
-          {section(
-            "5. Keywords and Terminologies",
-            keywords.length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {keywords.map((k, i) => (
-                  <li key={`${item._id}-kp-kw-${i}`}>
-                    <span className="font-medium">{k.term}</span>
-                    {k.meaning ? ` — ${k.meaning}` : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No keywords or terminologies.")
-            ),
-          )}
-          {section(
-            "6. Must-remember Facts",
-            listFrom(rc.must_remember_facts, fb.must_remember_facts, fb.key_points, fb.key_points_to_remember)
-              .length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {listFrom(
-                  rc.must_remember_facts,
-                  fb.must_remember_facts,
-                  fb.key_points,
-                  fb.key_points_to_remember,
-                ).map((p, i) => (
-                  <li key={`${item._id}-kp-fact-${i}`}>- {p}</li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No must-remember facts.")
-            ),
-          )}
-          {section(
-            "7. Real-life Connections",
-            listFrom(rc.real_life_connections, fb.real_life_connections, fb.real_life_applications).length >
-            0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {listFrom(rc.real_life_connections, fb.real_life_connections, fb.real_life_applications).map(
-                  (a, i) => (
-                    <li key={`${item._id}-kp-rl-${i}`}>- {a}</li>
-                  ),
-                )}
-              </ul>
-            ) : (
-              emptyHint("No real-life connections.")
-            ),
-          )}
-          {section(
-            "8. Frequently Asked Exam Points",
-            listFrom(
-              rc.frequently_asked_exam_points,
-              fb.frequently_asked_exam_points,
-              fb.exam_points,
-            ).length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {listFrom(rc.frequently_asked_exam_points, fb.frequently_asked_exam_points, fb.exam_points).map(
-                  (p, i) => (
-                    <li key={`${item._id}-kp-exam-${i}`}>- {p}</li>
-                  ),
-                )}
-              </ul>
-            ) : (
-              emptyHint("No frequently asked exam points.")
-            ),
-          )}
-          {section(
-            "9. Mnemonics / Memory Tricks",
-            listFrom(rc.mnemonics_memory_tricks, fb.mnemonics_memory_tricks, fb.mnemonics, fb.memory_tricks)
-              .length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {listFrom(
-                  rc.mnemonics_memory_tricks,
-                  fb.mnemonics_memory_tricks,
-                  fb.mnemonics,
-                  fb.memory_tricks,
-                ).map((m, i) => (
-                  <li key={`${item._id}-kp-mn-${i}`}>- {m}</li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No mnemonics or memory tricks.")
-            ),
-          )}
-          {section(
-            "10. One-minute Revision Summary",
-            pickStr("one_minute_revision_summary", "revision_summary", "summary", "short_note_summary") ? (
-              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">
-                {pickStr("one_minute_revision_summary", "revision_summary", "summary", "short_note_summary")}
-              </p>
-            ) : (
-              emptyHint("No one-minute revision summary.")
-            ),
-          )}
-        </div>
+        <KeyPointsViewer
+          content={String(item.generatedContent || "").trim()}
+          rawContent={{
+            ...(fallback as Record<string, unknown>),
+            ...(content as Record<string, unknown>),
+            structuredContent: fallback,
+            renderContent: content,
+          }}
+        />
       );
     }
 
     if (item.toolType === "quick-assignment-builder" || kind === "quickAssignment") {
-      const fb = fallback as Record<string, unknown>;
-      const rc = content as Record<string, unknown>;
-      const pickStr = (...keys: string[]) => {
-        for (const k of keys) {
-          const v = rc[k] ?? fb[k];
-          if (v != null && String(v).trim()) return String(v).trim();
-        }
-        return "";
-      };
-      const listFrom = (primary: unknown, ...alts: unknown[]): string[] => {
-        const pull = (v: unknown): string[] => {
-          if (v == null) return [];
-          if (Array.isArray(v)) {
-            return v.flatMap((x) => {
-              if (typeof x === "string") return [String(x).trim()].filter(Boolean);
-              return [];
-            });
-          }
-          if (typeof v === "string" && v.trim()) {
-            return v
-              .split(/\n+/)
-              .map((ln) => ln.replace(/^\s*[-*•]\s*|\s*\d+[\).\s]+/i, "").trim())
-              .filter(Boolean);
-          }
-          return [];
-        };
-        const a = pull(primary);
-        if (a.length) return a;
-        for (const x of alts) {
-          const b = pull(x);
-          if (b.length) return b;
-        }
-        return [];
-      };
-      const qaTitle = pickStr("assignment_title", "title", "name") || "Assignment";
-      const section = (label: string, children: ReactNode) => (
-        <div className="rounded-xl border bg-white p-3 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500">{label}</p>
-          <div className="mt-2">{children}</div>
-        </div>
-      );
-      const emptyHint = (text: string) => <p className="text-xs text-slate-500 italic">{text}</p>;
-      const conceptQuestions = toQuestionArray(
-        rc.concept_based_questions ||
-          fb.concept_based_questions ||
-          rc.questions ||
-          fb.questions ||
-          fb.practice_questions ||
-          [],
-      );
-      const applicationTasks = listFrom(
-        rc.application_oriented_tasks,
-        fb.application_oriented_tasks,
-        fb.application_tasks,
-      );
-
       return (
-        <div className="space-y-3">
-          <div className="space-y-0.5">
-            {renderSectionHeader(<ClipboardList className="h-3 w-3 sm:h-4 sm:w-4" />, qaTitle)}
-            <p className="text-xs text-slate-500 pl-9">Quick Assignment Builder — 11-section template</p>
-          </div>
-          {section(
-            "1. Assignment Title",
-            <p className="text-xs sm:text-sm font-medium text-slate-900">{qaTitle}</p>,
-          )}
-          {section(
-            "2. Learning Objectives",
-            listFrom(rc.learning_objectives, rc.learningObjectives, fb.learning_objectives, fb.objectives)
-              .length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {listFrom(
-                  rc.learning_objectives,
-                  rc.learningObjectives,
-                  fb.learning_objectives,
-                  fb.objectives,
-                ).map((o, i) => (
-                  <li key={`${item._id}-qa-lo-${i}`}>- {o}</li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No learning objectives.")
-            ),
-          )}
-          {section(
-            "3. Instructions to Students",
-            pickStr("instructions", "instructions_to_students", "student_instructions") ? (
-              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                {pickStr("instructions", "instructions_to_students", "student_instructions")}
-              </p>
-            ) : (
-              emptyHint("No instructions.")
-            ),
-          )}
-          {section(
-            "4. Concept-based Questions",
-            conceptQuestions.length > 0 ? (
-              <div className="space-y-3">
-                {conceptQuestions.map((q, i) => {
-                  const qx = q as { question_number?: number; marks?: number };
-                  return (
-                    <div key={`${item._id}-qa-q-${i}`} className="rounded-lg border border-slate-100 p-3 space-y-2">
-                      <p className="text-xs sm:text-sm font-medium">
-                        Q{qx.question_number != null ? String(qx.question_number) : i + 1}. {q.question}
-                      </p>
-                      {q.options.length > 0 && (
-                        <ul className="text-xs sm:text-sm space-y-1 text-slate-700">
-                          {q.options.map((opt: string, idx: number) => (
-                            <li key={`${item._id}-qa-q-${i}-o-${idx}`}>- {opt}</li>
-                          ))}
-                        </ul>
-                      )}
-                      {q.answer ? (
-                        <p className="text-xs text-emerald-700">
-                          <span className="font-medium">Answer:</span> {q.answer}
-                        </p>
-                      ) : null}
-                      {qx.marks != null && !Number.isNaN(Number(qx.marks)) ? (
-                        <p className="text-xs text-slate-500">Marks: {String(qx.marks)}</p>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              emptyHint("No concept-based questions.")
-            ),
-          )}
-          {section(
-            "5. Application-oriented Tasks",
-            applicationTasks.length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {applicationTasks.map((t, i) => (
-                  <li key={`${item._id}-qa-app-${i}`}>- {t}</li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No application-oriented tasks.")
-            ),
-          )}
-          {section(
-            "6. Real-life / Competency-based Activity",
-            pickStr(
-              "real_life_competency_activity",
-              "realLifeCompetencyActivity",
-              "real_life_activity",
-              "real_life_observation_task",
-            ) ? (
-              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                {pickStr(
-                  "real_life_competency_activity",
-                  "realLifeCompetencyActivity",
-                  "real_life_activity",
-                  "real_life_observation_task",
-                )}
-              </p>
-            ) : (
-              emptyHint("No real-life / competency-based activity.")
-            ),
-          )}
-          {section(
-            "7. Creative Thinking Question",
-            pickStr("creative_thinking_question", "creativeThinkingQuestion", "creative_question") ? (
-              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                {pickStr("creative_thinking_question", "creativeThinkingQuestion", "creative_question")}
-              </p>
-            ) : (
-              emptyHint("No creative thinking question.")
-            ),
-          )}
-          {section(
-            "8. Collaborative / Discussion Task (if suitable)",
-            pickStr(
-              "collaborative_discussion_task",
-              "collaborativeDiscussionTask",
-              "discussion_task",
-              "collaborative_task",
-            ) ? (
-              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                {pickStr(
-                  "collaborative_discussion_task",
-                  "collaborativeDiscussionTask",
-                  "discussion_task",
-                  "collaborative_task",
-                )}
-              </p>
-            ) : (
-              emptyHint("No collaborative / discussion task.")
-            ),
-          )}
-          {section(
-            "9. Challenge Question for Advanced Learners",
-            pickStr("challenge_question_advanced", "challengeQuestionAdvanced", "challenge_question") ? (
-              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                {pickStr("challenge_question_advanced", "challengeQuestionAdvanced", "challenge_question")}
-              </p>
-            ) : (
-              emptyHint("No challenge question.")
-            ),
-          )}
-          {section(
-            "11. Assessment Criteria / Rubric",
-            pickStr(
-              "assessment_criteria_rubric",
-              "assessmentCriteriaRubric",
-              "marking_criteria",
-              "marking_scheme",
-            ) ? (
-              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                {pickStr(
-                  "assessment_criteria_rubric",
-                  "assessmentCriteriaRubric",
-                  "marking_criteria",
-                  "marking_scheme",
-                )}
-              </p>
-            ) : (
-              emptyHint("No assessment criteria / rubric.")
-            ),
-          )}
-          {section(
-            "13. Expected Learning Outcomes",
-            listFrom(rc.expected_learning_outcomes, rc.expectedLearningOutcomes, fb.expected_learning_outcomes)
-              .length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1 text-slate-800">
-                {listFrom(
-                  rc.expected_learning_outcomes,
-                  rc.expectedLearningOutcomes,
-                  fb.expected_learning_outcomes,
-                  fb.learning_outcomes,
-                ).map((o, i) => (
-                  <li key={`${item._id}-qa-out-${i}`}>- {o}</li>
-                ))}
-              </ul>
-            ) : (
-              emptyHint("No expected learning outcomes.")
-            ),
-          )}
-        </div>
+        <QuickAssignmentViewer
+          content={String(item.generatedContent || "").trim()}
+          rawContent={{
+            ...(fallback as Record<string, unknown>),
+            ...(content as Record<string, unknown>),
+            structuredContent: fallback,
+            renderContent: content,
+          }}
+        />
       );
     }
 
@@ -3225,7 +2044,10 @@ export default function AIContentEngine() {
       );
     }
 
-    const isLessonPlannerRecord = kind === "lessonPlan" || item.toolType === "lesson-planner";
+    const isLessonPlannerRecord =
+      kind === "lessonPlan" ||
+      item.toolType === "lesson-planner" ||
+      item.toolType === "study-schedule-maker";
 
     if (isLessonPlannerRecord) {
       const fb = fallback as Record<string, unknown>;
@@ -3272,6 +2094,11 @@ export default function AIContentEngine() {
         return "";
       };
 
+      const displayLessonTitle = activityTitleForDisplay(
+        pickStr("studyScheduleTitle", "study_schedule_title", "title", "lesson_name", "name") ||
+          "Study schedule",
+        item,
+      );
       const objectives = listFrom(
         rc.objectives,
         fb.objectives,
@@ -3283,26 +2110,9 @@ export default function AIContentEngine() {
       const ncfText = Array.isArray(ncfRaw)
         ? ncfRaw.map((x) => String(x ?? "").trim()).filter(Boolean).join("; ")
         : String(ncfRaw || "").trim();
-      const activities = listFrom(
-        rc.activities,
-        fb.activities,
-        fb.teaching_activities,
-        fb.teaching_learning_process,
-        fb.step_by_step_procedure,
-        fb.steps,
-      );
-      const teacherTalk = listFrom(rc.teacherTalkPoints, fb.teacher_talk_points, fb.teacher_instructions);
-      const studentTasks = listFrom(rc.studentTasks, fb.student_tasks, fb.student_instructions);
-      const formativeQs = listFrom(
-        rc.formativeAssessmentQuestions,
-        fb.formative_assessment_questions,
-        fb.formative_questions,
-      );
-      const materials = listFrom(rc.materials, fb.materials_required, fb.materials);
-      const teachingAids = listFrom(rc.teachingAids, fb.teaching_aids_required, fb.teaching_aids);
-      let timeline = listFrom(rc.timeline, fb.timeline, fb.schedule, fb.duration_plan);
-      if (!timeline.length && Array.isArray(fb.time_slots)) {
-        timeline = (fb.time_slots as { time?: string; activity?: string }[])
+      let studyPlanTable = listFrom(rc.studyPlanTable, fb.study_plan_table, rc.timeline, fb.timeline, fb.schedule);
+      if (!studyPlanTable.length && Array.isArray(fb.time_slots)) {
+        studyPlanTable = (fb.time_slots as { time?: string; activity?: string }[])
           .map((ts) => {
             const t = String(ts?.time || "").trim();
             const a = String(ts?.activity || "").trim();
@@ -3311,11 +2121,7 @@ export default function AIContentEngine() {
           })
           .filter(Boolean);
       }
-      const assessment = pickStr("assessment", "evaluation", "summative_assessment");
-      const displayLessonTitle = activityTitleForDisplay(
-        pickStr("title", "lesson_name", "name") || "Lesson plan",
-        item,
-      );
+      const expectedOutcomes = listFrom(rc.expectedLearningOutcomes, fb.expected_learning_outcomes);
 
       const section = (label: string, children: ReactNode) => (
         <div className="rounded-xl border bg-white p-3 shadow-sm">
@@ -3328,30 +2134,60 @@ export default function AIContentEngine() {
       const hasStructured = Boolean(
         objectives.length ||
           ncfText ||
-          pickStr("priorKnowledgeDiagnostic", "prior_knowledge_diagnostic") ||
-          pickStr("introductionWarmup", "introduction_warmup", "warmup") ||
-          pickStr("teachingStrategy", "teaching_strategy") ||
-          activities.length ||
-          teacherTalk.length ||
-          studentTasks.length ||
-          formativeQs.length ||
-          pickStr("differentiationPlan", "differentiation_plan", "differentiation") ||
-          pickStr("homeworkPractice", "homework_practice", "homework") ||
-          materials.length ||
-          teachingAids.length ||
-          pickStr("closureExitTicket", "closure_exit_ticket") ||
-          timeline.length ||
-          assessment,
+          pickStr("studyGoalSubtopicLink", "study_goal_subtopic_link") ||
+          pickStr("priorKnowledgeReadinessCheck", "prior_knowledge_readiness_check", "prior_knowledge_diagnostic") ||
+          studyPlanTable.length ||
+          pickStr("conceptLearningSlot", "concept_learning_slot") ||
+          pickStr("practiceSlot", "practice_slot") ||
+          pickStr("breaksFocusTips", "breaks_focus_tips") ||
+          pickStr("selfAssessmentCheckpoint", "self_assessment_checkpoint") ||
+          pickStr("supportExtensionPlan", "support_extension_plan") ||
+          expectedOutcomes.length ||
+          pickStr("reflectionExitTicket", "reflection_exit_ticket", "closure_exit_ticket"),
       );
 
       return (
         <div className="space-y-3">
           <div className="space-y-0.5">
             {renderSectionHeader(<CalendarDays className="h-3 w-3 sm:h-4 sm:w-4" />, displayLessonTitle)}
-            <p className="text-xs text-slate-500 pl-9">Lesson planner — 14-section template</p>
+            <p className="text-xs text-slate-500 pl-9">
+              {item.toolType === "lesson-planner"
+                ? "Lesson Planner — 14-point teacher template"
+                : "Study Schedule Maker — 13-point student template"}
+            </p>
           </div>
           {section(
-            "2. Learning Objectives",
+            "1. Study Schedule Title",
+            <p className="text-xs sm:text-sm text-slate-800 font-medium">{displayLessonTitle}</p>,
+          )}
+          {pickStr("studyGoalSubtopicLink", "study_goal_subtopic_link", "subtopic_link")
+            ? section(
+                "2. Study Goal and Subtopic Link",
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("studyGoalSubtopicLink", "study_goal_subtopic_link", "subtopic_link")}
+                </p>,
+              )
+            : null}
+          {pickStr(
+            "priorKnowledgeReadinessCheck",
+            "prior_knowledge_readiness_check",
+            "prior_knowledge_diagnostic",
+            "diagnostic_question",
+          )
+            ? section(
+                "3. Prior Knowledge and Readiness Check",
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr(
+                    "priorKnowledgeReadinessCheck",
+                    "prior_knowledge_readiness_check",
+                    "prior_knowledge_diagnostic",
+                    "diagnostic_question",
+                  )}
+                </p>,
+              )
+            : null}
+          {section(
+            "4. Learning Objectives - Bloom's Taxonomy Aligned",
             objectives.length > 0 ? (
               <ul className="text-xs sm:text-sm space-y-1">
                 {objectives.map((line, i) => (
@@ -3363,123 +2199,78 @@ export default function AIContentEngine() {
             ),
           )}
           {ncfText
-            ? section("3. NCF Competency / Learning Outcome Alignment", (
+            ? section("5. NCF Competency / Learning Outcome Alignment", (
                 <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{ncfText}</p>
               ))
             : null}
-          {pickStr("priorKnowledgeDiagnostic", "prior_knowledge_diagnostic", "diagnostic_question")
-            ? section(
-                "4. Prior Knowledge / Diagnostic Question",
-                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                  {pickStr("priorKnowledgeDiagnostic", "prior_knowledge_diagnostic", "diagnostic_question")}
-                </p>,
-              )
-            : null}
-          {pickStr("introductionWarmup", "introduction_warmup", "warmup")
-            ? section(
-                "5. Introduction / Warm-up",
-                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                  {pickStr("introductionWarmup", "introduction_warmup", "warmup")}
-                </p>,
-              )
-            : null}
-          {pickStr("teachingStrategy", "teaching_strategy", "pedagogy")
-            ? section(
-                "6. Teaching Strategy",
-                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                  {pickStr("teachingStrategy", "teaching_strategy", "pedagogy")}
-                </p>,
-              )
-            : null}
           {section(
-            "7. Classroom Activities",
-            activities.length > 0 ? (
+            "6. Study Plan Table",
+            studyPlanTable.length > 0 ? (
               <ol className="text-xs sm:text-sm space-y-1 list-decimal list-inside">
-                {activities.map((s, i) => (
-                  <li key={`${item._id}-lp-a-${i}`}>{s}</li>
+                {studyPlanTable.map((s, i) => (
+                  <li key={`${item._id}-lp-plan-${i}`}>{s}</li>
                 ))}
               </ol>
             ) : (
               <p className="text-xs text-slate-500 italic">None listed.</p>
             ),
           )}
-          {teacherTalk.length > 0
+          {pickStr("conceptLearningSlot", "concept_learning_slot", "introduction_warmup", "teaching_strategy")
             ? section(
-                "8. Teacher Talk Points",
-                <ul className="text-xs sm:text-sm space-y-1">
-                  {teacherTalk.map((t, i) => (
-                    <li key={`${item._id}-lp-tt-${i}`}>- {t}</li>
-                  ))}
-                </ul>,
-              )
-            : null}
-          {studentTasks.length > 0
-            ? section(
-                "9. Student Tasks",
-                <ul className="text-xs sm:text-sm space-y-1">
-                  {studentTasks.map((t, i) => (
-                    <li key={`${item._id}-lp-st-${i}`}>- {t}</li>
-                  ))}
-                </ul>,
-              )
-            : null}
-          {formativeQs.length > 0
-            ? section(
-                "10. Formative Assessment Questions",
-                <ul className="text-xs sm:text-sm space-y-1">
-                  {formativeQs.map((t, i) => (
-                    <li key={`${item._id}-lp-fq-${i}`}>- {t}</li>
-                  ))}
-                </ul>,
-              )
-            : null}
-          {pickStr("differentiationPlan", "differentiation_plan", "differentiation")
-            ? section(
-                "11. Differentiation Plan",
+                "7. Concept Learning Slot",
                 <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                  {pickStr("differentiationPlan", "differentiation_plan", "differentiation")}
+                  {pickStr("conceptLearningSlot", "concept_learning_slot", "introduction_warmup", "teaching_strategy")}
                 </p>,
               )
             : null}
-          {pickStr("homeworkPractice", "homework_practice", "homework")
+          {pickStr("practiceSlot", "practice_slot", "homework_practice", "homework")
             ? section(
-                "12. Homework / Practice",
+                "8. Practice Slot",
                 <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                  {pickStr("homeworkPractice", "homework_practice", "homework")}
+                  {pickStr("practiceSlot", "practice_slot", "homework_practice", "homework")}
                 </p>,
               )
             : null}
-          {materials.length > 0 || teachingAids.length > 0
+          {pickStr("breaksFocusTips", "breaks_focus_tips", "warmup")
             ? section(
-                "13. Teaching Aids Required",
+                "9. Breaks and Focus Tips",
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("breaksFocusTips", "breaks_focus_tips", "warmup")}
+                </p>,
+              )
+            : null}
+          {pickStr("selfAssessmentCheckpoint", "self_assessment_checkpoint", "assessment")
+            ? section(
+                "10. Self-Assessment Checkpoint",
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("selfAssessmentCheckpoint", "self_assessment_checkpoint", "assessment")}
+                </p>,
+              )
+            : null}
+          {pickStr("supportExtensionPlan", "support_extension_plan", "differentiation_plan", "differentiation")
+            ? section(
+                "11. Support and Extension Plan",
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("supportExtensionPlan", "support_extension_plan", "differentiation_plan", "differentiation")}
+                </p>,
+              )
+            : null}
+          {expectedOutcomes.length > 0
+            ? section(
+                "12. Expected Learning Outcomes",
                 <ul className="text-xs sm:text-sm space-y-1">
-                  {(teachingAids.length ? teachingAids : materials).map((m, i) => (
-                    <li key={`${item._id}-lp-aid-${i}`}>- {m}</li>
+                  {expectedOutcomes.map((o, i) => (
+                    <li key={`${item._id}-lp-out-${i}`}>- {o}</li>
                   ))}
                 </ul>,
               )
             : null}
-          {pickStr("closureExitTicket", "closure_exit_ticket", "exit_ticket") || timeline.length > 0
+          {pickStr("reflectionExitTicket", "reflection_exit_ticket", "closure_exit_ticket", "exit_ticket")
             ? section(
-                "14. Closure / Exit Ticket",
-                <div className="space-y-2 text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
-                  {pickStr("closureExitTicket", "closure_exit_ticket", "exit_ticket") ? (
-                    <p>{pickStr("closureExitTicket", "closure_exit_ticket", "exit_ticket")}</p>
-                  ) : null}
-                  {timeline.length > 0 ? (
-                    <ul className="space-y-1">
-                      {timeline.map((t, i) => (
-                        <li key={`${item._id}-lp-t-${i}`}>- {t}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>,
-              )
-            : null}
-          {assessment
-            ? section(
-                "Assessment (general)",
-                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{assessment}</p>,
+                "13. Reflection / Exit Ticket",
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">
+                  {pickStr("reflectionExitTicket", "reflection_exit_ticket", "closure_exit_ticket", "exit_ticket")}
+                </p>,
               )
             : null}
           {!hasStructured && fallbackBody ? (
@@ -3674,7 +2465,14 @@ export default function AIContentEngine() {
       );
     }
 
-    if (item.toolType === "exam-question-paper-generator" || kind === "examPaper") {
+    if (
+      item.toolType === "mock-test-builder" ||
+      item.toolType === "exam-question-paper-generator" ||
+      kind === "examPaper" ||
+      kind === "mockTest"
+    ) {
+      const isMockTest =
+        item.toolType === "mock-test-builder" || kind === "mockTest";
       const fb = fallback as Record<string, unknown>;
       const rc = content as Record<string, unknown>;
       const pickStr = (...keys: string[]) => {
@@ -3774,22 +2572,66 @@ export default function AIContentEngine() {
         <div className="space-y-3">
           <div className="space-y-0.5">
             {renderSectionHeader(<ScrollText className="h-3 w-3 sm:h-4 sm:w-4" />, examTitle)}
-            <p className="text-xs text-slate-500 pl-9">Exam question paper — 11-section template</p>
+            <p className="text-xs text-slate-500 pl-9">
+              {isMockTest ? "Mock Test Builder — 13-point template" : "Exam Question Paper Generator — 11-section template"}
+            </p>
           </div>
-          {pickStr("instructions", "general_instructions") ? (
-            <div className="rounded-xl border bg-white p-3 shadow-sm">
-              <p className="text-xs font-semibold text-slate-500">1. Paper Title and General Instructions</p>
+          <div className="rounded-xl border bg-white p-3 shadow-sm">
+            <p className="text-xs font-semibold text-slate-500">
+              {isMockTest ? "1. Mock Test Title" : "1. Paper Title and General Instructions"}
+            </p>
+            <p className="text-xs sm:text-sm text-slate-900 mt-2 font-medium">
+              {pickStr("mockTestTitle", "mock_test_title", "paperTitle", "paper_title", "title") || examTitle}
+            </p>
+            {!isMockTest && pickStr("instructions", "general_instructions") ? (
               <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">
                 {pickStr("instructions", "general_instructions")}
               </p>
+            ) : null}
+          </div>
+          {isMockTest && pickStr("testPurposeSubtopicLink", "test_purpose_subtopic_link", "test_purpose", "subtopic_link") ? (
+            <div className="rounded-xl border bg-white p-3 shadow-sm">
+              <p className="text-xs font-semibold text-slate-500">2. Test Purpose and Subtopic Link</p>
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">
+                {pickStr("testPurposeSubtopicLink", "test_purpose_subtopic_link", "test_purpose", "subtopic_link", "blueprint", "design_grid")}
+              </p>
             </div>
           ) : null}
-          {pickStr("blueprint", "design_grid") ? (
+          {!isMockTest && pickStr("blueprint", "design_grid") ? (
             <div className="rounded-xl border bg-white p-3 shadow-sm">
               <p className="text-xs font-semibold text-slate-500">2. Blueprint / Design Grid</p>
               <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">{pickStr("blueprint", "design_grid")}</p>
             </div>
           ) : null}
+          {isMockTest && pickStr("learningObjectives", "learning_objectives", "objectives") ? (
+            <div className="rounded-xl border bg-white p-3 shadow-sm">
+              <p className="text-xs font-semibold text-slate-500">3. Learning Objectives - Bloom&apos;s Taxonomy Aligned</p>
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">
+                {pickStr("learningObjectives", "learning_objectives", "objectives")}
+              </p>
+            </div>
+          ) : null}
+          {isMockTest && pickStr("ncfCompetencyAlignment", "ncf_competency_alignment", "learning_outcome_alignment") ? (
+            <div className="rounded-xl border bg-white p-3 shadow-sm">
+              <p className="text-xs font-semibold text-slate-500">4. NCF Competency / Learning Outcome Alignment</p>
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">
+                {pickStr("ncfCompetencyAlignment", "ncf_competency_alignment", "learning_outcome_alignment")}
+              </p>
+            </div>
+          ) : null}
+          {isMockTest && pickStr("instructions", "general_instructions") ? (
+            <div className="rounded-xl border bg-white p-3 shadow-sm">
+              <p className="text-xs font-semibold text-slate-500">5. Instructions for Students</p>
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">
+                {pickStr("instructions", "general_instructions")}
+              </p>
+            </div>
+          ) : null}
+          <div className="rounded-xl border bg-white p-3 shadow-sm">
+            <p className="text-xs font-semibold text-slate-500">
+              {isMockTest ? "6. Question Paper" : "3–7. Question Paper Sections"}
+            </p>
+          </div>
           {displaySections.map((section: any, sIdx: number) => (
             <div key={`${item._id}-sec-${sIdx}`} className="rounded-xl border bg-white p-4 shadow-sm">
               <p className="text-xs sm:text-sm font-semibold">{String(section?.sectionName || section?.title || `Section ${sIdx + 1}`)}</p>
@@ -3823,7 +2665,57 @@ export default function AIContentEngine() {
               })}
             </div>
           ))}
-          {pickStr("internalChoices", "internal_choices") ? (
+          {pickStr("answerKey", "answer_key") ? (
+            <div className="rounded-xl border bg-white p-3 shadow-sm">
+              <p className="text-xs font-semibold text-slate-500">
+                {isMockTest ? "7. Answer Key" : "9. Complete Answer Key"}
+              </p>
+              <pre className="text-xs text-slate-800 whitespace-pre-wrap mt-2 font-sans leading-relaxed">
+                {pickStr("answerKey", "answer_key")}
+              </pre>
+            </div>
+          ) : null}
+          {isMockTest && pickStr("stepByStepSolutionsExplanations", "step_by_step_solutions_explanations", "solutions", "explanations") ? (
+            <div className="rounded-xl border bg-white p-3 shadow-sm">
+              <p className="text-xs font-semibold text-slate-500">8. Step-by-step Solutions / Explanations</p>
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">
+                {pickStr("stepByStepSolutionsExplanations", "step_by_step_solutions_explanations", "solutions", "explanations")}
+              </p>
+            </div>
+          ) : null}
+          {isMockTest && pickStr("remedialRevisionSuggestions", "remedial_revision_suggestions", "revision_suggestions", "remedial_suggestions") ? (
+            <div className="rounded-xl border bg-white p-3 shadow-sm">
+              <p className="text-xs font-semibold text-slate-500">9. Remedial Revision Suggestions</p>
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">
+                {pickStr("remedialRevisionSuggestions", "remedial_revision_suggestions", "revision_suggestions", "remedial_suggestions")}
+              </p>
+            </div>
+          ) : null}
+          {isMockTest && pickStr("expectedLearningOutcomes", "expected_learning_outcomes") ? (
+            <div className="rounded-xl border bg-white p-3 shadow-sm">
+              <p className="text-xs font-semibold text-slate-500">10. Expected Learning Outcomes</p>
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">
+                {pickStr("expectedLearningOutcomes", "expected_learning_outcomes")}
+              </p>
+            </div>
+          ) : null}
+          {isMockTest && pickStr("realLifeApplication", "real_life_application", "real_life_connections") ? (
+            <div className="rounded-xl border bg-white p-3 shadow-sm">
+              <p className="text-xs font-semibold text-slate-500">11. Real-life Application</p>
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">
+                {pickStr("realLifeApplication", "real_life_application", "real_life_connections")}
+              </p>
+            </div>
+          ) : null}
+          {isMockTest && pickStr("reflectionExitTicket", "reflection_exit_ticket", "reflection", "exit_ticket") ? (
+            <div className="rounded-xl border bg-white p-3 shadow-sm">
+              <p className="text-xs font-semibold text-slate-500">12. Reflection / Exit Ticket</p>
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">
+                {pickStr("reflectionExitTicket", "reflection_exit_ticket", "reflection", "exit_ticket")}
+              </p>
+            </div>
+          ) : null}
+          {!isMockTest && pickStr("internalChoices", "internal_choices") ? (
             <div className="rounded-xl border bg-white p-3 shadow-sm">
               <p className="text-xs font-semibold text-slate-500">8. Internal Choices</p>
               <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">
@@ -3831,15 +2723,7 @@ export default function AIContentEngine() {
               </p>
             </div>
           ) : null}
-          {pickStr("answerKey", "answer_key") ? (
-            <div className="rounded-xl border bg-white p-3 shadow-sm">
-              <p className="text-xs font-semibold text-slate-500">9. Complete Answer Key</p>
-              <pre className="text-xs text-slate-800 whitespace-pre-wrap mt-2 font-sans leading-relaxed">
-                {pickStr("answerKey", "answer_key")}
-              </pre>
-            </div>
-          ) : null}
-          {pickStr("markingScheme", "marking_scheme") ? (
+          {!isMockTest && pickStr("markingScheme", "marking_scheme") ? (
             <div className="rounded-xl border bg-white p-3 shadow-sm">
               <p className="text-xs font-semibold text-slate-500">10. Detailed Marking Scheme</p>
               <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">
@@ -3847,7 +2731,7 @@ export default function AIContentEngine() {
               </p>
             </div>
           ) : null}
-          {pickStr("openEndedRubric", "open_ended_rubric") ? (
+          {!isMockTest && pickStr("openEndedRubric", "open_ended_rubric") ? (
             <div className="rounded-xl border bg-white p-3 shadow-sm">
               <p className="text-xs font-semibold text-slate-500">11. Rubric for Open-ended Questions</p>
               <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap mt-2">
@@ -3860,6 +2744,7 @@ export default function AIContentEngine() {
     }
 
     if (
+      item.toolType === "project-idea-lab" ||
       item.toolType === "activity-project-generator" ||
       kind === "activity" ||
       fallback.steps ||
@@ -3898,7 +2783,13 @@ export default function AIContentEngine() {
       const learningObjectives = pickLines(rc.learningObjectives, fb.learning_objectives, fb.learningObjectives);
       let materials = pickLines(rc.materials, fb.materials_required, fb.materials);
       let steps = pickLines(rc.steps, fb.step_by_step_procedure, fb.steps);
-      const differentiation = String(rc.differentiation || fb.differentiation || "").trim();
+      const differentiation = String(
+        rc.differentiationSupportExtension ||
+          fb.differentiation_support_extension ||
+          rc.differentiation ||
+          fb.differentiation ||
+          "",
+      ).trim();
       const reflectionExit = String(rc.reflectionExitTicket || fb.reflection_exit_ticket || "").trim();
       const modelPlaceholder = /No structured steps were returned from the model/i;
       if (steps.length && steps.every((s) => modelPlaceholder.test(String(s)))) {
@@ -3911,12 +2802,36 @@ export default function AIContentEngine() {
         );
       }
       const stepsVisible = steps.filter((s) => !modelPlaceholder.test(String(s)));
-      const teacherInstructions = pickLines(rc.teacherInstructions, fb.teacher_instructions, fb.teacherInstructions);
-      const studentInstructions = pickLines(rc.studentInstructions, fb.student_instructions, fb.studentInstructions);
+      const safetyInstructions = pickLines(
+        rc.safetyCareInstructions,
+        fb.safety_care_instructions,
+        fb.safety_instructions,
+        fb.care_instructions,
+      );
+      const observationTable = String(
+        rc.observationDataRecordingTable ||
+          fb.observation_data_recording_table ||
+          fb.observation_table ||
+          fb.data_recording_table ||
+          "",
+      ).trim();
+      const creativeOutput = String(
+        rc.creativeOutputFinalProduct ||
+          fb.creative_output_final_product ||
+          fb.creative_output ||
+          fb.final_product ||
+          "",
+      ).trim();
       const expectedOutcomes = String(
         rc.learningOutcome || fb.learningOutcome || fb.expected_learning_outcomes || fb.expectedLearningOutcomes || "",
       ).trim();
-      const assessmentRubric = pickLines(rc.assessmentRubric, fb.assessment_criteria_rubric, fb.assessment);
+      const assessmentRubric = pickLines(
+        rc.selfAssessmentRubric,
+        fb.self_assessment_rubric,
+        rc.assessmentRubric,
+        fb.assessment_criteria_rubric,
+        fb.assessment,
+      );
       const realLifeApplication = trimActivityRealLifeDisplayTail(
         String(rc.realLifeApplication || fb.real_life_application || fb.realLifeApplication || ""),
       ).trim();
@@ -3937,15 +2852,27 @@ export default function AIContentEngine() {
         <div className="space-y-3">
           <div className="space-y-0.5">
             {renderSectionHeader(<FlaskConical className="h-3 w-3 sm:h-4 sm:w-4" />, displayTitle)}
-            <p className="text-xs text-slate-500 pl-9">Activity &amp; Project — section 1 (title)</p>
+            <p className="text-xs text-slate-500 pl-9">
+              {item.toolType === "activity-project-generator"
+                ? "Activity / Project Generator — 13-point teacher template"
+                : item.toolType === "study-schedule-maker"
+                  ? "Study Schedule Maker — 13-point student template"
+                  : item.toolType === "lesson-planner"
+                    ? "Lesson Planner — 14-point teacher template"
+                    : "Project Idea Lab — 14-point student template"}
+            </p>
           </div>
+          {section(
+            "1. Project / Activity Title",
+            <p className="text-xs sm:text-sm text-slate-900 font-medium">{displayTitle}</p>,
+          )}
           {subtopicLink
             ? section("2. Subtopic Link and Prior Knowledge Required", (
                 <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{subtopicLink}</p>
               ))
             : null}
           {section(
-            "3. Learning Objectives",
+            "3. Learning Objectives - Bloom's Taxonomy Aligned",
             learningObjectives.length > 0 ? (
               <ul className="text-xs sm:text-sm space-y-1">
                 {learningObjectives.map((line: string, i: number) => (
@@ -3983,7 +2910,7 @@ export default function AIContentEngine() {
             ),
           )}
           {section(
-            "6. Step-by-step Procedure",
+            "6. Step-by-step Student Procedure",
             stepsVisible.length > 0 ? (
               <ol className="text-xs sm:text-sm space-y-1 list-decimal list-inside">
                 {stepsVisible.map((s: string, i: number) => (
@@ -3996,34 +2923,34 @@ export default function AIContentEngine() {
               <p className="text-xs text-slate-500 italic">No procedure extracted. Re-upload the PDF after server update, or check that the PDF uses the template section headings.</p>
             ),
           )}
-          {teacherInstructions.length > 0
+          {safetyInstructions.length > 0
             ? section(
-                "7. Teacher Instructions",
+                "7. Safety and Care Instructions",
                 <ul className="text-xs sm:text-sm space-y-1">
-                  {teacherInstructions.map((t: string, i: number) => (
+                  {safetyInstructions.map((t: string, i: number) => (
                     <li key={`${item._id}-ti-${i}`}>- {t}</li>
                   ))}
                 </ul>,
               )
             : null}
-          {section(
-            "8. Student Instructions",
-            studentInstructions.length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1">
-                {studentInstructions.map((t: string, i: number) => (
-                  <li key={`${item._id}-si-${i}`}>- {t}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-xs text-slate-500 italic">None listed.</p>
-            ),
-          )}
+          {observationTable
+            ? section(
+                "8. Observation / Data Recording Table",
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{observationTable}</p>,
+              )
+            : null}
+          {creativeOutput
+            ? section(
+                "9. Creative Output / Final Product",
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{creativeOutput}</p>,
+              )
+            : null}
           {differentiation
-            ? section("9. Differentiation", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{differentiation}</p>)
+            ? section("10. Differentiation: Support and Extension", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{differentiation}</p>)
             : null}
           {assessmentRubric.length > 0
             ? section(
-                "10. Assessment Rubric",
+                "11. Self-Assessment Rubric",
                 <ul className="text-xs sm:text-sm space-y-1">
                   {assessmentRubric.map((row: string, i: number) => (
                     <li key={`${item._id}-ar-${i}`}>- {row}</li>
@@ -4032,13 +2959,13 @@ export default function AIContentEngine() {
               )
             : null}
           {expectedOutcomes
-            ? section("11. Expected Learning Outcomes", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{expectedOutcomes}</p>)
+            ? section("12. Expected Learning Outcomes", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{expectedOutcomes}</p>)
             : null}
           {realLifeApplication
-            ? section("12. Real-life Application", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{realLifeApplication}</p>)
+            ? section("13. Real-life Application", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{realLifeApplication}</p>)
             : null}
           {reflectionExit
-            ? section("13. Reflection / Exit Ticket", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{reflectionExit}</p>)
+            ? section("14. Reflection / Exit Ticket", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{reflectionExit}</p>)
             : null}
         </div>
       );
@@ -4384,7 +3311,7 @@ export default function AIContentEngine() {
   }, [classLabel, subject, topic, board]);
 
   useEffect(() => {
-    if (toolType !== STORY_PASSAGE_TOOL_ID) return;
+    if (!isStoryLanguageTool(toolType)) return;
     const label = subjectLabelFromRows(subjectRows, subject);
     if (!subject || isStoryPassageLanguageSubject(label)) return;
     setSubject("");
@@ -4394,7 +3321,7 @@ export default function AIContentEngine() {
 
   const handleToolTypeChange = (value: string) => {
     setToolType(value);
-    if (value === STORY_PASSAGE_TOOL_ID) {
+    if (isStoryLanguageTool(value)) {
       const label = subjectLabelFromRows(subjectRows, subject);
       if (subject && !isStoryPassageLanguageSubject(label)) {
         setSubject("");
@@ -4411,7 +3338,7 @@ export default function AIContentEngine() {
       return;
     }
     const subjectLabel = subjectLabelFromRows(subjectRows, subject);
-    if (toolType === STORY_PASSAGE_TOOL_ID && !isStoryPassageLanguageSubject(subjectLabel)) {
+    if (isStoryLanguageTool(toolType) && !isStoryPassageLanguageSubject(subjectLabel)) {
       const msg = "Story & Passage Creator works only with English or Hindi subjects.";
       setUploadError(msg);
       toast({ title: "English or Hindi only", description: msg, variant: "destructive" });
@@ -4769,7 +3696,7 @@ export default function AIContentEngine() {
                 ))}
               </SelectContent>
             </Select>
-            {toolType === STORY_PASSAGE_TOOL_ID ? (
+            {isStoryLanguageTool(toolType) ? (
               <p className="mt-1.5 text-xs text-blue-800">
                 English and Hindi subjects only for Story &amp; Passage Creator.
               </p>

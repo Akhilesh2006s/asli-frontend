@@ -47,6 +47,7 @@ import { useCurriculumCascade, isGradeWithScienceCurriculumDropdowns } from '@/h
 import {
   filterSubjectsForAiTool,
   isStoryPassageLanguageSubject,
+  isStoryLanguageTool,
   STORY_PASSAGE_TOOL_ID,
 } from '@/lib/ai-tool-subject-rules';
 
@@ -386,7 +387,7 @@ export default function TeacherToolPage() {
 
   // Keep subject aligned when class is chosen and list loads (only after a class is selected)
   useEffect(() => {
-    if (toolType !== STORY_PASSAGE_TOOL_ID) return;
+    if (!isStoryLanguageTool(toolType)) return;
     const sub = formParams.subject || formParams.subjects;
     if (!sub || isStoryPassageLanguageSubject(String(sub))) return;
     setFormParams((prev) => {
@@ -1985,7 +1986,7 @@ export default function TeacherToolPage() {
                 </div>
               ) : generatedContent ? (
                 toolType === 'flashcard-generator' ? (
-                  <FlashcardViewer content={displayGeneratedContent} />
+                  <FlashcardViewer content={displayGeneratedContent} variant="teacher" />
                 ) : toolType === 'short-notes-summaries-maker' ? (
                   <div className="bg-gradient-to-b from-cyan-50/60 via-white to-sky-50/40 p-4 sm:p-5 lg:p-6">
                     <div className="mb-3 flex flex-wrap items-center gap-2">

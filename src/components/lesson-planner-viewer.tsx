@@ -37,12 +37,22 @@ interface LessonPlannerViewerProps {
 
 /* ——— Shared lesson sections ——— */
 
-function EmptySectionHint({ audience = 'student' }: { audience?: 'student' | 'teacher' }) {
+function EmptySectionHint({
+  audience = 'student',
+  variant = 'default',
+}: {
+  audience?: 'student' | 'teacher';
+  variant?: 'default' | 'student' | 'teacher';
+}) {
+  const studentCopy =
+    variant === 'student'
+      ? 'Not included in this study schedule.'
+      : 'Not included in this lesson plan.';
   return (
     <p className="text-sm text-stone-400 italic rounded-lg border border-dashed border-stone-200 bg-stone-50 px-2.5 py-1.5">
       {audience === 'teacher'
         ? 'Not included in this generation — try regenerating with more detail if you need this section.'
-        : 'Not included in this lesson plan.'}
+        : studentCopy}
     </p>
   );
 }
@@ -70,19 +80,164 @@ type LessonSectionDef = {
   render: (l: NormalizedLesson) => ReactNode;
 };
 
-const LESSON_TEMPLATE_SECTIONS: LessonSectionDef[] = [
+const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
   {
     num: 2,
-    title: 'Learning objectives',
+    title: 'Study Goal and Subtopic Link',
     icon: Target,
     stripe: 'border-cyan-500',
     iconWrap: 'bg-cyan-100 text-cyan-800',
-    hasContent: (l) => l.learningObjectives.length > 0,
-    render: (l) => <BulletList items={l.learningObjectives} icon={Target} iconClass="text-cyan-600" />,
+    hasContent: (l) => !!l.studyGoalSubtopicLink,
+    render: (l) => <p className="text-sm whitespace-pre-wrap text-slate-800">{l.studyGoalSubtopicLink}</p>,
   },
   {
     num: 3,
-    title: 'NCF competency / learning outcome alignment',
+    title: 'Prior Knowledge and Readiness Check',
+    icon: HelpCircle,
+    stripe: 'border-violet-500',
+    iconWrap: 'bg-violet-100 text-violet-800',
+    hasContent: (l) => !!l.priorKnowledgeReadiness || !!l.priorKnowledge,
+    render: (l) => (
+      <p className="text-sm whitespace-pre-wrap text-slate-800">
+        {l.priorKnowledgeReadiness || l.priorKnowledge}
+      </p>
+    ),
+  },
+  {
+    num: 4,
+    title: "Learning Objectives - Bloom's Taxonomy Aligned",
+    icon: Target,
+    stripe: 'border-indigo-500',
+    iconWrap: 'bg-indigo-100 text-indigo-800',
+    hasContent: (l) => l.learningObjectives.length > 0,
+    render: (l) => <BulletList items={l.learningObjectives} icon={Target} iconClass="text-indigo-600" />,
+  },
+  {
+    num: 5,
+    title: 'NCF Competency / Learning Outcome Alignment',
+    icon: GraduationCap,
+    stripe: 'border-blue-500',
+    iconWrap: 'bg-blue-100 text-blue-800',
+    hasContent: (l) => l.ncfAlignment.length > 0,
+    render: (l) => <BulletList items={l.ncfAlignment} icon={GraduationCap} iconClass="text-blue-600" />,
+  },
+  {
+    num: 6,
+    title: 'Study Plan Table',
+    icon: Clock,
+    stripe: 'border-amber-500',
+    iconWrap: 'bg-amber-100 text-amber-900',
+    hasContent: (l) => l.studyPlanTable.length > 0 || l.timeline.length > 0,
+    render: (l) => (
+      <BulletList
+        items={l.studyPlanTable.length ? l.studyPlanTable : l.timeline}
+        icon={Clock}
+        iconClass="text-amber-700"
+      />
+    ),
+  },
+  {
+    num: 7,
+    title: 'Concept Learning Slot',
+    icon: BookOpen,
+    stripe: 'border-teal-500',
+    iconWrap: 'bg-teal-100 text-teal-800',
+    hasContent: (l) => !!l.conceptLearningSlot || !!l.introductionWarmup || !!l.teachingStrategy,
+    render: (l) => (
+      <p className="text-sm whitespace-pre-wrap text-slate-800">
+        {l.conceptLearningSlot ||
+          [l.introductionWarmup, l.teachingStrategy].filter(Boolean).join('\n\n')}
+      </p>
+    ),
+  },
+  {
+    num: 8,
+    title: 'Practice Slot',
+    icon: ListChecks,
+    stripe: 'border-emerald-500',
+    iconWrap: 'bg-emerald-100 text-emerald-800',
+    hasContent: (l) => !!l.practiceSlot || !!l.homeworkPractice || l.studentTasks.length > 0,
+    render: (l) => (
+      <p className="text-sm whitespace-pre-wrap text-slate-800">
+        {l.practiceSlot ||
+          [l.homeworkPractice, ...l.studentTasks].filter(Boolean).join('\n\n')}
+      </p>
+    ),
+  },
+  {
+    num: 9,
+    title: 'Breaks and Focus Tips',
+    icon: Lightbulb,
+    stripe: 'border-fuchsia-500',
+    iconWrap: 'bg-fuchsia-100 text-fuchsia-800',
+    hasContent: (l) => !!l.breaksFocusTips,
+    render: (l) => <p className="text-sm whitespace-pre-wrap text-slate-800">{l.breaksFocusTips}</p>,
+  },
+  {
+    num: 10,
+    title: 'Self-Assessment Checkpoint',
+    icon: ClipboardList,
+    stripe: 'border-rose-500',
+    iconWrap: 'bg-rose-100 text-rose-800',
+    hasContent: (l) => !!l.selfAssessmentCheckpoint || l.formativeQuestions.length > 0,
+    render: (l) => (
+      <p className="text-sm whitespace-pre-wrap text-slate-800">
+        {l.selfAssessmentCheckpoint || l.formativeQuestions.join('\n')}
+      </p>
+    ),
+  },
+  {
+    num: 11,
+    title: 'Support and Extension Plan',
+    icon: Sparkles,
+    stripe: 'border-pink-500',
+    iconWrap: 'bg-pink-100 text-pink-800',
+    hasContent: (l) => !!l.supportExtensionPlan || !!l.differentiationPlan,
+    render: (l) => (
+      <p className="text-sm whitespace-pre-wrap text-slate-800">
+        {l.supportExtensionPlan || l.differentiationPlan}
+      </p>
+    ),
+  },
+  {
+    num: 12,
+    title: 'Expected Learning Outcomes',
+    icon: GraduationCap,
+    stripe: 'border-violet-500',
+    iconWrap: 'bg-violet-100 text-violet-800',
+    hasContent: (l) => l.expectedLearningOutcomes.length > 0,
+    render: (l) => (
+      <BulletList items={l.expectedLearningOutcomes} icon={GraduationCap} iconClass="text-violet-600" />
+    ),
+  },
+  {
+    num: 13,
+    title: 'Reflection / Exit Ticket',
+    icon: CheckCircle2,
+    stripe: 'border-cyan-600',
+    iconWrap: 'bg-cyan-100 text-cyan-900',
+    hasContent: (l) => !!l.reflectionExitTicket || !!l.closureExitTicket,
+    render: (l) => (
+      <p className="whitespace-pre-wrap rounded-lg border-l-4 border-cyan-400 bg-cyan-50/50 px-3 py-2.5 text-sm text-slate-800">
+        {l.reflectionExitTicket || l.closureExitTicket}
+      </p>
+    ),
+  },
+];
+
+const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
+  {
+    num: 2,
+    title: 'Learning Objectives',
+    icon: Target,
+    stripe: 'border-indigo-500',
+    iconWrap: 'bg-indigo-100 text-indigo-800',
+    hasContent: (l) => l.learningObjectives.length > 0,
+    render: (l) => <BulletList items={l.learningObjectives} icon={Target} iconClass="text-indigo-600" />,
+  },
+  {
+    num: 3,
+    title: 'NCF Competency / Learning Outcome Alignment',
     icon: GraduationCap,
     stripe: 'border-blue-500',
     iconWrap: 'bg-blue-100 text-blue-800',
@@ -91,16 +246,20 @@ const LESSON_TEMPLATE_SECTIONS: LessonSectionDef[] = [
   },
   {
     num: 4,
-    title: 'Prior knowledge / diagnostic question',
+    title: 'Prior Knowledge / Diagnostic Question',
     icon: HelpCircle,
     stripe: 'border-violet-500',
     iconWrap: 'bg-violet-100 text-violet-800',
-    hasContent: (l) => !!l.priorKnowledge,
-    render: (l) => <p className="text-sm whitespace-pre-wrap text-slate-800">{l.priorKnowledge}</p>,
+    hasContent: (l) => !!l.priorKnowledgeReadiness || !!l.priorKnowledge,
+    render: (l) => (
+      <p className="text-sm whitespace-pre-wrap text-slate-800">
+        {l.priorKnowledgeReadiness || l.priorKnowledge}
+      </p>
+    ),
   },
   {
     num: 5,
-    title: 'Introduction / warm-up',
+    title: 'Introduction / Warm-up',
     icon: Lightbulb,
     stripe: 'border-amber-500',
     iconWrap: 'bg-amber-100 text-amber-900',
@@ -109,63 +268,38 @@ const LESSON_TEMPLATE_SECTIONS: LessonSectionDef[] = [
   },
   {
     num: 6,
-    title: 'Teaching strategy',
+    title: 'Teaching Strategy',
     icon: BookOpen,
     stripe: 'border-teal-500',
     iconWrap: 'bg-teal-100 text-teal-800',
-    hasContent: (l) => !!l.teachingStrategy || l.keyVocabulary.length > 0,
-    render: (l) => (
-      <div className="space-y-2">
-        {l.teachingStrategy ? (
-          <p className="text-sm whitespace-pre-wrap text-slate-800">{l.teachingStrategy}</p>
-        ) : null}
-        {l.keyVocabulary.length > 0 ? (
-          <div className="flex flex-wrap gap-2 pt-1">
-            {l.keyVocabulary.map((w, i) => (
-              <span
-                key={i}
-                className="rounded-xl border border-teal-100 bg-teal-50 px-2.5 py-1 text-xs text-teal-900"
-              >
-                {w}
-              </span>
-            ))}
-          </div>
-        ) : null}
-      </div>
-    ),
+    hasContent: (l) => !!l.teachingStrategy,
+    render: (l) => <p className="text-sm whitespace-pre-wrap text-slate-800">{l.teachingStrategy}</p>,
   },
   {
     num: 7,
-    title: 'Classroom activities',
+    title: 'Classroom Activities',
     icon: ListChecks,
     stripe: 'border-emerald-500',
-    iconWrap: 'bg-emerald-100 text-emerald-800',
+    iconWrap: 'bg-emerald-100 text-emerald-700',
     hasContent: (l) => l.classroomActivities.length > 0,
     render: (l) => (
-      <ol className="space-y-2">
-        {l.classroomActivities.map((step, i) => (
-          <li key={i} className="flex gap-2 text-sm text-slate-800">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white">
-              {i + 1}
-            </span>
-            <span>{step}</span>
-          </li>
-        ))}
-      </ol>
+      <BulletList items={l.classroomActivities} icon={ListChecks} iconClass="text-emerald-600" />
     ),
   },
   {
     num: 8,
-    title: 'Teacher talk points',
+    title: 'Teacher Talk Points',
     icon: MessageCircle,
     stripe: 'border-indigo-500',
     iconWrap: 'bg-indigo-100 text-indigo-700',
     hasContent: (l) => l.teacherTalkPoints.length > 0,
-    render: (l) => <BulletList items={l.teacherTalkPoints} icon={MessageCircle} iconClass="text-indigo-600" />,
+    render: (l) => (
+      <BulletList items={l.teacherTalkPoints} icon={MessageCircle} iconClass="text-indigo-600" />
+    ),
   },
   {
     num: 9,
-    title: 'Student tasks',
+    title: 'Student Tasks',
     icon: Users,
     stripe: 'border-sky-500',
     iconWrap: 'bg-sky-100 text-sky-800',
@@ -174,108 +308,75 @@ const LESSON_TEMPLATE_SECTIONS: LessonSectionDef[] = [
   },
   {
     num: 10,
-    title: 'Formative assessment questions',
+    title: 'Formative Assessment Questions',
     icon: ClipboardList,
     stripe: 'border-rose-500',
-    iconWrap: 'bg-rose-100 text-rose-800',
+    iconWrap: 'bg-rose-100 text-rose-700',
     hasContent: (l) => l.formativeQuestions.length > 0,
     render: (l) => (
-      <div className="space-y-2">
-        {l.formativeQuestions.map((q, i) => (
-          <div
-            key={i}
-            className="flex gap-3 rounded-xl border border-rose-100 bg-rose-50/40 px-3 py-2"
-          >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rose-600 text-xs font-bold text-white">
-              {i + 1}
-            </span>
-            <p className="text-sm text-slate-800 pt-0.5">{q}</p>
-          </div>
-        ))}
-      </div>
+      <BulletList items={l.formativeQuestions} icon={ClipboardList} iconClass="text-rose-600" />
     ),
   },
   {
     num: 11,
-    title: 'Differentiation plan',
+    title: 'Differentiation Plan',
     icon: Sparkles,
     stripe: 'border-pink-500',
-    iconWrap: 'bg-pink-100 text-pink-800',
-    hasContent: (l) => !!l.differentiationPlan || l.valuesAndMoral.length > 0,
-    render: (l) => (
-      <div className="space-y-2 text-sm text-slate-800">
-        {l.differentiationPlan ? <p className="whitespace-pre-wrap">{l.differentiationPlan}</p> : null}
-        {l.valuesAndMoral.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {l.valuesAndMoral.map((v, i) => (
-              <span
-                key={i}
-                className="rounded-full border border-pink-100 bg-pink-50 px-2.5 py-1 text-xs text-pink-900"
-              >
-                {v}
-              </span>
-            ))}
-          </div>
-        ) : null}
-      </div>
-    ),
+    iconWrap: 'bg-pink-100 text-pink-700',
+    hasContent: (l) => !!l.differentiationPlan,
+    render: (l) => <p className="text-sm whitespace-pre-wrap text-slate-800">{l.differentiationPlan}</p>,
   },
   {
     num: 12,
-    title: 'Homework / practice',
+    title: 'Homework / Practice',
     icon: FileText,
     stripe: 'border-orange-500',
-    iconWrap: 'bg-orange-100 text-orange-900',
+    iconWrap: 'bg-orange-100 text-orange-800',
     hasContent: (l) => !!l.homeworkPractice,
     render: (l) => <p className="text-sm whitespace-pre-wrap text-slate-800">{l.homeworkPractice}</p>,
   },
   {
     num: 13,
-    title: 'Teaching aids required',
+    title: 'Teaching Aids Required',
     icon: Package,
-    stripe: 'border-lime-600',
-    iconWrap: 'bg-lime-100 text-lime-900',
+    stripe: 'border-amber-600',
+    iconWrap: 'bg-amber-100 text-amber-900',
     hasContent: (l) => l.teachingAids.length > 0,
-    render: (l) => (
-      <ul className="flex flex-wrap gap-2">
-        {l.teachingAids.map((m, i) => (
-          <li
-            key={i}
-            className="rounded-xl border border-lime-100 bg-lime-50 px-2.5 py-1.5 text-sm text-lime-950 list-none"
-          >
-            {m}
-          </li>
-        ))}
-      </ul>
-    ),
+    render: (l) => <BulletList items={l.teachingAids} icon={Package} iconClass="text-amber-800" />,
   },
   {
     num: 14,
-    title: 'Closure / exit ticket',
+    title: 'Closure / Exit Ticket',
     icon: CheckCircle2,
     stripe: 'border-cyan-600',
     iconWrap: 'bg-cyan-100 text-cyan-900',
-    hasContent: (l) => !!l.closureExitTicket || l.timeline.length > 0,
+    hasContent: (l) => !!l.reflectionExitTicket || !!l.closureExitTicket,
     render: (l) => (
-      <div className="space-y-3 text-sm text-slate-800">
-        {l.closureExitTicket ? (
-          <p className="whitespace-pre-wrap rounded-lg border-l-4 border-cyan-400 bg-cyan-50/50 px-3 py-2.5">
-            {l.closureExitTicket}
-          </p>
-        ) : null}
-        {l.timeline.length > 0 ? (
-          <div>
-            <p className="text-xs font-semibold text-slate-700 mb-2">Period / time cues</p>
-            <BulletList items={l.timeline} icon={Clock} iconClass="text-cyan-600" />
-          </div>
-        ) : null}
-      </div>
+      <p className="whitespace-pre-wrap rounded-lg border-l-4 border-cyan-400 bg-cyan-50/50 px-3 py-2.5 text-sm text-slate-800">
+        {l.reflectionExitTicket || l.closureExitTicket}
+      </p>
     ),
   },
 ];
 
-function countFilledLessonSections(lesson: NormalizedLesson): number {
-  return LESSON_TEMPLATE_SECTIONS.filter((s) => s.hasContent(lesson)).length;
+const TEACHER_SECTION_PHASE: Record<number, (typeof LESSON_FLOW_PHASES)[number]['id']> = {
+  2: 'prepare',
+  3: 'prepare',
+  4: 'prepare',
+  5: 'prepare',
+  6: 'teach',
+  7: 'teach',
+  8: 'teach',
+  9: 'teach',
+  10: 'wrap',
+  11: 'wrap',
+  12: 'wrap',
+  13: 'wrap',
+  14: 'wrap',
+};
+
+function countFilledLessonSections(lesson: NormalizedLesson, sections: LessonSectionDef[]): number {
+  return sections.filter((s) => s.hasContent(lesson)).length;
 }
 
 function PlanSectionCard({
@@ -339,7 +440,7 @@ const SECTION_PHASE: Record<number, (typeof LESSON_FLOW_PHASES)[number]['id']> =
   3: 'prepare',
   4: 'prepare',
   5: 'prepare',
-  6: 'teach',
+  6: 'prepare',
   7: 'teach',
   8: 'teach',
   9: 'teach',
@@ -347,7 +448,6 @@ const SECTION_PHASE: Record<number, (typeof LESSON_FLOW_PHASES)[number]['id']> =
   11: 'wrap',
   12: 'wrap',
   13: 'wrap',
-  14: 'wrap',
 };
 
 function PlannerTimelineStep({
@@ -395,8 +495,8 @@ function PlannerTimelineStep({
 }
 
 function TeacherLessonCard({ lesson }: { lesson: NormalizedLesson }) {
-  const filled = countFilledLessonSections(lesson);
-  const total = LESSON_TEMPLATE_SECTIONS.length;
+  const filled = countFilledLessonSections(lesson, TEACHER_LESSON_SECTIONS);
+  const total = TEACHER_LESSON_SECTIONS.length;
   const progressPct = Math.round((filled / total) * 100);
 
   return (
@@ -442,8 +542,8 @@ function TeacherLessonCard({ lesson }: { lesson: NormalizedLesson }) {
       </div>
 
       {LESSON_FLOW_PHASES.map((phase) => {
-        const phaseSections = LESSON_TEMPLATE_SECTIONS.filter(
-          (sec) => SECTION_PHASE[sec.num] === phase.id,
+        const phaseSections = TEACHER_LESSON_SECTIONS.filter(
+          (sec) => TEACHER_SECTION_PHASE[sec.num] === phase.id,
         );
 
         return (
@@ -566,10 +666,10 @@ function StudentLessonCard({ lesson }: { lesson: NormalizedLesson }) {
         <div className="absolute inset-0 bg-gradient-to-br from-cyan-50/90 via-white to-sky-50/50" />
         <div className="relative p-3 sm:p-4">
           <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-700 mb-1">
-            1. Lesson title
+            1. Study Schedule Title
           </p>
           <Badge className="mb-1.5 border-0 bg-cyan-100 text-cyan-900 hover:bg-cyan-100">
-            Lesson {lesson.sl}
+            Schedule {lesson.sl}
           </Badge>
           <h4 className="text-xl sm:text-2xl font-bold text-slate-900 leading-snug">{lesson.lessonName}</h4>
           {(lesson.subjectArea || lesson.durationLabel) && (
@@ -589,7 +689,7 @@ function StudentLessonCard({ lesson }: { lesson: NormalizedLesson }) {
       </div>
 
       <div className="columns-1 sm:columns-2 gap-2">
-        {LESSON_TEMPLATE_SECTIONS.map((sec) => (
+        {STUDY_SCHEDULE_SECTIONS.map((sec) => (
           <div key={sec.num} className="mb-2 break-inside-avoid">
             <PlanSectionCard
               sectionNum={`Section ${sec.num}`}
@@ -598,7 +698,7 @@ function StudentLessonCard({ lesson }: { lesson: NormalizedLesson }) {
               stripe={sec.stripe}
               iconWrap={sec.iconWrap}
             >
-              {sec.hasContent(lesson) ? sec.render(lesson) : <EmptySectionHint audience="student" />}
+              {sec.hasContent(lesson) ? sec.render(lesson) : <EmptySectionHint audience="student" variant="student" />}
             </PlanSectionCard>
           </div>
         ))}
@@ -645,7 +745,7 @@ function StudentLessonShell({
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-widest text-cyan-100">Lesson studio</p>
-                <h3 className="text-lg font-bold">Lesson Planner</h3>
+                <h3 className="text-lg font-bold">Study Schedule Maker</h3>
                 {(classLabel || bookName) && (
                   <p className="text-xs text-cyan-100/90 mt-0.5">
                     {[classLabel && `Class ${classLabel}`, bookName].filter(Boolean).join(' · ')}

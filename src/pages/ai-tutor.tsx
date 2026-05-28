@@ -29,7 +29,7 @@ import { API_BASE_URL } from "@/lib/api-config";
 import { collectVidyaSubjectLabels } from "@/lib/vidya-subjects";
 import {
   hasStoryPassageLanguageSubject,
-  STORY_PASSAGE_TOOL_ID,
+  READING_PRACTICE_TOOL_ID,
 } from "@/lib/ai-tool-subject-rules";
 
 // Mock user ID - in a real app, this would come from authentication
@@ -106,41 +106,40 @@ export default function AITutor() {
       color: 'from-orange-400 to-orange-500',
       description: 'Build structured assignments quickly and efficiently'
     },
-    // Teacher AI Tools - Now available for students
     {
-      id: 'flashcard-generator',
-      name: 'Flashcard Generator',
+      id: 'my-study-decks',
+      name: 'My Study Decks',
       icon: BookMarked,
       color: 'from-pink-400 to-pink-500',
-      description: 'Create flashcards for effective memorization'
+      description: 'Create personalized flashcards for revision'
     },
     {
-      id: 'exam-question-paper-generator',
-      name: 'Exam Question Paper Generator',
+      id: 'mock-test-builder',
+      name: 'Mock Test Builder',
       icon: CheckCircle2,
       color: 'from-red-400 to-red-500',
-      description: 'Generate exam question papers'
+      description: 'Generate mock tests with exam-style questions'
     },
     {
-      id: 'activity-project-generator',
-      name: 'Activity & Project Generator',
+      id: 'project-idea-lab',
+      name: 'Project Idea Lab',
       icon: Layout,
       color: 'from-yellow-400 to-yellow-500',
-      description: 'Generate activities and projects'
+      description: 'Discover activity and project ideas by topic'
     },
     {
-      id: 'story-passage-creator',
-      name: 'Story & Passage Creator',
+      id: 'reading-practice-room',
+      name: 'Reading Practice Room',
       icon: FileText,
       color: 'from-blue-400 to-blue-500',
-      description: 'Stories and passages (English & Hindi only)'
+      description: 'Practice stories and passages (English & Hindi only)'
     },
     {
-      id: 'lesson-planner',
-      name: 'Lesson Planner',
+      id: 'study-schedule-maker',
+      name: 'Study Schedule Maker',
       icon: Calendar,
       color: 'from-violet-400 to-violet-500',
-      description: 'Plan your lessons effectively'
+      description: 'Build a focused lesson and study schedule'
     }
   ];
 
@@ -294,7 +293,7 @@ export default function AITutor() {
 
   const visibleStudentTools = useMemo(() => {
     return studentTools.filter((tool) => {
-      if (tool.id !== STORY_PASSAGE_TOOL_ID) return true;
+      if (tool.id !== READING_PRACTICE_TOOL_ID) return true;
       if (vidyaSubjectNames.length === 0) return true;
       return hasStoryPassageLanguageSubject(vidyaSubjectNames);
     });

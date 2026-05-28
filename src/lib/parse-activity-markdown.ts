@@ -16,8 +16,17 @@ export type ParsedActivity = {
   materials?: string[];
   step_by_step_procedure?: string[];
   steps?: string[];
+  safety_care_instructions?: string[];
+  safety_instructions?: string[];
+  observation_data_recording_table?: string;
+  observation_table?: string;
+  creative_output_final_product?: string;
+  creative_output?: string;
+  differentiation_support_extension?: string;
+  self_assessment_rubric?: string[];
   /** Generic procedure / instruction lines */
   instructions?: string | string[];
+  /** Legacy — remapped into template fields on sanitize */
   teacher_instructions?: string[];
   student_instructions?: string[];
   differentiation?: string;
@@ -45,13 +54,14 @@ const SECTION_BY_NUMBER: Record<
   4: { key: 'ncf_competency_alignment', list: true },
   5: { key: 'materials_required', list: true },
   6: { key: 'step_by_step_procedure', orderedList: true },
-  7: { key: 'teacher_instructions', list: true },
-  8: { key: 'student_instructions', list: true },
-  9: { key: 'differentiation' },
-  10: { key: 'assessment_criteria_rubric', list: true },
-  11: { key: 'expected_learning_outcomes' },
-  12: { key: 'real_life_application' },
-  13: { key: 'reflection_exit_ticket' },
+  7: { key: 'safety_care_instructions', list: true },
+  8: { key: 'observation_data_recording_table' },
+  9: { key: 'creative_output_final_product' },
+  10: { key: 'differentiation_support_extension' },
+  11: { key: 'self_assessment_rubric', list: true },
+  12: { key: 'expected_learning_outcomes' },
+  13: { key: 'real_life_application' },
+  14: { key: 'reflection_exit_ticket' },
   15: { key: 'period_time_cues' },
 };
 
@@ -66,16 +76,29 @@ const SECTION_TITLE_HINT: Record<number, RegExp> = {
   3: /learning\s+objective/i,
   4: /ncf|competency|learning\s+outcome\s+alignment/i,
   5: /materials?\s+required/i,
-  6: /step-by-step|procedure/i,
-  7: /teacher\s+instruction/i,
-  8: /student\s+instruction/i,
-  9: /differentiation/i,
-  10: /assessment|rubric/i,
-  11: /expected\s+learning/i,
-  12: /real[-\s]?life/i,
-  13: /reflection|exit\s+ticket|closure/i,
+  6: /step-by-step|student\s+procedure|procedure/i,
+  7: /safety|care\s+instruction/i,
+  8: /observation|data\s+recording/i,
+  9: /creative\s+output|final\s+product/i,
+  10: /differentiation|support\s+and\s+extension/i,
+  11: /self[-\s]?assessment|rubric/i,
+  12: /expected\s+learning\s+outcome/i,
+  13: /real[-\s]?life/i,
+  14: /reflection|exit\s+ticket|closure/i,
   15: /period\s*\/\s*time|time\s+cues?/i,
 };
+
+/** Legacy section labels → Project Idea Lab 14-point index. */
+function legacyActivitySectionNumFromTitle(title: string): number | null {
+  const t = String(title || '').trim();
+  if (!t) return null;
+  if (/^teacher\s+instruction/i.test(t)) return null;
+  if (/^student\s+instruction/i.test(t)) return 6;
+  if (/^assessment\s+(?:criteria\s+)?rubric/i.test(t)) return 11;
+  if (/^differentiation/i.test(t)) return 10;
+  if (/^step-by-step\s+procedure$/i.test(t)) return 6;
+  return null;
+}
 
 const MATERIAL_LINE_RE =
   /battery|bulb|switch|connecting\s+wires?|nichrome|compass|chart\s+paper|whiteboard|markers?/i;
@@ -90,18 +113,15 @@ function sectionNumFromTitle(title: string): number | null {
 }
 
 function mapHeadingToSection(n: number, title: string): number | null {
-  if (n >= 2 && n <= 13) {
+  const legacy = legacyActivitySectionNumFromTitle(title);
+  if (legacy != null) return legacy;
+  if (n >= 2 && n <= 14) {
     const hint = SECTION_TITLE_HINT[n];
     if (title && hint && !hint.test(title)) {
       const byTitle = sectionNumFromTitle(title);
       if (byTitle != null) return byTitle;
     }
     return n;
-  }
-  if (n === 14) {
-    if (/closure|exit\s+ticket|reflection/i.test(title)) return 13;
-    if (/period|time\s+cue/i.test(title)) return 15;
-    return sectionNumFromTitle(title);
   }
   if (n > 14) return sectionNumFromTitle(title);
   return null;
@@ -135,10 +155,17 @@ function templateSectionNumberFromLine(line: string): number | null {
   if (m) {
     const n = Number(m[1]);
     const hint = SECTION_TITLE_HINT[n];
-    if (n >= 2 && n <= 13 && hint?.test(m[2])) return n;
+    if (n >= 2 && n <= 14 && hint?.test(m[2])) return n;
+    const legacy = legacyActivitySectionNumFromTitle(m[2]);
+    if (legacy != null) return legacy;
     const mapped = mapHeadingToSection(n, m[2]);
     if (mapped != null) return mapped;
   }
+  const bare = trimmed.replace(/^#+\s*/, '').trim();
+  const bareLegacy = legacyActivitySectionNumFromTitle(bare);
+  if (bareLegacy != null) return bareLegacy;
+  const bareNum = sectionNumFromTitle(bare);
+  if (bareNum != null) return bareNum;
   return null;
 }
 
@@ -226,18 +253,35 @@ export function sanitizeParsedActivity(activity: ParsedActivity): ParsedActivity
   }
   out.reflection_exit_ticket = cleanReflectionProse(extracted.prose);
 
+  const studentSteps = Array.isArray(out.student_instructions)
+    ? out.student_instructions.map((x) => String(x).trim()).filter(Boolean)
+    : [];
+  if (studentSteps.length) {
+    out.step_by_step_procedure = studentSteps;
+    out.steps = studentSteps;
+  }
+
   const procedure = extractProcedureSteps(out);
-  if (procedure.length) {
+  if (procedure.length && !studentSteps.length) {
     out.step_by_step_procedure = procedure;
     out.steps = procedure;
-    if (Array.isArray(out.teacher_instructions)) {
-      const procKeys = new Set(procedure.map((s) => s.toLowerCase()));
-      out.teacher_instructions = out.teacher_instructions.filter((line) => {
-        const stripped = stripStepLine(String(line));
-        return stripped && !procKeys.has(stripped.toLowerCase());
-      });
-    }
   }
+
+  const rubric = [
+    ...(Array.isArray(out.self_assessment_rubric) ? out.self_assessment_rubric : []),
+    ...(Array.isArray(out.assessment_criteria_rubric) ? out.assessment_criteria_rubric : []),
+    ...(Array.isArray(out.assessment) ? out.assessment.map(String) : []),
+  ].filter(Boolean);
+  if (rubric.length) {
+    out.self_assessment_rubric = rubric;
+    out.assessment_criteria_rubric = rubric;
+  }
+
+  if (!String(out.differentiation_support_extension || '').trim() && out.differentiation) {
+    out.differentiation_support_extension = out.differentiation;
+  }
+
+  out.teacher_instructions = undefined;
 
   return out;
 }
@@ -371,6 +415,8 @@ function splitNumberedSections(block: string): Map<number, string> {
   let currentNum: number | null = null;
   const buf: string[] = [];
 
+  let skipTeacherBlock = false;
+
   const flush = () => {
     if (currentNum != null && buf.length) {
       const body = buf.join('\n').trim();
@@ -380,12 +426,21 @@ function splitNumberedSections(block: string): Map<number, string> {
   };
 
   for (const line of lines) {
+    const bare = line.trim().replace(/^#+\s*/, '');
+    if (/^teacher\s+instructions/i.test(bare)) {
+      flush();
+      currentNum = null;
+      skipTeacherBlock = true;
+      continue;
+    }
     const sectionNum = templateSectionNumberFromLine(line);
     if (sectionNum != null) {
       flush();
       currentNum = sectionNum;
+      skipTeacherBlock = false;
       continue;
     }
+    if (skipTeacherBlock) continue;
     if (currentNum != null) buf.push(line);
   }
   flush();

@@ -45,22 +45,43 @@ if (typeof document !== 'undefined') {
 
 type CardType = 'question' | 'note' | 'fact';
 
-interface Flashcard {
+export interface Flashcard {
   front: string;
   back: string;
   options?: string[];
   type?: CardType;
+  cardCategory?: string;
+  difficultyTag?: string;
+  memoryHookQuickTip?: string;
   memoryCue?: string;
   skillFocus?: string;
   exampleUse?: string;
   peerPrompt?: string;
+  selfCheckRound?: string;
   reflection?: string;
 }
 
+type TeacherDeckMeta = {
+  title: string;
+  topicAndSubtopicLink: string;
+  priorKnowledgeRequired: string;
+  learningObjectives: string[];
+  ncfCompetencyAlignment: string;
+  selfCheckRapidRecallRound: string;
+  commonMistakesToAvoid: string[];
+  differentiationSupport: string;
+  expectedLearningOutcomes: string[];
+  realLifeConnection: string;
+  reflectionExitTicket: string;
+};
+
 interface FlashcardViewerProps {
   content: string;
-  /** Premium immersive layout for student tools */
-  variant?: 'default' | 'student';
+  rawContent?: unknown;
+  /** Premium immersive layout for student tools; teacher = 18-section deck */
+  variant?: 'default' | 'student' | 'teacher';
+  /** When true with variant student, renders only the flip session (inside MyStudyDecksViewer). */
+  embedded?: boolean;
 }
 
 function ProgressRing({ current, total }: { current: number; total: number }) {
@@ -93,6 +114,27 @@ function ProgressRing({ current, total }: { current: number; total: number }) {
 }
 
 const STUDY_FIELD_META = [
+  {
+    key: 'difficultyTag' as const,
+    label: 'Difficulty',
+    icon: Target,
+    chip: 'bg-amber-50 text-amber-800 border-amber-200',
+    iconBg: 'bg-amber-100 text-amber-700',
+  },
+  {
+    key: 'memoryHookQuickTip' as const,
+    label: 'Memory hook',
+    icon: Lightbulb,
+    chip: 'bg-yellow-50 text-yellow-900 border-yellow-200',
+    iconBg: 'bg-yellow-100 text-yellow-800',
+  },
+  {
+    key: 'selfCheckRound' as const,
+    label: 'Self-check',
+    icon: MessageCircle,
+    chip: 'bg-teal-50 text-teal-800 border-teal-200',
+    iconBg: 'bg-teal-100 text-teal-700',
+  },
   {
     key: 'memoryCue' as const,
     label: 'Memory Cue',
@@ -162,28 +204,44 @@ function StudyFieldTile({
   );
 }
 
-export function FlashcardViewer({ content, variant = 'default' }: FlashcardViewerProps) {
+type TeacherCardCategory = 'all' | 'concept' | 'formula' | 'application' | 'visual';
+
+export function FlashcardViewer({
+  content,
+  rawContent,
+  variant = 'default',
+  embedded = false,
+}: FlashcardViewerProps) {
   const [allCards, setAllCards] = useState<Flashcard[]>([]);
   const [deckTitle, setDeckTitle] = useState('');
+  const [teacherMeta, setTeacherMeta] = useState<TeacherDeckMeta | null>(null);
   const [activeType, setActiveType] = useState<CardType | 'all'>('all');
+  const [activeCategory, setActiveCategory] = useState<TeacherCardCategory>('all');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [studentPanel, setStudentPanel] = useState<'study' | 'boosters'>('study');
-  
-  // Filter cards based on active type
-  const cards = activeType === 'all' 
-    ? allCards 
-    : allCards.filter(card => card.type === activeType);
+  const cards =
+    variant === 'teacher' && activeCategory !== 'all'
+      ? allCards.filter((card) => card.cardCategory === activeCategory)
+      : activeType === 'all'
+        ? allCards
+        : allCards.filter((card) => card.type === activeType);
   
   // Count cards by type
   const questionCount = allCards.filter(c => c.type === 'question').length;
   const noteCount = allCards.filter(c => c.type === 'note').length;
   const factCount = allCards.filter(c => c.type === 'fact').length;
 
+  const conceptCount = allCards.filter((c) => c.cardCategory === 'concept').length;
+  const formulaCount = allCards.filter((c) => c.cardCategory === 'formula').length;
+  const applicationCount = allCards.filter((c) => c.cardCategory === 'application').length;
+  const visualCount = allCards.filter((c) => c.cardCategory === 'visual').length;
+
   useEffect(() => {
     const parsedCards = parseFlashcards(content);
     setDeckTitle(tryParseDeckTitle(content));
+    setTeacherMeta(variant === 'teacher' ? tryParseTeacherDeckMeta(content) : null);
     setAllCards(parsedCards);
+    setActiveCategory('all');
     setCurrentIndex(0);
     setIsFlipped(false);
     
@@ -204,13 +262,13 @@ export function FlashcardViewer({ content, variant = 'default' }: FlashcardViewe
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [content]);
+  }, [content, variant]);
   
   useEffect(() => {
     // Reset to first card when type changes
     setCurrentIndex(0);
     setIsFlipped(false);
-  }, [activeType]);
+  }, [activeType, activeCategory]);
 
   useEffect(() => {
     // Reset flip when card changes
@@ -304,298 +362,358 @@ export function FlashcardViewer({ content, variant = 'default' }: FlashcardViewe
   })).filter((f) => f.value.length > 0);
   const showStudyPanel = studyFieldEntries.length > 0 || !showLegacyTypeTabs;
 
-  if (variant === 'student') {
-    const boosterCount = studyFieldEntries.length;
+  if (variant === 'student' && !embedded) {
+    return null;
+  }
 
-  return (
-      <div className="w-full">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-violet-950 shadow-2xl shadow-indigo-900/30 ring-1 ring-white/10">
-          <div className="pointer-events-none absolute -left-20 -top-20 h-56 w-56 rounded-full bg-violet-500/25 blur-3xl" />
-          <div className="pointer-events-none absolute -right-16 bottom-0 h-48 w-48 rounded-full bg-blue-500/20 blur-3xl" />
-          <div className="pointer-events-none absolute left-1/2 top-1/3 h-32 w-32 -translate-x-1/2 rounded-full bg-fuchsia-500/10 blur-2xl" />
+  if (variant === 'student' && embedded) {
+    const embeddedExtras = [
+      currentCard.difficultyTag
+        ? { label: 'Difficulty', value: currentCard.difficultyTag, className: 'bg-amber-100 text-amber-900' }
+        : null,
+      currentCard.memoryHookQuickTip || currentCard.memoryCue
+        ? {
+            label: 'Memory hook',
+            value: currentCard.memoryHookQuickTip || currentCard.memoryCue || '',
+            className: 'bg-yellow-100 text-yellow-900',
+          }
+        : null,
+      currentCard.selfCheckRound
+        ? { label: 'Self-check', value: currentCard.selfCheckRound, className: 'bg-teal-100 text-teal-900' }
+        : null,
+    ].filter(Boolean) as { label: string; value: string; className: string }[];
 
-          {/* Mobile tabs */}
-          {boosterCount > 0 ? (
-            <div className="relative z-20 flex gap-2 border-b border-white/10 bg-black/20 p-3 lg:hidden">
-              <button
-                type="button"
-                onClick={() => setStudentPanel('study')}
-                className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all ${
-                  studentPanel === 'study'
-                    ? 'bg-white text-indigo-950 shadow-lg'
-                    : 'text-white/70 hover:bg-white/10'
-                }`}
-              >
-                Study card
-              </button>
-              <button
-                type="button"
-                onClick={() => setStudentPanel('boosters')}
-                className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-all ${
-                  studentPanel === 'boosters'
-                    ? 'bg-white text-indigo-950 shadow-lg'
-                    : 'text-white/70 hover:bg-white/10'
-                }`}
-              >
-                Study boosters
-                <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-violet-500/30 px-1 text-[10px]">
-                  {boosterCount}
-                </span>
-              </button>
-            </div>
-          ) : null}
+    return (
+      <div className="w-full space-y-1.5">
+        <div className="flex flex-wrap items-center justify-between gap-1.5">
+          <Badge variant="secondary" className="bg-violet-100 text-violet-900 hover:bg-violet-100 text-xs">
+            Card {currentIndex + 1} of {cards.length}
+          </Badge>
+          <span className="text-[11px] text-slate-500">Tap or Space to flip</span>
+        </div>
 
-          <div className="relative z-10 grid lg:grid-cols-12 lg:gap-0">
-            {/* Main study area */}
-            <div
-              className={`lg:col-span-7 xl:col-span-8 p-4 sm:p-6 space-y-4 sm:space-y-5 ${
-                boosterCount > 0 && studentPanel === 'boosters' ? 'hidden lg:block' : ''
-              }`}
+        <div className="relative w-full" style={{ perspective: '900px' }}>
+          <motion.div
+            className="relative h-[200px] sm:h-[220px] w-full"
+            style={{ transformStyle: 'preserve-3d' }}
+          >
+            <motion.div
+              className="relative h-full w-full"
+              animate={{ rotateY: isFlipped ? 180 : 0 }}
+              transition={{ duration: 0.45, type: 'spring', stiffness: 200, damping: 24 }}
+              style={{ transformStyle: 'preserve-3d' }}
             >
-              <div className="flex items-center gap-4">
-                <ProgressRing current={currentIndex + 1} total={cards.length} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 text-violet-300">
-                    <Zap className="h-4 w-4 shrink-0" aria-hidden />
-                    <span className="text-xs font-semibold uppercase tracking-widest">
-                      Flashcard session
-                    </span>
-                  </div>
-                  <h3 className="mt-1 text-lg sm:text-xl font-bold text-white truncate">
-                    {deckTitle || 'Your study deck'}
-                  </h3>
-                  <p className="text-sm text-white/55 mt-0.5">
-                    {allCards.length} cards ready · tap card or press Space to flip
+              <motion.div
+                className="absolute inset-0 flex flex-col overflow-hidden rounded-xl border border-violet-200 bg-white shadow-md cursor-pointer"
+                onClick={() => setIsFlipped(!isFlipped)}
+                style={{
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
+                  transform: 'rotateY(0deg)',
+                }}
+              >
+                <div className="border-b border-violet-100 bg-violet-50 px-3 py-2 text-center">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-violet-700">
+                    Question
+                  </span>
+                </div>
+                <div className="flex flex-1 items-center justify-center px-3 py-2 text-center min-h-0">
+                  <p className="text-sm font-semibold text-slate-900 leading-snug overflow-y-auto max-h-full line-clamp-6">
+                    {currentCard.front}
                   </p>
                 </div>
-              </div>
-
-              {showLegacyTypeTabs ? (
-                <div className="flex flex-wrap gap-2">
-                  {(
-                    [
-                      ['all', 'All', allCards.length],
-                      ['question', 'Questions', questionCount],
-                      ['note', 'Notes', noteCount],
-                      ['fact', 'Facts', factCount],
-                    ] as const
-                  ).map(([id, label, count]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      disabled={count === 0}
-                      onClick={() => setActiveType(id)}
-                      className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all disabled:opacity-40 ${
-                        activeType === id
-                          ? 'bg-white text-indigo-950'
-                          : 'bg-white/10 text-white/80 hover:bg-white/15'
-                      }`}
-                    >
-                      {label} ({count})
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-
-              <div className="relative w-full" style={{ perspective: '1200px' }}>
-                <motion.div
-                  className="relative min-h-[360px] h-[min(420px,58vh)] w-full"
-                  style={{ transformStyle: 'preserve-3d' }}
-                >
-                  <motion.div
-                    className="relative h-full w-full"
-                    animate={{ rotateY: isFlipped ? 180 : 0 }}
-                    transition={{ duration: 0.55, type: 'spring', stiffness: 180, damping: 22 }}
-                    style={{ transformStyle: 'preserve-3d' }}
+                <div className="border-t border-violet-100 py-2 flex justify-center" onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsFlipped(true);
+                    }}
+                    className="h-8 rounded-full bg-violet-600 hover:bg-violet-700 text-white text-xs px-4"
                   >
-                    <motion.div
-                      className="absolute inset-0 flex flex-col overflow-hidden rounded-2xl border border-white/20 bg-white/95 shadow-2xl shadow-black/20 cursor-pointer backdrop-blur-xl"
-                      onClick={() => setIsFlipped(!isFlipped)}
-                      style={{
-                        backfaceVisibility: 'hidden',
-                        WebkitBackfaceVisibility: 'hidden',
-                        transform: 'rotateY(0deg)',
-                      }}
-                    >
-                      <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2.5 text-center">
-                        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/90">
-                          Front
-                        </span>
-                      </div>
-                      <div className="flex flex-1 flex-col items-center justify-center p-5 sm:p-8 text-center min-h-0">
-                        <p className="text-lg sm:text-xl lg:text-2xl font-semibold text-slate-900 leading-snug overflow-y-auto max-h-full [scrollbar-width:thin]">
-                          {currentCard.front}
-                        </p>
-                        {currentCard.options?.length ? (
-                          <div className="mt-4 w-full space-y-2 text-left">
-                            {currentCard.options.map((opt, i) => (
-                              <div
-                                key={i}
-                                className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
-                              >
-                                {opt}
-                              </div>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                      <div className="border-t border-slate-100 p-4 flex justify-center" onClick={(e) => e.stopPropagation()}>
-                        <Button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setIsFlipped(true);
-                          }}
-                          className="rounded-full bg-gradient-to-r from-violet-600 to-indigo-600 px-8 py-2.5 text-white shadow-lg shadow-violet-500/30 hover:from-violet-500 hover:to-indigo-500 border-0"
-                        >
-                          <BookOpen className="mr-2 h-4 w-4" />
-                          Reveal answer
-                        </Button>
-                      </div>
-                    </motion.div>
-
-                    <motion.div
-                      className="absolute inset-0 flex flex-col overflow-hidden rounded-2xl border border-indigo-200/40 bg-gradient-to-br from-indigo-50 via-white to-violet-50 shadow-2xl shadow-black/20"
-                      style={{
-                        backfaceVisibility: 'hidden',
-                        WebkitBackfaceVisibility: 'hidden',
-                        transform: 'rotateY(180deg)',
-                      }}
-                    >
-                      <div className="bg-gradient-to-r from-indigo-600 to-violet-700 px-4 py-2.5 text-center">
-                        <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/90">
-                          Back
-                        </span>
-                      </div>
-                      <div
-                        className="flex flex-1 flex-col items-center justify-center p-5 sm:p-8 text-center min-h-0 cursor-pointer"
-                        onClick={() => setIsFlipped(!isFlipped)}
-                      >
-                        <p className="text-lg sm:text-xl lg:text-2xl font-semibold text-slate-900 leading-snug overflow-y-auto max-h-full [scrollbar-width:thin]">
-                          {currentCard.back}
-                        </p>
-                      </div>
-                      <div className="border-t border-indigo-100/80 p-4 flex justify-center">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setIsFlipped(false);
-                          }}
-                          className="rounded-full border-indigo-200 bg-white/90 px-6 text-indigo-800"
-                        >
-                          <RotateCcw className="mr-2 h-4 w-4" />
-                          Back to question
-                        </Button>
-                      </div>
-                    </motion.div>
-                  </motion.div>
-                </motion.div>
-              </div>
-
-              <div className="flex items-center gap-2 sm:gap-3 rounded-2xl border border-white/10 bg-white/5 p-2 sm:p-3 backdrop-blur-md">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  disabled={currentIndex === 0}
-                  onClick={() => {
-                    setCurrentIndex((p) => p - 1);
-                    setIsFlipped(false);
-                  }}
-                  className="h-10 w-10 shrink-0 rounded-full text-white hover:bg-white/15 hover:text-white disabled:opacity-30"
-                  aria-label="Previous card"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </Button>
-                <div className="flex flex-1 justify-center gap-1.5 flex-wrap px-1">
-                  {cards.map((_, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      aria-label={`Card ${idx + 1}`}
-                      aria-current={idx === currentIndex}
-                      onClick={() => {
-                        setCurrentIndex(idx);
-                        setIsFlipped(false);
-                      }}
-                      className={`rounded-full transition-all duration-300 ${
-                        idx === currentIndex
-                          ? 'h-2.5 w-8 bg-gradient-to-r from-violet-400 to-fuchsia-400 shadow-sm shadow-violet-500/50'
-                          : 'h-2.5 w-2.5 bg-white/25 hover:bg-white/45'
-                      }`}
-                    />
-                  ))}
+                    <BookOpen className="mr-1 h-3 w-3" />
+                    Show answer
+                  </Button>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  disabled={currentIndex >= cards.length - 1}
-                  onClick={() => {
-                    setCurrentIndex((p) => p + 1);
-                    setIsFlipped(false);
-                  }}
-                  className="h-10 w-10 shrink-0 rounded-full text-white hover:bg-white/15 hover:text-white disabled:opacity-30"
-                  aria-label="Next card"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
+              </motion.div>
 
-            {/* Boosters sidebar */}
-            {boosterCount > 0 ? (
-              <div
-                className={`lg:col-span-5 xl:col-span-4 border-t lg:border-t-0 lg:border-l border-white/10 bg-black/25 backdrop-blur-sm p-4 sm:p-5 ${
-                  studentPanel === 'study' ? 'hidden lg:block' : ''
-                }`}
+              <motion.div
+                className="absolute inset-0 flex flex-col overflow-hidden rounded-xl border border-indigo-200 bg-gradient-to-b from-indigo-50 to-white shadow-md"
+                style={{
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
+                  transform: 'rotateY(180deg)',
+                }}
               >
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg">
-                    <Lightbulb className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-white">Study boosters</p>
-                    <p className="text-xs text-white/50">Extra help for this card</p>
-                  </div>
+                <div className="border-b border-indigo-100 bg-indigo-50 px-3 py-2 text-center">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700">
+                    Answer
+                  </span>
                 </div>
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={`boost-${currentIndex}`}
-                    initial={{ opacity: 0, x: 12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -12 }}
-                    transition={{ duration: 0.2 }}
-                    className="space-y-3"
+                <div
+                  className="flex flex-1 flex-col items-center justify-center gap-2 px-3 py-2 text-center min-h-0 cursor-pointer overflow-y-auto"
+                  onClick={() => setIsFlipped(!isFlipped)}
+                >
+                  <p className="text-sm font-semibold text-slate-900 leading-snug line-clamp-5">
+                    {currentCard.back}
+                  </p>
+                  {embeddedExtras.length > 0 ? (
+                    <div className="flex flex-wrap justify-center gap-1.5 w-full">
+                      {embeddedExtras.map((chip) => (
+                        <span
+                          key={chip.label}
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${chip.className}`}
+                          title={chip.value}
+                        >
+                          {chip.label}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+                <div className="border-t border-indigo-100 py-2 flex justify-center">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsFlipped(false);
+                    }}
+                    className="h-8 rounded-full border-indigo-200 text-indigo-800 text-xs px-3"
                   >
-                    {studyFieldEntries.map((field) => (
-                      <div
-                        key={field.key}
-                        className="rounded-2xl border border-white/10 bg-white/10 p-4 shadow-inner backdrop-blur-sm"
-                      >
-                        <div className="flex gap-3">
-                          <div
-                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${field.iconBg}`}
-                          >
-                            <field.icon className="h-4 w-4" aria-hidden />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[11px] font-bold uppercase tracking-wide text-white/50">
-                              {field.label}
-                            </p>
-                            <p className="mt-1.5 text-sm leading-relaxed text-white/90">{field.value}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </motion.div>
-                </AnimatePresence>
+                    <RotateCcw className="mr-1 h-3 w-3" />
+                    Back
+                  </Button>
+                </div>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        </div>
+
+        <div className="flex items-center gap-1.5 rounded-lg border border-violet-100 bg-violet-50/60 p-1.5">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            disabled={currentIndex === 0}
+            onClick={() => {
+              setCurrentIndex((p) => p - 1);
+              setIsFlipped(false);
+            }}
+            className="h-8 w-8 shrink-0 rounded-full text-violet-800 hover:bg-violet-100 disabled:opacity-30"
+            aria-label="Previous card"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="flex flex-1 justify-center gap-1 flex-wrap px-1">
+            {cards.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                aria-label={`Card ${idx + 1}`}
+                aria-current={idx === currentIndex}
+                onClick={() => {
+                  setCurrentIndex(idx);
+                  setIsFlipped(false);
+                }}
+                className={`rounded-full transition-all ${
+                  idx === currentIndex
+                    ? 'h-2 w-6 bg-violet-600'
+                    : 'h-2 w-2 bg-violet-300 hover:bg-violet-400'
+                }`}
+              />
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            disabled={currentIndex >= cards.length - 1}
+            onClick={() => {
+              setCurrentIndex((p) => p + 1);
+              setIsFlipped(false);
+            }}
+            className="h-8 w-8 shrink-0 rounded-full text-violet-800 hover:bg-violet-100 disabled:opacity-30"
+            aria-label="Next card"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === 'teacher') {
+    const teacherFieldEntries = [
+      {
+        key: 'difficultyTag' as const,
+        label: 'Difficulty Tag',
+        icon: Target,
+        chip: 'bg-violet-50 text-violet-800 border-violet-200',
+        iconBg: 'bg-violet-100 text-violet-700',
+      },
+      {
+        key: 'memoryHookQuickTip' as const,
+        label: 'Memory Hook / Quick Tip',
+        icon: Lightbulb,
+        chip: 'bg-amber-50 text-amber-800 border-amber-200',
+        iconBg: 'bg-amber-100 text-amber-700',
+      },
+    ]
+      .map((meta) => ({
+        ...meta,
+        value: String(currentCard[meta.key] || currentCard.memoryCue || '').trim(),
+      }))
+      .filter((f) => f.value.length > 0);
+
+    const metaRows: Array<{ label: string; value: string | string[] }> = teacherMeta
+      ? [
+          { label: 'Topic and Subtopic Link', value: teacherMeta.topicAndSubtopicLink },
+          { label: 'Prior Knowledge Required', value: teacherMeta.priorKnowledgeRequired },
+          { label: "Learning Objectives – Bloom's", value: teacherMeta.learningObjectives },
+          { label: 'NCF Competency / Learning Outcome', value: teacherMeta.ncfCompetencyAlignment },
+          { label: 'Self-Check Rapid Recall Round', value: teacherMeta.selfCheckRapidRecallRound },
+          { label: 'Common Mistakes to Avoid', value: teacherMeta.commonMistakesToAvoid },
+          { label: 'Differentiation Support', value: teacherMeta.differentiationSupport },
+          { label: 'Expected Learning Outcomes', value: teacherMeta.expectedLearningOutcomes },
+          { label: 'Real-life Connection', value: teacherMeta.realLifeConnection },
+          { label: 'Reflection / Exit Ticket', value: teacherMeta.reflectionExitTicket },
+        ].filter((row) =>
+          Array.isArray(row.value) ? row.value.length > 0 : String(row.value || '').trim().length > 0,
+        )
+      : [];
+
+    const categoryTabs: Array<{ id: TeacherCardCategory; label: string; count: number }> = [
+      { id: 'all', label: 'All', count: allCards.length },
+      { id: 'concept', label: 'Concept', count: conceptCount },
+      { id: 'formula', label: 'Formula', count: formulaCount },
+      { id: 'application', label: 'HOTS', count: applicationCount },
+      { id: 'visual', label: 'Visual', count: visualCount },
+    ].filter((t): t is { id: TeacherCardCategory; label: string; count: number } =>
+      t.id === 'all' || t.count > 0,
+    );
+
+    return (
+      <div className="w-full max-w-4xl mx-auto space-y-4">
+        {metaRows.length > 0 ? (
+          <div className="rounded-2xl border border-indigo-100 bg-white p-4 sm:p-5 shadow-sm space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
+              Flash Card Generator · 18-section deck
+            </p>
+            <h3 className="text-lg font-semibold text-slate-900">
+              {teacherMeta?.title || deckTitle || 'Flashcard deck'}
+            </h3>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {metaRows.map((row) => (
+                <div key={row.label} className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
+                  <p className="text-[11px] font-semibold text-slate-500">{row.label}</p>
+                  {Array.isArray(row.value) ? (
+                    <ul className="mt-1 list-disc pl-4 text-sm text-slate-800 space-y-0.5">
+                      {row.value.map((v) => (
+                        <li key={v}>{v}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-1 text-sm text-slate-800 whitespace-pre-wrap">{row.value}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        <div className="overflow-hidden rounded-2xl border border-indigo-200/60 bg-gradient-to-br from-white via-indigo-50/30 to-violet-50/40 shadow-lg">
+          <div className="border-b border-indigo-100/80 bg-white/70 px-4 py-3 sm:px-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium text-indigo-600 uppercase tracking-wide">Flashcard set</p>
+                <p className="text-sm text-slate-600">
+                  {allCards.length} card{allCards.length === 1 ? '' : 's'}
+                </p>
+              </div>
+              <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-800">
+                Card {currentIndex + 1} of {cards.length}
+              </Badge>
+            </div>
+            {categoryTabs.length > 1 ? (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {categoryTabs.map((tab) => (
+                  <Button
+                    key={tab.id}
+                    variant={activeCategory === tab.id ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setActiveCategory(tab.id)}
+                  >
+                    {tab.label}
+                    <span className="ml-1.5 text-xs opacity-75">({tab.count})</span>
+                  </Button>
+                ))}
               </div>
             ) : null}
+          </div>
+          <div className="p-4 sm:p-5 space-y-4">
+            {/* Reuse default flip UI via same card structure — simplified inline */}
+            <div className="perspective-1000 mx-auto max-w-lg">
+              <motion.div
+                className="relative h-56 sm:h-64 w-full preserve-3d cursor-pointer"
+                onClick={() => setIsFlipped(!isFlipped)}
+                animate={{ rotateY: isFlipped ? 180 : 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <div
+                  className={`absolute inset-0 backface-hidden rounded-2xl border-2 p-6 flex items-center justify-center text-center shadow-md ${cardStyles.front}`}
+                >
+                  <p className="text-base sm:text-lg font-medium text-slate-800">{currentCard.front}</p>
+                </div>
+                <div
+                  className={`absolute inset-0 backface-hidden rotate-y-180 rounded-2xl border-2 p-6 flex flex-col items-center justify-center text-center shadow-md ${cardStyles.back}`}
+                >
+                  <p className="text-base sm:text-lg text-slate-800">{currentCard.back}</p>
+                </div>
+              </motion.div>
+            </div>
+            {teacherFieldEntries.length > 0 ? (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {teacherFieldEntries.map((field) => (
+                  <StudyFieldTile
+                    key={field.label}
+                    label={field.label}
+                    value={field.value}
+                    icon={field.icon}
+                    chip={field.chip}
+                    iconBg={field.iconBg}
+                  />
+                ))}
+              </div>
+            ) : null}
+            <div className="flex items-center justify-between gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentIndex === 0}
+                onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setIsFlipped(!isFlipped)}>
+                <RotateCcw className="h-4 w-4 mr-1" />
+                Flip
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentIndex >= cards.length - 1}
+                onClick={() => setCurrentIndex((i) => Math.min(cards.length - 1, i + 1))}
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -620,7 +738,7 @@ export function FlashcardViewer({ content, variant = 'default' }: FlashcardViewe
                   {deckTitle || 'Study cards'}
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {allCards.length} card{allCards.length === 1 ? '' : 's'} · 7-field template
+                  {allCards.length} card{allCards.length === 1 ? '' : 's'}
                 </p>
               </div>
             </div>
@@ -920,6 +1038,9 @@ function stripMdBold(s: string): string {
 }
 
 const TEMPLATE_FIELD_LABELS = [
+  'Difficulty Tag for Each Card',
+  'Memory Hook / Quick Tip',
+  'Self-Check Round',
   'Memory Cue',
   'Skill Focus',
   'Example Use',
@@ -934,11 +1055,19 @@ function pickLabeledField(block: string, label: string): string {
     .map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
     .join('|');
   const re = new RegExp(
-    `\\*\\*${escaped}:\\*\\*\\s*([\\s\\S]*?)(?=\\n\\s*\\*\\*(?:${stopLabels}):|\\n+---|\\n+##|$)`,
+    `\\*\\*${escaped}:?\\*\\*\\s*([\\s\\S]*?)(?=\\n\\s*\\*\\*(?:${stopLabels}):|\\n+---|\\n+##|$)`,
     'i',
   );
   const m = block.match(re);
   return m ? stripMdBold(m[1].trim()) : '';
+}
+
+function pickFirstLabeledField(block: string, labels: string[]): string {
+  for (const label of labels) {
+    const v = pickLabeledField(block, label);
+    if (v) return v;
+  }
+  return '';
 }
 
 /** 7-field template: Front, Back, Memory Cue, Skill Focus, Example Use, Peer Prompt, Reflection */
@@ -950,7 +1079,7 @@ function parseSevenFieldTemplateBlock(block: string): Flashcard | null {
 
   const frontBold = block.match(/\*\*Front:\*\*\s*([\s\S]*?)(?=\n\s*\*\*Back:\*\*)/i);
   const backBold = block.match(
-    /\*\*Back:\*\*\s*([\s\S]*?)(?=\n\s*\*\*(?:Memory Cue|Skill Focus|Example Use|Peer Prompt|Reflection):|\n+---|\n+##\s*(?:Card|Flashcard)|$)/i,
+    /\*\*Back:\*\*\s*([\s\S]*?)(?=\n\s*\*\*(?:Difficulty Tag|Memory Hook|Memory Cue|Self-Check Round|Skill Focus|Example Use|Peer Prompt|Reflection)[^*]*:\*|\n+---|\n+##\s*(?:Card|Flashcard)|$)/i,
   );
   if (frontBold && backBold) {
     front = stripMdBold(frontBold[1].trim());
@@ -968,11 +1097,30 @@ function parseSevenFieldTemplateBlock(block: string): Flashcard | null {
 
   if (!front || !back) return null;
 
+  const difficultyTag = pickFirstLabeledField(block, [
+    'Difficulty Tag for Each Card',
+    'Difficulty Tag',
+    'Skill Focus',
+  ]);
+  const memoryHookQuickTip = pickFirstLabeledField(block, [
+    'Memory Hook / Quick Tip',
+    'Memory Hook',
+    'Memory Cue',
+  ]);
+  const selfCheckRound = pickFirstLabeledField(block, [
+    'Self-Check Round',
+    'Peer Prompt',
+    'Reflection',
+  ]);
+
   return {
     front,
     back,
-    memoryCue: pickLabeledField(block, 'Memory Cue'),
+    difficultyTag,
+    memoryHookQuickTip,
+    memoryCue: memoryHookQuickTip || pickLabeledField(block, 'Memory Cue'),
     skillFocus: pickLabeledField(block, 'Skill Focus'),
+    selfCheckRound,
     exampleUse: pickLabeledField(block, 'Example Use'),
     peerPrompt: pickLabeledField(block, 'Peer Prompt'),
     reflection: pickLabeledField(block, 'Reflection'),
@@ -1014,12 +1162,83 @@ function tryParseDeckTitle(content: string): string {
     const parsed = JSON.parse(trimmed) as Record<string, unknown>;
     const raw = parsed.raw as Record<string, unknown> | undefined;
     const title = String(
-      raw?.deck_title || raw?.title || parsed.deck_title || parsed.title || '',
+      raw?.flashcard_deck_title ||
+        raw?.deck_title ||
+        raw?.title ||
+        parsed.flashcard_deck_title ||
+        parsed.deck_title ||
+        parsed.title ||
+        '',
     ).trim();
     return title;
   } catch {
     return '';
   }
+}
+
+function toStringList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map((v) => String(v || '').trim()).filter(Boolean);
+  const s = String(value || '').trim();
+  if (!s) return [];
+  return s
+    .split(/\n|;/)
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
+function tryParseTeacherDeckMeta(content: string): TeacherDeckMeta | null {
+  const trimmed = String(content || '').trim();
+  if (!trimmed.startsWith('{')) return null;
+  try {
+    const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+    const raw = (parsed.raw as Record<string, unknown> | undefined) || parsed;
+    const title = String(
+      raw.flashcard_deck_title || raw.deck_title || raw.title || '',
+    ).trim();
+    if (!title && !raw.topic_and_subtopic_link) return null;
+    return {
+      title: title || 'Flashcard deck',
+      topicAndSubtopicLink: String(raw.topic_and_subtopic_link || raw.subtopic_link || '').trim(),
+      priorKnowledgeRequired: String(raw.prior_knowledge_required || '').trim(),
+      learningObjectives: toStringList(raw.learning_objectives || raw.objectives),
+      ncfCompetencyAlignment: String(
+        raw.ncf_competency_alignment || raw.learning_outcome_alignment || '',
+      ).trim(),
+      selfCheckRapidRecallRound: String(
+        raw.self_check_rapid_recall_round || raw.self_check_round || '',
+      ).trim(),
+      commonMistakesToAvoid: toStringList(raw.common_mistakes_to_avoid),
+      differentiationSupport: String(raw.differentiation_support || '').trim(),
+      expectedLearningOutcomes: toStringList(raw.expected_learning_outcomes),
+      realLifeConnection: String(raw.real_life_connection || raw.real_life_application || '').trim(),
+      reflectionExitTicket: String(raw.reflection_exit_ticket || raw.reflection || '').trim(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function collectCardsFromRaw(raw: Record<string, unknown>): Record<string, unknown>[] {
+  const lists = [
+    raw.cards,
+    raw.flashcard_set,
+    raw.flashcards,
+    raw.concept_and_definition_cards,
+    raw.formula_rule_cards,
+    raw.formula_cards,
+    raw.application_hots_cards,
+    raw.application_cards,
+    raw.visual_diagram_suggestion_cards,
+    raw.visual_cards,
+  ];
+  const out: Record<string, unknown>[] = [];
+  for (const list of lists) {
+    if (!Array.isArray(list)) continue;
+    for (const item of list as Record<string, unknown>[]) {
+      if (item && typeof item === 'object') out.push(item);
+    }
+  }
+  return out;
 }
 
 /** Normalize objects from JSON / API into { front, back, type? } */
@@ -1043,10 +1262,24 @@ function cardFromLooseObject(item: Record<string, unknown>): Flashcard | null {
       : 'question';
   const backStr = stripMdBold(String(back));
   const frontStr = stripMdBold(String(front));
+  const cardCategory = String(item.card_category || item.cardCategory || '').trim().toLowerCase();
   let card: Flashcard = {
     front: frontStr,
     back: backStr,
     type,
+    cardCategory: cardCategory || undefined,
+    difficultyTag: stripMdBold(
+      String(
+        item.difficulty_tag_for_each_card ||
+          item.difficulty_tag ||
+          item.difficultyTag ||
+          item.skill_focus ||
+          '',
+      ),
+    ),
+    memoryHookQuickTip: stripMdBold(
+      String(item.memory_hook_quick_tip || item.memory_hook || item.memory_cue || item.hint || ''),
+    ),
     memoryCue: stripMdBold(
       String(item.memory_cue || item.memoryCue || item.hint || ''),
     ),
@@ -1057,6 +1290,9 @@ function cardFromLooseObject(item: Record<string, unknown>): Flashcard | null {
       String(item.example_use || item.exampleUse || item.real_life_link || ''),
     ),
     peerPrompt: stripMdBold(String(item.peer_prompt || item.peerPrompt || '')),
+    selfCheckRound: stripMdBold(
+      String(item.self_check_round || item.selfCheckRound || item.peer_prompt || ''),
+    ),
     reflection: stripMdBold(
       String(item.reflection || item.reflection_prompt || item.self_check || ''),
     ),
@@ -1104,6 +1340,17 @@ function tryParseSingleJsonFlashcardEnvelope(content: string): Flashcard[] | nul
       text = parsed.formatted as string;
     }
     const raw = parsed.raw as Record<string, unknown> | undefined;
+    if (raw) {
+      const merged = collectCardsFromRaw(raw);
+      if (merged.length) {
+        const out: Flashcard[] = [];
+        for (const item of merged) {
+          const c = cardFromLooseObject(item);
+          if (c) out.push(c);
+        }
+        if (out.length) return out;
+      }
+    }
     const rawList = raw?.cards ?? raw?.flashcards;
     if (Array.isArray(rawList)) {
       const out: Flashcard[] = [];
@@ -1378,3 +1625,6 @@ function parseFlashcards(content: string): Flashcard[] {
   return cards;
 }
 
+export function getFlashcardsFromContent(content: string): Flashcard[] {
+  return parseFlashcards(content);
+}

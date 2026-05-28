@@ -21,11 +21,44 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Eye, FileDown, Loader2, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
 import { extractMcqQuestionsFromRecord, isMcqTool } from "@/lib/mcq-record-utils";
 import { GeneratedRecordBody } from "@/components/super-admin/generated-record-body";
 import { FlashcardViewer } from "@/components/flashcard-viewer";
+import {
+  MyStudyDecksViewer,
+  deckViewerPayloadFromRecord,
+} from "@/components/my-study-decks-viewer";
+import {
+  MockTestViewer,
+  mockTestViewerPayloadFromRecord,
+} from "@/components/mock-test-viewer";
+import {
+  SmartStudyGuideViewer,
+  studyGuideViewerPayloadFromRecord,
+} from "@/components/smart-study-guide-viewer";
+import {
+  ConceptBreakdownViewer,
+  conceptBreakdownViewerPayloadFromRecord,
+} from "@/components/concept-breakdown-viewer";
+import {
+  PracticeQaViewer,
+  practiceQaViewerPayloadFromRecord,
+} from "@/components/practice-qa-viewer";
+import {
+  ChapterSummaryViewer,
+  chapterSummaryViewerPayloadFromRecord,
+} from "@/components/chapter-summary-viewer";
+import {
+  KeyPointsViewer,
+  keyPointsViewerPayloadFromRecord,
+} from "@/components/key-points-viewer";
+import {
+  QuickAssignmentViewer,
+  quickAssignmentViewerPayloadFromRecord,
+} from "@/components/quick-assignment-viewer";
 import { HomeworkCreatorViewer } from "@/components/homework-creator-viewer";
 import { LessonPlannerViewer } from "@/components/lesson-planner-viewer";
 import { RubricsEvaluationViewer } from "@/components/rubrics-evaluation-viewer";
@@ -34,21 +67,26 @@ import { ShortNotesViewer } from "@/components/short-notes-viewer";
 import { WorksheetMcqViewer } from "@/components/worksheet-mcq-viewer";
 import {
   filterSubjectsForAiTool,
+  isStoryLanguageTool,
   isStoryPassageLanguageSubject,
-  STORY_PASSAGE_TOOL_ID,
 } from "@/lib/ai-tool-subject-rules";
 
 type ToolId =
   | "activity-project-generator"
+  | "project-idea-lab"
   | "worksheet-mcq-generator"
   | "concept-mastery-helper"
   | "lesson-planner"
+  | "study-schedule-maker"
   | "homework-creator"
   | "rubrics-evaluation-generator"
+  | "reading-practice-room"
   | "story-passage-creator"
   | "short-notes-summaries-maker"
+  | "my-study-decks"
   | "flashcard-generator"
   | "daily-class-plan-maker"
+  | "mock-test-builder"
   | "exam-question-paper-generator"
   | "smart-study-guide-generator"
   | "concept-breakdown-explainer"
@@ -58,29 +96,75 @@ type ToolId =
   | "quick-assignment-builder";
 
 const TOOLS: Array<{ id: ToolId; name: string; description: string }> = [
-  { id: "activity-project-generator", name: "Activity & Project Generator", description: "Create engaging activities and projects." },
+  { id: "project-idea-lab", name: "Project Idea Lab", description: "14-point student project format with safety, observation table, creative output, and self-assessment." },
+  { id: "activity-project-generator", name: "Activity / Project Generator", description: "13-point teacher activity kit with teacher and student instructions and assessment rubric." },
   { id: "worksheet-mcq-generator", name: "Worksheet & MCQ Generator", description: "Design worksheets and exam-quality MCQs." },
   { id: "concept-mastery-helper", name: "Concept Mastery Helper", description: "Generate concept explanations and mastery notes." },
-  { id: "lesson-planner", name: "Lesson Planner", description: "Build structured lesson plans." },
+  { id: "study-schedule-maker", name: "Study Schedule Maker", description: "13-point student study schedule with plan table, concept slot, and self-assessment." },
+  { id: "lesson-planner", name: "Lesson Planner", description: "14-point teacher lesson plan with classroom activities and formative assessment." },
   { id: "homework-creator", name: "Homework Creator", description: "Generate homework tasks and practice sets." },
   { id: "rubrics-evaluation-generator", name: "Rubrics, Evaluation & Report Card", description: "Create rubric and evaluation criteria." },
-  { id: "story-passage-creator", name: "Story & Passage Creator", description: "Stories and passages (English & Hindi only)." },
+  { id: "reading-practice-room", name: "Reading Practice Room", description: "13-section reading practice with recall, infer, and connect questions (English & Hindi only)." },
+  { id: "story-passage-creator", name: "Story and Passage Creator", description: "19-section teacher story and passage sets (English & Hindi only)." },
   { id: "short-notes-summaries-maker", name: "Short Notes & Summaries", description: "Create concise revision notes." },
-  { id: "flashcard-generator", name: "Flashcard Generator", description: "Generate question-answer flashcards." },
+  { id: "my-study-decks", name: "My Study Decks", description: "12-section student study decks with flashcard set, difficulty tags, and self-check." },
+  { id: "flashcard-generator", name: "Flash Card Generator", description: "18-section teacher deck: concept, formula, HOTS, and visual cards with difficulty tags and memory hooks." },
   { id: "daily-class-plan-maker", name: "Daily Class Plan", description: "Create day-wise classroom plans." },
-  { id: "exam-question-paper-generator", name: "Exam Question Paper", description: "Generate section-wise exam papers." },
+  { id: "mock-test-builder", name: "Mock Test Builder", description: "12-section mock tests with question paper, answer key, solutions, and remedial guidance." },
+  { id: "exam-question-paper-generator", name: "Exam Question Paper Generator", description: "11-section exam papers: blueprint, sections A–E, answer key, marking scheme, and rubric." },
   { id: "smart-study-guide-generator", name: "Smart Study Guide Generator", description: "11-section study guides with overview, concepts, practice questions, and improvement tips." },
   { id: "concept-breakdown-explainer", name: "Concept Breakdown Explainer", description: "9-section concept breakdown with Indian-context examples and thinking prompts." },
-  { id: "smart-qa-practice-generator", name: "Smart Q&A Practice Generator", description: "14-section practice sets with MCQs, sections A–G, answer key, and Bloom/difficulty tags." },
-  { id: "chapter-summary-creator", name: "Chapter Summary Creator", description: "11-section chapter summaries with concepts, exam points, and recall questions." },
+  { id: "smart-qa-practice-generator", name: "Smart Q&A Practice Generator", description: "11-section practice sets with MCQs, sections A–G, and answer key with explanations." },
+  { id: "chapter-summary-creator", name: "Chapter Summary Creator", description: "10-section chapter summaries with concepts, revision notes, and recall questions." },
   { id: "key-points-formula-extractor", name: "Key Points Extractor", description: "10-section key points: concepts, definitions, formulae, keywords, exam points, mnemonics, and one-minute summary." },
   { id: "quick-assignment-builder", name: "Quick Assignment Builder", description: "11-section assignment: objectives, concept questions, application tasks, rubric, and learning outcomes." },
 ];
+
+const STUDENT_TOOL_IDS: ToolId[] = [
+  "smart-study-guide-generator",
+  "smart-qa-practice-generator",
+  "concept-breakdown-explainer",
+  "chapter-summary-creator",
+  "key-points-formula-extractor",
+  "quick-assignment-builder",
+  "my-study-decks",
+  "mock-test-builder",
+  "project-idea-lab",
+  "reading-practice-room",
+  "study-schedule-maker",
+];
+
+const TEACHER_TOOL_IDS: ToolId[] = [
+  "activity-project-generator",
+  "worksheet-mcq-generator",
+  "concept-mastery-helper",
+  "lesson-planner",
+  "exam-question-paper-generator",
+  "daily-class-plan-maker",
+  "homework-creator",
+  "rubrics-evaluation-generator",
+  "story-passage-creator",
+  "short-notes-summaries-maker",
+  "flashcard-generator",
+];
+
+const TEACHER_TOOL_LABELS: Partial<Record<ToolId, string>> = {
+  "activity-project-generator": "Activity / Project Generator",
+  "worksheet-mcq-generator": "Worksheet & MCQ Generator",
+  "concept-mastery-helper": "Concept Mastery Helper",
+  "lesson-planner": "Lesson Planner",
+  "exam-question-paper-generator": "Exam Question Paper Generator",
+  "daily-class-plan-maker": "Daily Class Plan Maker",
+  "homework-creator": "Homework Creator",
+  "rubrics-evaluation-generator": "Rubrics, Evaluvation & Report Card Generator",
+  "short-notes-summaries-maker": "Short Notes & Summarizer",
+};
 
 type GeneratorRecord = {
   _id: string;
   generatedContent: string;
   createdAt?: string;
+  metadata?: { structuredContent?: unknown };
 };
 
 type GroupedSubtopic = { subtopicName: string; records: GeneratorRecord[] };
@@ -106,6 +190,30 @@ function toDisplayPlainText(content: string) {
     .replace(/!\[(.*?)\]\((.*?)\)/g, "$1")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+function recordListPreviewText(toolSlug: string, generatedContent: string, record?: { metadata?: { structuredContent?: unknown } }) {
+  const slug = String(toolSlug || "").trim();
+  if (slug === "my-study-decks") {
+    const { content } = deckViewerPayloadFromRecord({
+      generatedContent,
+      metadata: record?.metadata,
+    });
+    return toDisplayPlainText(content);
+  }
+  if (slug === "flashcard-generator") {
+    const { content } = deckViewerPayloadFromRecord({ generatedContent });
+    return toDisplayPlainText(content);
+  }
+  if (slug === "mock-test-builder") {
+    const { content } = mockTestViewerPayloadFromRecord({
+      generatedContent,
+      metadata: record?.metadata,
+    });
+    const first = toDisplayPlainText(content).split("\n").find((l) => l.trim()) || "Mock Test";
+    return first.slice(0, 120);
+  }
+  return toDisplayPlainText(generatedContent);
 }
 
 export default function SuperAdminAiGenerator() {
@@ -148,6 +256,14 @@ export default function SuperAdminAiGenerator() {
   const subjectsForTool = useMemo(
     () => filterSubjectsForAiTool(selectedTool || "", subjects),
     [selectedTool, subjects],
+  );
+  const studentTools = useMemo(
+    () => TOOLS.filter((tool) => STUDENT_TOOL_IDS.includes(tool.id)),
+    [],
+  );
+  const teacherTools = useMemo(
+    () => TOOLS.filter((tool) => TEACHER_TOOL_IDS.includes(tool.id)),
+    [],
   );
 
   const currentTool = useMemo(() => TOOLS.find((t) => t.id === selectedTool), [selectedTool]);
@@ -206,6 +322,7 @@ export default function SuperAdminAiGenerator() {
     }
     if (
       selectedTool === "homework-creator" ||
+      selectedTool === "mock-test-builder" ||
       selectedTool === "exam-question-paper-generator" ||
       selectedTool === "quick-assignment-builder"
     ) {
@@ -273,7 +390,7 @@ export default function SuperAdminAiGenerator() {
 
   const handleToolSelect = (toolId: ToolId) => {
     setSelectedTool(toolId);
-    if (toolId === STORY_PASSAGE_TOOL_ID && subject && !isStoryPassageLanguageSubject(subject)) {
+    if (isStoryLanguageTool(toolId) && subject && !isStoryPassageLanguageSubject(subject)) {
       setSubject("");
       setTopic("");
       setSubTopic("");
@@ -281,7 +398,7 @@ export default function SuperAdminAiGenerator() {
   };
 
   useEffect(() => {
-    if (selectedTool !== STORY_PASSAGE_TOOL_ID) return;
+    if (!isStoryLanguageTool(selectedTool)) return;
     if (!subject || isStoryPassageLanguageSubject(subject)) return;
     setSubject("");
     setTopic("");
@@ -293,14 +410,24 @@ export default function SuperAdminAiGenerator() {
       toast({ title: "Missing fields", description: "Tool, board, class, subject and sub topic are required.", variant: "destructive" });
       return;
     }
-    if (!topic && !["lesson-planner", "activity-project-generator", "story-passage-creator"].includes(selectedTool)) {
+    if (
+      !topic &&
+      ![
+        "lesson-planner",
+        "study-schedule-maker",
+        "activity-project-generator",
+        "project-idea-lab",
+        "reading-practice-room",
+        "story-passage-creator",
+      ].includes(selectedTool)
+    ) {
       toast({ title: "Missing topic", description: "Topic is required for this tool.", variant: "destructive" });
       return;
     }
-    if (selectedTool === STORY_PASSAGE_TOOL_ID && !isStoryPassageLanguageSubject(subject)) {
+    if (isStoryLanguageTool(selectedTool) && !isStoryPassageLanguageSubject(subject)) {
       toast({
         title: "English or Hindi only",
-        description: "Story & Passage Creator works only with English or Hindi subjects.",
+        description: "This tool works only with English or Hindi subjects.",
         variant: "destructive",
       });
       return;
@@ -480,24 +607,53 @@ export default function SuperAdminAiGenerator() {
         <CardHeader>
           <CardTitle>Available Tools</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {TOOLS.map((tool) => (
-            <button
-              key={tool.id}
-              onClick={() => handleToolSelect(tool.id)}
-              className={`rounded-xl border p-4 text-left transition ${selectedTool === tool.id ? "border-orange-400 bg-orange-50" : "bg-white hover:bg-slate-50"}`}
-            >
-              <div className="flex items-start gap-3">
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
-                  <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
-                </span>
-                <div>
-                  <p className="font-semibold text-xs sm:text-sm">{tool.name}</p>
-                  <p className="text-xs text-slate-600 mt-1">{tool.description}</p>
-                </div>
-              </div>
-            </button>
-          ))}
+        <CardContent className="space-y-4">
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Student</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+              {studentTools.map((tool) => (
+                <button
+                  key={tool.id}
+                  onClick={() => handleToolSelect(tool.id)}
+                  className={`rounded-xl border p-4 text-left transition ${selectedTool === tool.id ? "border-orange-400 bg-orange-50" : "bg-white hover:bg-slate-50"}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
+                      <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
+                    </span>
+                    <div>
+                      <p className="font-semibold text-xs sm:text-sm">{tool.name}</p>
+                      <p className="text-xs text-slate-600 mt-1">{tool.description}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Teacher</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+              {teacherTools.map((tool) => (
+                <button
+                  key={tool.id}
+                  onClick={() => handleToolSelect(tool.id)}
+                  className={`rounded-xl border p-4 text-left transition ${selectedTool === tool.id ? "border-orange-400 bg-orange-50" : "bg-white hover:bg-slate-50"}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
+                      <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
+                    </span>
+                    <div>
+                      <p className="font-semibold text-xs sm:text-sm">
+                        {TEACHER_TOOL_LABELS[tool.id] || tool.name}
+                      </p>
+                      <p className="text-xs text-slate-600 mt-1">{tool.description}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -509,7 +665,7 @@ export default function SuperAdminAiGenerator() {
           <div className="lg:col-span-3">
             <Label>Selected Tool</Label>
             <div className="mt-1">{currentTool ? <Badge>{currentTool.name}</Badge> : <Badge variant="secondary">No tool selected</Badge>}</div>
-            {selectedTool === STORY_PASSAGE_TOOL_ID ? (
+            {isStoryLanguageTool(selectedTool) ? (
               <p className="mt-2 text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded-md px-2 py-1.5">
                 English and Hindi subjects only for Story &amp; Passage Creator.
               </p>
@@ -541,7 +697,7 @@ export default function SuperAdminAiGenerator() {
                       ? "Select class first"
                       : loadingSubjects
                         ? "Loading subjects..."
-                        : selectedTool === STORY_PASSAGE_TOOL_ID && subjectsForTool.length === 0
+                        : isStoryLanguageTool(selectedTool) && subjectsForTool.length === 0
                           ? "English or Hindi only"
                           : "Select subject"
                   }
@@ -603,7 +759,8 @@ export default function SuperAdminAiGenerator() {
           )}
 
           {(selectedTool === "homework-creator" ||
-            selectedTool === "exam-question-paper-generator" ||
+            selectedTool === "mock-test-builder" ||
+      selectedTool === "exam-question-paper-generator" ||
             selectedTool === "quick-assignment-builder") && (
             <div>
               <Label>Duration (minutes)</Label>
@@ -848,7 +1005,11 @@ export default function SuperAdminAiGenerator() {
                                                               }
                                                               return (
                                                               <p className="text-xs sm:text-sm text-slate-700 line-clamp-4 leading-relaxed border-l-2 border-orange-200 pl-3">
-                                                                {toDisplayPlainText(String(row.generatedContent || ""))}
+                                                                {recordListPreviewText(
+                                                                  toolNode.toolSlug,
+                                                                  String(row.generatedContent || ""),
+                                                                  row,
+                                                                )}
                                                               </p>
                                                               );
                                                             })()}
@@ -881,20 +1042,56 @@ export default function SuperAdminAiGenerator() {
         </CardContent>
       </Card>
 
-      <Dialog open={!!activeRecord} onOpenChange={() => setActiveRecord(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto rounded-2xl border-slate-200">
+      <Dialog
+        open={!!activeRecord}
+        onOpenChange={() => setActiveRecord(null)}
+      >
+        <DialogContent
+          className={cn(
+            "max-h-[90vh] overflow-y-auto rounded-2xl border-slate-200",
+            activeRecord?.toolSlug === "mock-test-builder" ||
+              activeRecord?.toolName === "mock-test-builder" ||
+              activeRecord?.toolSlug === "smart-study-guide-generator" ||
+              activeRecord?.toolName === "smart-study-guide-generator" ||
+              activeRecord?.toolSlug === "concept-breakdown-explainer" ||
+              activeRecord?.toolName === "concept-breakdown-explainer"
+              ? "max-w-5xl"
+              : "max-w-4xl",
+          )}
+        >
           <DialogHeader>
             <DialogTitle>Generated Record</DialogTitle>
           </DialogHeader>
           <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm">
-            {activeRecord?.toolSlug === "flashcard-generator" ||
-            activeRecord?.toolName === "flashcard-generator" ? (
-              <FlashcardViewer content={String(activeRecord?.generatedContent || "")} />
+            {activeRecord?.toolSlug === "my-study-decks" ||
+            activeRecord?.toolName === "my-study-decks" ? (
+              <MyStudyDecksViewer
+                {...deckViewerPayloadFromRecord(activeRecord)}
+              />
+            ) : activeRecord?.toolSlug === "flashcard-generator" ||
+              activeRecord?.toolName === "flashcard-generator" ? (
+              (() => {
+                const deckPayload = deckViewerPayloadFromRecord(activeRecord);
+                return (
+                  <FlashcardViewer
+                    content={deckPayload.content}
+                    rawContent={deckPayload.rawContent}
+                    variant="teacher"
+                  />
+                );
+              })()
             ) : isWorksheetToolValue(activeRecord?.toolSlug) ||
               isWorksheetToolValue(activeRecord?.toolName) ? (
               <WorksheetMcqViewer
                 content={String(activeRecord?.generatedContent || "")}
                 variant="teacher"
+              />
+            ) : activeRecord?.toolSlug === "study-schedule-maker" ||
+              activeRecord?.toolName === "study-schedule-maker" ? (
+              <LessonPlannerViewer
+                content={String(activeRecord?.generatedContent || "")}
+                rawContent={activeRecord}
+                variant="student"
               />
             ) : activeRecord?.toolSlug === "lesson-planner" ||
               activeRecord?.toolName === "lesson-planner" ||
@@ -917,15 +1114,44 @@ export default function SuperAdminAiGenerator() {
                 content={String(activeRecord?.generatedContent || "")}
                 rawContent={activeRecord}
               />
-            ) : activeRecord?.toolSlug === "story-passage-creator" ||
+            ) : activeRecord?.toolSlug === "reading-practice-room" ||
+              activeRecord?.toolName === "reading-practice-room" ||
+              activeRecord?.toolSlug === "story-passage-creator" ||
               activeRecord?.toolName === "story-passage-creator" ? (
               <StoryPassageViewer
                 content={String(activeRecord?.generatedContent || "")}
                 rawData={activeRecord}
+                variant={
+                  activeRecord?.toolSlug === "reading-practice-room" ||
+                  activeRecord?.toolName === "reading-practice-room"
+                    ? "student"
+                    : "default"
+                }
               />
             ) : activeRecord?.toolSlug === "short-notes-summaries-maker" ||
               activeRecord?.toolName === "short-notes-summaries-maker" ? (
               <ShortNotesViewer content={String(activeRecord?.generatedContent || "")} />
+            ) : activeRecord?.toolSlug === "mock-test-builder" ||
+              activeRecord?.toolName === "mock-test-builder" ? (
+              <MockTestViewer {...mockTestViewerPayloadFromRecord(activeRecord)} />
+            ) : activeRecord?.toolSlug === "smart-study-guide-generator" ||
+              activeRecord?.toolName === "smart-study-guide-generator" ? (
+              <SmartStudyGuideViewer {...studyGuideViewerPayloadFromRecord(activeRecord)} />
+            ) : activeRecord?.toolSlug === "concept-breakdown-explainer" ||
+              activeRecord?.toolName === "concept-breakdown-explainer" ? (
+              <ConceptBreakdownViewer {...conceptBreakdownViewerPayloadFromRecord(activeRecord)} />
+            ) : activeRecord?.toolSlug === "smart-qa-practice-generator" ||
+              activeRecord?.toolName === "smart-qa-practice-generator" ? (
+              <PracticeQaViewer {...practiceQaViewerPayloadFromRecord(activeRecord)} />
+            ) : activeRecord?.toolSlug === "chapter-summary-creator" ||
+              activeRecord?.toolName === "chapter-summary-creator" ? (
+              <ChapterSummaryViewer {...chapterSummaryViewerPayloadFromRecord(activeRecord)} />
+            ) : activeRecord?.toolSlug === "key-points-formula-extractor" ||
+              activeRecord?.toolName === "key-points-formula-extractor" ? (
+              <KeyPointsViewer {...keyPointsViewerPayloadFromRecord(activeRecord)} />
+            ) : activeRecord?.toolSlug === "quick-assignment-builder" ||
+              activeRecord?.toolName === "quick-assignment-builder" ? (
+              <QuickAssignmentViewer {...quickAssignmentViewerPayloadFromRecord(activeRecord)} />
             ) : (
               <GeneratedRecordBody content={String(activeRecord?.generatedContent || "")} />
             )}

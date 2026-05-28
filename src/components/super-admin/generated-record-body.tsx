@@ -1,4 +1,18 @@
 import { stripStructuredAiToolMetadata } from "@/lib/strip-ai-tool-metadata";
+import { MockTestViewer } from "@/components/mock-test-viewer";
+import { SmartStudyGuideViewer } from "@/components/smart-study-guide-viewer";
+import { ConceptBreakdownViewer } from "@/components/concept-breakdown-viewer";
+import { PracticeQaViewer } from "@/components/practice-qa-viewer";
+import { ChapterSummaryViewer } from "@/components/chapter-summary-viewer";
+import { KeyPointsViewer } from "@/components/key-points-viewer";
+import { QuickAssignmentViewer } from "@/components/quick-assignment-viewer";
+import { looksLikeMockTestContent } from "@/lib/render-mock-test-markdown";
+import { looksLikeStudyGuideContent } from "@/lib/parse-smart-study-guide";
+import { looksLikeConceptBreakdownContent } from "@/lib/parse-concept-breakdown";
+import { looksLikePracticeQaContent } from "@/lib/parse-practice-qa";
+import { looksLikeChapterSummaryContent } from "@/lib/parse-chapter-summary";
+import { looksLikeKeyPointsContent } from "@/lib/parse-key-points";
+import { looksLikeQuickAssignmentContent } from "@/lib/parse-quick-assignment";
 
 export function normalizeGeneratedPlainText(content: string): string {
   return String(content || "")
@@ -139,14 +153,46 @@ type GeneratedRecordBodyProps = {
   /** When true, strips NAME OF THE TOOL … CONTENT header first. Default true. */
   stripMetadata?: boolean;
   className?: string;
+  toolType?: string;
 };
 
 export function GeneratedRecordBody({
   content,
   stripMetadata = true,
   className = "",
+  toolType,
 }: GeneratedRecordBodyProps) {
   const raw = stripMetadata ? stripStructuredAiToolMetadata(String(content || "")) : String(content || "");
+  if (toolType === "chapter-summary-creator") {
+    return <ChapterSummaryViewer content={String(content || "")} className={className} />;
+  }
+  if (toolType === "key-points-formula-extractor") {
+    return <KeyPointsViewer content={String(content || "")} className={className} />;
+  }
+  if (toolType === "quick-assignment-builder") {
+    return <QuickAssignmentViewer content={String(content || "")} className={className} />;
+  }
+  if (looksLikeMockTestContent(raw)) {
+    return <MockTestViewer content={String(content || "")} className={className} />;
+  }
+  if (looksLikeChapterSummaryContent(raw)) {
+    return <ChapterSummaryViewer content={String(content || "")} className={className} />;
+  }
+  if (looksLikeKeyPointsContent(raw)) {
+    return <KeyPointsViewer content={String(content || "")} className={className} />;
+  }
+  if (looksLikeQuickAssignmentContent(raw)) {
+    return <QuickAssignmentViewer content={String(content || "")} className={className} />;
+  }
+  if (looksLikeStudyGuideContent(raw)) {
+    return <SmartStudyGuideViewer content={String(content || "")} className={className} />;
+  }
+  if (looksLikeConceptBreakdownContent(raw)) {
+    return <ConceptBreakdownViewer content={String(content || "")} className={className} />;
+  }
+  if (looksLikePracticeQaContent(raw)) {
+    return <PracticeQaViewer content={String(content || "")} className={className} />;
+  }
   const normalized = normalizeGeneratedPlainText(raw);
   const lines = normalized
     .split("\n")

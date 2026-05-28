@@ -35,7 +35,11 @@ type NormalizedActivity = {
   steps: string[];
   teacherInstructions: string[];
   studentInstructions: string[];
+  safetyCareInstructions: string[];
+  observationTable: string;
+  creativeOutput: string;
   differentiation: string;
+  selfAssessmentRubric: string[];
   assessmentRubric: string[];
   expectedOutcomes: string;
   realLife: string;
@@ -57,7 +61,11 @@ function coalesceLines(v: unknown): string[] {
   return [];
 }
 
-function normalizeActivity(raw: ActivityProject, idx: number): NormalizedActivity {
+function normalizeActivity(
+  raw: ActivityProject,
+  idx: number,
+  mode: 'student' | 'teacher',
+): NormalizedActivity {
   const a = raw || {};
   const ncfRaw = a.ncf_competency_alignment;
   const ncf = Array.isArray(ncfRaw)
@@ -67,6 +75,15 @@ function normalizeActivity(raw: ActivityProject, idx: number): NormalizedActivit
         .map((x) => x.trim())
         .filter(Boolean);
 
+  const studentSteps = coalesceLines(a.student_instructions);
+  const procedureSteps = coalesceLines(a.step_by_step_procedure || a.steps || a.instructions);
+  const steps =
+    mode === 'teacher'
+      ? procedureSteps
+      : studentSteps.length
+        ? studentSteps
+        : procedureSteps;
+
   return {
     sl: Number(a.sl_no) || idx + 1,
     title: String(a.title || a.name || `Activity ${idx + 1}`).trim(),
@@ -74,20 +91,17 @@ function normalizeActivity(raw: ActivityProject, idx: number): NormalizedActivit
     learningObjectives: coalesceLines(a.learning_objectives || a.learningObjectives),
     ncfAlignment: ncf,
     materials: coalesceLines(a.materials_required || a.materials),
-    steps: coalesceLines(a.step_by_step_procedure || a.steps || a.instructions),
-    teacherInstructions: (() => {
-      const base = coalesceLines(a.teacher_instructions);
-      const cues = dedupePeriodTimeCues(String(a.period_time_cues || ''));
-      if (!cues) return base;
-      const cueLines = cues
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean);
-      return cueLines.length ? [...base, ...cueLines] : base;
-    })(),
-    studentInstructions: coalesceLines(a.student_instructions),
-    differentiation: String(a.differentiation || '').trim(),
-    assessmentRubric: coalesceLines(a.assessment_criteria_rubric || a.assessment || a.evaluation),
+    steps,
+    teacherInstructions: coalesceLines(a.teacher_instructions),
+    studentInstructions: studentSteps.length ? studentSteps : coalesceLines(a.student_instructions),
+    safetyCareInstructions: coalesceLines(a.safety_care_instructions || a.safety_instructions),
+    observationTable: String(a.observation_data_recording_table || a.observation_table || '').trim(),
+    creativeOutput: String(a.creative_output_final_product || a.creative_output || '').trim(),
+    differentiation: String(a.differentiation_support_extension || a.differentiation || '').trim(),
+    selfAssessmentRubric: coalesceLines(a.self_assessment_rubric || a.assessment),
+    assessmentRubric: coalesceLines(
+      a.assessment_criteria_rubric || a.assessment || a.evaluation,
+    ),
     expectedOutcomes: String(
       a.expected_learning_outcomes || a.learning_outcome || a.learning_outcomes || a.expected_outcome || '',
     ).trim(),
@@ -119,11 +133,11 @@ function EmptySectionHint({ audience = 'student' }: { audience?: 'student' | 'te
   );
 }
 
-function countFilledSections(activity: NormalizedActivity): number {
-  return TEMPLATE_SECTIONS.filter((s) => s.hasContent(activity)).length;
+function countFilledSections(activity: NormalizedActivity, sections: TemplateSectionDef[]): number {
+  return sections.filter((s) => s.hasContent(activity)).length;
 }
 
-const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
+const TEACHER_TEMPLATE_SECTIONS: TemplateSectionDef[] = [
   {
     num: 2,
     id: 'prior',
@@ -223,12 +237,12 @@ const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     num: 7,
     id: 'teacher',
     title: 'Teacher instructions',
-    icon: GraduationCap,
-    stripe: 'border-slate-500',
-    iconWrap: 'bg-slate-200 text-slate-700',
+    icon: Users,
+    stripe: 'border-indigo-500',
+    iconWrap: 'bg-indigo-100 text-indigo-700',
     hasContent: (a) => a.teacherInstructions.length > 0,
     render: (a) => (
-      <ul className="list-disc pl-4 space-y-1 text-stone-600">
+      <ul className="list-disc pl-4 space-y-1">
         {a.teacherInstructions.map((line, i) => (
           <li key={i}>{line}</li>
         ))}
@@ -239,19 +253,16 @@ const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     num: 8,
     id: 'student',
     title: 'Student instructions',
-    icon: Users,
-    stripe: 'border-indigo-500',
-    iconWrap: 'bg-indigo-100 text-indigo-700',
+    icon: GraduationCap,
+    stripe: 'border-teal-500',
+    iconWrap: 'bg-teal-100 text-teal-700',
     hasContent: (a) => a.studentInstructions.length > 0,
     render: (a) => (
-      <div className="rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50/40 p-4 space-y-2">
+      <ul className="list-disc pl-4 space-y-1">
         {a.studentInstructions.map((line, i) => (
-          <p key={i} className="flex gap-2">
-            <span className="font-bold text-indigo-600">{i + 1}.</span>
-            <span>{line}</span>
-          </p>
+          <li key={i}>{line}</li>
         ))}
-      </div>
+      </ul>
     ),
   },
   {
@@ -306,6 +317,202 @@ const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     num: 13,
     id: 'reflect',
     title: 'Reflection / exit ticket',
+    icon: Lightbulb,
+    stripe: 'border-orange-500',
+    iconWrap: 'bg-orange-100 text-orange-800',
+    hasContent: (a) => !!a.reflection,
+    render: (a) => (
+      <p className="whitespace-pre-wrap rounded-lg border-l-4 border-orange-400 bg-orange-50/50 px-3 py-3 text-stone-800">
+        {a.reflection}
+      </p>
+    ),
+  },
+];
+
+const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
+  {
+    num: 2,
+    id: 'prior',
+    title: 'Subtopic link and prior knowledge required',
+    icon: BookOpen,
+    stripe: 'border-sky-500',
+    iconWrap: 'bg-sky-100 text-sky-700',
+    hasContent: (a) => !!a.subtopicLink,
+    render: (a) => (
+      <p className="whitespace-pre-wrap rounded-xl bg-sky-50/60 px-3 py-3">{a.subtopicLink}</p>
+    ),
+  },
+  {
+    num: 3,
+    id: 'goals',
+    title: "Learning Objectives - Bloom's Taxonomy Aligned",
+    icon: Target,
+    stripe: 'border-violet-500',
+    iconWrap: 'bg-violet-100 text-violet-700',
+    hasContent: (a) => a.learningObjectives.length > 0,
+    render: (a) => (
+      <ul className="space-y-2">
+        {a.learningObjectives.map((line, i) => (
+          <li key={i} className="flex gap-2 rounded-lg bg-violet-50/80 px-3 py-2">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-violet-600 mt-0.5" aria-hidden />
+            <span>{line}</span>
+          </li>
+        ))}
+      </ul>
+    ),
+  },
+  {
+    num: 4,
+    id: 'ncf',
+    title: 'NCF competency / learning outcome alignment',
+    icon: GraduationCap,
+    stripe: 'border-blue-500',
+    iconWrap: 'bg-blue-100 text-blue-700',
+    hasContent: (a) => a.ncfAlignment.length > 0,
+    render: (a) => (
+      <ul className="list-disc pl-4 space-y-1">
+        {a.ncfAlignment.map((line, i) => (
+          <li key={i}>{line}</li>
+        ))}
+      </ul>
+    ),
+  },
+  {
+    num: 5,
+    id: 'materials',
+    title: 'Materials required',
+    icon: Package,
+    stripe: 'border-amber-500',
+    iconWrap: 'bg-amber-100 text-amber-800',
+    hasContent: (a) => a.materials.length > 0,
+    render: (a) => (
+      <ul className="space-y-2">
+        {a.materials.map((m, i) => (
+          <li
+            key={i}
+            className="flex items-center gap-2 rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2"
+          >
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber-200/80 text-[11px] font-bold text-amber-900">
+              {i + 1}
+            </span>
+            {m}
+          </li>
+        ))}
+      </ul>
+    ),
+  },
+  {
+    num: 6,
+    id: 'steps',
+    title: 'Step-by-step Student Procedure',
+    icon: ListChecks,
+    stripe: 'border-emerald-500',
+    iconWrap: 'bg-emerald-100 text-emerald-700',
+    hasContent: (a) => a.steps.length > 0,
+    render: (a) => (
+      <ol className="space-y-2.5 list-none pl-0 m-0">
+        {a.steps.map((step, i) => (
+          <li key={i} className="flex gap-3 text-sm leading-relaxed text-stone-700">
+            <span
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white"
+              aria-hidden
+            >
+              {i + 1}
+            </span>
+            <span className="pt-1 min-w-0 flex-1">{step}</span>
+          </li>
+        ))}
+      </ol>
+    ),
+  },
+  {
+    num: 7,
+    id: 'safety',
+    title: 'Safety and Care Instructions',
+    icon: GraduationCap,
+    stripe: 'border-slate-500',
+    iconWrap: 'bg-slate-200 text-slate-700',
+    hasContent: (a) => a.safetyCareInstructions.length > 0,
+    render: (a) => (
+      <ul className="list-disc pl-4 space-y-1 text-stone-600">
+        {a.safetyCareInstructions.map((line, i) => (
+          <li key={i}>{line}</li>
+        ))}
+      </ul>
+    ),
+  },
+  {
+    num: 8,
+    id: 'observation',
+    title: 'Observation / Data Recording Table',
+    icon: ClipboardList,
+    stripe: 'border-indigo-500',
+    iconWrap: 'bg-indigo-100 text-indigo-700',
+    hasContent: (a) => !!a.observationTable,
+    render: (a) => <p className="whitespace-pre-wrap">{a.observationTable}</p>,
+  },
+  {
+    num: 9,
+    id: 'creative',
+    title: 'Creative Output / Final Product',
+    icon: Sparkles,
+    stripe: 'border-violet-500',
+    iconWrap: 'bg-violet-100 text-violet-700',
+    hasContent: (a) => !!a.creativeOutput,
+    render: (a) => <p className="whitespace-pre-wrap">{a.creativeOutput}</p>,
+  },
+  {
+    num: 10,
+    id: 'diff',
+    title: 'Differentiation: Support and Extension',
+    icon: Users,
+    stripe: 'border-pink-500',
+    iconWrap: 'bg-pink-100 text-pink-700',
+    hasContent: (a) => !!a.differentiation,
+    render: (a) => <p className="whitespace-pre-wrap">{a.differentiation}</p>,
+  },
+  {
+    num: 11,
+    id: 'rubric',
+    title: 'Self-Assessment Rubric',
+    icon: ClipboardList,
+    stripe: 'border-rose-500',
+    iconWrap: 'bg-rose-100 text-rose-700',
+    hasContent: (a) => a.selfAssessmentRubric.length > 0,
+    render: (a) => (
+      <ul className="list-disc pl-4 space-y-1">
+        {a.selfAssessmentRubric.map((line, i) => (
+          <li key={i}>{line}</li>
+        ))}
+      </ul>
+    ),
+  },
+  {
+    num: 12,
+    id: 'outcomes',
+    title: 'Expected Learning Outcomes',
+    icon: GraduationCap,
+    stripe: 'border-cyan-600',
+    iconWrap: 'bg-cyan-100 text-cyan-800',
+    hasContent: (a) => !!a.expectedOutcomes,
+    render: (a) => (
+      <p className="whitespace-pre-wrap rounded-lg bg-cyan-50 px-3 py-3">{a.expectedOutcomes}</p>
+    ),
+  },
+  {
+    num: 13,
+    id: 'real',
+    title: 'Real-life Application',
+    icon: Sparkles,
+    stripe: 'border-fuchsia-500',
+    iconWrap: 'bg-fuchsia-100 text-fuchsia-700',
+    hasContent: (a) => !!a.realLife,
+    render: (a) => <p className="whitespace-pre-wrap">{a.realLife}</p>,
+  },
+  {
+    num: 14,
+    id: 'reflect',
+    title: 'Reflection / Exit Ticket',
     icon: Lightbulb,
     stripe: 'border-orange-500',
     iconWrap: 'bg-orange-100 text-orange-800',
@@ -384,7 +591,7 @@ function StudentActivityCard({
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-wider text-orange-600 mb-1">
-              1. Title of activity / project
+              1. Project / Activity Title
             </p>
             <Badge className="mb-2 rounded-md border-0 bg-orange-100 text-orange-800 hover:bg-orange-100 font-semibold">
               Activity {activity.sl}
@@ -424,8 +631,8 @@ function TeacherActivityCard({
   activity: NormalizedActivity;
   prefix: string;
 }) {
-  const filled = countFilledSections(activity);
-  const total = TEMPLATE_SECTIONS.length;
+  const filled = countFilledSections(activity, TEACHER_TEMPLATE_SECTIONS);
+  const total = TEACHER_TEMPLATE_SECTIONS.length;
   const progressPct = Math.round((filled / total) * 100);
 
   return (
@@ -470,7 +677,7 @@ function TeacherActivityCard({
         </div>
       </div>
 
-      {TEMPLATE_SECTIONS.filter((sec) => sec.hasContent(activity)).map((sec) => (
+      {TEACHER_TEMPLATE_SECTIONS.filter((sec) => sec.hasContent(activity)).map((sec) => (
         <JournalBlock
           key={sec.id}
           id={`${prefix}-${sec.id}`}
@@ -503,9 +710,14 @@ export function ActivityProjectViewer({
     [content],
   );
 
+  const mode: 'student' | 'teacher' = variant === 'teacher' ? 'teacher' : 'student';
+
   const resolved = useMemo(
-    () => resolveActivitiesFromPayload(activities, parsedContent).map(normalizeActivity),
-    [activities, parsedContent],
+    () =>
+      resolveActivitiesFromPayload(activities, parsedContent).map((a, i) =>
+        normalizeActivity(a, i, mode),
+      ),
+    [activities, parsedContent, mode],
   );
 
   const [activeIdx, setActiveIdx] = useState(0);
@@ -528,7 +740,7 @@ export function ActivityProjectViewer({
   const safeIdx = Math.min(activeIdx, resolved.length - 1);
   const current = resolved[safeIdx];
 
-  if (variant === 'teacher' || variant === 'default') {
+  if (variant === 'teacher') {
     return (
       <div className={cn('w-full', className)}>
         <div
@@ -623,7 +835,7 @@ export function ActivityProjectViewer({
                   <p className="text-xs font-semibold uppercase tracking-widest text-orange-100">
                     Lab journal
                   </p>
-                  <h3 className="text-lg font-bold">Activity &amp; Project guide</h3>
+                  <h3 className="text-lg font-bold">Project Idea Lab</h3>
                 </div>
               </div>
               {resolved.length > 1 ? (

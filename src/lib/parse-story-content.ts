@@ -15,6 +15,7 @@ export type StoryPassageItem = {
 
 export type ParsedStory = {
   title: string;
+  subtopicLinkPriorKnowledge?: string;
   topicSubtopicConnection?: string;
   priorKnowledgeRequired?: string;
   ncfAlignment?: string;
@@ -23,6 +24,7 @@ export type ParsedStory = {
   learningObjectives: string[];
   passage: string;
   vocabulary: string[];
+  vocabularyPractice: string[];
   readRecallQuestions: StoryQuestion[];
   thinkInferQuestions: StoryQuestion[];
   applyConnectQuestions: StoryQuestion[];
@@ -107,8 +109,22 @@ function normalizeStoryFromObject(raw: Record<string, unknown>, fallbackTitle?: 
       .filter(Boolean)
       .join('\n');
 
+  const subtopicLinkPriorKnowledge =
+    str(raw.subtopic_link_prior_knowledge || raw.subtopicLinkPriorKnowledge) ||
+    [
+      str(raw.topic_subtopic_connection || raw.topic_and_subtopic_connection || raw.topicSubtopicConnection),
+      str(raw.prior_knowledge_required || raw.priorKnowledgeRequired || raw.subtopic_link),
+    ]
+      .filter(Boolean)
+      .join('\n') ||
+    undefined;
+
   return {
-    title: str(raw.title) || fallbackTitle || 'Story',
+    title:
+      str(raw.reading_practice_title || raw.readingPracticeTitle || raw.title) ||
+      fallbackTitle ||
+      'Reading Practice',
+    subtopicLinkPriorKnowledge,
     topicSubtopicConnection:
       str(raw.topic_subtopic_connection || raw.topic_and_subtopic_connection || raw.topicSubtopicConnection) ||
       undefined,
@@ -120,22 +136,30 @@ function normalizeStoryFromObject(raw: Record<string, unknown>, fallbackTitle?: 
     alignment: alignment || undefined,
     learningObjectives: strArr(raw.learning_objectives || raw.objectives),
     passage: str(raw.passage || raw.content || raw.story_text),
-    vocabulary: strArr(raw.vocabulary_support || raw.vocabulary),
-    readRecallQuestions: toQuestions(raw.read_recall_questions || raw.comprehension_questions || raw.questions),
-    thinkInferQuestions: toQuestions(raw.think_infer_questions),
-    applyConnectQuestions: toQuestions(raw.apply_connect_questions),
+    vocabulary: strArr(raw.vocabulary_warmup || raw.vocabulary_support || raw.vocabulary),
+    vocabularyPractice: strArr(raw.vocabulary_practice || raw.vocabularyPractice),
+    readRecallQuestions: toQuestions(
+      raw.read_and_recall_questions || raw.read_recall_questions || raw.comprehension_questions || raw.questions,
+    ),
+    thinkInferQuestions: toQuestions(raw.think_and_infer_questions || raw.think_infer_questions),
+    applyConnectQuestions: toQuestions(raw.apply_and_connect_questions || raw.apply_connect_questions),
     questions: toQuestions(raw.questions || raw.comprehension_questions),
     vocabularyGrammarPractice: str(raw.vocabulary_grammar_practice || raw.vocabularyGrammarPractice) || undefined,
     creativeResponseActivity: str(raw.creative_response_activity || raw.creativeResponseActivity) || undefined,
     answerKeySuggestedResponses:
-      str(raw.answer_key_suggested_responses || raw.answer_key || raw.answerKeySuggestedResponses) || undefined,
+      str(raw.answer_key_suggested_responses || raw.answer_key || raw.answerKeySuggestedResponses) ||
+      strArr(raw.answer_key_suggested_responses).join('\n') ||
+      undefined,
     commonMistakesToAvoid: str(raw.common_mistakes_to_avoid || raw.commonMistakesToAvoid) || undefined,
-    answerHints: strArr(raw.answer_hints || raw.answer_key),
+    answerHints: strArr(raw.answer_key_suggested_responses || raw.answer_hints || raw.answer_key),
     differentiationSupport: str(raw.differentiation_support) || undefined,
     differentiationExtension: str(raw.differentiation_extension) || undefined,
-    expectedLearningOutcomes: str(raw.expected_learning_outcomes || raw.expectedLearningOutcomes) || undefined,
+    expectedLearningOutcomes:
+      str(raw.expected_learning_outcomes || raw.expectedLearningOutcomes) ||
+      strArr(raw.expected_learning_outcomes).join('\n') ||
+      undefined,
     realLifeApplication: str(raw.real_life_application || raw.real_life_link) || undefined,
-    reflection: str(raw.reflection_prompt || raw.reflection_exit_ticket) || undefined,
+    reflection: str(raw.reflection_exit_ticket || raw.reflection_prompt) || undefined,
     meta: {
       subject: str(raw.subject) || undefined,
       book: str(raw.book) || undefined,
@@ -222,61 +246,51 @@ function parsePassagesBundle(obj: Record<string, unknown>): ParsedPassagesBundle
 
 const STORY_SECTION_HINT: Record<number, keyof ParsedStory | 'alignment'> = {
   1: 'title',
-  2: 'topicSubtopicConnection',
-  3: 'priorKnowledgeRequired',
-  4: 'learningObjectives',
-  5: 'ncfAlignment',
-  6: 'vocabulary',
-  7: 'preReadingPrompt',
-  8: 'passage',
-  9: 'readRecallQuestions',
-  10: 'thinkInferQuestions',
-  11: 'applyConnectQuestions',
-  12: 'vocabularyGrammarPractice',
-  13: 'creativeResponseActivity',
-  14: 'answerKeySuggestedResponses',
-  15: 'commonMistakesToAvoid',
-  16: 'differentiationSupport',
-  17: 'expectedLearningOutcomes',
-  18: 'realLifeApplication',
+  2: 'subtopicLinkPriorKnowledge',
+  3: 'learningObjectives',
+  4: 'ncfAlignment',
+  5: 'vocabulary',
+  6: 'passage',
+  7: 'readRecallQuestions',
+  8: 'thinkInferQuestions',
+  9: 'applyConnectQuestions',
+  10: 'vocabularyPractice',
+  11: 'answerKeySuggestedResponses',
+  12: 'expectedLearningOutcomes',
+  13: 'reflection',
 };
 
 const SECTION_HEADING_MD_RE = /^#{1,3}\s+(\d{1,2})\.\s*(.+?)\s*$/i;
 const SECTION_PLAIN_RE = /^(\d{1,2})\.\s+(.+?)\s*$/i;
 const SECTION_TITLE_HINT: Record<number, RegExp> = {
-  1: /story|passage\s+title/i,
-  2: /topic.*subtopic|connection/i,
-  3: /prior\s+knowledge/i,
-  4: /learning\s+objective/i,
-  5: /ncf|competency|learning\s+outcome/i,
-  6: /vocabulary/i,
-  7: /pre[-\s]?reading|thinking\s+prompt/i,
-  8: /^passage|story\s+content/i,
-  9: /read.*recall/i,
-  10: /think.*infer/i,
-  11: /apply.*connect/i,
-  12: /vocabulary.*grammar/i,
-  13: /creative\s+response/i,
-  14: /answer\s+key|suggested\s+response/i,
-  15: /common\s+mistakes/i,
-  16: /differentiation/i,
-  17: /expected\s+learning\s+outcome/i,
-  18: /real[-\s]?life/i,
+  1: /reading\s+practice\s+title|story|passage\s+title/i,
+  2: /subtopic.*prior|prior\s+knowledge/i,
+  3: /learning\s+objective/i,
+  4: /ncf|competency|learning\s+outcome/i,
+  5: /vocabulary\s+warm/i,
+  6: /^passage|story\s*\/?\s*story/i,
+  7: /read.*recall/i,
+  8: /think.*infer/i,
+  9: /apply.*connect/i,
+  10: /vocabulary\s+practice/i,
+  11: /answer\s+key|suggested\s+response/i,
+  12: /expected\s+learning\s+outcome/i,
+  13: /reflection|exit\s+ticket/i,
 };
 
-/** Legacy 10-section story labels (e.g. "2. Learning Objectives") → 18-section index. */
+/** Legacy story labels → 13-section Reading Practice Room index. */
 function legacyStorySectionNumFromTitle(title: string): number | null {
   const t = String(title || '').trim();
   if (!t) return null;
-  if (/^alignment\s+block/i.test(t)) return 5;
-  if (/^learning\s+objectives?/i.test(t)) return 4;
-  if (/^passage$/i.test(t) || /^story\s*\/?\s*passage\s+content$/i.test(t)) return 8;
-  if (/^vocabulary\s+support/i.test(t)) return 6;
-  if (/^comprehension\s+and\s+thinking/i.test(t)) return 9;
-  if (/^answer\s+hints?/i.test(t)) return 14;
-  if (/^differentiation/i.test(t)) return 16;
-  if (/^real[-\s]?life/i.test(t)) return 18;
-  if (/^reflection/i.test(t) || /^exit\s+ticket/i.test(t)) return 17;
+  if (/^alignment\s+block/i.test(t)) return 4;
+  if (/^learning\s+objectives?/i.test(t)) return 3;
+  if (/^passage$/i.test(t) || /^story\s*\/?\s*passage/i.test(t)) return 6;
+  if (/^vocabulary\s+support/i.test(t)) return 5;
+  if (/^comprehension\s+and\s+thinking/i.test(t)) return 7;
+  if (/^answer\s+hints?/i.test(t)) return 11;
+  if (/^differentiation/i.test(t)) return null;
+  if (/^real[-\s]?life/i.test(t)) return null;
+  if (/^reflection/i.test(t) || /^exit\s+ticket/i.test(t)) return 13;
   return null;
 }
 
@@ -285,13 +299,13 @@ function sectionNumFromLine(line: string): number | null {
   let m = trimmed.match(SECTION_HEADING_MD_RE);
   if (m) {
     const n = Number(m[1]);
-    if (n >= 1 && n <= 18) return n;
+    if (n >= 1 && n <= 13) return n;
   }
   m = trimmed.match(SECTION_PLAIN_RE);
   if (m) {
     const n = Number(m[1]);
     const title = String(m[2] || '').trim();
-    if (n >= 1 && n <= 18 && SECTION_TITLE_HINT[n]?.test(title)) return n;
+    if (n >= 1 && n <= 13 && SECTION_TITLE_HINT[n]?.test(title)) return n;
     const legacy = legacyStorySectionNumFromTitle(title);
     if (legacy != null) return legacy;
   }
@@ -339,17 +353,19 @@ function linesToOrderedList(body: string): string[] {
 function storyHasContent(s: ParsedStory): boolean {
   return !!(
     s.passage ||
+    s.subtopicLinkPriorKnowledge ||
     s.alignment ||
+    s.ncfAlignment ||
     s.learningObjectives.length ||
     s.vocabulary.length ||
+    s.vocabularyPractice.length ||
     s.questions.length ||
     s.readRecallQuestions.length ||
     s.thinkInferQuestions.length ||
     s.applyConnectQuestions.length ||
     s.answerHints.length ||
-    s.differentiationSupport ||
-    s.differentiationExtension ||
-    s.realLifeApplication ||
+    s.answerKeySuggestedResponses ||
+    s.expectedLearningOutcomes ||
     s.reflection
   );
 }
@@ -371,6 +387,8 @@ function pickQuestions(a: StoryQuestion[], b: StoryQuestion[]): StoryQuestion[] 
 export function mergeStory(base: ParsedStory = emptyStory(), md: ParsedStory = emptyStory()): ParsedStory {
   return {
     title: pickStr(md.title, base.title),
+    subtopicLinkPriorKnowledge:
+      pickStr(md.subtopicLinkPriorKnowledge, base.subtopicLinkPriorKnowledge) || undefined,
     topicSubtopicConnection:
       pickStr(md.topicSubtopicConnection, base.topicSubtopicConnection) || undefined,
     priorKnowledgeRequired:
@@ -381,6 +399,7 @@ export function mergeStory(base: ParsedStory = emptyStory(), md: ParsedStory = e
     learningObjectives: pickList(md.learningObjectives, base.learningObjectives),
     passage: pickStr(md.passage, base.passage),
     vocabulary: pickList(md.vocabulary, base.vocabulary),
+    vocabularyPractice: pickList(md.vocabularyPractice, base.vocabularyPractice),
     readRecallQuestions: pickQuestions(md.readRecallQuestions, base.readRecallQuestions),
     thinkInferQuestions: pickQuestions(md.thinkInferQuestions, base.thinkInferQuestions),
     applyConnectQuestions: pickQuestions(md.applyConnectQuestions, base.applyConnectQuestions),
@@ -406,7 +425,7 @@ export function mergeStory(base: ParsedStory = emptyStory(), md: ParsedStory = e
   };
 }
 
-function emptyStory(title = 'Story'): ParsedStory {
+function emptyStory(title = 'Reading Practice'): ParsedStory {
   return {
     title,
     readRecallQuestions: [],
@@ -415,6 +434,7 @@ function emptyStory(title = 'Story'): ParsedStory {
     learningObjectives: [],
     passage: '',
     vocabulary: [],
+    vocabularyPractice: [],
     questions: [],
     answerHints: [],
   };
@@ -540,6 +560,7 @@ function parseStoryFromMarkdown(text: string): ParsedStory | null {
     learningObjectives: [],
     passage: '',
     vocabulary: [],
+    vocabularyPractice: [],
     questions: [],
     answerHints: [],
   };
@@ -549,6 +570,7 @@ function parseStoryFromMarkdown(text: string): ParsedStory | null {
     if (!key) continue;
     if (key === 'alignment') story.alignment = body.replace(/\n{2,}/g, '\n').trim();
     else if (key === 'title') story.title = body.replace(/\n{2,}/g, '\n').trim() || story.title;
+    else if (key === 'subtopicLinkPriorKnowledge') story.subtopicLinkPriorKnowledge = body.trim();
     else if (key === 'topicSubtopicConnection') story.topicSubtopicConnection = body.trim();
     else if (key === 'priorKnowledgeRequired') story.priorKnowledgeRequired = body.trim();
     else if (key === 'ncfAlignment') story.ncfAlignment = body.trim();
@@ -556,6 +578,7 @@ function parseStoryFromMarkdown(text: string): ParsedStory | null {
     else if (key === 'learningObjectives') story.learningObjectives = linesToList(body);
     else if (key === 'passage') story.passage = body.replace(/\n{2,}/g, '\n').trim();
     else if (key === 'vocabulary') story.vocabulary = linesToList(body);
+    else if (key === 'vocabularyPractice') story.vocabularyPractice = linesToList(body);
     else if (key === 'questions' || key === 'readRecallQuestions') {
       story.questions = linesToOrderedList(body).map((q) => ({ question: q }));
       story.readRecallQuestions = story.questions;
