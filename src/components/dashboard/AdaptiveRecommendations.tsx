@@ -23,7 +23,8 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react';
-import { API_BASE_URL, getStudentPdfPreviewIframeSrc } from '@/lib/api-config';
+import { API_BASE_URL } from '@/lib/api-config';
+import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 
 /** Optional legacy props (dashboard may still pass them; recommendations come from API). */
 export interface AdaptiveRecommendationsProps {
@@ -434,10 +435,10 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
               <div className="flex-1 min-h-0 overflow-hidden rounded-lg border bg-white">
                 {previewItem.displayType?.toLowerCase() === 'pdf' ||
                 previewItem.fileUrl?.toLowerCase().includes('.pdf') ? (
-                  <iframe
+                  <PdfPreviewPanel
+                    fileUrl={previewItem.fileUrl || ''}
                     title={previewItem.title}
-                    src={getStudentPdfPreviewIframeSrc(previewItem.fileUrl || '', previewItem.title)}
-                    className="h-full w-full border-0"
+                    className="h-full w-full min-h-[min(50dvh,640px)]"
                   />
                 ) : previewItem.displayType?.toLowerCase() === 'video' ? (
                   <video src={previewItem.fileUrl} controls className="h-full w-full" />

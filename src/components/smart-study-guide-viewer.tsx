@@ -21,6 +21,9 @@ import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import {
   resolveStudyGuideFromPayload,
   studyGuideViewerPayloadFromRecord,
+  getMissingStudyGuideSections,
+  isStudyGuideComplete,
+  studyGuideHasVisibleBody,
   type StudyGuideContent,
   type StudyGuidePracticeQuestion,
 } from '@/lib/parse-smart-study-guide';
@@ -72,16 +75,8 @@ function GuideSectionCard({
   );
 }
 
-function EmptyHint() {
-  return (
-    <p className="rounded-md border border-dashed border-indigo-200 bg-indigo-50/40 px-2 py-1 text-xs italic text-slate-400">
-      Not included in this study guide.
-    </p>
-  );
-}
-
 function BulletList({ items, accent = 'text-indigo-500' }: { items: string[]; accent?: string }) {
-  if (!items.length) return <EmptyHint />;
+  if (!items.length) return null;
   return (
     <ul className="space-y-1.5">
       {items.map((line, i) => (
@@ -95,7 +90,7 @@ function BulletList({ items, accent = 'text-indigo-500' }: { items: string[]; ac
 }
 
 function RichTextBlock({ text }: { text: string }) {
-  if (!text.trim()) return <EmptyHint />;
+  if (!text.trim()) return null;
   const hasMarkdown =
     text.includes('|') ||
     /^\s*#{1,6}\s/m.test(text) ||
@@ -161,7 +156,10 @@ function PracticeQuestionCard({ q, index }: { q: StudyGuidePracticeQuestion; ind
 
 
 function buildBodySections(guide: StudyGuideContent) {
-  return [
+  const sections: ReactNode[] = [];
+
+  if (guide.chapterOverview.trim()) {
+    sections.push(
     <GuideSectionCard
       key="2"
       sectionNum="Section 2"
@@ -172,6 +170,11 @@ function buildBodySections(guide: StudyGuideContent) {
     >
       <RichTextBlock text={guide.chapterOverview} />
     </GuideSectionCard>,
+    );
+  }
+
+  if (guide.learningObjectives.length > 0) {
+    sections.push(
     <GuideSectionCard
       key="3"
       sectionNum="Section 3"
@@ -182,6 +185,11 @@ function buildBodySections(guide: StudyGuideContent) {
     >
       <BulletList items={guide.learningObjectives} accent="text-violet-500" />
     </GuideSectionCard>,
+    );
+  }
+
+  if (guide.priorKnowledge.length > 0) {
+    sections.push(
     <GuideSectionCard
       key="4"
       sectionNum="Section 4"
@@ -192,6 +200,11 @@ function buildBodySections(guide: StudyGuideContent) {
     >
       <BulletList items={guide.priorKnowledge} accent="text-cyan-600" />
     </GuideSectionCard>,
+    );
+  }
+
+  if (guide.keyConcepts.some((c) => c.name.trim() && c.explanation?.trim())) {
+    sections.push(
     <GuideSectionCard
       key="5"
       sectionNum="Section 5"
@@ -201,24 +214,25 @@ function buildBodySections(guide: StudyGuideContent) {
       iconWrap="bg-indigo-100 text-indigo-800"
       className="sm:col-span-2"
     >
-      {guide.keyConcepts.length > 0 ? (
         <div className="grid gap-2 sm:grid-cols-2">
-          {guide.keyConcepts.map((c, i) => (
+          {guide.keyConcepts
+            .filter((c) => c.name.trim() && c.explanation?.trim())
+            .map((c, i) => (
             <div
               key={`${c.name}-${i}`}
               className="rounded-lg border border-indigo-100 bg-indigo-50/30 px-3 py-2"
             >
               <p className="text-sm font-semibold text-indigo-900">{c.name}</p>
-              {c.explanation ? (
-                <p className="mt-1 text-sm leading-relaxed text-slate-700">{c.explanation}</p>
-              ) : null}
+              <p className="mt-1 text-sm leading-relaxed text-slate-700">{c.explanation}</p>
             </div>
           ))}
         </div>
-      ) : (
-        <EmptyHint />
-      )}
     </GuideSectionCard>,
+    );
+  }
+
+  if (guide.definitions.length > 0 || guide.formulae.length > 0) {
+    sections.push(
     <GuideSectionCard
       key="6"
       sectionNum="Section 6"
@@ -228,7 +242,6 @@ function buildBodySections(guide: StudyGuideContent) {
       iconWrap="bg-amber-100 text-amber-900"
       className="sm:col-span-2"
     >
-      {guide.definitions.length > 0 || guide.formulae.length > 0 ? (
         <div className="space-y-3">
           {guide.definitions.length > 0 ? (
             <div className="space-y-2">
@@ -259,10 +272,12 @@ function buildBodySections(guide: StudyGuideContent) {
             </div>
           ) : null}
         </div>
-      ) : (
-        <EmptyHint />
-      )}
     </GuideSectionCard>,
+    );
+  }
+
+  if (guide.conceptFlow.trim()) {
+    sections.push(
     <GuideSectionCard
       key="7"
       sectionNum="Section 7"
@@ -274,6 +289,11 @@ function buildBodySections(guide: StudyGuideContent) {
     >
       <RichTextBlock text={guide.conceptFlow} />
     </GuideSectionCard>,
+    );
+  }
+
+  if (guide.realLifeExamples.length > 0) {
+    sections.push(
     <GuideSectionCard
       key="8"
       sectionNum="Section 8"
@@ -284,6 +304,11 @@ function buildBodySections(guide: StudyGuideContent) {
     >
       <BulletList items={guide.realLifeExamples} accent="text-lime-600" />
     </GuideSectionCard>,
+    );
+  }
+
+  if (guide.quickRevisionNotes.length > 0) {
+    sections.push(
     <GuideSectionCard
       key="9"
       sectionNum="Section 9"
@@ -292,7 +317,6 @@ function buildBodySections(guide: StudyGuideContent) {
       stripe="border-orange-500"
       iconWrap="bg-orange-100 text-orange-800"
     >
-      {guide.quickRevisionNotes.length > 0 ? (
         <ul className="space-y-1.5">
           {guide.quickRevisionNotes.map((note, i) => (
             <li
@@ -304,10 +328,12 @@ function buildBodySections(guide: StudyGuideContent) {
             </li>
           ))}
         </ul>
-      ) : (
-        <EmptyHint />
-      )}
     </GuideSectionCard>,
+    );
+  }
+
+  if (guide.practiceQuestions.some((q) => q.question.trim())) {
+    sections.push(
     <GuideSectionCard
       key="10"
       sectionNum="Section 10"
@@ -317,16 +343,19 @@ function buildBodySections(guide: StudyGuideContent) {
       iconWrap="bg-indigo-100 text-indigo-900"
       className="sm:col-span-2"
     >
-      {guide.practiceQuestions.length > 0 ? (
         <div className="space-y-2">
-          {guide.practiceQuestions.map((q, i) => (
+          {guide.practiceQuestions
+            .filter((q) => q.question.trim())
+            .map((q, i) => (
             <PracticeQuestionCard key={`pq-${i}`} q={q} index={i} />
           ))}
         </div>
-      ) : (
-        <EmptyHint />
-      )}
     </GuideSectionCard>,
+    );
+  }
+
+  if (guide.improvementTips.length > 0) {
+    sections.push(
     <GuideSectionCard
       key="11"
       sectionNum="Section 11"
@@ -338,7 +367,10 @@ function buildBodySections(guide: StudyGuideContent) {
     >
       <BulletList items={guide.improvementTips} accent="text-fuchsia-500" />
     </GuideSectionCard>,
-  ];
+    );
+  }
+
+  return sections;
 }
 
 export function SmartStudyGuideViewer({ content, rawContent, className }: SmartStudyGuideViewerProps) {
@@ -362,12 +394,46 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
   }
 
   const bodySections = buildBodySections(guide);
+  const missingSections = getMissingStudyGuideSections(guide);
+  const complete = isStudyGuideComplete(guide);
+
+  if (!bodySections.length && !studyGuideHasVisibleBody(guide)) {
+    return (
+      <div
+        className={cn(
+          'rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950',
+          className,
+        )}
+        role="status"
+      >
+        <p className="font-semibold">Study guide incomplete</p>
+        <p className="mt-1 text-amber-900/90">
+          No study guide sections could be loaded. Ask your Super Admin to regenerate with all 11 sections
+          filled.
+          {missingSections.length > 0 ? ` Missing: ${missingSections.join(', ')}.` : ''}
+        </p>
+      </div>
+    );
+  }
+
   const mcqCount = guide.practiceQuestions.filter(
     (q) => q.type === 'objective' && q.options.length >= 2,
   ).length;
 
   return (
     <div className={cn('w-full space-y-2', className)}>
+      {!complete && missingSections.length > 0 ? (
+        <div
+          className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+          role="status"
+        >
+          <p className="font-semibold">Some sections are incomplete</p>
+          <p className="mt-1 text-amber-900/90">
+            Showing available content below. Missing: {missingSections.join(', ')}. Regenerate with all
+            11 sections filled for the student dashboard.
+          </p>
+        </div>
+      ) : null}
       <div
         className="relative overflow-hidden rounded-3xl border border-indigo-200/80 shadow-xl shadow-indigo-200/25"
         style={{

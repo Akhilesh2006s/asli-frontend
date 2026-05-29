@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Play, FileText, File, Image, Video, Download, Search, Filter, BookOpen, ExternalLink } from 'lucide-react';
-import { API_BASE_URL, getStudentPdfPreviewIframeSrc } from '@/lib/api-config';
+import { API_BASE_URL } from '@/lib/api-config';
+import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 import {
   filterContentsBySchoolProgram,
   getAllowedContentTypes,
@@ -434,13 +435,11 @@ export default function AsliPrepContent() {
             }
 
             if (isPdf) {
-              const iframeSrc = getStudentPdfPreviewIframeSrc(fileUrl, previewContent?.title);
               return (
-                <iframe
-                  key={iframeSrc}
-                  title={previewContent?.title || 'PDF Preview'}
-                  src={iframeSrc}
-                  className="h-[min(78vh,900px)] w-full border-0 bg-white rounded-lg"
+                <PdfPreviewPanel
+                  fileUrl={previewContent?.fileUrl || fileUrl}
+                  title={previewContent?.title}
+                  className="w-full min-h-[min(50dvh,640px)]"
                 />
               );
             }

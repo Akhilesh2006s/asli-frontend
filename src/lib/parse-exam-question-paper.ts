@@ -56,6 +56,32 @@ export function formatLabeledMcqOptions(options: string[], maxOptions = 4): stri
   return texts.slice(0, maxOptions).map((text, i) => `${letters[i]}) ${text}`);
 }
 
+/** Split "question stem - A) one - B) two" into stem + options (common in mock-test markdown). */
+export function extractInlineMcqFromQuestionText(text: string): { question: string; options: string[] } {
+  const raw = cleanText(text).replace(/\*\*/g, '');
+  if (!raw) return { question: '', options: [] };
+
+  const labelRe = /(?:^|\s+-\s+|\s+)([A-D])\)\s+/gi;
+  const labels = [...raw.matchAll(labelRe)];
+  if (labels.length < 2) return { question: raw, options: [] };
+
+  const firstIdx = labels[0].index ?? 0;
+  let question = cleanText(raw.slice(0, firstIdx).replace(/\s+-\s*$/, ''));
+  const optionsBlob = raw.slice(firstIdx);
+
+  const chunks = optionsBlob
+    .split(/\s+-\s+(?=[A-D]\)\s)/i)
+    .map((part) => cleanText(part))
+    .filter(Boolean);
+
+  const options = chunks
+    .map((chunk) => chunk.replace(MCQ_OPTION_LABEL_RE, '').trim())
+    .filter(Boolean);
+
+  if (options.length < 2) return { question: raw, options: [] };
+  return { question, options: formatLabeledMcqOptions(options) };
+}
+
 function normalizeOption(input: unknown): string {
   if (typeof input === 'string') return cleanText(input);
   if (input && typeof input === 'object') {
@@ -121,10 +147,19 @@ function collectOptionsFromRow(row: Record<string, unknown>): string[] {
 
 function normalizeQuestion(value: unknown, idx: number): ExamQuestion {
   const row = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+  let question = cleanText(row.question || row.prompt || row.statement || '');
+  let options = collectOptionsFromRow(row);
+  if (options.length < 2) {
+    const inline = extractInlineMcqFromQuestionText(question);
+    if (inline.options.length >= 2) {
+      question = inline.question;
+      options = inline.options;
+    }
+  }
   return {
     questionNumber: cleanText(row.question_number || row.qNo || row.id || `${idx + 1}`),
-    question: cleanText(row.question || row.prompt || row.statement || ''),
-    options: collectOptionsFromRow(row),
+    question,
+    options,
     answer: cleanText(row.answer || row.correct_answer || row.answer_key || ''),
     marks: parseMarks(row.marks),
     internalChoiceGroup: cleanText(row.internal_choice_group || row.internalChoiceGroup || ''),
@@ -260,13 +295,24 @@ function parseQuestionBlockLines(
     questionBody.push(line);
   }
 
-  const question = cleanText(questionBody.join(' ').trim());
-  if (!question && !options.length) return null;
+  const joined = cleanText([qTextStart, ...questionBody].join(' ').trim());
+  let question = cleanText(questionBody.join(' ').trim()) || joined;
+  let finalOptions = options.length >= 2 ? formatLabeledMcqOptions(options) : options;
+
+  if (finalOptions.length < 2) {
+    const inline = extractInlineMcqFromQuestionText(joined || question);
+    if (inline.options.length >= 2) {
+      question = inline.question;
+      finalOptions = inline.options;
+    }
+  }
+
+  if (!question && !finalOptions.length) return null;
 
   return {
     questionNumber: qNo,
     question,
-    options: options.length >= 2 ? formatLabeledMcqOptions(options) : options,
+    options: finalOptions,
     answer,
     marks,
     internalChoiceGroup,

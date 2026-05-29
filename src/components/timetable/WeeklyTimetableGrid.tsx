@@ -93,6 +93,7 @@ export function WeeklyTimetableGrid({
   const todayIdx = todayWeekdayIndex(now);
   const dayColWidth = 96;
   const timeColMin = 92;
+  const useBoundedScroll = variant === 'admin';
 
   return (
     <div
@@ -103,7 +104,12 @@ export function WeeklyTimetableGrid({
       )}
     >
       <div
-        className="max-h-[min(32rem,75vh)] overflow-auto overscroll-contain scroll-smooth"
+        className={cn(
+          'scroll-smooth',
+          useBoundedScroll
+            ? 'max-h-[min(32rem,75vh)] overflow-auto overscroll-auto'
+            : 'overflow-x-auto overflow-y-clip overscroll-x-contain'
+        )}
         aria-label="Weekly timetable grid"
       >
         <div style={{ minWidth: `${dayColWidth + timeSlots.length * timeColMin}px` }}>

@@ -42,7 +42,6 @@ import {
   Award,
   Target,
   BookOpen,
-  ArrowRight,
   Video,
   BookOpen as BookIcon,
   MessageSquare,
@@ -73,7 +72,6 @@ import {
   FileText as FileTextIcon2,
   Key,
   ClipboardList as ClipboardListIcon,
-  CheckCircle2 as CheckCircle2Icon,
   Layout,
   Target as TargetIcon,
   AlertTriangle,
@@ -92,7 +90,8 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import YouTubePlayer from '@/components/youtube-player';
 import DriveViewer from '@/components/drive-viewer';
 import VideoModal from '@/components/video-modal';
-import { API_BASE_URL, apiFetch, getStudentPdfPreviewIframeSrc } from '@/lib/api-config';
+import { API_BASE_URL, apiFetch } from '@/lib/api-config';
+import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 import { buildExamCalendarEntries } from '@/lib/exam-calendar-entries';
 import { buildTimetableCalendarEntries } from '@/lib/timetable-calendar-entries';
 import { useTimetableEntries } from '@/hooks/useTimetable';
@@ -339,8 +338,6 @@ export default function Dashboard() {
   const [subjectProgress, setSubjectProgress] = useState<any[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
   const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
-  const [learningPathContent, setLearningPathContent] = useState<any[]>([]);
-  const [isLoadingLearningPathContent, setIsLoadingLearningPathContent] = useState(false);
   const [subjects, setSubjects] = useState<any[]>([]);
   
   // Save overall progress to database
@@ -843,55 +840,6 @@ export default function Dashboard() {
           accuracyRate: Math.round(avgAccuracy),
           rank: avgRank || 0
         });
-
-        // Fetch learning path content for all subjects
-        setIsLoadingLearningPathContent(true);
-        try {
-          const allContent: any[] = [];
-          
-          // Fetch content for each subject
-          for (const subject of subjectsList) {
-            const subjectId = subject._id || subject.id;
-            try {
-              const contentResponse = await fetch(`${API_BASE_URL}/api/student/asli-prep-content?subject=${encodeURIComponent(subjectId)}`, {
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json'
-                }
-              });
-              
-              if (contentResponse.ok) {
-                const contentData = await contentResponse.json();
-                const contents = contentData.data || contentData || [];
-                
-                // Add subject info to each content item
-                contents.forEach((content: any) => {
-                  allContent.push({
-                    ...content,
-                    subjectName: subject.name,
-                    subjectId: subjectId
-                  });
-                });
-              }
-            } catch (contentError) {
-              console.error('Error fetching content for subject:', subjectId, contentError);
-            }
-          }
-          
-          // Sort by upload date (newest first)
-          allContent.sort((a, b) => {
-            const dateA = a.uploadDate ? new Date(a.uploadDate).getTime() : 0;
-            const dateB = b.uploadDate ? new Date(b.uploadDate).getTime() : 0;
-            return dateB - dateA;
-          });
-          
-          setLearningPathContent(allContent);
-        } catch (error) {
-          console.error('Failed to fetch learning path content:', error);
-          setLearningPathContent([]);
-        } finally {
-          setIsLoadingLearningPathContent(false);
-        }
 
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
@@ -1762,91 +1710,6 @@ export default function Dashboard() {
   const topIncompleteQuizzes = useMemo(() => {
     return incompleteQuizzes.slice(0, 10);
   }, [incompleteQuizzes]);
-
-  const [selectedTopicSubject, setSelectedTopicSubject] = useState<string>('');
-
-  const topicWiseProgress = useMemo(() => {
-    if (!learningPathContent.length) return [];
-
-    const groupedBySubject = new Map<string, any[]>();
-    learningPathContent.forEach((item: any) => {
-      const subjectId = String(item.subjectId || item.subject?._id || item.subject?.id || item.subjectName || 'general');
-      if (!groupedBySubject.has(subjectId)) groupedBySubject.set(subjectId, []);
-      groupedBySubject.get(subjectId)!.push(item);
-    });
-
-    const progressMap = new Map(
-      subjectProgress.map((s: any) => [String(s.id || s.name), s])
-    );
-
-    return Array.from(groupedBySubject.entries()).map(([subjectId, items]) => {
-      const subjectName = items[0]?.subjectName || items[0]?.subject?.name || 'Subject';
-      const completedKey = `completed_content_${subjectId}`;
-      let completedIds: string[] = [];
-      try {
-        completedIds = JSON.parse(localStorage.getItem(completedKey) || '[]');
-      } catch {
-        completedIds = [];
-      }
-      const completedSet = new Set(completedIds.map(String));
-
-      const chapters = new Map<string, any[]>();
-      items.forEach((item: any) => {
-        const chapterName =
-          item.chapterName ||
-          item.chapter ||
-          item.unitName ||
-          item.unit ||
-          item.module ||
-          'General';
-        if (!chapters.has(chapterName)) chapters.set(chapterName, []);
-        chapters.get(chapterName)!.push(item);
-      });
-
-      const chapterList = Array.from(chapters.entries()).map(([chapterName, chapterItems], index) => {
-        const topics = chapterItems.map((topic: any) => {
-          const topicId = String(topic._id || topic.id || `${subjectId}-${chapterName}-${topic.title || topic.topicName || index}`);
-          const topicTitle = topic.topicName || topic.topic || topic.title || 'Untitled Topic';
-          const isCompleted = completedSet.has(topicId);
-          const topicProgress = isCompleted ? 100 : Math.max(0, Math.min(95, Number(topic.progress || topic.completionPercentage || 0)));
-          const status = isCompleted ? 'completed' : topicProgress > 0 ? 'in_progress' : 'pending';
-          return { id: topicId, title: topicTitle, progress: topicProgress, status, raw: topic };
-        });
-
-        const completedTopics = topics.filter(t => t.status === 'completed').length;
-        const chapterProgress = topics.length > 0 ? Math.round((completedTopics / topics.length) * 100) : 0;
-        return {
-          id: `${subjectId}-${chapterName}`,
-          chapterName,
-          order: index + 1,
-          topics,
-          completedTopics,
-          totalTopics: topics.length,
-          progress: chapterProgress
-        };
-      });
-
-      const totalTopics = chapterList.reduce((sum, c) => sum + c.totalTopics, 0);
-      const totalCompleted = chapterList.reduce((sum, c) => sum + c.completedTopics, 0);
-      const overallProgress = totalTopics > 0 ? Math.round((totalCompleted / totalTopics) * 100) : 0;
-      const mapped = progressMap.get(subjectId) || progressMap.get(subjectName);
-
-      return {
-        subjectId,
-        subjectName,
-        subjectProgress: mapped?.progress ?? overallProgress,
-        chapters: chapterList
-      };
-    });
-  }, [learningPathContent, subjectProgress]);
-
-  useEffect(() => {
-    if (!topicWiseProgress.length) return;
-    const exists = topicWiseProgress.some((s: any) => s.subjectId === selectedTopicSubject);
-    if (!selectedTopicSubject || !exists) {
-      setSelectedTopicSubject(topicWiseProgress[0].subjectId);
-    }
-  }, [topicWiseProgress, selectedTopicSubject]);
 
   const getTaskTimeLabel = (item: any, isQuiz: boolean) => {
     const candidate =
@@ -2837,88 +2700,6 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                {/* Topic-wise Learning Roadmap */}
-                {topicWiseProgress.length > 0 && (
-                  <div className="space-y-4 pt-2">
-                    <div className="flex flex-wrap gap-2">
-                      {topicWiseProgress.map((subject: any) => (
-                        <button
-                          key={subject.subjectId}
-                          onClick={() => setSelectedTopicSubject(subject.subjectId)}
-                          className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-medium transition-colors ${
-                            selectedTopicSubject === subject.subjectId
-                              ? 'bg-indigo-600 text-white'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          {subject.subjectName}
-                        </button>
-                      ))}
-                    </div>
-
-                    {topicWiseProgress
-                      .filter((subject: any) => subject.subjectId === selectedTopicSubject)
-                      .map((subject: any) => (
-                        <div key={subject.subjectId} className="space-y-4">
-                          <div className="rounded-xl border border-orange-100 bg-orange-50 px-4 py-3 text-xs sm:text-sm text-gray-800">
-                            Based on your progress, continue with the next pending topic in {subject.subjectName}.
-                          </div>
-
-                          {subject.chapters.map((chapter: any) => (
-                            <div key={chapter.id} className="rounded-2xl border border-gray-200 bg-white p-4">
-                              <div className="flex items-center justify-between mb-2">
-                                <h4 className="font-semibold text-gray-900">{chapter.order}. {chapter.chapterName}</h4>
-                                <Badge variant="outline" className="rounded-full">
-                                  {chapter.completedTopics}/{chapter.totalTopics}
-                                </Badge>
-                              </div>
-                              <div className="h-2 bg-gray-100 rounded-full mb-4 overflow-hidden">
-                                <div className="h-2 bg-indigo-500 rounded-full" style={{ width: `${chapter.progress}%` }} />
-                              </div>
-
-                              <div className="space-y-3">
-                                {chapter.topics.map((topic: any) => (
-                                  <div
-                                    key={topic.id}
-                                    className="flex items-center justify-between gap-3 cursor-pointer"
-                                    onClick={() => handleOpenPreview(topic.raw, false)}
-                                  >
-                                    <div className="flex items-center gap-3 min-w-0">
-                                      <div className="flex-shrink-0">
-                                        {topic.status === 'completed' ? (
-                                          <CheckCircle2Icon className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" />
-                                        ) : topic.status === 'in_progress' ? (
-                                          <Play className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
-                                        ) : (
-                                          <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-gray-300" />
-                                        )}
-                                      </div>
-                                      <p className="text-xs sm:text-sm text-gray-900 truncate">{topic.title}</p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      {topic.progress > 0 && (
-                                        <Badge className="bg-orange-100 text-orange-700 border-0">
-                                          {topic.progress}%
-                                        </Badge>
-                                      )}
-                                      <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ))}
-                  </div>
-                )}
-
-                <Button 
-                  className="w-full bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white shadow-lg"
-                  onClick={() => setLocation('/learning-paths')}
-                >
-                  View Complete Learning Path
-                </Button>
               </CardContent>
             </Card>
 
@@ -3081,16 +2862,11 @@ export default function Dashboard() {
                           }
                           
                           if (isPDF) {
-                            const iframeSrc = getStudentPdfPreviewIframeSrc(
-                              fileUrl,
-                              selectedScheduleItem?.title
-                            );
                             return (
-                              <iframe
-                                key={iframeSrc}
-                                title={selectedScheduleItem.title || 'PDF Preview'}
-                                src={iframeSrc}
-                                className="h-[min(78vh,900px)] w-full border-0 bg-white rounded-lg"
+                              <PdfPreviewPanel
+                                fileUrl={selectedScheduleItem.fileUrl}
+                                title={selectedScheduleItem.title}
+                                className="w-full min-h-[min(50dvh,640px)]"
                               />
                             );
                           }
@@ -3163,9 +2939,10 @@ export default function Dashboard() {
                 )}
               </div>
               
-              <DialogFooter>
+              <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <Button
                   variant="outline"
+                  className="w-full sm:w-auto"
                   onClick={() => {
                     setIsPreviewOpen(false);
                     setSelectedScheduleItem(null);
@@ -3174,7 +2951,7 @@ export default function Dashboard() {
                   Close
                 </Button>
                 <Button
-                  className="bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white"
+                  className="w-full sm:w-auto bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white"
                   onClick={() => handleToggleScheduleComplete(selectedScheduleItem, selectedScheduleItem.isQuiz)}
                 >
                   <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />

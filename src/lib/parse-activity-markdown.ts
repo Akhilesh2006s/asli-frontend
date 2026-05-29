@@ -44,6 +44,161 @@ export type ParsedActivity = {
   period_time_cues?: string;
 };
 
+function asStringList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((x) => String(x ?? '').trim()).filter(Boolean);
+  }
+  const s = String(value ?? '').trim();
+  if (!s) return [];
+  return s
+    .split(/\n+/)
+    .map((line) => line.replace(/^\s*[-*•]\s*|\s*\d+[\).\s]+/i, '').trim())
+    .filter(Boolean);
+}
+
+/** Remove duplicate lines (backend often sends snake_case + camelCase with the same items). */
+export function dedupeStringLines(lines: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const line of lines) {
+    const text = String(line ?? '').trim();
+    if (!text) continue;
+    const key = text.toLowerCase().replace(/\s+/g, ' ');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(text);
+  }
+  return out;
+}
+
+/** Use the first alias field that has items — do not concatenate duplicate alias arrays. */
+function firstMeaningfulList(...sources: unknown[]): string[] {
+  for (const src of sources) {
+    const list = asStringList(src);
+    if (list.length) return list;
+  }
+  return [];
+}
+
+function firstNonEmptyString(...values: unknown[]): string {
+  for (const v of values) {
+    if (Array.isArray(v)) {
+      const joined = asStringList(v).join('\n');
+      if (joined.trim()) return joined.trim();
+    } else {
+      const s = String(v ?? '').trim();
+      if (s) return s;
+    }
+  }
+  return '';
+}
+
+/** Map API / DB aliases (camelCase, legacy keys) → Project Idea Lab & Activity template fields. */
+export function normalizeParsedActivityFields(activity: ParsedActivity): ParsedActivity {
+  const src = activity && typeof activity === 'object' ? (activity as Record<string, unknown>) : {};
+  const out: ParsedActivity = { ...activity };
+
+  out.subtopic_link_prior_knowledge = firstNonEmptyString(
+    out.subtopic_link_prior_knowledge,
+    src.subtopicLinkPriorKnowledge,
+    src.subtopic_link_prior_knowledge_required,
+    src.topic_subtopic_connection,
+    src.topic_and_subtopic_connection,
+    src.subtopic_link,
+    src.study_goal_subtopic_link,
+    src.prior_knowledge_required,
+    src.prior_knowledge,
+    src.subtopic_context,
+  );
+
+  const ncfRaw =
+    out.ncf_competency_alignment ??
+    src.ncfCompetencyAlignment ??
+    src.ncf_alignment ??
+    src.alignment_block ??
+    src.competencies ??
+    src.learning_outcomes_ncf;
+  if (Array.isArray(ncfRaw)) {
+    const ncfItems = dedupeStringLines(ncfRaw.map((x) => String(x).trim()).filter(Boolean));
+    if (ncfItems.length) out.ncf_competency_alignment = ncfItems;
+  } else {
+    const ncfStr = String(ncfRaw ?? '').trim();
+    if (ncfStr && !out.ncf_competency_alignment) out.ncf_competency_alignment = ncfStr;
+  }
+
+  out.creative_output_final_product = firstNonEmptyString(
+    out.creative_output_final_product,
+    out.creative_output,
+    src.creativeOutputFinalProduct,
+    src.creative_output,
+    src.final_product,
+  );
+  if (out.creative_output_final_product) {
+    out.creative_output = out.creative_output || out.creative_output_final_product;
+  }
+
+  out.expected_learning_outcomes = firstNonEmptyString(
+    out.expected_learning_outcomes,
+    out.learning_outcome,
+    src.expectedLearningOutcomes,
+    src.expected_outcome,
+    src.learningOutcome,
+  );
+  if (out.expected_learning_outcomes) {
+    out.learning_outcome = out.learning_outcome || out.expected_learning_outcomes;
+  }
+
+  out.observation_data_recording_table = firstNonEmptyString(
+    out.observation_data_recording_table,
+    out.observation_table,
+    src.observationDataRecordingTable,
+    src.data_recording_table,
+  );
+  if (out.observation_data_recording_table) {
+    out.observation_table = out.observation_table || out.observation_data_recording_table;
+  }
+
+  out.differentiation_support_extension = firstNonEmptyString(
+    out.differentiation_support_extension,
+    out.differentiation,
+    src.differentiationSupportExtension,
+    src.differentiation_plan,
+    src.udl_support,
+  );
+  if (out.differentiation_support_extension) {
+    out.differentiation = out.differentiation || out.differentiation_support_extension;
+  }
+
+  const safetyMerged = dedupeStringLines([
+    ...asStringList(out.safety_care_instructions),
+    ...asStringList(out.safety_instructions),
+    ...asStringList(src.safetyCareInstructions),
+    ...asStringList(src.care_instructions),
+  ]);
+  if (safetyMerged.length) out.safety_care_instructions = safetyMerged;
+
+  const selfRubric = dedupeStringLines([
+    ...asStringList(out.self_assessment_rubric),
+    ...asStringList(out.assessment_criteria_rubric),
+    ...asStringList(src.selfAssessmentRubric),
+    ...asStringList(src.assessment),
+  ]);
+  if (selfRubric.length) {
+    out.self_assessment_rubric = selfRubric;
+    out.assessment_criteria_rubric = selfRubric;
+  }
+
+  const lo = dedupeStringLines(
+    firstMeaningfulList(out.learning_objectives, out.learningObjectives, src.objectives),
+  );
+  if (lo.length) {
+    out.learning_objectives = lo;
+    out.learningObjectives = lo;
+  }
+
+  return out;
+}
+
 /** Section number in template → field key */
 const SECTION_BY_NUMBER: Record<
   number,
@@ -115,13 +270,11 @@ function sectionNumFromTitle(title: string): number | null {
 function mapHeadingToSection(n: number, title: string): number | null {
   const legacy = legacyActivitySectionNumFromTitle(title);
   if (legacy != null) return legacy;
+  const byTitle = sectionNumFromTitle(title);
+  if (byTitle != null) return byTitle;
   if (n >= 2 && n <= 14) {
     const hint = SECTION_TITLE_HINT[n];
-    if (title && hint && !hint.test(title)) {
-      const byTitle = sectionNumFromTitle(title);
-      if (byTitle != null) return byTitle;
-    }
-    return n;
+    if (title && hint?.test(title)) return n;
   }
   if (n > 14) return sectionNumFromTitle(title);
   return null;
@@ -224,12 +377,12 @@ function extractMisplacedMaterials(text: string): { prose: string; materials: st
 }
 
 export function sanitizeParsedActivity(activity: ParsedActivity): ParsedActivity {
-  const out: ParsedActivity = { ...activity };
+  const out: ParsedActivity = normalizeParsedActivityFields({ ...activity });
 
-  let materials = [
-    ...(Array.isArray(out.materials_required) ? out.materials_required : []),
-    ...(Array.isArray(out.materials) ? out.materials : []),
-  ].map((x) => String(x).trim()).filter(Boolean);
+  let materials = dedupeStringLines([
+    ...asStringList(out.materials_required),
+    ...asStringList(out.materials),
+  ]);
 
   if (out.period_time_cues) {
     out.period_time_cues = dedupePeriodTimeCues(String(out.period_time_cues));
@@ -267,11 +420,11 @@ export function sanitizeParsedActivity(activity: ParsedActivity): ParsedActivity
     out.steps = procedure;
   }
 
-  const rubric = [
-    ...(Array.isArray(out.self_assessment_rubric) ? out.self_assessment_rubric : []),
-    ...(Array.isArray(out.assessment_criteria_rubric) ? out.assessment_criteria_rubric : []),
-    ...(Array.isArray(out.assessment) ? out.assessment.map(String) : []),
-  ].filter(Boolean);
+  const rubric = dedupeStringLines([
+    ...asStringList(out.self_assessment_rubric),
+    ...asStringList(out.assessment_criteria_rubric),
+    ...asStringList(out.assessment),
+  ]);
   if (rubric.length) {
     out.self_assessment_rubric = rubric;
     out.assessment_criteria_rubric = rubric;
@@ -506,16 +659,49 @@ export function parseActivitiesFromMarkdown(content: string): ParsedActivity[] {
   return [];
 }
 
+function hasMeaningfulList(arr?: string[]): boolean {
+  return Array.isArray(arr) && arr.some((x) => String(x ?? '').trim());
+}
+
+function pickMeaningfulList(...lists: (string[] | undefined)[]): string[] {
+  for (const arr of lists) {
+    if (hasMeaningfulList(arr)) {
+      return (arr as string[]).map((x) => String(x ?? '').trim()).filter(Boolean);
+    }
+  }
+  return [];
+}
+
+function pickMeaningfulStr(...values: (string | undefined)[]): string {
+  for (const v of values) {
+    const s = String(v ?? '').trim();
+    if (s) return s;
+  }
+  return '';
+}
+
+function pickMeaningfulNcf(
+  a?: string | string[],
+  b?: string | string[],
+): string | string[] | undefined {
+  for (const v of [a, b]) {
+    if (Array.isArray(v)) {
+      const items = v.map((x) => String(x).trim()).filter(Boolean);
+      if (items.length) return items;
+    } else {
+      const s = String(v ?? '').trim();
+      if (s) return s;
+    }
+  }
+  return undefined;
+}
+
 function pickList(a?: string[], b?: string[]): string[] {
-  const aa = Array.isArray(a) ? a : [];
-  const bb = Array.isArray(b) ? b : [];
-  return aa.length >= bb.length ? aa : bb;
+  return pickMeaningfulList(a, b);
 }
 
 function pickStr(a?: string, b?: string): string {
-  const aa = String(a || '').trim();
-  const bb = String(b || '').trim();
-  return aa.length >= bb.length ? aa : bb;
+  return pickMeaningfulStr(a, b);
 }
 
 function pickReflection(a?: string, b?: string): string {
@@ -541,52 +727,82 @@ function pickPeriodCues(a?: string, b?: string): string {
   return aa.length >= bb.length ? aa : bb;
 }
 
-function mergeActivity(base: ParsedActivity = {}, md: ParsedActivity = {}): ParsedActivity {
+/** Merge backend JSON (primary) with markdown (fills gaps only). */
+function mergeActivity(backend: ParsedActivity = {}, markdown: ParsedActivity = {}): ParsedActivity {
+  const b = normalizeParsedActivityFields(backend);
+  const m = normalizeParsedActivityFields(markdown);
+  const ncf = pickMeaningfulNcf(b.ncf_competency_alignment, m.ncf_competency_alignment);
+  const expected = pickMeaningfulStr(
+    b.expected_learning_outcomes,
+    b.learning_outcome,
+    m.expected_learning_outcomes,
+    m.learning_outcome,
+  );
   return {
-    ...base,
-    ...md,
-    sl_no: md.sl_no ?? base.sl_no,
-    title: pickStr(md.title, base.title),
-    subtopic_link_prior_knowledge: pickStr(
-      md.subtopic_link_prior_knowledge,
-      base.subtopic_link_prior_knowledge,
+    sl_no: b.sl_no ?? m.sl_no,
+    title: pickMeaningfulStr(b.title, m.title),
+    subtopic_link_prior_knowledge: pickMeaningfulStr(
+      b.subtopic_link_prior_knowledge,
+      m.subtopic_link_prior_knowledge,
     ),
-    learning_objectives: pickList(
-      md.learning_objectives,
-      base.learning_objectives as string[] | undefined,
+    learning_objectives: pickMeaningfulList(b.learning_objectives, m.learning_objectives),
+    learningObjectives: pickMeaningfulList(b.learningObjectives, m.learningObjectives),
+    ncf_competency_alignment: ncf,
+    materials_required: pickMeaningfulList(b.materials_required, m.materials_required),
+    materials: pickMeaningfulList(b.materials, m.materials),
+    step_by_step_procedure: pickMeaningfulList(b.step_by_step_procedure, m.step_by_step_procedure),
+    steps: pickMeaningfulList(b.steps, m.steps),
+    safety_care_instructions: pickMeaningfulList(b.safety_care_instructions, m.safety_care_instructions),
+    safety_instructions: pickMeaningfulList(b.safety_instructions, m.safety_instructions),
+    observation_data_recording_table: pickMeaningfulStr(
+      b.observation_data_recording_table,
+      b.observation_table,
+      m.observation_data_recording_table,
+      m.observation_table,
     ),
-    ncf_competency_alignment: md.ncf_competency_alignment ?? base.ncf_competency_alignment,
-    materials_required: pickList(
-      md.materials_required,
-      base.materials_required as string[] | undefined,
+    observation_table: pickMeaningfulStr(
+      b.observation_table,
+      b.observation_data_recording_table,
+      m.observation_table,
+      m.observation_data_recording_table,
     ),
-    materials: pickList(md.materials, base.materials as string[] | undefined),
-    step_by_step_procedure: pickList(
-      md.step_by_step_procedure,
-      base.step_by_step_procedure as string[] | undefined,
+    creative_output_final_product: pickMeaningfulStr(
+      b.creative_output_final_product,
+      b.creative_output,
+      m.creative_output_final_product,
+      m.creative_output,
     ),
-    steps: pickList(md.steps, base.steps as string[] | undefined),
-    teacher_instructions: pickList(
-      md.teacher_instructions,
-      base.teacher_instructions as string[] | undefined,
+    creative_output: pickMeaningfulStr(
+      b.creative_output,
+      b.creative_output_final_product,
+      m.creative_output,
+      m.creative_output_final_product,
     ),
-    student_instructions: pickList(
-      md.student_instructions,
-      base.student_instructions as string[] | undefined,
+    differentiation_support_extension: pickMeaningfulStr(
+      b.differentiation_support_extension,
+      b.differentiation,
+      m.differentiation_support_extension,
+      m.differentiation,
     ),
-    differentiation: pickStr(md.differentiation, base.differentiation),
-    assessment_criteria_rubric: pickList(
-      md.assessment_criteria_rubric,
-      base.assessment_criteria_rubric as string[] | undefined,
+    differentiation: pickMeaningfulStr(
+      b.differentiation,
+      b.differentiation_support_extension,
+      m.differentiation,
+      m.differentiation_support_extension,
     ),
-    expected_learning_outcomes: pickStr(
-      md.expected_learning_outcomes,
-      base.expected_learning_outcomes,
+    self_assessment_rubric: pickMeaningfulList(b.self_assessment_rubric, m.self_assessment_rubric),
+    teacher_instructions: pickMeaningfulList(b.teacher_instructions, m.teacher_instructions),
+    student_instructions: pickMeaningfulList(b.student_instructions, m.student_instructions),
+    assessment_criteria_rubric: pickMeaningfulList(
+      b.assessment_criteria_rubric,
+      m.assessment_criteria_rubric,
     ),
-    learning_outcome: pickStr(md.learning_outcome, base.learning_outcome),
-    real_life_application: pickStr(md.real_life_application, base.real_life_application),
-    reflection_exit_ticket: pickReflection(md.reflection_exit_ticket, base.reflection_exit_ticket),
-    period_time_cues: pickPeriodCues(md.period_time_cues, base.period_time_cues),
+    expected_learning_outcomes: expected,
+    learning_outcome: expected,
+    learning_outcomes: b.learning_outcomes ?? m.learning_outcomes,
+    real_life_application: pickMeaningfulStr(b.real_life_application, m.real_life_application),
+    reflection_exit_ticket: pickReflection(b.reflection_exit_ticket, m.reflection_exit_ticket),
+    period_time_cues: pickPeriodCues(b.period_time_cues, m.period_time_cues),
   };
 }
 
@@ -594,8 +810,10 @@ export function resolveActivitiesFromPayload(
   activities: ParsedActivity[] | undefined | null,
   content?: string,
 ): ParsedActivity[] {
+  const fromArr = Array.isArray(activities)
+    ? activities.filter(Boolean).map((row) => normalizeParsedActivityFields(row as ParsedActivity))
+    : [];
   const fromMd = content?.trim() ? parseActivitiesFromMarkdown(content) : [];
-  const fromArr = Array.isArray(activities) ? activities.filter(Boolean) : [];
 
   if (fromMd.length && fromArr.length) {
     const n = Math.max(fromMd.length, fromArr.length);
@@ -605,19 +823,39 @@ export function resolveActivitiesFromPayload(
       ),
     );
   }
-  if (fromMd.length) return fromMd.map(sanitizeParsedActivity);
   if (fromArr.length) return fromArr.map(sanitizeParsedActivity);
+  if (fromMd.length) return fromMd.map(sanitizeParsedActivity);
 
   const raw = String(content || '').trim();
   if (!raw) return [];
 
   try {
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed;
-    if (Array.isArray(parsed?.activities)) return parsed.activities;
-    if (Array.isArray(parsed?.raw?.activities)) return parsed.raw.activities;
+    if (parsed?.formatted && typeof parsed.formatted === 'string') {
+      return resolveActivitiesFromPayload(activities, parsed.formatted);
+    }
+    if (parsed?.structuredContent && typeof parsed.structuredContent === 'object') {
+      const sc = parsed.structuredContent;
+      if (Array.isArray(sc)) {
+        return sc.map((row) => sanitizeParsedActivity(normalizeParsedActivityFields(row as ParsedActivity)));
+      }
+      return [sanitizeParsedActivity(normalizeParsedActivityFields(sc as ParsedActivity))];
+    }
+    if (Array.isArray(parsed)) {
+      return parsed.map((row) => sanitizeParsedActivity(normalizeParsedActivityFields(row as ParsedActivity)));
+    }
+    if (Array.isArray(parsed?.activities)) {
+      return parsed.activities.map((row: ParsedActivity) =>
+        sanitizeParsedActivity(normalizeParsedActivityFields(row)),
+      );
+    }
+    if (Array.isArray(parsed?.raw?.activities)) {
+      return parsed.raw.activities.map((row: ParsedActivity) =>
+        sanitizeParsedActivity(normalizeParsedActivityFields(row)),
+      );
+    }
     if (parsed && typeof parsed === 'object' && (parsed.title || parsed.steps || parsed.materials)) {
-      return [sanitizeParsedActivity(parsed as ParsedActivity)];
+      return [sanitizeParsedActivity(normalizeParsedActivityFields(parsed as ParsedActivity))];
     }
   } catch {
     /* not json */

@@ -61,14 +61,28 @@ async function fetchPdfBytes(fileUrl: string, title?: string): Promise<ArrayBuff
   throw new Error('PDF_FETCH_FAILED');
 }
 
+const COMPACT_VIEWPORT_MAX_PX = 1023;
+
+/** Mobile/tablet browsers often show only filename + "Open" inside PDF iframes. */
+function shouldUseCanvasPdfPreview(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (detectDigitalBoard()) return true;
+  return window.innerWidth <= COMPACT_VIEWPORT_MAX_PX;
+}
+
 function useCanvasPdfPreview(): boolean {
-  const [useCanvas, setUseCanvas] = useState(detectDigitalBoard);
+  const [useCanvas, setUseCanvas] = useState(shouldUseCanvasPdfPreview);
 
   useEffect(() => {
-    const update = () => setUseCanvas(detectDigitalBoard());
+    const update = () => setUseCanvas(shouldUseCanvasPdfPreview());
     update();
     window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
+    const mq = window.matchMedia(`(max-width: ${COMPACT_VIEWPORT_MAX_PX}px)`);
+    mq.addEventListener('change', update);
+    return () => {
+      window.removeEventListener('resize', update);
+      mq.removeEventListener('change', update);
+    };
   }, []);
 
   return useCanvas;
@@ -189,7 +203,7 @@ export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfP
     );
   }
 
-  /** Laptop / tablet / phone — iframe only (unchanged). */
+  /** Desktop — embedded PDF iframe. */
   if (!useCanvasPreview) {
     return (
       <div className={`flex flex-col gap-2 ${className}`}>
@@ -203,7 +217,7 @@ export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfP
     );
   }
 
-  /** Digital board — pdfjs canvas (panel browsers lack reliable iframe / react-pdf). */
+  /** Digital board / mobile / tablet — pdf.js canvas (iframes show only "Open" on many touch browsers). */
   return (
     <div className={`flex min-h-0 flex-1 flex-col gap-3 ${className}`}>
       <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
@@ -215,7 +229,7 @@ export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfP
 
       <div
         ref={containerRef}
-        className="min-h-[min(70dvh,800px)] flex-1 overflow-y-auto overflow-x-hidden rounded-lg border bg-white p-3"
+        className="min-h-[min(55dvh,720px)] flex-1 overflow-y-auto overflow-x-hidden rounded-lg border bg-white p-2 sm:p-3"
       >
         {loadingPdf ? (
           <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">

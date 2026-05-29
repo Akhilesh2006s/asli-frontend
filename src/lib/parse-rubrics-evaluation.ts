@@ -194,10 +194,9 @@ function parseCriteriaFromText(body: string): RubricCriterionRow[] {
 
 function normalizeRubric(raw: Record<string, unknown>): NormalizedRubric {
   const title = coalesceText(raw.title || raw.rubric_title || raw.name) || 'Rubric';
-  const criteriaRows =
-    toCriteriaRows(raw.criteria) ||
-    toCriteriaRows(raw.criteriaRows) ||
-    [];
+  const fromCriteria = toCriteriaRows(raw.criteria);
+  const fromRows = toCriteriaRows(raw.criteriaRows);
+  const criteriaRows = fromCriteria.length ? fromCriteria : fromRows;
 
   return {
     title,
@@ -211,6 +210,35 @@ function normalizeRubric(raw: Record<string, unknown>): NormalizedRubric {
     actionableSuggestions: coalesceText(raw.actionable_suggestions || raw.suggestions || raw.actionableSuggestions),
     parentFriendlyFeedback: coalesceText(raw.parent_friendly_feedback || raw.parent_feedback || raw.parentFriendlyFeedback),
     nextStepRemedialEnrichment: coalesceText(raw.next_step_remedial_enrichment || raw.next_steps || raw.nextStepRemedialEnrichment),
+  };
+}
+
+function mergeRubrics(primary: NormalizedRubric, supplement: NormalizedRubric): NormalizedRubric {
+  const pickCriteria = () => {
+    const a = primary.criteriaRows.filter((row) =>
+      [row.excellent, row.good, row.satisfactory, row.needs_improvement].some((v) => String(v || '').trim()),
+    );
+    const b = supplement.criteriaRows.filter((row) =>
+      [row.excellent, row.good, row.satisfactory, row.needs_improvement].some((v) => String(v || '').trim()),
+    );
+    if (b.length > a.length) return b;
+    if (a.length) return a;
+    return supplement.criteriaRows.length ? supplement.criteriaRows : primary.criteriaRows;
+  };
+
+  return {
+    title: primary.title || supplement.title,
+    assessmentPurpose: primary.assessmentPurpose || supplement.assessmentPurpose,
+    competencyAssessed: primary.competencyAssessed || supplement.competencyAssessed,
+    criteriaRows: pickCriteria(),
+    gradingCriteria: primary.gradingCriteria || supplement.gradingCriteria,
+    strengthsObserved: primary.strengthsObserved || supplement.strengthsObserved,
+    areasForImprovement: primary.areasForImprovement || supplement.areasForImprovement,
+    teacherRemarks: primary.teacherRemarks || supplement.teacherRemarks,
+    actionableSuggestions: primary.actionableSuggestions || supplement.actionableSuggestions,
+    parentFriendlyFeedback: primary.parentFriendlyFeedback || supplement.parentFriendlyFeedback,
+    nextStepRemedialEnrichment:
+      primary.nextStepRemedialEnrichment || supplement.nextStepRemedialEnrichment,
   };
 }
 
@@ -354,7 +382,13 @@ export function resolveRubricFromPayload(content?: string, rawContent?: unknown)
 
   if (displayMarkdown) {
     const fromMd = parseRubricFromMarkdown(displayMarkdown);
-    if (fromMd && (!rubric || !rubricHasVisibleContent(rubric))) rubric = fromMd;
+    if (fromMd) {
+      if (!rubric || !rubricHasVisibleContent(rubric)) {
+        rubric = fromMd;
+      } else {
+        rubric = mergeRubrics(rubric, fromMd);
+      }
+    }
   }
 
   let markdownFallback: string | null = null;

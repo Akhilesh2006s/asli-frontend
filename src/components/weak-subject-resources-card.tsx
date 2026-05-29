@@ -4,7 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { API_BASE_URL, getStudentPdfPreviewIframeSrc } from '@/lib/api-config';
+import { API_BASE_URL } from '@/lib/api-config';
+import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 import { BookOpen, FileText, Package, Video, Youtube } from 'lucide-react';
 import { useState } from 'react';
 
@@ -249,13 +250,11 @@ export function WeakSubjectResourcesCard({
               return <video src={fileUrl} controls className="w-full h-full min-h-[85vh] rounded-lg bg-black" />;
             }
             if (isPdf) {
-              const iframeSrc = getStudentPdfPreviewIframeSrc(fileUrl, previewItem?.title);
               return (
-                <iframe
-                  key={iframeSrc}
-                  title={previewItem?.title || 'PDF Preview'}
-                  src={iframeSrc}
-                  className="h-[min(78vh,900px)] w-full border-0 bg-white rounded-lg"
+                <PdfPreviewPanel
+                  fileUrl={previewItem?.fileUrl || fileUrl}
+                  title={previewItem?.title}
+                  className="w-full min-h-[min(50dvh,640px)]"
                 />
               );
             }

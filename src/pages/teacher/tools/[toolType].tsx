@@ -769,9 +769,7 @@ export default function TeacherToolPage() {
     setIsFallbackContent(false);
     try {
       const token = localStorage.getItem('authToken');
-      const selectedClass = isAsliPrepExclusive
-        ? 'IIT-6'
-        : mapGradeLevelForIitBoard(selectedBoard, formParams.gradeLevel);
+      const selectedClass = mapGradeLevelForIitBoard(selectedBoard, formParams.gradeLevel);
       const selectedSubject = formParams.subject || formParams.subjects;
       const selectedTopic = formParams.topic || '';
       const selectedSubTopic = formParams.subTopic || '';
@@ -813,18 +811,36 @@ export default function TeacherToolPage() {
       }
 
       if (!response.ok) {
-        if (response.status === 404 && data?.code === 'AI_TOOL_DATA_NOT_FOUND') {
+        if (
+          data?.code === 'AI_TOOL_CONTENT_INCOMPLETE' ||
+          data?.code === 'AI_TOOL_WRONG_TYPE' ||
+          (response.status === 404 &&
+            (data?.code === 'AI_TOOL_DATA_NOT_FOUND' ||
+              data?.code === 'AI_TOOL_CONTENT_INCOMPLETE' ||
+              data?.code === 'AI_TOOL_WRONG_TYPE'))
+        ) {
           setGeneratedContent('');
           setRawGeneratedContent(null);
           setResponseMeta(null);
           setIsFallbackContent(false);
           setFallbackEmptyMessage(
             data.message ||
-              `No ${config?.name || 'tool'} content found for this selection. Ask Super Admin to add it in AI Tool Generations.`,
+              (data?.code === 'AI_TOOL_WRONG_TYPE'
+                ? 'Saved content belongs to a different AI tool. Super Admin must generate using this tool name only.'
+                : data?.code === 'AI_TOOL_CONTENT_INCOMPLETE'
+                  ? 'Saved content is incomplete or not in the correct tool format. Ask Super Admin to complete all sections.'
+                  : `No ${config?.name || 'tool'} content found for this selection. Ask Super Admin to add it in AI Tool Generations.`),
           );
           toast({
-            title: 'No content found',
-            description: data.message || 'No matching content for this tool and selection.',
+            title:
+              data?.code === 'AI_TOOL_WRONG_TYPE'
+                ? 'Wrong tool content'
+                : data?.code === 'AI_TOOL_CONTENT_INCOMPLETE'
+                  ? 'Content incomplete'
+                  : 'No content found',
+            description:
+              data.message ||
+              'No complete content is available for this class, subject, topic, and sub-topic.',
             variant: 'destructive',
           });
           return;
@@ -910,7 +926,7 @@ export default function TeacherToolPage() {
       console.log('Fallback trigger reason:', errMsg || 'Unknown API failure');
       // Do not treat DB fallback as a fix for request validation (wrong subject, missing topic, etc.)
       const isClientValidationError =
-        /invalid subject|topic is required|sub topic is required|class number and subject are required|only available for english and hindi/i.test(
+        /invalid subject|topic is required|sub topic is required|class number and subject are required|only available for english and hindi|incomplete for|missing sections|not in the correct tool format/i.test(
           errMsg,
         );
       if (isClientValidationError) {
@@ -1632,15 +1648,15 @@ export default function TeacherToolPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
           <Button
-            variant="ghost"
+            variant="outline"
             onClick={() => {
               // Navigate to dashboard and set Vidya AI tab as active
               localStorage.setItem('teacherDashboardTab', 'vidya-ai');
               setLocation('/teacher/dashboard');
             }}
-            className="hover:bg-white/50"
+            className="shrink-0 border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900"
           >
-            <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+            <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" aria-hidden />
             Back
           </Button>
           <div className="flex items-center space-x-3 min-w-0">
@@ -2020,7 +2036,12 @@ export default function TeacherToolPage() {
                 ) : toolType === 'activity-project-generator' ? (
                   <ActivityProjectViewer
                     activities={rawGeneratedContent?.activities}
-                    content={displayGeneratedContent}
+                    content={
+                      Array.isArray(rawGeneratedContent?.activities) &&
+                      rawGeneratedContent.activities.length > 0
+                        ? undefined
+                        : displayGeneratedContent
+                    }
                     variant="teacher"
                   />
                 ) : toolType === 'story-passage-creator' ? (

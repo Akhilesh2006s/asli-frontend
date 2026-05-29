@@ -45,30 +45,37 @@ function normalizeTerms(raw: unknown): ConceptBreakdownTerm[] {
 }
 
 export function normalizeConceptBreakdownRecord(raw: Record<string, unknown>): ConceptBreakdownContent {
+  let src: Record<string, unknown> = raw;
+  if (Array.isArray(raw.concepts) && raw.concepts.length) {
+    const row = raw.concepts[0];
+    if (row && typeof row === 'object' && !Array.isArray(row)) {
+      src = { ...raw, ...(row as Record<string, unknown>) };
+    }
+  }
   const conceptTitle = cleanText(
-    raw.concept_title || raw.concept_name || raw.title || raw.name || 'Concept',
+    src.concept_title || src.concept_name || src.title || src.name || 'Concept',
   );
   return {
     conceptTitle: conceptTitle || 'Concept',
     simpleDefinition: cleanText(
-      raw.simple_definition || raw.simple_explanation || raw.explanation,
+      src.simple_definition || src.simple_explanation || src.explanation,
     ),
-    breakdownSteps: toList(raw.breakdown_steps ?? raw.steps),
+    breakdownSteps: toList(src.breakdown_steps ?? src.steps),
     realLifeExamples: toList(
-      raw.real_life_examples ?? raw.indian_context_examples ?? raw.examples,
+      src.real_life_examples ?? src.indian_context_examples ?? src.examples,
     ),
-    importantTerms: normalizeTerms(raw.important_terms ?? raw.keywords ?? raw.terms),
+    importantTerms: normalizeTerms(src.important_terms ?? src.keywords ?? src.terms),
     conceptCheckQuestions: toList(
-      raw.concept_check_questions ?? raw.quick_check_questions,
+      src.concept_check_questions ?? src.quick_check_questions,
     ),
     applicationThinkingQuestion: cleanText(
-      raw.application_thinking_question || raw.application_question,
+      src.application_thinking_question || src.application_question,
     ),
     higherOrderThinkingPrompt: cleanText(
-      raw.higher_order_thinking_prompt || raw.hots_prompt || raw.hots_question,
+      src.higher_order_thinking_prompt || src.hots_prompt || src.hots_question,
     ),
     quickRevisionSummary: cleanText(
-      raw.quick_revision_summary || raw.revision_summary || raw.summary,
+      src.quick_revision_summary || src.revision_summary || src.summary,
     ),
   };
 }
@@ -111,12 +118,12 @@ function parseTermsBlock(text: string): ConceptBreakdownTerm[] {
   const out: ConceptBreakdownTerm[] = [];
   for (const line of String(text || '').split('\n')) {
     const t = line.trim();
-    const m = t.match(/^\d+\.\s+\*\*(.+?)\*\*\s*(?:[—–-]\s*(.*))?$/);
+    const m = t.match(/^\d+\.\s+\*\*(.+?)\*\*\s*(?:[-—–]\s*(.*))?$/);
     if (m) {
       out.push({ term: cleanText(m[1]), definition: cleanText(m[2] || '') });
       continue;
     }
-    const m2 = t.match(/^\d+\.\s+(.+?)\s*[—–-]\s*(.+)$/);
+    const m2 = t.match(/^\d+\.\s+(.+?)\s*[-—–]\s*(.+)$/);
     if (m2) out.push({ term: cleanText(m2[1]), definition: cleanText(m2[2]) });
   }
   return out;

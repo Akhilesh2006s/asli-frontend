@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarDays } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,14 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useTimetableEntries } from '@/hooks/useTimetable';
 import type { TimetableEntry } from '@/types/timetable';
 import { WeeklyTimetableGrid } from '@/components/timetable/WeeklyTimetableGrid';
-import {
-  WEEKDAY_LABELS,
-  buildWeekdayPlacements,
-  getSubjectTheme,
-  isEntryOngoing,
-  refName,
-} from '@/lib/student-timetable-utils';
-import { cn } from '@/lib/utils';
+import { buildWeekdayPlacements } from '@/lib/student-timetable-utils';
 
 type Props = {
   entries?: TimetableEntry[];
@@ -45,12 +38,6 @@ export default function StudentTimetableView({
   isLoading: isLoadingProp,
   schoolName: schoolNameProp,
 }: Props) {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(id);
-  }, []);
-
   const { data: fetchedEntries = [], isLoading: fetchLoading } = useTimetableEntries(
     {},
     { enabled: !entriesProp }
@@ -118,40 +105,6 @@ export default function StudentTimetableView({
           )}
         </CardContent>
       </Card>
-
-      {!isLoading && sessionCount > 0 && (
-        <div className="md:hidden space-y-2">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">Weekly sessions</p>
-          {placements.map(({ entry, dayIndex }) => {
-            const subject = refName(entry.subjectId);
-            const theme = getSubjectTheme(subject);
-            const ongoing = isEntryOngoing(entry, now);
-            return (
-              <motion.div
-                key={`${dayIndex}-${entry.startTime}-${subject}`}
-                whileHover={{ scale: 1.01 }}
-                className={cn(
-                  'rounded-xl border p-3 shadow-sm',
-                  theme.bg,
-                  theme.border,
-                  ongoing && 'ring-2 ring-sky-400'
-                )}
-              >
-                <div className="flex justify-between items-start gap-2">
-                  <div>
-                    <p className={cn('font-bold text-sm uppercase', theme.text)}>{subject}</p>
-                    <p className="text-xs text-gray-600 mt-1">
-                      {WEEKDAY_LABELS[dayIndex]} · {entry.startTime} – {entry.endTime}
-                    </p>
-                  </div>
-                  <Badge className={cn('text-[10px] shrink-0', theme.badge)}>{entry.sessionType}</Badge>
-                </div>
-                <p className="text-xs text-gray-600 mt-2">{refName(entry.teacherId)} · {entry.room || '—'}</p>
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }

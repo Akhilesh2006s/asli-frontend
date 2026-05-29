@@ -27,6 +27,13 @@ import { KeyPointsViewer } from "@/components/key-points-viewer";
 import { QuickAssignmentViewer } from "@/components/quick-assignment-viewer";
 import { coerceHomeworkText as coerceHomeworkFieldText } from "@/lib/coerce-homework-text";
 import {
+  cleanActivityTitleForDisplay,
+  extractActivityTitleFromMarkdown,
+  isCurriculumBreadcrumbTitle,
+  isGenericActivityNumberTitle,
+  looksLikeValidActivityTitle,
+} from "@/lib/activity-title-utils";
+import {
   Wrench,
   School,
   BookOpen,
@@ -85,6 +92,8 @@ type PdfItem = {
   uploadDate: string;
   /** Plain-text layout from DB when structured JSON is sparse (ai_pdf master rows). */
   generatedContent?: string;
+  /** Resolved activity name for list cards (backend). */
+  displayTitle?: string;
 };
 
 type UploadStep = "idle" | "uploading" | "extracting" | "validating" | "parsing" | "saving" | "done" | "error";
@@ -301,8 +310,8 @@ export default function AIContentEngine() {
   const activityTitleForDisplay = (raw: string, record: PdfItem): string => {
     const bad =
       /^(?:\d+\.\s*)?(?:title\s*[—:-]\s*)?(materials required|learning objectives|step-by-step procedure|teacher instructions|expected learning outcomes|assessment criteria(?:\s*\(rubric\))?|rubric|real[-\s]?life application|title)\s*$/i;
-    let t = String(raw || "").replace(/\s+/g, " ").trim();
-    t = t.replace(/^1\.\s*title\s*[—:-]\s*/i, "").trim();
+    let t = cleanActivityTitleForDisplay(String(raw || ""));
+    if (t && !looksLikeValidActivityTitle(t)) t = "";
     if (/title\s*[—:-]\s*materials required/i.test(t)) {
       t = t.replace(/\s*title\s*[—:-]\s*materials required\s*$/i, "").trim();
     }
@@ -310,9 +319,16 @@ export default function AIContentEngine() {
     if (dashParts.length >= 2 && bad.test(dashParts[dashParts.length - 1])) {
       t = dashParts.slice(0, -1).join(" — ");
     }
-    if (!t || bad.test(t)) {
-      const meta = (record as { metadata?: { bulkItemIndex?: number } }).metadata;
-      const n = meta?.bulkItemIndex != null ? Number(meta.bulkItemIndex) + 1 : null;
+    if (!t || bad.test(t) || isGenericActivityNumberTitle(t)) {
+      const fromMd = extractActivityTitleFromMarkdown(String(record.generatedContent || ""));
+      if (fromMd) return fromMd;
+      const meta = (record as { metadata?: { bulkItemIndex?: number; itemIndex?: number } }).metadata;
+      const n =
+        meta?.bulkItemIndex != null
+          ? Number(meta.bulkItemIndex) + 1
+          : meta?.itemIndex != null
+            ? Number(meta.itemIndex) + 1
+            : null;
       const isLesson =
         record.toolType === "lesson-planner" || record.toolType === "daily-class-plan-maker";
       const label = isLesson ? "Lesson" : "Activity";
@@ -350,12 +366,49 @@ export default function AIContentEngine() {
       }
       return String(o.concept_name || o.title || o.name || o.lesson_name || "").trim();
     };
+    const preset = String(record.displayTitle || "").trim();
+    if (
+      preset &&
+      looksLikeValidActivityTitle(preset) &&
+      !isCurriculumBreadcrumbTitle(preset) &&
+      !isGenericActivityNumberTitle(preset)
+    ) {
+      return preset;
+    }
+
+    let rawTitle = pick(rc) || pick(sc);
+    if (
+      record.toolType === "activity-project-generator" ||
+      record.toolType === "project-idea-lab"
+    ) {
+      if (isCurriculumBreadcrumbTitle(rawTitle) || isGenericActivityNumberTitle(rawTitle)) rawTitle = "";
+      const md = String(record.generatedContent || "").trim();
+      const mdTitle = extractActivityTitleFromMarkdown(md);
+      if (mdTitle) rawTitle = mdTitle;
+      const cleaned = activityTitleForDisplay(rawTitle, record);
+      if (
+        cleaned &&
+        !isGenericActivityNumberTitle(cleaned) &&
+        !isCurriculumBreadcrumbTitle(cleaned)
+      ) {
+        return cleaned;
+      }
+      const meta = (record as { metadata?: { bulkItemIndex?: number; itemIndex?: number } }).metadata;
+      const n =
+        meta?.bulkItemIndex != null
+          ? Number(meta.bulkItemIndex) + 1
+          : meta?.itemIndex != null
+            ? Number(meta.itemIndex) + 1
+            : null;
+      return n != null ? `Activity ${n}` : "Activity";
+    }
+    const topicFallback = String(record.topic || "").trim();
+    const chapterFallback = String(record.chapter || "").trim();
     return (
-      pick(rc) ||
-      pick(sc) ||
-      String(record.topic || "").trim() ||
+      (rawTitle && !isCurriculumBreadcrumbTitle(rawTitle) ? rawTitle : "") ||
+      (!isCurriculumBreadcrumbTitle(topicFallback) ? topicFallback : "") ||
       String(record.subTopic || "").trim() ||
-      String(record.chapter || "").trim() ||
+      (!isCurriculumBreadcrumbTitle(chapterFallback) ? chapterFallback : "") ||
       String(record.originalName || "").trim() ||
       "Saved PDF — use View for full structured content"
     );
@@ -2780,9 +2833,12 @@ export default function AIContentEngine() {
       const ncfAlignment = Array.isArray(ncfRaw)
         ? ncfRaw.map((x) => String(x ?? "").trim()).filter(Boolean)
         : String(ncfRaw || "").trim();
+      const isTeacherActivity = item.toolType === "activity-project-generator";
       const learningObjectives = pickLines(rc.learningObjectives, fb.learning_objectives, fb.learningObjectives);
       let materials = pickLines(rc.materials, fb.materials_required, fb.materials);
       let steps = pickLines(rc.steps, fb.step_by_step_procedure, fb.steps);
+      const teacherInstructions = pickLines(rc.teacherInstructions, fb.teacher_instructions, fb.teacherInstructions);
+      const studentInstructions = pickLines(rc.studentInstructions, fb.student_instructions, fb.studentInstructions);
       const differentiation = String(
         rc.differentiationSupportExtension ||
           fb.differentiation_support_extension ||
@@ -2848,125 +2904,185 @@ export default function AIContentEngine() {
           <div className="mt-2">{children}</div>
         </div>
       );
+      const emptyLine = <p className="text-xs text-slate-500 italic">None listed.</p>;
+      const bulletList = (lines: string[], keyPrefix: string) => (
+        <ul className="text-xs sm:text-sm space-y-1">
+          {lines.map((line: string, i: number) => (
+            <li key={`${item._id}-${keyPrefix}-${i}`}>- {line}</li>
+          ))}
+        </ul>
+      );
+      const numberedList = (lines: string[], keyPrefix: string) => (
+        <ol className="text-xs sm:text-sm space-y-1 list-decimal list-inside">
+          {lines.map((line: string, i: number) => (
+            <li key={`${item._id}-${keyPrefix}-${i}`}>{line}</li>
+          ))}
+        </ol>
+      );
+      const ncfBody = Array.isArray(ncfAlignment) ? (
+        (ncfAlignment as string[]).length ? bulletList(ncfAlignment as string[], "ncf") : emptyLine
+      ) : ncfAlignment ? (
+        <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{ncfAlignment as string}</p>
+      ) : (
+        emptyLine
+      );
+      const procedureBody =
+        stepsVisible.length > 0 ? (
+          numberedList(stepsVisible, "s")
+        ) : rawExcerpt ? (
+          <p className="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{rawExcerpt}</p>
+        ) : (
+          <p className="text-xs text-slate-500 italic">
+            No procedure extracted. Re-upload the PDF after server update, or check that the PDF uses the template section headings.
+          </p>
+        );
+
+      if (isTeacherActivity) {
+        return (
+          <div className="space-y-3">
+            <div className="space-y-0.5">
+              {renderSectionHeader(<FlaskConical className="h-3 w-3 sm:h-4 sm:w-4" />, displayTitle)}
+              <p className="text-xs text-slate-500 pl-9">Activity / Project Generator — 13-point teacher template</p>
+            </div>
+            {section("1. Title of Activity / Project", <p className="text-xs sm:text-sm text-slate-900 font-medium">{displayTitle}</p>)}
+            {section(
+              "2. Subtopic Link and Prior Knowledge Required",
+              subtopicLink ? (
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{subtopicLink}</p>
+              ) : (
+                emptyLine
+              ),
+            )}
+            {section("3. Learning Objectives", learningObjectives.length ? bulletList(learningObjectives, "lo") : emptyLine)}
+            {section("4. NCF Competency / Learning Outcome Alignment", ncfBody)}
+            {section("5. Materials Required", materials.length ? bulletList(materials, "m") : emptyLine)}
+            {section("6. Step-by-step Procedure", procedureBody)}
+            {section(
+              "7. Teacher Instructions",
+              teacherInstructions.length ? bulletList(teacherInstructions, "ti") : emptyLine,
+            )}
+            {section(
+              "8. Student Instructions",
+              studentInstructions.length ? bulletList(studentInstructions, "si") : emptyLine,
+            )}
+            {section(
+              "9. Differentiation",
+              differentiation ? (
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{differentiation}</p>
+              ) : (
+                emptyLine
+              ),
+            )}
+            {section(
+              "10. Assessment Rubric",
+              assessmentRubric.length ? bulletList(assessmentRubric, "ar") : emptyLine,
+            )}
+            {section(
+              "11. Expected Learning Outcomes",
+              expectedOutcomes ? (
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{expectedOutcomes}</p>
+              ) : (
+                emptyLine
+              ),
+            )}
+            {section(
+              "12. Real-life Application",
+              realLifeApplication ? (
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{realLifeApplication}</p>
+              ) : (
+                emptyLine
+              ),
+            )}
+            {section(
+              "13. Reflection / Exit Ticket",
+              reflectionExit ? (
+                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{reflectionExit}</p>
+              ) : (
+                emptyLine
+              ),
+            )}
+          </div>
+        );
+      }
+
       return (
         <div className="space-y-3">
           <div className="space-y-0.5">
             {renderSectionHeader(<FlaskConical className="h-3 w-3 sm:h-4 sm:w-4" />, displayTitle)}
-            <p className="text-xs text-slate-500 pl-9">
-              {item.toolType === "activity-project-generator"
-                ? "Activity / Project Generator — 13-point teacher template"
-                : item.toolType === "study-schedule-maker"
-                  ? "Study Schedule Maker — 13-point student template"
-                  : item.toolType === "lesson-planner"
-                    ? "Lesson Planner — 14-point teacher template"
-                    : "Project Idea Lab — 14-point student template"}
-            </p>
+            <p className="text-xs text-slate-500 pl-9">Project Idea Lab — 14-point student template</p>
           </div>
+          {section("1. Project / Activity Title", <p className="text-xs sm:text-sm text-slate-900 font-medium">{displayTitle}</p>)}
           {section(
-            "1. Project / Activity Title",
-            <p className="text-xs sm:text-sm text-slate-900 font-medium">{displayTitle}</p>,
+            "2. Subtopic Link and Prior Knowledge Required",
+            subtopicLink ? (
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{subtopicLink}</p>
+            ) : (
+              emptyLine
+            ),
           )}
-          {subtopicLink
-            ? section("2. Subtopic Link and Prior Knowledge Required", (
-                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{subtopicLink}</p>
-              ))
-            : null}
           {section(
             "3. Learning Objectives - Bloom's Taxonomy Aligned",
-            learningObjectives.length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1">
-                {learningObjectives.map((line: string, i: number) => (
-                  <li key={`${item._id}-lo-${i}`}>- {line}</li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-xs text-slate-500 italic">None listed.</p>
-            ),
+            learningObjectives.length ? bulletList(learningObjectives, "lo") : emptyLine,
           )}
-          {ncfAlignment
-            ? section(
-                "4. NCF Competency / Learning Outcome Alignment",
-                Array.isArray(ncfAlignment) ? (
-                  <ul className="text-xs sm:text-sm space-y-1">
-                    {(ncfAlignment as string[]).map((line: string, i: number) => (
-                      <li key={`${item._id}-ncf-${i}`}>- {line}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{ncfAlignment as string}</p>
-                ),
-              )
-            : null}
+          {section("4. NCF Competency / Learning Outcome Alignment", ncfBody)}
+          {section("5. Materials Required", materials.length ? bulletList(materials, "m") : emptyLine)}
+          {section("6. Step-by-step Student Procedure", procedureBody)}
           {section(
-            "5. Materials Required",
-            materials.length > 0 ? (
-              <ul className="text-xs sm:text-sm space-y-1">
-                {materials.map((m: string, i: number) => (
-                  <li key={`${item._id}-m-${i}`}>- {m}</li>
-                ))}
-              </ul>
+            "7. Safety and Care Instructions",
+            safetyInstructions.length ? bulletList(safetyInstructions, "safe") : emptyLine,
+          )}
+          {section(
+            "8. Observation / Data Recording Table",
+            observationTable ? (
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{observationTable}</p>
             ) : (
-              <p className="text-xs text-slate-500 italic">None listed.</p>
+              emptyLine
             ),
           )}
           {section(
-            "6. Step-by-step Student Procedure",
-            stepsVisible.length > 0 ? (
-              <ol className="text-xs sm:text-sm space-y-1 list-decimal list-inside">
-                {stepsVisible.map((s: string, i: number) => (
-                  <li key={`${item._id}-s-${i}`}>{s}</li>
-                ))}
-              </ol>
-            ) : rawExcerpt ? (
-              <p className="text-xs sm:text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{rawExcerpt}</p>
+            "9. Creative Output / Final Product",
+            creativeOutput ? (
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{creativeOutput}</p>
             ) : (
-              <p className="text-xs text-slate-500 italic">No procedure extracted. Re-upload the PDF after server update, or check that the PDF uses the template section headings.</p>
+              emptyLine
             ),
           )}
-          {safetyInstructions.length > 0
-            ? section(
-                "7. Safety and Care Instructions",
-                <ul className="text-xs sm:text-sm space-y-1">
-                  {safetyInstructions.map((t: string, i: number) => (
-                    <li key={`${item._id}-ti-${i}`}>- {t}</li>
-                  ))}
-                </ul>,
-              )
-            : null}
-          {observationTable
-            ? section(
-                "8. Observation / Data Recording Table",
-                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{observationTable}</p>,
-              )
-            : null}
-          {creativeOutput
-            ? section(
-                "9. Creative Output / Final Product",
-                <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{creativeOutput}</p>,
-              )
-            : null}
-          {differentiation
-            ? section("10. Differentiation: Support and Extension", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{differentiation}</p>)
-            : null}
-          {assessmentRubric.length > 0
-            ? section(
-                "11. Self-Assessment Rubric",
-                <ul className="text-xs sm:text-sm space-y-1">
-                  {assessmentRubric.map((row: string, i: number) => (
-                    <li key={`${item._id}-ar-${i}`}>- {row}</li>
-                  ))}
-                </ul>,
-              )
-            : null}
-          {expectedOutcomes
-            ? section("12. Expected Learning Outcomes", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{expectedOutcomes}</p>)
-            : null}
-          {realLifeApplication
-            ? section("13. Real-life Application", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{realLifeApplication}</p>)
-            : null}
-          {reflectionExit
-            ? section("14. Reflection / Exit Ticket", <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{reflectionExit}</p>)
-            : null}
+          {section(
+            "10. Differentiation: Support and Extension",
+            differentiation ? (
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{differentiation}</p>
+            ) : (
+              emptyLine
+            ),
+          )}
+          {section(
+            "11. Self-Assessment Rubric",
+            assessmentRubric.length ? bulletList(assessmentRubric, "ar") : emptyLine,
+          )}
+          {section(
+            "12. Expected Learning Outcomes",
+            expectedOutcomes ? (
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{expectedOutcomes}</p>
+            ) : (
+              emptyLine
+            ),
+          )}
+          {section(
+            "13. Real-life Application",
+            realLifeApplication ? (
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{realLifeApplication}</p>
+            ) : (
+              emptyLine
+            ),
+          )}
+          {section(
+            "14. Reflection / Exit Ticket",
+            reflectionExit ? (
+              <p className="text-xs sm:text-sm text-slate-800 whitespace-pre-wrap">{reflectionExit}</p>
+            ) : (
+              emptyLine
+            ),
+          )}
         </div>
       );
     }

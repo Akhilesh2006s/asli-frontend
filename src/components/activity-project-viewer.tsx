@@ -18,6 +18,8 @@ import {
 import {
   cleanReflectionProse,
   dedupePeriodTimeCues,
+  dedupeStringLines,
+  normalizeParsedActivityFields,
   resolveActivitiesFromPayload,
   type ParsedActivity,
 } from '@/lib/parse-activity-markdown';
@@ -61,19 +63,34 @@ function coalesceLines(v: unknown): string[] {
   return [];
 }
 
+function firstNonEmptyFromActivity(...values: unknown[]): string {
+  for (const v of values) {
+    if (Array.isArray(v)) {
+      const joined = v.map((x) => String(x ?? '').trim()).filter(Boolean).join('\n');
+      if (joined.trim()) return joined.trim();
+    } else {
+      const s = String(v ?? '').trim();
+      if (s) return s;
+    }
+  }
+  return '';
+}
+
 function normalizeActivity(
   raw: ActivityProject,
   idx: number,
   mode: 'student' | 'teacher',
 ): NormalizedActivity {
-  const a = raw || {};
+  const a = normalizeParsedActivityFields((raw || {}) as ActivityProject);
   const ncfRaw = a.ncf_competency_alignment;
-  const ncf = Array.isArray(ncfRaw)
-    ? ncfRaw.map((x) => String(x).trim()).filter(Boolean)
-    : String(ncfRaw || '')
-        .split(/[;\n]+/)
-        .map((x) => x.trim())
-        .filter(Boolean);
+  const ncf = dedupeStringLines(
+    Array.isArray(ncfRaw)
+      ? ncfRaw.map((x) => String(x).trim()).filter(Boolean)
+      : String(ncfRaw || '')
+          .split(/[;\n]+/)
+          .map((x) => x.trim())
+          .filter(Boolean),
+  );
 
   const studentSteps = coalesceLines(a.student_instructions);
   const procedureSteps = coalesceLines(a.step_by_step_procedure || a.steps || a.instructions);
@@ -87,24 +104,40 @@ function normalizeActivity(
   return {
     sl: Number(a.sl_no) || idx + 1,
     title: String(a.title || a.name || `Activity ${idx + 1}`).trim(),
-    subtopicLink: String(a.subtopic_link_prior_knowledge || '').trim(),
-    learningObjectives: coalesceLines(a.learning_objectives || a.learningObjectives),
+    subtopicLink: firstNonEmptyFromActivity(
+      a.subtopic_link_prior_knowledge,
+      (a as Record<string, unknown>).subtopicLinkPriorKnowledge,
+      (a as Record<string, unknown>).prior_knowledge,
+    ),
+    learningObjectives: dedupeStringLines(coalesceLines(a.learning_objectives || a.learningObjectives)),
     ncfAlignment: ncf,
-    materials: coalesceLines(a.materials_required || a.materials),
+    materials: dedupeStringLines(coalesceLines(a.materials_required || a.materials)),
     steps,
     teacherInstructions: coalesceLines(a.teacher_instructions),
     studentInstructions: studentSteps.length ? studentSteps : coalesceLines(a.student_instructions),
-    safetyCareInstructions: coalesceLines(a.safety_care_instructions || a.safety_instructions),
-    observationTable: String(a.observation_data_recording_table || a.observation_table || '').trim(),
-    creativeOutput: String(a.creative_output_final_product || a.creative_output || '').trim(),
-    differentiation: String(a.differentiation_support_extension || a.differentiation || '').trim(),
-    selfAssessmentRubric: coalesceLines(a.self_assessment_rubric || a.assessment),
-    assessmentRubric: coalesceLines(
-      a.assessment_criteria_rubric || a.assessment || a.evaluation,
+    safetyCareInstructions: dedupeStringLines(
+      coalesceLines(a.safety_care_instructions || a.safety_instructions),
     ),
-    expectedOutcomes: String(
-      a.expected_learning_outcomes || a.learning_outcome || a.learning_outcomes || a.expected_outcome || '',
-    ).trim(),
+    observationTable: String(a.observation_data_recording_table || a.observation_table || '').trim(),
+    creativeOutput: firstNonEmptyFromActivity(
+      a.creative_output_final_product,
+      a.creative_output,
+      (a as Record<string, unknown>).creativeOutputFinalProduct,
+      (a as Record<string, unknown>).final_product,
+    ),
+    differentiation: String(a.differentiation_support_extension || a.differentiation || '').trim(),
+    selfAssessmentRubric: dedupeStringLines(coalesceLines(a.self_assessment_rubric || a.assessment)),
+    assessmentRubric: dedupeStringLines(
+      coalesceLines(a.assessment_criteria_rubric || a.assessment || a.evaluation),
+    ),
+    expectedOutcomes: firstNonEmptyFromActivity(
+      a.expected_learning_outcomes,
+      a.learning_outcome,
+      a.learning_outcomes,
+      a.expected_outcome,
+      (a as Record<string, unknown>).learningOutcome,
+      (a as Record<string, unknown>).expectedLearningOutcomes,
+    ),
     realLife: String(a.real_life_application || '').trim(),
     reflection: cleanReflectionProse(String(a.reflection_exit_ticket || a.reflection || '')),
   };

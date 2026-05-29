@@ -587,8 +587,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all passages if not selected)', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
-      { name: 'length', label: 'Length', type: 'select', options: ['short', 'medium', 'long'] }
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
   'story-passage-creator': {
@@ -599,8 +598,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all passages if not selected)', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
-      { name: 'length', label: 'Length', type: 'select', options: ['short', 'medium', 'long'] }
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
   'study-schedule-maker': {
@@ -1083,6 +1081,32 @@ export default function StudentToolPage() {
         }
 
         if (!response.ok) {
+          if (
+            data?.code === 'AI_TOOL_CONTENT_INCOMPLETE' ||
+            data?.code === 'AI_TOOL_WRONG_TYPE' ||
+            (response.status === 404 && data?.code === 'AI_TOOL_DATA_NOT_FOUND')
+          ) {
+            setGeneratedContent('');
+            setRawGeneratedContent(null);
+            setResponseMeta(null);
+            setFallbackEmptyMessage(
+              data.message ||
+                'Saved content for this selection is incomplete or not in the correct tool format. Ask your Super Admin to complete all sections.',
+            );
+            toast({
+              title:
+                data?.code === 'AI_TOOL_WRONG_TYPE'
+                  ? 'Wrong tool content'
+                  : data?.code === 'AI_TOOL_CONTENT_INCOMPLETE'
+                    ? 'Content incomplete'
+                    : 'No content found',
+              description:
+                data.message ||
+                'No complete content is available for this class, subject, topic, and sub-topic.',
+              variant: 'destructive',
+            });
+            return;
+          }
           if (response.status === 503 && data?.code === 'AI_UNAVAILABLE_NO_FALLBACK') {
             setGeneratedContent('');
             setRawGeneratedContent(null);
@@ -1149,6 +1173,32 @@ export default function StudentToolPage() {
         }
 
         if (!response.ok) {
+          if (
+            data?.code === 'AI_TOOL_CONTENT_INCOMPLETE' ||
+            data?.code === 'AI_TOOL_WRONG_TYPE' ||
+            (response.status === 404 && data?.code === 'AI_TOOL_DATA_NOT_FOUND')
+          ) {
+            setGeneratedContent('');
+            setRawGeneratedContent(null);
+            setResponseMeta(null);
+            setFallbackEmptyMessage(
+              data.message ||
+                'Saved content for this selection is incomplete or not in the correct tool format. Ask your Super Admin to complete all sections.',
+            );
+            toast({
+              title:
+                data?.code === 'AI_TOOL_WRONG_TYPE'
+                  ? 'Wrong tool content'
+                  : data?.code === 'AI_TOOL_CONTENT_INCOMPLETE'
+                    ? 'Content incomplete'
+                    : 'No content found',
+              description:
+                data.message ||
+                'No complete content is available for this class, subject, topic, and sub-topic.',
+              variant: 'destructive',
+            });
+            return;
+          }
           if (response.status === 503 && data?.code === 'AI_UNAVAILABLE_NO_FALLBACK') {
             setGeneratedContent('');
             setRawGeneratedContent(null);
@@ -1177,7 +1227,7 @@ export default function StudentToolPage() {
       console.error('Generate error:', error);
       const errMsg = String((error as Error)?.message || '');
       const isClientValidationError =
-        /invalid subject|topic is required|sub topic is required|class number and subject are required|only available for english and hindi/i.test(
+        /invalid subject|topic is required|sub topic is required|class number and subject are required|only available for english and hindi|incomplete for|missing sections|not in the correct tool format/i.test(
           errMsg,
         );
       if (isClientValidationError) {
@@ -1221,7 +1271,26 @@ export default function StudentToolPage() {
           const fallbackJson = await fallbackRes.json();
           const fallbackContent =
             fallbackJson?.data?.generatedContent ?? fallbackJson?.data?.content ?? '';
-          if (fallbackJson?.success && String(fallbackContent).trim().length > 0) {
+          if (
+            fallbackJson?.code === 'AI_TOOL_CONTENT_INCOMPLETE' ||
+            fallbackJson?.code === 'AI_TOOL_WRONG_TYPE' ||
+            (fallbackJson?.success && !fallbackJson?.data)
+          ) {
+            setGeneratedContent('');
+            setRawGeneratedContent(null);
+            setResponseMeta(null);
+            setFallbackEmptyMessage(
+              fallbackJson?.message ||
+                'Saved content is incomplete or not in the correct tool format for this tool.',
+            );
+            toast({
+              title: 'Content incomplete',
+              description:
+                fallbackJson?.message ||
+                'Ask your Super Admin to complete all sections before this can be shown.',
+              variant: 'destructive',
+            });
+          } else if (fallbackJson?.success && String(fallbackContent).trim().length > 0) {
             setGeneratedContent(String(fallbackContent));
             setRawGeneratedContent(null);
             setResponseMeta({
@@ -1898,11 +1967,11 @@ export default function StudentToolPage() {
           className="mb-6"
         >
           <Button
-            variant="ghost"
+            variant="outline"
             onClick={() => setLocation('/ai-tutor')}
-            className="mb-4"
+            className="mb-4 shrink-0 border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900"
           >
-            <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+            <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" aria-hidden />
             Back
           </Button>
           
@@ -2277,7 +2346,12 @@ export default function StudentToolPage() {
                   ) : isProjectIdeaLab ? (
                     <ActivityProjectViewer
                       activities={rawGeneratedContent?.activities}
-                      content={generatedContent}
+                      content={
+                        Array.isArray(rawGeneratedContent?.activities) &&
+                        rawGeneratedContent.activities.length > 0
+                          ? undefined
+                          : generatedContent
+                      }
                       variant="student"
                     />
                   ) : isReadingPractice ? (

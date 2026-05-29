@@ -19,6 +19,7 @@ import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { renderMockTestMarkdown } from '@/lib/render-mock-test-markdown';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import {
+  extractInlineMcqFromQuestionText,
   formatLabeledMcqOptions,
   type ExamQuestion,
   type ExamSection,
@@ -134,8 +135,16 @@ function QuestionCard({
   showAnswer: boolean;
 }) {
   const qNo = question.questionNumber || String(index + 1);
+  const inline =
+    question.options.length < 2 ? extractInlineMcqFromQuestionText(question.question) : null;
+  const questionText =
+    inline && inline.options.length >= 2 ? inline.question : question.question;
   const displayOptions =
-    question.options.length >= 2 ? formatLabeledMcqOptions(question.options) : question.options;
+    question.options.length >= 2
+      ? formatLabeledMcqOptions(question.options)
+      : inline && inline.options.length >= 2
+        ? inline.options
+        : question.options;
   return (
     <article className="rounded-lg border border-rose-100 bg-gradient-to-br from-white to-rose-50/30 p-3">
       <div className="mb-1.5 flex items-start justify-between gap-2">
@@ -143,7 +152,7 @@ function QuestionCard({
           <span className="mr-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded bg-rose-600 px-1 text-[10px] font-bold text-white">
             {qNo}
           </span>
-          {question.question}
+          {questionText}
         </p>
         {question.marks != null ? (
           <Badge className="shrink-0 border-0 bg-rose-100 text-rose-800 hover:bg-rose-100">

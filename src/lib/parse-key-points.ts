@@ -94,12 +94,12 @@ function parseConceptsBlock(text: string): KeyPointsConcept[] {
   const out: KeyPointsConcept[] = [];
   for (const line of String(text || '').split('\n')) {
     const t = line.trim();
-    const m = t.match(/^\d+\.\s+\*\*(.+?)\*\*\s*(?:[—–-]\s*(.*))?$/);
+    const m = t.match(/^\d+\.\s+\*\*(.+?)\*\*\s*(?:[-—–]\s*(.*))?$/);
     if (m) {
       out.push({ name: cleanText(m[1]), explanation: cleanText(m[2] || '') });
       continue;
     }
-    const m2 = t.match(/^\d+\.\s+(.+?)\s*[—–-]\s*(.+)$/);
+    const m2 = t.match(/^\d+\.\s+(.+?)\s*[-—–]\s*(.+)$/);
     if (m2) out.push({ name: cleanText(m2[1]), explanation: cleanText(m2[2]) });
   }
   return out;
@@ -109,12 +109,12 @@ function parseDefinitionsBlock(text: string): KeyPointsDefinition[] {
   const out: KeyPointsDefinition[] = [];
   for (const line of String(text || '').split('\n')) {
     const t = line.trim();
-    const m = t.match(/^\d+\.\s+\*\*(.+?)\*\*\s*(?:[—–-]\s*(.*))?$/);
+    const m = t.match(/^\d+\.\s+\*\*(.+?)\*\*\s*(?:[-—–]\s*(.*))?$/);
     if (m) {
       out.push({ term: cleanText(m[1]), definition: cleanText(m[2] || '') });
       continue;
     }
-    const m2 = t.match(/^\d+\.\s+(.+?)\s*[—–-]\s*(.+)$/);
+    const m2 = t.match(/^\d+\.\s+(.+?)\s*[-—–]\s*(.+)$/);
     if (m2) out.push({ term: cleanText(m2[1]), definition: cleanText(m2[2]) });
   }
   return out;
@@ -133,12 +133,12 @@ function parseFormulaeBlock(text: string): KeyPointsFormula[] {
       else out.push({ name: '', formula: content, note: '' });
       continue;
     }
-    const bold = t.match(/^\d+\.\s+\*\*(.+?)\*\*\s*(?:[—–-]\s*(.*))?$/);
+    const bold = t.match(/^\d+\.\s+\*\*(.+?)\*\*\s*(?:[-—–]\s*(.*))?$/);
     if (bold) {
       out.push({ name: cleanText(bold[1]), formula: cleanText(bold[2] || bold[1]), note: '' });
       continue;
     }
-    const dash = t.match(/^\d+\.\s+(.+?)\s*[—–-]\s*(.+)$/);
+    const dash = t.match(/^\d+\.\s+(.+?)\s*[-—–]\s*(.+)$/);
     if (dash) {
       out.push({ name: cleanText(dash[1]), formula: cleanText(dash[2]), note: '' });
       continue;
@@ -158,12 +158,12 @@ function parseKeywordsBlock(text: string): KeyPointsKeyword[] {
   const out: KeyPointsKeyword[] = [];
   for (const line of String(text || '').split('\n')) {
     const t = line.trim();
-    const m = t.match(/^\d+\.\s+\*\*(.+?)\*\*\s*(?:[—–-]\s*(.*))?$/);
+    const m = t.match(/^\d+\.\s+\*\*(.+?)\*\*\s*(?:[-—–]\s*(.*))?$/);
     if (m) {
       out.push({ term: cleanText(m[1]), meaning: cleanText(m[2] || '') });
       continue;
     }
-    const m2 = t.match(/^\d+\.\s+(.+?)\s*[—–-]\s*(.+)$/);
+    const m2 = t.match(/^\d+\.\s+(.+?)\s*[-—–]\s*(.+)$/);
     if (m2) out.push({ term: cleanText(m2[1]), meaning: cleanText(m2[2]) });
   }
   return out;

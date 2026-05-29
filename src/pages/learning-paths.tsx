@@ -44,10 +44,8 @@ import {
 } from "@/lib/school-program";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect } from "react";
-import {
-  API_BASE_URL,
-  getStudentPdfPreviewIframeSrc,
-} from "@/lib/api-config";
+import { API_BASE_URL } from "@/lib/api-config";
+import PdfPreviewPanel from "@/components/shared/PdfPreviewPanel";
 import VidyaAIFloatingAssistant from "@/components/student/VidyaAIFloatingAssistant";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import DriveViewer from "@/components/drive-viewer";
@@ -1192,13 +1190,11 @@ export default function LearningPaths() {
             }
 
             if (isPdf) {
-              const iframeSrc = getStudentPdfPreviewIframeSrc(fileUrl, previewContent?.title);
               return (
-                <iframe
-                  key={iframeSrc}
-                  title={previewContent?.title || 'PDF Preview'}
-                  src={iframeSrc}
-                  className="h-[min(78vh,900px)] w-full border-0 bg-white rounded-lg"
+                <PdfPreviewPanel
+                  fileUrl={previewContent?.fileUrl || fileUrl}
+                  title={previewContent?.title}
+                  className="w-full min-h-[min(50dvh,640px)]"
                 />
               );
             }
