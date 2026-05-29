@@ -13,6 +13,7 @@ import {
   getDefaultAiToolBoard,
   mapGradeLevelForIitBoard,
   resolveCurriculumBoardForAiTools,
+  resolveIsAsliPrepExclusive,
 } from '@/lib/school-program';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -37,12 +38,8 @@ import { ExamQuestionPaperViewer } from '@/components/exam-question-paper-viewer
 import { ActivityProjectViewer } from '@/components/activity-project-viewer';
 import { StoryPassageViewer } from '@/components/story-passage-viewer';
 import { WorksheetMcqViewer } from '@/components/worksheet-mcq-viewer';
-import { RubricsEvaluationViewer } from '@/components/rubrics-evaluation-viewer';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
-import {
-  buildAiToolGenerationSummary,
-  type AiToolGenerationMeta,
-} from '@/lib/ai-tool-generation-summary';
+import type { AiToolGenerationMeta } from '@/lib/ai-tool-generation-summary';
 import { useCurriculumCascade, isGradeWithScienceCurriculumDropdowns } from '@/hooks/use-curriculum-cascade';
 import {
   filterSubjectsForAiTool,
@@ -90,7 +87,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
-      { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all projects if not selected)', isNCERT: true },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
       { name: 'className', label: 'Section (Optional)', type: 'text', placeholder: 'e.g., A, B, C' }
     ]
@@ -104,9 +101,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
-      { name: 'questionType', label: 'Question Type *', type: 'select', required: true, options: ['Single Option', 'Multiple Option', 'Integer Type', 'All Types'], placeholder: 'Select question type' },
-      { name: 'questionCount', label: 'Number of Questions', type: 'number', placeholder: '10' },
-      { name: 'difficulty', label: 'Difficulty', type: 'select', options: ['easy', 'medium', 'hard'] }
+      { name: 'questionType', label: 'Question Type *', type: 'select', required: true, options: ['Single Option', 'Multiple Option', 'Integer Type', 'All Types'], placeholder: 'Select question type' }
     ]
   },
   'concept-mastery-helper': {
@@ -127,7 +122,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
-      { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all lessons if not selected)', isNCERT: true },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
@@ -143,18 +138,6 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'duration', label: 'Expected Duration (minutes)', type: 'number', placeholder: '30' }
     ]
   },
-  'rubrics-evaluation-generator': {
-    name: 'Rubrics, Evaluation & Report Card Generator',
-    description: 'Create assessment criteria, rubrics, and comprehensive student progress reports with feedback',
-    icon: Sparkles,
-    fields: [
-      { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
-      { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
-      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
-      { name: 'assignmentType', label: 'Assignment Type', type: 'text', required: false, placeholder: 'e.g., Project, Essay, Lab Report' }
-    ]
-  },
   'story-passage-creator': {
     name: 'Story & Passage Creator',
     description: 'Generate engaging stories and reading passages (Available for English and Hindi only)',
@@ -162,7 +145,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
-      { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all passages if not selected)', isNCERT: true },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
       { name: 'length', label: 'Length', type: 'select', options: ['short', 'medium', 'long'] }
     ]
@@ -210,10 +193,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
-      { name: 'questionCount', label: 'Number of Questions *', type: 'number', required: true, placeholder: '20' },
-      { name: 'duration', label: 'Exam Duration (minutes)', type: 'number', placeholder: '90' },
-      { name: 'difficulty', label: 'Difficulty Mix', type: 'select', options: ['easy', 'medium', 'hard', 'mixed'] }
+      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
 };
@@ -311,16 +291,6 @@ export default function TeacherToolPage() {
     [toolType, availableSubjects],
   );
 
-  const generationContextSummary = useMemo(
-    () =>
-      buildAiToolGenerationSummary(
-        formParams,
-        (responseMeta as AiToolGenerationMeta | null) ?? null,
-        config?.name,
-      ),
-    [formParams, responseMeta, config?.name],
-  );
-
   // No PDF auto-fill needed - users can enter any topic with Gemini API
 
   // Fetch teacher-assigned subjects once and keep them as default constraints for all tools
@@ -337,7 +307,7 @@ export default function TeacherToolPage() {
         });
         if (!response.ok) return;
         const data = await response.json();
-        const exclusive = data?.user?.isAsliPrepExclusive === true;
+        const exclusive = resolveIsAsliPrepExclusive(data?.user);
         setIsAsliPrepExclusive(exclusive);
         const curriculumBoard = resolveCurriculumBoardForAiTools(data?.user);
         const defaultBoard = getDefaultAiToolBoard(exclusive, curriculumBoard);
@@ -693,6 +663,12 @@ export default function TeacherToolPage() {
         delete updated.subjects;
         delete updated.topic;
         delete updated.subTopic;
+        if (String(value).toUpperCase() === 'IIT') {
+          const iitClass =
+            cascade.classOptions.find((c) => /iit/i.test(c)) ||
+            'Class 6';
+          updated.gradeLevel = iitClass;
+        }
       }
 
       return updated;
@@ -1934,11 +1910,6 @@ export default function TeacherToolPage() {
                                   ? 'Quick revision notebook'
                                 : 'Generated Content'}
                   </CardTitle>
-                  {generatedContent && generationContextSummary ? (
-                    <p className="text-xs text-slate-600 mt-1.5 leading-relaxed" role="status">
-                      {generationContextSummary}
-                    </p>
-                  ) : null}
                   {generatedContent && Array.isArray(responseMeta?.citations) && responseMeta.citations.length > 0 && (
                     <div className="mt-2 rounded-md border bg-blue-50/40 p-2 max-h-32 overflow-y-auto">
                       <p className="text-[11px] font-semibold text-blue-700 mb-1">Top Citations</p>
@@ -2002,7 +1973,11 @@ export default function TeacherToolPage() {
                 </div>
               ) : generatedContent ? (
                 toolType === 'flashcard-generator' ? (
-                  <FlashcardViewer content={displayGeneratedContent} variant="teacher" />
+                  <FlashcardViewer
+                    content={displayGeneratedContent}
+                    rawContent={rawGeneratedContent}
+                    variant="teacher"
+                  />
                 ) : toolType === 'short-notes-summaries-maker' ? (
                   <div className="bg-gradient-to-b from-cyan-50/60 via-white to-sky-50/40 p-4 sm:p-5 lg:p-6">
                     <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -2062,11 +2037,6 @@ export default function TeacherToolPage() {
                   />
                 ) : toolType === 'exam-question-paper-generator' ? (
                   <ExamQuestionPaperViewer
-                    content={displayGeneratedContent}
-                    rawContent={rawGeneratedContent}
-                  />
-                ) : toolType === 'rubrics-evaluation-generator' ? (
-                  <RubricsEvaluationViewer
                     content={displayGeneratedContent}
                     rawContent={rawGeneratedContent}
                   />

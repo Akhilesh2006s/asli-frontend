@@ -626,9 +626,6 @@ function StudentActivityCard({
             <p className="text-[10px] font-bold uppercase tracking-wider text-orange-600 mb-1">
               1. Project / Activity Title
             </p>
-            <Badge className="mb-2 rounded-md border-0 bg-orange-100 text-orange-800 hover:bg-orange-100 font-semibold">
-              Activity {activity.sl}
-            </Badge>
             <h4 className="text-xl sm:text-2xl font-bold text-stone-900 leading-snug tracking-tight">
               {activity.title}
             </h4>
@@ -681,9 +678,6 @@ function TeacherActivityCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2 mb-2">
-              <Badge className="rounded-md border-0 bg-indigo-100 text-indigo-800 hover:bg-indigo-100 font-semibold">
-                Activity {activity.sl}
-              </Badge>
               <Badge variant="outline" className="rounded-md border-indigo-200 text-indigo-700 text-[10px]">
                 {filled}/{total} sections
               </Badge>
@@ -812,7 +806,7 @@ export function ActivityProjectViewer({
                           : 'bg-white/15 text-white hover:bg-white/25 ring-1 ring-white/20',
                       )}
                     >
-                      Activity {idx + 1}
+                      {act.title?.trim() ? act.title.slice(0, 28) : `Item ${idx + 1}`}
                     </button>
                   ))}
                 </div>
@@ -885,13 +879,13 @@ export function ActivityProjectViewer({
                           : 'bg-white/20 text-white hover:bg-white/30',
                       )}
                     >
-                      Activity {idx + 1}
+                      {act.title?.trim() ? act.title.slice(0, 28) : `Item ${idx + 1}`}
                     </button>
                   ))}
                 </div>
               ) : (
                 <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white">
-                  {resolved.length} activity
+                  Ready
                 </span>
               )}
             </div>

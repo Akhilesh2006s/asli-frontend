@@ -63,15 +63,26 @@ export function filterContentsBySchoolProgram<T extends { type?: string }>(
 
 const CURRICULUM_BOARDS = ['CBSE', 'STATE', 'SSC', 'ICSE', 'IB', 'CAMBRIDGE'] as const;
 
+function isCurriculumBoardCode(code: string): boolean {
+  return (CURRICULUM_BOARDS as readonly string[]).includes(code);
+}
+
 /** School curriculum board for AI tools (never IIT / ASLI_EXCLUSIVE_SCHOOLS). */
 export function resolveCurriculumBoardForAiTools(user?: {
   curriculumBoard?: string;
   board?: string;
+  assignedAdmin?: { curriculumBoard?: string; board?: string };
 } | null): string {
-  const raw = String(user?.curriculumBoard || user?.board || '')
-    .toUpperCase()
-    .trim();
-  if ((CURRICULUM_BOARDS as readonly string[]).includes(raw)) return raw;
+  const candidates = [
+    user?.curriculumBoard,
+    user?.assignedAdmin?.curriculumBoard,
+    user?.board,
+    user?.assignedAdmin?.board,
+  ];
+  for (const value of candidates) {
+    const raw = String(value || '').toUpperCase().trim();
+    if (isCurriculumBoardCode(raw)) return raw;
+  }
   return 'CBSE';
 }
 

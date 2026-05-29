@@ -1,5 +1,7 @@
 import { stripStructuredAiToolMetadata } from "@/lib/strip-ai-tool-metadata";
 import { MockTestViewer } from "@/components/mock-test-viewer";
+import { ExamQuestionPaperViewer } from "@/components/exam-question-paper-viewer";
+import { looksLikeExamPaperContent } from "@/lib/parse-exam-question-paper";
 import { SmartStudyGuideViewer } from "@/components/smart-study-guide-viewer";
 import { ConceptBreakdownViewer } from "@/components/concept-breakdown-viewer";
 import { PracticeQaViewer } from "@/components/practice-qa-viewer";
@@ -171,6 +173,16 @@ export function GeneratedRecordBody({
   }
   if (toolType === "quick-assignment-builder") {
     return <QuickAssignmentViewer content={String(content || "")} className={className} />;
+  }
+  if (toolType === "exam-question-paper-generator" || looksLikeExamPaperContent(raw)) {
+    return (
+      <ExamQuestionPaperViewer
+        content={String(content || "")}
+        rawContent={undefined}
+        className={className}
+        variant="teacher"
+      />
+    );
   }
   if (looksLikeMockTestContent(raw)) {
     return <MockTestViewer content={String(content || "")} className={className} />;

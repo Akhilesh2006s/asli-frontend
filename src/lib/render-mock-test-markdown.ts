@@ -172,6 +172,13 @@ export function renderMockTestMarkdown(text: string): string {
 export function looksLikeMockTestContent(text: string): boolean {
   const sample = String(text || '').slice(0, 12000);
   if (!sample.trim()) return false;
+  if (
+    /paper\s*title\s*and\s*general\s*instructions/i.test(sample) ||
+    /blueprint\s*\/\s*design\s*grid/i.test(sample) ||
+    /rubric\s*for\s*open[-\s]?ended/i.test(sample)
+  ) {
+    return false;
+  }
   const hasTemplate =
     /question\s*paper/i.test(sample) &&
     (/answer\s*key/i.test(sample) || /step-by-step\s*solutions/i.test(sample));

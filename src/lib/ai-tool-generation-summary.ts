@@ -13,23 +13,6 @@ export type AiToolGenerationMeta = {
   gradeLevel?: string;
 };
 
-const MATCH_TYPE_LABELS: Record<string, string> = {
-  "exact-with-tool": "Exact (tool + topic + sub-topic)",
-  "exact-any-tool": "Exact (topic + sub-topic)",
-  "topic-with-tool": "Topic match (tool)",
-  "topic-any-tool": "Topic match",
-  "subject-with-tool": "Subject match (tool)",
-  "subject-any-tool": "Subject match",
-  "fuzzy-with-tool": "Fuzzy match (tool)",
-  "fuzzy-any-tool": "Fuzzy match",
-};
-
-function humanizeMatchType(matchType?: string | null): string {
-  const key = String(matchType || "").trim();
-  if (!key) return "";
-  return MATCH_TYPE_LABELS[key] || key.replace(/-/g, " ");
-}
-
 export function buildAiToolGenerationSummary(
   form: {
     board?: string;
@@ -59,17 +42,6 @@ export function buildAiToolGenerationSummary(
     form.topic || form.concept || form.chapter || form.projectTopic;
   if (topic) parts.push(String(topic).trim());
   if (form.subTopic?.trim()) parts.push(`Sub topic: ${String(form.subTopic).trim()}`);
-
-  const matchLabel = humanizeMatchType(meta?.matchType);
-  if (matchLabel) parts.push(`Lookup: ${matchLabel}`);
-
-  const total = meta?.totalCandidates;
-  const idx = meta?.selectedIndex;
-  if (typeof total === "number" && total > 1 && typeof idx === "number" && idx >= 0) {
-    parts.push(`Variant ${idx + 1} of ${total}`);
-  } else if (typeof total === "number" && total > 0) {
-    parts.push(`${total} stored variant${total === 1 ? "" : "s"}`);
-  }
 
   return parts.filter(Boolean).join(" · ");
 }

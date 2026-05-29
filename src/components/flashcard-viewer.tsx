@@ -63,14 +63,19 @@ export interface Flashcard {
 
 type TeacherDeckMeta = {
   title: string;
+  topic: string;
+  subtopic: string;
   topicAndSubtopicLink: string;
+  classLevel: string;
+  difficultyLevel: string;
+  bloomLevel: string;
   priorKnowledgeRequired: string;
   learningObjectives: string[];
   ncfCompetencyAlignment: string;
+  deckMemoryHook: string;
   selfCheckRapidRecallRound: string;
   commonMistakesToAvoid: string[];
   differentiationSupport: string;
-  expectedLearningOutcomes: string[];
   realLifeConnection: string;
   reflectionExitTicket: string;
 };
@@ -78,7 +83,7 @@ type TeacherDeckMeta = {
 interface FlashcardViewerProps {
   content: string;
   rawContent?: unknown;
-  /** Premium immersive layout for student tools; teacher = 18-section deck */
+  /** Premium immersive layout for student tools; teacher = 5-block deck */
   variant?: 'default' | 'student' | 'teacher';
   /** When true with variant student, renders only the flip session (inside MyStudyDecksViewer). */
   embedded?: boolean;
@@ -239,7 +244,9 @@ export function FlashcardViewer({
   useEffect(() => {
     const parsedCards = parseFlashcards(content);
     setDeckTitle(tryParseDeckTitle(content));
-    setTeacherMeta(variant === 'teacher' ? tryParseTeacherDeckMeta(content) : null);
+    setTeacherMeta(
+      variant === 'teacher' ? tryParseTeacherDeckMeta(content, rawContent) : null,
+    );
     setAllCards(parsedCards);
     setActiveCategory('all');
     setCurrentIndex(0);
@@ -262,7 +269,7 @@ export function FlashcardViewer({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [content, variant]);
+  }, [content, variant, rawContent]);
   
   useEffect(() => {
     // Reset to first card when type changes
@@ -548,145 +555,152 @@ export function FlashcardViewer({
   }
 
   if (variant === 'teacher') {
-    const teacherFieldEntries = [
-      {
-        key: 'difficultyTag' as const,
-        label: 'Difficulty Tag',
-        icon: Target,
-        chip: 'bg-violet-50 text-violet-800 border-violet-200',
-        iconBg: 'bg-violet-100 text-violet-700',
-      },
-      {
-        key: 'memoryHookQuickTip' as const,
-        label: 'Memory Hook / Quick Tip',
-        icon: Lightbulb,
-        chip: 'bg-amber-50 text-amber-800 border-amber-200',
-        iconBg: 'bg-amber-100 text-amber-700',
-      },
-    ]
-      .map((meta) => ({
-        ...meta,
-        value: String(currentCard[meta.key] || currentCard.memoryCue || '').trim(),
-      }))
-      .filter((f) => f.value.length > 0);
+    const meta = teacherMeta;
+    const displayTitle = meta?.title || deckTitle || 'Flashcard deck';
+    const topicLabel =
+      meta?.topic ||
+      (meta?.topicAndSubtopicLink ? meta.topicAndSubtopicLink.split(/\s*[—–\-:]\s*/)[0]?.trim() : '');
+    const subtopicLabel =
+      meta?.subtopic ||
+      (meta?.topicAndSubtopicLink
+        ? meta.topicAndSubtopicLink.split(/\s*[—–\-:]\s*/).slice(1).join(' — ').trim()
+        : '');
 
-    const metaRows: Array<{ label: string; value: string | string[] }> = teacherMeta
-      ? [
-          { label: 'Topic and Subtopic Link', value: teacherMeta.topicAndSubtopicLink },
-          { label: 'Prior Knowledge Required', value: teacherMeta.priorKnowledgeRequired },
-          { label: "Learning Objectives – Bloom's", value: teacherMeta.learningObjectives },
-          { label: 'NCF Competency / Learning Outcome', value: teacherMeta.ncfCompetencyAlignment },
-          { label: 'Self-Check Rapid Recall Round', value: teacherMeta.selfCheckRapidRecallRound },
-          { label: 'Common Mistakes to Avoid', value: teacherMeta.commonMistakesToAvoid },
-          { label: 'Differentiation Support', value: teacherMeta.differentiationSupport },
-          { label: 'Expected Learning Outcomes', value: teacherMeta.expectedLearningOutcomes },
-          { label: 'Real-life Connection', value: teacherMeta.realLifeConnection },
-          { label: 'Reflection / Exit Ticket', value: teacherMeta.reflectionExitTicket },
-        ].filter((row) =>
-          Array.isArray(row.value) ? row.value.length > 0 : String(row.value || '').trim().length > 0,
-        )
-      : [];
+    const contextChips = [
+      topicLabel ? { label: 'Topic', value: topicLabel } : null,
+      subtopicLabel ? { label: 'Subtopic', value: subtopicLabel } : null,
+      meta?.classLevel ? { label: 'Class', value: meta.classLevel } : null,
+      meta?.difficultyLevel ? { label: 'Difficulty', value: meta.difficultyLevel } : null,
+      meta?.bloomLevel ? { label: "Bloom's", value: meta.bloomLevel } : null,
+    ].filter(Boolean) as { label: string; value: string }[];
 
-    const categoryTabs: Array<{ id: TeacherCardCategory; label: string; count: number }> = [
-      { id: 'all', label: 'All', count: allCards.length },
-      { id: 'concept', label: 'Concept', count: conceptCount },
-      { id: 'formula', label: 'Formula', count: formulaCount },
-      { id: 'application', label: 'HOTS', count: applicationCount },
-      { id: 'visual', label: 'Visual', count: visualCount },
-    ].filter((t): t is { id: TeacherCardCategory; label: string; count: number } =>
-      t.id === 'all' || t.count > 0,
-    );
+    const cardExtras = [
+      currentCard.difficultyTag
+        ? { label: 'Difficulty', value: currentCard.difficultyTag }
+        : null,
+      currentCard.memoryHookQuickTip || currentCard.memoryCue
+        ? {
+            label: 'Memory Hook',
+            value: currentCard.memoryHookQuickTip || currentCard.memoryCue || '',
+          }
+        : null,
+    ].filter(Boolean) as { label: string; value: string }[];
+
+    const blockClass =
+      'rounded-2xl border border-indigo-100/90 bg-white shadow-sm overflow-hidden';
+    const blockHead =
+      'px-4 py-2.5 sm:px-5 border-b border-indigo-50 bg-gradient-to-r from-indigo-50/80 to-violet-50/50';
+    const blockTitle = 'text-xs font-bold uppercase tracking-wide text-indigo-700';
 
     return (
       <div className="w-full max-w-4xl mx-auto space-y-4">
-        {metaRows.length > 0 ? (
-          <div className="rounded-2xl border border-indigo-100 bg-white p-4 sm:p-5 shadow-sm space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
-              Flash Card Generator · 18-section deck
-            </p>
-            <h3 className="text-lg font-semibold text-slate-900">
-              {teacherMeta?.title || deckTitle || 'Flashcard deck'}
-            </h3>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {metaRows.map((row) => (
-                <div key={row.label} className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
-                  <p className="text-[11px] font-semibold text-slate-500">{row.label}</p>
-                  {Array.isArray(row.value) ? (
-                    <ul className="mt-1 list-disc pl-4 text-sm text-slate-800 space-y-0.5">
-                      {row.value.map((v) => (
-                        <li key={v}>{v}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-1 text-sm text-slate-800 whitespace-pre-wrap">{row.value}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
+        <div className="flex items-center gap-2 text-indigo-600 text-xs font-semibold uppercase tracking-wide">
+          <span className="h-2 w-2 rounded-full bg-indigo-500" />
+          Context
+          <span className="h-px flex-1 bg-indigo-100" />
+          Foundations
+          <span className="h-px flex-1 bg-indigo-100" />
+          HOTS
+          <span className="h-px flex-1 bg-indigo-100" />
+          Study Aids
+          <span className="h-px flex-1 bg-indigo-100" />
+          Wrap-Up
+        </div>
 
-        <div className="overflow-hidden rounded-2xl border border-indigo-200/60 bg-gradient-to-br from-white via-indigo-50/30 to-violet-50/40 shadow-lg">
-          <div className="border-b border-indigo-100/80 bg-white/70 px-4 py-3 sm:px-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-medium text-indigo-600 uppercase tracking-wide">Flashcard set</p>
-                <p className="text-sm text-slate-600">
-                  {allCards.length} card{allCards.length === 1 ? '' : 's'}
-                </p>
-              </div>
-              <Badge variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-800">
-                Card {currentIndex + 1} of {cards.length}
-              </Badge>
-            </div>
-            {categoryTabs.length > 1 ? (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {categoryTabs.map((tab) => (
-                  <Button
-                    key={tab.id}
-                    variant={activeCategory === tab.id ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setActiveCategory(tab.id)}
+        <section className={blockClass}>
+          <div className={blockHead}>
+            <p className={blockTitle}>1 · Context &amp; Alignment</p>
+          </div>
+          <div className="p-4 sm:p-5 space-y-3">
+            <h3 className="text-lg font-semibold text-slate-900">{displayTitle}</h3>
+            {contextChips.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {contextChips.map((chip) => (
+                  <Badge
+                    key={chip.label}
+                    variant="secondary"
+                    className="bg-indigo-50 text-indigo-900 border border-indigo-100 font-normal px-3 py-1"
                   >
-                    {tab.label}
-                    <span className="ml-1.5 text-xs opacity-75">({tab.count})</span>
-                  </Button>
+                    <span className="font-semibold mr-1">{chip.label}:</span>
+                    {chip.value}
+                  </Badge>
                 ))}
               </div>
             ) : null}
           </div>
-          <div className="p-4 sm:p-5 space-y-4">
-            {/* Reuse default flip UI via same card structure — simplified inline */}
-            <div className="perspective-1000 mx-auto max-w-lg">
-              <motion.div
-                className="relative h-56 sm:h-64 w-full preserve-3d cursor-pointer"
-                onClick={() => setIsFlipped(!isFlipped)}
-                animate={{ rotateY: isFlipped ? 180 : 0 }}
-                transition={{ duration: 0.5 }}
-              >
-                <div
-                  className={`absolute inset-0 backface-hidden rounded-2xl border-2 p-6 flex items-center justify-center text-center shadow-md ${cardStyles.front}`}
-                >
-                  <p className="text-base sm:text-lg font-medium text-slate-800">{currentCard.front}</p>
-                </div>
-                <div
-                  className={`absolute inset-0 backface-hidden rotate-y-180 rounded-2xl border-2 p-6 flex flex-col items-center justify-center text-center shadow-md ${cardStyles.back}`}
-                >
-                  <p className="text-base sm:text-lg text-slate-800">{currentCard.back}</p>
-                </div>
-              </motion.div>
+        </section>
+
+        <section className={blockClass}>
+          <div className={blockHead}>
+            <p className={blockTitle}>2 · Foundations</p>
+          </div>
+          <div className="p-4 sm:p-5 space-y-3 text-sm text-slate-800">
+            {meta?.priorKnowledgeRequired ? (
+              <div>
+                <p className="text-[11px] font-semibold uppercase text-slate-500">Prior Knowledge</p>
+                <p className="mt-1 leading-relaxed">{meta.priorKnowledgeRequired}</p>
+              </div>
+            ) : null}
+            {meta?.learningObjectives?.length ? (
+              <div>
+                <p className="text-[11px] font-semibold uppercase text-slate-500">Learning Objectives</p>
+                <ul className="mt-1 list-disc pl-5 space-y-1">
+                  {meta.learningObjectives.map((o) => (
+                    <li key={o}>{o}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {meta?.ncfCompetencyAlignment ? (
+              <div>
+                <p className="text-[11px] font-semibold uppercase text-slate-500">NCF Competency</p>
+                <p className="mt-1 leading-relaxed">{meta.ncfCompetencyAlignment}</p>
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="overflow-hidden rounded-2xl border border-violet-200/70 bg-gradient-to-br from-white via-violet-50/20 to-indigo-50/30 shadow-lg">
+          <div className="border-b border-violet-100 bg-white/80 px-4 py-3 sm:px-5 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className={blockTitle}>3 · The Card Set: Application &amp; HOTS</p>
+              <p className="text-sm text-slate-600 mt-0.5">
+                {allCards.length} task{allCards.length === 1 ? '' : 's'}
+              </p>
             </div>
-            {teacherFieldEntries.length > 0 ? (
-              <div className="grid gap-2 sm:grid-cols-2">
-                {teacherFieldEntries.map((field) => (
-                  <StudyFieldTile
-                    key={field.label}
-                    label={field.label}
-                    value={field.value}
-                    icon={field.icon}
-                    chip={field.chip}
-                    iconBg={field.iconBg}
-                  />
+            <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-800">
+              Card {currentIndex + 1} of {cards.length}
+            </Badge>
+          </div>
+          <div className="p-4 sm:p-5 space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-white p-4 min-h-[140px] flex flex-col">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-violet-700 mb-2">
+                  Task
+                </p>
+                <p className="text-sm sm:text-base font-medium text-slate-900 leading-relaxed flex-1">
+                  {currentCard.front}
+                </p>
+              </div>
+              <div className="rounded-xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-4 min-h-[140px] flex flex-col">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 mb-2">
+                  Solution
+                </p>
+                <p className="text-sm sm:text-base text-slate-800 leading-relaxed flex-1">
+                  {currentCard.back}
+                </p>
+              </div>
+            </div>
+            {cardExtras.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {cardExtras.map((chip) => (
+                  <span
+                    key={chip.label}
+                    className="rounded-lg border border-amber-100 bg-amber-50 px-3 py-1.5 text-xs text-amber-950"
+                  >
+                    <span className="font-semibold">{chip.label}: </span>
+                    {chip.value}
+                  </span>
                 ))}
               </div>
             ) : null}
@@ -700,10 +714,22 @@ export function FlashcardViewer({
                 <ChevronLeft className="h-4 w-4" />
                 Previous
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setIsFlipped(!isFlipped)}>
-                <RotateCcw className="h-4 w-4 mr-1" />
-                Flip
-              </Button>
+              <div className="flex flex-wrap justify-center gap-1.5 flex-1 px-2">
+                {cards.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    aria-label={`Card ${idx + 1}`}
+                    aria-current={idx === currentIndex}
+                    onClick={() => setCurrentIndex(idx)}
+                    className={`rounded-full transition-all ${
+                      idx === currentIndex
+                        ? 'h-2 w-6 bg-violet-600'
+                        : 'h-2 w-2 bg-violet-300 hover:bg-violet-400'
+                    }`}
+                  />
+                ))}
+              </div>
               <Button
                 variant="outline"
                 size="sm"
@@ -715,7 +741,69 @@ export function FlashcardViewer({
               </Button>
             </div>
           </div>
-        </div>
+        </section>
+
+        <section className={blockClass}>
+          <div className={blockHead}>
+            <p className={blockTitle}>4 · Study Aids</p>
+          </div>
+          <div className="p-4 sm:p-5 space-y-3 text-sm text-slate-800">
+            {meta?.deckMemoryHook ? (
+              <div className="flex gap-3 rounded-lg border border-amber-100 bg-amber-50/60 p-3">
+                <Lightbulb className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" aria-hidden />
+                <div>
+                  <p className="text-[11px] font-semibold uppercase text-amber-800">Memory Hook</p>
+                  <p className="mt-1">{meta.deckMemoryHook}</p>
+                </div>
+              </div>
+            ) : null}
+            {meta?.commonMistakesToAvoid?.length ? (
+              <div>
+                <p className="text-[11px] font-semibold uppercase text-slate-500">Common Mistakes</p>
+                <ul className="mt-1 list-disc pl-5 space-y-1">
+                  {meta.commonMistakesToAvoid.map((m) => (
+                    <li key={m}>{m}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {meta?.selfCheckRapidRecallRound ? (
+              <div className="flex gap-3 rounded-lg border border-teal-100 bg-teal-50/60 p-3">
+                <Zap className="h-5 w-5 shrink-0 text-teal-600 mt-0.5" aria-hidden />
+                <div>
+                  <p className="text-[11px] font-semibold uppercase text-teal-800">Rapid Recall</p>
+                  <p className="mt-1">{meta.selfCheckRapidRecallRound}</p>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        <section className={blockClass}>
+          <div className={blockHead}>
+            <p className={blockTitle}>5 · Wrap-Up</p>
+          </div>
+          <div className="p-4 sm:p-5 grid gap-3 sm:grid-cols-3 text-sm text-slate-800">
+            {meta?.realLifeConnection ? (
+              <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
+                <p className="text-[11px] font-semibold uppercase text-slate-500">Real-life</p>
+                <p className="mt-1 leading-relaxed">{meta.realLifeConnection}</p>
+              </div>
+            ) : null}
+            {meta?.differentiationSupport ? (
+              <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
+                <p className="text-[11px] font-semibold uppercase text-slate-500">Differentiation</p>
+                <p className="mt-1 leading-relaxed">{meta.differentiationSupport}</p>
+              </div>
+            ) : null}
+            {meta?.reflectionExitTicket ? (
+              <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
+                <p className="text-[11px] font-semibold uppercase text-slate-500">Exit Ticket</p>
+                <p className="mt-1 leading-relaxed">{meta.reflectionExitTicket}</p>
+              </div>
+            ) : null}
+          </div>
+        </section>
       </div>
     );
   }
@@ -1070,21 +1158,34 @@ function pickFirstLabeledField(block: string, labels: string[]): string {
   return '';
 }
 
-/** 7-field template: Front, Back, Memory Cue, Skill Focus, Example Use, Peer Prompt, Reflection */
+/** Front/Back or Task/Solution template blocks */
 function parseSevenFieldTemplateBlock(block: string): Flashcard | null {
-  if (!/\*\*Front:\*\*/i.test(block) && !/###\s*Front:/i.test(block)) return null;
+  const hasFace =
+    /\*\*(?:Front|Task):\*\*/i.test(block) ||
+    /###\s*(?:Front|Task):/i.test(block) ||
+    /\bTask:/i.test(block);
+  if (!hasFace) return null;
 
   let front = '';
   let back = '';
 
+  const taskBold = block.match(/\*\*Task:\*\*\s*([\s\S]*?)(?=\n\s*\*\*Solution:\*\*)/i);
+  const solutionBold = block.match(
+    /\*\*Solution:\*\*\s*([\s\S]*?)(?=\n\s*\*\*(?:Difficulty|Memory Hook|Memory Cue|Self-Check|Front|Back|Task)[^*]*:\*|\n+---|\n+##\s*(?:Card|Flashcard)|$)/i,
+  );
+  if (taskBold && solutionBold) {
+    front = stripMdBold(taskBold[1].trim());
+    back = stripMdBold(solutionBold[1].trim());
+  }
+
   const frontBold = block.match(/\*\*Front:\*\*\s*([\s\S]*?)(?=\n\s*\*\*Back:\*\*)/i);
   const backBold = block.match(
-    /\*\*Back:\*\*\s*([\s\S]*?)(?=\n\s*\*\*(?:Difficulty Tag|Memory Hook|Memory Cue|Self-Check Round|Skill Focus|Example Use|Peer Prompt|Reflection)[^*]*:\*|\n+---|\n+##\s*(?:Card|Flashcard)|$)/i,
+    /\*\*Back:\*\*\s*([\s\S]*?)(?=\n\s*\*\*(?:Difficulty Tag|Memory Hook|Memory Cue|Self-Check Round|Skill Focus|Example Use|Peer Prompt|Reflection|Task|Solution)[^*]*:\*|\n+---|\n+##\s*(?:Card|Flashcard)|$)/i,
   );
-  if (frontBold && backBold) {
+  if (!front && frontBold && backBold) {
     front = stripMdBold(frontBold[1].trim());
     back = stripMdBold(backBold[1].trim());
-  } else {
+  } else if (!front) {
     const frontH = block.match(/###\s*Front:\s*\n+([\s\S]*?)(?=\n+\s*###\s*Back:)/i);
     const backH = block.match(
       /###\s*Back:\s*\n+([\s\S]*?)(?=\n+\*\*(?:Memory Cue|Skill Focus)|\n+---|\n+##|$)/i,
@@ -1186,48 +1287,67 @@ function toStringList(value: unknown): string[] {
     .filter(Boolean);
 }
 
-function tryParseTeacherDeckMeta(content: string): TeacherDeckMeta | null {
+function rawRecordFromContent(
+  content: string,
+  rawContent?: unknown,
+): Record<string, unknown> | null {
+  if (rawContent && typeof rawContent === 'object' && !Array.isArray(rawContent)) {
+    return rawContent as Record<string, unknown>;
+  }
   const trimmed = String(content || '').trim();
   if (!trimmed.startsWith('{')) return null;
   try {
     const parsed = JSON.parse(trimmed) as Record<string, unknown>;
-    const raw = (parsed.raw as Record<string, unknown> | undefined) || parsed;
-    const title = String(
-      raw.flashcard_deck_title || raw.deck_title || raw.title || '',
-    ).trim();
-    if (!title && !raw.topic_and_subtopic_link) return null;
-    return {
-      title: title || 'Flashcard deck',
-      topicAndSubtopicLink: String(raw.topic_and_subtopic_link || raw.subtopic_link || '').trim(),
-      priorKnowledgeRequired: String(raw.prior_knowledge_required || '').trim(),
-      learningObjectives: toStringList(raw.learning_objectives || raw.objectives),
-      ncfCompetencyAlignment: String(
-        raw.ncf_competency_alignment || raw.learning_outcome_alignment || '',
-      ).trim(),
-      selfCheckRapidRecallRound: String(
-        raw.self_check_rapid_recall_round || raw.self_check_round || '',
-      ).trim(),
-      commonMistakesToAvoid: toStringList(raw.common_mistakes_to_avoid),
-      differentiationSupport: String(raw.differentiation_support || '').trim(),
-      expectedLearningOutcomes: toStringList(raw.expected_learning_outcomes),
-      realLifeConnection: String(raw.real_life_connection || raw.real_life_application || '').trim(),
-      reflectionExitTicket: String(raw.reflection_exit_ticket || raw.reflection || '').trim(),
-    };
+    return (parsed.raw as Record<string, unknown> | undefined) || parsed;
   } catch {
     return null;
   }
 }
 
+function tryParseTeacherDeckMeta(content: string, rawContent?: unknown): TeacherDeckMeta | null {
+  const raw = rawRecordFromContent(content, rawContent);
+  if (!raw) return null;
+  const title = String(raw.flashcard_deck_title || raw.deck_title || raw.title || '').trim();
+  const topic = String(raw.topic || '').trim();
+  const subtopic = String(raw.subtopic || raw.sub_topic || '').trim();
+  const topicLink = String(raw.topic_and_subtopic_link || raw.subtopic_link || '').trim();
+  if (!title && !topic && !subtopic && !topicLink) return null;
+  return {
+    title: title || 'Flashcard deck',
+    topic,
+    subtopic,
+    topicAndSubtopicLink: topicLink,
+    classLevel: String(raw.class_level || raw.classLabel || raw.class || '').trim(),
+    difficultyLevel: String(raw.difficulty_level || raw.difficulty || 'Medium').trim(),
+    bloomLevel: String(raw.bloom_level || raw.bloom || 'Apply / Analyze').trim(),
+    priorKnowledgeRequired: String(raw.prior_knowledge_required || '').trim(),
+    learningObjectives: toStringList(raw.learning_objectives || raw.objectives),
+    ncfCompetencyAlignment: String(
+      raw.ncf_competency_alignment || raw.learning_outcome_alignment || '',
+    ).trim(),
+    deckMemoryHook: String(
+      raw.deck_memory_hook || raw.memory_hook_quick_tip || raw.memory_cue || '',
+    ).trim(),
+    selfCheckRapidRecallRound: String(
+      raw.self_check_rapid_recall_round || raw.self_check_round || '',
+    ).trim(),
+    commonMistakesToAvoid: toStringList(raw.common_mistakes_to_avoid),
+    differentiationSupport: String(raw.differentiation_support || '').trim(),
+    realLifeConnection: String(raw.real_life_connection || raw.real_life_application || '').trim(),
+    reflectionExitTicket: String(raw.reflection_exit_ticket || raw.reflection || '').trim(),
+  };
+}
+
 function collectCardsFromRaw(raw: Record<string, unknown>): Record<string, unknown>[] {
   const lists = [
+    raw.application_hots_cards,
+    raw.application_cards,
     raw.cards,
     raw.flashcard_set,
     raw.flashcards,
     raw.concept_and_definition_cards,
     raw.formula_rule_cards,
     raw.formula_cards,
-    raw.application_hots_cards,
-    raw.application_cards,
     raw.visual_diagram_suggestion_cards,
     raw.visual_cards,
   ];
@@ -1245,11 +1365,13 @@ function collectCardsFromRaw(raw: Record<string, unknown>): Record<string, unkno
 function cardFromLooseObject(item: Record<string, unknown>): Flashcard | null {
   const front =
     (item.front as string) ||
+    (item.task as string) ||
     (item.question as string) ||
     (item.term as string) ||
     (item.title as string);
   const back =
     (item.back as string) ||
+    (item.solution as string) ||
     (item.correct_answer as string) ||
     (item.answer as string) ||
     (item.content as string) ||
@@ -1462,6 +1584,26 @@ function parseFrontBackPairs(content: string): Flashcard[] {
   return parseSevenFieldDeckMarkdown(content);
 }
 
+function parseTaskSolutionPairs(content: string): Flashcard[] {
+  const cards: Flashcard[] = [];
+  const chunks = content.split(/(?=\*\*Card\s*\d+\*\*)/i).map((c) => c.trim()).filter(Boolean);
+  for (const chunk of chunks) {
+    const card = parseSevenFieldTemplateBlock(chunk);
+    if (card) cards.push(card);
+  }
+  if (cards.length) return cards;
+
+  const re =
+    /\*\*Task:\*\*\s*([\s\S]*?)\n+\*\*Solution:\*\*\s*([\s\S]*?)(?=\n+\*\*Task:|\n+---|\n###\s*[45]\.|$)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(content)) !== null) {
+    const front = stripMdBold(m[1].trim());
+    const back = stripMdBold(m[2].trim());
+    if (front && back) cards.push({ front, back, type: 'question' });
+  }
+  return cards;
+}
+
 function parseQuestionAnswerPairs(content: string): Flashcard[] {
   const cards: Flashcard[] = [];
   const re =
@@ -1534,6 +1676,11 @@ function parseFlashcards(content: string): Flashcard[] {
   if (cards.length === 0) {
     const sevenField = parseSevenFieldDeckMarkdown(text);
     if (sevenField.length) return sevenField;
+  }
+
+  if (cards.length === 0) {
+    const taskSolution = parseTaskSolutionPairs(text);
+    if (taskSolution.length) return taskSolution;
   }
 
   if (cards.length === 0) {

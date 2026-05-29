@@ -19,6 +19,7 @@ import {
   getDefaultAiToolBoard,
   mapGradeLevelForIitBoard,
   resolveCurriculumBoardForAiTools,
+  resolveIsAsliPrepExclusive,
 } from '@/lib/school-program';
 import {
   useCurriculumCascade,
@@ -47,10 +48,7 @@ import { ChapterSummaryViewer } from '@/components/chapter-summary-viewer';
 import { KeyPointsViewer } from '@/components/key-points-viewer';
 import { QuickAssignmentViewer } from '@/components/quick-assignment-viewer';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
-import {
-  buildAiToolGenerationSummary,
-  type AiToolGenerationMeta,
-} from '@/lib/ai-tool-generation-summary';
+import type { AiToolGenerationMeta } from '@/lib/ai-tool-generation-summary';
 import {
   filterSubjectsForAiTool,
   isStoryLanguageTool,
@@ -564,7 +562,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
-      { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all projects if not selected)', isNCERT: true },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
@@ -575,7 +573,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
-      { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all projects if not selected)', isNCERT: true },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
@@ -586,7 +584,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
-      { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all passages if not selected)', isNCERT: true },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
@@ -597,7 +595,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
-      { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all passages if not selected)', isNCERT: true },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
@@ -608,7 +606,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
-      { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional - shows all schedules if not selected)', isNCERT: true },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   },
@@ -619,7 +617,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
-      { name: 'topic', label: 'Topic (Optional)', type: 'select', required: false, placeholder: 'Select topic to filter (optional)', isNCERT: true },
+      { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
     ]
   }
@@ -704,16 +702,6 @@ export default function StudentToolPage() {
     (isStudySchedule ? TOOL_CONFIGS['study-schedule-maker'] : undefined) ||
     (isReadingPractice ? TOOL_CONFIGS['reading-practice-room'] : undefined);
 
-  const generationContextSummary = useMemo(
-    () =>
-      buildAiToolGenerationSummary(
-        formParams,
-        (responseMeta as AiToolGenerationMeta | null) ?? null,
-        config?.name,
-      ),
-    [formParams, responseMeta, config?.name],
-  );
-
   // Fetch user data to get assigned class
   useEffect(() => {
     const fetchUser = async () => {
@@ -734,7 +722,7 @@ export default function StudentToolPage() {
         if (response.ok) {
           const userData = await response.json();
           setUser(userData.user);
-          const exclusive = userData.user?.isAsliPrepExclusive === true;
+          const exclusive = resolveIsAsliPrepExclusive(userData.user);
           setIsAsliPrepExclusive(exclusive);
           const curriculumBoard = resolveCurriculumBoardForAiTools(userData.user);
           const defaultBoard = getDefaultAiToolBoard(exclusive, curriculumBoard);
@@ -897,6 +885,12 @@ export default function StudentToolPage() {
         delete newParams.concept;
         delete newParams.chapter;
         delete newParams.projectTopic;
+        if (String(value).toUpperCase() === 'IIT') {
+          const iitClass =
+            cascade.classOptions.find((c) => /iit/i.test(c)) ||
+            'Class 6';
+          newParams.gradeLevel = iitClass;
+        }
       }
       
       return newParams;
@@ -2258,11 +2252,6 @@ export default function StudentToolPage() {
                               ? 'Your smart study guide'
                             : 'Generated Content'}
                   </CardTitle>
-                    {generationContextSummary ? (
-                      <p className="text-xs text-slate-600 leading-relaxed" role="status">
-                        {generationContextSummary}
-                      </p>
-                    ) : null}
                   {generatedContent && Array.isArray(responseMeta?.citations) && responseMeta.citations.length > 0 && (
                     <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-2 max-h-32 overflow-y-auto">
                       <p className="text-[11px] font-semibold text-blue-700 mb-1">Top Citations</p>

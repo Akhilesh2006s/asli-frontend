@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -55,7 +55,6 @@ import {
   FileQuestion,
   CheckSquare,
   Rocket,
-  Scale,
   Layers,
   CreditCard,
   FileCheck,
@@ -247,6 +246,105 @@ const TeacherDashboard = () => {
   const [, setLocation] = useLocation();
   const search = useSearch();
   const isMobile = useIsMobile();
+
+  type DashboardSubTab = 'ai-classes' | 'students' | 'eduott' | 'vidya-ai' | 'learning-paths';
+
+  const mobileNavScrollRef = useRef<HTMLDivElement>(null);
+
+  const selectDashboardSubTab = useCallback((tab: DashboardSubTab) => {
+    setDashboardSubTab(tab);
+    if (tab === 'vidya-ai') {
+      localStorage.removeItem('teacherDashboardTab');
+    }
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.innerWidth >= 1024) return;
+    const active = mobileNavScrollRef.current?.querySelector('[aria-current="page"]');
+    active?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  }, [dashboardSubTab]);
+
+  const dashboardSubTabNav = (
+    <div
+      className="inline-flex items-center gap-2 flex-nowrap shrink-0 pr-2 lg:pr-0 lg:flex lg:w-full lg:shrink"
+      role="tablist"
+      aria-label="Dashboard sections"
+    >
+      <Button
+        variant={dashboardSubTab === 'ai-classes' ? 'default' : 'outline'}
+        className={cn(
+          dashboardSubTab === 'ai-classes'
+            ? 'bg-white text-orange-600 shadow-lg border-white'
+            : 'bg-transparent text-white border-white/30 hover:bg-white/10',
+          'shrink-0 snap-center justify-center whitespace-nowrap lg:flex-1 h-9 sm:h-10 px-2.5 sm:px-3 text-xs sm:text-sm'
+        )}
+        onClick={() => selectDashboardSubTab('ai-classes')}
+        aria-current={dashboardSubTab === 'ai-classes' ? 'page' : undefined}
+      >
+        <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 shrink-0" />
+        Dashboard
+      </Button>
+      <Button
+        variant={dashboardSubTab === 'students' ? 'default' : 'outline'}
+        className={cn(
+          dashboardSubTab === 'students'
+            ? 'bg-white text-orange-600 shadow-lg border-white'
+            : 'bg-transparent text-white border-white/30 hover:bg-white/10',
+          'shrink-0 snap-center justify-center whitespace-nowrap lg:flex-1 h-9 sm:h-10 px-2.5 sm:px-3 text-xs sm:text-sm'
+        )}
+        onClick={() => selectDashboardSubTab('students')}
+        aria-current={dashboardSubTab === 'students' ? 'page' : undefined}
+      >
+        <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 shrink-0" />
+        My Students
+      </Button>
+      <Button
+        variant={dashboardSubTab === 'eduott' ? 'default' : 'outline'}
+        className={cn(
+          dashboardSubTab === 'eduott'
+            ? 'bg-white text-orange-600 shadow-lg border-white'
+            : 'bg-transparent text-white border-white/30 hover:bg-white/10',
+          'shrink-0 snap-center justify-center whitespace-nowrap lg:flex-1 h-9 sm:h-10 px-2.5 sm:px-3 text-xs sm:text-sm'
+        )}
+        onClick={() => selectDashboardSubTab('eduott')}
+        aria-current={dashboardSubTab === 'eduott' ? 'page' : undefined}
+      >
+        <VideoIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 shrink-0" />
+        EduOTT
+      </Button>
+      <Button
+        variant={dashboardSubTab === 'learning-paths' ? 'default' : 'outline'}
+        className={cn(
+          dashboardSubTab === 'learning-paths'
+            ? 'bg-white text-orange-600 shadow-lg border-white'
+            : 'bg-transparent text-white border-white/30 hover:bg-white/10',
+          'shrink-0 snap-center justify-center whitespace-nowrap lg:flex-1 h-9 sm:h-10 px-2.5 sm:px-3 text-xs sm:text-sm'
+        )}
+        onClick={() => selectDashboardSubTab('learning-paths')}
+        aria-current={dashboardSubTab === 'learning-paths' ? 'page' : undefined}
+      >
+        <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 shrink-0" />
+        Learning Paths
+      </Button>
+      <Button
+        variant={dashboardSubTab === 'vidya-ai' ? 'default' : 'outline'}
+        className={cn(
+          dashboardSubTab === 'vidya-ai'
+            ? 'bg-white text-orange-600 shadow-lg border-white'
+            : 'bg-transparent text-white border-white/30 hover:bg-white/10',
+          'shrink-0 snap-center justify-center whitespace-nowrap lg:flex-1 h-9 sm:h-10 px-2.5 sm:px-3 text-xs sm:text-sm'
+        )}
+        onClick={() => selectDashboardSubTab('vidya-ai')}
+        aria-current={dashboardSubTab === 'vidya-ai' ? 'page' : undefined}
+      >
+        <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 shrink-0" />
+        Vidya AI
+      </Button>
+    </div>
+  );
 
   useEffect(() => {
     const raw = search || '';
@@ -2072,7 +2170,7 @@ const TeacherDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-sky-50 relative overflow-hidden">
+    <div className="min-h-screen bg-sky-50 relative overflow-x-hidden">
       {/* Interactive Background - Disabled for better performance */}
       {/* <div className="fixed inset-0 z-0">
         <InteractiveBackground />
@@ -2112,7 +2210,7 @@ const TeacherDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 relative z-10">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-28 lg:pb-8 relative z-10">
         {/* Welcome Message */}
         <div className="mb-8">
           <h1 className="text-responsive-xl font-bold bg-gradient-to-r from-orange-500 to-teal-500 bg-clip-text text-transparent capitalize">
@@ -2123,53 +2221,9 @@ const TeacherDashboard = () => {
 
         {/* Dashboard Content */}
         <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-          {/* Dashboard Sub-Tabs */}
-              <div className="bg-gradient-to-b from-orange-400 to-orange-500 rounded-3xl p-4 shadow-xl border border-orange-300">
-                <div className="flex items-center gap-2 w-full">
-                  <Button
-                    variant={dashboardSubTab === 'ai-classes' ? 'default' : 'outline'}
-                    className={`${dashboardSubTab === 'ai-classes' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} whitespace-nowrap flex-1 justify-center`}
-                    onClick={() => setDashboardSubTab('ai-classes')}
-                  >
-                    <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                    Dashboard
-                  </Button>
-                  <Button
-                    variant={dashboardSubTab === 'students' ? 'default' : 'outline'}
-                    className={`${dashboardSubTab === 'students' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} whitespace-nowrap flex-1 justify-center`}
-                    onClick={() => setDashboardSubTab('students')}
-                  >
-                    <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                    My Students
-                  </Button>
-                  <Button
-                    variant={dashboardSubTab === 'eduott' ? 'default' : 'outline'}
-                    className={`${dashboardSubTab === 'eduott' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} flex-1 justify-center`}
-                    onClick={() => setDashboardSubTab('eduott')}
-                  >
-                    <VideoIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                    EduOTT
-                  </Button>
-                  <Button
-                    variant={dashboardSubTab === 'learning-paths' ? 'default' : 'outline'}
-                    className={`${dashboardSubTab === 'learning-paths' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} whitespace-nowrap flex-1 justify-center`}
-                    onClick={() => setDashboardSubTab('learning-paths')}
-                  >
-                    <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                    Learning Paths
-                  </Button>
-                  <Button
-                    variant={dashboardSubTab === 'vidya-ai' ? 'default' : 'outline'}
-                    className={`${dashboardSubTab === 'vidya-ai' ? 'bg-white text-orange-600 shadow-lg border-white' : 'bg-transparent text-white border-white/30 hover:bg-white/10'} flex-1 justify-center`}
-                    onClick={() => {
-                      setDashboardSubTab('vidya-ai');
-                      localStorage.removeItem('teacherDashboardTab'); // Clear saved tab when manually selected
-                    }}
-                  >
-                    <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                    Vidya AI
-                  </Button>
-                </div>
+          {/* Dashboard Sub-Tabs — desktop / large tablet (in page flow) */}
+              <div className="hidden lg:block bg-gradient-to-b from-orange-400 to-orange-500 rounded-3xl p-4 shadow-xl border border-orange-300 overflow-x-auto teacher-dashboard-nav-scroll">
+                {dashboardSubTabNav}
               </div>
 
               {/* Refresh Button - Mobile Friendly */}
@@ -2791,27 +2845,6 @@ const TeacherDashboard = () => {
                               </div>
                             </div>
                         </motion.div>
-
-                        {/* Tool 8: Rubrics, Evaluation & Report Card Generator */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 1.1 }}
-                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
-                          onClick={() => {
-                            setLocation('/teacher/tools/rubrics-evaluation-generator');
-                          }}
-                        >
-                          <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <Scale className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-600" />
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-gray-900 mb-1">Rubrics, Evaluation & Report Card Generator</h4>
-                              <p className="text-xs sm:text-sm text-gray-600">Create assessment criteria, rubrics, and comprehensive student progress reports with feedback.</p>
-                        </div>
-                      </div>
-              </motion.div>
 
                         {/* Tool 10: Story & Passage Creator */}
                         <motion.div
@@ -4968,12 +5001,29 @@ const TeacherDashboard = () => {
 
       <VidyaAIFloatingAssistant
         role="teacher"
-        onClick={() => {
-          setDashboardSubTab('vidya-ai');
-          localStorage.removeItem('teacherDashboardTab');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
+        className="max-lg:bottom-24"
+        onClick={() => selectDashboardSubTab('vidya-ai')}
       />
+
+      {/* Mobile / tablet — fixed bottom tab bar (horizontal swipe scroll) */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="pointer-events-auto relative w-full min-w-0 max-w-full bg-gradient-to-b from-orange-400 to-orange-500 rounded-3xl px-2.5 pt-2.5 pb-1.5 shadow-xl border border-orange-300">
+          <div
+            className="pointer-events-none absolute inset-y-2.5 left-2.5 z-10 w-5 bg-gradient-to-r from-orange-500 to-transparent"
+            aria-hidden="true"
+          />
+          <div
+            className="pointer-events-none absolute inset-y-2.5 right-2.5 z-10 w-5 bg-gradient-to-l from-orange-500 to-transparent"
+            aria-hidden="true"
+          />
+          <div
+            ref={mobileNavScrollRef}
+            className="teacher-dashboard-nav-scroll w-full min-w-0 overflow-x-auto overflow-y-hidden overscroll-x-contain [-webkit-overflow-scrolling:touch] scroll-smooth snap-x snap-mandatory scroll-px-2"
+          >
+            {dashboardSubTabNav}
+          </div>
+        </div>
+      </div>
 
       </div>
     </div>

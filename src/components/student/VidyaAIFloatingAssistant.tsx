@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import { cn } from "@/lib/utils";
 
 const DEFAULT_MESSAGES = [
   "Need some help with your homework?",
@@ -40,6 +41,7 @@ export default function VidyaAIFloatingAssistant({
   postExamContext,
   role,
   onClick,
+  className,
 }: VidyaAIFloatingAssistantProps) {
   const [currentPage, setLocation] = useLocation();
   const [currentMessage, setCurrentMessage] = useState(0);
@@ -88,7 +90,10 @@ export default function VidyaAIFloatingAssistant({
       <button
         type="button"
         onClick={handleClick}
-        className="fixed bottom-4 right-4 z-40 flex max-w-[min(18rem,calc(100vw-1.5rem))] flex-row items-end justify-end gap-2 text-left transition-transform hover:scale-[1.02] active:scale-[0.98] sm:bottom-6 sm:right-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2"
+        className={cn(
+          "fixed bottom-4 right-4 z-40 flex max-w-[min(18rem,calc(100vw-1.5rem))] flex-row items-end justify-end gap-2 text-left transition-transform hover:scale-[1.02] active:scale-[0.98] sm:bottom-6 sm:right-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2",
+          className
+        )}
         aria-label="Open Vidya AI tools"
       >
         <div className="relative mb-1 max-w-[200px] animate-fade-in pointer-events-none">

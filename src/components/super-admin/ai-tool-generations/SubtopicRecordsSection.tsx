@@ -23,6 +23,7 @@ import {
 import { GeneratedRecordBody } from "@/components/super-admin/generated-record-body";
 import { HomeworkCreatorViewer } from "@/components/homework-creator-viewer";
 import { LessonPlannerViewer } from "@/components/lesson-planner-viewer";
+import { DailyClassPlanViewer } from "@/components/daily-class-plan-viewer";
 import { RubricsEvaluationViewer } from "@/components/rubrics-evaluation-viewer";
 import { StoryPassageViewer } from "@/components/story-passage-viewer";
 import { ShortNotesViewer } from "@/components/short-notes-viewer";
@@ -62,7 +63,12 @@ function isWorksheetToolValue(v: unknown): boolean {
 
 function isLessonPlannerToolValue(v: unknown): boolean {
   const t = String(v || "").trim().toLowerCase();
-  return t === "lesson-planner" || t === "daily-class-plan-maker";
+  return t === "lesson-planner" || t === "study-schedule-maker";
+}
+
+function isDailyClassPlanToolValue(v: unknown): boolean {
+  const t = String(v || "").trim().toLowerCase();
+  return t === "daily-class-plan-maker";
 }
 
 function isHomeworkCreatorToolValue(v: unknown): boolean {
@@ -466,6 +472,17 @@ export function SubtopicRecordsSection({
                       <LessonPlannerViewer
                         content={String(fullText || "")}
                         rawContent={viewDetail}
+                        variant="teacher"
+                      />
+                    </div>
+                  );
+                }
+                if (isDailyClassPlanToolValue(resolvedTool)) {
+                  return (
+                    <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
+                      <DailyClassPlanViewer
+                        content={String(fullText || "")}
+                        rawContent={viewDetail?.structuredContent || viewDetail}
                         variant="teacher"
                       />
                     </div>

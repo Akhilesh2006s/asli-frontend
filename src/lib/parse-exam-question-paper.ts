@@ -40,10 +40,22 @@ const SECTION_META: Array<{ id: string; title: string; keys: string[] }> = [
 function cleanText(value: unknown): string {
   return String(value ?? '')
     .replace(/\r\n/g, '\n')
+    .replace(/\*\*/g, '')
+    .replace(/\s+#+\s*/g, ' ')
     .trim();
 }
 
 const MCQ_OPTION_LABEL_RE = /^([A-Da-d])[\).:\-\s]+/;
+
+function stripEmbeddedExamTail(text: string): string {
+  const raw = cleanText(text);
+  if (!raw) return '';
+  const boundaryRe =
+    /(?:\s+#{1,3}\s*8\.\s*internal\s*choices\b|\s+8\.\s*internal\s*choices\b|\s+internal\s*choices\b|\s+complete\s*answer\s*key\b|\s+detailed\s*marking\s*scheme\b|\s+rubric\s*for\s*open[-\s]?ended\b|\s+0\s+questions\b)/i;
+  const idx = raw.search(boundaryRe);
+  if (idx > 12) return raw.slice(0, idx).trim();
+  return raw;
+}
 
 /** Ensure MCQ choices display as A) B) C) D) (strips duplicate labels first). */
 export function formatLabeledMcqOptions(options: string[], maxOptions = 4): string[] {
@@ -147,7 +159,7 @@ function collectOptionsFromRow(row: Record<string, unknown>): string[] {
 
 function normalizeQuestion(value: unknown, idx: number): ExamQuestion {
   const row = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
-  let question = cleanText(row.question || row.prompt || row.statement || '');
+  let question = stripEmbeddedExamTail(cleanText(row.question || row.prompt || row.statement || ''));
   let options = collectOptionsFromRow(row);
   if (options.length < 2) {
     const inline = extractInlineMcqFromQuestionText(question);
@@ -232,18 +244,20 @@ function normalizeExam(record: Record<string, unknown>): NormalizedExamPaper {
     mergedSections = mergeExamSections(mergedSections, parseMockTestQuestionPaperBody(questionPaperRaw));
   }
 
-  return {
+  const blueprint = sanitizeBlueprintText(record.blueprint || record.design_grid);
+  const paper: NormalizedExamPaper = {
     paperTitle: cleanText(
-      record.mock_test_title || record.mockTestTitle || record.paper_title || record.title || 'Exam Question Paper',
+      record.paper_title || record.title || record.mock_test_title || record.mockTestTitle || 'Exam Question Paper',
     ),
     instructions: cleanText(record.instructions),
-    blueprint: cleanText(record.blueprint || record.design_grid),
+    blueprint,
     sections: mergedSections,
     internalChoices: cleanText(record.internal_choices),
     answerKey: cleanText(record.answer_key),
     markingScheme: cleanText(record.marking_scheme),
     openEndedRubric: cleanText(record.open_ended_rubric),
   };
+  return redistributeExamPaperSections(paper, blueprint);
 }
 
 export function examPaperHasQuestions(paper: NormalizedExamPaper | null): boolean {
@@ -295,8 +309,8 @@ function parseQuestionBlockLines(
     questionBody.push(line);
   }
 
-  const joined = cleanText([qTextStart, ...questionBody].join(' ').trim());
-  let question = cleanText(questionBody.join(' ').trim()) || joined;
+  const joined = stripEmbeddedExamTail(cleanText([qTextStart, ...questionBody].join(' ').trim()));
+  let question = stripEmbeddedExamTail(cleanText(questionBody.join(' ').trim())) || joined;
   let finalOptions = options.length >= 2 ? formatLabeledMcqOptions(options) : options;
 
   if (finalOptions.length < 2) {
@@ -319,6 +333,123 @@ function parseQuestionBlockLines(
   };
 }
 
+function isJunkExamQuestion(q: ExamQuestion): boolean {
+  const t = stripEmbeddedExamTail(String(q.question || '').trim());
+  if (!t) return true;
+  if (/^Q\s*\d+\s*$/i.test(t)) return true;
+  if (/^Q\s*\d+\s*\([^)]*\)\s*:/i.test(t) && t.length < 48) return true;
+  if (/^section\s*[a-e]\s*:/i.test(t) && /\d+\s*marks?/i.test(t)) return true;
+  if (/^#{1,3}\s*\d+\./.test(t)) return true;
+  if (/^(internal\s*choices|complete\s*answer\s*key|detailed\s*marking\s*scheme|rubric\s*for\s*open[-\s]?ended)/i.test(t)) {
+    return true;
+  }
+  return false;
+}
+
+function parseBlueprintCounts(blueprint = ''): { a: number; b: number; c: number; d: number; e: number } {
+  const text = String(blueprint || '');
+  const pick = (letter: string) => {
+    const m = text.match(new RegExp(`section\\s*${letter}[^\\d]*(\\d+)`, 'i'));
+    return m ? Math.max(0, Number(m[1])) : 0;
+  };
+  const a = pick('a');
+  const b = pick('b');
+  const c = pick('c');
+  const d = pick('d');
+  const e = pick('e');
+  if (a + b + c + d + e > 0) return { a, b, c, d, e };
+  return { a: 4, b: 3, c: 3, d: 2, e: 1 };
+}
+
+function sanitizeBlueprintText(value: unknown): string {
+  const raw = cleanText(value);
+  if (!raw) return '';
+  const stopRe =
+    /(?:\n|^)\s*(?:#{1,4}\s*)?section\s*a\s*:\s*mcq|(?:\n|^)\s*\*?\*?q\s*1[\).:\-]/i;
+  const idx = raw.search(stopRe);
+  if (idx > 0) return raw.slice(0, idx).trim();
+  return raw;
+}
+
+/** Split a flat question list into Sections A–E using blueprint counts. */
+export function redistributeExamPaperSections(
+  paper: NormalizedExamPaper,
+  blueprint = '',
+): NormalizedExamPaper {
+  const allQs = paper.sections.flatMap((s) => s.questions).filter((q) => !isJunkExamQuestion(q));
+  const active = paper.sections.filter((s) => s.questions.length > 0);
+  const counts = parseBlueprintCounts(blueprint);
+  const expectedById: Record<string, number> = {
+    a: counts.a,
+    b: counts.b,
+    c: counts.c,
+    d: counts.d,
+    e: counts.e,
+  };
+  const deficit = paper.sections.reduce((sum, s) => {
+    const expected = expectedById[s.id] || 0;
+    return sum + Math.max(0, expected - s.questions.length);
+  }, 0);
+  const overflow = paper.sections.reduce((sum, s) => {
+    const expected = expectedById[s.id] || 0;
+    return sum + Math.max(0, s.questions.length - expected);
+  }, 0);
+  const expectedTotal = counts.a + counts.b + counts.c + counts.d + counts.e;
+  const needs =
+    allQs.length >= 3 &&
+    (active.length === 1 ||
+      active.some((s) => /^questions?$/i.test(s.title)) ||
+      (active.length === 1 && active[0].id === 'a' && allQs.length >= 4));
+  const shouldRebalanceByBlueprint =
+    expectedTotal > 0 && allQs.length >= Math.min(3, expectedTotal) && deficit > 0 && overflow > 0;
+
+  if (!needs && !shouldRebalanceByBlueprint) {
+    return {
+      ...paper,
+      sections: paper.sections.map((s) => ({
+        ...s,
+        questions: s.questions.filter((q) => !isJunkExamQuestion(q)),
+      })),
+    };
+  }
+
+  const sorted = [...allQs].sort(
+    (a, b) => Number(a.questionNumber || 0) - Number(b.questionNumber || 0),
+  );
+  let idx = 0;
+  const take = (n: number): ExamQuestion[] => {
+    const slice = sorted.slice(idx, idx + n);
+    idx += n;
+    return slice.map((q, i) => ({
+      ...q,
+      questionNumber: q.questionNumber || String(idx - slice.length + i + 1),
+    }));
+  };
+
+  const sections: ExamSection[] = SECTION_META.map((m, i) => {
+    const count = [counts.a, counts.b, counts.c, counts.d, counts.e][i];
+    return {
+      ...getSectionById(m.id),
+      title: m.title,
+      questions: take(count).filter((q) => !isJunkExamQuestion(q)),
+    };
+  });
+  if (idx < sorted.length) {
+    const eIdx = sections.findIndex((s) => s.id === 'e');
+    if (eIdx >= 0) {
+      sections[eIdx] = {
+        ...sections[eIdx],
+        questions: [
+          ...sections[eIdx].questions,
+          ...sorted.slice(idx).filter((q) => !isJunkExamQuestion(q)),
+        ],
+      };
+    }
+  }
+
+  return { ...paper, sections };
+}
+
 function parseQuestionBlock(block: string, fallbackIndex: number): ExamQuestion | null {
   const lines = block
     .split('\n')
@@ -326,6 +457,11 @@ function parseQuestionBlock(block: string, fallbackIndex: number): ExamQuestion 
     .filter(Boolean);
   if (!lines.length) return null;
   const first = lines[0];
+
+  const qDot = first.match(/^Q\.\s*(.+)$/i);
+  if (qDot) {
+    return parseQuestionBlockLines(lines, String(fallbackIndex + 1), cleanText(qDot[1]));
+  }
 
   const qMatch = first.match(/^Q(?:uestion)?\s*([A-Za-z0-9]+)[\).:\-]?\s*(.*)$/i);
   if (qMatch) {
@@ -367,11 +503,14 @@ function parseQuestionsFromSectionText(sectionBody: string): ExamQuestion[] {
   const cleaned = cleanText(sectionBody).replace(/\*\*/g, '');
   if (!cleaned) return [];
 
-  const qBlocks = splitQuestionBlocks(cleaned, /(^|\n)\s*(Q(?:uestion)?\s*[A-Za-z0-9]+[\).:\-]?)/i);
+  const qBlocks = splitQuestionBlocks(
+    cleaned,
+    /(^|\n)\s*(Q(?:uestion)?\s*(?:[A-Za-z0-9]+|\.)[\).:\-]?\s*)/i,
+  );
   if (qBlocks.length) {
     return qBlocks
       .map((block, i) => parseQuestionBlock(block, i))
-      .filter((q): q is ExamQuestion => q != null);
+      .filter((q): q is ExamQuestion => q != null && !isJunkExamQuestion(q));
   }
 
   const numBlocks = splitQuestionBlocks(cleaned, /(^|\n)\s*(\d+[\).:\-]\s+)/);
@@ -418,9 +557,40 @@ export function parseMockTestQuestionPaperBody(body: string): ExamSection[] {
   }
 
   if (!assigned) {
-    const all = parseQuestionsFromSectionText(text);
+    const all = parseQuestionsFromSectionText(text).filter(
+      (q): q is ExamQuestion => q != null && !isJunkExamQuestion(q),
+    );
     if (all.length) {
-      sections[0] = { ...sections[0], questions: all };
+      const counts = { a: 4, b: 3, c: 3, d: 2, e: 1 };
+      let idx = 0;
+      const take = (n: number, sectionId: string) => {
+        const slice = all.slice(idx, idx + n);
+        idx += n;
+        const si = sections.findIndex((s) => s.id === sectionId);
+        if (si >= 0) {
+          sections[si] = {
+            ...sections[si],
+            questions: slice.map((q, i) => ({
+              ...q,
+              questionNumber: q.questionNumber || String(idx - slice.length + i + 1),
+            })),
+          };
+        }
+      };
+      take(counts.a, 'a');
+      take(counts.b, 'b');
+      take(counts.c, 'c');
+      take(counts.d, 'd');
+      take(counts.e, 'e');
+      if (idx < all.length) {
+        const eIdx = sections.findIndex((s) => s.id === 'e');
+        if (eIdx >= 0) {
+          sections[eIdx] = {
+            ...sections[eIdx],
+            questions: [...sections[eIdx].questions, ...all.slice(idx)],
+          };
+        }
+      }
     }
   }
 
@@ -569,8 +739,31 @@ function parseMarkdownExam(markdown: string): NormalizedExamPaper | null {
     }
   }
 
-  if (!examPaperHasVisibleContent(paper)) return null;
-  return paper;
+  const questionPaperBlob = markdown.match(
+    /###\s*3[–-]7\.?\s*Question\s*Paper\s*Sections([\s\S]*?)(?=^#{1,3}\s*\d+\.\s*8\.|^#{1,3}\s*8\.|\n8\.\s*Internal|\Z)/im,
+  );
+  if (questionPaperBlob?.[1]) {
+    const subSections = parseMockTestQuestionPaperBody(questionPaperBlob[1]);
+    paper.sections = mergeExamSections(paper.sections, subSections);
+  } else if (!examPaperHasQuestions(paper)) {
+    const subSections = parseMockTestQuestionPaperBody(markdown);
+    if (subSections.some((s) => s.questions.length > 0)) {
+      paper.sections = mergeExamSections(paper.sections, subSections);
+    }
+  }
+
+  if (sec9) paper.answerKey = sec9;
+  if (sec10) paper.markingScheme = sec10;
+  if (sec11) paper.openEndedRubric = sec11;
+
+  const titleLine = lines.find((l) => /^##\s+/.test(l.trim()));
+  if (titleLine) {
+    paper.paperTitle = cleanText(titleLine.replace(/^##\s+/, ''));
+  }
+
+  const redistributed = redistributeExamPaperSections(paper, paper.blueprint);
+  if (!examPaperHasVisibleContent(redistributed)) return null;
+  return redistributed;
 }
 
 function extractObjectCandidates(payload: unknown): Record<string, unknown>[] {
@@ -587,6 +780,22 @@ function extractObjectCandidates(payload: unknown): Record<string, unknown>[] {
     return [obj];
   }
   return [];
+}
+
+/** True when markdown follows the 11-section Exam Question Paper template (not Mock Test). */
+export function looksLikeExamPaperContent(text: string): boolean {
+  const sample = String(text || '').slice(0, 15000);
+  if (!sample.trim()) return false;
+  if (/mock\s*test\s*title/i.test(sample) && /test\s*purpose\s*and\s*subtopic/i.test(sample)) {
+    return false;
+  }
+  return (
+    /paper\s*title\s*and\s*general\s*instructions/i.test(sample) ||
+    /blueprint\s*\/\s*design\s*grid/i.test(sample) ||
+    /rubric\s*for\s*open[-\s]?ended/i.test(sample) ||
+    /detailed\s*marking\s*scheme/i.test(sample) ||
+    (/section\s*a:\s*mcq/i.test(sample) && /complete\s*answer\s*key/i.test(sample))
+  );
 }
 
 export function examPaperHasVisibleContent(paper: NormalizedExamPaper | null): boolean {
@@ -619,9 +828,20 @@ export function resolveExamPaperFromPayload(content: string, rawContent?: unknow
   }
 
   const markdown = String(content || '').trim();
-  const mockPaper = parseMockTestMarkdown(markdown);
-  if (mockPaper) {
-    paper = mergeExamPapers(paper, mockPaper);
+  const isExamTemplate = looksLikeExamPaperContent(markdown);
+
+  if (isExamTemplate) {
+    const parsedFromMarkdown = parseMarkdownExam(markdown);
+    if (parsedFromMarkdown) {
+      paper = mergeExamPapers(paper, parsedFromMarkdown);
+    }
+  }
+
+  if (!isExamTemplate) {
+    const mockPaper = parseMockTestMarkdown(markdown);
+    if (mockPaper) {
+      paper = mergeExamPapers(paper, mockPaper);
+    }
   }
 
   if (!examPaperHasQuestions(paper)) {
@@ -629,10 +849,24 @@ export function resolveExamPaperFromPayload(content: string, rawContent?: unknow
     if (parsedFromMarkdown) {
       paper = mergeExamPapers(paper, parsedFromMarkdown);
     }
+    if (!examPaperHasQuestions(paper)) {
+      const mockPaper = parseMockTestMarkdown(markdown);
+      if (mockPaper) {
+        paper = mergeExamPapers(paper, mockPaper);
+      }
+    }
   }
 
   if (paper && examPaperHasVisibleContent(paper)) {
-    return { paper, markdownFallback: null };
+    const blueprint =
+      paper.blueprint ||
+      cleanText(
+        (candidates[0]?.blueprint as string) ||
+          (candidates[0]?.design_grid as string) ||
+          '',
+      );
+    const finalPaper = redistributeExamPaperSections(paper, blueprint);
+    return { paper: finalPaper, markdownFallback: null };
   }
   return { paper: null, markdownFallback: markdown || null };
 }

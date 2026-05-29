@@ -464,6 +464,32 @@
   display: none; /* Chrome, Safari, Edge */
 }
 
+/* Teacher dashboard — visible horizontal nav scrollbar (mobile bottom bar + desktop tabs) */
+.teacher-dashboard-nav-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.95) rgba(255, 255, 255, 0.25);
+}
+
+.teacher-dashboard-nav-scroll::-webkit-scrollbar {
+  height: 7px;
+}
+
+.teacher-dashboard-nav-scroll::-webkit-scrollbar-track {
+  margin: 0 10px 2px;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 9999px;
+}
+
+.teacher-dashboard-nav-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 9999px;
+  border: 1px solid rgba(234, 88, 12, 0.35);
+}
+
+.teacher-dashboard-nav-scroll::-webkit-scrollbar-thumb:hover {
+  background: #ffffff;
+}
+
 /* Hide root page scrollbar for full-screen dashboard layouts */
 html.dashboard-no-scrollbar,
 body.dashboard-no-scrollbar {

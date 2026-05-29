@@ -244,7 +244,10 @@ function parsePassagesBundle(obj: Record<string, unknown>): ParsedPassagesBundle
   };
 }
 
-const STORY_SECTION_HINT: Record<number, keyof ParsedStory | 'alignment'> = {
+type StorySectionKey = keyof ParsedStory | 'alignment';
+
+/** Reading Practice Room — 13 sections */
+const READING_PRACTICE_SECTION_HINT: Record<number, StorySectionKey> = {
   1: 'title',
   2: 'subtopicLinkPriorKnowledge',
   3: 'learningObjectives',
@@ -260,9 +263,33 @@ const STORY_SECTION_HINT: Record<number, keyof ParsedStory | 'alignment'> = {
   13: 'reflection',
 };
 
+/** Story and Passage Creator (teacher) — 19 sections */
+const TEACHER_STORY_PASSAGE_SECTION_HINT: Record<number, StorySectionKey> = {
+  1: 'title',
+  2: 'topicSubtopicConnection',
+  3: 'priorKnowledgeRequired',
+  4: 'learningObjectives',
+  5: 'ncfAlignment',
+  6: 'vocabulary',
+  7: 'preReadingPrompt',
+  8: 'passage',
+  9: 'readRecallQuestions',
+  10: 'thinkInferQuestions',
+  11: 'applyConnectQuestions',
+  12: 'vocabularyGrammarPractice',
+  13: 'creativeResponseActivity',
+  14: 'answerKeySuggestedResponses',
+  15: 'commonMistakesToAvoid',
+  16: 'differentiationSupport',
+  17: 'expectedLearningOutcomes',
+  18: 'realLifeApplication',
+  19: 'reflection',
+};
+
 const SECTION_HEADING_MD_RE = /^#{1,3}\s+(\d{1,2})\.\s*(.+?)\s*$/i;
 const SECTION_PLAIN_RE = /^(\d{1,2})\.\s+(.+?)\s*$/i;
-const SECTION_TITLE_HINT: Record<number, RegExp> = {
+
+const READING_SECTION_TITLE_HINT: Record<number, RegExp> = {
   1: /reading\s+practice\s+title|story|passage\s+title/i,
   2: /subtopic.*prior|prior\s+knowledge/i,
   3: /learning\s+objective/i,
@@ -277,6 +304,43 @@ const SECTION_TITLE_HINT: Record<number, RegExp> = {
   12: /expected\s+learning\s+outcome/i,
   13: /reflection|exit\s+ticket/i,
 };
+
+const TEACHER_SECTION_TITLE_HINT: Record<number, RegExp> = {
+  1: /story\s*\/?\s*passage\s*title|passage\s*title/i,
+  2: /topic\s+and\s+subtopic/i,
+  3: /prior\s+knowledge/i,
+  4: /learning\s+objectives?/i,
+  5: /ncf|competency|learning\s+outcome/i,
+  6: /vocabulary\s+warm/i,
+  7: /pre[-\s]?reading/i,
+  8: /story\s*\/?\s*passage\s+content|^passage$/i,
+  9: /read\s+and\s+recall/i,
+  10: /think\s+and\s+infer/i,
+  11: /apply\s+and\s+connect/i,
+  12: /vocabulary\s+and\s+grammar/i,
+  13: /creative\s+response/i,
+  14: /answer\s+key|suggested\s+responses?/i,
+  15: /common\s+mistakes/i,
+  16: /differentiation/i,
+  17: /expected\s+learning\s+outcomes?/i,
+  18: /real[-\s]?life/i,
+  19: /reflection|exit\s+ticket/i,
+};
+
+function detectStoryPassageFormat(text: string): 'teacher' | 'reading' {
+  const t = String(text || '');
+  if (
+    /\b1[4-9]\.\s+/i.test(t) ||
+    /creative\s+response\s+activity/i.test(t) ||
+    /common\s+mistakes\s+to\s+avoid/i.test(t) ||
+    /topic\s+and\s+subtopic\s+connection/i.test(t) ||
+    /pre[-\s]?reading\s+thinking/i.test(t) ||
+    /story\s*\/?\s*passage\s+content/i.test(t)
+  ) {
+    return 'teacher';
+  }
+  return 'reading';
+}
 
 /** Legacy story labels → 13-section Reading Practice Room index. */
 function legacyStorySectionNumFromTitle(title: string): number | null {
@@ -294,25 +358,134 @@ function legacyStorySectionNumFromTitle(title: string): number | null {
   return null;
 }
 
-function sectionNumFromLine(line: string): number | null {
+function sectionNumFromLine(line: string, format: 'teacher' | 'reading' = 'reading'): number | null {
   const trimmed = line.trim();
+  const maxSection = format === 'teacher' ? 19 : 13;
+  const titleHints = format === 'teacher' ? TEACHER_SECTION_TITLE_HINT : READING_SECTION_TITLE_HINT;
+
   let m = trimmed.match(SECTION_HEADING_MD_RE);
   if (m) {
     const n = Number(m[1]);
-    if (n >= 1 && n <= 13) return n;
+    if (n >= 1 && n <= maxSection) return n;
   }
   m = trimmed.match(SECTION_PLAIN_RE);
   if (m) {
     const n = Number(m[1]);
     const title = String(m[2] || '').trim();
-    if (n >= 1 && n <= 13 && SECTION_TITLE_HINT[n]?.test(title)) return n;
-    const legacy = legacyStorySectionNumFromTitle(title);
-    if (legacy != null) return legacy;
+    if (n >= 1 && n <= maxSection && titleHints[n]?.test(title)) return n;
+    if (format === 'reading') {
+      const legacy = legacyStorySectionNumFromTitle(title);
+      if (legacy != null) return legacy;
+    }
   }
   const bare = stripOrderedPrefix(trimmed).replace(/^#+\s*/, '').trim();
-  const bareLegacy = legacyStorySectionNumFromTitle(bare);
-  if (bareLegacy != null) return bareLegacy;
+  if (format === 'reading') {
+    const bareLegacy = legacyStorySectionNumFromTitle(bare);
+    if (bareLegacy != null) return bareLegacy;
+  }
+  for (const [numStr, re] of Object.entries(titleHints)) {
+    if (re.test(bare)) return Number(numStr);
+  }
   return null;
+}
+
+function applyStorySectionBody(story: ParsedStory, key: StorySectionKey, body: string) {
+  const text = body.replace(/\n{2,}/g, '\n').trim();
+  if (!text) return;
+
+  if (key === 'alignment') {
+    story.alignment = text;
+    return;
+  }
+  if (key === 'title') {
+    story.title = text || story.title;
+    return;
+  }
+  if (key === 'subtopicLinkPriorKnowledge') {
+    story.subtopicLinkPriorKnowledge = text;
+    return;
+  }
+  if (key === 'topicSubtopicConnection') {
+    story.topicSubtopicConnection = text;
+    return;
+  }
+  if (key === 'priorKnowledgeRequired') {
+    story.priorKnowledgeRequired = text;
+    return;
+  }
+  if (key === 'ncfAlignment') {
+    story.ncfAlignment = text;
+    return;
+  }
+  if (key === 'preReadingPrompt') {
+    story.preReadingPrompt = text;
+    return;
+  }
+  if (key === 'learningObjectives') {
+    story.learningObjectives = linesToList(body);
+    return;
+  }
+  if (key === 'passage') {
+    story.passage = text;
+    return;
+  }
+  if (key === 'vocabulary') {
+    story.vocabulary = linesToList(body);
+    return;
+  }
+  if (key === 'vocabularyPractice') {
+    story.vocabularyPractice = linesToList(body);
+    return;
+  }
+  if (key === 'readRecallQuestions') {
+    story.readRecallQuestions = linesToOrderedList(body).map((q) => ({ question: q }));
+    story.questions = story.readRecallQuestions;
+    return;
+  }
+  if (key === 'thinkInferQuestions') {
+    story.thinkInferQuestions = linesToOrderedList(body).map((q) => ({ question: q }));
+    return;
+  }
+  if (key === 'applyConnectQuestions') {
+    story.applyConnectQuestions = linesToOrderedList(body).map((q) => ({ question: q }));
+    return;
+  }
+  if (key === 'vocabularyGrammarPractice') {
+    story.vocabularyGrammarPractice = text;
+    return;
+  }
+  if (key === 'creativeResponseActivity') {
+    story.creativeResponseActivity = text;
+    return;
+  }
+  if (key === 'answerKeySuggestedResponses') {
+    story.answerKeySuggestedResponses = text;
+    story.answerHints = linesToList(body);
+    return;
+  }
+  if (key === 'commonMistakesToAvoid') {
+    story.commonMistakesToAvoid = text;
+    return;
+  }
+  if (key === 'differentiationSupport') {
+    const support = body.match(/support:\s*(.+)/i);
+    const ext = body.match(/extension:\s*(.+)/i);
+    if (support) story.differentiationSupport = support[1].trim();
+    if (ext) story.differentiationExtension = ext[1].trim();
+    if (!support && !ext) story.differentiationSupport = text;
+    return;
+  }
+  if (key === 'realLifeApplication') {
+    story.realLifeApplication = text;
+    return;
+  }
+  if (key === 'expectedLearningOutcomes') {
+    story.expectedLearningOutcomes = text;
+    return;
+  }
+  if (key === 'reflection') {
+    story.reflection = text;
+  }
 }
 
 function linesToList(body: string): string[] {
@@ -354,11 +527,19 @@ function storyHasContent(s: ParsedStory): boolean {
   return !!(
     s.passage ||
     s.subtopicLinkPriorKnowledge ||
+    s.topicSubtopicConnection ||
+    s.priorKnowledgeRequired ||
+    s.preReadingPrompt ||
     s.alignment ||
     s.ncfAlignment ||
     s.learningObjectives.length ||
     s.vocabulary.length ||
     s.vocabularyPractice.length ||
+    s.vocabularyGrammarPractice ||
+    s.creativeResponseActivity ||
+    s.commonMistakesToAvoid ||
+    s.differentiationSupport ||
+    s.realLifeApplication ||
     s.questions.length ||
     s.readRecallQuestions.length ||
     s.thinkInferQuestions.length ||
@@ -463,13 +644,17 @@ function parseStoryFromMarkdown(text: string): ParsedStory | null {
   const trimmed = text.replace(/\r\n/g, '\n').trim();
   if (!trimmed) return null;
 
+  const format = detectStoryPassageFormat(trimmed);
+  const sectionHintMap =
+    format === 'teacher' ? TEACHER_STORY_PASSAGE_SECTION_HINT : READING_PRACTICE_SECTION_HINT;
+
   const titleMatch = trimmed.match(/^##\s+(.+?)(?:\n|$)/m);
   let title = titleMatch ? titleMatch[1].replace(/^Story\s+\d+\s*:\s*/i, '').trim() : '';
   let bodyStart = titleMatch ? trimmed.slice(titleMatch.index! + titleMatch[0].length) : trimmed;
 
   if (!title) {
     const firstLine = bodyStart.split('\n').map((l) => l.trim()).find(Boolean) || '';
-    if (firstLine && sectionNumFromLine(firstLine) == null && firstLine.length < 120) {
+    if (firstLine && sectionNumFromLine(firstLine, format) == null && firstLine.length < 120) {
       title = firstLine.replace(/^\d+[\).\s]+/, '').trim();
       bodyStart = bodyStart.slice(bodyStart.indexOf(firstLine) + firstLine.length).replace(/^\n+/, '');
     }
@@ -490,7 +675,7 @@ function parseStoryFromMarkdown(text: string): ParsedStory | null {
   };
 
   for (const line of lines) {
-    const n = sectionNumFromLine(line);
+    const n = sectionNumFromLine(line, format);
     if (n != null) {
       flush();
       current = n;
@@ -500,29 +685,29 @@ function parseStoryFromMarkdown(text: string): ParsedStory | null {
   }
   flush();
 
-  // Fallback: some outputs omit numbering and use only heading titles.
+  // Fallback: heading titles without reliable numbering.
   if (!sections.size) {
     const headingOnlyMap = new Map<number, string>();
-    const headingPatterns: Array<[number, RegExp]> = [
-      [1, /^story\s*\/?\s*passage\s*title|^passage\s*\/?\s*story\s*title|^title$/i],
-      [2, /^topic\s+and\s+subtopic\s+connection|topic.*subtopic/i],
-      [3, /^prior\s+knowledge\s+required/i],
-      [4, /^learning\s+objectives/i],
-      [5, /^alignment\s+block|ncf\s+competency|learning\s+outcome\s+alignment/i],
-      [6, /^vocabulary\s+warm[-\s]?up|vocabulary\s+support/i],
-      [7, /^pre[-\s]?reading\s+thinking\s+prompt/i],
-      [8, /^story\s*\/?\s*passage\s+content|^passage$/i],
-      [9, /^read\s+and\s+recall\s+questions|comprehension\s+and\s+thinking\s+questions/i],
-      [10, /^think\s+and\s+infer\s+questions/i],
-      [11, /^apply\s+and\s+connect\s+questions/i],
-      [12, /^vocabulary\s+and\s+grammar\s+practice/i],
-      [13, /^creative\s+response\s+activity/i],
-      [14, /^answer\s+key|suggested\s+responses?|answer\s+hints?/i],
-      [15, /^common\s+mistakes\s+to\s+avoid/i],
-      [16, /^differentiation/i],
-      [17, /^expected\s+learning\s+outcomes|^reflection|exit\s+ticket/i],
-      [18, /^real[-\s]?life\s+application/i],
-    ];
+    const headingPatterns =
+      format === 'teacher'
+        ? (Object.entries(TEACHER_SECTION_TITLE_HINT) as Array<[string, RegExp]>).map(
+            ([num, re]) => [Number(num), re] as [number, RegExp],
+          )
+        : ([
+            [1, /^reading\s+practice\s+title|story|passage\s+title/i],
+            [2, /subtopic.*prior|prior\s+knowledge/i],
+            [3, /learning\s+objectives?/i],
+            [4, /ncf|competency|learning\s+outcome/i],
+            [5, /vocabulary\s+warm/i],
+            [6, /^passage|story\s*\/?\s*passage/i],
+            [7, /read\s+and\s+recall/i],
+            [8, /think\s+and\s+infer/i],
+            [9, /apply\s+and\s+connect/i],
+            [10, /vocabulary\s+practice/i],
+            [11, /answer\s+key|suggested\s+response/i],
+            [12, /expected\s+learning\s+outcome/i],
+            [13, /reflection|exit\s+ticket/i],
+          ] as Array<[number, RegExp]>);
 
     let cur: number | null = null;
     const b: string[] = [];
@@ -566,44 +751,9 @@ function parseStoryFromMarkdown(text: string): ParsedStory | null {
   };
 
   for (const [num, body] of Array.from(sections.entries())) {
-    const key = STORY_SECTION_HINT[num];
+    const key = sectionHintMap[num];
     if (!key) continue;
-    if (key === 'alignment') story.alignment = body.replace(/\n{2,}/g, '\n').trim();
-    else if (key === 'title') story.title = body.replace(/\n{2,}/g, '\n').trim() || story.title;
-    else if (key === 'subtopicLinkPriorKnowledge') story.subtopicLinkPriorKnowledge = body.trim();
-    else if (key === 'topicSubtopicConnection') story.topicSubtopicConnection = body.trim();
-    else if (key === 'priorKnowledgeRequired') story.priorKnowledgeRequired = body.trim();
-    else if (key === 'ncfAlignment') story.ncfAlignment = body.trim();
-    else if (key === 'preReadingPrompt') story.preReadingPrompt = body.trim();
-    else if (key === 'learningObjectives') story.learningObjectives = linesToList(body);
-    else if (key === 'passage') story.passage = body.replace(/\n{2,}/g, '\n').trim();
-    else if (key === 'vocabulary') story.vocabulary = linesToList(body);
-    else if (key === 'vocabularyPractice') story.vocabularyPractice = linesToList(body);
-    else if (key === 'questions' || key === 'readRecallQuestions') {
-      story.questions = linesToOrderedList(body).map((q) => ({ question: q }));
-      story.readRecallQuestions = story.questions;
-    } else if (key === 'thinkInferQuestions') {
-      story.thinkInferQuestions = linesToOrderedList(body).map((q) => ({ question: q }));
-    } else if (key === 'applyConnectQuestions') {
-      story.applyConnectQuestions = linesToOrderedList(body).map((q) => ({ question: q }));
-    } else if (key === 'vocabularyGrammarPractice') {
-      story.vocabularyGrammarPractice = body.trim();
-    } else if (key === 'creativeResponseActivity') {
-      story.creativeResponseActivity = body.trim();
-    } else if (key === 'answerKeySuggestedResponses') {
-      story.answerKeySuggestedResponses = body.trim();
-    } else if (key === 'commonMistakesToAvoid') {
-      story.commonMistakesToAvoid = body.trim();
-    } else if (key === 'answerHints') story.answerHints = linesToList(body);
-    else if (key === 'differentiationSupport') {
-      const support = body.match(/support:\s*(.+)/i);
-      const ext = body.match(/extension:\s*(.+)/i);
-      if (support) story.differentiationSupport = support[1].trim();
-      if (ext) story.differentiationExtension = ext[1].trim();
-      if (!support && !ext) story.differentiationSupport = body.trim();
-    } else if (key === 'realLifeApplication') story.realLifeApplication = body.trim();
-    else if (key === 'expectedLearningOutcomes') story.expectedLearningOutcomes = body.trim();
-    else if (key === 'reflection') story.reflection = body.trim();
+    applyStorySectionBody(story, key, body);
   }
 
   if (!storyHasContent(story)) return null;

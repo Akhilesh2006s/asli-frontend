@@ -112,7 +112,8 @@ const STEP_MESSAGES: Record<UploadStep, string> = {
 export default function AIContentEngine() {
   const { toast } = useToast();
   const [items, setItems] = useState<PdfItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [listLoadError, setListLoadError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [subject, setSubject] = useState("");
   const [board, setBoard] = useState("CBSE");
@@ -140,6 +141,8 @@ export default function AIContentEngine() {
   const [uploadStep, setUploadStep] = useState<UploadStep>("idle");
   const [lastUploadResult, setLastUploadResult] = useState<{ totalSaved: number } | null>(null);
   const [pdfContentViewId, setPdfContentViewId] = useState<string | null>(null);
+  const [pdfContentViewDetail, setPdfContentViewDetail] = useState<PdfItem | null>(null);
+  const [pdfContentViewLoading, setPdfContentViewLoading] = useState(false);
 
   const [mismatchDetails, setMismatchDetails] = useState<
     null | {
@@ -161,7 +164,6 @@ export default function AIContentEngine() {
       { value: "lesson-planner", label: "Lesson Planner" },
       { value: "study-schedule-maker", label: "Study Schedule Maker" },
       { value: "homework-creator", label: "Homework Creator" },
-      { value: "rubrics-evaluation-generator", label: "Rubrics, Evaluation & Report Card" },
       { value: "reading-practice-room", label: "Reading Practice Room" },
       { value: "story-passage-creator", label: "Story and Passage Creator" },
       { value: "short-notes-summaries-maker", label: "Short Notes & Summaries" },
@@ -419,7 +421,7 @@ export default function AIContentEngine() {
       case "my-study-decks":
         return "Open View for the 12-section study deck: objectives, flashcard set, difficulty tags, self-check, and reflection.";
       case "flashcard-generator":
-        return "Open View for the 18-section Flash Card Generator: typed card groups, difficulty tags, memory hooks, self-check round, and reflection.";
+        return "Open View for the 5-block Flash Card Generator: Context, Foundations, HOTS Task/Solution cards, Study Aids, and Wrap-Up.";
       case "short-notes-summaries-maker":
         return "Open View for the full 10-section short notes layout.";
       case "reading-practice-room":
@@ -1224,7 +1226,7 @@ export default function AIContentEngine() {
         <div className="space-y-3">
           {renderSectionHeader(<Layers className="h-3 w-3 sm:h-4 sm:w-4" />, deckTitle)}
           <p className="text-xs text-slate-500 pl-9">
-            {isTeacherFlashcards ? "Flash Card Generator — 18-section template" : "My Study Decks — 12-point template"}
+            {isTeacherFlashcards ? "Flash Card Generator — 5-block template" : "My Study Decks — 12-point template"}
           </p>
           {isTeacherFlashcards ? (
             <div className="rounded-xl border bg-white p-4 space-y-2 shadow-sm">
@@ -3200,14 +3202,7 @@ export default function AIContentEngine() {
       });
   }, [visiblePdfItems, toolOptions]);
 
-  const pdfContentViewRecord = useMemo(
-    () => (pdfContentViewId ? items.find((x) => x._id === pdfContentViewId) ?? null : null),
-    [items, pdfContentViewId],
-  );
-
-  useEffect(() => {
-    if (pdfContentViewId && !pdfContentViewRecord) setPdfContentViewId(null);
-  }, [pdfContentViewId, pdfContentViewRecord]);
+  const pdfContentViewRecord = pdfContentViewDetail;
 
   const authHeaders = (): Record<string, string> => {
     const token =
@@ -3298,38 +3293,126 @@ export default function AIContentEngine() {
     }
   };
 
+  const mapApiPdfDetailToItem = (data: Record<string, unknown>): PdfItem => ({
+    _id: String(data._id || ""),
+    board: String(data.board || ""),
+    originalName: String(data.originalName || ""),
+    fileUrl: String(data.fileUrl || ""),
+    subject: String(data.subject || ""),
+    classLabel: String(data.classLabel || ""),
+    chapter: String(data.chapter || data.topic || ""),
+    topic: String(data.topic || data.chapter || ""),
+    subTopic: String(data.subTopic || ""),
+    processingStatus: (data.processingStatus as PdfItem["processingStatus"]) || "pending",
+    approvalStatus: data.approvalStatus as PdfItem["approvalStatus"],
+    toolType: String(data.toolType || ""),
+    contentType: String(data.contentType || ""),
+    structuredContent: data.structuredContent,
+    renderContent: data.renderContent,
+    chunkCount: Number(data.chunkCount) || 0,
+    uploadDate: String(data.uploadDate || data.createdAt || ""),
+    generatedContent: String(data.generatedContent || ""),
+    displayTitle: typeof data.displayTitle === "string" ? data.displayTitle : undefined,
+  });
+
+  const openPdfContentView = async (id: string) => {
+    setPdfContentViewId(id);
+    setPdfContentViewDetail(items.find((x) => x._id === id) ?? null);
+    setPdfContentViewLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/pdf/${id}`, { headers: authHeaders() });
+      const json = await res.json();
+      if (!res.ok || json?.success === false) {
+        throw new Error(json?.message || "Could not load record");
+      }
+      const detail = mapApiPdfDetailToItem(json.data || {});
+      setPdfContentViewDetail(detail);
+      setItems((prev) => prev.map((row) => (row._id === id ? { ...row, ...detail } : row)));
+    } catch (error: unknown) {
+      setPdfContentViewId(null);
+      setPdfContentViewDetail(null);
+      toast({
+        title: "Failed",
+        description: error instanceof Error ? error.message : "Could not load record",
+        variant: "destructive",
+      });
+    } finally {
+      setPdfContentViewLoading(false);
+    }
+  };
+
+  const closePdfContentView = () => {
+    setPdfContentViewId(null);
+    setPdfContentViewDetail(null);
+    setPdfContentViewLoading(false);
+  };
+
   const fetchList = async () => {
     setIsLoading(true);
+    setListLoadError(null);
     try {
-      const allRows: PdfItem[] = [];
-      let page = 1;
-      let totalPages = 1;
-      do {
-        const qs = new URLSearchParams();
+      const baseQs = new URLSearchParams({ summary: "1", limit: "200" });
+      if (recordsBoardFilter && recordsBoardFilter !== "__all__") {
+        baseQs.set("board", recordsBoardFilter);
+      }
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 60_000);
+      const fetchPage = async (page: number) => {
+        const qs = new URLSearchParams(baseQs);
         qs.set("page", String(page));
-        qs.set("limit", "100");
-        if (recordsBoardFilter && recordsBoardFilter !== "__all__") {
-          qs.set("board", recordsBoardFilter);
-        }
-        const res = await fetch(`${API_BASE_URL}/api/pdf/list?${qs.toString()}`, { headers: authHeaders() });
+        const res = await fetch(`${API_BASE_URL}/api/pdf/list?${qs.toString()}`, {
+          headers: authHeaders(),
+          signal: controller.signal,
+        });
         const json = await res.json();
         if (!res.ok || json?.success === false) {
           throw new Error(json?.message || "Could not load PDF list");
         }
-        const batch = Array.isArray(json?.data) ? json.data : [];
-        allRows.push(...batch);
-        totalPages = Math.max(1, Number(json?.pagination?.totalPages) || 1);
-        page += 1;
-      } while (page <= totalPages);
+        return json as { data?: PdfItem[]; pagination?: { totalPages?: number; total?: number } };
+      };
+      let first;
+      try {
+        first = await fetchPage(1);
+      } finally {
+        window.clearTimeout(timeoutId);
+      }
+      const totalPages = Math.max(1, Number(first.pagination?.totalPages) || 1);
+      const allRows: PdfItem[] = Array.isArray(first.data) ? [...first.data] : [];
       setItems(allRows);
+      setIsLoading(false);
+
+      if (totalPages > 1) {
+        void (async () => {
+          for (let page = 2; page <= totalPages; page += 1) {
+            try {
+              const json = await fetchPage(page);
+              if (Array.isArray(json.data) && json.data.length > 0) {
+                setItems((prev) => {
+                  const seen = new Set(prev.map((r) => r._id));
+                  const extra = json.data!.filter((r) => !seen.has(r._id));
+                  return extra.length > 0 ? [...prev, ...extra] : prev;
+                });
+              }
+            } catch {
+              break;
+            }
+          }
+        })();
+      }
     } catch (error: unknown) {
       setItems([]);
+      const message =
+        error instanceof Error && error.name === "AbortError"
+          ? "Request timed out. Try filtering by board or refresh."
+          : error instanceof Error
+            ? error.message
+            : "Could not load PDF list";
+      setListLoadError(message);
       toast({
         title: "Failed",
-        description: error instanceof Error ? error.message : "Could not load PDF list",
+        description: message,
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -3783,7 +3866,7 @@ export default function AIContentEngine() {
                       ? "Select topic first"
                       : loadingSubtopics
                         ? "Loading sub topics..."
-                        : "Optional — select sub topic"
+                        : "Select sub topic"
                   }
                 />
               </SelectTrigger>
@@ -3922,7 +4005,23 @@ export default function AIContentEngine() {
             </div>
           </div>
           {isLoading ? (
-            <p className="text-xs sm:text-sm text-gray-600">Loading hierarchy...</p>
+            <div className="flex items-center gap-2 py-4 text-gray-600">
+              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+              <p className="text-xs sm:text-sm">Loading hierarchy…</p>
+            </div>
+          ) : listLoadError ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs sm:text-sm text-red-800">
+              {listLoadError}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2 h-8"
+                onClick={() => void fetchList()}
+              >
+                Retry
+              </Button>
+            </div>
           ) : groupedHierarchy.length === 0 ? (
             <p className="text-xs sm:text-sm text-gray-600">
               No saved AI content records
@@ -4078,7 +4177,7 @@ export default function AIContentEngine() {
                                                                   onClick={(e) => {
                                                                     e.preventDefault();
                                                                     e.stopPropagation();
-                                                                    setPdfContentViewId(record._id);
+                                                                    void openPdfContentView(record._id);
                                                                   }}
                                                                 >
                                                                   <Eye className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
@@ -4132,7 +4231,7 @@ export default function AIContentEngine() {
         </CardContent>
       </Card>
 
-      <Dialog open={!!pdfContentViewId} onOpenChange={(open) => !open && setPdfContentViewId(null)}>
+      <Dialog open={!!pdfContentViewId} onOpenChange={(open) => !open && closePdfContentView()}>
         <DialogContent className="flex max-h-[min(92vh,920px)] w-[min(100vw-1.5rem,56rem)] max-w-[56rem] flex-col gap-0 overflow-hidden rounded-2xl border-slate-200/90 p-0 shadow-2xl">
           <DialogHeader className="shrink-0 space-y-1 border-b border-slate-100 bg-gradient-to-br from-slate-50 via-white to-blue-50/50 px-3 sm:px-4 lg:px-6 py-4 text-left">
             <DialogTitle className="pr-8 text-base sm:text-lg font-semibold leading-snug tracking-tight text-slate-900">
@@ -4149,7 +4248,12 @@ export default function AIContentEngine() {
             ) : null}
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/60 px-4 py-4 sm:px-6 sm:py-5">
-            {pdfContentViewRecord ? (
+            {pdfContentViewLoading ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-500">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <p className="text-xs sm:text-sm">Loading record…</p>
+              </div>
+            ) : pdfContentViewRecord ? (
               <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm sm:p-6">
                 {renderEducationalContent(pdfContentViewRecord)}
               </div>

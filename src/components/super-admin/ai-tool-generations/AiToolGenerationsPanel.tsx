@@ -14,7 +14,6 @@ const TOOL_LABELS: Record<string, string> = {
   "concept-mastery-helper": "Concept Mastery Helper",
   "lesson-planner": "Lesson Planner",
   "homework-creator": "Homework Creator",
-  "rubrics-evaluation-generator": "Rubrics, Evaluation & Report Card",
   "reading-practice-room": "Reading Practice Room",
   "story-passage-creator": "Story & Passage Creator",
   "short-notes-summaries-maker": "Short Notes & Summaries",
