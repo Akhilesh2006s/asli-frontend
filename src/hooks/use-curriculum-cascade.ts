@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { API_BASE_URL } from '@/lib/api-config';
+import { compareClassLabels, sortClassLabelsAscending } from '@/lib/super-admin-curriculum-classes';
+import { sortChapterWiseLabels } from '@/lib/curriculum-chapter-sort';
 
 type CurriculumRow = { id: string; name: string; label: string };
 
@@ -141,7 +143,11 @@ export function useCurriculumCascade(
         const data = await fetchCurriculum(`/api/curriculum/classes?${qs.toString()}`, token);
         if (cancelled) return;
         const rows = (data as { data?: CurriculumRow[] }).data || [];
-        setClassRows(rows);
+        setClassRows(
+          [...rows].sort((a, b) =>
+            compareClassLabels(a.name || a.label || a.id, b.name || b.label || b.id),
+          ),
+        );
       } catch {
         if (!cancelled) setClassRows([]);
       } finally {
@@ -213,7 +219,8 @@ export function useCurriculumCascade(
         const curriculumTopics = rowsToNames((data as { data?: CurriculumRow[] }).data);
         const managedTopics = (managed as { data?: { topics?: string[] } })?.data?.topics || [];
         const allTopics = curriculumTopics.concat(managedTopics).filter(Boolean);
-        setTopics(allTopics.filter((topic, index) => allTopics.indexOf(topic) === index));
+        const uniqueTopics = allTopics.filter((topic, index) => allTopics.indexOf(topic) === index);
+        setTopics(sortChapterWiseLabels(uniqueTopics));
       } catch {
         if (!cancelled) setTopics([]);
       } finally {
@@ -253,7 +260,8 @@ export function useCurriculumCascade(
         const curriculumSubtopics = rowsToNames((data as { data?: CurriculumRow[] }).data);
         const managedSubtopics = (managed as { data?: { subTopics?: string[] } })?.data?.subTopics || [];
         const allSubtopics = curriculumSubtopics.concat(managedSubtopics).filter(Boolean);
-        setSubtopics(allSubtopics.filter((subtopic, index) => allSubtopics.indexOf(subtopic) === index));
+        const uniqueSubtopics = allSubtopics.filter((subtopic, index) => allSubtopics.indexOf(subtopic) === index);
+        setSubtopics(sortChapterWiseLabels(uniqueSubtopics));
       } catch {
         if (!cancelled) setSubtopics([]);
       } finally {
@@ -266,7 +274,9 @@ export function useCurriculumCascade(
   }, [gradeLevel, gradeForApi, subject, topic, board]);
 
   const classOptions = useMemo(() => {
-    if (classRows.length > 0) return classRows.map((r) => r.name || r.label || r.id);
+    if (classRows.length > 0) {
+      return sortClassLabelsAscending(classRows.map((r) => r.name || r.label || r.id));
+    }
     return [];
   }, [classRows]);
 

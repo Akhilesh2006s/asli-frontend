@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { AdminTeacherDailyDialog } from '@/components/admin/AdminTeacherDailyDialog';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Teacher {
   id: string;
@@ -292,6 +293,8 @@ const TeacherManagement = () => {
     qualifications: '',
     subjects: [] as string[]
   });
+  const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   useEffect(() => {
     fetchTeachers();
@@ -333,8 +336,12 @@ const TeacherManagement = () => {
       const savedAssignments = readSavedClassAssignments();
       const mappedTeachers = teachersArray
         .map((teacher: unknown) => mapTeacherFromApi(teacher, savedAssignments))
-        .filter((teacher): teacher is Teacher => teacher != null);
+        .filter((teacher): teacher is Teacher => teacher != null)
+        .sort((a, b) =>
+          (a.fullName || '').localeCompare(b.fullName || '', 'en', { sensitivity: 'base' }),
+        );
       setTeachers(mappedTeachers);
+      setSelectedTeacherIds((prev) => prev.filter((id) => mappedTeachers.some((t) => t.id === id)));
     } catch (error) {
       console.error('Failed to fetch teachers:', error);
       // Set mock data for development
@@ -567,6 +574,7 @@ const TeacherManagement = () => {
         });
 
         if (response.ok) {
+          setSelectedTeacherIds((prev) => prev.filter((id) => id !== teacherId));
           fetchTeachers();
           alert(`${teacherName} has been deleted successfully.`);
         } else {
@@ -578,6 +586,54 @@ const TeacherManagement = () => {
         alert('Failed to delete teacher. Please try again.');
       }
     }
+  };
+
+  const handleBulkDeleteTeachers = async () => {
+    if (selectedTeacherIds.length === 0) return;
+    const count = selectedTeacherIds.length;
+    if (
+      !window.confirm(
+        `Delete ${count} selected teacher${count !== 1 ? 's' : ''}? This action cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    setIsBulkDeleting(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        alert('Authentication token not found. Please log in again.');
+        return;
+      }
+      const response = await fetch(`${API_BASE_URL}/api/admin/teachers/bulk-delete`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ids: selectedTeacherIds }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data?.success === false) {
+        throw new Error(data?.message || 'Bulk delete failed');
+      }
+      const deleted = Number(data.deletedCount ?? count);
+      setSelectedTeacherIds([]);
+      await fetchTeachers();
+      alert(`Deleted ${deleted} teacher${deleted !== 1 ? 's' : ''} successfully.`);
+    } catch (error) {
+      console.error('Bulk delete teachers failed:', error);
+      alert(error instanceof Error ? error.message : 'Failed to delete selected teachers.');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const toggleTeacherSelection = (teacherId: string, checked: boolean) => {
+    setSelectedTeacherIds((prev) => {
+      if (checked) return prev.includes(teacherId) ? prev : [...prev, teacherId];
+      return prev.filter((id) => id !== teacherId);
+    });
   };
 
   const handleCSVUpload = async (file: File) => {
@@ -943,14 +999,34 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
     }
   };
 
-  const filteredTeachers = teachers.filter((teacher) => {
-    const q = searchTerm.toLowerCase();
-    return (
-      (teacher.fullName || '').toLowerCase().includes(q) ||
-      (teacher.email || '').toLowerCase().includes(q) ||
-      (teacher.department || '').toLowerCase().includes(q)
-    );
-  });
+  const sortedFilteredTeachers = useMemo(() => {
+    const q = searchTerm.toLowerCase().trim();
+    return teachers
+      .filter((teacher) => {
+        if (!q) return true;
+        return (
+          (teacher.fullName || '').toLowerCase().includes(q) ||
+          (teacher.email || '').toLowerCase().includes(q) ||
+          (teacher.department || '').toLowerCase().includes(q)
+        );
+      })
+      .sort((a, b) =>
+        (a.fullName || '').localeCompare(b.fullName || '', 'en', { sensitivity: 'base' }),
+      );
+  }, [teachers, searchTerm]);
+
+  const allVisibleSelected =
+    sortedFilteredTeachers.length > 0 &&
+    sortedFilteredTeachers.every((t) => selectedTeacherIds.includes(t.id));
+
+  const toggleSelectAllVisible = () => {
+    const visibleIds = sortedFilteredTeachers.map((t) => t.id);
+    if (allVisibleSelected) {
+      setSelectedTeacherIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+    } else {
+      setSelectedTeacherIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
+    }
+  };
 
   const totalTeachers = teachers.length;
   const activeTeachers = teachers.filter(t => t.isActive).length;
@@ -1067,6 +1143,32 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
               <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Filter
             </Button>
+            {sortedFilteredTeachers.length > 0 ? (
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+                <Checkbox
+                  checked={allVisibleSelected}
+                  onCheckedChange={() => toggleSelectAllVisible()}
+                  aria-label="Select all visible teachers"
+                />
+                Select all
+              </label>
+            ) : null}
+            {selectedTeacherIds.length > 0 ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="border-red-200 text-red-700 hover:bg-red-50 rounded-xl"
+                disabled={isBulkDeleting}
+                onClick={() => void handleBulkDeleteTeachers()}
+              >
+                {isBulkDeleting ? (
+                  <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                )}
+                Delete selected ({selectedTeacherIds.length})
+              </Button>
+            ) : null}
           </div>
           
           <div className="flex gap-3">
@@ -1393,9 +1495,10 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
 
         {/* Teachers Grid — stretch cards so sections align across columns */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6 items-stretch">
-          {filteredTeachers.map((teacher, index) => {
+          {sortedFilteredTeachers.map((teacher, index) => {
             const teacherSubjects = teacher.subjects ?? [];
             const assignedClassIds = teacher.assignedClassIds ?? [];
+            const isSelected = selectedTeacherIds.includes(teacher.id);
             const gradientColors = [
               'from-orange-500 to-orange-400',
               'from-blue-500 to-cyan-500', 
@@ -1412,13 +1515,22 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="group relative overflow-hidden bg-white/80 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 border border-white/20 h-full flex flex-col"
+                className={`group relative overflow-hidden bg-white/80 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl hover:shadow-2xl transition-all duration-300 h-full flex flex-col ${
+                  isSelected ? 'border-2 border-orange-500 ring-2 ring-orange-200' : 'border border-white/20'
+                }`}
               >
                 <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-5 group-hover:opacity-10 transition-opacity duration-300`}></div>
                 <div className="relative z-10 flex flex-col flex-1 min-h-0">
                   {/* Header — fixed height so Subjects / Classes align across cards */}
                   <div className="flex items-start justify-between gap-2 mb-4 min-h-[5.5rem]">
                     <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={(checked) => toggleTeacherSelection(teacher.id, checked === true)}
+                        className="mt-1 shrink-0"
+                        aria-label={`Select ${teacher.fullName}`}
+                        onClick={(e) => e.stopPropagation()}
+                      />
                       <div className={`w-14 h-14 sm:w-16 sm:h-16 shrink-0 bg-gradient-to-r ${gradient} rounded-2xl flex items-center justify-center text-white font-bold text-base sm:text-lg shadow-lg`}>
                         {getTeacherInitials(teacher.fullName)}
                       </div>
@@ -1551,7 +1663,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
           })}
         </div>
 
-        {filteredTeachers.length === 0 && (
+        {sortedFilteredTeachers.length === 0 && (
           <div className="text-center py-16">
             <div className="w-24 h-24 bg-gradient-to-r from-orange-500 to-orange-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
               <Users className="w-12 h-12 text-white" />

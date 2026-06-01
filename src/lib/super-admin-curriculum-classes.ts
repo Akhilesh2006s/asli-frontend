@@ -42,15 +42,28 @@ export function saveCurriculumClass(entry: CurriculumClassEntry): boolean {
   return true;
 }
 
+const CLASS_LABEL_COLLATOR = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+
+export function classNumberFromLabel(value: string): number {
+  const digits = String(value || '').replace(/\D/g, '');
+  const n = parseInt(digits, 10);
+  return Number.isNaN(n) ? Number.MAX_SAFE_INTEGER : n;
+}
+
+/** Class 6, 7, 8, 10 — not Class 10, 6, 7, 8 (plain string sort). */
+export function compareClassLabels(a: string, b: string): number {
+  const aNum = classNumberFromLabel(a);
+  const bNum = classNumberFromLabel(b);
+  if (aNum !== bNum) return aNum - bNum;
+  return CLASS_LABEL_COLLATOR.compare(a, b);
+}
+
+export function sortClassLabelsAscending(labels: string[]): string[] {
+  return [...labels].sort(compareClassLabels);
+}
+
 export function getCurriculumClassLabels(): string[] {
-  return loadCurriculumClasses()
-    .map((c) => c.label)
-    .sort((a, b) => {
-      const aNum = parseInt(a.replace('Class ', ''), 10);
-      const bNum = parseInt(b.replace('Class ', ''), 10);
-      if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) return aNum - bNum;
-      return a.localeCompare(b);
-    });
+  return sortClassLabelsAscending(loadCurriculumClasses().map((c) => c.label));
 }
 
 export function consumeSelectClassLabel(): string | null {

@@ -1,3 +1,5 @@
+import { sortChapterWiseLabels } from "@/lib/curriculum-chapter-sort";
+
 const MONGO_OBJECT_ID_RE = /^[a-f\d]{24}$/i;
 
 /** Detect raw MongoDB ObjectId strings so we never show them as subject labels. */
@@ -145,5 +147,5 @@ export function sanitizeTopicStrings(raw: string[]): string[] {
     seen.add(k);
     out.push(t);
   }
-  return out.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  return sortChapterWiseLabels(out);
 }

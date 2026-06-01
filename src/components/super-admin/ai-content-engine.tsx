@@ -18,6 +18,8 @@ import {
   subjectLabelFromRows,
 } from "@/lib/ai-tool-subject-rules";
 import { isDeprecatedAiToolIdentifier } from "@/lib/ai-tool-registry";
+import { compareClassLabels, sortClassLabelsAscending } from "@/lib/super-admin-curriculum-classes";
+import { compareChapterWiseLabels, sortCurriculumSelectRowsChapterWise } from "@/lib/curriculum-chapter-sort";
 import { StoryPassageViewer } from "@/components/story-passage-viewer";
 import { SmartStudyGuideViewer } from "@/components/smart-study-guide-viewer";
 import { ConceptBreakdownViewer } from "@/components/concept-breakdown-viewer";
@@ -33,6 +35,7 @@ import {
   isGenericActivityNumberTitle,
   looksLikeValidActivityTitle,
 } from "@/lib/activity-title-utils";
+import { resolveWorksheetFromPayload } from "@/lib/parse-worksheet-mcq";
 import {
   Wrench,
   School,
@@ -136,6 +139,7 @@ export default function AIContentEngine() {
   const [loadingSubtopics, setLoadingSubtopics] = useState(false);
   const [reviewingId, setReviewingId] = useState("");
   const [deletingPdfId, setDeletingPdfId] = useState("");
+  const [deletingSubtopicKey, setDeletingSubtopicKey] = useState<string | null>(null);
   const [deletingQuestionKey, setDeletingQuestionKey] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState("");
   const [uploadStep, setUploadStep] = useState<UploadStep>("idle");
@@ -155,8 +159,8 @@ export default function AIContentEngine() {
     }
   >(null);
 
-  const toolOptions = useMemo(
-    () => [
+  const toolOptions = useMemo(() => {
+    const tools = [
       { value: "activity-project-generator", label: "Activity / Project Generator" },
       { value: "project-idea-lab", label: "Project Idea Lab" },
       { value: "worksheet-mcq-generator", label: "Worksheet & MCQ Generator" },
@@ -178,9 +182,9 @@ export default function AIContentEngine() {
       { value: "chapter-summary-creator", label: "Chapter Summary Creator" },
       { value: "key-points-formula-extractor", label: "Key Points Extractor" },
       { value: "quick-assignment-builder", label: "Quick Assignment Builder" },
-    ],
-    [],
-  );
+    ];
+    return tools.sort((a, b) => a.label.localeCompare(b.label, "en", { sensitivity: "base" }));
+  }, []);
 
   const fieldClassName =
     "h-11 border-slate-300 bg-slate-50 text-slate-800 placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-0";
@@ -188,6 +192,11 @@ export default function AIContentEngine() {
   const reqStar = <span className="text-red-600">*</span>;
   const getToolLabel = (toolValue?: string) =>
     toolOptions.find((tool) => tool.value === String(toolValue || "").trim())?.label || toolValue || "-";
+
+  const sortedClassOptions = useMemo(
+    () => sortClassLabelsAscending(classOptions),
+    [classOptions],
+  );
 
   const subjectRowsForTool = useMemo(
     () => filterSubjectRowsForAiTool(toolType, subjectRows),
@@ -947,11 +956,29 @@ export default function AIContentEngine() {
           sectionMap.set(eKey, eQuestions);
         }
       }
-      const sections = WORKSHEET_SECTION_ORDER.map((sectionName, idx) => ({
+      let sections = WORKSHEET_SECTION_ORDER.map((sectionName, idx) => ({
         sectionName,
         displayLabel: `${4 + idx}. ${sectionName}`,
         questions: sectionMap.get(sectionName) || [],
       }));
+      const fallbackBodyEarly = String(item.generatedContent || "").trim();
+      if (!sections.some((s) => s.questions.length > 0) && fallbackBodyEarly) {
+        const repaired = resolveWorksheetFromPayload(fallbackBodyEarly, fb);
+        if (repaired.worksheet?.sections.some((s) => s.questions.length > 0)) {
+          sections = repaired.worksheet.sections.map((sec) => ({
+            sectionName: sec.label,
+            displayLabel: sec.displayLabel,
+            questions: sec.questions.map((q) => ({
+              question: q.question,
+              options: q.options,
+              answer: q.answer,
+              question_number: q.questionNumber,
+              marks: q.marks,
+              type: q.type,
+            })),
+          }));
+        }
+      }
       const wsTitle = pickStr("title", "worksheet_title", "name") || activityTitleForDisplay("Worksheet", item);
       const objectives = listFrom(rc.learningObjectives, fb.learning_objectives, fb.objectives);
       const section = (label: string, children: ReactNode) => (
@@ -3168,10 +3195,10 @@ export default function AIContentEngine() {
       );
 
     return Array.from(byTool.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
+      .sort(([a], [b]) => a.localeCompare(b, "en", { sensitivity: "base" }))
       .map(([tool, classMap]) => {
         const classes = Array.from(classMap.entries())
-          .sort(([a], [b]) => a.localeCompare(b))
+          .sort(([, a], [, b]) => compareClassLabels(a.classLabel, b.classLabel) || a.board.localeCompare(b.board))
           .map(([, classEntry]) => ({
             classLabel: classEntry.classLabel,
             board: classEntry.board,
@@ -3180,11 +3207,11 @@ export default function AIContentEngine() {
               .map(([subjectValue, topicMap]) => ({
                 subject: subjectValue,
                 topics: Array.from(topicMap.entries())
-                  .sort(([a], [b]) => a.localeCompare(b))
+                  .sort(([a], [b]) => compareChapterWiseLabels(a, b))
                   .map(([topicValue, subtopicMap]) => ({
                     topic: topicValue,
                     subtopics: Array.from(subtopicMap.entries())
-                      .sort(([a], [b]) => a.localeCompare(b))
+                      .sort(([a], [b]) => compareChapterWiseLabels(a, b))
                       .map(([subtopicValue, records]) => ({
                         subtopic: subtopicValue,
                         records: [...records].sort(
@@ -3226,10 +3253,12 @@ export default function AIContentEngine() {
       if (board) qs.set("board", board);
       const res = await fetch(`${API_BASE_URL}/api/curriculum/classes?${qs.toString()}`, { headers: authHeaders(), credentials: "include" });
       const json = await res.json();
-      const names = toNames(json?.data);
-      setClassOptions(names.length > 0 ? names : ["Class 6", "Class 7", "Class 8", "Class 10"]);
+      const names = sortClassLabelsAscending(toNames(json?.data));
+      setClassOptions(
+        names.length > 0 ? names : sortClassLabelsAscending(["Class 6", "Class 7", "Class 8", "Class 10"]),
+      );
     } catch {
-      setClassOptions(["Class 6", "Class 7", "Class 8", "Class 10"]);
+      setClassOptions(sortClassLabelsAscending(["Class 6", "Class 7", "Class 8", "Class 10"]));
     } finally {
       setLoadingClasses(false);
     }
@@ -3263,7 +3292,7 @@ export default function AIContentEngine() {
       if (!res.ok || json?.success === false) {
         throw new Error(json?.message || "Failed to load topics");
       }
-      setTopicRows(toCurriculumSelectRows(json?.data));
+      setTopicRows(sortCurriculumSelectRowsChapterWise(toCurriculumSelectRows(json?.data)));
     } catch {
       setTopicRows([]);
     } finally {
@@ -3285,7 +3314,7 @@ export default function AIContentEngine() {
       if (!res.ok || json?.success === false) {
         throw new Error(json?.message || "Failed to load subtopics");
       }
-      setSubtopicRows(toCurriculumSelectRows(json?.data));
+      setSubtopicRows(sortCurriculumSelectRowsChapterWise(toCurriculumSelectRows(json?.data)));
     } catch {
       setSubtopicRows([]);
     } finally {
@@ -3665,12 +3694,70 @@ export default function AIContentEngine() {
       });
       const json = await res.json();
       if (!res.ok || !json?.success) throw new Error(json?.message || "Delete failed");
-      toast({ title: "Deleted", description: "PDF and chunks deleted." });
-      fetchList();
+      setItems((prev) => prev.filter((row) => row._id !== id));
+      if (pdfContentViewId === id) closePdfContentView();
+      toast({ title: "Deleted", description: json?.message || "Record deleted." });
     } catch (error: any) {
       toast({ title: "Delete failed", description: error?.message || "Could not delete", variant: "destructive" });
     } finally {
       setDeletingPdfId("");
+    }
+  };
+
+  const subtopicSectionKey = (
+    tool: string,
+    classLabel: string,
+    board: string,
+    subject: string,
+    topic: string,
+    subtopic: string,
+  ) => `subtopic:${tool}:${classLabel}:${board}:${subject}:${topic}:${subtopic}`;
+
+  const deleteAllSubtopicRecords = async (
+    records: PdfItem[],
+    subtopicLabel: string,
+    sectionKey: string,
+  ) => {
+    const ids = records.map((r) => r._id).filter(Boolean);
+    if (ids.length === 0) return;
+    if (
+      !window.confirm(
+        `Delete all ${ids.length} record${ids.length !== 1 ? "s" : ""} in subtopic “${subtopicLabel}”? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    setDeletingSubtopicKey(sectionKey);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/pdf/bulk-delete`, {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.message || "Bulk delete failed");
+      }
+      const deletedIds = new Set(ids);
+      setItems((prev) => prev.filter((row) => !deletedIds.has(row._id)));
+      if (pdfContentViewId && deletedIds.has(pdfContentViewId)) closePdfContentView();
+      const deleted = Number(json.deletedCount ?? ids.length);
+      const failed = Number(json.failedCount ?? 0);
+      toast({
+        title: "Deleted",
+        description:
+          failed > 0
+            ? `Removed ${deleted} record(s); ${failed} could not be deleted.`
+            : `Removed ${deleted} record(s) from this subtopic.`,
+      });
+    } catch (error: unknown) {
+      toast({
+        title: "Delete failed",
+        description: error instanceof Error ? error.message : "Could not delete subtopic records",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingSubtopicKey(null);
     }
   };
 
@@ -3771,13 +3858,13 @@ export default function AIContentEngine() {
                 setTopic("");
                 setSubTopic("");
               }}
-              disabled={!board || (loadingClasses && classOptions.length === 0)}
+              disabled={!board || (loadingClasses && sortedClassOptions.length === 0)}
             >
               <SelectTrigger className={fieldClassName}>
                 <SelectValue placeholder={!board ? "Select board first" : (loadingClasses ? "Loading classes..." : "Select class")} />
               </SelectTrigger>
               <SelectContent>
-                {classOptions.map((option) => (
+                {sortedClassOptions.map((option) => (
                   <SelectItem key={option} value={option}>
                     {option}
                   </SelectItem>
@@ -4103,10 +4190,20 @@ export default function AIContentEngine() {
                                           </AccordionTrigger>
                                           <AccordionContent className="space-y-2">
                                             <Accordion type="multiple" className="w-full space-y-2">
-                                              {topicNode.subtopics.map((subtopicNode) => (
+                                              {topicNode.subtopics.map((subtopicNode) => {
+                                                const subtopicKey = subtopicSectionKey(
+                                                  toolNode.tool,
+                                                  classNode.classLabel,
+                                                  classNode.board,
+                                                  subjectNode.subject,
+                                                  topicNode.topic,
+                                                  subtopicNode.subtopic,
+                                                );
+                                                const isDeletingSubtopic = deletingSubtopicKey === subtopicKey;
+                                                return (
                                                 <AccordionItem
                                                   key={`${toolNode.tool}:${classNode.classLabel}:${classNode.board}:${subjectNode.subject}:${topicNode.topic}:${subtopicNode.subtopic}`}
-                                                  value={`subtopic:${toolNode.tool}:${classNode.classLabel}:${classNode.board}:${subjectNode.subject}:${topicNode.topic}:${subtopicNode.subtopic}`}
+                                                  value={subtopicKey}
                                                   className="rounded-md border px-2 sm:px-2.5 lg:px-3"
                                                 >
                                                   <AccordionTrigger className="py-2.5 no-underline hover:no-underline max-lg:py-2 [&>svg]:shrink-0">
@@ -4124,6 +4221,33 @@ export default function AIContentEngine() {
                                                     </div>
                                                   </AccordionTrigger>
                                                   <AccordionContent className="space-y-2 max-lg:space-y-1.5 max-lg:pb-1">
+                                                    {subtopicNode.records.length > 0 ? (
+                                                      <div className="flex justify-end px-1 pb-1">
+                                                        <Button
+                                                          type="button"
+                                                          variant="outline"
+                                                          size="sm"
+                                                          className="h-8 gap-1.5 rounded-lg border-red-200 text-red-700 hover:bg-red-50"
+                                                          disabled={isDeletingSubtopic || !!deletingPdfId}
+                                                          onClick={(e) => {
+                                                            e.preventDefault();
+                                                            e.stopPropagation();
+                                                            void deleteAllSubtopicRecords(
+                                                              subtopicNode.records,
+                                                              subtopicNode.subtopic,
+                                                              subtopicKey,
+                                                            );
+                                                          }}
+                                                        >
+                                                          {isDeletingSubtopic ? (
+                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                          ) : (
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                          )}
+                                                          Delete all ({subtopicNode.records.length})
+                                                        </Button>
+                                                      </div>
+                                                    ) : null}
                                                     {subtopicNode.records.map((record, idx) => (
                                                       <div
                                                         key={record._id}
@@ -4209,7 +4333,8 @@ export default function AIContentEngine() {
                                                     ))}
                                                   </AccordionContent>
                                                 </AccordionItem>
-                                              ))}
+                                              );
+                                              })}
                                             </Accordion>
                                           </AccordionContent>
                                         </AccordionItem>
