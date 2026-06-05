@@ -16,6 +16,8 @@ interface PdfPreviewPanelProps {
   fileUrl: string;
   title?: string;
   className?: string;
+  /** When true, always show external open link. Default: only when preview fails. */
+  showOpenInNewTab?: boolean;
 }
 
 function isPdfBuffer(buffer: ArrayBuffer): boolean {
@@ -62,6 +64,8 @@ async function fetchPdfBytes(fileUrl: string, title?: string): Promise<ArrayBuff
 }
 
 const COMPACT_VIEWPORT_MAX_PX = 1023;
+/** Minimum CSS width per page on phones — keeps textbook text readable (scroll sideways). */
+const MOBILE_MIN_PAGE_CSS_PX = 520;
 
 /** Mobile/tablet browsers often show only filename + "Open" inside PDF iframes. */
 function shouldUseCanvasPdfPreview(): boolean {
@@ -88,7 +92,18 @@ function useCanvasPdfPreview(): boolean {
   return useCanvas;
 }
 
-export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfPreviewPanelProps) {
+function getTargetPageCssWidth(containerWidth: number, compact: boolean): number {
+  const padded = Math.max(0, containerWidth - (compact ? 12 : 24));
+  if (!compact) return Math.min(padded, 1400);
+  return Math.max(MOBILE_MIN_PAGE_CSS_PX, Math.min(padded, 900));
+}
+
+export default function PdfPreviewPanel({
+  fileUrl,
+  title,
+  className = '',
+  showOpenInNewTab = false,
+}: PdfPreviewPanelProps) {
   const useCanvasPreview = useCanvasPdfPreview();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasHostRef = useRef<HTMLDivElement>(null);
@@ -111,7 +126,7 @@ export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfP
     const el = containerRef.current;
     const update = () => {
       const w = el.clientWidth;
-      if (w > 0) setPageWidth(Math.min(w - 24, 1400));
+      if (w > 0) setPageWidth(getTargetPageCssWidth(w, true));
     };
     update();
     const ro = new ResizeObserver(update);
@@ -140,9 +155,7 @@ export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfP
       })
       .catch(() => {
         if (!cancelled) {
-          setPdfError(
-            'Could not download this PDF on the display. Check network or use Open in new tab.'
-          );
+          setPdfError('Could not load this PDF here. Try opening it externally or check your connection.');
         }
       })
       .finally(() => {
@@ -171,12 +184,17 @@ export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfP
           if (cancelled) break;
           const page = await pdf.getPage(pageNum);
           const base = page.getViewport({ scale: 1 });
-          const scale = pageWidth / base.width;
-          const viewport = page.getViewport({ scale });
+          const cssScale = pageWidth / base.width;
+          const outputScale = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+          const viewport = page.getViewport({ scale: cssScale * outputScale });
+          const cssWidth = Math.floor(base.width * cssScale);
+          const cssHeight = Math.floor(base.height * cssScale);
           const canvas = document.createElement('canvas');
-          canvas.className = 'mb-4 max-w-full shadow-md bg-white';
+          canvas.className = 'mb-4 max-w-none shadow-md bg-white';
           canvas.width = Math.floor(viewport.width);
           canvas.height = Math.floor(viewport.height);
+          canvas.style.width = `${cssWidth}px`;
+          canvas.style.height = `${cssHeight}px`;
           const ctx = canvas.getContext('2d');
           if (!ctx) continue;
           await page.render({ canvasContext: ctx, viewport, canvas }).promise;
@@ -217,19 +235,21 @@ export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfP
     );
   }
 
-  /** Digital board / mobile / tablet — pdf.js canvas (iframes show only "Open" on many touch browsers). */
+  /** Mobile / tablet — pdf.js canvas (native PDF iframes often show only “Open” on touch browsers). */
   return (
-    <div className={`flex min-h-0 flex-1 flex-col gap-3 ${className}`}>
-      <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
-        <Button type="button" variant="outline" size="sm" onClick={openInNewTab}>
-          <ExternalLink className="mr-2 h-4 w-4" />
-          Open in new tab
-        </Button>
-      </div>
+    <div className={`flex min-h-0 flex-1 flex-col gap-2 ${className}`}>
+      {showOpenInNewTab ? (
+        <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+          <Button type="button" variant="outline" size="sm" onClick={openInNewTab}>
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Open in new tab
+          </Button>
+        </div>
+      ) : null}
 
       <div
         ref={containerRef}
-        className="min-h-[min(55dvh,720px)] flex-1 overflow-y-auto overflow-x-hidden rounded-lg border bg-white p-2 sm:p-3"
+        className="min-h-[min(55dvh,720px)] flex-1 overflow-y-auto overflow-x-auto rounded-lg border bg-slate-100 p-2 sm:p-3"
       >
         {loadingPdf ? (
           <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
@@ -240,11 +260,16 @@ export default function PdfPreviewPanel({ fileUrl, title, className = '' }: PdfP
           <div className="flex flex-col items-center justify-center gap-3 py-12 text-center px-4">
             <p className="text-sm text-muted-foreground">{pdfError}</p>
             <Button type="button" onClick={openInNewTab}>
-              Open PDF in new tab
+              Open PDF externally
             </Button>
           </div>
         ) : (
-          <div ref={canvasHostRef} className="flex flex-col items-center" />
+          <>
+            <div ref={canvasHostRef} className="flex flex-col items-start min-w-min mx-auto" />
+            <p className="mt-2 text-center text-[11px] text-muted-foreground sm:hidden">
+              Pinch or scroll sideways if the page is wider than your screen.
+            </p>
+          </>
         )}
       </div>
     </div>

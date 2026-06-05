@@ -425,12 +425,14 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
       </Card>
 
       <Dialog open={Boolean(previewItem)} onOpenChange={(open) => !open && setPreviewItem(null)}>
-        <DialogContent className="w-[90vw] max-w-4xl h-[90vh] flex flex-col overflow-hidden">
+        <DialogContent className="w-[95vw] max-w-4xl h-[92dvh] max-h-[92dvh] flex flex-col overflow-hidden p-4 sm:p-6">
           {previewItem ? (
             <>
-              <DialogHeader>
-                <DialogTitle>{previewItem.title}</DialogTitle>
-                <DialogDescription>View only — preview opens in this window.</DialogDescription>
+              <DialogHeader className="shrink-0">
+                <DialogTitle className="text-base sm:text-lg pr-6">{previewItem.title}</DialogTitle>
+                <DialogDescription className="text-xs sm:text-sm">
+                  Scroll to read. On phone, swipe sideways if the page is wider than the screen.
+                </DialogDescription>
               </DialogHeader>
               <div className="flex-1 min-h-0 overflow-hidden rounded-lg border bg-white">
                 {previewItem.displayType?.toLowerCase() === 'pdf' ||
