@@ -99,15 +99,47 @@ type PdfItem = {
   displayTitle?: string;
 };
 
-type UploadStep = "idle" | "uploading" | "extracting" | "validating" | "parsing" | "saving" | "done" | "error";
+type UploadStep = "idle" | "uploading" | "indexing" | "generating" | "validating" | "saving" | "done" | "error";
+
+type TokenUsageTotals = {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  callCount: number;
+};
+
+type TokenUsageSnapshot = {
+  label?: string;
+  totals: TokenUsageTotals;
+  calls?: Array<{
+    label: string;
+    model?: string;
+    provider?: string;
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  }>;
+};
+
+type TokenUsageSummary = TokenUsageTotals & {
+  generationCount: number;
+  totalCalls: number;
+};
+
+function formatTokenCount(value: number) {
+  const n = Number(value || 0);
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return String(n);
+}
 
 const STEP_MESSAGES: Record<UploadStep, string> = {
   idle: "",
   uploading: "Uploading PDF...",
-  extracting: "Extracting PDF content...",
+  indexing: "Indexing PDF for RAG context...",
+  generating: "Generating tool content with Gemini (same structure as AI Generator)...",
   validating: "Validating structured JSON...",
-  parsing: "Extracting all items from PDF (multi-item pass)...",
-  saving: "Saving validated records...",
+  saving: "Saving generated records...",
   done: "",
   error: "",
 };
@@ -144,6 +176,8 @@ export default function AIContentEngine() {
   const [uploadError, setUploadError] = useState("");
   const [uploadStep, setUploadStep] = useState<UploadStep>("idle");
   const [lastUploadResult, setLastUploadResult] = useState<{ totalSaved: number } | null>(null);
+  const [lastTokenUsage, setLastTokenUsage] = useState<TokenUsageSnapshot | null>(null);
+  const [overallTokenSummary, setOverallTokenSummary] = useState<TokenUsageSummary | null>(null);
   const [pdfContentViewId, setPdfContentViewId] = useState<string | null>(null);
   const [pdfContentViewDetail, setPdfContentViewDetail] = useState<PdfItem | null>(null);
   const [pdfContentViewLoading, setPdfContentViewLoading] = useState(false);
@@ -246,10 +280,37 @@ export default function AIContentEngine() {
       .filter(Boolean);
   };
 
+  const isWorksheetQuestionJunk = (text: string) => {
+    const q = String(text || "").replace(/\s+/g, " ").trim();
+    if (!q) return true;
+    if (/worksheet\s*&\s*mcq/i.test(q)) return true;
+    if (/nep[\s-]*ncf/i.test(q)) return true;
+    if (/\bpage\s*\d+\b/i.test(q) && !/\?/.test(q) && !/_{2,}/.test(q)) return true;
+    if ((q.match(/\|/g) || []).length >= 2) return true;
+    if (/mathematics\s*-\s*chapter/i.test(q) && !/\?/.test(q)) return true;
+    if (/\bsubtopic\s*$/i.test(q)) return true;
+    if (/varieties!\s*(worksheet|\|)/i.test(q)) return true;
+    if (/\s+section\s+[a-e]\s*:/i.test(q)) return true;
+    return false;
+  };
+
+  const cleanWorksheetQuestionDisplay = (text: string) => {
+    let q = String(text || "").replace(/\s+/g, " ").trim();
+    q = q.replace(/^(?:q(?:uestion)?\.?\s*)?\d{1,3}[\).:\-]\s+/i, "").trim();
+    q = q.replace(/\s+section\s+[a-e]\s*:\s*.+$/i, "").trim();
+    q = q.replace(/\s*\|\s*worksheet\s*&\s*mcq[^|?]*/gi, "").trim();
+    q = q.replace(/\s*\|\s*nep[\s-]*ncf[^|?]*/gi, "").trim();
+    q = q.replace(/\s*\|\s*page\s*\d+\s*$/i, "").trim();
+    q = q.replace(/\s*--\s*\d+\s+of\s+\d+\s*--/gi, " ").trim();
+    return q;
+  };
+
   const toQuestionArray = (value: any) => {
     const baseRows = (Array.isArray(value) ? value : [])
       .flatMap((entry: any) => {
-        const questionRaw = String(entry?.question || entry?.prompt || entry?.text || "").trim();
+        const questionRaw = cleanWorksheetQuestionDisplay(
+          String(entry?.question || entry?.prompt || entry?.text || "").trim(),
+        );
         const answerRaw = String(entry?.answer || entry?.correctAnswer || "").trim();
         const options = normalizeOptions(entry);
         const looksMergedBlob =
@@ -265,7 +326,8 @@ export default function AIContentEngine() {
           answer: answerRaw,
         }];
       })
-      .filter((entry) => entry.question);
+      .filter((entry) => entry.question)
+      .filter((entry) => !isWorksheetQuestionJunk(entry.question));
 
     return baseRows.filter(
       (entry, idx, arr) => arr.findIndex((q) => q.question.toLowerCase() === entry.question.toLowerCase()) === idx,
@@ -864,6 +926,7 @@ export default function AIContentEngine() {
         "Section D: Short Answer Questions",
         "Section E: Competency / Real-life Application Questions",
       ];
+      const WORKSHEET_SECTION_LETTERS = ["A", "B", "C", "D", "E"];
       const mapSectionName = (name: string) => {
         const n = String(name || "").trim();
         if (/^section\s*a|mcq|multiple\s*choice/i.test(n)) return WORKSHEET_SECTION_ORDER[0];
@@ -890,7 +953,10 @@ export default function AIContentEngine() {
           addToSection(String(sec?.sectionName || sec?.title || "Section"), toQuestionArray(sec?.questions || []));
         }
       }
-      const flatQs = toQuestionArray(rc.questions || fb.questions || []);
+      const sectionsHaveQuestions = sectionsRaw.some(
+        (sec) => Array.isArray(sec?.questions) && sec.questions.length > 0,
+      );
+      const flatQs = sectionsHaveQuestions ? [] : toQuestionArray(rc.questions || fb.questions || []);
       if (flatQs.length) {
         for (const q of flatQs) {
           let sec = String((q as { section?: string }).section || "").trim();
@@ -979,6 +1045,41 @@ export default function AIContentEngine() {
           }));
         }
       }
+      const answerKeySectionsFromRender = Array.isArray(
+        (rc as { answerKeySections?: unknown }).answerKeySections,
+      )
+        ? (
+            (rc as {
+              answerKeySections: {
+                letter?: string;
+                sectionName?: string;
+                entries?: { question_number?: number; answer?: string }[];
+              }[];
+            }).answerKeySections
+          )
+        : [];
+      const answerKeySectionsBuilt =
+        answerKeySectionsFromRender.length > 0
+          ? answerKeySectionsFromRender
+          : (WORKSHEET_SECTION_ORDER.map((sectionName, idx) => {
+              const qs = (sections.find((s) => s.sectionName === sectionName)?.questions || []).filter(
+                (q) => String(q.answer || "").trim(),
+              );
+              if (!qs.length) return null;
+              return {
+                letter: WORKSHEET_SECTION_LETTERS[idx],
+                sectionName,
+                entries: qs.map((q, qIdx) => ({
+                  question_number:
+                    (q as { question_number?: number }).question_number ?? qIdx + 1,
+                  answer: String(q.answer || "").trim(),
+                })),
+              };
+            }).filter(Boolean) as {
+              letter: string;
+              sectionName: string;
+              entries: { question_number?: number; answer: string }[];
+            }[]);
       const wsTitle = pickStr("title", "worksheet_title", "name") || activityTitleForDisplay("Worksheet", item);
       const objectives = listFrom(rc.learningObjectives, fb.learning_objectives, fb.objectives);
       const section = (label: string, children: ReactNode) => (
@@ -1035,7 +1136,7 @@ export default function AIContentEngine() {
                     >
                       <div className="flex items-start justify-between gap-2">
                         <p className="text-xs sm:text-sm font-medium flex-1">
-                          Q{qx.question_number != null ? String(qx.question_number) : qIdx + 1}. {q.question}
+                          Q{qIdx + 1}. {q.question}
                           {qx.type ? (
                             <span className="ml-2 text-xs font-normal text-slate-500">({qx.type})</span>
                           ) : null}
@@ -1083,12 +1184,37 @@ export default function AIContentEngine() {
               )
             )
           )}
-          {pickStr("answerKey", "answer_key")
+          {answerKeySectionsBuilt.length > 0 || pickStr("answerKey", "answer_key")
             ? section(
                 "9. Answer Key",
-                <pre className="text-xs text-slate-800 whitespace-pre-wrap font-sans leading-relaxed">
-                  {pickStr("answerKey", "answer_key")}
-                </pre>,
+                answerKeySectionsBuilt.length > 0 ? (
+                  <div className="space-y-3">
+                    {answerKeySectionsBuilt.map((sec, aIdx) => (
+                      <div
+                        key={`${item._id}-ws-ak-${aIdx}`}
+                        className="rounded-lg border border-emerald-100 bg-emerald-50/40 p-3 space-y-1.5"
+                      >
+                        <p className="text-xs font-semibold text-emerald-900">
+                          {sec.letter}. {sec.sectionName}
+                        </p>
+                        <ul className="text-xs sm:text-sm text-slate-800 space-y-1">
+                          {sec.entries.map((entry, eIdx) => (
+                            <li key={`${item._id}-ws-ak-${aIdx}-${eIdx}`}>
+                              <span className="font-medium text-slate-600">
+                                Q{entry.question_number ?? eIdx + 1}.
+                              </span>{" "}
+                              {entry.answer}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <pre className="text-xs text-slate-800 whitespace-pre-wrap font-sans leading-relaxed">
+                    {pickStr("answerKey", "answer_key")}
+                  </pre>
+                ),
               )
             : null}
           {pickStr("bloomLevel", "bloom_level") || pickStr("difficultyTag", "difficulty_tag", "difficulty") ? (
@@ -3397,7 +3523,11 @@ export default function AIContentEngine() {
         if (!res.ok || json?.success === false) {
           throw new Error(json?.message || "Could not load PDF list");
         }
-        return json as { data?: PdfItem[]; pagination?: { totalPages?: number; total?: number } };
+        return json as {
+          data?: PdfItem[];
+          pagination?: { totalPages?: number; total?: number };
+          tokenUsageSummary?: TokenUsageSummary;
+        };
       };
       let first;
       try {
@@ -3408,6 +3538,9 @@ export default function AIContentEngine() {
       const totalPages = Math.max(1, Number(first.pagination?.totalPages) || 1);
       const allRows: PdfItem[] = Array.isArray(first.data) ? [...first.data] : [];
       setItems(allRows);
+      if (first.tokenUsageSummary) {
+        setOverallTokenSummary(first.tokenUsageSummary);
+      }
       setIsLoading(false);
 
       if (totalPages > 1) {
@@ -3594,9 +3727,9 @@ export default function AIContentEngine() {
       form.append("topic", topic);
       form.append("subTopic", String(subTopic || "").trim());
       form.append("toolType", toolType);
-      setUploadStep("extracting");
+      setUploadStep("indexing");
+      setUploadStep("generating");
       setUploadStep("validating");
-      setUploadStep("parsing");
       const res = await fetch(`${API_BASE_URL}/api/pdf/upload`, {
         method: "POST",
         headers: authHeaders(),
@@ -3631,6 +3764,8 @@ export default function AIContentEngine() {
         | undefined;
       setUploadStep("done");
       setLastUploadResult({ totalSaved });
+      const tokenUsage = json?.data?.tokenUsage as TokenUsageSnapshot | undefined;
+      setLastTokenUsage(tokenUsage?.totals ? tokenUsage : null);
       const retryNote =
         extraction?.retryCount && extraction.retryCount > 0
           ? ` (${extraction.retryCount} validation retries)`
@@ -3639,9 +3774,15 @@ export default function AIContentEngine() {
         extraction?.validationPassed === false
           ? " Some fields may be incomplete — review saved records."
           : "";
+      const tokenNote = tokenUsage?.totals
+        ? ` Tokens: ${formatTokenCount(tokenUsage.totals.totalTokens)} total (${formatTokenCount(tokenUsage.totals.promptTokens)} in / ${formatTokenCount(tokenUsage.totals.completionTokens)} out, ${tokenUsage.totals.callCount} LLM calls).`
+        : "";
       toast({
         title: `PDF Processed - ${totalSaved} records saved`,
-        description: `${extractedFromPdf} extracted from PDF${retryNote}.${validationNote}`,
+        description:
+          (generatedByAI > 0
+            ? `${generatedByAI} AI-generated from PDF (RAG)${retryNote}.${validationNote}`
+            : `${extractedFromPdf} from PDF${retryNote}.${validationNote}`) + tokenNote,
       });
       setUploadError("");
       setMismatchDetails(null);
@@ -3814,8 +3955,7 @@ export default function AIContentEngine() {
               </p>
             ) : (
               <p className="mt-1.5 text-xs text-slate-500">
-                Choose PDF (max {AI_PDF_MAX_MB} MB per file), fill class → subject → topic (and optional sub-topic)
-                → tool, then Generate.
+                Choose PDF (max {AI_PDF_MAX_MB} MB per file), fill class → subject → topic (and optional sub-topic) → tool, then Generate. Worksheet/exam PDFs keep all questions in one record (50 in → 50 out). Other tools use RAG + AI Generator structure.
               </p>
             )}
           </div>
@@ -4008,8 +4148,31 @@ export default function AIContentEngine() {
           )}
 
           {uploadStep === "done" && lastUploadResult && (
-            <div className="md:col-span-2 lg:col-span-4 text-xs sm:text-sm text-emerald-700 bg-emerald-50 px-4 py-2 rounded-lg">
-              {`✅ ${lastUploadResult.totalSaved} record${lastUploadResult.totalSaved !== 1 ? "s" : ""} saved successfully`}
+            <div className="md:col-span-2 lg:col-span-4 space-y-1 text-xs sm:text-sm text-emerald-700 bg-emerald-50 px-4 py-2 rounded-lg">
+              <p>{`✅ ${lastUploadResult.totalSaved} record${lastUploadResult.totalSaved !== 1 ? "s" : ""} saved successfully`}</p>
+              {lastTokenUsage?.totals ? (
+                <p className="text-emerald-800/90">
+                  This generation used{" "}
+                  <span className="font-semibold">{formatTokenCount(lastTokenUsage.totals.totalTokens)} tokens</span>
+                  {" "}({formatTokenCount(lastTokenUsage.totals.promptTokens)} prompt +{" "}
+                  {formatTokenCount(lastTokenUsage.totals.completionTokens)} completion,{" "}
+                  {lastTokenUsage.totals.callCount} LLM call
+                  {lastTokenUsage.totals.callCount !== 1 ? "s" : ""}).
+                </p>
+              ) : null}
+              {lastTokenUsage?.calls && lastTokenUsage.calls.length > 0 ? (
+                <ul className="mt-1 list-disc pl-5 text-[11px] text-emerald-900/80 space-y-0.5">
+                  {lastTokenUsage.calls.slice(0, 8).map((call, idx) => (
+                    <li key={`token-call-${idx}`}>
+                      {call.label}: {formatTokenCount(call.totalTokens)} tokens
+                      {call.model ? ` (${call.model})` : ""}
+                    </li>
+                  ))}
+                  {lastTokenUsage.calls.length > 8 ? (
+                    <li>+{lastTokenUsage.calls.length - 8} more LLM calls</li>
+                  ) : null}
+                </ul>
+              ) : null}
             </div>
           )}
 
@@ -4073,6 +4236,19 @@ export default function AIContentEngine() {
               <p className="text-xs text-slate-500">
                 Expand each tool to browse class, subject, topic, and subtopic.
               </p>
+              {overallTokenSummary && overallTokenSummary.generationCount > 0 ? (
+                <p className="text-xs text-slate-600">
+                  Overall token usage:{" "}
+                  <span className="font-medium text-slate-800">
+                    {formatTokenCount(overallTokenSummary.totalTokens)} tokens
+                  </span>{" "}
+                  across {overallTokenSummary.generationCount} generation
+                  {overallTokenSummary.generationCount !== 1 ? "s" : ""} (
+                  {formatTokenCount(overallTokenSummary.promptTokens)} in /{" "}
+                  {formatTokenCount(overallTokenSummary.completionTokens)} out,{" "}
+                  {overallTokenSummary.totalCalls} LLM calls).
+                </p>
+              ) : null}
             </div>
             <div className="flex flex-col gap-1.5 sm:w-64">
               <Label className={labelClassName}>Filter by board</Label>
