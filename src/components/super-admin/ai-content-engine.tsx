@@ -97,6 +97,14 @@ type PdfItem = {
   generatedContent?: string;
   /** Resolved activity name for list cards (backend). */
   displayTitle?: string;
+  recordKind?: "generation" | "pdf" | "legacy";
+  pdfId?: string;
+  pdfCode?: string;
+  generationNumber?: number;
+  generationTitle?: string;
+  markerLabel?: string;
+  totalGenerations?: number;
+  metadata?: Record<string, unknown>;
 };
 
 type UploadStep = "idle" | "uploading" | "indexing" | "generating" | "validating" | "saving" | "done" | "error";
@@ -162,6 +170,17 @@ export default function AIContentEngine() {
   const [classOptions, setClassOptions] = useState<string[]>([]);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
+  const [pdfAnalysis, setPdfAnalysis] = useState<{
+    contentFamily: string;
+    confidence: number;
+    questionCount: number;
+    extractionOk: boolean;
+    useGemini: boolean;
+    suggestedToolSlug: string;
+    suggestedToolLabel: string;
+    recommendedTools: { tool?: string; toolLabel?: string; confidence?: number }[];
+  } | null>(null);
+  const [analyzingPdf, setAnalyzingPdf] = useState(false);
   const [subjectRows, setSubjectRows] = useState<CurriculumSelectRow[]>([]);
   const [topicRows, setTopicRows] = useState<CurriculumSelectRow[]>([]);
   const [subtopicRows, setSubtopicRows] = useState<CurriculumSelectRow[]>([]);
@@ -178,6 +197,12 @@ export default function AIContentEngine() {
   const [lastUploadResult, setLastUploadResult] = useState<{ totalSaved: number } | null>(null);
   const [lastTokenUsage, setLastTokenUsage] = useState<TokenUsageSnapshot | null>(null);
   const [overallTokenSummary, setOverallTokenSummary] = useState<TokenUsageSummary | null>(null);
+  const [listMeta, setListMeta] = useState<{
+    newGenerationCount?: number;
+    legacyRecordCount?: number;
+    orphanSourceCount?: number;
+  } | null>(null);
+  const [isLoadingMoreList, setIsLoadingMoreList] = useState(false);
   const [pdfContentViewId, setPdfContentViewId] = useState<string | null>(null);
   const [pdfContentViewDetail, setPdfContentViewDetail] = useState<PdfItem | null>(null);
   const [pdfContentViewLoading, setPdfContentViewLoading] = useState(false);
@@ -202,6 +227,7 @@ export default function AIContentEngine() {
       { value: "lesson-planner", label: "Lesson Planner" },
       { value: "study-schedule-maker", label: "Study Schedule Maker" },
       { value: "homework-creator", label: "Homework Creator" },
+      { value: "rubrics-evaluation-generator", label: "Rubrics, Evaluation & Report Card" },
       { value: "reading-practice-room", label: "Reading Practice Room" },
       { value: "story-passage-creator", label: "Story and Passage Creator" },
       { value: "short-notes-summaries-maker", label: "Short Notes & Summaries" },
@@ -421,7 +447,29 @@ export default function AIContentEngine() {
     return s;
   };
 
+  const pdfGenerationBadge = (record: PdfItem, fallbackIndex: number): string => {
+    if (record.recordKind === "legacy") {
+      if (record.generationNumber != null) {
+        return `Record ${record.generationNumber}`;
+      }
+      return `Record ${fallbackIndex + 1}`;
+    }
+    if (record.generationNumber != null) {
+      const label = String(record.markerLabel || "Generation").trim();
+      return `${label} ${record.generationNumber}`;
+    }
+    return `Record ${fallbackIndex + 1}`;
+  };
+
+  const isPdfGenerationRecord = (record: PdfItem): boolean => record.recordKind === "generation";
+
   const pdfRecordPreviewLine = (record: PdfItem): string => {
+    const genTitle = String(record.generationTitle || "").trim();
+    if (genTitle) return genTitle;
+    if (record.generationNumber != null) {
+      const label = String(record.markerLabel || "Generation").trim();
+      return `${label} ${record.generationNumber}`;
+    }
     const rc =
       record.renderContent && typeof record.renderContent === "object"
         ? (record.renderContent as Record<string, unknown>)
@@ -3468,14 +3516,32 @@ export default function AIContentEngine() {
     uploadDate: String(data.uploadDate || data.createdAt || ""),
     generatedContent: String(data.generatedContent || ""),
     displayTitle: typeof data.displayTitle === "string" ? data.displayTitle : undefined,
+    recordKind: data.recordKind as PdfItem["recordKind"],
+    pdfId: typeof data.pdfId === "string" ? data.pdfId : undefined,
+    pdfCode: typeof data.pdfCode === "string" ? data.pdfCode : undefined,
+    generationNumber:
+      data.generationNumber != null ? Number(data.generationNumber) : undefined,
+    generationTitle:
+      typeof data.generationTitle === "string" ? data.generationTitle : undefined,
+    markerLabel: typeof data.markerLabel === "string" ? data.markerLabel : undefined,
+    totalGenerations:
+      data.totalGenerations != null ? Number(data.totalGenerations) : undefined,
+    metadata:
+      data.metadata && typeof data.metadata === "object"
+        ? (data.metadata as Record<string, unknown>)
+        : undefined,
   });
 
   const openPdfContentView = async (id: string) => {
+    const listRecord = items.find((x) => x._id === id) ?? null;
     setPdfContentViewId(id);
-    setPdfContentViewDetail(items.find((x) => x._id === id) ?? null);
+    setPdfContentViewDetail(listRecord);
     setPdfContentViewLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/pdf/${id}`, { headers: authHeaders() });
+      const endpoint = isPdfGenerationRecord(listRecord || { _id: id, originalName: "", fileUrl: "", subject: "", classLabel: "", chapter: "", chunkCount: 0, uploadDate: "" })
+        ? `${API_BASE_URL}/api/generations/${id}`
+        : `${API_BASE_URL}/api/pdf/${id}`;
+      const res = await fetch(endpoint, { headers: authHeaders() });
       const json = await res.json();
       if (!res.ok || json?.success === false) {
         throw new Error(json?.message || "Could not load record");
@@ -3506,12 +3572,12 @@ export default function AIContentEngine() {
     setIsLoading(true);
     setListLoadError(null);
     try {
-      const baseQs = new URLSearchParams({ summary: "1", limit: "200" });
+      const baseQs = new URLSearchParams({ summary: "1", limit: "500" });
       if (recordsBoardFilter && recordsBoardFilter !== "__all__") {
         baseQs.set("board", recordsBoardFilter);
       }
       const controller = new AbortController();
-      const timeoutId = window.setTimeout(() => controller.abort(), 60_000);
+      const timeoutId = window.setTimeout(() => controller.abort(), 180_000);
       const fetchPage = async (page: number) => {
         const qs = new URLSearchParams(baseQs);
         qs.set("page", String(page));
@@ -3526,6 +3592,11 @@ export default function AIContentEngine() {
         return json as {
           data?: PdfItem[];
           pagination?: { totalPages?: number; total?: number };
+          listMeta?: {
+            newGenerationCount?: number;
+            legacyRecordCount?: number;
+            orphanSourceCount?: number;
+          };
           tokenUsageSummary?: TokenUsageSummary;
         };
       };
@@ -3538,15 +3609,17 @@ export default function AIContentEngine() {
       const totalPages = Math.max(1, Number(first.pagination?.totalPages) || 1);
       const allRows: PdfItem[] = Array.isArray(first.data) ? [...first.data] : [];
       setItems(allRows);
+      setListMeta(first.listMeta ?? null);
       if (first.tokenUsageSummary) {
         setOverallTokenSummary(first.tokenUsageSummary);
       }
       setIsLoading(false);
 
       if (totalPages > 1) {
+        setIsLoadingMoreList(true);
         void (async () => {
-          for (let page = 2; page <= totalPages; page += 1) {
-            try {
+          try {
+            for (let page = 2; page <= totalPages; page += 1) {
               const json = await fetchPage(page);
               if (Array.isArray(json.data) && json.data.length > 0) {
                 setItems((prev) => {
@@ -3555,11 +3628,20 @@ export default function AIContentEngine() {
                   return extra.length > 0 ? [...prev, ...extra] : prev;
                 });
               }
-            } catch {
-              break;
             }
+          } catch {
+            toast({
+              title: "Partial list loaded",
+              description:
+                "Some older records may still be loading. Refresh the page or set board filter to All boards.",
+              variant: "destructive",
+            });
+          } finally {
+            setIsLoadingMoreList(false);
           }
         })();
+      } else {
+        setIsLoadingMoreList(false);
       }
     } catch (error: unknown) {
       setItems([]);
@@ -3692,6 +3774,50 @@ export default function AIContentEngine() {
     }
   };
 
+  const analyzePdfFile = async (file: File) => {
+    setAnalyzingPdf(true);
+    setPdfAnalysis(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch(`${API_BASE_URL}/api/pdf/analyze`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: form,
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.message || "PDF analysis failed");
+      }
+      const data = json.data as {
+        contentFamily?: string;
+        confidence?: number;
+        questionCount?: number;
+        extractionOk?: boolean;
+        useGemini?: boolean;
+        suggestedToolSlug?: string;
+        suggestedToolLabel?: string;
+        recommendedTools?: { tool?: string; toolLabel?: string; confidence?: number }[];
+      };
+      setPdfAnalysis({
+        contentFamily: String(data.contentFamily || "UNKNOWN"),
+        confidence: Number(data.confidence || 0),
+        questionCount: Number(data.questionCount || 0),
+        extractionOk: Boolean(data.extractionOk),
+        useGemini: Boolean(data.useGemini),
+        suggestedToolSlug: String(data.suggestedToolSlug || ""),
+        suggestedToolLabel: String(data.suggestedToolLabel || ""),
+        recommendedTools: Array.isArray(data.recommendedTools) ? data.recommendedTools : [],
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "PDF analysis failed";
+      toast({ title: "Analysis skipped", description: message, variant: "destructive" });
+      setPdfAnalysis(null);
+    } finally {
+      setAnalyzingPdf(false);
+    }
+  };
+
   const handleUpload = async () => {
     if (!pdfFile || !board || !subject || !classLabel || !topic || !toolType) {
       setUploadError("Choose a PDF file, board, class, subject, topic, and tool.");
@@ -3747,11 +3873,20 @@ export default function AIContentEngine() {
           selectedTool?: string;
         };
         const data = json?.data as UploadErrData | undefined;
-        const err = new Error(json?.message || "Upload failed") as Error & { data?: UploadErrData };
+        const err = new Error(json?.message || "Upload failed") as Error & {
+          data?: UploadErrData;
+          code?: string;
+        };
         err.data = data;
+        err.code = typeof json?.code === "string" ? json.code : undefined;
         throw err;
       }
       const totalSaved = Number(json?.data?.totalSaved || 1);
+      const totalGenerationsFound = Number(
+        json?.data?.totalGenerationsFound || json?.data?.totalSaved || 1,
+      );
+      const pdfCode = String(json?.data?.pdfCode || "").trim();
+      const generationMarkerLabel = String(json?.data?.generationMarkerLabel || "Generation").trim();
       const extractedFromPdf = Number(json?.data?.extractedFromPdf || 0);
       const generatedByAI = Number(json?.data?.generatedByAI || 0);
       const extraction = json?.data?.extraction as
@@ -3760,6 +3895,13 @@ export default function AIContentEngine() {
             retryCount?: number;
             expectedItemCount?: number;
             validationErrors?: string[];
+          }
+        | undefined;
+      const classification = json?.data?.classification as
+        | {
+            family?: string;
+            confidence?: number;
+            recommendedTools?: { tool?: string; toolLabel?: string; confidence?: number }[];
           }
         | undefined;
       setUploadStep("done");
@@ -3777,12 +3919,27 @@ export default function AIContentEngine() {
       const tokenNote = tokenUsage?.totals
         ? ` Tokens: ${formatTokenCount(tokenUsage.totals.totalTokens)} total (${formatTokenCount(tokenUsage.totals.promptTokens)} in / ${formatTokenCount(tokenUsage.totals.completionTokens)} out, ${tokenUsage.totals.callCount} LLM calls).`
         : "";
+      const familyNote = classification?.family
+        ? ` Family: ${classification.family}${classification.confidence != null ? ` (${classification.confidence}%)` : ""}.`
+        : "";
+      const toolRecNote =
+        classification?.recommendedTools?.length
+          ? ` Suggested: ${classification.recommendedTools
+              .slice(0, 2)
+              .map((t) => `${t.toolLabel || t.tool} (${t.confidence ?? "?"}%)`)
+              .join(", ")}.`
+          : "";
       toast({
-        title: `PDF Processed - ${totalSaved} records saved`,
+        title: `PDF Processed — ${totalGenerationsFound} generation${totalGenerationsFound !== 1 ? "s" : ""} found`,
         description:
+          `Total Generations Found: ${totalGenerationsFound}${pdfCode ? ` (${pdfCode})` : ""}. ` +
+          `${totalSaved} ${generationMarkerLabel.toLowerCase()} record${totalSaved !== 1 ? "s" : ""} saved. ` +
           (generatedByAI > 0
             ? `${generatedByAI} AI-generated from PDF (RAG)${retryNote}.${validationNote}`
-            : `${extractedFromPdf} from PDF${retryNote}.${validationNote}`) + tokenNote,
+            : `${extractedFromPdf} extracted from PDF${retryNote}.${validationNote}`) +
+          familyNote +
+          toolRecNote +
+          tokenNote,
       });
       setUploadError("");
       setMismatchDetails(null);
@@ -3790,8 +3947,8 @@ export default function AIContentEngine() {
       if (pdfInputRef.current) pdfInputRef.current.value = "";
       fetchList();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to upload";
-      const data = (error as Error & {
+      const errObj = error as Error & {
+        code?: string;
         data?: {
           detectedSubject?: string;
           detectedTopic?: string;
@@ -3800,7 +3957,9 @@ export default function AIContentEngine() {
           selectedTopic?: string;
           selectedTool?: string;
         };
-      })?.data;
+      };
+      const message = error instanceof Error ? error.message : "Failed to upload";
+      const data = errObj?.data;
       setUploadError(message);
       setUploadStep("error");
       if (
@@ -3820,16 +3979,28 @@ export default function AIContentEngine() {
           detectedTool: data.detectedTool,
         });
       }
-      toast({ title: "Generate failed", description: message, variant: "destructive" });
+      const toastTitle =
+        errObj?.code === "PDF_GENERATION_DUPLICATE"
+          ? "Duplicate generation detected"
+          : errObj?.code === "PDF_KNOWLEDGE_EXTRACTION_FAILED"
+            ? "PDF extraction failed"
+            : errObj?.code === "PDF_KNOWLEDGE_EMPTY"
+              ? "No content found in PDF"
+              : "Generate failed";
+      toast({ title: toastTitle, description: message, variant: "destructive" });
     } finally {
       setIsUploading(false);
     }
   };
 
   const deletePdf = async (id: string) => {
+    const record = items.find((row) => row._id === id);
     setDeletingPdfId(id);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/pdf/${id}`, {
+      const endpoint = isPdfGenerationRecord(record || { _id: id, originalName: "", fileUrl: "", subject: "", classLabel: "", chapter: "", chunkCount: 0, uploadDate: "" })
+        ? `${API_BASE_URL}/api/generations/${id}`
+        : `${API_BASE_URL}/api/pdf/${id}`;
+      const res = await fetch(endpoint, {
         method: "DELETE",
         headers: authHeaders(),
       });
@@ -3947,6 +4118,8 @@ export default function AIContentEngine() {
                 setPdfFile(next);
                 setMismatchDetails(null);
                 setUploadError("");
+                setPdfAnalysis(null);
+                void analyzePdfFile(next);
               }}
             />
             {pdfFile ? (
@@ -3955,8 +4128,43 @@ export default function AIContentEngine() {
               </p>
             ) : (
               <p className="mt-1.5 text-xs text-slate-500">
-                Choose PDF (max {AI_PDF_MAX_MB} MB per file), fill class → subject → topic (and optional sub-topic) → tool, then Generate. Worksheet/exam PDFs keep all questions in one record (50 in → 50 out). Other tools use RAG + AI Generator structure.
+                Choose PDF (max {AI_PDF_MAX_MB} MB per file), fill class → subject → topic → tool, then Generate. One Gemini call builds a shared knowledge base; all tools render from stored JSON (zero AI on view).
               </p>
+            )}
+            {analyzingPdf && (
+              <p className="mt-2 text-xs text-blue-700">Analyzing PDF content (no LLM)...</p>
+            )}
+            {pdfAnalysis && !analyzingPdf && (
+              <div className="mt-2 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700 space-y-1.5">
+                <p>
+                  <span className="font-medium">Detected family:</span> {pdfAnalysis.contentFamily}{" "}
+                  ({pdfAnalysis.confidence}% confidence)
+                  {pdfAnalysis.questionCount > 0 ? ` · ${pdfAnalysis.questionCount} questions` : ""}
+                </p>
+                <p>
+                  <span className="font-medium">Extraction:</span>{" "}
+                  {pdfAnalysis.extractionOk ? "content found (zero-LLM path)" : "may need AI fallback"}
+                  {pdfAnalysis.useGemini ? " · low confidence" : " · no Gemini needed"}
+                </p>
+                {pdfAnalysis.recommendedTools.length > 0 && (
+                  <p>
+                    <span className="font-medium">Suggested tools:</span>{" "}
+                    {pdfAnalysis.recommendedTools
+                      .slice(0, 3)
+                      .map((t) => `${t.toolLabel || t.tool} (${t.confidence ?? "?"}%)`)
+                      .join(", ")}
+                  </p>
+                )}
+                {pdfAnalysis.suggestedToolSlug && pdfAnalysis.suggestedToolSlug !== toolType && (
+                  <button
+                    type="button"
+                    className="text-blue-700 underline hover:text-blue-900"
+                    onClick={() => handleToolTypeChange(pdfAnalysis.suggestedToolSlug)}
+                  >
+                    Use suggested: {pdfAnalysis.suggestedToolLabel || getToolLabel(pdfAnalysis.suggestedToolSlug)}
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
@@ -4229,7 +4437,22 @@ export default function AIContentEngine() {
                     <span className="font-medium text-slate-700">
                       {visiblePdfItems.length} record{visiblePdfItems.length !== 1 ? "s" : ""} in{" "}
                       {groupedHierarchy.length} tool{groupedHierarchy.length !== 1 ? "s" : ""}
+                      {listMeta &&
+                      (listMeta.legacyRecordCount != null || listMeta.newGenerationCount != null) ? (
+                        <>
+                          {" "}
+                          (
+                          {Number(listMeta.legacyRecordCount || 0)} legacy
+                          {Number(listMeta.newGenerationCount || 0) > 0
+                            ? ` · ${Number(listMeta.newGenerationCount)} new`
+                            : ""}
+                          )
+                        </>
+                      ) : null}
                     </span>
+                    {isLoadingMoreList ? (
+                      <span className="text-slate-500"> · loading more…</span>
+                    ) : null}
                   </>
                 ) : null}
               </p>
@@ -4439,8 +4662,13 @@ export default function AIContentEngine() {
                                                               <div className="flex flex-wrap items-center gap-2">
                                                                 <FolderOpen className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-slate-500" />
                                                                 <Badge variant="outline" className="font-medium">
-                                                                  Record {idx + 1}
+                                                                  {pdfGenerationBadge(record, idx)}
                                                                 </Badge>
+                                                                {record.pdfCode ? (
+                                                                  <span className="text-[0.65rem] text-slate-400 font-mono">
+                                                                    {record.pdfCode}
+                                                                  </span>
+                                                                ) : null}
                                                                 <span className="hidden text-xs text-slate-500 tabular-nums lg:inline">
                                                                   {new Date(record.uploadDate).toLocaleString()}
                                                                 </span>
@@ -4489,7 +4717,7 @@ export default function AIContentEngine() {
                                                                   size="icon"
                                                                   className="h-11 w-11 shrink-0 rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 lg:h-9 lg:w-9"
                                                                   disabled={deletingPdfId === record._id}
-                                                                  aria-label={`Delete record ${idx + 1}`}
+                                                                  aria-label={`Delete ${pdfGenerationBadge(record, idx)}`}
                                                                   onClick={(e) => {
                                                                     e.preventDefault();
                                                                     e.stopPropagation();
@@ -4536,7 +4764,9 @@ export default function AIContentEngine() {
         <DialogContent className="flex max-h-[min(92vh,920px)] w-[min(100vw-1.5rem,56rem)] max-w-[56rem] flex-col gap-0 overflow-hidden rounded-2xl border-slate-200/90 p-0 shadow-2xl">
           <DialogHeader className="shrink-0 space-y-1 border-b border-slate-100 bg-gradient-to-br from-slate-50 via-white to-blue-50/50 px-3 sm:px-4 lg:px-6 py-4 text-left">
             <DialogTitle className="pr-8 text-base sm:text-lg font-semibold leading-snug tracking-tight text-slate-900">
-              {pdfContentViewRecord ? pdfRecordPreviewLine(pdfContentViewRecord) : "Record content"}
+              {pdfContentViewRecord
+                ? pdfRecordPreviewLine(pdfContentViewRecord)
+                : "Generation content"}
             </DialogTitle>
             {pdfContentViewRecord ? (
               <p className="text-xs text-slate-500">
