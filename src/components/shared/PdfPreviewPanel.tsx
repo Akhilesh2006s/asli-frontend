@@ -64,8 +64,6 @@ async function fetchPdfBytes(fileUrl: string, title?: string): Promise<ArrayBuff
 }
 
 const COMPACT_VIEWPORT_MAX_PX = 1023;
-/** Minimum CSS width per page on phones — keeps textbook text readable (scroll sideways). */
-const MOBILE_MIN_PAGE_CSS_PX = 520;
 
 /** Mobile/tablet browsers often show only filename + "Open" inside PDF iframes. */
 function shouldUseCanvasPdfPreview(): boolean {
@@ -92,10 +90,11 @@ function useCanvasPdfPreview(): boolean {
   return useCanvas;
 }
 
+/** Scale each PDF page to the preview panel width (fit-to-width on mobile). */
 function getTargetPageCssWidth(containerWidth: number, compact: boolean): number {
-  const padded = Math.max(0, containerWidth - (compact ? 12 : 24));
+  const padded = Math.max(0, containerWidth - (compact ? 8 : 24));
   if (!compact) return Math.min(padded, 1400);
-  return Math.max(MOBILE_MIN_PAGE_CSS_PX, Math.min(padded, 900));
+  return padded;
 }
 
 export default function PdfPreviewPanel({
@@ -190,11 +189,13 @@ export default function PdfPreviewPanel({
           const cssWidth = Math.floor(base.width * cssScale);
           const cssHeight = Math.floor(base.height * cssScale);
           const canvas = document.createElement('canvas');
-          canvas.className = 'mb-4 max-w-none shadow-md bg-white';
+          canvas.className = 'mb-3 block w-full max-w-full h-auto rounded-sm bg-white shadow-md';
           canvas.width = Math.floor(viewport.width);
           canvas.height = Math.floor(viewport.height);
-          canvas.style.width = `${cssWidth}px`;
-          canvas.style.height = `${cssHeight}px`;
+          canvas.style.width = '100%';
+          canvas.style.height = 'auto';
+          canvas.style.maxWidth = '100%';
+          canvas.style.aspectRatio = `${cssWidth} / ${cssHeight}`;
           const ctx = canvas.getContext('2d');
           if (!ctx) continue;
           await page.render({ canvasContext: ctx, viewport, canvas }).promise;
@@ -249,7 +250,7 @@ export default function PdfPreviewPanel({
 
       <div
         ref={containerRef}
-        className="min-h-[min(55dvh,720px)] flex-1 overflow-y-auto overflow-x-auto rounded-lg border bg-slate-100 p-2 sm:p-3"
+        className="min-h-[min(55dvh,720px)] flex-1 overflow-y-auto overflow-x-hidden rounded-lg border bg-slate-100 p-2 sm:p-3"
       >
         {loadingPdf ? (
           <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
@@ -264,12 +265,7 @@ export default function PdfPreviewPanel({
             </Button>
           </div>
         ) : (
-          <>
-            <div ref={canvasHostRef} className="flex flex-col items-start min-w-min mx-auto" />
-            <p className="mt-2 text-center text-[11px] text-muted-foreground sm:hidden">
-              Pinch or scroll sideways if the page is wider than your screen.
-            </p>
-          </>
+          <div ref={canvasHostRef} className="flex w-full max-w-full flex-col items-stretch" />
         )}
       </div>
     </div>
