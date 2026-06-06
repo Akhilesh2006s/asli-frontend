@@ -298,11 +298,11 @@ export default function CalendarView({
 
     if (isImage) {
       return (
-        <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-lg">
+        <div className="flex h-full w-full max-w-full items-center justify-center overflow-hidden rounded-lg bg-gray-100">
           <img 
             src={previewUrl} 
             alt={content.title}
-            className="max-w-full max-h-[60vh] object-contain rounded-lg"
+            className="h-auto w-full max-h-[min(60dvh,720px)] max-w-full object-contain rounded-lg"
             onError={(e) => {
               e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgZmlsbD0iI2VlZSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5JbWFnZSBub3QgYXZhaWxhYmxlPC90ZXh0Pjwvc3ZnPg==';
             }}
@@ -333,7 +333,7 @@ export default function CalendarView({
         <PdfPreviewPanel
           fileUrl={content.fileUrl}
           title={content.title}
-          className="w-full"
+          className="h-full w-full min-h-0 min-w-0"
         />
       );
     }

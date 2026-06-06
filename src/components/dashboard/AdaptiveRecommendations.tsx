@@ -431,7 +431,7 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
               <DialogHeader className="shrink-0">
                 <DialogTitle className="text-base sm:text-lg pr-6">{previewItem.title}</DialogTitle>
                 <DialogDescription className="text-xs sm:text-sm">
-                  Scroll to read. On phone, swipe sideways if the page is wider than the screen.
+                  Scroll down to read each page. The full page fits your screen width.
                 </DialogDescription>
               </DialogHeader>
               <div className="flex-1 min-h-0 overflow-hidden rounded-lg border bg-white">

@@ -1157,7 +1157,7 @@ export default function LearningPaths() {
           <DialogHeader className="px-4 sm:px-6 lg:px-8 pt-5 pb-3 border-b border-gray-200">
             <DialogTitle className="pl-2 pt-1">{previewContent?.title || "Content Preview"}</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 min-h-0 overflow-hidden px-4 py-4">
+          <div className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto px-4 py-4">
 
           {(() => {
             const fileUrl = extractDirectFileUrl(getNormalizedContentUrl(previewContent?.fileUrl));
@@ -1201,11 +1201,11 @@ export default function LearningPaths() {
 
             if (isImage) {
               return (
-                <div className="w-full max-h-[70vh] overflow-auto rounded-lg bg-gray-100 p-2">
+                <div className="w-full max-w-full overflow-hidden rounded-lg bg-gray-100 p-2">
                   <img
                     src={fileUrl}
                     alt={previewContent?.title || "Preview"}
-                    className="mx-auto max-h-[66vh] object-contain"
+                    className="mx-auto h-auto w-full max-h-[min(66dvh,720px)] max-w-full object-contain"
                     draggable={false}
                   />
                 </div>
