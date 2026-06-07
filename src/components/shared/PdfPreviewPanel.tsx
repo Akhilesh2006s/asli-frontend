@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import * as pdfjs from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-import { ChevronLeft, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
+import { ExternalLink, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   getEmbeddedPdfIframeSrc,
@@ -355,7 +355,6 @@ export default function PdfPreviewPanel({
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [useIframeFallback, setUseIframeFallback] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
 
   const absoluteUrl = normalizeContentFileUrl(fileUrl);
   const proxyUrl = getPdfContentPreviewProxyUrl(fileUrl, title);
@@ -400,14 +399,7 @@ export default function PdfPreviewPanel({
     setTotalPages(0);
     setUseIframeFallback(false);
     setPdfError(null);
-    setCurrentPage(1);
   }, [fileUrl, title]);
-
-  useEffect(() => {
-    if (currentPage > totalPages && totalPages > 0) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
 
   const destroyPdfDoc = useCallback(async () => {
     if (!pdfDocRef.current) return;
@@ -608,7 +600,6 @@ export default function PdfPreviewPanel({
     const signal = { cancelled: false };
     const isScrollLayout = useMobilePagedPreview;
     let renderObserver: IntersectionObserver | null = null;
-    let pageTrackObserver: IntersectionObserver | null = null;
 
     host.innerHTML = '';
     renderingPagesRef.current.clear();
@@ -671,30 +662,8 @@ export default function PdfPreviewPanel({
         { root: host, rootMargin: isScrollLayout ? '240px 0px' : '400px 0px', threshold: 0.01 },
       );
 
-      if (isScrollLayout) {
-        pageTrackObserver = new IntersectionObserver(
-          (entries) => {
-            let bestPage = 1;
-            let bestRatio = 0;
-            for (const entry of entries) {
-              const pageNum = Number((entry.target as HTMLElement).dataset.page);
-              if (!Number.isFinite(pageNum)) continue;
-              if (entry.intersectionRatio > bestRatio) {
-                bestRatio = entry.intersectionRatio;
-                bestPage = pageNum;
-              }
-            }
-            if (bestRatio >= 0.2) {
-              setCurrentPage(bestPage);
-            }
-          },
-          { root: host, threshold: [0, 0.2, 0.35, 0.5, 0.75, 1] },
-        );
-      }
-
       slots.forEach((slot) => {
         renderObserver?.observe(slot);
-        pageTrackObserver?.observe(slot);
       });
 
       if (slots[0]) {
@@ -713,7 +682,6 @@ export default function PdfPreviewPanel({
     return () => {
       signal.cancelled = true;
       renderObserver?.disconnect();
-      pageTrackObserver?.disconnect();
       host.innerHTML = '';
       renderingPagesRef.current.clear();
     };
@@ -727,24 +695,6 @@ export default function PdfPreviewPanel({
     totalPages,
     renderPageIntoSlot,
   ]);
-
-  const scrollToPage = useCallback((pageNum: number) => {
-    const host = scrollHostRef.current;
-    if (!host) return;
-    const slot = host.querySelector<HTMLElement>(`[data-page="${pageNum}"]`);
-    if (slot) {
-      slot.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setCurrentPage(pageNum);
-    }
-  }, []);
-
-  const goToPreviousPage = useCallback(() => {
-    scrollToPage(Math.max(1, currentPage - 1));
-  }, [currentPage, scrollToPage]);
-
-  const goToNextPage = useCallback(() => {
-    scrollToPage(Math.min(totalPages || currentPage, currentPage + 1));
-  }, [currentPage, scrollToPage, totalPages]);
 
   if (!absoluteUrl) {
     return (
@@ -768,10 +718,7 @@ export default function PdfPreviewPanel({
 
   const mobileIframeSrc = getEmbeddedPdfIframeSrc(fileUrl, title);
 
-  const showMobilePager =
-    useMobilePagedPreview && !useIframeFallback && !pdfError && totalPages > 0 && !loadingPdf;
-
-  /** Touch / tablet — scrollable pages + sticky page controls. */
+  /** Touch / tablet — scroll through pages naturally (no pager bar). */
   return (
     <div className={`flex h-full min-h-0 flex-1 flex-col ${className}`}>
       {showOpenInNewTab ? (
@@ -810,55 +757,6 @@ export default function PdfPreviewPanel({
             </div>
           ) : null}
         </div>
-
-        {showMobilePager ? (
-          <div className="z-10 flex shrink-0 flex-col gap-2 border-t bg-white px-3 py-2.5 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
-            <div className="flex items-center justify-between gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="min-w-[5.5rem]"
-                disabled={currentPage <= 1}
-                onClick={goToPreviousPage}
-                aria-label="Previous page"
-              >
-                <ChevronLeft className="mr-1 h-4 w-4" />
-                Prev
-              </Button>
-              <div className="min-w-0 flex-1 text-center">
-                <p className="text-sm font-semibold text-foreground">
-                  Page {currentPage} of {totalPages}
-                </p>
-                <p className="text-[11px] text-muted-foreground">Scroll or use buttons to turn pages</p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="min-w-[5.5rem]"
-                disabled={currentPage >= totalPages}
-                onClick={goToNextPage}
-                aria-label="Next page"
-              >
-                Next
-                <ChevronRight className="ml-1 h-4 w-4" />
-              </Button>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
-              <div
-                className="h-full rounded-full bg-primary transition-[width] duration-200"
-                style={{ width: `${(currentPage / Math.max(totalPages, 1)) * 100}%` }}
-              />
-            </div>
-            {!showOpenInNewTab ? (
-              <Button type="button" variant="ghost" size="sm" className="w-full" onClick={openInNewTab}>
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Open full PDF
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
       </div>
     </div>
   );

@@ -433,7 +433,7 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
               <DialogHeader className="shrink-0">
                 <DialogTitle className="text-base sm:text-lg pr-6">{previewItem.title}</DialogTitle>
                 <DialogDescription className="text-xs sm:text-sm">
-                  Use Prev/Next or scroll to turn pages.
+                  Scroll to read the document.
                 </DialogDescription>
               </DialogHeader>
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-white">
