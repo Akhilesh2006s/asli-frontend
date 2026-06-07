@@ -91,7 +91,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import YouTubePlayer from '@/components/youtube-player';
 import DriveViewer from '@/components/drive-viewer';
 import VideoModal from '@/components/video-modal';
-import { API_BASE_URL, apiFetch } from '@/lib/api-config';
+import { API_BASE_URL, apiFetch, isPdfPreviewContent } from '@/lib/api-config';
 import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 import { buildExamCalendarEntries } from '@/lib/exam-calendar-entries';
 import { buildTimetableCalendarEntries } from '@/lib/timetable-calendar-entries';
@@ -2717,10 +2717,10 @@ export default function Dashboard() {
 
       {/* Content Preview Modal */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="w-[90vw] h-[95vh] max-w-none overflow-hidden bg-white rounded-2xl flex flex-col">
+        <DialogContent className="flex h-[95dvh] max-h-[95dvh] w-[90vw] max-w-none flex-col overflow-hidden rounded-2xl bg-white">
           {selectedScheduleItem && (
             <>
-              <DialogHeader>
+              <DialogHeader className="shrink-0">
                 <DialogTitle>
                   {selectedScheduleItem.isQuiz 
                     ? `Quiz: ${selectedScheduleItem.title || 'Untitled Quiz'}`
@@ -2733,10 +2733,10 @@ export default function Dashboard() {
                 </DialogDescription>
               </DialogHeader>
               
-              <div className="space-y-4 py-4 flex-1 min-h-0 overflow-y-auto">
+              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden py-4">
                 {selectedScheduleItem.isQuiz ? (
-                  <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="min-h-0 flex-1 space-y-4 overflow-y-auto">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div>
                         <p className="text-xs sm:text-sm font-medium text-gray-700">Subject</p>
                         <p className="text-xs sm:text-sm text-gray-900">
@@ -2771,10 +2771,10 @@ export default function Dashboard() {
                         <p className="text-xs sm:text-sm text-gray-900">{selectedScheduleItem.totalPoints} points</p>
                       </div>
                     )}
-                  </>
+                  </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div className="grid shrink-0 grid-cols-1 gap-4 sm:grid-cols-2">
                       <div>
                         <p className="text-xs sm:text-sm font-medium text-gray-700">Subject</p>
                         <p className="text-xs sm:text-sm text-gray-900">
@@ -2789,12 +2789,12 @@ export default function Dashboard() {
                       </div>
                     </div>
                     {selectedScheduleItem.fileUrl && (
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs sm:text-sm font-medium text-gray-700">Content Preview</p>
-                        </div>
-                        
-                        {/* Content Preview */}
+                      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
+                        <p className="shrink-0 text-xs sm:text-sm font-medium text-gray-700">
+                          Content Preview
+                        </p>
+
+                        <div className="flex min-h-[min(48dvh,520px)] flex-1 flex-col overflow-hidden rounded-lg bg-gray-50">
                         {(() => {
                           // Ensure fileUrl is properly formatted
                           let fileUrl = selectedScheduleItem.fileUrl || '';
@@ -2812,12 +2812,10 @@ export default function Dashboard() {
                                          fileUrlLower.match(/\.(mp4|webm|ogg|mov|avi|mkv)$/) ||
                                          fileUrlLower.includes('youtube.com') || 
                                          fileUrlLower.includes('youtu.be');
-                          const isPDF =
-                            fileUrlLower.endsWith('.pdf') ||
-                            fileUrlLower.includes('.pdf') ||
-                            selectedScheduleItem.type === 'PDF' ||
-                            selectedScheduleItem.type === 'TextBook' ||
-                            selectedScheduleItem.type === 'Workbook';
+                          const isPDF = isPdfPreviewContent(
+                            fileUrl,
+                            selectedScheduleItem.type,
+                          );
                           const isAudio = selectedScheduleItem.type === 'Audio' || 
                                          fileUrlLower.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/);
                           const isImage = fileUrlLower.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/);
@@ -2867,13 +2865,11 @@ export default function Dashboard() {
                           
                           if (isPDF) {
                             return (
-                              <div className="flex min-h-[min(58dvh,620px)] flex-1 flex-col overflow-hidden">
-                                <PdfPreviewPanel
-                                  fileUrl={selectedScheduleItem.fileUrl}
-                                  title={selectedScheduleItem.title}
-                                  className="h-full min-h-0 w-full flex-1"
-                                />
-                              </div>
+                              <PdfPreviewPanel
+                                fileUrl={fileUrl}
+                                title={selectedScheduleItem.title}
+                                className="h-full min-h-[min(48dvh,520px)] w-full flex-1"
+                              />
                             );
                           }
                           
@@ -2939,13 +2935,14 @@ export default function Dashboard() {
                             </div>
                           );
                         })()}
+                        </div>
                       </div>
                     )}
                   </>
                 )}
               </div>
-              
-              <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+
+              <DialogFooter className="shrink-0 flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                 <Button
                   variant="outline"
                   className="w-full sm:w-auto"

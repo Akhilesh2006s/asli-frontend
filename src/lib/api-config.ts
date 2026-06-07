@@ -163,6 +163,28 @@ export function getEmbeddedPdfIframeSrc(fileUrl: string, title?: string): string
   return getStudentPdfPreviewIframeSrc(fileUrl, title);
 }
 
+const STREAMABLE_MEDIA_EXT =
+  /\.(mp4|webm|ogg|mov|avi|mkv|mp3|wav|m4a|aac|flac|jpg|jpeg|png|gif|webp|svg|bmp)(\?|#|$)/i;
+
+/** Whether inline PDF preview should be used (incl. Material uploads without .pdf in the URL). */
+export function isPdfPreviewContent(
+  fileUrl: string,
+  contentType?: string | null,
+): boolean {
+  const absolute = normalizeContentFileUrl(fileUrl).toLowerCase();
+  if (!absolute) return false;
+  if (absolute.includes(".pdf")) return true;
+  if (STREAMABLE_MEDIA_EXT.test(absolute)) return false;
+  if (absolute.includes("youtube.com") || absolute.includes("youtu.be")) return false;
+
+  const type = (contentType || "").trim();
+  if (type === "TextBook" || type === "Workbook" || type === "PDF") return true;
+  if (type === "Material" || type === "Homework") return true;
+  if (/\/uploads\//i.test(absolute)) return true;
+
+  return false;
+}
+
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   const url = endpoint.startsWith("http")
     ? endpoint
