@@ -100,6 +100,37 @@ export function getPdfContentPreviewProxyUrl(fileUrl: string, title?: string): s
   );
 }
 
+/**
+ * Authenticated proxy that returns PDF bytes (no 302 to NCERT) for pdf.js canvas rendering.
+ */
+export function getPdfJsFetchUrl(fileUrl: string, title?: string): string {
+  const absolute = normalizeContentFileUrl(fileUrl);
+  if (!absolute) return "";
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("authToken") || ""
+      : "";
+  return (
+    `${API_BASE_URL}/api/student/content-preview` +
+    `?url=${encodeURIComponent(absolute)}` +
+    `&filename=${encodeURIComponent(title || "preview.pdf")}` +
+    `&token=${encodeURIComponent(token)}` +
+    `&forceProxy=1`
+  );
+}
+
+/** Mobile iframe fallback: one page fitted to the viewport. */
+export function getMobilePdfIframePageSrc(
+  fileUrl: string,
+  title?: string,
+  page = 1,
+): string {
+  const base = getStudentPdfPreviewIframeSrc(fileUrl, title).split("#")[0];
+  if (!base) return "";
+  const pageNum = Math.max(1, Math.floor(page));
+  return `${base}#page=${pageNum}&toolbar=0&navpanes=0&scrollbar=0&view=Fit`;
+}
+
 function resolvePdfPreviewBaseUrl(fileUrl: string, title?: string): string {
   const absolute = normalizeContentFileUrl(fileUrl);
   if (!absolute) return "";

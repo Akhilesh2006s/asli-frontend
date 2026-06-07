@@ -5,7 +5,10 @@ import { ChevronLeft, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   getEmbeddedPdfIframeSrc,
+  getMobilePdfIframePageSrc,
   getPdfContentPreviewProxyUrl,
+  getPdfJsFetchUrl,
+  isOurBackendPdfUrl,
   normalizeContentFileUrl,
 } from '@/lib/api-config';
 import { detectDigitalBoard } from '@/hooks/use-digital-board';
@@ -32,11 +35,16 @@ function isPdfBuffer(buffer: ArrayBuffer): boolean {
   );
 }
 
-/** Same fetch strategy as working PDF thumbnails in subject-content-management. */
-async function fetchPdfBytes(fileUrl: string, title?: string): Promise<ArrayBuffer> {
+function toPdfBytes(buffer: ArrayBuffer): Uint8Array {
+  return new Uint8Array(buffer.slice(0));
+}
+
+/** Prefer authenticated proxy so pdf.js gets real bytes (NCERT hosts block browser CORS). */
+async function fetchPdfBytes(fileUrl: string, title?: string): Promise<Uint8Array> {
   const absolute = normalizeContentFileUrl(fileUrl);
-  const proxy = getPdfContentPreviewProxyUrl(fileUrl, title);
-  const candidates = [absolute, proxy].filter(Boolean);
+  const jsProxy = getPdfJsFetchUrl(fileUrl, title);
+  const legacyProxy = getPdfContentPreviewProxyUrl(fileUrl, title);
+  const candidates = [jsProxy, absolute, legacyProxy].filter(Boolean);
   const seen = new Set<string>();
   const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') || '' : '';
 
@@ -45,22 +53,42 @@ async function fetchPdfBytes(fileUrl: string, title?: string): Promise<ArrayBuff
     seen.add(url);
 
     const isStaticUpload = /\/uploads\//i.test(url);
+    const isApiProxy = /\/api\/student\/content-preview/i.test(url);
     try {
       const res = await fetch(url, {
         method: 'GET',
         credentials: isStaticUpload ? 'omit' : 'include',
         headers:
-          !isStaticUpload && token ? { Authorization: `Bearer ${token}` } : undefined,
+          (isApiProxy || (!isStaticUpload && !isOurBackendPdfUrl(url))) && token
+            ? { Authorization: `Bearer ${token}` }
+            : undefined,
       });
       if (!res.ok) continue;
       const buf = await res.arrayBuffer();
-      if (isPdfBuffer(buf)) return buf;
+      if (isPdfBuffer(buf)) return toPdfBytes(buf);
     } catch {
       /* try next URL */
     }
   }
 
   throw new Error('PDF_FETCH_FAILED');
+}
+
+async function openPdfDocument(data: Uint8Array): Promise<pdfjs.PDFDocumentProxy> {
+  try {
+    return await pdfjs.getDocument({ data, useSystemFonts: true }).promise;
+  } catch {
+    return await pdfjs.getDocument({ data, useSystemFonts: true, disableWorker: true }).promise;
+  }
+}
+
+function getSafeOutputScale(cssScale: number): number {
+  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+  const cappedDpr = Math.min(dpr, 2);
+  const scale = cssScale * cappedDpr;
+  // Avoid mobile GPU/memory failures on large textbook pages.
+  const maxScale = 2.5;
+  return Math.min(scale, maxScale);
 }
 
 const COMPACT_VIEWPORT_MAX_PX = 1023;
@@ -74,6 +102,11 @@ function isIosOrIpadosBrowser(): boolean {
   return navigator.platform === 'MacIntel' && (navigator.maxTouchPoints ?? 0) > 1;
 }
 
+function isMobileUserAgent(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
 function isTouchTabletViewport(): boolean {
   if (typeof window === 'undefined') return false;
   const touchPoints = navigator.maxTouchPoints ?? 0;
@@ -85,6 +118,8 @@ function isTouchTabletViewport(): boolean {
 function shouldUseCanvasPdfPreview(): boolean {
   if (typeof window === 'undefined') return false;
   if (detectDigitalBoard()) return true;
+  // UA check catches phones even in "Desktop site" mode (wide layout + FitH iframe).
+  if (isMobileUserAgent()) return true;
   if (isIosOrIpadosBrowser()) return true;
   if (isTouchTabletViewport()) return true;
   return window.innerWidth <= COMPACT_VIEWPORT_MAX_PX;
@@ -93,7 +128,7 @@ function shouldUseCanvasPdfPreview(): boolean {
 function useCanvasPdfPreview(): boolean {
   const [useCanvas, setUseCanvas] = useState(shouldUseCanvasPdfPreview);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const update = () => setUseCanvas(shouldUseCanvasPdfPreview());
     update();
     window.addEventListener('resize', update);
@@ -123,7 +158,15 @@ function measurePreviewViewport(el: HTMLElement): { width: number; height: numbe
 
   if (typeof window !== 'undefined') {
     if (height < 80) {
-      height = Math.floor(Math.min(window.innerHeight * 0.58, 640));
+      let parent = el.parentElement;
+      while (parent && parent.clientHeight < 80) {
+        parent = parent.parentElement;
+      }
+      if (parent && parent.clientHeight >= 80) {
+        height = Math.floor(parent.clientHeight);
+      } else {
+        height = Math.floor(Math.min(window.innerHeight * 0.72, 760));
+      }
     }
     if (width < 80) {
       width = Math.floor(Math.min(window.innerWidth * 0.92, el.parentElement?.clientWidth || window.innerWidth));
@@ -160,9 +203,10 @@ export default function PdfPreviewPanel({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [renderingPage, setRenderingPage] = useState(false);
-  const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
+  const [pdfData, setPdfData] = useState<Uint8Array | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
+  const [useIframeFallback, setUseIframeFallback] = useState(false);
 
   const absoluteUrl = normalizeContentFileUrl(fileUrl);
   const proxyUrl = getPdfContentPreviewProxyUrl(fileUrl, title);
@@ -205,6 +249,8 @@ export default function PdfPreviewPanel({
   useEffect(() => {
     setCurrentPage(1);
     setTotalPages(0);
+    setUseIframeFallback(false);
+    setPdfError(null);
   }, [fileUrl, title]);
 
   useEffect(() => {
@@ -212,6 +258,7 @@ export default function PdfPreviewPanel({
       setLoadingPdf(false);
       setPdfError(null);
       setPdfData(null);
+      setUseIframeFallback(false);
       if (canvasHostRef.current) canvasHostRef.current.innerHTML = '';
       return;
     }
@@ -220,16 +267,48 @@ export default function PdfPreviewPanel({
     setLoadingPdf(true);
     setPdfError(null);
     setPdfData(null);
+    setUseIframeFallback(false);
     if (canvasHostRef.current) canvasHostRef.current.innerHTML = '';
 
-    fetchPdfBytes(fileUrl, title)
-      .then((buf) => {
-        if (!cancelled) setPdfData(buf);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setPdfError('Could not load this PDF here. Try opening it externally or check your connection.');
+    const enableIframeFallback = async (bytes?: Uint8Array) => {
+      if (cancelled) return;
+      setUseIframeFallback(true);
+      setPdfData(null);
+      if (bytes) {
+        try {
+          const pdf = await pdfjs.getDocument({ data: bytes, disableWorker: true }).promise;
+          try {
+            if (!cancelled) setTotalPages(pdf.numPages);
+          } finally {
+            await pdf.destroy();
+          }
+          return;
+        } catch {
+          /* fall through */
         }
+      }
+      if (!cancelled) setTotalPages(500);
+    };
+
+    fetchPdfBytes(fileUrl, title)
+      .then(async (bytes) => {
+        if (cancelled) return;
+        try {
+          const pdf = await openPdfDocument(bytes);
+          try {
+            if (!cancelled) {
+              setPdfData(bytes);
+              setTotalPages(pdf.numPages);
+            }
+          } finally {
+            await pdf.destroy();
+          }
+        } catch {
+          await enableIframeFallback(bytes);
+        }
+      })
+      .catch(async () => {
+        await enableIframeFallback();
       })
       .finally(() => {
         if (!cancelled) setLoadingPdf(false);
@@ -241,28 +320,7 @@ export default function PdfPreviewPanel({
   }, [useCanvasPreview, fileUrl, title]);
 
   useEffect(() => {
-    if (!useCanvasPreview || !pdfData || pdfError) return;
-
-    let cancelled = false;
-    pdfjs
-      .getDocument({ data: pdfData })
-      .promise.then((pdf) => {
-        if (!cancelled) setTotalPages(pdf.numPages);
-        pdf.destroy();
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setPdfError('Could not render this PDF. The file may be damaged or unsupported on this display.');
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [useCanvasPreview, pdfData, pdfError]);
-
-  useEffect(() => {
-    if (!useCanvasPreview || !pdfData || pdfError || !canvasHostRef.current) return;
+    if (!useCanvasPreview || useIframeFallback || !pdfData || pdfError || !canvasHostRef.current) return;
     if (containerSize.width < 80 || containerSize.height < 80) return;
     if (totalPages < 1) return;
 
@@ -273,7 +331,7 @@ export default function PdfPreviewPanel({
     setRenderingPage(true);
 
     (async () => {
-      const pdf = await pdfjs.getDocument({ data: pdfData }).promise;
+      const pdf = await openPdfDocument(pdfData);
       try {
         if (cancelled) return;
         const page = await pdf.getPage(pageNum);
@@ -284,8 +342,8 @@ export default function PdfPreviewPanel({
           base.width,
           base.height,
         );
-        const outputScale = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
-        const viewport = page.getViewport({ scale: cssScale * outputScale });
+        const outputScale = getSafeOutputScale(cssScale);
+        const viewport = page.getViewport({ scale: outputScale });
         const cssWidth = Math.floor(base.width * cssScale);
         const cssHeight = Math.floor(base.height * cssScale);
         const canvas = document.createElement('canvas');
@@ -297,7 +355,7 @@ export default function PdfPreviewPanel({
         canvas.style.maxWidth = '100%';
         canvas.style.maxHeight = '100%';
         const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        if (!ctx) throw new Error('CANVAS_CONTEXT_UNAVAILABLE');
         await page.render({ canvasContext: ctx, viewport, canvas }).promise;
         if (!cancelled) host.appendChild(canvas);
       } finally {
@@ -307,7 +365,7 @@ export default function PdfPreviewPanel({
     })().catch(() => {
       if (!cancelled) {
         setRenderingPage(false);
-        setPdfError('Could not render this PDF. The file may be damaged or unsupported on this display.');
+        setUseIframeFallback(true);
       }
     });
 
@@ -315,7 +373,7 @@ export default function PdfPreviewPanel({
       cancelled = true;
       host.innerHTML = '';
     };
-  }, [useCanvasPreview, pdfData, pdfError, containerSize, currentPage, totalPages]);
+  }, [useCanvasPreview, useIframeFallback, pdfData, pdfError, containerSize, currentPage, totalPages]);
 
   const goToPreviousPage = useCallback(() => {
     setCurrentPage((page) => Math.max(1, page - 1));
@@ -345,7 +403,10 @@ export default function PdfPreviewPanel({
     );
   }
 
-  /** Mobile / tablet — pdf.js canvas (native PDF iframes often show only “Open” on touch browsers). */
+  const mobileIframeSrc = getMobilePdfIframePageSrc(fileUrl, title, currentPage);
+  const showPageControls = !loadingPdf && totalPages > 0 && !pdfError;
+
+  /** Mobile / tablet — pdf.js canvas, with iframe fallback when pdf.js cannot run. */
   return (
     <div className={`flex min-h-0 flex-1 flex-col gap-2 ${className}`}>
       {showOpenInNewTab ? (
@@ -360,13 +421,22 @@ export default function PdfPreviewPanel({
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-slate-100">
         <div
           ref={containerRef}
-          className="relative flex h-[min(58dvh,640px)] w-full shrink-0 items-center justify-center overflow-hidden p-2 sm:p-3"
+          className="relative flex min-h-0 flex-1 w-full items-center justify-center overflow-hidden p-2 sm:p-3"
         >
-          <div
-            ref={canvasHostRef}
-            className="flex h-full w-full max-w-full items-center justify-center"
-          />
-          {loadingPdf || (pdfData && totalPages < 1 && !pdfError) ? (
+          {useIframeFallback ? (
+            <iframe
+              key={`${mobileIframeSrc}-${currentPage}`}
+              title={title || 'PDF Preview'}
+              src={mobileIframeSrc}
+              className="h-full w-full border-0 bg-white"
+            />
+          ) : (
+            <div
+              ref={canvasHostRef}
+              className="flex h-full w-full max-h-full max-w-full items-center justify-center overflow-hidden"
+            />
+          )}
+          {loadingPdf || (!useIframeFallback && pdfData && totalPages < 1 && !pdfError) ? (
             <div className="absolute inset-0 flex items-center justify-center gap-2 bg-slate-100 text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin" />
               <span className="text-sm">Loading document…</span>
@@ -380,14 +450,14 @@ export default function PdfPreviewPanel({
               </Button>
             </div>
           ) : null}
-          {renderingPage && !loadingPdf && !pdfError ? (
+          {renderingPage && !loadingPdf && !pdfError && !useIframeFallback ? (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-100/60">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : null}
         </div>
 
-        {!loadingPdf && !pdfError && totalPages > 0 ? (
+        {showPageControls ? (
           <div className="flex shrink-0 items-center justify-between gap-2 border-t border-slate-200 bg-white px-2 py-2 sm:px-3">
             <Button
               type="button"
@@ -400,7 +470,8 @@ export default function PdfPreviewPanel({
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-xs text-muted-foreground sm:text-sm">
-              Page {currentPage} of {totalPages}
+              Page {currentPage}
+              {totalPages > 1 ? ` of ${totalPages}` : ''}
             </span>
             <Button
               type="button"
