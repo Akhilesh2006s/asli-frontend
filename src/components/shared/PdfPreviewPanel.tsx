@@ -116,14 +116,18 @@ type PdfSource =
   | { mode: 'url'; url: string }
   | { mode: 'data'; bytes: Uint8Array };
 
-function buildPdfDocumentInit(
-  source: PdfSource,
-): Parameters<typeof pdfjs.getDocument>[0] {
+type PdfDocumentInit = {
+  url?: string;
+  data?: Uint8Array;
+  useSystemFonts?: boolean;
+  withCredentials?: boolean;
+  httpHeaders?: Record<string, string>;
+};
+
+function buildPdfDocumentInit(source: PdfSource): PdfDocumentInit {
   const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') || '' : '';
-  const base: Record<string, unknown> = {
+  const base: PdfDocumentInit = {
     useSystemFonts: true,
-    disableWorker: prefersDisableWorker(),
-    isEvalSupported: false,
   };
 
   if (source.mode === 'url') {
@@ -143,16 +147,9 @@ function buildPdfDocumentInit(
   return { ...base, data: source.bytes };
 }
 
-/** Touch browsers: skip the worker entirely (worker .mjs often fails on mobile). */
+/** Touch browsers: load bytes on the main thread when URL streaming is unreliable. */
 async function openPdfDocument(source: PdfSource): Promise<pdfjs.PDFDocumentProxy> {
-  const init = buildPdfDocumentInit(source);
-  if (!prefersDisableWorker()) {
-    try {
-      return await pdfjs.getDocument({ ...init, disableWorker: false }).promise;
-    } catch {
-      return pdfjs.getDocument({ ...init, disableWorker: true }).promise;
-    }
-  }
+  const init = buildPdfDocumentInit(source) as Parameters<typeof pdfjs.getDocument>[0];
   return pdfjs.getDocument(init).promise;
 }
 
@@ -343,7 +340,8 @@ export default function PdfPreviewPanel({
   const inlineIframeSupported = canUseInlinePdfIframe();
   /** Canvas when touch/tablet, or whenever embedded PDF iframes cannot render inline. */
   const useCanvasRendering = prefersCanvasPreview || !inlineIframeSupported;
-  const useMobilePagedPreview =
+  /** Mobile/tablet: vertical scroll stack (no bottom pager bar). */
+  const useMobileScrollLayout =
     useCanvasRendering && typeof window !== 'undefined' && !detectDigitalBoard();
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollHostRef = useRef<HTMLDivElement>(null);
@@ -592,13 +590,13 @@ export default function PdfPreviewPanel({
     if (!useCanvasRendering || useIframeFallback || !pdfSource || pdfError) return;
     if (!scrollHostRef.current) return;
     if (containerSize.width < 80) return;
-    if (!useMobilePagedPreview && containerSize.height < 80) return;
+    if (!useMobileScrollLayout && containerSize.height < 80) return;
     if (totalPages < 1 || !pdfDocRef.current) return;
 
     const host = scrollHostRef.current;
     const pdf = pdfDocRef.current;
     const signal = { cancelled: false };
-    const isScrollLayout = useMobilePagedPreview;
+    const isScrollLayout = useMobileScrollLayout;
     let renderObserver: IntersectionObserver | null = null;
 
     host.innerHTML = '';
@@ -611,10 +609,22 @@ export default function PdfPreviewPanel({
       host.className =
         'h-full w-full snap-y snap-mandatory overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y';
     }
-    host.style.webkitOverflowScrolling = 'touch';
+    host.style.setProperty('-webkit-overflow-scrolling', 'touch');
 
     const setup = async () => {
       const slots: HTMLElement[] = [];
+      let scrollSlotMinHeight = '280px';
+
+      if (isScrollLayout) {
+        try {
+          const firstPage = await pdf.getPage(1);
+          const base = firstPage.getViewport({ scale: 1 });
+          const cssScale = getFitWidthScale(containerSize.width, base.width);
+          scrollSlotMinHeight = `${Math.floor(base.height * cssScale) + 8}px`;
+        } catch {
+          /* use default slot height */
+        }
+      }
 
       for (let pageNum = 1; pageNum <= totalPages; pageNum += 1) {
         if (signal.cancelled) return;
@@ -624,14 +634,7 @@ export default function PdfPreviewPanel({
         if (isScrollLayout) {
           slot.className =
             'pdf-page-slot flex w-full shrink-0 items-center justify-center px-1 py-2';
-          try {
-            const page = await pdf.getPage(pageNum);
-            const base = page.getViewport({ scale: 1 });
-            const cssScale = getFitWidthScale(containerSize.width, base.width);
-            slot.style.minHeight = `${Math.floor(base.height * cssScale) + 8}px`;
-          } catch {
-            slot.style.minHeight = '280px';
-          }
+          slot.style.minHeight = scrollSlotMinHeight;
         } else {
           slot.className =
             'pdf-page-slot flex w-full shrink-0 snap-start snap-always items-center justify-center';
@@ -687,7 +690,7 @@ export default function PdfPreviewPanel({
     };
   }, [
     useCanvasRendering,
-    useMobilePagedPreview,
+    useMobileScrollLayout,
     useIframeFallback,
     pdfSource,
     pdfError,
