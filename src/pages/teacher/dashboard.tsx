@@ -379,11 +379,6 @@ const TeacherDashboard = () => {
   const [isLoadingAiInsights, setIsLoadingAiInsights] = useState(false);
   const [filterByClass, setFilterByClass] = useState<string>('all');
   const [filterByStudent, setFilterByStudent] = useState<string>('all');
-  const [progressDetailStudent, setProgressDetailStudent] = useState<Student | null>(null);
-  const [isProgressDetailOpen, setIsProgressDetailOpen] = useState(false);
-  const [detailAiInsights, setDetailAiInsights] = useState('');
-  const [isLoadingDetailAi, setIsLoadingDetailAi] = useState(false);
-
   useEffect(() => {
     setEduottSubjectFilter('all');
   }, [eduottClassFilter]);
@@ -1702,32 +1697,19 @@ const TeacherDashboard = () => {
     [trackProgressRemarks, filterByClass, filterByStudent, getHomeworkStatsByStudentId]
   );
 
-  const openStudentProgressDetail = useCallback(
-    async (student: Student) => {
-      const sid = String(student.id || (student as { _id?: string })._id || '');
-      const classNum = student.classNumber || student.assignedClass?.classNumber;
-      if (classNum != null && String(classNum).trim() !== '') {
-        setFilterByClass(String(classNum));
-      }
-      setFilterByStudent(sid);
-      setProgressDetailStudent(student);
-      setDetailAiInsights('');
-      setIsProgressDetailOpen(true);
-      setIsLoadingDetailAi(true);
-      try {
-        const insights = await fetchAiProgressInsights([student], { updateGlobal: false });
-        setDetailAiInsights(insights);
-      } finally {
-        setIsLoadingDetailAi(false);
-      }
-      window.setTimeout(() => {
-        document
-          .getElementById('teacher-progress-analytics')
-          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
-    },
-    [fetchAiProgressInsights]
-  );
+  const openStudentProgressDetail = useCallback((student: Student) => {
+    const sid = String(student.id || (student as { _id?: string })._id || '');
+    const classNum = student.classNumber || student.assignedClass?.classNumber;
+    if (classNum != null && String(classNum).trim() !== '') {
+      setFilterByClass(String(classNum));
+    }
+    setFilterByStudent(sid);
+    window.setTimeout(() => {
+      document
+        .getElementById('teacher-progress-analytics')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }, []);
 
   useEffect(() => {
     if (dashboardSubTab !== 'students' || studentsSubTab !== 'track-progress') return;
@@ -4637,55 +4619,6 @@ const TeacherDashboard = () => {
         </DialogContent>
       </Dialog>
 
-
-      {/* Student progress detail (Track Progress → View) */}
-      <Dialog
-        open={isProgressDetailOpen}
-        onOpenChange={(open) => {
-          setIsProgressDetailOpen(open);
-          if (!open) {
-            setProgressDetailStudent(null);
-            setDetailAiInsights('');
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {progressDetailStudent?.name ||
-                progressDetailStudent?.fullName ||
-                progressDetailStudent?.email ||
-                'Student progress'}
-            </DialogTitle>
-            <DialogDescription>
-              Exam performance, platform usage, homework, remarks, and improvement analysis
-            </DialogDescription>
-          </DialogHeader>
-          {progressDetailStudent && (
-            <TeacherTrackProgressPanels
-              students={[progressDetailStudent]}
-              remarks={trackProgressRemarks}
-              aiInsights={detailAiInsights}
-              isLoadingAi={isLoadingDetailAi}
-              onRefreshAi={async () => {
-                setIsLoadingDetailAi(true);
-                try {
-                  const insights = await fetchAiProgressInsights([progressDetailStudent], {
-                    updateGlobal: false,
-                  });
-                  setDetailAiInsights(insights);
-                } finally {
-                  setIsLoadingDetailAi(false);
-                }
-              }}
-              onFetchStudentInsights={(student) =>
-                fetchAiProgressInsights([student], { updateGlobal: false })
-              }
-              getStudentHomeworkStats={getStudentHomeworkStatsForPanel}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Video Viewer Modal */}
       <Dialog open={isVideoViewerOpen} onOpenChange={setIsVideoViewerOpen}>
