@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type TouchEvent } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import * as pdfjs from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { ChevronLeft, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
@@ -9,6 +9,7 @@ import {
   getPdfJsFetchUrl,
   isOurBackendPdfUrl,
   normalizeContentFileUrl,
+  shouldFetchDirectly,
 } from '@/lib/api-config';
 import { detectDigitalBoard } from '@/hooks/use-digital-board';
 
@@ -39,28 +40,62 @@ function toPdfBytes(buffer: ArrayBuffer): Uint8Array {
 }
 
 /** Prefer authenticated proxy so pdf.js gets real bytes (NCERT hosts block browser CORS). */
-async function fetchPdfBytes(fileUrl: string, title?: string): Promise<Uint8Array> {
+function buildPdfFetchCandidates(fileUrl: string, title?: string): string[] {
   const absolute = normalizeContentFileUrl(fileUrl);
   const jsProxy = getPdfJsFetchUrl(fileUrl, title);
-  const legacyProxy = getPdfContentPreviewProxyUrl(fileUrl, title);
-  const candidates = [jsProxy, absolute, legacyProxy].filter(Boolean);
   const seen = new Set<string>();
+  const candidates: string[] = [];
+
+  const push = (url: string) => {
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+    candidates.push(url);
+  };
+
+  // Proxied bytes — required for NCERT and other cross-origin textbooks.
+  push(jsProxy);
+
+  if (absolute && /\/uploads\//i.test(absolute)) {
+    push(absolute);
+  }
+
+  if (absolute && pdfJsCanLoadUrlDirectly(absolute) && !shouldFetchDirectly(absolute)) {
+    push(absolute);
+  }
+
+  return candidates;
+}
+
+function isContentPreviewProxyUrl(url: string): boolean {
+  return /\/api\/student\/content-preview/i.test(url);
+}
+
+function pdfFetchCredentials(url: string): RequestCredentials {
+  if (/\/uploads\//i.test(url)) return 'omit';
+  if (isContentPreviewProxyUrl(url)) return 'omit';
+  return 'include';
+}
+
+function pdfFetchHeaders(url: string, token: string): HeadersInit | undefined {
+  if (isContentPreviewProxyUrl(url) && url.includes('token=')) {
+    return undefined;
+  }
+  if (token && (isContentPreviewProxyUrl(url) || !isOurBackendPdfUrl(url))) {
+    return { Authorization: `Bearer ${token}` };
+  }
+  return undefined;
+}
+
+async function fetchPdfBytes(fileUrl: string, title?: string): Promise<Uint8Array> {
+  const candidates = buildPdfFetchCandidates(fileUrl, title);
   const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') || '' : '';
 
   for (const url of candidates) {
-    if (seen.has(url)) continue;
-    seen.add(url);
-
-    const isStaticUpload = /\/uploads\//i.test(url);
-    const isApiProxy = /\/api\/student\/content-preview/i.test(url);
     try {
       const res = await fetch(url, {
         method: 'GET',
-        credentials: isStaticUpload ? 'omit' : 'include',
-        headers:
-          (isApiProxy || (!isStaticUpload && !isOurBackendPdfUrl(url))) && token
-            ? { Authorization: `Bearer ${token}` }
-            : undefined,
+        credentials: pdfFetchCredentials(url),
+        headers: pdfFetchHeaders(url, token),
       });
       if (!res.ok) continue;
       const buf = await res.arrayBuffer();
@@ -92,13 +127,14 @@ function buildPdfDocumentInit(
   };
 
   if (source.mode === 'url') {
-    const isApiProxy = /\/api\/student\/content-preview/i.test(source.url);
+    const isApiProxy = isContentPreviewProxyUrl(source.url);
+    const tokenInQuery = source.url.includes('token=');
     return {
       ...base,
       url: source.url,
-      withCredentials: true,
+      withCredentials: !isApiProxy && !tokenInQuery,
       httpHeaders:
-        token && !isApiProxy && !source.url.includes('token=')
+        token && !tokenInQuery && !isApiProxy
           ? { Authorization: `Bearer ${token}` }
           : undefined,
     };
@@ -287,6 +323,16 @@ function getFitContainScale(
   return Math.min(availW / pageWidth, availH / pageHeight);
 }
 
+/** Fit page to container width — used for mobile vertical scroll stacks. */
+function getFitWidthScale(containerWidth: number, pageWidth: number): number {
+  const pad = 8;
+  const availW = Math.max(0, containerWidth - pad);
+  if (availW <= 0 || pageWidth <= 0) return 1;
+  return availW / pageWidth;
+}
+
+type PageLayout = 'viewport' | 'scroll';
+
 export default function PdfPreviewPanel({
   fileUrl,
   title,
@@ -310,17 +356,16 @@ export default function PdfPreviewPanel({
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [useIframeFallback, setUseIframeFallback] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageRendering, setPageRendering] = useState(false);
-  const touchStartXRef = useRef<number | null>(null);
 
   const absoluteUrl = normalizeContentFileUrl(fileUrl);
   const proxyUrl = getPdfContentPreviewProxyUrl(fileUrl, title);
+  const forcedProxyUrl = getPdfJsFetchUrl(fileUrl, title);
   const iframeSrc = getEmbeddedPdfIframeSrc(absoluteUrl || fileUrl, title);
 
   const openInNewTab = useCallback(() => {
-    const target = proxyUrl || absoluteUrl;
+    const target = forcedProxyUrl || proxyUrl || absoluteUrl;
     if (target) window.open(target, '_blank', 'noopener,noreferrer');
-  }, [proxyUrl, absoluteUrl]);
+  }, [forcedProxyUrl, proxyUrl, absoluteUrl]);
 
   const updateContainerSize = useCallback(() => {
     const el = containerRef.current;
@@ -416,7 +461,16 @@ export default function PdfPreviewPanel({
 
       if (!canUseInlinePdfIframe()) {
         if (!cancelled) {
-          setPdfError('Could not display this PDF on your device. Open it externally to read.');
+          const isExternalHost =
+            shouldFetchDirectly(absoluteUrl) ||
+            (Boolean(absoluteUrl) &&
+              !isOurBackendPdfUrl(absoluteUrl) &&
+              !/\/uploads\//i.test(absoluteUrl));
+          setPdfError(
+            isExternalHost
+              ? 'This textbook link could not be loaded for inline preview (often external NCERT/host links or very large files). Tap below to open it in your browser.'
+              : 'Could not display this PDF on your device. Open it externally to read.',
+          );
         }
         return;
       }
@@ -428,17 +482,31 @@ export default function PdfPreviewPanel({
 
     const jsUrl = getPdfJsFetchUrl(fileUrl, title);
     const absolute = normalizeContentFileUrl(fileUrl);
-    const legacyProxy = getPdfContentPreviewProxyUrl(fileUrl, title);
     const urlSources: PdfSource[] = [];
     const seenUrls = new Set<string>();
-    for (const url of [jsUrl, legacyProxy, absolute]) {
+    for (const url of [jsUrl, absolute]) {
       if (!url || seenUrls.has(url)) continue;
-      if (url === absolute && !pdfJsCanLoadUrlDirectly(url)) continue;
+      if (url === absolute && !pdfJsCanLoadUrlDirectly(url) && !/\/uploads\//i.test(url)) {
+        continue;
+      }
+      if (url === absolute && shouldFetchDirectly(url)) continue;
       seenUrls.add(url);
       urlSources.push({ mode: 'url', url });
     }
 
     (async () => {
+      // Mobile/tablet: load bytes first — URL streaming via pdf.js is less reliable on touch browsers.
+      if (prefersDisableWorker()) {
+        try {
+          const bytes = await fetchPdfBytes(fileUrl, title);
+          if (cancelled) return;
+          await trySetPdfSource({ mode: 'data', bytes });
+          return;
+        } catch {
+          /* try URL sources, then bytes again below */
+        }
+      }
+
       for (const source of urlSources) {
         if (cancelled) return;
         try {
@@ -473,16 +541,20 @@ export default function PdfPreviewPanel({
       slot: HTMLElement,
       size: { width: number; height: number },
       signal?: { cancelled: boolean },
+      layout: PageLayout = 'viewport',
     ) => {
       const pdf = pdfDocRef.current;
       if (!pdf || signal?.cancelled) return false;
-      if (renderingPagesRef.current.has(pageNum)) return false;
+      if (slot.dataset.rendered === '1' || renderingPagesRef.current.has(pageNum)) return true;
       renderingPagesRef.current.add(pageNum);
       try {
         const page = await pdf.getPage(pageNum);
         if (signal?.cancelled) return false;
         const base = page.getViewport({ scale: 1 });
-        const cssScale = getFitContainScale(size.width, size.height, base.width, base.height);
+        const cssScale =
+          layout === 'scroll'
+            ? getFitWidthScale(size.width, base.width)
+            : getFitContainScale(size.width, size.height, base.width, base.height);
         const cssWidth = Math.floor(base.width * cssScale);
         const cssHeight = Math.floor(base.height * cssScale);
         const baseOutputScale = getSafeOutputScale(cssScale, base.width, base.height);
@@ -494,7 +566,7 @@ export default function PdfPreviewPanel({
           if (signal?.cancelled) break;
           const viewport = page.getViewport({ scale: outputScale });
           const canvas = document.createElement('canvas');
-          canvas.className = 'block max-h-full max-w-full rounded-sm bg-white shadow-md';
+          canvas.className = 'block max-w-full rounded-sm bg-white shadow-md';
           canvas.width = Math.max(1, Math.floor(viewport.width));
           canvas.height = Math.max(1, Math.floor(viewport.height));
           canvas.style.width = `${cssWidth}px`;
@@ -506,6 +578,9 @@ export default function PdfPreviewPanel({
             if (!signal?.cancelled) {
               slot.replaceChildren(canvas);
               slot.dataset.rendered = '1';
+              if (layout === 'scroll') {
+                slot.style.minHeight = `${cssHeight + 8}px`;
+              }
               return true;
             }
           } catch {
@@ -520,89 +595,125 @@ export default function PdfPreviewPanel({
     [],
   );
 
-  /** Mobile/tablet: single visible page with explicit prev/next controls. */
+  /** Canvas rendering: mobile = vertical scroll stack; boards = full-screen snap pages. */
   useEffect(() => {
-    if (!useCanvasRendering || !useMobilePagedPreview || useIframeFallback || !pdfSource || pdfError) {
-      return;
-    }
+    if (!useCanvasRendering || useIframeFallback || !pdfSource || pdfError) return;
     if (!scrollHostRef.current) return;
-    if (containerSize.width < 80 || containerSize.height < 80) return;
+    if (containerSize.width < 80) return;
+    if (!useMobilePagedPreview && containerSize.height < 80) return;
     if (totalPages < 1 || !pdfDocRef.current) return;
 
     const host = scrollHostRef.current;
+    const pdf = pdfDocRef.current;
     const signal = { cancelled: false };
-    host.innerHTML = '';
-    const slot = document.createElement('div');
-    slot.className = 'flex h-full w-full items-center justify-center p-1';
-    host.appendChild(slot);
-
-    setPageRendering(true);
-    void renderPageIntoSlot(currentPage, slot, containerSize, signal).finally(() => {
-      if (!signal.cancelled) setPageRendering(false);
-    });
-
-    return () => {
-      signal.cancelled = true;
-      host.innerHTML = '';
-      renderingPagesRef.current.clear();
-    };
-  }, [
-    useCanvasRendering,
-    useMobilePagedPreview,
-    useIframeFallback,
-    pdfSource,
-    pdfError,
-    containerSize,
-    totalPages,
-    currentPage,
-    renderPageIntoSlot,
-  ]);
-
-  /** Classroom boards: vertical snap-scroll through all pages. */
-  useEffect(() => {
-    if (!useCanvasRendering || useMobilePagedPreview || useIframeFallback || !pdfSource || pdfError) {
-      return;
-    }
-    if (!scrollHostRef.current) return;
-    if (containerSize.width < 80 || containerSize.height < 80) return;
-    if (totalPages < 1 || !pdfDocRef.current) return;
-
-    const host = scrollHostRef.current;
-    const slotHeight = containerSize.height;
-    const signal = { cancelled: false };
+    const isScrollLayout = useMobilePagedPreview;
+    let renderObserver: IntersectionObserver | null = null;
+    let pageTrackObserver: IntersectionObserver | null = null;
 
     host.innerHTML = '';
     renderingPagesRef.current.clear();
 
-    const slots: HTMLElement[] = [];
-    for (let pageNum = 1; pageNum <= totalPages; pageNum += 1) {
-      const slot = document.createElement('div');
-      slot.className =
-        'pdf-page-slot flex w-full shrink-0 snap-start snap-always items-center justify-center';
-      slot.dataset.page = String(pageNum);
-      slot.style.height = `${slotHeight}px`;
-      host.appendChild(slot);
-      slots.push(slot);
+    if (isScrollLayout) {
+      host.className =
+        'h-full w-full overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y';
+    } else {
+      host.className =
+        'h-full w-full snap-y snap-mandatory overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y';
     }
+    host.style.webkitOverflowScrolling = 'touch';
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          const pageNum = Number((entry.target as HTMLElement).dataset.page);
-          if (!Number.isFinite(pageNum)) continue;
-          void renderPageIntoSlot(pageNum, entry.target as HTMLElement, containerSize, signal);
+    const setup = async () => {
+      const slots: HTMLElement[] = [];
+
+      for (let pageNum = 1; pageNum <= totalPages; pageNum += 1) {
+        if (signal.cancelled) return;
+        const slot = document.createElement('div');
+        slot.dataset.page = String(pageNum);
+
+        if (isScrollLayout) {
+          slot.className =
+            'pdf-page-slot flex w-full shrink-0 items-center justify-center px-1 py-2';
+          try {
+            const page = await pdf.getPage(pageNum);
+            const base = page.getViewport({ scale: 1 });
+            const cssScale = getFitWidthScale(containerSize.width, base.width);
+            slot.style.minHeight = `${Math.floor(base.height * cssScale) + 8}px`;
+          } catch {
+            slot.style.minHeight = '280px';
+          }
+        } else {
+          slot.className =
+            'pdf-page-slot flex w-full shrink-0 snap-start snap-always items-center justify-center';
+          slot.style.height = `${containerSize.height}px`;
         }
-      },
-      { root: host, rootMargin: '400px 0px', threshold: 0.01 },
-    );
 
-    slots.forEach((slot) => observer.observe(slot));
-    void renderPageIntoSlot(1, slots[0], containerSize, signal);
+        host.appendChild(slot);
+        slots.push(slot);
+      }
+
+      if (signal.cancelled) return;
+
+      renderObserver = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            const pageNum = Number((entry.target as HTMLElement).dataset.page);
+            if (!Number.isFinite(pageNum)) continue;
+            void renderPageIntoSlot(
+              pageNum,
+              entry.target as HTMLElement,
+              containerSize,
+              signal,
+              isScrollLayout ? 'scroll' : 'viewport',
+            );
+          }
+        },
+        { root: host, rootMargin: isScrollLayout ? '240px 0px' : '400px 0px', threshold: 0.01 },
+      );
+
+      if (isScrollLayout) {
+        pageTrackObserver = new IntersectionObserver(
+          (entries) => {
+            let bestPage = 1;
+            let bestRatio = 0;
+            for (const entry of entries) {
+              const pageNum = Number((entry.target as HTMLElement).dataset.page);
+              if (!Number.isFinite(pageNum)) continue;
+              if (entry.intersectionRatio > bestRatio) {
+                bestRatio = entry.intersectionRatio;
+                bestPage = pageNum;
+              }
+            }
+            if (bestRatio >= 0.2) {
+              setCurrentPage(bestPage);
+            }
+          },
+          { root: host, threshold: [0, 0.2, 0.35, 0.5, 0.75, 1] },
+        );
+      }
+
+      slots.forEach((slot) => {
+        renderObserver?.observe(slot);
+        pageTrackObserver?.observe(slot);
+      });
+
+      if (slots[0]) {
+        void renderPageIntoSlot(
+          1,
+          slots[0],
+          containerSize,
+          signal,
+          isScrollLayout ? 'scroll' : 'viewport',
+        );
+      }
+    };
+
+    void setup();
 
     return () => {
       signal.cancelled = true;
-      observer.disconnect();
+      renderObserver?.disconnect();
+      pageTrackObserver?.disconnect();
       host.innerHTML = '';
       renderingPagesRef.current.clear();
     };
@@ -617,31 +728,23 @@ export default function PdfPreviewPanel({
     renderPageIntoSlot,
   ]);
 
-  const goToPreviousPage = useCallback(() => {
-    setCurrentPage((page) => Math.max(1, page - 1));
+  const scrollToPage = useCallback((pageNum: number) => {
+    const host = scrollHostRef.current;
+    if (!host) return;
+    const slot = host.querySelector<HTMLElement>(`[data-page="${pageNum}"]`);
+    if (slot) {
+      slot.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setCurrentPage(pageNum);
+    }
   }, []);
+
+  const goToPreviousPage = useCallback(() => {
+    scrollToPage(Math.max(1, currentPage - 1));
+  }, [currentPage, scrollToPage]);
 
   const goToNextPage = useCallback(() => {
-    setCurrentPage((page) => Math.min(totalPages || page, page + 1));
-  }, [totalPages]);
-
-  const handleTouchStart = useCallback((event: TouchEvent<HTMLDivElement>) => {
-    touchStartXRef.current = event.changedTouches[0]?.clientX ?? null;
-  }, []);
-
-  const handleTouchEnd = useCallback(
-    (event: TouchEvent<HTMLDivElement>) => {
-      const startX = touchStartXRef.current;
-      touchStartXRef.current = null;
-      if (startX == null || totalPages < 2) return;
-      const endX = event.changedTouches[0]?.clientX ?? startX;
-      const delta = endX - startX;
-      if (Math.abs(delta) < 48) return;
-      if (delta < 0) goToNextPage();
-      else goToPreviousPage();
-    },
-    [goToNextPage, goToPreviousPage, totalPages],
-  );
+    scrollToPage(Math.min(totalPages || currentPage, currentPage + 1));
+  }, [currentPage, scrollToPage, totalPages]);
 
   if (!absoluteUrl) {
     return (
@@ -668,9 +771,9 @@ export default function PdfPreviewPanel({
   const showMobilePager =
     useMobilePagedPreview && !useIframeFallback && !pdfError && totalPages > 0 && !loadingPdf;
 
-  /** Touch / tablet — canvas pages with visible page controls. */
+  /** Touch / tablet — scrollable pages + sticky page controls. */
   return (
-    <div className={`flex min-h-[min(50dvh,520px)] flex-1 flex-col gap-2 ${className}`}>
+    <div className={`flex h-full min-h-0 flex-1 flex-col ${className}`}>
       {showOpenInNewTab ? (
         <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
           <Button type="button" variant="outline" size="sm" onClick={openInNewTab}>
@@ -681,12 +784,7 @@ export default function PdfPreviewPanel({
       ) : null}
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-slate-100">
-        <div
-          ref={containerRef}
-          className="relative flex min-h-[min(48dvh,480px)] flex-1 w-full overflow-hidden"
-          onTouchStart={useMobilePagedPreview ? handleTouchStart : undefined}
-          onTouchEnd={useMobilePagedPreview ? handleTouchEnd : undefined}
-        >
+        <div ref={containerRef} className="relative min-h-0 flex-1 overflow-hidden">
           {useIframeFallback ? (
             <iframe
               key={mobileIframeSrc}
@@ -695,20 +793,12 @@ export default function PdfPreviewPanel({
               className="h-full w-full border-0 bg-white"
             />
           ) : (
-            <div
-              ref={scrollHostRef}
-              className={
-                useMobilePagedPreview
-                  ? 'h-full w-full overflow-hidden'
-                  : 'h-full w-full snap-y snap-mandatory overflow-y-auto overflow-x-hidden overscroll-y-contain'
-              }
-              style={useMobilePagedPreview ? undefined : { WebkitOverflowScrolling: 'touch' }}
-            />
+            <div ref={scrollHostRef} className="h-full w-full" />
           )}
-          {loadingPdf || pageRendering || (!useIframeFallback && pdfSource && totalPages < 1 && !pdfError) ? (
+          {loadingPdf || (!useIframeFallback && pdfSource && totalPages < 1 && !pdfError) ? (
             <div className="absolute inset-0 flex items-center justify-center gap-2 bg-slate-100/90 text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin" />
-              <span className="text-sm">{loadingPdf ? 'Loading document…' : 'Loading page…'}</span>
+              <span className="text-sm">Loading document…</span>
             </div>
           ) : null}
           {pdfError ? (
@@ -722,14 +812,14 @@ export default function PdfPreviewPanel({
         </div>
 
         {showMobilePager ? (
-          <div className="flex shrink-0 flex-col gap-2 border-t bg-white px-3 py-2.5">
+          <div className="z-10 flex shrink-0 flex-col gap-2 border-t bg-white px-3 py-2.5 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
             <div className="flex items-center justify-between gap-2">
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 className="min-w-[5.5rem]"
-                disabled={currentPage <= 1 || pageRendering}
+                disabled={currentPage <= 1}
                 onClick={goToPreviousPage}
                 aria-label="Previous page"
               >
@@ -740,14 +830,14 @@ export default function PdfPreviewPanel({
                 <p className="text-sm font-semibold text-foreground">
                   Page {currentPage} of {totalPages}
                 </p>
-                <p className="text-[11px] text-muted-foreground">Swipe left/right or use buttons</p>
+                <p className="text-[11px] text-muted-foreground">Scroll or use buttons to turn pages</p>
               </div>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 className="min-w-[5.5rem]"
-                disabled={currentPage >= totalPages || pageRendering}
+                disabled={currentPage >= totalPages}
                 onClick={goToNextPage}
                 aria-label="Next page"
               >

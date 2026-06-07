@@ -276,7 +276,10 @@ export default function CalendarView({
     const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileExtension);
     const isVideo = ['mp4', 'webm', 'ogg'].includes(fileExtension);
     const isPDF =
-      fileExtension === 'pdf' || previewUrl.toLowerCase().includes('.pdf');
+      fileExtension === 'pdf' ||
+      previewUrl.toLowerCase().includes('.pdf') ||
+      content.type === 'TextBook' ||
+      content.type === 'Workbook';
     const isAudio = ['mp3', 'wav', 'ogg', 'm4a'].includes(fileExtension);
     
     // Handle YouTube videos
@@ -333,7 +336,7 @@ export default function CalendarView({
         <PdfPreviewPanel
           fileUrl={content.fileUrl}
           title={content.title}
-          className="h-full min-h-[min(50dvh,560px)] w-full min-w-0 flex-1"
+          className="h-full min-h-0 w-full flex-1"
         />
       );
     }
@@ -503,7 +506,7 @@ export default function CalendarView({
 
       {/* Preview Dialog */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden board:max-h-[92dvh] board:max-w-[min(92vw,1400px)] uhd:max-w-[min(90vw,1600px)]">
+        <DialogContent className="flex h-[min(92dvh,900px)] max-h-[92dvh] w-full max-w-4xl flex-col overflow-hidden p-4 sm:p-6 board:max-h-[92dvh] board:max-w-[min(92vw,1400px)] uhd:max-w-[min(90vw,1600px)]">
           <DialogHeader className="shrink-0">
             <DialogTitle className="text-lg sm:text-xl font-semibold">{selectedContent?.title}</DialogTitle>
             <DialogDescription>
@@ -512,14 +515,14 @@ export default function CalendarView({
           </DialogHeader>
           
           {selectedContent && (
-            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               {/* File Preview */}
-              <div className="flex min-h-[min(400px,50dvh)] flex-1 flex-col overflow-hidden rounded-lg bg-gray-50 board:min-h-[min(60dvh,720px)]">
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg bg-gray-50">
                 {renderFilePreview(selectedContent)}
               </div>
 
               {/* Content Info */}
-              <div className="flex items-center justify-between pt-4 border-t">
+              <div className="flex shrink-0 items-center justify-between border-t pt-3 mt-3">
                 <div className="flex items-center space-x-4 text-xs sm:text-sm text-gray-600">
                   <span className="flex items-center space-x-1">
                     <FileText className="w-3 h-3 sm:w-4 sm:h-4" />

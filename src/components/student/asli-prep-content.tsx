@@ -439,7 +439,7 @@ export default function AsliPrepContent() {
                 <PdfPreviewPanel
                   fileUrl={previewContent?.fileUrl || fileUrl}
                   title={previewContent?.title}
-                  className="w-full min-h-[min(50dvh,640px)]"
+                  className="h-full min-h-0 w-full flex-1"
                 />
               );
             }

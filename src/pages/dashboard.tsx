@@ -2815,7 +2815,9 @@ export default function Dashboard() {
                           const isPDF =
                             fileUrlLower.endsWith('.pdf') ||
                             fileUrlLower.includes('.pdf') ||
-                            selectedScheduleItem.type === 'PDF';
+                            selectedScheduleItem.type === 'PDF' ||
+                            selectedScheduleItem.type === 'TextBook' ||
+                            selectedScheduleItem.type === 'Workbook';
                           const isAudio = selectedScheduleItem.type === 'Audio' || 
                                          fileUrlLower.match(/\.(mp3|wav|ogg|m4a|aac|flac)$/);
                           const isImage = fileUrlLower.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/);
@@ -2865,11 +2867,13 @@ export default function Dashboard() {
                           
                           if (isPDF) {
                             return (
-                              <PdfPreviewPanel
-                                fileUrl={selectedScheduleItem.fileUrl}
-                                title={selectedScheduleItem.title}
-                                className="w-full min-h-[min(50dvh,640px)]"
-                              />
+                              <div className="flex min-h-[min(58dvh,620px)] flex-1 flex-col overflow-hidden">
+                                <PdfPreviewPanel
+                                  fileUrl={selectedScheduleItem.fileUrl}
+                                  title={selectedScheduleItem.title}
+                                  className="h-full min-h-0 w-full flex-1"
+                                />
+                              </div>
                             );
                           }
                           

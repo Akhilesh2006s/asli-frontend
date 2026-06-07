@@ -254,7 +254,7 @@ export function WeakSubjectResourcesCard({
                 <PdfPreviewPanel
                   fileUrl={previewItem?.fileUrl || fileUrl}
                   title={previewItem?.title}
-                  className="w-full min-h-[min(50dvh,640px)]"
+                  className="h-full min-h-0 w-full flex-1"
                 />
               );
             }

@@ -3023,7 +3023,7 @@ export default function SubjectContentManagement() {
                   <PdfPreviewPanel
                     fileUrl={contentPreviewItem.fileUrl}
                     title={contentPreviewItem.title}
-                    className="w-full"
+                    className="h-full min-h-0 w-full flex-1"
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center gap-4 p-4 sm:p-6 lg:p-8 text-center text-xs sm:text-sm text-muted-foreground">
