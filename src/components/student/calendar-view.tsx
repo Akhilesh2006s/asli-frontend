@@ -333,7 +333,7 @@ export default function CalendarView({
         <PdfPreviewPanel
           fileUrl={content.fileUrl}
           title={content.title}
-          className="h-full w-full min-h-0 min-w-0"
+          className="h-full min-h-[min(50dvh,560px)] w-full min-w-0 flex-1"
         />
       );
     }
