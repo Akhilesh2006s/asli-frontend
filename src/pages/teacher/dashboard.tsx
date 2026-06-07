@@ -2636,63 +2636,6 @@ const TeacherDashboard = () => {
                 {/* Teacher Tools Content */}
                 {vidyaAiTab === 'teacher-tools' && (
                   <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-                    {/* Header */}
-                    <div>
-                      <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Teacher Tools</h2>
-                      <p className="text-gray-600">AI-powered tools to enhance your teaching experience</p>
-                    </div>
-
-                    {/* Stats Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:p-4 lg:p-6">
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-xl p-3 sm:p-4 lg:p-6 shadow-lg"
-                      >
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                      </div>
-                          <p className="text-2xl sm:text-3xl font-bold text-white">15</p>
-                    </div>
-                        <h3 className="text-white font-semibold mb-1">Total Tools</h3>
-                        <p className="text-white/90 text-xs sm:text-sm">AI-powered features</p>
-                      </motion.div>
-
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="bg-gradient-to-br from-sky-400 to-sky-500 rounded-xl p-3 sm:p-4 lg:p-6 shadow-lg"
-                      >
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                      </div>
-                          <p className="text-2xl sm:text-3xl font-bold text-white">50%</p>
-                    </div>
-                        <h3 className="text-white font-semibold mb-1">Time Saved</h3>
-                        <p className="text-white/90 text-xs sm:text-sm">Average per week</p>
-                      </motion.div>
-
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                        className="bg-gradient-to-br from-teal-400 to-teal-500 rounded-xl p-3 sm:p-4 lg:p-6 shadow-lg"
-                      >
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                      </div>
-                          <p className="text-2xl sm:text-3xl font-bold text-white">1000+</p>
-                    </div>
-                        <h3 className="text-white font-semibold mb-1">Resources Created</h3>
-                        <p className="text-white/90 text-xs sm:text-sm">This month</p>
-                      </motion.div>
-                    </div>
-
                     {/* Available Tools Section */}
                       <div>
                       <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Available Tools</h3>
