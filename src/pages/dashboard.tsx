@@ -18,6 +18,7 @@ import {
 } from "@/lib/school-program";
 import {
   buildTodaysTasksContentList,
+  capTodaysTasksForDay,
   getContentSubjectId,
   getVideoDisplayTitle,
   isHomeworkContentType,
@@ -502,11 +503,16 @@ export default function Dashboard() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [completedScheduleIds, setCompletedScheduleIds] = useState<Set<string>>(new Set());
 
+  const dailyTasks = useMemo(
+    () => capTodaysTasksForDay(incompleteQuizzes, incompleteContent),
+    [incompleteQuizzes, incompleteContent]
+  );
+
   const dashboardTodoStats = useMemo(() => {
-    const liveTotal = incompleteContent.length + incompleteQuizzes.length;
+    const liveTotal = dailyTasks.content.length + dailyTasks.quizzes.length;
     const liveCompleted =
-      incompleteContent.filter((c: any) => completedScheduleIds.has(c._id)).length +
-      incompleteQuizzes.filter((q: any) => completedScheduleIds.has(q._id)).length;
+      dailyTasks.content.filter((c: any) => completedScheduleIds.has(c._id)).length +
+      dailyTasks.quizzes.filter((q: any) => completedScheduleIds.has(q._id)).length;
     if (liveTotal > 0) {
       return { totalTodos: liveTotal, completedTodos: liveCompleted };
     }
@@ -515,14 +521,14 @@ export default function Dashboard() {
       totalTodos: cached?.totalTodos ?? 0,
       completedTodos: cached?.completedTodos ?? 0,
     };
-  }, [incompleteContent, incompleteQuizzes, completedScheduleIds]);
+  }, [dailyTasks, completedScheduleIds]);
 
   useEffect(() => {
-    const liveTotal = incompleteContent.length + incompleteQuizzes.length;
+    const liveTotal = dailyTasks.content.length + dailyTasks.quizzes.length;
     if (liveTotal === 0) return;
     const completedTodos =
-      incompleteContent.filter((c: any) => completedScheduleIds.has(c._id)).length +
-      incompleteQuizzes.filter((q: any) => completedScheduleIds.has(q._id)).length;
+      dailyTasks.content.filter((c: any) => completedScheduleIds.has(c._id)).length +
+      dailyTasks.quizzes.filter((q: any) => completedScheduleIds.has(q._id)).length;
     const patch = { totalTodos: liveTotal, completedTodos };
     writeDashboardStatsCache(patch);
     dashboardStatsCacheRef.current = {
@@ -534,7 +540,7 @@ export default function Dashboard() {
       }),
       ...patch,
     };
-  }, [incompleteContent, incompleteQuizzes, completedScheduleIds]);
+  }, [dailyTasks, completedScheduleIds]);
 
   const [calendarMonth, setCalendarMonth] = useState<Date>(() => {
     const now = new Date();
@@ -1703,13 +1709,9 @@ export default function Dashboard() {
     return exams.slice(0, 2); // Show first 2 exams as available tests
   }, [exams]);
 
-  const topIncompleteContent = useMemo(() => {
-    return incompleteContent.slice(0, 10);
-  }, [incompleteContent]);
+  const topIncompleteContent = useMemo(() => dailyTasks.content, [dailyTasks]);
 
-  const topIncompleteQuizzes = useMemo(() => {
-    return incompleteQuizzes.slice(0, 10);
-  }, [incompleteQuizzes]);
+  const topIncompleteQuizzes = useMemo(() => dailyTasks.quizzes, [dailyTasks]);
 
   const getTaskTimeLabel = (item: any, isQuiz: boolean) => {
     const candidate =
@@ -2209,7 +2211,7 @@ export default function Dashboard() {
                   <div className="animate-spin rounded-full h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 border-b-2 border-teal-600 mx-auto mb-2"></div>
                   <p className="text-gray-600 text-xs sm:text-sm">Loading schedule...</p>
                 </div>
-              ) : incompleteContent.length === 0 && incompleteQuizzes.length === 0 ? (
+              ) : dailyTasks.content.length === 0 && dailyTasks.quizzes.length === 0 ? (
                 <div className="text-center py-4 sm:py-6 lg:py-8">
                   <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
                   <p className="text-gray-600 font-medium">All caught up!</p>
@@ -2218,7 +2220,7 @@ export default function Dashboard() {
               ) : (
                 <div className="space-y-2">
                   {/* Incomplete Quizzes */}
-                  {incompleteQuizzes.map((quiz: any) => {
+                  {dailyTasks.quizzes.map((quiz: any) => {
                     const isCompleted = completedScheduleIds.has(String(quiz._id || quiz.id));
                     
                     const timeLabel = getTaskTimeLabel(quiz, true);
@@ -2275,7 +2277,7 @@ export default function Dashboard() {
                   })}
 
                   {/* Incomplete Content */}
-                  {incompleteContent.map((content: any) => {
+                  {dailyTasks.content.map((content: any) => {
                     const subjectName = getSubjectName(content);
 
                     const isCompleted = completedScheduleIds.has(String(content._id || content.id));

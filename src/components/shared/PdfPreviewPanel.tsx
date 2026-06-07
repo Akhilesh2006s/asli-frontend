@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as pdfjs from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-import { ExternalLink, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   getEmbeddedPdfIframeSrc,
@@ -64,11 +64,29 @@ async function fetchPdfBytes(fileUrl: string, title?: string): Promise<ArrayBuff
 }
 
 const COMPACT_VIEWPORT_MAX_PX = 1023;
+const TABLET_VIEWPORT_MAX_PX = 1366;
+
+function isIosOrIpadosBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  if (/iPad|iPhone|iPod/i.test(ua)) return true;
+  // iPadOS 13+ may report as Mac with touch.
+  return navigator.platform === 'MacIntel' && (navigator.maxTouchPoints ?? 0) > 1;
+}
+
+function isTouchTabletViewport(): boolean {
+  if (typeof window === 'undefined') return false;
+  const touchPoints = navigator.maxTouchPoints ?? 0;
+  const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+  return coarsePointer && touchPoints >= 2 && window.innerWidth <= TABLET_VIEWPORT_MAX_PX;
+}
 
 /** Mobile/tablet browsers often show only filename + "Open" inside PDF iframes. */
 function shouldUseCanvasPdfPreview(): boolean {
   if (typeof window === 'undefined') return false;
   if (detectDigitalBoard()) return true;
+  if (isIosOrIpadosBrowser()) return true;
+  if (isTouchTabletViewport()) return true;
   return window.innerWidth <= COMPACT_VIEWPORT_MAX_PX;
 }
 
@@ -79,22 +97,37 @@ function useCanvasPdfPreview(): boolean {
     const update = () => setUseCanvas(shouldUseCanvasPdfPreview());
     update();
     window.addEventListener('resize', update);
-    const mq = window.matchMedia(`(max-width: ${COMPACT_VIEWPORT_MAX_PX}px)`);
-    mq.addEventListener('change', update);
+    window.addEventListener('orientationchange', update);
+    const compactMq = window.matchMedia(`(max-width: ${COMPACT_VIEWPORT_MAX_PX}px)`);
+    const tabletMq = window.matchMedia(`(max-width: ${TABLET_VIEWPORT_MAX_PX}px)`);
+    const coarseMq = window.matchMedia('(pointer: coarse)');
+    compactMq.addEventListener('change', update);
+    tabletMq.addEventListener('change', update);
+    coarseMq.addEventListener('change', update);
     return () => {
       window.removeEventListener('resize', update);
-      mq.removeEventListener('change', update);
+      window.removeEventListener('orientationchange', update);
+      compactMq.removeEventListener('change', update);
+      tabletMq.removeEventListener('change', update);
+      coarseMq.removeEventListener('change', update);
     };
   }, []);
 
   return useCanvas;
 }
 
-/** Scale each PDF page to the preview panel width (fit-to-width on mobile). */
-function getTargetPageCssWidth(containerWidth: number, compact: boolean): number {
-  const padded = Math.max(0, containerWidth - (compact ? 8 : 24));
-  if (!compact) return Math.min(padded, 1400);
-  return padded;
+/** Fit one page inside the preview area without clipping (mobile single-page view). */
+function getFitContainScale(
+  containerWidth: number,
+  containerHeight: number,
+  pageWidth: number,
+  pageHeight: number,
+): number {
+  const pad = 8;
+  const availW = Math.max(0, containerWidth - pad);
+  const availH = Math.max(0, containerHeight - pad);
+  if (availW <= 0 || availH <= 0 || pageWidth <= 0 || pageHeight <= 0) return 1;
+  return Math.min(availW / pageWidth, availH / pageHeight);
 }
 
 export default function PdfPreviewPanel({
@@ -106,7 +139,10 @@ export default function PdfPreviewPanel({
   const useCanvasPreview = useCanvasPdfPreview();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasHostRef = useRef<HTMLDivElement>(null);
-  const [pageWidth, setPageWidth] = useState(720);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [renderingPage, setRenderingPage] = useState(false);
   const [pdfData, setPdfData] = useState<ArrayBuffer | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
@@ -125,13 +161,19 @@ export default function PdfPreviewPanel({
     const el = containerRef.current;
     const update = () => {
       const w = el.clientWidth;
-      if (w > 0) setPageWidth(getTargetPageCssWidth(w, true));
+      const h = el.clientHeight;
+      if (w > 0 && h > 0) setContainerSize({ width: w, height: h });
     };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
   }, [useCanvasPreview]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    setTotalPages(0);
+  }, [fileUrl, title]);
 
   useEffect(() => {
     if (!useCanvasPreview) {
@@ -167,45 +209,72 @@ export default function PdfPreviewPanel({
   }, [useCanvasPreview, fileUrl, title]);
 
   useEffect(() => {
-    if (!useCanvasPreview || !pdfData || pdfError || !canvasHostRef.current) return;
-    if (pageWidth < 80) return;
+    if (!useCanvasPreview || !pdfData || pdfError) return;
 
+    let cancelled = false;
+    pdfjs
+      .getDocument({ data: pdfData })
+      .promise.then((pdf) => {
+        if (!cancelled) setTotalPages(pdf.numPages);
+        pdf.destroy();
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPdfError('Could not render this PDF. The file may be damaged or unsupported on this display.');
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [useCanvasPreview, pdfData, pdfError]);
+
+  useEffect(() => {
+    if (!useCanvasPreview || !pdfData || pdfError || !canvasHostRef.current) return;
+    if (containerSize.width < 80 || containerSize.height < 80) return;
+    if (totalPages < 1) return;
+
+    const pageNum = Math.min(Math.max(currentPage, 1), totalPages);
     let cancelled = false;
     const host = canvasHostRef.current;
     host.innerHTML = '';
+    setRenderingPage(true);
 
     (async () => {
-      if (cancelled) return;
-
       const pdf = await pdfjs.getDocument({ data: pdfData }).promise;
       try {
-        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum += 1) {
-          if (cancelled) break;
-          const page = await pdf.getPage(pageNum);
-          const base = page.getViewport({ scale: 1 });
-          const cssScale = pageWidth / base.width;
-          const outputScale = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
-          const viewport = page.getViewport({ scale: cssScale * outputScale });
-          const cssWidth = Math.floor(base.width * cssScale);
-          const cssHeight = Math.floor(base.height * cssScale);
-          const canvas = document.createElement('canvas');
-          canvas.className = 'mb-3 block w-full max-w-full h-auto rounded-sm bg-white shadow-md';
-          canvas.width = Math.floor(viewport.width);
-          canvas.height = Math.floor(viewport.height);
-          canvas.style.width = '100%';
-          canvas.style.height = 'auto';
-          canvas.style.maxWidth = '100%';
-          canvas.style.aspectRatio = `${cssWidth} / ${cssHeight}`;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) continue;
-          await page.render({ canvasContext: ctx, viewport, canvas }).promise;
-          host.appendChild(canvas);
-        }
+        if (cancelled) return;
+        const page = await pdf.getPage(pageNum);
+        const base = page.getViewport({ scale: 1 });
+        const cssScale = getFitContainScale(
+          containerSize.width,
+          containerSize.height,
+          base.width,
+          base.height,
+        );
+        const outputScale = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+        const viewport = page.getViewport({ scale: cssScale * outputScale });
+        const cssWidth = Math.floor(base.width * cssScale);
+        const cssHeight = Math.floor(base.height * cssScale);
+        const canvas = document.createElement('canvas');
+        canvas.className = 'block max-h-full max-w-full rounded-sm bg-white shadow-md';
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+        canvas.style.width = `${cssWidth}px`;
+        canvas.style.height = `${cssHeight}px`;
+        canvas.style.maxWidth = '100%';
+        canvas.style.maxHeight = '100%';
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+        if (!cancelled) host.appendChild(canvas);
       } finally {
         await pdf.destroy();
+        if (!cancelled) setRenderingPage(false);
       }
     })().catch(() => {
       if (!cancelled) {
+        setRenderingPage(false);
         setPdfError('Could not render this PDF. The file may be damaged or unsupported on this display.');
       }
     });
@@ -214,7 +283,15 @@ export default function PdfPreviewPanel({
       cancelled = true;
       host.innerHTML = '';
     };
-  }, [useCanvasPreview, pdfData, pdfError, pageWidth]);
+  }, [useCanvasPreview, pdfData, pdfError, containerSize, currentPage, totalPages]);
+
+  const goToPreviousPage = useCallback(() => {
+    setCurrentPage((page) => Math.max(1, page - 1));
+  }, []);
+
+  const goToNextPage = useCallback(() => {
+    setCurrentPage((page) => Math.min(totalPages, page + 1));
+  }, [totalPages]);
 
   if (!absoluteUrl) {
     return (
@@ -248,25 +325,65 @@ export default function PdfPreviewPanel({
         </div>
       ) : null}
 
-      <div
-        ref={containerRef}
-        className="min-h-[min(55dvh,720px)] flex-1 overflow-y-auto overflow-x-hidden rounded-lg border bg-slate-100 p-2 sm:p-3"
-      >
-        {loadingPdf ? (
-          <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
-            <Loader2 className="h-6 w-6 animate-spin" />
-            <span className="text-sm">Loading document…</span>
-          </div>
-        ) : pdfError ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-12 text-center px-4">
-            <p className="text-sm text-muted-foreground">{pdfError}</p>
-            <Button type="button" onClick={openInNewTab}>
-              Open PDF externally
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-slate-100">
+        <div
+          ref={containerRef}
+          className="relative flex min-h-[min(52dvh,680px)] flex-1 items-center justify-center overflow-hidden p-2 sm:p-3"
+        >
+          {loadingPdf ? (
+            <div className="flex items-center justify-center gap-2 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="text-sm">Loading document…</span>
+            </div>
+          ) : pdfError ? (
+            <div className="flex flex-col items-center justify-center gap-3 px-4 text-center">
+              <p className="text-sm text-muted-foreground">{pdfError}</p>
+              <Button type="button" onClick={openInNewTab}>
+                Open PDF externally
+              </Button>
+            </div>
+          ) : (
+            <>
+              <div
+                ref={canvasHostRef}
+                className="flex h-full w-full max-w-full items-center justify-center"
+              />
+              {renderingPage ? (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-100/60">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : null}
+            </>
+          )}
+        </div>
+
+        {!loadingPdf && !pdfError && totalPages > 0 ? (
+          <div className="flex shrink-0 items-center justify-between gap-2 border-t border-slate-200 bg-white px-2 py-2 sm:px-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={goToPreviousPage}
+              disabled={currentPage <= 1 || renderingPage}
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-xs text-muted-foreground sm:text-sm">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={goToNextPage}
+              disabled={currentPage >= totalPages || renderingPage}
+              aria-label="Next page"
+            >
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
-        ) : (
-          <div ref={canvasHostRef} className="flex w-full max-w-full flex-col items-stretch" />
-        )}
+        ) : null}
       </div>
     </div>
   );

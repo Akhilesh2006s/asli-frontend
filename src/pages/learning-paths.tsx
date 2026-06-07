@@ -1157,7 +1157,21 @@ export default function LearningPaths() {
           <DialogHeader className="px-4 sm:px-6 lg:px-8 pt-5 pb-3 border-b border-gray-200">
             <DialogTitle className="pl-2 pt-1">{previewContent?.title || "Content Preview"}</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto px-4 py-4">
+          <div
+            className={`flex-1 min-h-0 px-4 py-4 ${
+              (() => {
+                const previewUrl = extractDirectFileUrl(getNormalizedContentUrl(previewContent?.fileUrl));
+                const previewLower = previewUrl.toLowerCase();
+                const previewIsPdf =
+                  previewLower.endsWith(".pdf") ||
+                  previewLower.includes(".pdf") ||
+                  previewContent?.type === "PDF";
+                return previewIsPdf
+                  ? "flex min-h-0 flex-col overflow-hidden"
+                  : "overflow-x-hidden overflow-y-auto";
+              })()
+            }`}
+          >
 
           {(() => {
             const fileUrl = extractDirectFileUrl(getNormalizedContentUrl(previewContent?.fileUrl));
@@ -1194,7 +1208,7 @@ export default function LearningPaths() {
                 <PdfPreviewPanel
                   fileUrl={previewContent?.fileUrl || fileUrl}
                   title={previewContent?.title}
-                  className="w-full min-h-[min(50dvh,640px)]"
+                  className="h-full min-h-0 w-full flex-1"
                 />
               );
             }

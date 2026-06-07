@@ -24,6 +24,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
+import { capAdaptiveRecommendationsPerSubject } from '@/utils/adaptive-recommendations-display';
 import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 
 /** Optional legacy props (dashboard may still pass them; recommendations come from API). */
@@ -314,7 +315,8 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
         <CardHeader>{headerBlock}</CardHeader>
         <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
           {cards.map((rec) => {
-            const hasContent = rec.recommendedContent?.length > 0;
+            const displayContent = capAdaptiveRecommendationsPerSubject(rec.recommendedContent ?? []);
+            const hasContent = displayContent.length > 0;
             const examScore = rec.examScorePercent ?? rec.progressPercent;
             return (
               <div
@@ -352,7 +354,7 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
                         : 'Recommended for your weak areas'}
                     </p>
                     <ul className="space-y-1.5 divide-y divide-gray-100/80 rounded-lg border border-gray-100 overflow-hidden bg-white/60">
-                      {rec.recommendedContent.map((item) => {
+                      {displayContent.map((item) => {
                         const Icon = getTypeIcon(item.displayType);
                         const isPdf = item.displayType?.toLowerCase() === 'pdf';
                         const actionLabel =
