@@ -312,7 +312,6 @@ export default function PdfPreviewPanel({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageRendering, setPageRendering] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
-  const useMobilePagedPreview = prefersMobilePagedPreview();
 
   const absoluteUrl = normalizeContentFileUrl(fileUrl);
   const proxyUrl = getPdfContentPreviewProxyUrl(fileUrl, title);
