@@ -7,8 +7,6 @@ import Navigation from "@/components/navigation";
 import { 
   BookOpen, 
   Clock, 
-  Users, 
-  Star,
   Play,
   CheckCircle,
   ArrowRight,
@@ -19,7 +17,6 @@ import {
   BarChart3,
   BookOpen as BookIcon,
   User,
-  Gamepad2,
   Calculator,
   Atom,
   FlaskConical,
@@ -592,34 +589,6 @@ export default function LearningPaths() {
     setIsLoadingFilteredContent(false);
   }, [selectedContentType, allLibraryContent, isLoadingContentCounts]);
 
-  const recommendedPaths = [
-    {
-      id: "4",
-      title: "IQ/Rank Boost Practice",
-      description: "Boost your IQ and improve your rank with targeted practice",
-      duration: "2 months",
-      students: 3200,
-      rating: 4.6,
-      subjects: ["Physics", "Chemistry", "Mathematics"],
-      difficulty: "Beginner",
-      color: "bg-orange-100 text-orange-600",
-      icon: Zap
-    },
-    {
-      id: "5",
-      title: "Play Games",
-      description: "Engage in fun educational games to enhance your learning experience",
-      duration: "Coming Soon",
-      students: 0,
-      rating: 0,
-      subjects: [],
-      difficulty: "Coming Soon",
-      color: "bg-blue-100 text-blue-600",
-      icon: Gamepad2,
-      isComingSoon: true
-    }
-  ];
-
   return (
     <>
       <Navigation />
@@ -1057,91 +1026,6 @@ export default function LearningPaths() {
             )}
           </div>
           )}
-        </div>
-
-        {/* Recommended Learning Paths */}
-        <div className="mb-8">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Recommended for You</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:p-4 lg:p-6">
-            {recommendedPaths.map((path) => {
-              const Icon = path.icon;
-              return (
-                <Card key={path.id} className="hover:shadow-lg transition-shadow duration-200">
-                  <CardHeader>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className={`w-10 h-10 ${path.color} rounded-lg flex items-center justify-center`}>
-                        <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </div>
-                      {path.isComingSoon ? (
-                        <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 border-blue-300">
-                          Coming Soon
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-xs">
-                          {path.difficulty}
-                        </Badge>
-                      )}
-                    </div>
-                    <CardTitle className="text-base sm:text-lg">{path.title}</CardTitle>
-                    <p className="text-gray-600 text-xs sm:text-sm">{path.description}</p>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Subjects - Hide for Coming Soon */}
-                    {!path.isComingSoon && (
-                      <div>
-                        <p className="text-xs sm:text-sm font-medium text-gray-700 mb-2">Subjects</p>
-                        <div className="flex flex-wrap gap-1">
-                          {path.subjects.map((subject, index) => (
-                            <Badge key={index} variant="outline" className="text-xs">
-                              {subject}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Stats - Show Coming Soon message or stats */}
-                    {path.isComingSoon ? (
-                      <div className="text-center py-4">
-                        <p className="text-xs sm:text-sm text-gray-500 italic">
-                          Exciting educational games are on the way! Stay tuned for updates.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600">
-                        <div className="flex items-center space-x-1">
-                          <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
-                          <span>{path.duration}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Users className="w-3 h-3 sm:w-4 sm:h-4" />
-                          <span>{path.students.toLocaleString()}</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-500" />
-                          <span>{path.rating}</span>
-                        </div>
-                      </div>
-                    )}
-
-                    {path.isComingSoon ? (
-                      <Button variant="outline" className="w-full" disabled>
-                        Coming Soon
-                        <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2 opacity-50" />
-                      </Button>
-                    ) : (
-                      <Link href={`/subject/${path.id}`}>
-                        <Button variant="outline" className="w-full">
-                          Start Learning
-                          <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2" />
-                        </Button>
-                      </Link>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
         </div>
 
       </div>
