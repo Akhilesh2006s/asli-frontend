@@ -20,6 +20,7 @@ import {
   mapGradeLevelForIitBoard,
   resolveCurriculumBoardForAiTools,
   resolveIsAsliPrepExclusive,
+  resolveStudentCurriculumGradeLevel,
 } from '@/lib/school-program';
 import {
   useCurriculumCascade,
@@ -646,6 +647,10 @@ export default function StudentToolPage() {
   const [isAsliPrepExclusive, setIsAsliPrepExclusive] = useState(false);
   const boardOptions = getAiToolBoardOptions(isAsliPrepExclusive, schoolBoardName);
   const selectedBoard = formParams.board || getDefaultAiToolBoard(isAsliPrepExclusive, schoolBoardName);
+  const assignedGradeLevel = useMemo(
+    () => resolveStudentCurriculumGradeLevel(user),
+    [user],
+  );
 
   const cascadeTopic = formParams.topic || formParams.chapter || '';
 
@@ -656,8 +661,10 @@ export default function StudentToolPage() {
     selectedBoard,
   );
 
-  const classSelectOptions =
-    cascade.classOptions.length > 0 ? cascade.classOptions : CLASS_OPTIONS;
+  const classSelectOptions = useMemo(() => {
+    if (assignedGradeLevel) return [assignedGradeLevel];
+    return cascade.classOptions.length > 0 ? cascade.classOptions : CLASS_OPTIONS;
+  }, [assignedGradeLevel, cascade.classOptions]);
 
   const availableSubjects = (() => {
     const gv = formParams.gradeLevel;
@@ -732,46 +739,9 @@ export default function StudentToolPage() {
             board: prev.board || defaultBoard,
           }));
           
-          // Auto-populate class field with student's assigned class
-          if (userData.user) {
-            const studentClass = userData.user.assignedClass?.classNumber || userData.user.classNumber;
-            if (studentClass) {
-              // Convert class number to match CLASS_OPTIONS format
-              // Handle formats like "8", "-8", "Class 8", "8A", "-11A", etc.
-              let classValue = studentClass.toString().trim();
-              
-              // Remove "Class " prefix if present
-              classValue = classValue.replace(/^Class\s*/i, '');
-              
-              // Extract just the number part (remove section letters like A, B, C)
-              const classNum = classValue.replace(/[^-\d]/g, '');
-              
-              // Map to CLASS_OPTIONS format
-              // CLASS_OPTIONS uses positive numbers only: "Class 6", "Class 7", ..., "Class 12"
-              // So we convert negative numbers to their absolute value
-              const absNum = Math.abs(parseInt(classNum));
-              
-              if (!isNaN(absNum) && absNum >= 6 && absNum <= 12) {
-                const mappedClass = `Class ${absNum}`;
-                if (CLASS_OPTIONS.includes(mappedClass)) {
-                  setFormParams(prev => ({
-                    ...prev,
-                    gradeLevel: mappedClass
-                  }));
-                }
-              } else if (classValue.toLowerCase().includes('dropper')) {
-                // Handle "Dropper Batch"
-                setFormParams(prev => ({
-                  ...prev,
-                  gradeLevel: 'Dropper Batch'
-                }));
-              } else if (classValue.toLowerCase().includes('iit') || classValue === 'IIT-6' || classValue === 'Class-6-IIT') {
-                setFormParams((prev) => ({
-                  ...prev,
-                  gradeLevel: 'Class 6',
-                }));
-              }
-            }
+          const curriculumGrade = resolveStudentCurriculumGradeLevel(userData.user);
+          if (curriculumGrade) {
+            setFormParams((prev) => ({ ...prev, gradeLevel: curriculumGrade }));
           }
         }
       } catch (error) {
@@ -842,6 +812,14 @@ export default function StudentToolPage() {
     });
   }, [toolType, formParams.subject]);
 
+  useEffect(() => {
+    if (!assignedGradeLevel) return;
+    setFormParams((prev) => {
+      if (prev.gradeLevel === assignedGradeLevel) return prev;
+      return { ...prev, gradeLevel: assignedGradeLevel };
+    });
+  }, [assignedGradeLevel]);
+
   if (!config) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -856,6 +834,8 @@ export default function StudentToolPage() {
   const Icon = config.icon;
 
   const handleInputChange = (name: string, value: any) => {
+    if (name === 'gradeLevel' && assignedGradeLevel) return;
+
     setFormParams(prev => {
       const newParams = { ...prev, [name]: value };
       
@@ -885,11 +865,8 @@ export default function StudentToolPage() {
         delete newParams.concept;
         delete newParams.chapter;
         delete newParams.projectTopic;
-        if (String(value).toUpperCase() === 'IIT') {
-          const iitClass =
-            cascade.classOptions.find((c) => /iit/i.test(c)) ||
-            'Class 6';
-          newParams.gradeLevel = iitClass;
+        if (assignedGradeLevel) {
+          newParams.gradeLevel = assignedGradeLevel;
         }
       }
       
@@ -2062,7 +2039,7 @@ export default function StudentToolPage() {
                   }
 
                   const isClassField = field.name === 'gradeLevel';
-                  const isClassFieldDisabled = isClassField && user?.classNumber;
+                  const isClassFieldLocked = isClassField && !!assignedGradeLevel;
 
                   let placeholderText = field.placeholder || `Select ${field.label}`;
                   if (isDisabled) {
@@ -2119,11 +2096,18 @@ export default function StudentToolPage() {
                         {field.label}
                         {loadingDropdown && <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-blue-600" aria-hidden />}
                       </Label>
-                      {fieldUsesCurriculumSelect(field) ? (
+                      {isClassFieldLocked ? (
+                        <div className="flex items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                          <span>{assignedGradeLevel}</span>
+                          <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
+                            Assigned
+                          </span>
+                        </div>
+                      ) : fieldUsesCurriculumSelect(field) ? (
                         <Select
                           value={formParams[field.name] || ''}
                           onValueChange={(value) => handleInputChange(field.name, value)}
-                          disabled={isDisabled || isClassFieldDisabled}
+                          disabled={isDisabled}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder={placeholderText} />

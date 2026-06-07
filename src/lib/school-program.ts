@@ -115,3 +115,37 @@ export function mapGradeLevelForIitBoard(
   if (String(board || '').toUpperCase() !== 'IIT') return gradeLevel;
   return 'IIT-6';
 }
+
+const STUDENT_CLASS_OPTIONS = ['Class 6', 'Class 7', 'Class 8', 'Class 10'];
+
+export function resolveStudentCurriculumGradeLevel(user?: {
+  assignedClass?: { classNumber?: string };
+  classNumber?: string;
+} | null): string | undefined {
+  const studentClass = user?.assignedClass?.classNumber || user?.classNumber;
+  if (!studentClass) return undefined;
+
+  let classValue = studentClass.toString().trim();
+  classValue = classValue.replace(/^Class\s*/i, '');
+  const classNum = classValue.replace(/[^-\d]/g, '');
+  const absNum = Math.abs(parseInt(classNum, 10));
+
+  if (!isNaN(absNum) && absNum >= 6 && absNum <= 12) {
+    const mappedClass = `Class ${absNum}`;
+    if (STUDENT_CLASS_OPTIONS.includes(mappedClass)) return mappedClass;
+  } else if (classValue.toLowerCase().includes('dropper')) {
+    return 'Dropper Batch';
+  } else if (
+    classValue.toLowerCase().includes('iit') ||
+    classValue === 'IIT-6' ||
+    classValue === 'Class-6-IIT'
+  ) {
+    return 'Class 6';
+  }
+
+  return undefined;
+}
+
+export function resolveIitBoardGradeLevel(classOptions: string[]): string {
+  return classOptions.find((c) => /iit/i.test(c)) || 'Class 6';
+}
