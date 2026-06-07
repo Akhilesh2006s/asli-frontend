@@ -433,16 +433,16 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
               <DialogHeader className="shrink-0">
                 <DialogTitle className="text-base sm:text-lg pr-6">{previewItem.title}</DialogTitle>
                 <DialogDescription className="text-xs sm:text-sm">
-                  Scroll down to read each page. The full page fits your screen width.
+                  Use the arrows below to move between pages. Each page fits your screen.
                 </DialogDescription>
               </DialogHeader>
-              <div className="flex-1 min-h-0 overflow-hidden rounded-lg border bg-white">
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-white">
                 {previewItem.displayType?.toLowerCase() === 'pdf' ||
                 previewItem.fileUrl?.toLowerCase().includes('.pdf') ? (
                   <PdfPreviewPanel
                     fileUrl={previewItem.fileUrl || ''}
                     title={previewItem.title}
-                    className="h-full w-full min-h-[min(50dvh,640px)]"
+                    className="h-full min-h-0 w-full flex-1"
                   />
                 ) : previewItem.displayType?.toLowerCase() === 'video' ? (
                   <video src={previewItem.fileUrl} controls className="h-full w-full" />

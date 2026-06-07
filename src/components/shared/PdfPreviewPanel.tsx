@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import * as pdfjs from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { ChevronLeft, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
@@ -116,6 +116,23 @@ function useCanvasPdfPreview(): boolean {
   return useCanvas;
 }
 
+function measurePreviewViewport(el: HTMLElement): { width: number; height: number } {
+  const rect = el.getBoundingClientRect();
+  let width = Math.floor(rect.width || el.clientWidth);
+  let height = Math.floor(rect.height || el.clientHeight);
+
+  if (typeof window !== 'undefined') {
+    if (height < 80) {
+      height = Math.floor(Math.min(window.innerHeight * 0.58, 640));
+    }
+    if (width < 80) {
+      width = Math.floor(Math.min(window.innerWidth * 0.92, el.parentElement?.clientWidth || window.innerWidth));
+    }
+  }
+
+  return { width, height };
+}
+
 /** Fit one page inside the preview area without clipping (mobile single-page view). */
 function getFitContainScale(
   containerWidth: number,
@@ -156,19 +173,34 @@ export default function PdfPreviewPanel({
     if (target) window.open(target, '_blank', 'noopener,noreferrer');
   }, [proxyUrl, absoluteUrl]);
 
+  const updateContainerSize = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const next = measurePreviewViewport(el);
+    setContainerSize((prev) =>
+      prev.width === next.width && prev.height === next.height ? prev : next,
+    );
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!useCanvasPreview) return;
+    updateContainerSize();
+  }, [useCanvasPreview, updateContainerSize, loadingPdf, totalPages]);
+
   useEffect(() => {
     if (!useCanvasPreview || !containerRef.current) return;
     const el = containerRef.current;
-    const update = () => {
-      const w = el.clientWidth;
-      const h = el.clientHeight;
-      if (w > 0 && h > 0) setContainerSize({ width: w, height: h });
-    };
-    update();
-    const ro = new ResizeObserver(update);
+    updateContainerSize();
+    const ro = new ResizeObserver(() => updateContainerSize());
     ro.observe(el);
-    return () => ro.disconnect();
-  }, [useCanvasPreview]);
+    window.addEventListener('resize', updateContainerSize);
+    window.addEventListener('orientationchange', updateContainerSize);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', updateContainerSize);
+      window.removeEventListener('orientationchange', updateContainerSize);
+    };
+  }, [useCanvasPreview, updateContainerSize]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -328,33 +360,31 @@ export default function PdfPreviewPanel({
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-slate-100">
         <div
           ref={containerRef}
-          className="relative flex min-h-[min(52dvh,680px)] flex-1 items-center justify-center overflow-hidden p-2 sm:p-3"
+          className="relative flex h-[min(58dvh,640px)] w-full shrink-0 items-center justify-center overflow-hidden p-2 sm:p-3"
         >
-          {loadingPdf ? (
-            <div className="flex items-center justify-center gap-2 text-muted-foreground">
+          <div
+            ref={canvasHostRef}
+            className="flex h-full w-full max-w-full items-center justify-center"
+          />
+          {loadingPdf || (pdfData && totalPages < 1 && !pdfError) ? (
+            <div className="absolute inset-0 flex items-center justify-center gap-2 bg-slate-100 text-muted-foreground">
               <Loader2 className="h-6 w-6 animate-spin" />
               <span className="text-sm">Loading document…</span>
             </div>
-          ) : pdfError ? (
-            <div className="flex flex-col items-center justify-center gap-3 px-4 text-center">
+          ) : null}
+          {pdfError ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-100 px-4 text-center">
               <p className="text-sm text-muted-foreground">{pdfError}</p>
               <Button type="button" onClick={openInNewTab}>
                 Open PDF externally
               </Button>
             </div>
-          ) : (
-            <>
-              <div
-                ref={canvasHostRef}
-                className="flex h-full w-full max-w-full items-center justify-center"
-              />
-              {renderingPage ? (
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-100/60">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : null}
-            </>
-          )}
+          ) : null}
+          {renderingPage && !loadingPdf && !pdfError ? (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-100/60">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : null}
         </div>
 
         {!loadingPdf && !pdfError && totalPages > 0 ? (
