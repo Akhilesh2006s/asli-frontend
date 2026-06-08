@@ -163,20 +163,25 @@ function PdfMobilePage({
 
   const pageHeight = dims.h > 0 ? dims.h : defaultMinHeight;
   const pageWidth = dims.w > 0 ? dims.w : Math.max(containerWidth - 8, 280);
+  const pageBoxStyle = {
+    width: `${pageWidth}px`,
+    height: `${pageHeight}px`,
+  } as const;
 
   return (
     <div
       ref={slotRef}
       data-page={pageNum}
-      className="pdf-page-slot w-full shrink-0 px-1 py-2"
-      style={{ minHeight: `${pageHeight + 8}px` }}
+      className="pdf-page-slot flex w-full shrink-0 justify-center px-1 py-2"
+      style={{ minHeight: `${pageHeight + 16}px` }}
     >
+      {/* Pinch/pan only on the page — grey margin scrolls the document */}
       <TransformWrapper
         initialScale={1}
         minScale={1}
         maxScale={4}
         centerOnInit
-        limitToBounds={false}
+        limitToBounds
         wheel={{ disabled: true }}
         pinch={{ step: 5, disabled: false }}
         doubleClick={{ mode: 'reset' }}
@@ -184,32 +189,20 @@ function PdfMobilePage({
         onTransform={handleTransform}
       >
         <TransformComponent
-          wrapperClass="flex w-full items-center justify-center"
-          wrapperStyle={{
-            width: '100%',
-            minHeight: `${pageHeight + 8}px`,
-          }}
+          wrapperClass="inline-block shrink-0"
+          wrapperStyle={pageBoxStyle}
           wrapperProps={{
             style: {
-              width: '100%',
-              minHeight: `${pageHeight + 8}px`,
-              // auto at 1× so parent can scroll; none when zoomed for pan/pinch
-              touchAction: panDisabled ? 'auto' : 'none',
+              ...pageBoxStyle,
+              touchAction: panDisabled ? 'manipulation' : 'none',
             },
           }}
-          contentStyle={{
-            width: `${pageWidth}px`,
-            height: `${pageHeight}px`,
-          }}
+          contentStyle={pageBoxStyle}
         >
           <canvas
             ref={canvasRef}
             className="block rounded-sm bg-white shadow-md"
-            style={{
-              width: `${pageWidth}px`,
-              height: `${pageHeight}px`,
-              display: 'block',
-            }}
+            style={{ ...pageBoxStyle, display: 'block' }}
           />
         </TransformComponent>
       </TransformWrapper>
