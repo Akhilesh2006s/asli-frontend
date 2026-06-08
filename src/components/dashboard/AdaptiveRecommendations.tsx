@@ -433,10 +433,10 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
               <DialogHeader className="shrink-0">
                 <DialogTitle className="text-base sm:text-lg pr-6">{previewItem.title}</DialogTitle>
                 <DialogDescription className="text-xs sm:text-sm">
-                  Scroll to read the document.
+                  Pinch to zoom, scroll for more pages, double-tap to reset.
                 </DialogDescription>
               </DialogHeader>
-              <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-white">
+              <div className="flex min-h-0 flex-1 touch-manipulation flex-col overflow-hidden rounded-lg border bg-white">
                 {previewItem.displayType?.toLowerCase() === 'pdf' ||
                 previewItem.fileUrl?.toLowerCase().includes('.pdf') ? (
                   <PdfPreviewPanel

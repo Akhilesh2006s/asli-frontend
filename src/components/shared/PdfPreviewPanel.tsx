@@ -702,8 +702,8 @@ export default function PdfPreviewPanel({
         </div>
       ) : null}
 
-      <div className="flex min-h-[min(48dvh,520px)] flex-1 flex-col overflow-hidden rounded-lg border bg-slate-100">
-        <div ref={containerRef} className="relative h-full min-h-[min(48dvh,520px)] flex-1 overflow-hidden">
+      <div className="flex min-h-[min(48dvh,520px)] flex-1 flex-col overflow-hidden rounded-lg border bg-slate-100 touch-manipulation">
+        <div ref={containerRef} className="relative h-full min-h-[min(48dvh,520px)] flex-1 overflow-hidden touch-manipulation">
           {useIframeFallback ? (
             <iframe
               key={mobileIframeSrc}

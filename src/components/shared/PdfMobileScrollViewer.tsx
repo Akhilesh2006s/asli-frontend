@@ -168,7 +168,7 @@ function PdfMobilePage({
     <div
       ref={slotRef}
       data-page={pageNum}
-      className="pdf-page-slot flex w-full shrink-0 items-center justify-center px-1 py-2"
+      className="pdf-page-slot w-full shrink-0 px-1 py-2"
       style={{ minHeight: `${pageHeight + 8}px` }}
     >
       <TransformWrapper
@@ -178,16 +178,24 @@ function PdfMobilePage({
         centerOnInit
         limitToBounds={false}
         wheel={{ disabled: true }}
-        pinch={{ step: 1 }}
+        pinch={{ step: 5, disabled: false }}
         doubleClick={{ mode: 'reset' }}
         panning={{ disabled: panDisabled, velocityDisabled: true }}
         onTransform={handleTransform}
       >
         <TransformComponent
+          wrapperClass="flex w-full items-center justify-center"
           wrapperStyle={{
             width: '100%',
-            height: `${pageHeight}px`,
-            touchAction: panDisabled ? 'pan-y' : 'none',
+            minHeight: `${pageHeight + 8}px`,
+          }}
+          wrapperProps={{
+            style: {
+              width: '100%',
+              minHeight: `${pageHeight + 8}px`,
+              // auto at 1× so parent can scroll; none when zoomed for pan/pinch
+              touchAction: panDisabled ? 'auto' : 'none',
+            },
           }}
           contentStyle={{
             width: `${pageWidth}px`,
@@ -237,8 +245,8 @@ export default function PdfMobileScrollViewer({
   return (
     <div
       ref={scrollRef}
-      className={`h-full w-full overflow-x-hidden overscroll-y-contain ${scrollLocked ? 'overflow-y-hidden' : 'overflow-y-auto'} ${className}`}
-      style={{ WebkitOverflowScrolling: 'touch', touchAction: scrollLocked ? 'none' : 'pan-y' }}
+      className={`h-full w-full touch-manipulation overflow-x-hidden overscroll-y-contain ${scrollLocked ? 'overflow-y-hidden touch-none' : 'overflow-y-auto'} ${className}`}
+      style={{ WebkitOverflowScrolling: 'touch' }}
     >
       {Array.from({ length: totalPages }, (_, index) => (
         <PdfMobilePage
