@@ -1,6 +1,13 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type RefObject,
+} from 'react';
 import type * as pdfjs from 'pdfjs-dist';
-import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch';
+import PdfPagePinchFrame from '@/components/shared/PdfPagePinchFrame';
 
 function isIosOrIpadosBrowser(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -57,6 +64,8 @@ async function renderPdfPageCanvas(
   pageNum: number,
   containerWidth: number,
   canvas: HTMLCanvasElement,
+  displayWidth: number,
+  displayHeight: number,
 ): Promise<{ cssWidth: number; cssHeight: number } | null> {
   const page = await pdf.getPage(pageNum);
   const base = page.getViewport({ scale: 1 });
@@ -72,8 +81,8 @@ async function renderPdfPageCanvas(
     const viewport = page.getViewport({ scale: outputScale });
     canvas.width = Math.max(1, Math.floor(viewport.width));
     canvas.height = Math.max(1, Math.floor(viewport.height));
-    canvas.style.width = `${cssWidth}px`;
-    canvas.style.height = `${cssHeight}px`;
+    canvas.style.width = `${displayWidth}px`;
+    canvas.style.height = `${displayHeight}px`;
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) continue;
     try {
@@ -86,7 +95,24 @@ async function renderPdfPageCanvas(
   return null;
 }
 
-const ZOOM_EPSILON = 1.02;
+function PdfPageCanvas({
+  canvasRef,
+  width,
+  height,
+}: {
+  canvasRef: RefObject<HTMLCanvasElement | null>;
+  width: number;
+  height: number;
+}) {
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+  }, [canvasRef, width, height]);
+
+  return <canvas ref={canvasRef} className="block" style={{ display: 'block' }} />;
+}
 
 type PdfMobilePageProps = {
   pageNum: number;
@@ -110,7 +136,16 @@ function PdfMobilePage({
   const renderedRef = useRef(false);
   const [shouldRender, setShouldRender] = useState(pageNum === 1);
   const [dims, setDims] = useState({ w: 0, h: defaultMinHeight });
-  const [panDisabled, setPanDisabled] = useState(true);
+
+  const pageHeight = dims.h > 0 ? dims.h : defaultMinHeight;
+  const pageWidth = dims.w > 0 ? dims.w : Math.max(containerWidth - 8, 280);
+  const baseWidth = dims.w > 0 ? dims.w : pageWidth;
+  const baseHeight = dims.h > 0 ? dims.h : pageHeight;
+
+  const handlePageZoom = useCallback(
+    (zoomed: boolean) => onZoomChange(pageNum, zoomed),
+    [onZoomChange, pageNum],
+  );
 
   useEffect(() => {
     const el = slotRef.current;
@@ -140,8 +175,16 @@ function PdfMobilePage({
     if (!canvas) return;
 
     let cancelled = false;
+    const fitW = Math.max(containerWidth - 8, 280);
     void (async () => {
-      const result = await renderPdfPageCanvas(pdf, pageNum, containerWidth, canvas);
+      const result = await renderPdfPageCanvas(
+        pdf,
+        pageNum,
+        containerWidth,
+        canvas,
+        fitW,
+        defaultMinHeight,
+      );
       if (cancelled || !result) return;
       renderedRef.current = true;
       setDims({ w: result.cssWidth, h: result.cssHeight });
@@ -150,23 +193,7 @@ function PdfMobilePage({
     return () => {
       cancelled = true;
     };
-  }, [shouldRender, pdf, pageNum, containerWidth]);
-
-  const handleTransform = useCallback(
-    (_ref: unknown, state: { scale: number }) => {
-      const zoomed = state.scale > ZOOM_EPSILON;
-      setPanDisabled(!zoomed);
-      onZoomChange(pageNum, zoomed);
-    },
-    [onZoomChange, pageNum],
-  );
-
-  const pageHeight = dims.h > 0 ? dims.h : defaultMinHeight;
-  const pageWidth = dims.w > 0 ? dims.w : Math.max(containerWidth - 8, 280);
-  const pageBoxStyle = {
-    width: `${pageWidth}px`,
-    height: `${pageHeight}px`,
-  } as const;
+  }, [shouldRender, pdf, pageNum, containerWidth, defaultMinHeight]);
 
   return (
     <div
@@ -175,37 +202,15 @@ function PdfMobilePage({
       className="pdf-page-slot flex w-full shrink-0 justify-center px-1 py-2"
       style={{ minHeight: `${pageHeight + 16}px` }}
     >
-      {/* Pinch/pan only on the page — grey margin scrolls the document */}
-      <TransformWrapper
-        initialScale={1}
-        minScale={1}
-        maxScale={4}
-        centerOnInit
-        limitToBounds
-        wheel={{ disabled: true }}
-        pinch={{ step: 5, disabled: false }}
-        doubleClick={{ mode: 'reset' }}
-        panning={{ disabled: panDisabled, velocityDisabled: true }}
-        onTransform={handleTransform}
+      <PdfPagePinchFrame
+        pageWidth={baseWidth}
+        pageHeight={baseHeight}
+        onZoomChange={handlePageZoom}
       >
-        <TransformComponent
-          wrapperClass="inline-block shrink-0"
-          wrapperStyle={pageBoxStyle}
-          wrapperProps={{
-            style: {
-              ...pageBoxStyle,
-              touchAction: panDisabled ? 'manipulation' : 'none',
-            },
-          }}
-          contentStyle={pageBoxStyle}
-        >
-          <canvas
-            ref={canvasRef}
-            className="block rounded-sm bg-white shadow-md"
-            style={{ ...pageBoxStyle, display: 'block' }}
-          />
-        </TransformComponent>
-      </TransformWrapper>
+        {({ width, height }) => (
+          <PdfPageCanvas canvasRef={canvasRef} width={width} height={height} />
+        )}
+      </PdfPagePinchFrame>
     </div>
   );
 }
@@ -238,7 +243,7 @@ export default function PdfMobileScrollViewer({
   return (
     <div
       ref={scrollRef}
-      className={`h-full w-full touch-manipulation overflow-x-hidden overscroll-y-contain ${scrollLocked ? 'overflow-y-hidden touch-none' : 'overflow-y-auto'} ${className}`}
+      className={`h-full w-full touch-manipulation overflow-x-hidden overscroll-y-contain ${scrollLocked ? 'overflow-y-hidden' : 'overflow-y-auto'} ${className}`}
       style={{ WebkitOverflowScrolling: 'touch' }}
     >
       {Array.from({ length: totalPages }, (_, index) => (
