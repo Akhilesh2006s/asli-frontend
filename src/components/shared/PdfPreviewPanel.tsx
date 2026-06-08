@@ -335,227 +335,234 @@ const PDF_TOUCH_MAX_SCALE = 4;
 const PDF_TOUCH_ZOOMED_EPSILON = 1.02;
 const PDF_TOUCH_DOUBLE_TAP_MS = 320;
 
-type PdfTouchZoomState = {
-  scale: number;
-  translateX: number;
-  translateY: number;
-  mode: 'none' | 'pinch' | 'pan';
-  pinchStartDistance: number;
-  pinchStartScale: number;
-  panStartX: number;
-  panStartY: number;
-  panOriginX: number;
-  panOriginY: number;
-  lastTapAt: number;
+type PdfTouchZoomTarget = {
+  viewport: HTMLElement;
+  inner: HTMLElement;
+  slot: HTMLElement;
   contentWidth: number;
   contentHeight: number;
+  scale: number;
+  mode: 'none' | 'pinch';
+  pinchStartDistance: number;
+  pinchStartScale: number;
+  lastTapAt: number;
 };
+
+const pdfTouchZoomTargets = new WeakMap<HTMLElement, PdfTouchZoomTarget>();
+let pdfTouchZoomDelegationHost: HTMLElement | null = null;
+let pdfTouchZoomDelegationCleanup: (() => void) | null = null;
+let pdfTouchZoomActiveTarget: PdfTouchZoomTarget | null = null;
 
 function touchDistance(a: Touch, b: Touch): number {
   return Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
 }
 
-function clampPdfTouchTranslate(
-  viewportW: number,
-  viewportH: number,
-  contentW: number,
-  contentH: number,
-  scale: number,
-  tx: number,
-  ty: number,
-): { tx: number; ty: number } {
-  const scaledW = contentW * scale;
-  const scaledH = contentH * scale;
-  const maxTx = Math.max(0, (scaledW - viewportW) / 2);
-  const maxTy = Math.max(0, (scaledH - viewportH) / 2);
-  return {
-    tx: Math.min(maxTx, Math.max(-maxTx, tx)),
-    ty: Math.min(maxTy, Math.max(-maxTy, ty)),
-  };
+function isPdfTouchScaleZoomed(scale: number): boolean {
+  return scale > PDF_TOUCH_ZOOMED_EPSILON;
 }
 
-function applyPdfTouchTransform(layer: HTMLElement, state: PdfTouchZoomState): void {
-  const { scale, translateX, translateY } = state;
-  if (scale <= PDF_TOUCH_ZOOMED_EPSILON) {
-    layer.style.transform = '';
-    return;
+function findPdfTouchZoomTarget(target: EventTarget | null): PdfTouchZoomTarget | null {
+  if (!target || !(target instanceof Element)) return null;
+  const inner = target.closest('.pdf-zoom-inner') as HTMLElement | null;
+  if (!inner) return null;
+  return pdfTouchZoomTargets.get(inner) ?? null;
+}
+
+function syncPdfHostScrollLock(scrollHost: HTMLElement | null, zoomed: boolean): void {
+  if (!scrollHost) return;
+  scrollHost.style.overflowY = zoomed ? 'hidden' : '';
+}
+
+function applyPdfTouchScale(target: PdfTouchZoomTarget, scrollHost: HTMLElement | null): void {
+  const zoomed = isPdfTouchScaleZoomed(target.scale);
+  const w = Math.max(1, Math.round(target.contentWidth * target.scale));
+  const h = Math.max(1, Math.round(target.contentHeight * target.scale));
+
+  target.inner.style.width = `${w}px`;
+  target.inner.style.height = `${h}px`;
+  const canvas = target.inner.querySelector('canvas');
+  if (canvas instanceof HTMLCanvasElement) {
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
   }
-  layer.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+  target.viewport.style.height = zoomed ? `${target.contentHeight}px` : '';
+  target.viewport.style.maxHeight = zoomed ? `${target.contentHeight}px` : '';
+  target.viewport.style.overflow = zoomed ? 'auto' : 'hidden';
+  target.viewport.style.overflowX = zoomed ? 'auto' : 'hidden';
+  target.viewport.style.overflowY = zoomed ? 'auto' : 'hidden';
+  target.viewport.style.setProperty('-webkit-overflow-scrolling', 'touch');
+  target.viewport.style.touchAction = zoomed ? 'auto' : 'pan-y';
+  target.slot.style.minHeight = `${h + 8}px`;
+  target.slot.style.overflow = zoomed ? 'visible' : '';
+
+  syncPdfHostScrollLock(scrollHost, zoomed);
 }
 
-function resetPdfTouchZoom(
+function resetPdfTouchTarget(target: PdfTouchZoomTarget, scrollHost: HTMLElement | null): void {
+  target.scale = PDF_TOUCH_MIN_SCALE;
+  target.mode = 'none';
+  target.viewport.scrollLeft = 0;
+  target.viewport.scrollTop = 0;
+  applyPdfTouchScale(target, scrollHost);
+}
+
+function registerPdfTouchZoomTarget(
   viewport: HTMLElement,
-  layer: HTMLElement,
-  scrollHost: HTMLElement | null,
-  state: PdfTouchZoomState,
-): void {
-  state.scale = PDF_TOUCH_MIN_SCALE;
-  state.translateX = 0;
-  state.translateY = 0;
-  state.mode = 'none';
-  applyPdfTouchTransform(layer, state);
-  layer.style.touchAction = 'pan-y';
-  viewport.style.touchAction = 'pan-y';
-  if (scrollHost) scrollHost.style.overflowY = '';
-}
-
-function isPdfTouchZoomed(state: PdfTouchZoomState): boolean {
-  return state.scale > PDF_TOUCH_ZOOMED_EPSILON;
-}
-
-function attachPdfTouchZoom(
-  viewport: HTMLElement,
-  layer: HTMLElement,
-  scrollHost: HTMLElement | null,
+  inner: HTMLElement,
+  slot: HTMLElement,
   contentWidth: number,
   contentHeight: number,
 ): void {
-  const state: PdfTouchZoomState = {
+  const target: PdfTouchZoomTarget = {
+    viewport,
+    inner,
+    slot,
+    contentWidth,
+    contentHeight,
     scale: PDF_TOUCH_MIN_SCALE,
-    translateX: 0,
-    translateY: 0,
     mode: 'none',
     pinchStartDistance: 0,
     pinchStartScale: PDF_TOUCH_MIN_SCALE,
-    panStartX: 0,
-    panStartY: 0,
-    panOriginX: 0,
-    panOriginY: 0,
     lastTapAt: 0,
-    contentWidth,
-    contentHeight,
   };
-  layer.style.transformOrigin = 'center center';
-  layer.style.touchAction = 'pan-y';
+  pdfTouchZoomTargets.set(inner, target);
+  inner.style.width = `${contentWidth}px`;
+  inner.style.height = `${contentHeight}px`;
+  viewport.style.width = '100%';
+  viewport.style.overflow = 'hidden';
   viewport.style.touchAction = 'pan-y';
+  applyPdfTouchScale(target, null);
+}
 
-  const syncScrollLock = () => {
-    if (!scrollHost) return;
-    scrollHost.style.overflowY = isPdfTouchZoomed(state) ? 'hidden' : '';
-  };
+function teardownPdfTouchZoomDelegation(): void {
+  pdfTouchZoomDelegationCleanup?.();
+  pdfTouchZoomDelegationCleanup = null;
+  pdfTouchZoomDelegationHost = null;
+  pdfTouchZoomActiveTarget = null;
+}
+
+function setupPdfTouchZoomDelegation(scrollHost: HTMLElement): () => void {
+  if (pdfTouchZoomDelegationHost === scrollHost && pdfTouchZoomDelegationCleanup) {
+    return pdfTouchZoomDelegationCleanup;
+  }
+  teardownPdfTouchZoomDelegation();
+  pdfTouchZoomDelegationHost = scrollHost;
 
   const onTouchStart = (event: TouchEvent) => {
-    if (event.touches.length === 2) {
-      state.mode = 'pinch';
-      state.pinchStartDistance = touchDistance(event.touches[0], event.touches[1]);
-      state.pinchStartScale = state.scale;
-      viewport.style.touchAction = 'none';
-      layer.style.touchAction = 'none';
-      syncScrollLock();
-      return;
-    }
+    const target =
+      findPdfTouchZoomTarget(event.target) ??
+      (event.touches.length > 0 ? findPdfTouchZoomTarget(event.touches[0].target) : null);
+    if (!target) return;
+    pdfTouchZoomActiveTarget = target;
 
-    if (event.touches.length === 1 && isPdfTouchZoomed(state)) {
-      state.mode = 'pan';
-      state.panStartX = event.touches[0].clientX;
-      state.panStartY = event.touches[0].clientY;
-      state.panOriginX = state.translateX;
-      state.panOriginY = state.translateY;
-      viewport.style.touchAction = 'none';
-      layer.style.touchAction = 'none';
-      syncScrollLock();
+    if (event.touches.length >= 2) {
+      target.mode = 'pinch';
+      target.pinchStartDistance = touchDistance(event.touches[0], event.touches[1]);
+      target.pinchStartScale = target.scale;
+      syncPdfHostScrollLock(scrollHost, true);
+      event.preventDefault();
     }
   };
 
   const onTouchMove = (event: TouchEvent) => {
-    if (state.mode === 'pinch' && event.touches.length >= 2) {
+    const target =
+      pdfTouchZoomActiveTarget ??
+      findPdfTouchZoomTarget(event.target) ??
+      (event.touches.length > 0 ? findPdfTouchZoomTarget(event.touches[0].target) : null);
+    if (!target) return;
+
+    if (event.touches.length >= 2) {
+      if (target.mode !== 'pinch') {
+        target.mode = 'pinch';
+        target.pinchStartDistance = touchDistance(event.touches[0], event.touches[1]);
+        target.pinchStartScale = target.scale;
+      }
       event.preventDefault();
       const distance = touchDistance(event.touches[0], event.touches[1]);
-      if (state.pinchStartDistance <= 0) return;
-      const nextScale = Math.min(
+      if (target.pinchStartDistance <= 0) return;
+      target.scale = Math.min(
         PDF_TOUCH_MAX_SCALE,
-        Math.max(PDF_TOUCH_MIN_SCALE, state.pinchStartScale * (distance / state.pinchStartDistance)),
+        Math.max(
+          PDF_TOUCH_MIN_SCALE,
+          target.pinchStartScale * (distance / target.pinchStartDistance),
+        ),
       );
-      state.scale = nextScale;
-      if (!isPdfTouchZoomed(state)) {
-        state.translateX = 0;
-        state.translateY = 0;
-      } else {
-        const vpRect = viewport.getBoundingClientRect();
-        const clamped = clampPdfTouchTranslate(
-          vpRect.width,
-          vpRect.height,
-          state.contentWidth,
-          state.contentHeight,
-          state.scale,
-          state.translateX,
-          state.translateY,
-        );
-        state.translateX = clamped.tx;
-        state.translateY = clamped.ty;
-        layer.style.touchAction = 'none';
-      }
-      applyPdfTouchTransform(layer, state);
-      syncScrollLock();
+      applyPdfTouchScale(target, scrollHost);
       return;
     }
 
-    if (state.mode === 'pan' && event.touches.length === 1 && isPdfTouchZoomed(state)) {
+    if (target.mode === 'pinch') {
       event.preventDefault();
-      const dx = event.touches[0].clientX - state.panStartX;
-      const dy = event.touches[0].clientY - state.panStartY;
-      const vpRect = viewport.getBoundingClientRect();
-      const clamped = clampPdfTouchTranslate(
-        vpRect.width,
-        vpRect.height,
-        state.contentWidth,
-        state.contentHeight,
-        state.scale,
-        state.panOriginX + dx,
-        state.panOriginY + dy,
-      );
-      state.translateX = clamped.tx;
-      state.translateY = clamped.ty;
-      applyPdfTouchTransform(layer, state);
     }
   };
 
   const onTouchEnd = (event: TouchEvent) => {
+    const target =
+      pdfTouchZoomActiveTarget ??
+      findPdfTouchZoomTarget(event.target) ??
+      (event.changedTouches.length > 0
+        ? findPdfTouchZoomTarget(event.changedTouches[0].target)
+        : null);
+    if (!target) return;
+
     if (event.touches.length >= 2) return;
 
-    if (event.touches.length === 1) {
-      if (state.mode === 'pinch') {
-        state.mode = isPdfTouchZoomed(state) ? 'pan' : 'none';
-        if (isPdfTouchZoomed(state)) {
-          state.panStartX = event.touches[0].clientX;
-          state.panStartY = event.touches[0].clientY;
-          state.panOriginX = state.translateX;
-          state.panOriginY = state.translateY;
-          layer.style.touchAction = 'none';
-        } else {
-          resetPdfTouchZoom(viewport, layer, scrollHost, state);
-        }
-        syncScrollLock();
-      }
-      return;
-    }
-
-    if (state.mode === 'pan' || state.mode === 'pinch') {
-      state.mode = 'none';
-      if (!isPdfTouchZoomed(state)) {
-        resetPdfTouchZoom(viewport, layer, scrollHost, state);
+    if (event.touches.length === 1 && target.mode === 'pinch') {
+      target.mode = 'none';
+      if (!isPdfTouchScaleZoomed(target.scale)) {
+        resetPdfTouchTarget(target, scrollHost);
       } else {
-        viewport.style.touchAction = 'none';
-        layer.style.touchAction = 'none';
+        syncPdfHostScrollLock(scrollHost, true);
       }
-      syncScrollLock();
       return;
     }
 
-    const now = Date.now();
-    if (now - state.lastTapAt <= PDF_TOUCH_DOUBLE_TAP_MS) {
-      resetPdfTouchZoom(viewport, layer, scrollHost, state);
-      syncScrollLock();
-      state.lastTapAt = 0;
-      return;
+    if (event.touches.length === 0) {
+      if (target.mode === 'pinch') {
+        target.mode = 'none';
+        if (!isPdfTouchScaleZoomed(target.scale)) {
+          resetPdfTouchTarget(target, scrollHost);
+        } else {
+          syncPdfHostScrollLock(scrollHost, true);
+        }
+        pdfTouchZoomActiveTarget = null;
+        return;
+      }
+
+      const now = Date.now();
+      if (now - target.lastTapAt <= PDF_TOUCH_DOUBLE_TAP_MS) {
+        resetPdfTouchTarget(target, scrollHost);
+        target.lastTapAt = 0;
+        pdfTouchZoomActiveTarget = null;
+        return;
+      }
+      target.lastTapAt = now;
+
+      if (!isPdfTouchScaleZoomed(target.scale)) {
+        syncPdfHostScrollLock(scrollHost, false);
+      }
+      pdfTouchZoomActiveTarget = null;
     }
-    state.lastTapAt = now;
   };
 
-  viewport.addEventListener('touchstart', onTouchStart, { passive: true });
-  viewport.addEventListener('touchmove', onTouchMove, { passive: false });
-  viewport.addEventListener('touchend', onTouchEnd, { passive: true });
-  viewport.addEventListener('touchcancel', onTouchEnd, { passive: true });
+  const captureOpts = { capture: true } as const;
+  scrollHost.addEventListener('touchstart', onTouchStart, { ...captureOpts, passive: false });
+  scrollHost.addEventListener('touchmove', onTouchMove, { ...captureOpts, passive: false });
+  scrollHost.addEventListener('touchend', onTouchEnd, captureOpts);
+  scrollHost.addEventListener('touchcancel', onTouchEnd, captureOpts);
+
+  pdfTouchZoomDelegationCleanup = () => {
+    scrollHost.removeEventListener('touchstart', onTouchStart, captureOpts);
+    scrollHost.removeEventListener('touchmove', onTouchMove, captureOpts);
+    scrollHost.removeEventListener('touchend', onTouchEnd, captureOpts);
+    scrollHost.removeEventListener('touchcancel', onTouchEnd, captureOpts);
+    syncPdfHostScrollLock(scrollHost, false);
+    pdfTouchZoomDelegationHost = null;
+    pdfTouchZoomDelegationCleanup = null;
+    pdfTouchZoomActiveTarget = null;
+  };
+
+  return pdfTouchZoomDelegationCleanup;
 }
 
 export default function PdfPreviewPanel({
@@ -785,7 +792,9 @@ export default function PdfPreviewPanel({
           if (signal?.cancelled) break;
           const viewport = page.getViewport({ scale: outputScale });
           const canvas = document.createElement('canvas');
-          canvas.className = 'block max-w-full rounded-sm bg-white shadow-md';
+          canvas.className = touchZoom
+            ? 'block rounded-sm bg-white shadow-md'
+            : 'block max-w-full rounded-sm bg-white shadow-md';
           canvas.width = Math.max(1, Math.floor(viewport.width));
           canvas.height = Math.max(1, Math.floor(viewport.height));
           canvas.style.width = `${cssWidth}px`;
@@ -797,20 +806,13 @@ export default function PdfPreviewPanel({
             if (!signal?.cancelled) {
               if (touchZoom) {
                 const zoomViewport = document.createElement('div');
-                zoomViewport.className =
-                  'pdf-zoom-viewport flex w-full justify-center overflow-hidden';
-                const zoomLayer = document.createElement('div');
-                zoomLayer.className = 'pdf-zoom-layer';
-                zoomLayer.appendChild(canvas);
-                zoomViewport.appendChild(zoomLayer);
+                zoomViewport.className = 'pdf-zoom-viewport flex w-full justify-center';
+                const zoomInner = document.createElement('div');
+                zoomInner.className = 'pdf-zoom-inner shrink-0';
+                zoomInner.appendChild(canvas);
+                zoomViewport.appendChild(zoomInner);
                 slot.replaceChildren(zoomViewport);
-                attachPdfTouchZoom(
-                  zoomViewport,
-                  zoomLayer,
-                  touchZoom.scrollHost,
-                  cssWidth,
-                  cssHeight,
-                );
+                registerPdfTouchZoomTarget(zoomViewport, zoomInner, slot, cssWidth, cssHeight);
               } else {
                 slot.replaceChildren(canvas);
               }
@@ -850,10 +852,12 @@ export default function PdfPreviewPanel({
     renderingPagesRef.current.clear();
 
     const touchZoomOpts = isScrollLayout ? { scrollHost: host } : undefined;
+    const teardownTouchZoom = isScrollLayout ? setupPdfTouchZoomDelegation(host) : null;
 
     if (isScrollLayout) {
       host.className =
         'h-full w-full overflow-y-auto overflow-x-hidden overscroll-y-contain';
+      host.style.touchAction = 'pan-y';
     } else {
       host.className =
         'h-full w-full snap-y snap-mandatory overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y';
@@ -936,7 +940,9 @@ export default function PdfPreviewPanel({
     return () => {
       signal.cancelled = true;
       renderObserver?.disconnect();
+      teardownTouchZoom?.();
       host.style.overflowY = '';
+      host.style.touchAction = '';
       host.innerHTML = '';
       renderingPagesRef.current.clear();
     };
