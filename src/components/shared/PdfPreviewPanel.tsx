@@ -12,6 +12,7 @@ import {
   shouldFetchDirectly,
 } from '@/lib/api-config';
 import { detectDigitalBoard } from '@/hooks/use-digital-board';
+import PdfMobileScrollViewer from '@/components/shared/PdfMobileScrollViewer';
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
@@ -330,241 +331,6 @@ function getFitWidthScale(containerWidth: number, pageWidth: number): number {
 
 type PageLayout = 'viewport' | 'scroll';
 
-const PDF_TOUCH_MIN_SCALE = 1;
-const PDF_TOUCH_MAX_SCALE = 4;
-const PDF_TOUCH_ZOOMED_EPSILON = 1.02;
-const PDF_TOUCH_DOUBLE_TAP_MS = 320;
-
-type PdfTouchZoomTarget = {
-  viewport: HTMLElement;
-  inner: HTMLElement;
-  slot: HTMLElement;
-  contentWidth: number;
-  contentHeight: number;
-  scale: number;
-  mode: 'none' | 'pinch';
-  pinchStartDistance: number;
-  pinchStartScale: number;
-  lastTapAt: number;
-};
-
-const pdfTouchZoomTargets = new WeakMap<HTMLElement, PdfTouchZoomTarget>();
-let pdfTouchZoomDelegationHost: HTMLElement | null = null;
-let pdfTouchZoomDelegationCleanup: (() => void) | null = null;
-let pdfTouchZoomActiveTarget: PdfTouchZoomTarget | null = null;
-
-function touchDistance(a: Touch, b: Touch): number {
-  return Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
-}
-
-function isPdfTouchScaleZoomed(scale: number): boolean {
-  return scale > PDF_TOUCH_ZOOMED_EPSILON;
-}
-
-function findPdfTouchZoomTarget(target: EventTarget | null): PdfTouchZoomTarget | null {
-  if (!target || !(target instanceof Element)) return null;
-  const inner = target.closest('.pdf-zoom-inner') as HTMLElement | null;
-  if (!inner) return null;
-  return pdfTouchZoomTargets.get(inner) ?? null;
-}
-
-function syncPdfHostScrollLock(scrollHost: HTMLElement | null, zoomed: boolean): void {
-  if (!scrollHost) return;
-  scrollHost.style.overflowY = zoomed ? 'hidden' : '';
-}
-
-function applyPdfTouchScale(target: PdfTouchZoomTarget, scrollHost: HTMLElement | null): void {
-  const zoomed = isPdfTouchScaleZoomed(target.scale);
-  const w = Math.max(1, Math.round(target.contentWidth * target.scale));
-  const h = Math.max(1, Math.round(target.contentHeight * target.scale));
-
-  target.inner.style.width = `${w}px`;
-  target.inner.style.height = `${h}px`;
-  const canvas = target.inner.querySelector('canvas');
-  if (canvas instanceof HTMLCanvasElement) {
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
-  }
-  target.viewport.style.height = zoomed ? `${target.contentHeight}px` : '';
-  target.viewport.style.maxHeight = zoomed ? `${target.contentHeight}px` : '';
-  target.viewport.style.overflow = zoomed ? 'auto' : 'hidden';
-  target.viewport.style.overflowX = zoomed ? 'auto' : 'hidden';
-  target.viewport.style.overflowY = zoomed ? 'auto' : 'hidden';
-  target.viewport.style.setProperty('-webkit-overflow-scrolling', 'touch');
-  target.viewport.style.touchAction = zoomed ? 'auto' : 'pan-y';
-  target.slot.style.minHeight = `${h + 8}px`;
-  target.slot.style.overflow = zoomed ? 'visible' : '';
-
-  syncPdfHostScrollLock(scrollHost, zoomed);
-}
-
-function resetPdfTouchTarget(target: PdfTouchZoomTarget, scrollHost: HTMLElement | null): void {
-  target.scale = PDF_TOUCH_MIN_SCALE;
-  target.mode = 'none';
-  target.viewport.scrollLeft = 0;
-  target.viewport.scrollTop = 0;
-  applyPdfTouchScale(target, scrollHost);
-}
-
-function registerPdfTouchZoomTarget(
-  viewport: HTMLElement,
-  inner: HTMLElement,
-  slot: HTMLElement,
-  contentWidth: number,
-  contentHeight: number,
-): void {
-  const target: PdfTouchZoomTarget = {
-    viewport,
-    inner,
-    slot,
-    contentWidth,
-    contentHeight,
-    scale: PDF_TOUCH_MIN_SCALE,
-    mode: 'none',
-    pinchStartDistance: 0,
-    pinchStartScale: PDF_TOUCH_MIN_SCALE,
-    lastTapAt: 0,
-  };
-  pdfTouchZoomTargets.set(inner, target);
-  inner.style.width = `${contentWidth}px`;
-  inner.style.height = `${contentHeight}px`;
-  viewport.style.width = '100%';
-  viewport.style.overflow = 'hidden';
-  viewport.style.touchAction = 'pan-y';
-  applyPdfTouchScale(target, null);
-}
-
-function teardownPdfTouchZoomDelegation(): void {
-  pdfTouchZoomDelegationCleanup?.();
-  pdfTouchZoomDelegationCleanup = null;
-  pdfTouchZoomDelegationHost = null;
-  pdfTouchZoomActiveTarget = null;
-}
-
-function setupPdfTouchZoomDelegation(scrollHost: HTMLElement): () => void {
-  if (pdfTouchZoomDelegationHost === scrollHost && pdfTouchZoomDelegationCleanup) {
-    return pdfTouchZoomDelegationCleanup;
-  }
-  teardownPdfTouchZoomDelegation();
-  pdfTouchZoomDelegationHost = scrollHost;
-
-  const onTouchStart = (event: TouchEvent) => {
-    const target =
-      findPdfTouchZoomTarget(event.target) ??
-      (event.touches.length > 0 ? findPdfTouchZoomTarget(event.touches[0].target) : null);
-    if (!target) return;
-    pdfTouchZoomActiveTarget = target;
-
-    if (event.touches.length >= 2) {
-      target.mode = 'pinch';
-      target.pinchStartDistance = touchDistance(event.touches[0], event.touches[1]);
-      target.pinchStartScale = target.scale;
-      syncPdfHostScrollLock(scrollHost, true);
-      event.preventDefault();
-    }
-  };
-
-  const onTouchMove = (event: TouchEvent) => {
-    const target =
-      pdfTouchZoomActiveTarget ??
-      findPdfTouchZoomTarget(event.target) ??
-      (event.touches.length > 0 ? findPdfTouchZoomTarget(event.touches[0].target) : null);
-    if (!target) return;
-
-    if (event.touches.length >= 2) {
-      if (target.mode !== 'pinch') {
-        target.mode = 'pinch';
-        target.pinchStartDistance = touchDistance(event.touches[0], event.touches[1]);
-        target.pinchStartScale = target.scale;
-      }
-      event.preventDefault();
-      const distance = touchDistance(event.touches[0], event.touches[1]);
-      if (target.pinchStartDistance <= 0) return;
-      target.scale = Math.min(
-        PDF_TOUCH_MAX_SCALE,
-        Math.max(
-          PDF_TOUCH_MIN_SCALE,
-          target.pinchStartScale * (distance / target.pinchStartDistance),
-        ),
-      );
-      applyPdfTouchScale(target, scrollHost);
-      return;
-    }
-
-    if (target.mode === 'pinch') {
-      event.preventDefault();
-    }
-  };
-
-  const onTouchEnd = (event: TouchEvent) => {
-    const target =
-      pdfTouchZoomActiveTarget ??
-      findPdfTouchZoomTarget(event.target) ??
-      (event.changedTouches.length > 0
-        ? findPdfTouchZoomTarget(event.changedTouches[0].target)
-        : null);
-    if (!target) return;
-
-    if (event.touches.length >= 2) return;
-
-    if (event.touches.length === 1 && target.mode === 'pinch') {
-      target.mode = 'none';
-      if (!isPdfTouchScaleZoomed(target.scale)) {
-        resetPdfTouchTarget(target, scrollHost);
-      } else {
-        syncPdfHostScrollLock(scrollHost, true);
-      }
-      return;
-    }
-
-    if (event.touches.length === 0) {
-      if (target.mode === 'pinch') {
-        target.mode = 'none';
-        if (!isPdfTouchScaleZoomed(target.scale)) {
-          resetPdfTouchTarget(target, scrollHost);
-        } else {
-          syncPdfHostScrollLock(scrollHost, true);
-        }
-        pdfTouchZoomActiveTarget = null;
-        return;
-      }
-
-      const now = Date.now();
-      if (now - target.lastTapAt <= PDF_TOUCH_DOUBLE_TAP_MS) {
-        resetPdfTouchTarget(target, scrollHost);
-        target.lastTapAt = 0;
-        pdfTouchZoomActiveTarget = null;
-        return;
-      }
-      target.lastTapAt = now;
-
-      if (!isPdfTouchScaleZoomed(target.scale)) {
-        syncPdfHostScrollLock(scrollHost, false);
-      }
-      pdfTouchZoomActiveTarget = null;
-    }
-  };
-
-  const captureOpts = { capture: true } as const;
-  scrollHost.addEventListener('touchstart', onTouchStart, { ...captureOpts, passive: false });
-  scrollHost.addEventListener('touchmove', onTouchMove, { ...captureOpts, passive: false });
-  scrollHost.addEventListener('touchend', onTouchEnd, captureOpts);
-  scrollHost.addEventListener('touchcancel', onTouchEnd, captureOpts);
-
-  pdfTouchZoomDelegationCleanup = () => {
-    scrollHost.removeEventListener('touchstart', onTouchStart, captureOpts);
-    scrollHost.removeEventListener('touchmove', onTouchMove, captureOpts);
-    scrollHost.removeEventListener('touchend', onTouchEnd, captureOpts);
-    scrollHost.removeEventListener('touchcancel', onTouchEnd, captureOpts);
-    syncPdfHostScrollLock(scrollHost, false);
-    pdfTouchZoomDelegationHost = null;
-    pdfTouchZoomDelegationCleanup = null;
-    pdfTouchZoomActiveTarget = null;
-  };
-
-  return pdfTouchZoomDelegationCleanup;
-}
-
 export default function PdfPreviewPanel({
   fileUrl,
   title,
@@ -585,6 +351,7 @@ export default function PdfPreviewPanel({
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [totalPages, setTotalPages] = useState(0);
   const [pdfSource, setPdfSource] = useState<PdfSource | null>(null);
+  const [pdfDoc, setPdfDoc] = useState<pdfjs.PDFDocumentProxy | null>(null);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
   const [useIframeFallback, setUseIframeFallback] = useState(false);
@@ -638,6 +405,7 @@ export default function PdfPreviewPanel({
     if (!pdfDocRef.current) return;
     await pdfDocRef.current.destroy();
     pdfDocRef.current = null;
+    setPdfDoc(null);
   }, []);
 
   useEffect(() => {
@@ -668,6 +436,7 @@ export default function PdfPreviewPanel({
         return;
       }
       pdfDocRef.current = pdf;
+      setPdfDoc(pdf);
       setPdfSource(source);
       setTotalPages(pdf.numPages);
     };
@@ -767,7 +536,6 @@ export default function PdfPreviewPanel({
       size: { width: number; height: number },
       signal?: { cancelled: boolean },
       layout: PageLayout = 'viewport',
-      touchZoom?: { scrollHost: HTMLElement | null },
     ) => {
       const pdf = pdfDocRef.current;
       if (!pdf || signal?.cancelled) return false;
@@ -792,9 +560,7 @@ export default function PdfPreviewPanel({
           if (signal?.cancelled) break;
           const viewport = page.getViewport({ scale: outputScale });
           const canvas = document.createElement('canvas');
-          canvas.className = touchZoom
-            ? 'block rounded-sm bg-white shadow-md'
-            : 'block max-w-full rounded-sm bg-white shadow-md';
+          canvas.className = 'block max-w-full rounded-sm bg-white shadow-md';
           canvas.width = Math.max(1, Math.floor(viewport.width));
           canvas.height = Math.max(1, Math.floor(viewport.height));
           canvas.style.width = `${cssWidth}px`;
@@ -804,18 +570,7 @@ export default function PdfPreviewPanel({
           try {
             await page.render({ canvasContext: ctx, viewport, canvas }).promise;
             if (!signal?.cancelled) {
-              if (touchZoom) {
-                const zoomViewport = document.createElement('div');
-                zoomViewport.className = 'pdf-zoom-viewport flex w-full justify-center';
-                const zoomInner = document.createElement('div');
-                zoomInner.className = 'pdf-zoom-inner shrink-0';
-                zoomInner.appendChild(canvas);
-                zoomViewport.appendChild(zoomInner);
-                slot.replaceChildren(zoomViewport);
-                registerPdfTouchZoomTarget(zoomViewport, zoomInner, slot, cssWidth, cssHeight);
-              } else {
-                slot.replaceChildren(canvas);
-              }
+              slot.replaceChildren(canvas);
               slot.dataset.rendered = '1';
               if (layout === 'scroll') {
                 slot.style.minHeight = `${cssHeight + 8}px`;
@@ -834,65 +589,38 @@ export default function PdfPreviewPanel({
     [],
   );
 
-  /** Canvas rendering: mobile = vertical scroll stack; boards = full-screen snap pages. */
+  /** Canvas rendering: digital boards = full-screen snap pages (imperative DOM). */
   useEffect(() => {
-    if (!useCanvasRendering || useIframeFallback || !pdfSource || pdfError) return;
+    if (!useCanvasRendering || useMobileScrollLayout || useIframeFallback || !pdfSource || pdfError) {
+      return;
+    }
     if (!scrollHostRef.current) return;
     if (containerSize.width < 80) return;
-    if (!useMobileScrollLayout && containerSize.height < 80) return;
+    if (containerSize.height < 80) return;
     if (totalPages < 1 || !pdfDocRef.current) return;
 
     const host = scrollHostRef.current;
     const pdf = pdfDocRef.current;
     const signal = { cancelled: false };
-    const isScrollLayout = useMobileScrollLayout;
     let renderObserver: IntersectionObserver | null = null;
 
     host.innerHTML = '';
     renderingPagesRef.current.clear();
 
-    const touchZoomOpts = isScrollLayout ? { scrollHost: host } : undefined;
-    const teardownTouchZoom = isScrollLayout ? setupPdfTouchZoomDelegation(host) : null;
-
-    if (isScrollLayout) {
-      host.className =
-        'h-full w-full overflow-y-auto overflow-x-hidden overscroll-y-contain';
-      host.style.touchAction = 'pan-y';
-    } else {
-      host.className =
-        'h-full w-full snap-y snap-mandatory overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y';
-    }
+    host.className =
+      'h-full w-full snap-y snap-mandatory overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y';
     host.style.setProperty('-webkit-overflow-scrolling', 'touch');
 
     const setup = async () => {
       const slots: HTMLElement[] = [];
-      let scrollSlotMinHeight = '280px';
-
-      if (isScrollLayout) {
-        try {
-          const firstPage = await pdf.getPage(1);
-          const base = firstPage.getViewport({ scale: 1 });
-          const cssScale = getFitWidthScale(containerSize.width, base.width);
-          scrollSlotMinHeight = `${Math.floor(base.height * cssScale) + 8}px`;
-        } catch {
-          /* use default slot height */
-        }
-      }
 
       for (let pageNum = 1; pageNum <= totalPages; pageNum += 1) {
         if (signal.cancelled) return;
         const slot = document.createElement('div');
         slot.dataset.page = String(pageNum);
-
-        if (isScrollLayout) {
-          slot.className =
-            'pdf-page-slot flex w-full shrink-0 items-center justify-center px-1 py-2';
-          slot.style.minHeight = scrollSlotMinHeight;
-        } else {
-          slot.className =
-            'pdf-page-slot flex w-full shrink-0 snap-start snap-always items-center justify-center';
-          slot.style.height = `${containerSize.height}px`;
-        }
+        slot.className =
+          'pdf-page-slot flex w-full shrink-0 snap-start snap-always items-center justify-center';
+        slot.style.height = `${containerSize.height}px`;
 
         host.appendChild(slot);
         slots.push(slot);
@@ -906,17 +634,10 @@ export default function PdfPreviewPanel({
             if (!entry.isIntersecting) continue;
             const pageNum = Number((entry.target as HTMLElement).dataset.page);
             if (!Number.isFinite(pageNum)) continue;
-            void renderPageIntoSlot(
-              pageNum,
-              entry.target as HTMLElement,
-              containerSize,
-              signal,
-              isScrollLayout ? 'scroll' : 'viewport',
-              touchZoomOpts,
-            );
+            void renderPageIntoSlot(pageNum, entry.target as HTMLElement, containerSize, signal, 'viewport');
           }
         },
-        { root: host, rootMargin: isScrollLayout ? '240px 0px' : '400px 0px', threshold: 0.01 },
+        { root: host, rootMargin: '400px 0px', threshold: 0.01 },
       );
 
       slots.forEach((slot) => {
@@ -924,14 +645,7 @@ export default function PdfPreviewPanel({
       });
 
       if (slots[0]) {
-        void renderPageIntoSlot(
-          1,
-          slots[0],
-          containerSize,
-          signal,
-          isScrollLayout ? 'scroll' : 'viewport',
-          touchZoomOpts,
-        );
+        void renderPageIntoSlot(1, slots[0], containerSize, signal, 'viewport');
       }
     };
 
@@ -940,9 +654,6 @@ export default function PdfPreviewPanel({
     return () => {
       signal.cancelled = true;
       renderObserver?.disconnect();
-      teardownTouchZoom?.();
-      host.style.overflowY = '';
-      host.style.touchAction = '';
       host.innerHTML = '';
       renderingPagesRef.current.clear();
     };
@@ -999,6 +710,17 @@ export default function PdfPreviewPanel({
               title={title || 'PDF Preview'}
               src={mobileIframeSrc}
               className="h-full w-full border-0 bg-white"
+            />
+          ) : useMobileScrollLayout && pdfDoc && totalPages > 0 ? (
+            <PdfMobileScrollViewer
+              pdf={pdfDoc}
+              totalPages={totalPages}
+              containerWidth={Math.max(
+                containerSize.width,
+                containerRef.current?.clientWidth ?? 0,
+                typeof window !== 'undefined' ? Math.floor(window.innerWidth * 0.9) : 320,
+              )}
+              className="h-full w-full"
             />
           ) : (
             <div ref={scrollHostRef} className="h-full w-full" />
