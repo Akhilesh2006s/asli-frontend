@@ -8,6 +8,7 @@ import {
   resolveExamPaperFromPayload,
   type ExamQuestion,
 } from '@/lib/parse-exam-question-paper';
+import { AiToolInfoPanelGrid } from '@/lib/ai-tool-section-layout';
 
 type MockTestMeta = {
   mockTestTitle: string;
@@ -181,7 +182,7 @@ export function ExamQuestionPaperViewer({
       </header>
 
       {variant === 'student' && mockMeta ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <AiToolInfoPanelGrid>
           <InfoPanel title="Test Purpose and Subtopic Link" value={mockMeta.testPurposeSubtopicLink} className="border-indigo-100 bg-indigo-50/40" />
           <InfoPanel
             title="Learning Objectives – Bloom's"
@@ -190,12 +191,12 @@ export function ExamQuestionPaperViewer({
           />
           <InfoPanel title="NCF Competency / Learning Outcome" value={mockMeta.ncfCompetencyAlignment} className="border-cyan-100 bg-cyan-50/40" />
           <InfoPanel title="Instructions for Students" value={paper.instructions} className="border-slate-200 bg-slate-50/80" />
-        </div>
+        </AiToolInfoPanelGrid>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <AiToolInfoPanelGrid>
           <InfoPanel title="General Instructions" value={paper.instructions} className="border-indigo-100 bg-indigo-50/40" />
           <InfoPanel title="Blueprint / Design Grid" value={paper.blueprint} className="border-cyan-100 bg-cyan-50/40" />
-        </div>
+        </AiToolInfoPanelGrid>
       )}
 
       <div className="space-y-4">
@@ -221,7 +222,7 @@ export function ExamQuestionPaperViewer({
       </div>
 
       {variant === 'student' && mockMeta ? (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <AiToolInfoPanelGrid>
           <InfoPanel title="Answer Key" value={paper.answerKey} className="border-emerald-100 bg-emerald-50/40" />
           <InfoPanel
             title="Step-by-step Solutions / Explanations"
@@ -240,14 +241,14 @@ export function ExamQuestionPaperViewer({
           />
           <InfoPanel title="Real-life Application" value={mockMeta.realLifeApplication} className="border-lime-100 bg-lime-50/40" />
           <InfoPanel title="Reflection / Exit Ticket" value={mockMeta.reflectionExitTicket} className="border-rose-100 bg-rose-50/40" />
-        </div>
+        </AiToolInfoPanelGrid>
       ) : (
         <>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <AiToolInfoPanelGrid columns={3}>
             <InfoPanel title="Internal Choices" value={paper.internalChoices} className="border-violet-100 bg-violet-50/40" />
             <InfoPanel title="Answer Key" value={paper.answerKey} className="border-emerald-100 bg-emerald-50/40" />
             <InfoPanel title="Marking Scheme" value={paper.markingScheme} className="border-amber-100 bg-amber-50/40" />
-          </div>
+          </AiToolInfoPanelGrid>
           <InfoPanel
             title="Rubric for Open-ended Questions"
             value={paper.openEndedRubric}

@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
+import { AiToolPairedSectionColumns } from '@/lib/ai-tool-section-layout';
 import {
   Brain,
   HelpCircle,
@@ -104,17 +105,6 @@ function BulletList({ items, accent = 'text-violet-500' }: { items: string[]; ac
         </li>
       ))}
     </ul>
-  );
-}
-
-function CompactSectionColumns({ children }: { children: ReactNode[] }) {
-  const left = children.filter((_, i) => i % 2 === 0);
-  const right = children.filter((_, i) => i % 2 === 1);
-  return (
-    <div className="grid grid-cols-1 items-start gap-0.5 sm:grid-cols-2">
-      <div className="flex min-w-0 flex-col gap-0.5">{left}</div>
-      <div className="flex min-w-0 flex-col gap-0.5">{right}</div>
-    </div>
   );
 }
 
@@ -307,7 +297,7 @@ function ConceptBreakdownPanel({
                 {section}
               </div>
             ))}
-            {compact.length > 0 ? <CompactSectionColumns>{compact}</CompactSectionColumns> : null}
+            {compact.length > 0 ? <AiToolPairedSectionColumns>{compact}</AiToolPairedSectionColumns> : null}
             {trailing.map((section) => (
               <div key={(section as { key?: string }).key} className="w-full min-w-0">
                 {section}

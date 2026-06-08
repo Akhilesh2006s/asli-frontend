@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   FlashcardViewer,
   getFlashcardsFromContent,
@@ -393,6 +394,15 @@ function renderDeckSection(sec: DeckSectionDef) {
 
 /** Even sections in the left stack, odd in the right — avoids grid-row height gaps beside shorter cards. */
 function DeckSectionColumns({ sections }: { sections: DeckSectionDef[] }) {
+  const isMobile = useIsMobile();
+  if (isMobile) {
+    return (
+      <div className="flex flex-col gap-1">
+        {sections.map(renderDeckSection)}
+      </div>
+    );
+  }
+
   const section5 = sections.find((s) => s.num === 5);
   const before5 = sections.filter((s) => s.num < 5);
   const after5 = sections.filter((s) => s.num > 5);
@@ -400,7 +410,7 @@ function DeckSectionColumns({ sections }: { sections: DeckSectionDef[] }) {
   const rightOf = (list: DeckSectionDef[]) => list.filter((s) => s.num % 2 === 1);
 
   const columnPair = (list: DeckSectionDef[]) => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 items-start">
+    <div className="grid grid-cols-2 gap-1 items-start">
       <div className="flex min-w-0 flex-col gap-1">{leftOf(list).map(renderDeckSection)}</div>
       <div className="flex min-w-0 flex-col gap-1">{rightOf(list).map(renderDeckSection)}</div>
     </div>

@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { AiToolMasonrySections } from '@/lib/ai-tool-section-layout';
 import { Badge } from '@/components/ui/badge';
 import {
   BookOpen,
@@ -633,8 +634,7 @@ function StudentActivityCard({
         </div>
       </div>
 
-      {/* Masonry: only a small gap between boxes; height follows content */}
-      <div className="columns-1 sm:columns-2 xl:columns-3 gap-2">
+      <AiToolMasonrySections desktopColumns={3}>
         {TEMPLATE_SECTIONS.map((sec) => (
           <div key={sec.id} className="mb-2 break-inside-avoid">
             <JournalBlock
@@ -649,7 +649,7 @@ function StudentActivityCard({
             </JournalBlock>
           </div>
         ))}
-      </div>
+      </AiToolMasonrySections>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
+import { AiToolPairedSectionColumns } from '@/lib/ai-tool-section-layout';
 import {
   BookOpen,
   CircleCheck,
@@ -267,17 +268,6 @@ function SectionQuestionsBlock({ sec }: { sec: PracticeQaSection }) {
   );
 }
 
-function CompactSectionColumns({ children }: { children: ReactNode[] }) {
-  const left = children.filter((_, i) => i % 2 === 0);
-  const right = children.filter((_, i) => i % 2 === 1);
-  return (
-    <div className="grid grid-cols-1 items-start gap-0.5 sm:grid-cols-2">
-      <div className="flex min-w-0 flex-col gap-0.5">{left}</div>
-      <div className="flex min-w-0 flex-col gap-0.5">{right}</div>
-    </div>
-  );
-}
-
 function PracticeQaBody({ practice }: { practice: NormalizedPracticeQa }) {
   const setupSections = [
     practice.learningObjectives.length > 0 ? (
@@ -337,7 +327,7 @@ function PracticeQaBody({ practice }: { practice: NormalizedPracticeQa }) {
 
   return (
     <div className="mt-0.5 flex flex-col gap-0.5">
-      {setupSections.length > 0 ? <CompactSectionColumns>{setupSections}</CompactSectionColumns> : null}
+      {setupSections.length > 0 ? <AiToolPairedSectionColumns>{setupSections}</AiToolPairedSectionColumns> : null}
       <div className="grid grid-cols-1 gap-0.5">{questionSections}</div>
       {realLifeBlock}
       {practice.answerKey ? (

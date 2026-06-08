@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
+import { AiToolSectionGrid } from '@/lib/ai-tool-section-layout';
 import {
   BookMarked,
   BookOpen,
@@ -483,7 +484,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
             </div>
           </div>
 
-          <div className="grid grid-cols-1 items-start gap-1 sm:grid-cols-2">{bodySections}</div>
+          <AiToolSectionGrid gap="gap-1">{bodySections}</AiToolSectionGrid>
         </div>
       </div>
     </div>

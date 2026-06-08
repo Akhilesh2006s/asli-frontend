@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { AiToolMasonrySections } from '@/lib/ai-tool-section-layout';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import {
   resolveStoryFromPayload,
@@ -84,7 +85,7 @@ function TeacherStoryReading({ story }: { story: ParsedStory }) {
         <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Section 1</p>
         <h2 className="text-lg font-bold text-gray-900">{story.title}</h2>
       </div>
-      <div className="columns-1 lg:columns-2 gap-3">
+      <AiToolMasonrySections className="gap-3">
         {TEACHER_STORY_PASSAGE_SECTIONS.filter((sec) => sec.num > 1).map((sec) => (
           <div key={sec.num} className="mb-3 break-inside-avoid">
             <StorySectionCard
@@ -98,7 +99,7 @@ function TeacherStoryReading({ story }: { story: ParsedStory }) {
             </StorySectionCard>
           </div>
         ))}
-      </div>
+      </AiToolMasonrySections>
     </div>
   );
 }
@@ -605,8 +606,7 @@ function StudentStoryReading({ story }: { story: ParsedStory }) {
         </div>
       </div>
 
-      {/* Masonry: only a small gap between boxes; height follows content */}
-      <div className="columns-1 sm:columns-2 gap-2">
+      <AiToolMasonrySections>
         {READING_PRACTICE_SECTIONS.map((sec) => (
           <div key={sec.num} className="mb-2 break-inside-avoid">
             <StorySectionCard
@@ -620,7 +620,7 @@ function StudentStoryReading({ story }: { story: ParsedStory }) {
             </StorySectionCard>
           </div>
         ))}
-      </div>
+      </AiToolMasonrySections>
     </div>
   );
 }

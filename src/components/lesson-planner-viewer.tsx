@@ -27,6 +27,7 @@ import {
   type NormalizedLesson,
 } from '@/lib/parse-lesson-planner';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
+import { AiToolMasonrySections } from '@/lib/ai-tool-section-layout';
 
 interface LessonPlannerViewerProps {
   content: string;
@@ -688,7 +689,7 @@ function StudentLessonCard({ lesson }: { lesson: NormalizedLesson }) {
         </div>
       </div>
 
-      <div className="columns-1 sm:columns-2 gap-2">
+      <AiToolMasonrySections>
         {STUDY_SCHEDULE_SECTIONS.map((sec) => (
           <div key={sec.num} className="mb-2 break-inside-avoid">
             <PlanSectionCard
@@ -702,7 +703,7 @@ function StudentLessonCard({ lesson }: { lesson: NormalizedLesson }) {
             </PlanSectionCard>
           </div>
         ))}
-      </div>
+      </AiToolMasonrySections>
     </div>
   );
 }

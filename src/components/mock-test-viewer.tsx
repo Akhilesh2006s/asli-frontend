@@ -1,4 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
+import { AiToolMockTestSectionLayout } from '@/lib/ai-tool-section-layout';
 import {
   BookOpen,
   Brain,
@@ -211,29 +212,6 @@ function ExamSectionBlock({ section, showAnswers }: { section: ExamSection; show
       ) : (
         <p className="text-xs italic text-stone-400">No questions in this section.</p>
       )}
-    </div>
-  );
-}
-
-function MockSectionColumns({ children }: { children: ReactNode[] }) {
-  const beforePaper = children.slice(0, 4);
-  const paper = children[4];
-  const afterPaper = children.slice(5);
-  const leftOf = (list: ReactNode[]) => list.filter((_, i) => i % 2 === 0);
-  const rightOf = (list: ReactNode[]) => list.filter((_, i) => i % 2 === 1);
-
-  const columnPair = (list: ReactNode[]) => (
-    <div className="grid grid-cols-1 items-start gap-1 sm:grid-cols-2">
-      <div className="flex min-w-0 flex-col gap-1">{leftOf(list)}</div>
-      <div className="flex min-w-0 flex-col gap-1">{rightOf(list)}</div>
-    </div>
-  );
-
-  return (
-    <div className="flex flex-col gap-1">
-      {beforePaper.length > 0 && columnPair(beforePaper)}
-      <div className="w-full min-w-0">{paper}</div>
-      {afterPaper.length > 0 && columnPair(afterPaper)}
     </div>
   );
 }
@@ -468,7 +446,7 @@ export function MockTestViewer({ content, rawContent, className }: MockTestViewe
             </div>
           </div>
 
-          <MockSectionColumns>{bodySections}</MockSectionColumns>
+          <AiToolMockTestSectionLayout>{bodySections}</AiToolMockTestSectionLayout>
         </div>
       </div>
     </div>
