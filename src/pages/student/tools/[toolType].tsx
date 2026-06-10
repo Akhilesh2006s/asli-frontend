@@ -2319,12 +2319,7 @@ export default function StudentToolPage() {
                   ) : isProjectIdeaLab ? (
                     <ActivityProjectViewer
                       activities={rawGeneratedContent?.activities}
-                      content={
-                        Array.isArray(rawGeneratedContent?.activities) &&
-                        rawGeneratedContent.activities.length > 0
-                          ? undefined
-                          : generatedContent
-                      }
+                      content={generatedContent}
                       variant="student"
                     />
                   ) : isReadingPractice ? (

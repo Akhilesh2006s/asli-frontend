@@ -345,8 +345,6 @@ function TeacherConceptCard({ concept }: { concept: NormalizedConcept }) {
   const filled = countFilledSections(concept);
   const total = CONCEPT_TEMPLATE_SECTIONS.length;
   const progressPct = Math.round((filled / total) * 100);
-  const activeSections = CONCEPT_TEMPLATE_SECTIONS.filter((sec) => sec.hasContent(concept));
-
   return (
     <div className="space-y-5">
       <div className="rounded-xl border-2 border-dashed border-fuchsia-300/70 bg-gradient-to-br from-fuchsia-50/90 via-white to-violet-50/40 px-4 py-4 sm:px-5 sm:py-5">
@@ -390,8 +388,7 @@ function TeacherConceptCard({ concept }: { concept: NormalizedConcept }) {
       </div>
 
       {CONCEPT_FLOW_PHASES.map((phase) => {
-        const phaseSections = activeSections.filter((sec) => SECTION_PHASE[sec.num] === phase.id);
-        if (!phaseSections.length) return null;
+        const phaseSections = CONCEPT_TEMPLATE_SECTIONS.filter((sec) => SECTION_PHASE[sec.num] === phase.id);
 
         return (
           <section key={phase.id} aria-label={phase.label}>
@@ -417,7 +414,13 @@ function TeacherConceptCard({ concept }: { concept: NormalizedConcept }) {
                   dotClass={phase.dotClass}
                   isLast={idx === phaseSections.length - 1}
                 >
-                  {sec.render(concept)}
+                  {sec.hasContent(concept) ? (
+                    sec.render(concept)
+                  ) : (
+                    <p className="text-sm text-stone-400 italic rounded-lg border border-dashed border-stone-200 bg-stone-50 px-2.5 py-1.5">
+                      Not included in this generation — try regenerating with more detail if you need this section.
+                    </p>
+                  )}
                 </ConceptTimelineStep>
               ))}
             </div>

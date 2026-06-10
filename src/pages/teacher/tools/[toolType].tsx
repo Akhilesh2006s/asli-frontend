@@ -101,7 +101,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
-      { name: 'questionType', label: 'Question Type *', type: 'select', required: true, options: ['Single Option', 'Multiple Option', 'Integer Type', 'All Types'], placeholder: 'Select question type' }
+      { name: 'questionType', label: 'Question Type', type: 'select', options: ['Single Option', 'Multiple Option', 'Integer Type', 'All Types'], placeholder: 'All Types (optional)' }
     ]
   },
   'concept-mastery-helper': {
@@ -2011,12 +2011,7 @@ export default function TeacherToolPage() {
                 ) : toolType === 'activity-project-generator' ? (
                   <ActivityProjectViewer
                     activities={rawGeneratedContent?.activities}
-                    content={
-                      Array.isArray(rawGeneratedContent?.activities) &&
-                      rawGeneratedContent.activities.length > 0
-                        ? undefined
-                        : displayGeneratedContent
-                    }
+                    content={displayGeneratedContent}
                     variant="teacher"
                   />
                 ) : toolType === 'story-passage-creator' ? (

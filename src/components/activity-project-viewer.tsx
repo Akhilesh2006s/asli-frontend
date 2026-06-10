@@ -114,8 +114,10 @@ function normalizeActivity(
     ncfAlignment: ncf,
     materials: dedupeStringLines(coalesceLines(a.materials_required || a.materials)),
     steps,
-    teacherInstructions: coalesceLines(a.teacher_instructions),
-    studentInstructions: studentSteps.length ? studentSteps : coalesceLines(a.student_instructions),
+    teacherInstructions: coalesceLines(a.teacher_instructions || a.teacherInstructions),
+    studentInstructions: studentSteps.length
+      ? studentSteps
+      : coalesceLines(a.student_instructions || a.studentInstructions),
     safetyCareInstructions: dedupeStringLines(
       coalesceLines(a.safety_care_instructions || a.safety_instructions),
     ),
@@ -704,7 +706,7 @@ function TeacherActivityCard({
         </div>
       </div>
 
-      {TEACHER_TEMPLATE_SECTIONS.filter((sec) => sec.hasContent(activity)).map((sec) => (
+      {TEACHER_TEMPLATE_SECTIONS.map((sec) => (
         <JournalBlock
           key={sec.id}
           id={`${prefix}-${sec.id}`}
@@ -714,7 +716,7 @@ function TeacherActivityCard({
           stripe={sec.stripe}
           iconWrap={sec.iconWrap}
         >
-          {sec.render(activity)}
+          {sec.hasContent(activity) ? sec.render(activity) : <EmptySectionHint audience="teacher" />}
         </JournalBlock>
       ))}
     </div>
