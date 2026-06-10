@@ -2307,7 +2307,7 @@ export default function StudentToolPage() {
                       rawContent={rawGeneratedContent}
                     />
                   ) : toolType === 'short-notes-summaries-maker' ? (
-                    <ShortNotesViewer content={displayGeneratedContent} />
+                    <ShortNotesViewer content={displayGeneratedContent} rawContent={rawGeneratedContent} />
                   ) : toolType === 'concept-mastery-helper' ? (
                     <ConceptMasteryViewer content={displayGeneratedContent} />
                   ) : isStudySchedule ? (

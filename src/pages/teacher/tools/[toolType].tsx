@@ -1988,7 +1988,7 @@ export default function TeacherToolPage() {
                         Teacher focus view
                       </span>
                     </div>
-                    <ShortNotesViewer content={displayGeneratedContent} />
+                    <ShortNotesViewer content={displayGeneratedContent} rawContent={rawGeneratedContent} />
                   </div>
                 ) : toolType === 'concept-mastery-helper' ? (
                   <ConceptMasteryViewer

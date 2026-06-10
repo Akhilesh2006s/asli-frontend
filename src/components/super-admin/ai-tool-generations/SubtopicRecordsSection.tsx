@@ -521,7 +521,10 @@ export function SubtopicRecordsSection({
                 if (isShortNotesToolValue(resolvedTool)) {
                   return (
                     <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
-                      <ShortNotesViewer content={String(fullText || "")} />
+                      <ShortNotesViewer
+                        content={String(fullText || "")}
+                        rawContent={viewDetail?.structuredContent || viewDetail?.metadata?.structuredContent || viewDetail}
+                      />
                     </div>
                   );
                 }

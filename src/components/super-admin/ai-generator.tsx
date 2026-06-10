@@ -1139,7 +1139,14 @@ export default function SuperAdminAiGenerator() {
               />
             ) : activeRecord?.toolSlug === "short-notes-summaries-maker" ||
               activeRecord?.toolName === "short-notes-summaries-maker" ? (
-              <ShortNotesViewer content={String(activeRecord?.generatedContent || "")} />
+              <ShortNotesViewer
+                content={String(activeRecord?.generatedContent || "")}
+                rawContent={
+                  activeRecord?.structuredContent ||
+                  activeRecord?.metadata?.structuredContent ||
+                  activeRecord
+                }
+              />
             ) : activeRecord?.toolSlug === "mock-test-builder" ||
               activeRecord?.toolName === "mock-test-builder" ? (
               <MockTestViewer {...mockTestViewerPayloadFromRecord(activeRecord)} />
