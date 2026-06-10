@@ -79,6 +79,12 @@ import {
   extractPlainSubjectName,
   getSubjectClassLabel,
 } from '@/lib/subject-names';
+import { loadLearningPathCatalog } from '@/lib/learning-path-catalog';
+import {
+  countLearningPathDisplayStats,
+  learningPathStatsTotal,
+} from '@/lib/learning-path-stats';
+import { resolveIsAsliPrepExclusive } from '@/lib/school-program';
 
 // PDF Upload removed - AI tools now use Gemini API only
 
@@ -362,6 +368,7 @@ const TeacherDashboard = () => {
     }
   }, [search]);
   const [subjectsWithContent, setSubjectsWithContent] = useState<any[]>([]);
+  const [isAsliPrepExclusive, setIsAsliPrepExclusive] = useState(false);
   
   // Remark states
   const [isRemarkDialogOpen, setIsRemarkDialogOpen] = useState(false);
@@ -721,144 +728,41 @@ const TeacherDashboard = () => {
     }
   }, [dashboardSubTab, teacherSubjects, eduottActiveTab]);
 
-  // Fetch subjects with content for learning paths
   useEffect(() => {
-    const fetchSubjectsWithContent = async () => {
-      if (teacherSubjects.length === 0) {
-        setSubjectsWithContent([]);
-        return;
-      }
-
+    const loadProgram = async () => {
       try {
-        setIsLoadingSubjects(true);
         const token = localStorage.getItem('authToken');
+        if (!token) return;
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setIsAsliPrepExclusive(resolveIsAsliPrepExclusive(data?.user));
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    void loadProgram();
+  }, []);
 
-        // Fetch content for each assigned subject
-        const subjectsWithContentResults = await Promise.allSettled(
-          teacherSubjects.map(async (subject: any) => {
-            try {
-              const subjectId = subject._id || subject.id || subject.name;
-              
-              // Fetch videos for this subject using teacher endpoint
-              let videos = [];
-              try {
-                const videosResponse = await fetch(`${API_BASE_URL}/api/teacher/asli-prep-content?subject=${encodeURIComponent(subjectId)}&type=Video`, {
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                  }
-                });
-                
-                if (videosResponse.ok) {
-                  const videosData = await videosResponse.json();
-                  const contentList = videosData.data || videosData || [];
-                  // Map Content model to video format
-                  videos = contentList.map((content: any) => ({
-                    _id: content._id,
-                    id: content._id,
-                    title: content.title || 'Untitled Video',
-                    description: content.description || '',
-                    videoUrl: content.fileUrl || '',
-                    duration: content.duration || 0,
-                    views: content.views || 0,
-                    createdAt: content.createdAt,
-                    subject: content.subject?.name || content.subject || 'Unknown Subject'
-                  }));
-                  if (!Array.isArray(videos)) videos = [];
-                }
-              } catch (videoError) {
-                console.error('Error fetching videos for subject:', subjectId, videoError);
-                videos = [];
-              }
-
-              // Fetch assessments/quizzes for this subject using teacher endpoint
-              let assessments = [];
-              try {
-                const assessmentsResponse = await fetch(`${API_BASE_URL}/api/teacher/asli-prep-content?subject=${encodeURIComponent(subjectId)}&type=Assessment`, {
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                  }
-                });
-                
-                if (assessmentsResponse.ok) {
-                  const assessmentsData = await assessmentsResponse.json();
-                  const contentList = assessmentsData.data || assessmentsData || [];
-                  // Map Content model to assessment format
-                  assessments = contentList.map((content: any) => ({
-                    _id: content._id,
-                    id: content._id,
-                    title: content.title || 'Untitled Assessment',
-                    description: content.description || '',
-                    questions: content.questions || [],
-                    attempts: content.attempts || 0,
-                    averageScore: content.averageScore || 0,
-                    createdAt: content.createdAt,
-                    subject: content.subject?.name || content.subject || 'Unknown Subject'
-                  }));
-                  if (!Array.isArray(assessments)) assessments = [];
-                }
-              } catch (assessmentError) {
-                console.error('Error fetching assessments for subject:', subjectId, assessmentError);
-                assessments = [];
-              }
-
-              // Fetch Asli Prep content (TextBook, Workbook, Material, Video, Audio, Homework) - use teacher endpoint
-              let asliPrepContent = [];
-              try {
-                const contentResponse = await fetch(`${API_BASE_URL}/api/teacher/asli-prep-content?subject=${encodeURIComponent(subjectId)}`, {
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                  }
-                });
-                
-                if (contentResponse.ok) {
-                  const contentData = await contentResponse.json();
-                  asliPrepContent = contentData.data || contentData || [];
-                  if (!Array.isArray(asliPrepContent)) asliPrepContent = [];
-                }
-              } catch (contentError) {
-                console.error('Error fetching Asli Prep content for subject:', subjectId, contentError);
-                asliPrepContent = [];
-              }
-
-              return {
-                _id: subject._id || subject.id,
-                id: subject._id || subject.id,
-                name: subject.name || subject.subjectName || 'Unknown Subject',
-                description: subject.description || '',
-                board: subject.board || '',
-                videos: videos,
-                assessments: assessments,
-                asliPrepContent: asliPrepContent,
-                totalContent: (videos?.length || 0) + (assessments?.length || 0) + (asliPrepContent?.length || 0)
-              };
-            } catch (error) {
-              console.error('Error processing subject:', subject, error);
-              return null;
-            }
-          })
-        );
-
-        // Filter out failed results and set subjects
-        const validSubjects = subjectsWithContentResults
-          .filter((result): result is PromiseFulfilledResult<any> => 
-            result.status === 'fulfilled' && result.value !== null
-          )
-          .map(result => result.value);
-
-        setSubjectsWithContent(validSubjects);
+  useEffect(() => {
+    const loadLearningPaths = async () => {
+      if (dashboardSubTab !== 'learning-paths') return;
+      setIsLoadingSubjects(true);
+      try {
+        const rows = await loadLearningPathCatalog('teacher', isAsliPrepExclusive);
+        setSubjectsWithContent(rows);
       } catch (error) {
-        console.error('Failed to fetch subjects with content:', error);
+        console.error('Failed to fetch learning path catalog:', error);
         setSubjectsWithContent([]);
       } finally {
         setIsLoadingSubjects(false);
       }
     };
-
-    fetchSubjectsWithContent();
-  }, [teacherSubjects]);
+    void loadLearningPaths();
+  }, [dashboardSubTab, isAsliPrepExclusive]);
 
   const handleLogout = () => {
     localStorage.removeItem('authToken');
@@ -2464,6 +2368,8 @@ const TeacherDashboard = () => {
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
                       {subjectsWithContent.map((subject: any) => {
+                        const stats = countLearningPathDisplayStats(subject.asliPrepContent);
+                        const itemCount = learningPathStatsTotal(stats);
                         const getSubjectIcon = (subjectName: string) => {
                           if (subjectName.toLowerCase().includes('math')) return Target;
                           if (
@@ -2488,7 +2394,7 @@ const TeacherDashboard = () => {
                                 <Icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                               </div>
                               <Badge variant="secondary" className="text-xs">
-                                {subject.totalContent || 0} items
+                                {itemCount} items
                               </Badge>
                             </div>
                             <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-2 break-words leading-tight">
@@ -2499,52 +2405,47 @@ const TeacherDashboard = () => {
                             </p>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-center mb-4">
+                              <div className="bg-green-50 rounded-lg p-2">
+                                <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 mx-auto mb-1" />
+                                <p className="text-xs font-medium text-green-800">
+                                  {stats.textbooks}
+                                </p>
+                                <p className="text-xs text-green-600">Textbooks</p>
+                              </div>
+                              <div className="bg-orange-50 rounded-lg p-2">
+                                <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 mx-auto mb-1" />
+                                <p className="text-xs font-medium text-orange-800">
+                                  {stats.materials}
+                                </p>
+                                <p className="text-xs text-orange-600">Materials</p>
+                              </div>
                               <div className="bg-blue-50 rounded-lg p-2">
                                 <Play className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 mx-auto mb-1" />
                                 <p className="text-xs font-medium text-blue-800">
-                                  {subject.videos?.length || 0}
+                                  {stats.videos}
                                 </p>
                                 <p className="text-xs text-blue-600">Videos</p>
-                              </div>
-                              <div className="bg-green-50 rounded-lg p-2">
-                                <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 mx-auto mb-1" />
-                                <p className="text-xs font-medium text-green-800">
-                                  {subject.assessments?.length || 0}
-                                </p>
-                                <p className="text-xs text-green-600">Quizzes</p>
-                              </div>
-                              <div className="bg-orange-50 rounded-lg p-2">
-                                <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 mx-auto mb-1" />
-                                <p className="text-xs font-medium text-orange-800">
-                                  {subject.asliPrepContent?.length || 0}
-                                </p>
-                                <p className="text-xs text-orange-600">Content</p>
                               </div>
                             </div>
 
                             <div className="mb-4 min-h-[98px]">
-                              <p className="text-xs font-semibold text-gray-700 mb-2">Recent Videos:</p>
-                              {subject.videos?.length > 0 ? (
+                              <p className="text-xs font-semibold text-gray-700 mb-2">Recent Content:</p>
+                              {(subject.asliPrepContent || []).length > 0 ? (
                                 <div className="space-y-1">
-                                  {subject.videos.slice(0, 2).map((video: any, idx: number) => (
+                                  {(subject.asliPrepContent || []).slice(0, 2).map((item: any, idx: number) => (
                                     <div
-                                      key={video._id || idx}
+                                      key={item._id || idx}
                                       className="bg-gray-50 rounded-lg p-2 text-xs"
                                     >
                                       <p className="text-gray-900 font-medium truncate">
-                                        {video.title || 'Untitled Video'}
+                                        {item.title || 'Untitled'}
                                       </p>
-                                      {video.duration && (
-                                        <p className="text-gray-600 text-xs">
-                                          Duration: {video.duration} min
-                                        </p>
-                                      )}
                                     </div>
                                   ))}
                                 </div>
                               ) : (
                                 <div className="bg-gray-50 rounded-lg p-2 text-xs text-gray-500">
-                                  No recent videos
+                                  No recent content
                                 </div>
                               )}
                             </div>
