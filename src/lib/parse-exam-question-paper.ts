@@ -3,6 +3,7 @@ export type ExamQuestion = {
   question: string;
   options: string[];
   answer: string;
+  explanation?: string;
   marks: number | null;
   internalChoiceGroup: string;
 };
@@ -173,6 +174,7 @@ function normalizeQuestion(value: unknown, idx: number): ExamQuestion {
     question,
     options,
     answer: cleanText(row.answer || row.correct_answer || row.answer_key || ''),
+    explanation: cleanText(row.explanation || row.solution || row.step_by_step || ''),
     marks: parseMarks(row.marks),
     internalChoiceGroup: cleanText(row.internal_choice_group || row.internalChoiceGroup || ''),
   };

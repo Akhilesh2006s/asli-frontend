@@ -27,6 +27,7 @@ import { PracticeQaViewer } from "@/components/practice-qa-viewer";
 import { ChapterSummaryViewer } from "@/components/chapter-summary-viewer";
 import { KeyPointsViewer } from "@/components/key-points-viewer";
 import { QuickAssignmentViewer } from "@/components/quick-assignment-viewer";
+import { MockTestViewer } from "@/components/mock-test-viewer";
 import { coerceHomeworkText as coerceHomeworkFieldText } from "@/lib/coerce-homework-text";
 import {
   cleanActivityTitleForDisplay,
@@ -2731,6 +2732,21 @@ export default function AIContentEngine() {
         item.toolType === "mock-test-builder" || kind === "mockTest";
       const fb = fallback as Record<string, unknown>;
       const rc = content as Record<string, unknown>;
+
+      if (isMockTest) {
+        return (
+          <MockTestViewer
+            content={String(item.generatedContent || "").trim()}
+            rawContent={{
+              ...fb,
+              ...rc,
+              structuredContent: fallback,
+              renderContent: content,
+            }}
+          />
+        );
+      }
+
       const pickStr = (...keys: string[]) => {
         for (const k of keys) {
           const v = rc[k] ?? fb[k];

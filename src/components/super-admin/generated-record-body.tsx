@@ -184,8 +184,14 @@ export function GeneratedRecordBody({
       />
     );
   }
-  if (looksLikeMockTestContent(raw)) {
-    return <MockTestViewer content={String(content || "")} className={className} />;
+  if (toolType === "mock-test-builder" || looksLikeMockTestContent(raw)) {
+    return (
+      <MockTestViewer
+        content={String(content || "")}
+        rawContent={undefined}
+        className={className}
+      />
+    );
   }
   if (looksLikeChapterSummaryContent(raw)) {
     return <ChapterSummaryViewer content={String(content || "")} className={className} />;

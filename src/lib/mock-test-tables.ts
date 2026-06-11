@@ -70,8 +70,16 @@ export function synthesizeSolutionsFromSections(sections: ExamSection[]): string
   for (const sec of sections) {
     for (const q of sec.questions || []) {
       n += 1;
-      if (q.answer?.trim()) {
-        lines.push(`${n}. **${q.answer.trim()}** _(${sec.title.replace(/\|/g, '/')})_`);
+      const answer = q.answer?.trim();
+      const explanation = String(q.explanation || '').trim();
+      if (!answer && !explanation) continue;
+      const secLabel = sec.title.replace(/\|/g, '/');
+      if (answer && explanation) {
+        lines.push(`${n}. **${answer}** — ${explanation} _(${secLabel})_`);
+      } else if (answer) {
+        lines.push(`${n}. **${answer}** _(${secLabel})_`);
+      } else {
+        lines.push(`${n}. ${explanation} _(${secLabel})_`);
       }
     }
   }

@@ -38,6 +38,33 @@ function cleanText(value: unknown): string {
     .trim();
 }
 
+/** Strings, string arrays, or simple objects from structuredContent → display text. */
+function coerceToMarkdownText(value: unknown): string {
+  if (value == null) return '';
+  if (typeof value === 'string') return cleanText(value);
+  if (typeof value === 'number' || typeof value === 'boolean') return cleanText(String(value));
+  if (Array.isArray(value)) {
+    return value
+      .map((row) => coerceToMarkdownText(row))
+      .filter(Boolean)
+      .join('\n');
+  }
+  if (typeof value === 'object') {
+    const row = value as Record<string, unknown>;
+    if (Array.isArray(row.lines)) return coerceToMarkdownText(row.lines);
+    if (typeof row.text === 'string') return cleanText(row.text);
+    if (typeof row.content === 'string') return cleanText(row.content);
+    return Object.entries(row)
+      .map(([key, val]) => {
+        const body = coerceToMarkdownText(val);
+        return body ? `${key}: ${body}` : '';
+      })
+      .filter(Boolean)
+      .join('\n');
+  }
+  return cleanText(value);
+}
+
 function toList(value: unknown): string[] {
   if (Array.isArray(value)) return value.map((v) => cleanText(v)).filter(Boolean);
   const s = cleanText(value);
@@ -52,7 +79,8 @@ function pickStr(sources: Record<string, unknown>[], ...keys: string[]): string 
   for (const src of sources) {
     for (const k of keys) {
       const v = src[k];
-      if (v != null && cleanText(v)) return cleanText(v);
+      const text = coerceToMarkdownText(v);
+      if (text) return text;
     }
   }
   return '';
@@ -87,6 +115,9 @@ function extractStructuredSources(rawContent?: unknown): Record<string, unknown>
   return out;
 }
 
+const MOCK_SECTION_TITLE_HINT =
+  /^(mock test title|test purpose|learning objectives|ncf|instructions|question paper|answer key|step-by-step|remedial|expected learning|real[-\s]?life|reflection)/i;
+
 export function parseNumberedMarkdownSections(markdown: string): Map<number, string> {
   const lines = String(markdown || '').split('\n');
   const sections = new Map<number, string[]>();
@@ -94,15 +125,20 @@ export function parseNumberedMarkdownSections(markdown: string): Map<number, str
 
   for (const raw of lines) {
     const line = raw.trim();
-    const match = line.match(/^(?:#{1,3}\s*)?(\d{1,2})\.\s*(.+)$/);
-    if (match) {
+    const mdHeading = line.match(/^#{1,3}\s*(\d{1,2})\.\s*(.+)$/);
+    const plainHeading = !mdHeading ? line.match(/^(\d{1,2})\.\s+(.+)$/) : null;
+    const isSectionBreak =
+      mdHeading != null ||
+      (plainHeading != null && MOCK_SECTION_TITLE_HINT.test(plainHeading[2].replace(/\*\*/g, '').trim()));
+
+    if (isSectionBreak) {
+      const match = mdHeading || plainHeading!;
       current = Number(match[1]);
       if (!sections.has(current)) sections.set(current, []);
-      const rest = line.replace(/^(?:#{1,3}\s*)?\d{1,2}\.\s*.+$/i, '').trim();
-      if (rest) sections.get(current)!.push(rest);
       continue;
     }
-    if (current > 0 && sections.has(current)) {
+    if (current > 0) {
+      if (!sections.has(current)) sections.set(current, []);
       sections.get(current)!.push(raw);
     }
   }
@@ -204,6 +240,7 @@ export function resolveMockTestFromPayload(content: string, rawContent?: unknown
 
   let meta = metaFromStructured(sources, resolved.paper);
   const mdMeta = metaFromMarkdown(content, resolved.paper);
+
   meta = {
     title: meta.title || mdMeta.title || 'Mock Test',
     testPurpose: meta.testPurpose || mdMeta.testPurpose || '',
@@ -261,6 +298,21 @@ export function resolveMockTestFromPayload(content: string, rawContent?: unknown
     if (!meta.answerKey) meta = { ...meta, answerKey: mockMd.answerKey || meta.answerKey };
   }
 
+  if (!meta.answerKey.trim()) {
+    meta = { ...meta, answerKey: cleanText(numbered.get(7) || paper?.answerKey || '') };
+  }
+  if (!meta.solutions.trim()) {
+    meta = { ...meta, solutions: cleanText(numbered.get(8) || '') };
+  }
+
+  const activeSectionsForSynth = paper?.sections.filter((s) => s.questions.length > 0) ?? [];
+  if (!meta.answerKey.trim() && activeSectionsForSynth.length) {
+    meta = { ...meta, answerKey: synthesizeAnswerKeyFromSections(activeSectionsForSynth) };
+  }
+  if (!meta.solutions.trim() && activeSectionsForSynth.length) {
+    meta = { ...meta, solutions: synthesizeSolutionsFromSections(activeSectionsForSynth) };
+  }
+
   const hasPaper = paper && (examPaperHasQuestions(paper) || examPaperHasVisibleContent(paper));
   return {
     meta,
@@ -275,15 +327,23 @@ export function mockTestViewerPayloadFromRecord(
     generatedContent?: string;
     content?: string;
     structuredContent?: unknown;
+    renderContent?: unknown;
     metadata?: { structuredContent?: unknown };
   } | null,
 ): { content: string; rawContent?: unknown } {
   const content = String(record?.generatedContent || record?.content || '').trim();
-  const rawContent =
+  const structured =
     record?.structuredContent ??
     (record?.metadata && typeof record.metadata === 'object'
       ? (record.metadata as { structuredContent?: unknown }).structuredContent
       : undefined);
+  const rawContent = {
+    ...(structured && typeof structured === 'object' && !Array.isArray(structured)
+      ? (structured as Record<string, unknown>)
+      : {}),
+    structuredContent: structured,
+    renderContent: record?.renderContent,
+  };
   return { content, rawContent };
 }
 
