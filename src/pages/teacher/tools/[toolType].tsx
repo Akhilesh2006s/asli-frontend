@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Sparkles, Download, Copy, Check, FileText, FileSpreadsheet, FileDown, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
+import { contentGeneratedToast } from '@/lib/ai-tool-content-messages';
 import {
   getAiToolBoardOptions,
   getDefaultAiToolBoard,
@@ -845,13 +846,9 @@ export default function TeacherToolPage() {
       }
 
       if (data.success && data?.data?.content && String(data.data.content).trim().length > 0) {
-        const fromAiFailure = !!data.data.metadata?.aiUnavailable;
         setResponseMeta(data.data.metadata || null);
-        setIsFallbackContent(fromAiFailure);
-        const okTitle = fromAiFailure ? 'Stored content (AI unavailable)' : 'Success';
-        const okDescription = fromAiFailure
-          ? 'Showing stored content.'
-          : 'Content generated successfully!';
+        setIsFallbackContent(!!data.data.metadata?.aiUnavailable);
+        const { title: okTitle, description: okDescription } = contentGeneratedToast();
 
         // Store raw data if available (for Short Notes, Concept Mastery, Lesson Planner, Flashcards, etc.)
         if (data.data.rawData) {
@@ -963,10 +960,7 @@ export default function TeacherToolPage() {
             selectedIndex: fallbackJson?.data?.selectedIndex,
           });
           setIsFallbackContent(true);
-          toast({
-            title: 'Fallback Loaded',
-            description: 'Showing previously generated content.',
-          });
+          toast(contentGeneratedToast());
         } else {
           setGeneratedContent('');
           setRawGeneratedContent(null);

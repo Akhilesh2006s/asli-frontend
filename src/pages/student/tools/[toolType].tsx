@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { API_BASE_URL } from '@/lib/api-config';
+import { contentGeneratedToast } from '@/lib/ai-tool-content-messages';
 import {
   getAiToolBoardOptions,
   getDefaultAiToolBoard,
@@ -970,12 +971,8 @@ export default function StudentToolPage() {
         if (!data.success || !data?.data?.content || String(data.data.content).trim().length === 0) {
           throw new Error(data.message || 'AI returned empty response');
         }
-        const fromAiFailure = !!data.data.metadata?.aiUnavailable;
         setResponseMeta(data.data.metadata || null);
-        const okTitle = fromAiFailure ? 'Stored content (AI unavailable)' : 'Success';
-        const okDescription = fromAiFailure
-          ? 'Showing stored content.'
-          : 'Content generated successfully!';
+        const { title: okTitle, description: okDescription } = contentGeneratedToast();
 
         if (data.data.rawData) {
           setRawGeneratedContent(data.data.rawData);
@@ -1269,10 +1266,7 @@ export default function StudentToolPage() {
               totalCandidates: fallbackJson?.data?.totalCandidates,
               selectedIndex: fallbackJson?.data?.selectedIndex,
             });
-            toast({
-              title: 'Fallback loaded',
-              description: 'Showing previously generated content.',
-            });
+            toast(contentGeneratedToast());
           } else {
             setGeneratedContent('');
             setRawGeneratedContent(null);
