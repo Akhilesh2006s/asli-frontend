@@ -2,7 +2,7 @@
  * Parse Smart Q&A Practice Generator payloads (sections A–G + answer key).
  */
 
-import { isStructuredOnlyViewerMode, absorbStructuredRecords, viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
+import { viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
 
 export type PracticeQaQuestion = {
   questionNumber?: number;
@@ -511,16 +511,6 @@ export function resolvePracticeQaFromPayload(
   content: string,
   rawContent?: unknown,
 ): { practice: NormalizedPracticeQa | null; markdownFallback: string | null } {
-  if (isStructuredOnlyViewerMode()) {
-    const records = absorbStructuredRecords(rawContent);
-    let practice: NormalizedPracticeQa | null = null;
-    for (const rec of records) {
-      const next = materializePracticeQa(rec);
-      practice = practice ? mergePracticeQa(practice, next) : next;
-    }
-    return { practice, markdownFallback: null };
-  }
-
   const records = absorbRawRecords(rawContent);
   let practice: NormalizedPracticeQa | null = null;
 

@@ -36,6 +36,7 @@ type AnalyticsData = {
   totalGenerations: number;
   totalFingerprints?: number;
   estimatedCostUsd: number;
+  estimatedCostInr?: number;
   totalTokensLast500: number;
   recordsWithFingerprints: number;
   fingerprintCoveragePct?: number;
@@ -169,6 +170,24 @@ export function AiGeneratorAuditPanel() {
                 <p>Token savings (est. batches): <strong>{analytics.tokenSavingsEstimate ?? 0}</strong></p>
                 <p>Duplicate prevention events: <strong>{analytics.duplicatePreventionCount}</strong></p>
                 <p>Section repairs: <strong>{analytics.sectionRepairs}</strong></p>
+                <p>
+                  Est. spend (last {analytics.recentSampleSize ?? 500} records):{" "}
+                  <strong>
+                    {analytics.estimatedCostUsd != null
+                      ? `~$${Number(analytics.estimatedCostUsd).toFixed(4)} USD`
+                      : "—"}
+                  </strong>
+                  {analytics.estimatedCostInr != null ? (
+                    <span className="text-slate-600">
+                      {" "}
+                      (~₹{Number(analytics.estimatedCostInr).toFixed(2)})
+                    </span>
+                  ) : null}
+                </p>
+                <p>
+                  Tokens (last {analytics.recentSampleSize ?? 500}):{" "}
+                  <strong>{analytics.totalTokensLast500?.toLocaleString() ?? 0}</strong>
+                </p>
                 <p>Quality score: <strong>{analytics.averageQualityScore}%</strong></p>
               </>
             ) : (

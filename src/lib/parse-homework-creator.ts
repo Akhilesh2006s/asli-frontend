@@ -3,8 +3,6 @@
  */
 
 import { coerceHomeworkText } from '@/lib/coerce-homework-text';
-import { isStructuredOnlyViewerMode, absorbStructuredRecords } from '@/lib/resolve-ai-structured-content';
-
 export type HomeworkPracticeQuestion = {
   questionNumber?: number;
   question: string;
@@ -491,12 +489,6 @@ export function resolveHomeworkFromPayload(
   content?: string,
   rawContent?: unknown,
 ): ResolvedHomework {
-  if (isStructuredOnlyViewerMode()) {
-    const rawRecords = absorbStructuredRecords(rawContent);
-    const homework = rawRecords.length ? materializeHomework(mergeHomeworkRecords(rawRecords)) : null;
-    return { homework, markdownFallback: null };
-  }
-
   let formattedText = String(content || '').trim();
   const rawRecords: Record<string, unknown>[] = [];
 

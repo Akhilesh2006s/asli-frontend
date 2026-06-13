@@ -201,8 +201,37 @@ function isLikelyExamRecord(record: Record<string, unknown>): boolean {
   return (
     SECTION_META.some((sec) => pickFirstKey(record, sec.keys) != null) ||
     Boolean(cleanText(record.mock_test_title || record.mockTestTitle)) ||
-    Array.isArray(record.sections)
+    Array.isArray(record.sections) ||
+    Array.isArray(record.question_paper) ||
+    (record.question_paper != null && typeof record.question_paper === 'object') ||
+    Boolean(cleanText(record.question_paper || record.questionPaper))
   );
+}
+
+function groupFlatQuestionsIntoSections(questions: ExamQuestion[]): ExamSection[] {
+  const sections = SECTION_META.map((m) => getSectionById(m.id));
+  if (!questions.length) return sections;
+  const counts = { a: 4, b: 3, c: 3, d: 2, e: 1 };
+  let idx = 0;
+  const take = (n: number, sectionId: string) => {
+    const slice = questions.slice(idx, idx + n);
+    idx += n;
+    const si = sections.findIndex((s) => s.id === sectionId);
+    if (si >= 0 && slice.length) {
+      sections[si] = { ...sections[si], questions: slice };
+    }
+  };
+  take(counts.a, 'a');
+  take(counts.b, 'b');
+  take(counts.c, 'c');
+  take(counts.d, 'd');
+  if (idx < questions.length) {
+    const eIdx = sections.findIndex((s) => s.id === 'e');
+    if (eIdx >= 0) {
+      sections[eIdx] = { ...sections[eIdx], questions: questions.slice(idx) };
+    }
+  }
+  return sections;
 }
 
 function normalizeExam(record: Record<string, unknown>): NormalizedExamPaper {
@@ -244,6 +273,65 @@ function normalizeExam(record: Record<string, unknown>): NormalizedExamPaper {
   const questionPaperRaw = record.question_paper ?? record.questionPaper;
   if (typeof questionPaperRaw === 'string' && questionPaperRaw.trim()) {
     mergedSections = mergeExamSections(mergedSections, parseMockTestQuestionPaperBody(questionPaperRaw));
+  } else if (Array.isArray(questionPaperRaw) && questionPaperRaw.length) {
+    mergedSections = mergeExamSections(
+      mergedSections,
+      groupFlatQuestionsIntoSections(
+        questionPaperRaw.map((q, i) => normalizeQuestion(q, i)).filter((q) => q.question || q.options.length > 0),
+      ),
+    );
+  } else if (questionPaperRaw && typeof questionPaperRaw === 'object' && !Array.isArray(questionPaperRaw)) {
+    const qp = questionPaperRaw as Record<string, unknown>;
+    if (Array.isArray(qp.sections) && qp.sections.length) {
+      for (const sec of qp.sections) {
+        if (!sec || typeof sec !== 'object') continue;
+        const row = sec as Record<string, unknown>;
+        const name = cleanText(row.sectionName || row.name || row.title || '').toLowerCase();
+        const questions = (Array.isArray(row.questions) ? row.questions : [])
+          .map((q, i) => normalizeQuestion(q, i))
+          .filter((q) => q.question || q.options.length > 0);
+        if (!questions.length) continue;
+        const target =
+          /^section\s*a|mcq/.test(name)
+            ? 'a'
+            : /^section\s*b|very\s*short|vsa/.test(name)
+              ? 'b'
+              : /^section\s*c|short\s*answer/.test(name) && !/very\s*short|vsa/.test(name)
+                ? 'c'
+                : /^section\s*d|long\s*answer|essay/.test(name)
+                  ? 'd'
+                  : /^section\s*e|case|competency/.test(name)
+                    ? 'e'
+                    : '';
+        if (target) {
+          const idx = mergedSections.findIndex((s) => s.id === target);
+          if (idx >= 0) {
+            mergedSections[idx] = {
+              ...mergedSections[idx],
+              title: cleanText(row.sectionName || row.name || mergedSections[idx].title),
+              questions: [...mergedSections[idx].questions, ...questions],
+            };
+          }
+        }
+      }
+    }
+    for (const sec of SECTION_META) {
+      const block = qp[sec.keys[0]] ?? qp[sec.keys[1]];
+      if (Array.isArray(block) && block.length) {
+        const idx = mergedSections.findIndex((s) => s.id === sec.id);
+        if (idx >= 0) {
+          const questions = block
+            .map((q, i) => normalizeQuestion(q, i))
+            .filter((q) => q.question || q.options.length > 0);
+          if (questions.length) {
+            mergedSections[idx] = {
+              ...mergedSections[idx],
+              questions: [...mergedSections[idx].questions, ...questions],
+            };
+          }
+        }
+      }
+    }
   }
 
   const blueprint = sanitizeBlueprintText(record.blueprint || record.design_grid);

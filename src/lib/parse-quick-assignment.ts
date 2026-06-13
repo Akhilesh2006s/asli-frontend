@@ -1,4 +1,4 @@
-import { isStructuredOnlyViewerMode, absorbStructuredRecords, viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
+import { viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
 
 export type AssignmentQuestion = {
   question: string;

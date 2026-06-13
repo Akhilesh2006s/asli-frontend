@@ -1,5 +1,5 @@
 import { formatLabeledMcqOptions } from '@/lib/parse-exam-question-paper';
-import { isStructuredOnlyViewerMode, absorbStructuredRecords, viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
+import { viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
 
 export type StudyGuideKeyConcept = { name: string; explanation: string };
 export type StudyGuideDefinition = { term: string; definition: string };

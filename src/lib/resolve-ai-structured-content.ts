@@ -1,6 +1,6 @@
 /**
- * Single source of truth for AI tool viewers — metadata.structuredContent only.
- * Markdown is for export/download/preview, never for viewer rendering.
+ * AI tool viewer payloads: structured JSON is primary; markdown supplements sparse sections.
+ * Export/download still uses resolveAiExportMarkdown.
  */
 
 export const AI_VIEWER_STRUCTURED_ONLY = true;
@@ -73,19 +73,44 @@ export function absorbStructuredRecords(raw: unknown): Record<string, unknown>[]
   return [];
 }
 
-/** Standard viewer props — rawContent carries structured JSON; content is not used for rendering. */
+/** Merge record, structured fields, and markdown for parser absorb/extract helpers. */
+export function buildEnrichedRawContent(
+  record: AiRecordLike | null | undefined,
+  structuredContent: unknown | null,
+): unknown {
+  const markdown = resolveAiExportMarkdown(record);
+  const base =
+    record && typeof record === 'object' && !Array.isArray(record)
+      ? { ...(record as Record<string, unknown>) }
+      : {};
+  const structured =
+    structuredContent && typeof structuredContent === 'object' && !Array.isArray(structuredContent)
+      ? (structuredContent as Record<string, unknown>)
+      : {};
+  return {
+    ...base,
+    ...structured,
+    generatedContent: markdown || base.generatedContent || base.content,
+    content: markdown || base.content || base.generatedContent,
+    structuredContent: structuredContent ?? structured,
+    metadata: base.metadata ?? record?.metadata,
+  };
+}
+
+/** Standard viewer props — structured primary; content carries markdown for sparse-section fallback. */
 export function buildAiViewerProps(record: AiRecordLike | null | undefined): {
   content: string;
   rawContent: unknown;
   structuredContent: unknown | null;
-  source: 'structuredContent';
+  source: 'structuredContent' | 'markdown';
 } {
   const structuredContent = resolveAiStructuredContent(record);
+  const markdown = resolveAiExportMarkdown(record);
   return {
-    content: '',
-    rawContent: structuredContent ?? record ?? null,
+    content: markdown,
+    rawContent: buildEnrichedRawContent(record, structuredContent),
     structuredContent,
-    source: 'structuredContent',
+    source: structuredContent ? 'structuredContent' : 'markdown',
   };
 }
 
@@ -122,7 +147,7 @@ export function resolveAiViewerPayload(record: AiRecordLike | null | undefined):
   };
 }
 
-/** When structured-only mode is on, never return markdown fallback for rendering. */
+/** @deprecated Parsers now merge markdown when structured sections are sparse. */
 export function noMarkdownFallback<T>(value: T | null): { value: T | null; markdownFallback: null } {
   return { value, markdownFallback: null };
 }

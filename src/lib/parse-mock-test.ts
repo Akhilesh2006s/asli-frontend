@@ -1,6 +1,5 @@
 import {
   examPaperHasQuestions,
-  examPaperHasVisibleContent,
   mergeExamPapers,
   parseMockTestMarkdown,
   parseMockTestQuestionPaperBody,
@@ -11,7 +10,8 @@ import {
   synthesizeAnswerKeyFromSections,
   synthesizeSolutionsFromSections,
 } from '@/lib/mock-test-tables';
-import { isStructuredOnlyViewerMode, viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
+import { viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
+import type { ExamQuestion, ExamSection } from '@/lib/parse-exam-question-paper';
 
 export type MockTestMeta = {
   title: string;
@@ -223,34 +223,169 @@ function metaFromStructured(sources: Record<string, unknown>[], paper: Normalize
   };
 }
 
-export function resolveMockTestFromPayload(content: string, rawContent?: unknown): ResolvedMockTest {
-  if (isStructuredOnlyViewerMode()) {
-    const resolved = resolveExamPaperFromPayload('', rawContent);
-    const sources = extractStructuredSources(rawContent);
-    let meta = metaFromStructured(sources, resolved.paper);
-    const activeSectionsForSynth = resolved.paper?.sections.filter((s) => s.questions.length > 0) ?? [];
-    if (!meta.answerKey.trim() && activeSectionsForSynth.length) {
-      meta = { ...meta, answerKey: synthesizeAnswerKeyFromSections(activeSectionsForSynth) };
+function resolveMockTestMarkdownContent(
+  content: string,
+  rawContent?: unknown,
+): string {
+  let text = cleanText(content);
+  if (text) return text;
+  if (rawContent && typeof rawContent === 'object' && !Array.isArray(rawContent)) {
+    const r = rawContent as Record<string, unknown>;
+    text = cleanText(r.generatedContent || r.content || '');
+    if (!text && r.metadata && typeof r.metadata === 'object') {
+      const md = r.metadata as Record<string, unknown>;
+      text = cleanText(md.generatedContent || md.content || '');
     }
-    if (!meta.solutions.trim() && activeSectionsForSynth.length) {
-      meta = { ...meta, solutions: synthesizeSolutionsFromSections(activeSectionsForSynth) };
-    }
-    const hasPaper =
-      resolved.paper &&
-      (examPaperHasQuestions(resolved.paper) || examPaperHasVisibleContent(resolved.paper));
-    return {
-      meta,
-      paper: hasPaper ? resolved.paper : null,
-      markdownFallback: null,
-    };
+  }
+  return text;
+}
+
+/** When Gemini saved answer key/solutions but not section_a[], show review cards from Section 7/8 text. */
+function buildFallbackSectionsFromMeta(meta: MockTestMeta): ExamSection[] {
+  const sectionDefs: Array<{ id: string; title: string; re: RegExp }> = [
+    { id: 'a', title: 'Section A: MCQs', re: /^section\s*a\b/i },
+    { id: 'b', title: 'Section B: Very Short Answer Questions', re: /^section\s*b\b/i },
+    { id: 'c', title: 'Section C: Short Answer Questions', re: /^section\s*c\b/i },
+    { id: 'd', title: 'Section D: Long Answer Questions', re: /^section\s*d\b/i },
+    { id: 'e', title: 'Section E: Case-based / Competency Questions', re: /^section\s*e\b/i },
+  ];
+  const buckets = new Map(sectionDefs.map((s) => [s.id, [] as ExamQuestion[]]));
+  let currentId = 'a';
+
+  const solutionByNum = new Map<string, string>();
+  for (const line of String(meta.solutions || '').split('\n')) {
+    const t = line.trim();
+    const m = t.match(/^(\d{1,2})[\.\)]\s+(.+)/);
+    if (m) solutionByNum.set(m[1], m[2].trim());
   }
 
-  const resolved = resolveExamPaperFromPayload(content, rawContent);
+  const ingestLine = (line: string) => {
+    const t = line.trim();
+    if (!t) return;
+    for (const sec of sectionDefs) {
+      if (sec.re.test(t)) {
+        currentId = sec.id;
+        return;
+      }
+    }
+    const m = t.match(/^(\d{1,2})[\.\)]\s*(?:([A-D])\)?\s*)?(.+)/i);
+    if (!m) return;
+    const qNum = m[1];
+    const answerLetter = (m[2] || '').toUpperCase();
+    const body = (m[3] || '').trim();
+    const explanation = solutionByNum.get(qNum) || '';
+    const question =
+      explanation.replace(/^the correct answer is\s+[A-D]\s+because\s+/i, '').trim() ||
+      body ||
+      `Question ${qNum}`;
+    const bucket = buckets.get(currentId) || buckets.get('a')!;
+    bucket.push({
+      questionNumber: qNum,
+      question: question.length > 220 ? `${question.slice(0, 217)}…` : question,
+      options: [],
+      answer: answerLetter || body.split(/\s/)[0] || '',
+      explanation,
+      marks: null,
+      internalChoiceGroup: '',
+    });
+  };
+
+  for (const line of String(meta.answerKey || '').split('\n')) {
+    ingestLine(line);
+  }
+  if (![...buckets.values()].some((q) => q.length)) {
+    for (const line of String(meta.solutions || '').split('\n')) {
+      ingestLine(line);
+    }
+  }
+
+  return sectionDefs
+    .map((s) => ({
+      id: s.id,
+      title: s.title,
+      questions: buckets.get(s.id) || [],
+    }))
+    .filter((s) => s.questions.length > 0);
+}
+
+function enrichMockTestPaper(
+  paper: NormalizedExamPaper | null,
+  sources: Record<string, unknown>[],
+  content: string,
+  meta: MockTestMeta,
+): NormalizedExamPaper | null {
+  let result = paper;
+
+  for (const src of sources) {
+    const qp = src.question_paper ?? src.questionPaper;
+    if (typeof qp === 'string' && qp.trim()) {
+      const parsed = parseMockTestQuestionPaperBody(qp);
+      if (parsed.some((s) => s.questions.length > 0)) {
+        result = mergeExamPapers(result, {
+          paperTitle: meta.title,
+          instructions: meta.instructions,
+          blueprint: '',
+          sections: parsed,
+          internalChoices: '',
+          answerKey: meta.answerKey,
+          markingScheme: '',
+          openEndedRubric: '',
+        });
+      }
+    } else if (qp && typeof qp === 'object') {
+      const nested = resolveExamPaperFromPayload('', qp);
+      if (nested.paper && examPaperHasQuestions(nested.paper)) {
+        result = mergeExamPapers(result, nested.paper);
+      }
+    }
+  }
+
+  const numbered = parseNumberedMarkdownSections(content);
+  const sec6 = numbered.get(6);
+  if (sec6 && !examPaperHasQuestions(result)) {
+    const fromSec6 = parseMockTestQuestionPaperBody(sec6);
+    result = mergeExamPapers(result, {
+      paperTitle: meta.title,
+      instructions: meta.instructions,
+      blueprint: '',
+      sections: fromSec6,
+      internalChoices: '',
+      answerKey: meta.answerKey,
+      markingScheme: '',
+      openEndedRubric: '',
+    });
+  }
+
+  const mockMd = parseMockTestMarkdown(content);
+  if (mockMd) {
+    result = mergeExamPapers(result, mockMd);
+  }
+
+  if (!examPaperHasQuestions(result)) {
+    const fallbackSections = buildFallbackSectionsFromMeta(meta);
+    if (fallbackSections.length) {
+      result = mergeExamPapers(result, {
+        paperTitle: meta.title,
+        instructions: meta.instructions,
+        blueprint: '',
+        sections: fallbackSections,
+        internalChoices: '',
+        answerKey: meta.answerKey,
+        markingScheme: '',
+        openEndedRubric: '',
+      });
+    }
+  }
+
+  return result;
+}
+
+export function resolveMockTestFromPayload(content: string, rawContent?: unknown): ResolvedMockTest {
+  const contentText = resolveMockTestMarkdownContent(content, rawContent);
   const sources = extractStructuredSources(rawContent);
   try {
-    const t = String(content || '').trim();
-    if (t.startsWith('{')) {
-      const j = JSON.parse(t) as Record<string, unknown>;
+    if (contentText.startsWith('{')) {
+      const j = JSON.parse(contentText) as Record<string, unknown>;
       if (j.raw && typeof j.raw === 'object') sources.push(j.raw as Record<string, unknown>);
       if (j.structuredContent && typeof j.structuredContent === 'object') {
         sources.push(j.structuredContent as Record<string, unknown>);
@@ -260,8 +395,9 @@ export function resolveMockTestFromPayload(content: string, rawContent?: unknown
     /* ignore */
   }
 
+  const resolved = resolveExamPaperFromPayload(contentText, rawContent);
   let meta = metaFromStructured(sources, resolved.paper);
-  const mdMeta = metaFromMarkdown(content, resolved.paper);
+  const mdMeta = metaFromMarkdown(contentText, resolved.paper);
 
   meta = {
     title: meta.title || mdMeta.title || 'Mock Test',
@@ -277,54 +413,13 @@ export function resolveMockTestFromPayload(content: string, rawContent?: unknown
     reflection: meta.reflection || mdMeta.reflection || '',
   };
 
-  let paper: NormalizedExamPaper | null = resolved.paper;
-
-  for (const src of sources) {
-    const qp = src.question_paper ?? src.questionPaper;
-    if (typeof qp === 'string' && qp.trim()) {
-      const parsed = parseMockTestQuestionPaperBody(qp);
-      if (parsed.some((s) => s.questions.length > 0)) {
-        paper = mergeExamPapers(paper, {
-          paperTitle: meta.title,
-          instructions: meta.instructions,
-          blueprint: '',
-          sections: parsed,
-          internalChoices: '',
-          answerKey: meta.answerKey,
-          markingScheme: '',
-          openEndedRubric: '',
-        });
-      }
-    }
-  }
-
-  const numbered = parseNumberedMarkdownSections(content);
-  const sec6 = numbered.get(6);
-  if (sec6 && !examPaperHasQuestions(paper)) {
-    const fromSec6 = parseMockTestQuestionPaperBody(sec6);
-    paper = mergeExamPapers(paper, {
-      paperTitle: meta.title,
-      instructions: meta.instructions,
-      blueprint: '',
-      sections: fromSec6,
-      internalChoices: '',
-      answerKey: meta.answerKey,
-      markingScheme: '',
-      openEndedRubric: '',
-    });
-  }
-
-  const mockMd = parseMockTestMarkdown(content);
-  if (mockMd) {
-    paper = mergeExamPapers(paper, mockMd);
-    if (!meta.answerKey) meta = { ...meta, answerKey: mockMd.answerKey || meta.answerKey };
-  }
+  let paper = enrichMockTestPaper(resolved.paper, sources, contentText, meta);
 
   if (!meta.answerKey.trim()) {
-    meta = { ...meta, answerKey: cleanText(numbered.get(7) || paper?.answerKey || '') };
+    meta = { ...meta, answerKey: cleanText(parseNumberedMarkdownSections(contentText).get(7) || paper?.answerKey || '') };
   }
   if (!meta.solutions.trim()) {
-    meta = { ...meta, solutions: cleanText(numbered.get(8) || '') };
+    meta = { ...meta, solutions: cleanText(parseNumberedMarkdownSections(contentText).get(8) || '') };
   }
 
   const activeSectionsForSynth = paper?.sections.filter((s) => s.questions.length > 0) ?? [];
@@ -335,12 +430,12 @@ export function resolveMockTestFromPayload(content: string, rawContent?: unknown
     meta = { ...meta, solutions: synthesizeSolutionsFromSections(activeSectionsForSynth) };
   }
 
-  const hasPaper = paper && (examPaperHasQuestions(paper) || examPaperHasVisibleContent(paper));
+  const hasPaper = paper && examPaperHasQuestions(paper);
   return {
     meta,
     paper: hasPaper ? paper : null,
     markdownFallback:
-      paper && examPaperHasQuestions(paper) ? null : resolved.markdownFallback || content || null,
+      hasPaper ? null : resolved.markdownFallback || contentText || null,
   };
 }
 
@@ -354,14 +449,10 @@ export function mockTestViewerPayloadFromRecord(
   } | null,
 ): { content: string; rawContent?: unknown } {
   const payload = viewerPayloadFromRecord(record);
-  const structured = payload.structuredContent;
   return {
     content: payload.content,
     rawContent: {
-      ...(structured && typeof structured === 'object' && !Array.isArray(structured)
-        ? (structured as Record<string, unknown>)
-        : {}),
-      structuredContent: structured,
+      ...(payload.rawContent && typeof payload.rawContent === 'object' ? payload.rawContent : {}),
       renderContent: record?.renderContent,
     },
   };

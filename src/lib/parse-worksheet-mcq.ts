@@ -2,8 +2,6 @@
  * Parse Worksheet & MCQ Generator payloads into a 10-section worksheet model.
  */
 
-import { isStructuredOnlyViewerMode, absorbStructuredRecords } from '@/lib/resolve-ai-structured-content';
-
 export type WorksheetQuestion = {
   questionNumber?: number;
   question: string;
@@ -719,21 +717,6 @@ export function resolveWorksheetFromPayload(
   content?: string,
   rawContent?: unknown,
 ): ResolvedWorksheetMcq {
-  if (isStructuredOnlyViewerMode()) {
-    const rawRecords = absorbStructuredRecords(rawContent);
-    let worksheet: NormalizedWorksheet | null = null;
-    if (rawRecords.length) {
-      worksheet = materializeWorksheet(rawRecords[0]);
-      for (let i = 1; i < rawRecords.length; i++) {
-        const next = materializeWorksheet(rawRecords[i]);
-        if (countWorksheetQuestions(next) > countWorksheetQuestions(worksheet)) {
-          worksheet = next;
-        }
-      }
-    }
-    return { worksheet, markdownFallback: null };
-  }
-
   let formattedText = String(content || '').trim();
   const rawRecords: Record<string, unknown>[] = [];
 

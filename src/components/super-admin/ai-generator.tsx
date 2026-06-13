@@ -995,7 +995,8 @@ export default function SuperAdminAiGenerator() {
             </label>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-slate-500">
-                Smart strategy: 0–100 generate · 101–500 strong uniqueness · 501–1000 strict · 1000+ random pool (unless forced).
+                Smart strategy: 0–100 generate · 101–500 strong uniqueness · 501–1000 strict · 1000+ random pool (₹0, unless forced).
+                Ultra economy: Flash-Lite only, 1 LLM call per record — target ~₹2–3 per 25 batch (not ₹6+).
               </p>
               <Button
                 onClick={generate}
