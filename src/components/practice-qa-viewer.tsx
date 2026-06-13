@@ -110,20 +110,20 @@ function SectionCard({
   return (
     <section
       className={cn(
-        'h-fit w-full overflow-hidden rounded-xl border border-emerald-200/90 bg-white shadow-sm',
+        'h-fit w-full min-w-0 overflow-hidden rounded-xl border border-emerald-200/90 bg-white shadow-sm',
         className,
       )}
     >
-      <div className={cn('flex items-center gap-2 border-l-[4px] px-2.5 py-1.5', stripe)}>
-        <div className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-md', iconWrap)}>
-          <Icon className="h-3.5 w-3.5" aria-hidden />
+      <div className={cn('flex items-center gap-2.5 border-l-[4px] px-3 py-2 sm:px-4', stripe)}>
+        <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-md', iconWrap)}>
+          <Icon className="h-4 w-4" aria-hidden />
         </div>
-        <div className="min-w-0">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-500">{sectionNum}</p>
-          <h4 className="text-xs font-bold leading-tight text-slate-900">{title}</h4>
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">{sectionNum}</p>
+          <h4 className="text-sm font-bold leading-tight text-slate-900 sm:text-base">{title}</h4>
         </div>
       </div>
-      <div className="px-2.5 pb-2 pt-0.5">{children}</div>
+      <div className="px-3 pb-3 pt-1 sm:px-4">{children}</div>
     </section>
   );
 }
@@ -192,7 +192,7 @@ function QuestionCard({ q, index }: { q: PracticeQaQuestion; index: number }) {
       </div>
       <p className="text-sm font-medium leading-snug text-slate-900">{q.question}</p>
       {isMcq ? (
-        <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
+        <ul className="mt-2 grid gap-2 md:grid-cols-2">
           {q.options.map((opt, i) => {
             const label = opt.match(/^([A-D])\)/i)?.[1]?.toUpperCase() || String.fromCharCode(65 + i);
             const text = opt.replace(/^[A-D]\)\s*/i, '').trim();
@@ -326,9 +326,11 @@ function PracticeQaBody({ practice }: { practice: NormalizedPracticeQa }) {
     ) : null;
 
   return (
-    <div className="mt-0.5 flex flex-col gap-0.5">
-      {setupSections.length > 0 ? <AiToolPairedSectionColumns>{setupSections}</AiToolPairedSectionColumns> : null}
-      <div className="grid grid-cols-1 gap-0.5">{questionSections}</div>
+    <div className="mt-1 flex flex-col gap-2">
+      {setupSections.length > 0 ? (
+        <AiToolPairedSectionColumns gap="gap-2">{setupSections}</AiToolPairedSectionColumns>
+      ) : null}
+      <div className="grid grid-cols-1 gap-2">{questionSections}</div>
       {realLifeBlock}
       {practice.answerKey ? (
         <SectionCard
@@ -380,7 +382,7 @@ export function PracticeQaViewer({ content, rawContent, className }: PracticeQaV
     ?.questions.filter((q) => q.options.length >= 2).length ?? 0;
 
   return (
-    <div className={cn('w-full space-y-1', className)}>
+    <div className={cn('w-full min-w-0 space-y-2', className)}>
       <div
         className="relative overflow-hidden rounded-3xl border border-emerald-200/80 shadow-xl shadow-emerald-200/25"
         style={{
@@ -398,7 +400,9 @@ export function PracticeQaViewer({ content, rawContent, className }: PracticeQaV
               <p className="text-xs font-semibold uppercase tracking-widest text-emerald-100">
                 Smart Q&amp;A Practice Generator
               </p>
-              <h3 className="truncate text-lg font-bold">{practice.title}</h3>
+              <h3 className="text-base font-bold leading-snug text-white sm:text-lg break-words">
+                {practice.title}
+              </h3>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-[10px]">
                   {totalQs} question{totalQs !== 1 ? 's' : ''}
@@ -418,17 +422,19 @@ export function PracticeQaViewer({ content, rawContent, className }: PracticeQaV
           </div>
         </div>
 
-        <div className="space-y-0.5 p-1.5 sm:p-2">
+        <div className="space-y-2 p-3 sm:p-4 lg:p-5">
           <div className="relative overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-sm">
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/40" />
-            <div className="relative p-2.5 sm:p-3">
+            <div className="relative p-3 sm:p-4">
               <p className="mb-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-700">
                 Section 1
               </p>
               <Badge className="mb-1 border-0 bg-emerald-100 text-emerald-900 hover:bg-emerald-100 text-xs">
                 Practice Set Title
               </Badge>
-              <h4 className="text-lg font-bold leading-snug text-slate-900 sm:text-xl">{practice.title}</h4>
+              <h4 className="text-lg font-bold leading-snug text-slate-900 sm:text-xl lg:text-2xl break-words">
+                {practice.title}
+              </h4>
             </div>
           </div>
 

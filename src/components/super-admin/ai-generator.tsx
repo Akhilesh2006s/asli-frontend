@@ -1373,21 +1373,16 @@ export default function SuperAdminAiGenerator() {
       >
         <DialogContent
           className={cn(
-            "max-h-[90vh] overflow-y-auto rounded-2xl border-slate-200",
-            activeRecord?.toolSlug === "mock-test-builder" ||
-              activeRecord?.toolName === "mock-test-builder" ||
-              activeRecord?.toolSlug === "smart-study-guide-generator" ||
-              activeRecord?.toolName === "smart-study-guide-generator" ||
-              activeRecord?.toolSlug === "concept-breakdown-explainer" ||
-              activeRecord?.toolName === "concept-breakdown-explainer"
-              ? "max-w-5xl"
-              : "max-w-4xl",
+            "flex max-h-[min(92vh,920px)] w-[min(96vw,1400px)]",
+            "max-w-[min(96vw,1400px)] sm:max-w-[min(96vw,1400px)] lg:max-w-[min(96vw,1400px)]",
+            "flex-col gap-0 overflow-hidden rounded-2xl border-slate-200 p-0 shadow-2xl",
           )}
         >
-          <DialogHeader>
+          <DialogHeader className="shrink-0 border-b border-slate-100 px-4 py-3 sm:px-6">
             <DialogTitle>Generated Record</DialogTitle>
           </DialogHeader>
-          <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm">
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-3 sm:px-4 sm:py-4 lg:px-6">
+          <div className="min-w-0 bg-white border border-slate-200 rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm">
             {activeRecord?.toolSlug === "my-study-decks" ||
             activeRecord?.toolName === "my-study-decks" ? (
               <MyStudyDecksViewer
@@ -1504,6 +1499,7 @@ export default function SuperAdminAiGenerator() {
             ) : (
               <GeneratedRecordBody content={String(activeRecord?.generatedContent || "")} />
             )}
+          </div>
           </div>
         </DialogContent>
       </Dialog>
