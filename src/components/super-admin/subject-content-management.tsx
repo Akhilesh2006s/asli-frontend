@@ -17,6 +17,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { API_BASE_URL, getEmbeddedPdfIframeSrc, isOurBackendPdfUrl } from '@/lib/api-config';
+import { getVideoDisplayTitle } from '@/lib/video-chapter-schedule';
 import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -102,19 +103,10 @@ function isVideoNumber(value: string): boolean {
   return VIDEO_NUMBER_PATTERN.test(String(value || '').trim());
 }
 
-/** Video cards: "chapter - 1 module - 1 · Title" */
 function getVideoContentDisplayTitle(
-  item: Pick<ContentItem, 'type' | 'title' | 'chapter' | 'module'>
+  item: Pick<ContentItem, 'type' | 'title' | 'chapter' | 'module'> & { topic?: string }
 ): string {
-  const title = String(item.title || '').trim();
-  if (item.type !== 'Video') return title;
-
-  const chapter = videoNumberOnly(item.chapter || '');
-  const module = videoNumberOnly(item.module || '');
-  if (!chapter && !module) return title;
-  if (chapter && module) return `chapter - ${chapter} module - ${module} · ${title}`;
-  if (chapter) return `chapter - ${chapter} · ${title}`;
-  return `module - ${module} · ${title}`;
+  return getVideoDisplayTitle(item);
 }
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;

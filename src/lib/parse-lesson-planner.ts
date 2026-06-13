@@ -39,7 +39,9 @@ export type ResolvedLessonPlanner = {
   markdownFallback: string | null;
 };
 
-const LESSON_SECTION_HINT: Record<number, RegExp> = {
+export type LessonPlannerToolKind = 'lesson-planner' | 'study-schedule-maker' | 'auto';
+
+const STUDY_SCHEDULE_SECTION_HINT: Record<number, RegExp> = {
   1: /study\s+schedule\s+title|lesson\s+title/i,
   2: /study\s+goal|subtopic\s+link/i,
   3: /prior\s+knowledge|readiness/i,
@@ -55,7 +57,28 @@ const LESSON_SECTION_HINT: Record<number, RegExp> = {
   13: /reflection|exit\s+ticket/i,
 };
 
-function legacyLessonSectionNumFromTitle(title: string): number | null {
+/** 14-point teacher Lesson Planner template (sections 1–14). */
+const TEACHER_LESSON_SECTION_HINT: Record<number, RegExp> = {
+  1: /lesson\s+title/i,
+  2: /learning\s+objectives?/i,
+  3: /ncf|competency|learning\s+outcome/i,
+  4: /prior\s+knowledge|diagnostic/i,
+  5: /introduction|warm[-\s]?up/i,
+  6: /teaching\s+strategy/i,
+  7: /classroom\s+activit|teaching\s+activit/i,
+  8: /teacher\s+talk/i,
+  9: /student\s+task/i,
+  10: /formative|assessment\s+question/i,
+  11: /differentiation/i,
+  12: /homework|practice/i,
+  13: /teaching\s+aids|materials\s+required/i,
+  14: /closure|exit\s+ticket|reflection/i,
+};
+
+/** @deprecated use STUDY_SCHEDULE_SECTION_HINT */
+const LESSON_SECTION_HINT = STUDY_SCHEDULE_SECTION_HINT;
+
+function legacyStudyScheduleSectionNumFromTitle(title: string): number | null {
   const t = String(title || '').trim();
   if (!t) return null;
   if (/^introduction|warm[-\s]?up/i.test(t)) return 7;
@@ -71,6 +94,50 @@ function legacyLessonSectionNumFromTitle(title: string): number | null {
   if (/^prior\s+knowledge|diagnostic/i.test(t)) return 3;
   if (/^learning\s+objectives?/i.test(t)) return 4;
   return null;
+}
+
+function legacyTeacherLessonSectionNumFromTitle(title: string): number | null {
+  const t = String(title || '').trim();
+  if (!t) return null;
+  if (/^introduction|warm[-\s]?up/i.test(t)) return 5;
+  if (/^teaching\s+strategy/i.test(t)) return 6;
+  if (/^classroom\s+activit|teaching\s+activit/i.test(t)) return 7;
+  if (/^teacher\s+talk/i.test(t)) return 8;
+  if (/^student\s+task/i.test(t)) return 9;
+  if (/^formative|assessment\s+question/i.test(t)) return 10;
+  if (/^differentiation/i.test(t)) return 11;
+  if (/^homework|practice/i.test(t)) return 12;
+  if (/^teaching\s+aids|materials/i.test(t)) return 13;
+  if (/^closure|exit\s+ticket|reflection/i.test(t)) return 14;
+  if (/^prior\s+knowledge|diagnostic/i.test(t)) return 4;
+  if (/^learning\s+objectives?/i.test(t)) return 2;
+  if (/^ncf|competency/i.test(t)) return 3;
+  if (/^lesson\s+title/i.test(t)) return 1;
+  return null;
+}
+
+/** @deprecated */
+function legacyLessonSectionNumFromTitle(title: string): number | null {
+  return legacyStudyScheduleSectionNumFromTitle(title);
+}
+
+export function detectLessonPlannerFormat(body: string): LessonPlannerToolKind {
+  const text = String(body || '');
+  if (/^\s*2\.\s*Study\s+Goal/im.test(text) || /^\s*#{1,3}\s*2\.\s*Study\s+Goal/im.test(text)) {
+    return 'study-schedule-maker';
+  }
+  if (/^\s*5\.\s*NCF/im.test(text) || /^\s*#{1,3}\s*5\.\s*NCF/im.test(text)) {
+    return 'study-schedule-maker';
+  }
+  if (
+    /^\s*5\.\s*Introduction/im.test(text) ||
+    /^\s*#{1,3}\s*5\.\s*Introduction/im.test(text) ||
+    /^\s*6\.\s*Teaching\s+Strategy/im.test(text) ||
+    /^\s*#{1,3}\s*6\.\s*Teaching\s+Strategy/im.test(text)
+  ) {
+    return 'lesson-planner';
+  }
+  return 'auto';
 }
 
 const SECTION_HEADING_MD_RE = /^#{1,3}\s+(\d{1,2})\.\s*(.+?)\s*$/i;
@@ -154,28 +221,75 @@ export function synthesizeStudyPlanTableRows(fields: {
 }
 
 function unwrapRenderableLessonRecord(o: Record<string, unknown>): Record<string, unknown> {
-  const kind = String(o.kind || '').trim();
-  if (kind !== 'lessonPlan' && kind !== 'lesson_plan') return o;
-  return {
+  const mapped: Record<string, unknown> = {
     ...o,
-    study_schedule_title:
-      o.studyScheduleTitle ?? o.study_schedule_title ?? o.title ?? o.lesson_name,
-    study_goal_subtopic_link: o.studyGoalSubtopicLink ?? o.study_goal_subtopic_link,
+    lesson_name: o.lesson_name ?? o.lessonName ?? o.title ?? o.name,
+    learning_objectives: o.learning_objectives ?? o.objectives ?? o.learningObjectives,
+    ncf_competency_alignment: o.ncf_competency_alignment ?? o.ncfAlignment ?? o.competencies,
+    prior_knowledge_diagnostic:
+      o.prior_knowledge_diagnostic ??
+      o.priorKnowledgeDiagnostic ??
+      o.prior_knowledge ??
+      o.diagnostic_question,
     prior_knowledge_readiness_check:
-      o.priorKnowledgeReadinessCheck ?? o.prior_knowledge_readiness_check,
-    learning_objectives: o.objectives ?? o.learning_objectives,
-    ncf_competency_alignment: o.ncfAlignment ?? o.ncf_competency_alignment,
-    study_plan_table: o.studyPlanTable ?? o.study_plan_table,
-    concept_learning_slot: o.conceptLearningSlot ?? o.concept_learning_slot,
-    practice_slot: o.practiceSlot ?? o.practice_slot,
-    breaks_focus_tips: o.breaksFocusTips ?? o.breaks_focus_tips,
-    self_assessment_checkpoint: o.selfAssessmentCheckpoint ?? o.self_assessment_checkpoint,
-    support_extension_plan: o.supportExtensionPlan ?? o.support_extension_plan,
-    expected_learning_outcomes: o.expectedLearningOutcomes ?? o.expected_learning_outcomes,
-    reflection_exit_ticket: o.reflectionExitTicket ?? o.reflection_exit_ticket,
+      o.prior_knowledge_readiness_check ??
+      o.priorKnowledgeReadinessCheck ??
+      o.prior_knowledge_diagnostic,
+    introduction_warmup: o.introduction_warmup ?? o.introductionWarmup ?? o.warmup ?? o.warm_up,
+    teaching_strategy: o.teaching_strategy ?? o.teachingStrategy ?? o.pedagogy,
+    teaching_activities:
+      o.teaching_activities ?? o.activities ?? o.classroomActivities ?? o.classroom_activities,
+    teacher_talk_points: o.teacher_talk_points ?? o.teacherTalkPoints ?? o.teacher_instructions,
+    student_tasks: o.student_tasks ?? o.studentTasks ?? o.student_instructions,
+    formative_assessment_questions:
+      o.formative_assessment_questions ??
+      o.formativeAssessmentQuestions ??
+      o.formative_questions,
+    differentiation_plan: o.differentiation_plan ?? o.differentiationPlan ?? o.differentiation,
+    homework_practice: o.homework_practice ?? o.homeworkPractice ?? o.homework ?? o.practice,
+    teaching_aids_required:
+      o.teaching_aids_required ?? o.teachingAids ?? o.materials_required ?? o.materials,
+    closure_exit_ticket:
+      o.closure_exit_ticket ??
+      o.closureExitTicket ??
+      o.reflection_exit_ticket ??
+      o.reflectionExitTicket ??
+      o.exit_ticket,
+    study_schedule_title:
+      o.study_schedule_title ?? o.studyScheduleTitle ?? o.lesson_name ?? o.title,
+    study_goal_subtopic_link: o.study_goal_subtopic_link ?? o.studyGoalSubtopicLink,
+    study_plan_table: o.study_plan_table ?? o.studyPlanTable,
+    concept_learning_slot: o.concept_learning_slot ?? o.conceptLearningSlot,
+    practice_slot: o.practice_slot ?? o.practiceSlot,
+    breaks_focus_tips: o.breaks_focus_tips ?? o.breaksFocusTips,
+    self_assessment_checkpoint: o.self_assessment_checkpoint ?? o.selfAssessmentCheckpoint,
+    support_extension_plan: o.support_extension_plan ?? o.supportExtensionPlan,
+    expected_learning_outcomes: o.expected_learning_outcomes ?? o.expectedLearningOutcomes,
+    reflection_exit_ticket: o.reflection_exit_ticket ?? o.reflectionExitTicket,
     timeline: o.timeline,
-    time_slots: o.timeSlots ?? o.time_slots,
+    time_slots: o.time_slots ?? o.timeSlots,
   };
+
+  const kind = String(o.kind || '').trim();
+  if (kind === 'lessonPlan' || kind === 'lesson_plan') {
+    return mapped;
+  }
+  return mapped;
+}
+
+function unwrapAiToolPayload(o: Record<string, unknown>): Record<string, unknown> {
+  const meta = o.metadata;
+  if (meta && typeof meta === 'object' && !Array.isArray(meta)) {
+    const sc = (meta as Record<string, unknown>).structuredContent;
+    if (sc && typeof sc === 'object' && !Array.isArray(sc)) {
+      return unwrapRenderableLessonRecord(sc as Record<string, unknown>);
+    }
+  }
+  const sc = o.structuredContent;
+  if (sc && typeof sc === 'object' && !Array.isArray(sc)) {
+    return unwrapRenderableLessonRecord(sc as Record<string, unknown>);
+  }
+  return unwrapRenderableLessonRecord(o);
 }
 
 /** Map time_slots / timeSlots rows to display lines (matches backend normalize). */
@@ -197,7 +311,43 @@ function linesFromTimeSlots(v: unknown): string[] {
 }
 
 function coalesceLines(v: unknown): string[] {
-  if (Array.isArray(v)) return v.map((x) => stripOrderedPrefix(String(x ?? ''))).filter(Boolean);
+  if (Array.isArray(v)) {
+    return v
+      .map((x) => {
+        if (typeof x === 'string') return stripOrderedPrefix(x);
+        if (x && typeof x === 'object') {
+          const row = x as Record<string, unknown>;
+          const keys = [
+            'question',
+            'text',
+            'prompt',
+            'statement',
+            'content',
+            'label',
+            'value',
+            'item',
+            'description',
+            'name',
+            'title',
+            'body',
+            'answer',
+            'activity',
+            'task',
+            'step',
+          ];
+          for (const k of keys) {
+            const s = String(row[k] ?? '').trim();
+            if (s) return stripOrderedPrefix(s);
+          }
+          const first = Object.values(row).find(
+            (val) => typeof val === 'string' && String(val).trim().length > 0,
+          );
+          if (typeof first === 'string') return stripOrderedPrefix(first);
+        }
+        return stripOrderedPrefix(String(x ?? ''));
+      })
+      .filter(Boolean);
+  }
   if (typeof v === 'string' && v.trim()) {
     return v.split(/\n+/).map(stripOrderedPrefix).filter(Boolean);
   }
@@ -262,30 +412,46 @@ function linesToOrderedList(body: string): string[] {
   return steps.filter(Boolean);
 }
 
-function templateSectionNumberFromLine(line: string): number | null {
+function templateSectionNumberFromLine(
+  line: string,
+  hints: Record<number, RegExp>,
+  maxSection: number,
+  legacyFromTitle: (title: string) => number | null,
+): number | null {
   const trimmed = line.trim();
   let m = trimmed.match(SECTION_HEADING_MD_RE);
   if (m) {
     const n = Number(m[1]);
-    if (n >= 1 && n <= 13) return n;
+    if (n >= 1 && n <= maxSection) return n;
   }
   m = trimmed.match(SECTION_HEADING_BOLD_RE);
   if (m) {
     const n = Number(m[1]);
-    if (n >= 1 && n <= 13) return n;
+    if (n >= 1 && n <= maxSection) return n;
   }
   m = trimmed.match(SECTION_PLAIN_RE);
   if (m) {
     const n = Number(m[1]);
-    const hint = LESSON_SECTION_HINT[n];
-    if (n >= 1 && n <= 13 && hint?.test(m[2])) return n;
-    const legacy = legacyLessonSectionNumFromTitle(m[2]);
-    if (legacy != null) return legacy;
+    const hint = hints[n];
+    if (n >= 1 && n <= maxSection && hint?.test(m[2])) return n;
+    const legacy = legacyFromTitle(m[2]);
+    if (legacy != null && legacy >= 1 && legacy <= maxSection) return legacy;
   }
   return null;
 }
 
-function splitNumberedSections(block: string): Map<number, string> {
+function splitNumberedSections(
+  block: string,
+  format: 'lesson-planner' | 'study-schedule-maker',
+): Map<number, string> {
+  const hints =
+    format === 'lesson-planner' ? TEACHER_LESSON_SECTION_HINT : STUDY_SCHEDULE_SECTION_HINT;
+  const maxSection = format === 'lesson-planner' ? 14 : 13;
+  const legacyFromTitle =
+    format === 'lesson-planner'
+      ? legacyTeacherLessonSectionNumFromTitle
+      : legacyStudyScheduleSectionNumFromTitle;
+
   const map = new Map<number, string>();
   const lines = block.split('\n');
   let currentNum: number | null = null;
@@ -298,7 +464,7 @@ function splitNumberedSections(block: string): Map<number, string> {
     buf.length = 0;
   };
   for (const line of lines) {
-    const sectionNum = templateSectionNumberFromLine(line);
+    const sectionNum = templateSectionNumberFromLine(line, hints, maxSection, legacyFromTitle);
     if (sectionNum != null) {
       flush();
       currentNum = sectionNum;
@@ -321,7 +487,7 @@ function durationLabelFrom(raw: Record<string, unknown>): string {
   return '';
 }
 
-function rawRecordFromSectionMap(
+function rawRecordFromStudyScheduleSectionMap(
   lessonName: string,
   sectionMap: Map<number, string>,
   idx: number,
@@ -369,6 +535,71 @@ function rawRecordFromSectionMap(
   if (reflection) raw.reflection_exit_ticket = reflection;
 
   return raw;
+}
+
+function rawRecordFromTeacherLessonSectionMap(
+  lessonName: string,
+  sectionMap: Map<number, string>,
+  idx: number,
+): Record<string, unknown> {
+  const raw: Record<string, unknown> = {
+    sl_no: idx + 1,
+    lesson_name: lessonName,
+  };
+  const get = (n: number) => sectionMap.get(n) || '';
+
+  const title = get(1);
+  if (title) raw.lesson_name = stripDisplayMarkdown(title) || lessonName;
+
+  const lo = linesToList(get(2));
+  if (lo.length) raw.learning_objectives = lo;
+
+  const ncf = get(3);
+  if (ncf) raw.ncf_competency_alignment = ncf;
+
+  const prior = get(4);
+  if (prior) raw.prior_knowledge_diagnostic = prior;
+
+  const intro = get(5);
+  if (intro) raw.introduction_warmup = intro;
+
+  const strategy = get(6);
+  if (strategy) raw.teaching_strategy = strategy;
+
+  const acts = linesToOrderedList(get(7));
+  if (acts.length) raw.teaching_activities = acts;
+
+  const talk = linesToList(get(8));
+  if (talk.length) raw.teacher_talk_points = talk;
+
+  const tasks = linesToList(get(9));
+  if (tasks.length) raw.student_tasks = tasks;
+
+  const formative = linesToList(get(10));
+  if (formative.length) raw.formative_assessment_questions = formative;
+
+  const diff = get(11);
+  if (diff) raw.differentiation_plan = diff;
+
+  const hw = get(12);
+  if (hw) raw.homework_practice = hw;
+
+  const aids = linesToList(get(13));
+  if (aids.length) raw.teaching_aids_required = aids;
+
+  const closure = get(14);
+  if (closure) raw.closure_exit_ticket = closure;
+
+  return raw;
+}
+
+/** @deprecated use rawRecordFromStudyScheduleSectionMap */
+function rawRecordFromSectionMap(
+  lessonName: string,
+  sectionMap: Map<number, string>,
+  idx: number,
+): Record<string, unknown> {
+  return rawRecordFromStudyScheduleSectionMap(lessonName, sectionMap, idx);
 }
 
 export function normalizeLesson(raw: Record<string, unknown>, idx: number): NormalizedLesson {
@@ -617,7 +848,11 @@ export function lessonHasVisibleContent(lesson: NormalizedLesson): boolean {
   );
 }
 
-function parseLessonBlock(block: string, index: number): NormalizedLesson | null {
+function parseLessonBlock(
+  block: string,
+  index: number,
+  format: 'lesson-planner' | 'study-schedule-maker' = 'study-schedule-maker',
+): NormalizedLesson | null {
   const trimmed = htmlToPlainText(block).trim();
   if (!trimmed) return null;
 
@@ -646,14 +881,36 @@ function parseLessonBlock(block: string, index: number): NormalizedLesson | null
         ? trimmed.slice(h3Match.index! + h3Match[0].length)
         : trimmed;
 
-  const sectionMap = splitNumberedSections(bodyStart);
-  const raw = rawRecordFromSectionMap(lessonName, sectionMap, index);
+  const resolvedFormat =
+    format === 'lesson-planner'
+      ? 'lesson-planner'
+      : detectLessonPlannerFormat(bodyStart) === 'lesson-planner'
+        ? 'lesson-planner'
+        : 'study-schedule-maker';
+
+  const sectionMap = splitNumberedSections(bodyStart, resolvedFormat);
+  const raw =
+    resolvedFormat === 'lesson-planner'
+      ? rawRecordFromTeacherLessonSectionMap(lessonName, sectionMap, index)
+      : rawRecordFromStudyScheduleSectionMap(lessonName, sectionMap, index);
   return normalizeLesson(raw, index);
 }
 
-export function parseLessonsFromMarkdown(content: string): NormalizedLesson[] {
+export function parseLessonsFromMarkdown(
+  content: string,
+  format: LessonPlannerToolKind = 'auto',
+): NormalizedLesson[] {
   const text = htmlToPlainText(String(content || '').replace(/\r\n/g, '\n')).trim();
   if (!text) return [];
+
+  const resolvedFormat: 'lesson-planner' | 'study-schedule-maker' =
+    format === 'lesson-planner'
+      ? 'lesson-planner'
+      : format === 'study-schedule-maker'
+        ? 'study-schedule-maker'
+        : detectLessonPlannerFormat(text) === 'lesson-planner'
+          ? 'lesson-planner'
+          : 'study-schedule-maker';
 
   let blocks: string[] = [];
   if (/__LESSON_CARD_START__/i.test(text)) {
@@ -673,23 +930,23 @@ export function parseLessonsFromMarkdown(content: string): NormalizedLesson[] {
 
   if (blocks.length >= 1) {
     const parsed = blocks
-      .map((b, i) => parseLessonBlock(b, i))
+      .map((b, i) => parseLessonBlock(b, i, resolvedFormat))
       .filter((l): l is NormalizedLesson => !!l && lessonHasVisibleContent(l));
     if (parsed.length) return parsed;
     const titled = blocks
-      .map((b, i) => parseLessonBlock(b, i))
+      .map((b, i) => parseLessonBlock(b, i, resolvedFormat))
       .filter((l): l is NormalizedLesson => !!l);
     if (titled.length) return titled;
   }
 
   if (/^\d+\.\s+/m.test(text) || /^#{1,3}\s*\d+\./m.test(text)) {
-    const single = parseLessonBlock(text, 0);
+    const single = parseLessonBlock(text, 0, resolvedFormat);
     return single ? [single] : [];
   }
 
   const h2 = text.match(/^##\s+(.+)$/m);
   if (h2) {
-    const single = parseLessonBlock(text, 0);
+    const single = parseLessonBlock(text, 0, resolvedFormat);
     return single ? [single] : [normalizeLesson({ lesson_name: h2[1].trim() }, 0)];
   }
 
@@ -701,41 +958,77 @@ export function extractLessonRecords(raw: unknown): Record<string, unknown>[] {
   if (Array.isArray(raw)) {
     return raw
       .filter((x) => x && typeof x === 'object')
-      .map((x) => unwrapRenderableLessonRecord(x as Record<string, unknown>));
+      .map((x) => unwrapAiToolPayload(x as Record<string, unknown>));
   }
   if (!raw || typeof raw !== 'object') return [];
 
-  const o = unwrapRenderableLessonRecord(raw as Record<string, unknown>);
+  const o = raw as Record<string, unknown>;
+  const unwrapped = unwrapAiToolPayload(o);
+
   for (const key of ['lessons', 'lesson_plans', 'lessonPlans', 'lesson_plan', 'items', 'plans']) {
     const v = o[key];
     if (Array.isArray(v) && v.length) {
       return v
         .filter((x) => x && typeof x === 'object')
-        .map((x) => unwrapRenderableLessonRecord(x as Record<string, unknown>));
+        .map((x) => unwrapAiToolPayload(x as Record<string, unknown>));
     }
   }
 
   if (
-    o.lesson_name ||
-    o.title ||
-    o.name ||
-    o.study_schedule_title ||
-    o.studyScheduleTitle ||
-    o.learning_objectives ||
-    o.objectives ||
-    o.teaching_activities ||
-    o.study_plan_table ||
-    o.studyPlanTable ||
-    o.concept_learning_slot ||
-    o.conceptLearningSlot
+    unwrapped.lesson_name ||
+    unwrapped.title ||
+    unwrapped.name ||
+    unwrapped.study_schedule_title ||
+    unwrapped.studyScheduleTitle ||
+    unwrapped.learning_objectives ||
+    unwrapped.objectives ||
+    unwrapped.teaching_activities ||
+    unwrapped.introduction_warmup ||
+    unwrapped.introductionWarmup ||
+    unwrapped.teaching_strategy ||
+    unwrapped.teachingStrategy ||
+    unwrapped.study_plan_table ||
+    unwrapped.studyPlanTable ||
+    unwrapped.concept_learning_slot ||
+    unwrapped.conceptLearningSlot
   ) {
-    return [o];
+    return [unwrapped];
   }
 
   if (o.raw && typeof o.raw === 'object') return extractLessonRecords(o.raw);
   if (o.data && typeof o.data === 'object') return extractLessonRecords(o.data);
 
   return [];
+}
+
+function structuredLessonHasTeacherBody(record: Record<string, unknown>): boolean {
+  const keys = [
+    'introduction_warmup',
+    'introductionWarmup',
+    'teaching_strategy',
+    'teachingStrategy',
+    'teaching_activities',
+    'activities',
+    'teacher_talk_points',
+    'teacherTalkPoints',
+    'student_tasks',
+    'studentTasks',
+    'formative_assessment_questions',
+    'formativeAssessmentQuestions',
+    'differentiation_plan',
+    'differentiationPlan',
+    'homework_practice',
+    'homeworkPractice',
+    'teaching_aids_required',
+    'teachingAids',
+    'closure_exit_ticket',
+    'closureExitTicket',
+  ];
+  return keys.some((k) => {
+    const v = record[k];
+    if (Array.isArray(v)) return v.length > 0;
+    return String(v ?? '').trim().length > 0;
+  });
 }
 
 export function lessonPlannerDisplayMarkdown(content: string, rawContent?: unknown): string | null {
@@ -758,15 +1051,22 @@ export function lessonPlannerDisplayMarkdown(content: string, rawContent?: unkno
 export function resolveLessonsFromPayload(
   content: string,
   rawContent?: unknown,
+  options?: { toolKind?: LessonPlannerToolKind },
 ): ResolvedLessonPlanner {
   let formatted = '';
   let book = '';
   let className = '';
   let rawRecords: Record<string, unknown>[] = [];
 
+  const toolKind = options?.toolKind ?? 'auto';
+  const markdownFormat: LessonPlannerToolKind =
+    toolKind === 'auto' ? 'auto' : toolKind;
+
   const absorbMeta = (v: Record<string, unknown>) => {
     if (v.book) book = String(v.book);
     if (v.class) className = String(v.class);
+    if (v.className) className = className || String(v.className);
+    if (v.classLabel) className = className || String(v.classLabel);
   };
 
   const absorbRaw = (v: unknown) => {
@@ -796,15 +1096,15 @@ export function resolveLessonsFromPayload(
 
   if (rawContent) absorbRaw(rawContent);
 
-  let fromMd = formatted.trim() ? parseLessonsFromMarkdown(formatted) : [];
+  let fromMd = formatted.trim() ? parseLessonsFromMarkdown(formatted, markdownFormat) : [];
   if (!fromMd.length && text && !text.startsWith('{')) {
-    fromMd = parseLessonsFromMarkdown(text);
+    fromMd = parseLessonsFromMarkdown(text, markdownFormat);
   }
 
   const fromRaw = rawRecords.map((r, i) => normalizeLesson(r, i));
   const displayMd = formatted || lessonPlannerDisplayMarkdown(content, rawContent);
   if (!fromMd.length && displayMd) {
-    fromMd = parseLessonsFromMarkdown(displayMd);
+    fromMd = parseLessonsFromMarkdown(displayMd, markdownFormat);
   }
 
   let lessons: NormalizedLesson[] = [];

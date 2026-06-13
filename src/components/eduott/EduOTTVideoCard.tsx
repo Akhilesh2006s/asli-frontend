@@ -114,7 +114,7 @@ export function EduOTTVideoCard({
       </div>
 
       <CardHeader>
-        <CardTitle className="line-clamp-2 text-base font-semibold text-gray-900 sm:text-lg">
+        <CardTitle className="text-base font-semibold leading-snug text-gray-900 sm:text-lg">
           {video.title}
         </CardTitle>
         {subjectBadges ? <div className="mt-2 flex flex-wrap gap-2">{subjectBadges}</div> : null}

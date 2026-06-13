@@ -1,13 +1,18 @@
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
-/** Inline Markdown for table cells and line renderer (bold, italic, code, math). */
+import { stripMarkdownSyntax } from '@/lib/strip-markdown-syntax';
+
+/** Inline Markdown for table cells and line renderer (math only — no bold/italic markers). */
 export function formatInlineMarkdown(t: string): string {
   if (t.includes('__MATH_BLOCK__') || t.includes('__MATH_ERROR__') || t.includes('__NOTE_CARD')) {
     return t;
   }
 
-  let formatted = t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  let formatted = stripMarkdownSyntax(t)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 
   formatted = formatted.replace(/(?<!\$)\$(?!\$)([^$\n]+?)(?<!\$)\$(?!\$)/g, (match, mathContent) => {
     try {
@@ -28,10 +33,6 @@ export function formatInlineMarkdown(t: string): string {
     if (match.includes('$')) return match;
     return `<code class="bg-gray-100 px-2 py-1 rounded text-sm font-mono text-gray-800">${codeContent}</code>`;
   });
-
-  formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>');
-
-  formatted = formatted.replace(/(?<!\*)\*(?!\*)([^*\n]+?)(?<!\*)\*(?!\*)/g, '<em class="italic">$1</em>');
 
   return formatted;
 }
@@ -121,6 +122,8 @@ export function renderMarkdown(text: string): string {
   } catch {
     processedText = text;
   }
+
+  processedText = stripMarkdownSyntax(processedText);
 
   processedText = processedText.replace(/\$\$([\s\S]*?)\$\$/g, (match, mathContent) => {
     try {

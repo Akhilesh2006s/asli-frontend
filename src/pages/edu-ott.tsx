@@ -28,6 +28,7 @@ import {
 } from '@/lib/subject-names';
 import { normalizeVideoLike, normalizeSessionLike } from '@/lib/eduott-normalize';
 import { resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
+import { getVideoDisplayTitle } from '@/lib/video-chapter-schedule';
 import { useEduOTTFilters } from '@/contexts/edu-ott-filter-context';
 import { EduOTTGlobalFilterBar } from '@/components/eduott/EduOTTGlobalFilterBar';
 import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
@@ -118,7 +119,7 @@ function mapContentToVideo(content: any): Video {
   return {
     _id: content._id,
     id: content._id,
-    title: content.title || 'Untitled Video',
+    title: getVideoDisplayTitle({ ...content, type: 'Video' }),
     description: content.description || '',
     videoUrl: videoFileUrl,
     fileUrl: videoFileUrl,

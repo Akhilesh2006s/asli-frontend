@@ -1,3 +1,5 @@
+import { isStructuredOnlyViewerMode, absorbStructuredRecords, viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
+
 export type ChapterSummaryConcept = { name: string; explanation: string };
 export type ChapterSummaryDefinition = { term: string; definition: string };
 export type ChapterSummaryFormula = { name: string; formula: string; note: string };
@@ -455,14 +457,8 @@ export function chapterSummaryViewerPayloadFromRecord(
     renderContent?: unknown;
   } | null,
 ): { content: string; rawContent?: unknown } {
-  const text = String(record?.generatedContent || record?.content || '').trim();
-  const rawContent =
-    record?.renderContent ??
-    record?.structuredContent ??
-    (record?.metadata && typeof record.metadata === 'object'
-      ? (record.metadata as { structuredContent?: unknown }).structuredContent
-      : record);
-  return { content: text, rawContent };
+  const p = viewerPayloadFromRecord(record);
+  return { content: p.content, rawContent: p.rawContent ?? record?.renderContent };
 }
 
 export function looksLikeChapterSummaryContent(text: string): boolean {

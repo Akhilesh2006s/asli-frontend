@@ -21,6 +21,7 @@ import {
   type NormalizedWorksheet,
   type WorksheetQuestion,
 } from '@/lib/parse-worksheet-mcq';
+import { StructuredContentRequired } from '@/components/structured-content-required';
 
 export interface WorksheetMcqViewerProps {
   content: string;
@@ -418,43 +419,8 @@ export function WorksheetMcqViewer({
 
   const useTeacher = variant === 'teacher' || variant === 'default';
 
-  const useMarkdown =
-    !!resolved.markdownFallback &&
-    (!resolved.worksheet || !worksheetHasVisibleContent(resolved.worksheet));
-
-  if (useMarkdown && resolved.markdownFallback) {
-    if (useTeacher) {
-      return (
-        <div className={className}>
-          <TeacherWorksheetShell>
-            <TeacherMarkdownBody markdown={resolved.markdownFallback} />
-          </TeacherWorksheetShell>
-        </div>
-      );
-    }
-    return (
-      <div className={cn('w-full', className)}>
-        <div
-          className="prose prose-sm max-w-none rounded-xl border border-emerald-100 bg-white p-4 shadow-sm"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(resolved.markdownFallback) }}
-        />
-      </div>
-    );
-  }
-
   if (!resolved.worksheet || !worksheetHasVisibleContent(resolved.worksheet)) {
-    return (
-      <div
-        className={cn(
-          'rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/60 px-6 py-14 text-center',
-          className,
-        )}
-      >
-        <ClipboardList className="mx-auto h-10 w-10 text-emerald-500/70 mb-3" aria-hidden />
-        <p className="text-sm font-medium text-stone-700">No worksheet found for this selection</p>
-        <p className="text-xs text-stone-500 mt-1">Try generating again or pick another topic.</p>
-      </div>
-    );
+    return <StructuredContentRequired className={className} toolLabel="Worksheet & MCQ" />;
   }
 
   const worksheet = resolved.worksheet;

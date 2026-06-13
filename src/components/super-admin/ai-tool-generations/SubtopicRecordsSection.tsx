@@ -467,12 +467,17 @@ export function SubtopicRecordsSection({
                   );
                 }
                 if (isLessonPlannerToolValue(resolvedTool)) {
+                  const lpToolKind =
+                    String(resolvedTool || "").trim().toLowerCase() === "study-schedule-maker"
+                      ? "study-schedule-maker"
+                      : "lesson-planner";
                   return (
                     <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
                       <LessonPlannerViewer
                         content={String(fullText || "")}
                         rawContent={viewDetail}
-                        variant="teacher"
+                        variant={lpToolKind === "study-schedule-maker" ? "student" : "teacher"}
+                        toolKind={lpToolKind}
                       />
                     </div>
                   );

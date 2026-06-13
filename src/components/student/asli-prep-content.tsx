@@ -13,6 +13,7 @@ import {
   getAllowedContentTypes,
   resolveIsAsliPrepExclusive,
 } from '@/lib/school-program';
+import { getVideoDisplayTitle } from '@/lib/video-chapter-schedule';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Content {
@@ -20,6 +21,9 @@ interface Content {
   title: string;
   description?: string;
   type: 'TextBook' | 'Workbook' | 'Material' | 'Video' | 'Audio';
+  chapter?: string;
+  module?: string;
+  topic?: string;
   subject: {
     _id: string;
     name: string;
@@ -290,8 +294,8 @@ export default function AsliPrepContent() {
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between mb-2">
-                  <CardTitle className="text-base sm:text-lg flex-1 font-bold text-gray-900 group-hover:text-purple-700 transition-colors">
-                    {content.title}
+                  <CardTitle className="text-base sm:text-lg flex-1 font-bold leading-snug text-gray-900 group-hover:text-purple-700 transition-colors">
+                    {content.type === 'Video' ? getVideoDisplayTitle(content) : content.title}
                   </CardTitle>
                   <Badge className={`${getTypeColor(content.type)} border-2 border-white shadow-sm`}>
                     <span className="flex items-center">

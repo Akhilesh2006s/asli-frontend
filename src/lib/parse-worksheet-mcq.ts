@@ -2,6 +2,8 @@
  * Parse Worksheet & MCQ Generator payloads into a 10-section worksheet model.
  */
 
+import { isStructuredOnlyViewerMode, absorbStructuredRecords } from '@/lib/resolve-ai-structured-content';
+
 export type WorksheetQuestion = {
   questionNumber?: number;
   question: string;
@@ -369,6 +371,10 @@ function absorbRawRecords(raw: unknown): Record<string, unknown>[] {
   if (Array.isArray(raw)) return raw.filter((x) => x && typeof x === 'object') as Record<string, unknown>[];
   if (typeof raw !== 'object') return [];
   const o = raw as Record<string, unknown>;
+  const meta = o.metadata as Record<string, unknown> | undefined;
+  if (meta?.structuredContent && typeof meta.structuredContent === 'object') {
+    return absorbRawRecords(meta.structuredContent);
+  }
   if (Array.isArray(o.sections) && (o.title || o.questions || o.learning_objectives)) return [o];
   if (Array.isArray(o.questions) && (o.title || o.instructions)) return [o];
   if (o.raw && typeof o.raw === 'object') return absorbRawRecords(o.raw);
@@ -713,6 +719,21 @@ export function resolveWorksheetFromPayload(
   content?: string,
   rawContent?: unknown,
 ): ResolvedWorksheetMcq {
+  if (isStructuredOnlyViewerMode()) {
+    const rawRecords = absorbStructuredRecords(rawContent);
+    let worksheet: NormalizedWorksheet | null = null;
+    if (rawRecords.length) {
+      worksheet = materializeWorksheet(rawRecords[0]);
+      for (let i = 1; i < rawRecords.length; i++) {
+        const next = materializeWorksheet(rawRecords[i]);
+        if (countWorksheetQuestions(next) > countWorksheetQuestions(worksheet)) {
+          worksheet = next;
+        }
+      }
+    }
+    return { worksheet, markdownFallback: null };
+  }
+
   let formattedText = String(content || '').trim();
   const rawRecords: Record<string, unknown>[] = [];
 

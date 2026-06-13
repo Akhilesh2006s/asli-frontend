@@ -19,10 +19,11 @@ export function getContentSubjectId(content: {
 export function getVideoDisplayTitle(content: {
   type?: string;
   title?: string;
+  topic?: string;
   chapter?: string;
   module?: string;
 }): string {
-  const title = String(content.title || '').trim();
+  const title = String(content.title || content.topic || '').trim() || 'Untitled Video';
   if (!isVideoContentType(content.type)) return title;
   const chapter = videoNumberOnly(content.chapter);
   const mod = videoNumberOnly(content.module);

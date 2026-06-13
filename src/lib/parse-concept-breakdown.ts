@@ -1,3 +1,5 @@
+import { isStructuredOnlyViewerMode, absorbStructuredRecords, viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
+
 export type ConceptBreakdownTerm = { term: string; definition: string };
 
 export type ConceptBreakdownContent = {
@@ -282,13 +284,8 @@ export function conceptBreakdownViewerPayloadFromRecord(
     metadata?: { structuredContent?: unknown };
   } | null,
 ): { content: string; rawContent?: unknown } {
-  const text = String(record?.generatedContent || record?.content || '').trim();
-  const rawContent =
-    record?.structuredContent ??
-    (record?.metadata && typeof record.metadata === 'object'
-      ? (record.metadata as { structuredContent?: unknown }).structuredContent
-      : record);
-  return { content: text, rawContent };
+  const p = viewerPayloadFromRecord(record);
+  return { content: p.content, rawContent: p.rawContent };
 }
 
 export function looksLikeConceptBreakdownContent(text: string): boolean {

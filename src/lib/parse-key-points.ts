@@ -1,3 +1,5 @@
+import { isStructuredOnlyViewerMode, absorbStructuredRecords, viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
+
 export type KeyPointsConcept = { name: string; explanation: string };
 export type KeyPointsDefinition = { term: string; definition: string };
 export type KeyPointsFormula = { name: string; formula: string; note: string };
@@ -425,14 +427,8 @@ export function keyPointsViewerPayloadFromRecord(
     renderContent?: unknown;
   } | null,
 ): { content: string; rawContent?: unknown } {
-  const text = String(record?.generatedContent || record?.content || '').trim();
-  const rawContent =
-    record?.renderContent ??
-    record?.structuredContent ??
-    (record?.metadata && typeof record.metadata === 'object'
-      ? (record.metadata as { structuredContent?: unknown }).structuredContent
-      : record);
-  return { content: text, rawContent };
+  const p = viewerPayloadFromRecord(record);
+  return { content: p.content, rawContent: p.rawContent ?? record?.renderContent };
 }
 
 export function looksLikeKeyPointsContent(text: string): boolean {

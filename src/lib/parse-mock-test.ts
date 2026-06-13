@@ -11,6 +11,7 @@ import {
   synthesizeAnswerKeyFromSections,
   synthesizeSolutionsFromSections,
 } from '@/lib/mock-test-tables';
+import { isStructuredOnlyViewerMode, viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
 
 export type MockTestMeta = {
   title: string;
@@ -223,6 +224,27 @@ function metaFromStructured(sources: Record<string, unknown>[], paper: Normalize
 }
 
 export function resolveMockTestFromPayload(content: string, rawContent?: unknown): ResolvedMockTest {
+  if (isStructuredOnlyViewerMode()) {
+    const resolved = resolveExamPaperFromPayload('', rawContent);
+    const sources = extractStructuredSources(rawContent);
+    let meta = metaFromStructured(sources, resolved.paper);
+    const activeSectionsForSynth = resolved.paper?.sections.filter((s) => s.questions.length > 0) ?? [];
+    if (!meta.answerKey.trim() && activeSectionsForSynth.length) {
+      meta = { ...meta, answerKey: synthesizeAnswerKeyFromSections(activeSectionsForSynth) };
+    }
+    if (!meta.solutions.trim() && activeSectionsForSynth.length) {
+      meta = { ...meta, solutions: synthesizeSolutionsFromSections(activeSectionsForSynth) };
+    }
+    const hasPaper =
+      resolved.paper &&
+      (examPaperHasQuestions(resolved.paper) || examPaperHasVisibleContent(resolved.paper));
+    return {
+      meta,
+      paper: hasPaper ? resolved.paper : null,
+      markdownFallback: null,
+    };
+  }
+
   const resolved = resolveExamPaperFromPayload(content, rawContent);
   const sources = extractStructuredSources(rawContent);
   try {
@@ -331,20 +353,18 @@ export function mockTestViewerPayloadFromRecord(
     metadata?: { structuredContent?: unknown };
   } | null,
 ): { content: string; rawContent?: unknown } {
-  const content = String(record?.generatedContent || record?.content || '').trim();
-  const structured =
-    record?.structuredContent ??
-    (record?.metadata && typeof record.metadata === 'object'
-      ? (record.metadata as { structuredContent?: unknown }).structuredContent
-      : undefined);
-  const rawContent = {
-    ...(structured && typeof structured === 'object' && !Array.isArray(structured)
-      ? (structured as Record<string, unknown>)
-      : {}),
-    structuredContent: structured,
-    renderContent: record?.renderContent,
+  const payload = viewerPayloadFromRecord(record);
+  const structured = payload.structuredContent;
+  return {
+    content: payload.content,
+    rawContent: {
+      ...(structured && typeof structured === 'object' && !Array.isArray(structured)
+        ? (structured as Record<string, unknown>)
+        : {}),
+      structuredContent: structured,
+      renderContent: record?.renderContent,
+    },
   };
-  return { content, rawContent };
 }
 
 export { synthesizeAnswerKeyFromSections, synthesizeSolutionsFromSections };

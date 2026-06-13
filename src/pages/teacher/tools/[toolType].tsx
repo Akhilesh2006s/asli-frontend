@@ -1995,6 +1995,7 @@ export default function TeacherToolPage() {
                     content={generatedContent}
                     rawContent={rawGeneratedContent}
                     variant="teacher"
+                    toolKind="lesson-planner"
                   />
                 ) : toolType === 'daily-class-plan-maker' ? (
                   <DailyClassPlanViewer

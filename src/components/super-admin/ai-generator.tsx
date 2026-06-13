@@ -19,8 +19,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, FileDown, Loader2, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
+import { stripMarkdownSyntax } from "@/lib/strip-markdown-syntax";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
@@ -72,6 +74,64 @@ import {
   isStoryLanguageTool,
   isStoryPassageLanguageSubject,
 } from "@/lib/ai-tool-subject-rules";
+import {
+  computeGeminiCostFromTokenUsage,
+  emptyTokenTotals,
+  formatInr,
+  formatTokenCount,
+  mergeTokenTotals,
+  mergeTokenUsageSnapshots,
+  type GeminiCostEstimate,
+  type TokenCall,
+  type TokenTotals,
+  type TokenUsageSnapshot,
+} from "@/lib/gemini-token-cost";
+import { AiGeneratorAuditPanel } from "@/components/super-admin/ai-generator-audit";
+
+const GENERATION_BATCH_SIZE = 25;
+/** Parallel workers — each picks the latest avoid-list before calling Gemini. */
+const BATCH_CONCURRENCY = 3;
+const RECOVERY_ATTEMPTS_PER_VARIANT = 2;
+const RECOVERY_ROUNDS_MAX = 1;
+
+type VariantGenerateResult = {
+  variant: number;
+  ok: boolean;
+  message?: string;
+  generatedContent?: string;
+  tokenTotals?: Partial<TokenTotals>;
+  tokenUsage?: TokenUsageSnapshot;
+  exchangeRateInr?: number;
+};
+
+/** Parallel workers for batch variant generation. */
+async function runVariantWorkerPool(
+  variants: number[],
+  concurrency: number,
+  runOne: (variant: number) => Promise<VariantGenerateResult>,
+  onDone: (completed: number, total: number) => void,
+): Promise<VariantGenerateResult[]> {
+  const results: VariantGenerateResult[] = new Array(variants.length);
+  let nextJob = 0;
+  let completed = 0;
+
+  async function worker() {
+    while (true) {
+      const jobIndex = nextJob;
+      nextJob += 1;
+      if (jobIndex >= variants.length) break;
+      const variant = variants[jobIndex];
+      const result = await runOne(variant);
+      results[jobIndex] = result;
+      completed += 1;
+      onDone(completed, variants.length);
+    }
+  }
+
+  const workers = Math.min(concurrency, variants.length);
+  await Promise.all(Array.from({ length: workers }, () => worker()));
+  return results;
+}
 
 type ToolId =
   | "activity-project-generator"
@@ -94,7 +154,8 @@ type ToolId =
   | "smart-qa-practice-generator"
   | "chapter-summary-creator"
   | "key-points-formula-extractor"
-  | "quick-assignment-builder";
+  | "quick-assignment-builder"
+  | "rubrics-evaluation-generator";
 
 const TOOLS: Array<{ id: ToolId; name: string; description: string }> = [
   { id: "project-idea-lab", name: "Project Idea Lab", description: "14-point student project format with safety, observation table, creative output, and self-assessment." },
@@ -104,6 +165,7 @@ const TOOLS: Array<{ id: ToolId; name: string; description: string }> = [
   { id: "study-schedule-maker", name: "Study Schedule Maker", description: "13-point student study schedule with plan table, concept slot, and self-assessment." },
   { id: "lesson-planner", name: "Lesson Planner", description: "14-point teacher lesson plan with classroom activities and formative assessment." },
   { id: "homework-creator", name: "Homework Creator", description: "Generate homework tasks and practice sets." },
+  { id: "rubrics-evaluation-generator", name: "Rubrics & Evaluation Generator", description: "10-section rubrics with criteria rows, grading guidance, and remedial suggestions." },
   { id: "reading-practice-room", name: "Reading Practice Room", description: "13-section reading practice with recall, infer, and connect questions (English & Hindi only)." },
   { id: "story-passage-creator", name: "Story and Passage Creator", description: "19-section teacher story and passage sets (English & Hindi only)." },
   { id: "short-notes-summaries-maker", name: "Short Notes & Summaries", description: "Create concise revision notes." },
@@ -145,6 +207,7 @@ const TEACHER_TOOL_IDS: ToolId[] = [
   "story-passage-creator",
   "short-notes-summaries-maker",
   "flashcard-generator",
+  "rubrics-evaluation-generator",
 ];
 
 const TEACHER_TOOL_LABELS: Partial<Record<ToolId, string>> = {
@@ -156,13 +219,16 @@ const TEACHER_TOOL_LABELS: Partial<Record<ToolId, string>> = {
   "daily-class-plan-maker": "Daily Class Plan Maker",
   "homework-creator": "Homework Creator",
   "short-notes-summaries-maker": "Short Notes & Summarizer",
+  "rubrics-evaluation-generator": "Rubrics & Evaluation Generator",
 };
 
 type GeneratorRecord = {
   _id: string;
   generatedContent: string;
   createdAt?: string;
-  metadata?: { structuredContent?: unknown };
+  metadata?: { structuredContent?: unknown; extraParams?: { generationVariant?: number; variantAngle?: string } };
+  generationVariant?: number | null;
+  variantAngle?: string;
 };
 
 type GroupedSubtopic = { subtopicName: string; records: GeneratorRecord[] };
@@ -177,17 +243,7 @@ function isWorksheetToolValue(v: unknown): boolean {
 }
 
 function toDisplayPlainText(content: string) {
-  return String(content || "")
-    .replace(/\r\n/g, "\n")
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/\*\*(.*?)\*\*/g, "$1")
-    .replace(/\*(.*?)\*/g, "$1")
-    .replace(/`{1,3}/g, "")
-    .replace(/^[-*_]{3,}\s*$/gm, "")
-    .replace(/\[(.*?)\]\((.*?)\)/g, "$1")
-    .replace(/!\[(.*?)\]\((.*?)\)/g, "$1")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  return stripMarkdownSyntax(content);
 }
 
 function recordListPreviewText(toolSlug: string, generatedContent: string, record?: { metadata?: { structuredContent?: unknown } }) {
@@ -230,6 +286,19 @@ export default function SuperAdminAiGenerator() {
   const [difficulty, setDifficulty] = useState("medium");
   const [duration, setDuration] = useState("30");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [activeTab, setActiveTab] = useState<"generate" | "audit">("generate");
+  const [forceGenerateNew, setForceGenerateNew] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState<{
+    current: number;
+    total: number;
+    phase?: string;
+  } | null>(null);
+  const [lastBatchSummary, setLastBatchSummary] = useState<{
+    successCount: number;
+    failedCount: number;
+    tokenUsage: TokenTotals;
+    cost: GeminiCostEstimate;
+  } | null>(null);
   const [recordsTree, setRecordsTree] = useState<GroupedTool[]>([]);
   const [recordsTotal, setRecordsTotal] = useState(0);
   const [recordsLoading, setRecordsLoading] = useState(false);
@@ -240,6 +309,7 @@ export default function SuperAdminAiGenerator() {
   const [editContent, setEditContent] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingSubtopicKey, setDeletingSubtopicKey] = useState<string | null>(null);
   const {
     classOptions,
     subjects,
@@ -437,8 +507,15 @@ export default function SuperAdminAiGenerator() {
       return;
     }
     setIsGenerating(true);
+    setGenerationProgress({
+      current: 0,
+      total: GENERATION_BATCH_SIZE,
+      phase: "Server batch in progress (please wait)",
+    });
+    setLastBatchSummary(null);
+
     try {
-      const res = await fetch(`${API_BASE_URL}/api/ai-generator/generate`, {
+      const res = await fetch(`${API_BASE_URL}/api/ai-generator/generate-batch`, {
         method: "POST",
         headers: { ...authHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -449,19 +526,78 @@ export default function SuperAdminAiGenerator() {
           subjectName: subject,
           topicName: topic,
           subtopicName: subTopic,
+          batchSize: GENERATION_BATCH_SIZE,
+          forceGenerate: forceGenerateNew,
+          forceGenerateNew: forceGenerateNew,
           extraParams: buildExtraParams(),
         }),
       });
       const json = await res.json();
-      if (!res.ok || !json?.success) {
-        throw new Error(json?.message || "Generation failed");
+      const savedCount = Number(json?.data?.savedCount) || 0;
+      const failedCount = Number(json?.data?.failedCount) || 0;
+      const failures: string[] = Array.isArray(json?.data?.failures) ? json.data.failures : [];
+
+      if (!res.ok && savedCount === 0) {
+        if (res.status === 409) {
+          throw new Error(json?.message || "Generation already in progress for this topic.");
+        }
+        throw new Error(json?.message || "Batch generation failed");
       }
-      toast({ title: "Generated", description: "Content generated and saved in AI Generator records." });
+      const mode = String(json?.data?.mode || "");
+      const saturation = json?.data?.saturation;
+      const geminiAvoided = Number(json?.data?.geminiGenerationsAvoided) || 0;
+      const usage = json?.data?.tokenUsage;
+      const tokenUsage =
+        usage?.totals && typeof usage.totals === "object"
+          ? { ...emptyTokenTotals(), ...usage.totals }
+          : emptyTokenTotals();
+      const tokenCalls: TokenCall[] = Array.isArray(usage?.calls) ? usage.calls : [];
+      const exchangeRateInr = Number(json?.data?.cost?.exchangeRateInr) || 95.11;
+      let cost: GeminiCostEstimate;
+      try {
+        cost = computeGeminiCostFromTokenUsage({ totals: tokenUsage, calls: tokenCalls }, exchangeRateInr);
+      } catch {
+        cost = json?.data?.cost && typeof json.data.cost === "object"
+          ? (json.data.cost as GeminiCostEstimate)
+          : computeGeminiCostFromTokenUsage({ totals: tokenUsage, calls: [] }, exchangeRateInr);
+      }
+
+      setGenerationProgress({ current: savedCount, total: GENERATION_BATCH_SIZE, phase: "Complete" });
+      setLastBatchSummary({
+        successCount: savedCount,
+        failedCount,
+        tokenUsage,
+        cost,
+      });
+
+      if (savedCount === 0) {
+        throw new Error(failures[0] || "All 25 generations failed");
+      }
+
+      const tokenNote = `${formatTokenCount(tokenUsage.totalTokens)} tokens (${formatTokenCount(tokenUsage.promptTokens)} in / ${formatTokenCount(tokenUsage.completionTokens)} out, ${tokenUsage.callCount} LLM calls). Est. cost: ${formatInr(cost.inr)}.`;
+      toast({
+        title:
+          mode === "random_retrieval"
+            ? `Retrieved ${savedCount} records from pool (0 Gemini tokens)`
+            : savedCount === GENERATION_BATCH_SIZE
+              ? "25 unique records saved"
+              : `${savedCount}/25 records saved`,
+        description:
+          (mode === "random_retrieval"
+            ? `Topic saturation: ${saturation?.saturationLevel || "Saturated"}. Random diverse selection from ${json?.data?.existingCountBefore ?? "existing"} records. `
+            : savedCount === GENERATION_BATCH_SIZE
+              ? "Batch orchestrator saved all unique variants with fingerprint indexing."
+              : `${failures.length} slot(s) failed after max retries. `) +
+          (geminiAvoided > 0 ? `Gemini generations avoided: ${geminiAvoided}. ` : "") +
+          tokenNote,
+        variant: failures.length > 0 ? "destructive" : "default",
+      });
       await loadRecords();
     } catch (error: any) {
       toast({ title: "Generation failed", description: error?.message || "Could not generate", variant: "destructive" });
     } finally {
       setIsGenerating(false);
+      setGenerationProgress(null);
     }
   };
 
@@ -583,6 +719,64 @@ export default function SuperAdminAiGenerator() {
     }
   };
 
+  const subtopicSectionKey = (
+    toolSlug: string,
+    className: string,
+    boardName: string,
+    subjectName: string,
+    topicName: string,
+    subtopicName: string,
+  ) => `subtopic:${toolSlug}:${className}:${boardName}:${subjectName}:${topicName}:${subtopicName}`;
+
+  const deleteAllSubtopicRecords = async (
+    records: GeneratorRecord[],
+    subtopicLabel: string,
+    sectionKey: string,
+  ) => {
+    const ids = records.map((r) => r._id).filter(Boolean);
+    if (ids.length === 0) return;
+    if (
+      !window.confirm(
+        `Delete all ${ids.length} record${ids.length !== 1 ? "s" : ""} in subtopic “${subtopicLabel}”? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    setDeletingSubtopicKey(sectionKey);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/ai-generator/records/bulk-delete`, {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.message || "Bulk delete failed");
+      }
+      const deleted = Number(json?.data?.deletedCount ?? ids.length);
+      const failed = Number(json?.data?.failedCount ?? 0);
+      toast({
+        title: "Deleted",
+        description:
+          failed > 0
+            ? `Removed ${deleted} record(s); ${failed} could not be deleted.`
+            : `Removed ${deleted} record(s) from this subtopic.`,
+      });
+      if (activeRecord && ids.includes(activeRecord._id)) {
+        setActiveRecord(null);
+      }
+      await loadRecords();
+    } catch (error: any) {
+      toast({
+        title: "Delete failed",
+        description: error?.message || "Could not delete subtopic records.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingSubtopicKey(null);
+    }
+  };
+
   const openPdf = async (id: string) => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/ai-generator/pdf/${id}`, {
@@ -607,6 +801,25 @@ export default function SuperAdminAiGenerator() {
 
   return (
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+      <div className="flex gap-2">
+        <Button
+          variant={activeTab === "generate" ? "default" : "outline"}
+          onClick={() => setActiveTab("generate")}
+        >
+          Generate
+        </Button>
+        <Button
+          variant={activeTab === "audit" ? "default" : "outline"}
+          onClick={() => setActiveTab("audit")}
+        >
+          Duplicate Audit & Analytics
+        </Button>
+      </div>
+
+      {activeTab === "audit" ? <AiGeneratorAuditPanel /> : null}
+
+      {activeTab === "generate" ? (
+      <>
       <Card>
         <CardHeader>
           <CardTitle>Available Tools</CardTitle>
@@ -772,10 +985,66 @@ export default function SuperAdminAiGenerator() {
             </div>
           )}
 
-          <div className="lg:col-span-3 flex justify-end">
-            <Button onClick={generate} disabled={isGenerating || !selectedTool} className="bg-blue-600 hover:bg-blue-700">
-              {isGenerating ? "Generating..." : "Generate with Gemini"}
-            </Button>
+          <div className="lg:col-span-3 space-y-3">
+            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <Checkbox
+                checked={forceGenerateNew}
+                onCheckedChange={(v) => setForceGenerateNew(v === true)}
+              />
+              Force Generate New Content (even when topic has 1000+ records)
+            </label>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-slate-500">
+                Smart strategy: 0–100 generate · 101–500 strong uniqueness · 501–1000 strict · 1000+ random pool (unless forced).
+              </p>
+              <Button
+                onClick={generate}
+                disabled={isGenerating || !selectedTool}
+                className="bg-blue-600 hover:bg-blue-700 shrink-0"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {generationProgress
+                      ? generationProgress.current > 0
+                        ? `${generationProgress.current}/${generationProgress.total} saved…`
+                        : generationProgress.phase || `Generating ${generationProgress.total}…`
+                      : "Generating..."}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Generate {GENERATION_BATCH_SIZE} with Gemini
+                  </>
+                )}
+              </Button>
+            </div>
+            {lastBatchSummary ? (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2.5 text-xs text-slate-700 space-y-2">
+                <p className="font-semibold text-emerald-900">
+                  Last batch: {lastBatchSummary.successCount}/{GENERATION_BATCH_SIZE} saved
+                  {lastBatchSummary.failedCount > 0 ? ` (${lastBatchSummary.failedCount} failed)` : ""}
+                </p>
+                <p>
+                  Tokens:{" "}
+                  <span className="font-medium">{formatTokenCount(lastBatchSummary.tokenUsage.totalTokens)}</span> total
+                  {" "}({formatTokenCount(lastBatchSummary.tokenUsage.promptTokens)} prompt +{" "}
+                  {formatTokenCount(lastBatchSummary.tokenUsage.completionTokens)} completion,{" "}
+                  {lastBatchSummary.tokenUsage.callCount} LLM calls)
+                </p>
+                <p>
+                  Estimated cost:{" "}
+                  <span className="font-semibold text-emerald-900">{formatInr(lastBatchSummary.cost.inr)}</span>
+                  {" "}(~${lastBatchSummary.cost.usd.toFixed(4)} USD at ₹{lastBatchSummary.cost.exchangeRateInr}/$)
+                </p>
+                <p className="text-[11px] text-slate-500">{lastBatchSummary.cost.pricingNote}</p>
+                {lastBatchSummary.cost.model.includes("mixed") ? (
+                  <p className="text-[11px] text-slate-500">
+                    Pricing model: {lastBatchSummary.cost.model}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </CardContent>
       </Card>
@@ -907,7 +1176,17 @@ export default function SuperAdminAiGenerator() {
                                           </AccordionTrigger>
                                           <AccordionContent>
                                             <Accordion type="multiple" className="w-full">
-                                              {topicNode.subtopics.map((subtopicNode) => (
+                                              {topicNode.subtopics.map((subtopicNode) => {
+                                                const subtopicKey = subtopicSectionKey(
+                                                  toolNode.toolSlug,
+                                                  classNode.className,
+                                                  classNode.boardName || "",
+                                                  subjectNode.subjectName,
+                                                  topicNode.topicName,
+                                                  subtopicNode.subtopicName,
+                                                );
+                                                const isDeletingSubtopic = deletingSubtopicKey === subtopicKey;
+                                                return (
                                                 <AccordionItem key={`${topicNode.topicName}-${subtopicNode.subtopicName}`} value={`subtopic-${topicNode.topicName}-${subtopicNode.subtopicName}`} className="border rounded-lg px-3 mb-2">
                                                   <AccordionTrigger className="hover:no-underline">
                                                     <div className="text-left">
@@ -917,22 +1196,59 @@ export default function SuperAdminAiGenerator() {
                                                   </AccordionTrigger>
                                                   <AccordionContent>
                                                     <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/30 to-orange-50/20 shadow-sm overflow-hidden">
-                                                      <div className="border-b border-slate-100/80 bg-white/80 px-4 py-3 flex items-center justify-between">
+                                                      <div className="border-b border-slate-100/80 bg-white/80 px-4 py-3 flex items-center justify-between gap-2">
                                                         <div>
                                                           <p className="text-xs text-slate-500">RECORDS</p>
                                                           <p className="text-xs sm:text-sm font-semibold text-slate-900">
                                                             {subtopicNode.records.length} generation{subtopicNode.records.length === 1 ? "" : "s"}
                                                           </p>
                                                         </div>
+                                                        {subtopicNode.records.length > 0 ? (
+                                                          <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-8 gap-1.5 rounded-lg border-red-200 text-red-700 hover:bg-red-50 shrink-0"
+                                                            disabled={isDeletingSubtopic || !!deletingId || isDeletingAll}
+                                                            onClick={(e) => {
+                                                              e.preventDefault();
+                                                              e.stopPropagation();
+                                                              void deleteAllSubtopicRecords(
+                                                                subtopicNode.records,
+                                                                subtopicNode.subtopicName,
+                                                                subtopicKey,
+                                                              );
+                                                            }}
+                                                          >
+                                                            {isDeletingSubtopic ? (
+                                                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                            ) : (
+                                                              <Trash2 className="h-3.5 w-3.5" />
+                                                            )}
+                                                            Delete all ({subtopicNode.records.length})
+                                                          </Button>
+                                                        ) : null}
                                                       </div>
                                                       <div className="p-4">
                                                       <div className="space-y-3">
                                                         {subtopicNode.records.map((row) => (
                                                           <div key={row._id} className="group rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm transition-all hover:border-orange-200/80 hover:shadow-md">
                                                             <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                                                              <p className="inline-flex items-center gap-1.5 text-xs text-slate-500">
-                                                                {row.createdAt ? new Date(row.createdAt).toLocaleString() : "-"}
-                                                              </p>
+                                                              <div className="flex flex-wrap items-center gap-2">
+                                                                <p className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                                                                  {row.createdAt ? new Date(row.createdAt).toLocaleString() : "-"}
+                                                                </p>
+                                                                {row.generationVariant ? (
+                                                                  <Badge variant="outline" className="text-[10px] h-5 border-orange-200 text-orange-800 bg-orange-50">
+                                                                    Variant {row.generationVariant}
+                                                                  </Badge>
+                                                                ) : null}
+                                                                {row.variantAngle ? (
+                                                                  <span className="text-[10px] text-slate-500 max-w-[220px] truncate" title={row.variantAngle}>
+                                                                    {row.variantAngle}
+                                                                  </span>
+                                                                ) : null}
+                                                              </div>
                                                               <div className="flex items-center gap-1">
                                                                 <Button
                                                                   variant="ghost"
@@ -1024,7 +1340,8 @@ export default function SuperAdminAiGenerator() {
                                                     </div>
                                                   </AccordionContent>
                                                 </AccordionItem>
-                                              ))}
+                                              );
+                                              })}
                                             </Accordion>
                                           </AccordionContent>
                                         </AccordionItem>
@@ -1045,6 +1362,9 @@ export default function SuperAdminAiGenerator() {
           )}
         </CardContent>
       </Card>
+
+      </>
+      ) : null}
 
       <Dialog
         open={!!activeRecord}
@@ -1088,6 +1408,7 @@ export default function SuperAdminAiGenerator() {
               isWorksheetToolValue(activeRecord?.toolName) ? (
               <WorksheetMcqViewer
                 content={String(activeRecord?.generatedContent || "")}
+                rawContent={activeRecord}
                 variant="teacher"
               />
             ) : activeRecord?.toolSlug === "study-schedule-maker" ||
@@ -1096,6 +1417,7 @@ export default function SuperAdminAiGenerator() {
                 content={String(activeRecord?.generatedContent || "")}
                 rawContent={activeRecord}
                 variant="student"
+                toolKind="study-schedule-maker"
               />
             ) : activeRecord?.toolSlug === "lesson-planner" ||
               activeRecord?.toolName === "lesson-planner" ? (
@@ -1103,6 +1425,7 @@ export default function SuperAdminAiGenerator() {
                 content={String(activeRecord?.generatedContent || "")}
                 rawContent={activeRecord}
                 variant="teacher"
+                toolKind="lesson-planner"
               />
             ) : activeRecord?.toolSlug === "daily-class-plan-maker" ||
               activeRecord?.toolName === "daily-class-plan-maker" ? (

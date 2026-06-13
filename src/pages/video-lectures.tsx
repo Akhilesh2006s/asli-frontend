@@ -22,6 +22,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { VideoLecture, Subject } from "@shared/schema";
 import { API_BASE_URL } from "@/lib/api-config";
+import { getVideoDisplayTitle } from "@/lib/video-chapter-schedule";
 
 // Add shimmer animation styles
 const shimmerStyles = `
@@ -307,8 +308,8 @@ export default function VideoLectures() {
                     </Badge>
                   </div>
 
-                  <h3 className="font-semibold text-white mb-2 group-hover:text-yellow-200 transition-all duration-500 drop-shadow-lg group-hover:drop-shadow-2xl group-hover:glow">
-                    {video.title}
+                  <h3 className="mb-2 font-semibold leading-snug text-white transition-all duration-500 drop-shadow-lg group-hover:text-yellow-200 group-hover:drop-shadow-2xl group-hover:glow">
+                    {getVideoDisplayTitle({ ...video, type: 'Video' })}
                   </h3>
                   
                   {video.description && (

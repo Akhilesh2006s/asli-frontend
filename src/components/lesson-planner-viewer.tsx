@@ -34,6 +34,8 @@ interface LessonPlannerViewerProps {
   rawContent?: unknown;
   className?: string;
   variant?: 'default' | 'student' | 'teacher';
+  /** Which 14/13-section template to use when parsing markdown and structured JSON. */
+  toolKind?: 'lesson-planner' | 'study-schedule-maker' | 'auto';
 }
 
 /* ——— Shared lesson sections ——— */
@@ -772,15 +774,20 @@ export function LessonPlannerViewer({
   rawContent,
   className,
   variant = 'default',
+  toolKind,
 }: LessonPlannerViewerProps) {
   const parsedContent = useMemo(
     () => stripStructuredAiToolMetadata(String(content || '')),
     [content],
   );
 
+  const resolvedToolKind =
+    toolKind ??
+    (variant === 'student' ? 'study-schedule-maker' : 'lesson-planner');
+
   const resolved = useMemo(
-    () => resolveLessonsFromPayload(parsedContent, rawContent),
-    [parsedContent, rawContent],
+    () => resolveLessonsFromPayload(parsedContent, rawContent, { toolKind: resolvedToolKind }),
+    [parsedContent, rawContent, resolvedToolKind],
   );
 
   const [lessonIdx, setLessonIdx] = useState(0);

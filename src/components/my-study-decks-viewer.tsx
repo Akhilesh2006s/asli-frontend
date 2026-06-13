@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
   FlashcardViewer,
@@ -133,33 +134,8 @@ export function deckViewerPayloadFromRecord(
     structuredContent?: unknown;
   } | null,
 ): { content: string; rawContent: unknown } {
-  const generated = String(record?.generatedContent ?? record?.content ?? '').trim();
-  const structured =
-    record?.metadata?.structuredContent ?? record?.structuredContent ?? null;
-
-  if (generated.startsWith('{') || generated.startsWith('[')) {
-    try {
-      const parsed = JSON.parse(generated) as Record<string, unknown>;
-      if (Array.isArray(parsed)) {
-        return { content: generated, rawContent: structured ?? { cards: parsed } };
-      }
-      const formatted = String(parsed.formatted ?? parsed.markdown ?? '').trim();
-      const raw = parsed.raw ?? structured;
-      if (formatted) {
-        return { content: formatted, rawContent: raw ?? structured ?? undefined };
-      }
-      if (raw && typeof raw === 'object') {
-        return { content: generated, rawContent: raw };
-      }
-    } catch {
-      /* plain text or invalid JSON */
-    }
-  }
-
-  return {
-    content: generated,
-    rawContent: structured ?? undefined,
-  };
+  const p = viewerPayloadFromRecord(record);
+  return { content: p.content, rawContent: p.rawContent ?? null };
 }
 
 function parseDeckMetaFromFormatted(text: string): Partial<StudentDeckMeta> {

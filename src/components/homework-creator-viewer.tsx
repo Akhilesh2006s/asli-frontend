@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { stripMarkdownSyntax } from '@/lib/strip-markdown-syntax';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { GeneratedRecordBody } from '@/components/super-admin/generated-record-body';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
@@ -22,11 +23,18 @@ import {
   type NormalizedHomework,
   type HomeworkPracticeQuestion,
 } from '@/lib/parse-homework-creator';
+import { StructuredContentRequired } from '@/components/structured-content-required';
 
 export interface HomeworkCreatorViewerProps {
   content: string;
   rawContent?: unknown;
   className?: string;
+}
+
+function PlainField({ text }: { text: string }) {
+  return (
+    <p className="text-sm whitespace-pre-wrap text-slate-800">{stripMarkdownSyntax(text)}</p>
+  );
 }
 
 type SectionDef = {
@@ -47,7 +55,7 @@ const HOMEWORK_SECTIONS: SectionDef[] = [
     stripe: 'border-orange-500',
     iconWrap: 'bg-orange-100 text-orange-900',
     hasContent: (h) => !!h.instructions,
-    render: (h) => <p className="text-sm whitespace-pre-wrap text-slate-800">{h.instructions}</p>,
+    render: (h) => <PlainField text={h.instructions} />,
   },
   {
     num: 3,
@@ -74,9 +82,7 @@ const HOMEWORK_SECTIONS: SectionDef[] = [
     stripe: 'border-violet-500',
     iconWrap: 'bg-violet-100 text-violet-900',
     hasContent: (h) => !!h.creativeThinkingQuestion,
-    render: (h) => (
-      <p className="text-sm whitespace-pre-wrap text-slate-800">{h.creativeThinkingQuestion}</p>
-    ),
+    render: (h) => <PlainField text={h.creativeThinkingQuestion} />,
   },
   {
     num: 6,
@@ -85,9 +91,7 @@ const HOMEWORK_SECTIONS: SectionDef[] = [
     stripe: 'border-cyan-500',
     iconWrap: 'bg-cyan-100 text-cyan-900',
     hasContent: (h) => !!h.realLifeObservationTask,
-    render: (h) => (
-      <p className="text-sm whitespace-pre-wrap text-slate-800">{h.realLifeObservationTask}</p>
-    ),
+    render: (h) => <PlainField text={h.realLifeObservationTask} />,
   },
   {
     num: 7,
@@ -96,7 +100,7 @@ const HOMEWORK_SECTIONS: SectionDef[] = [
     stripe: 'border-rose-500',
     iconWrap: 'bg-rose-100 text-rose-900',
     hasContent: (h) => !!h.challengeQuestion,
-    render: (h) => <p className="text-sm whitespace-pre-wrap text-slate-800">{h.challengeQuestion}</p>,
+    render: (h) => <PlainField text={h.challengeQuestion} />,
   },
   {
     num: 8,
@@ -105,7 +109,7 @@ const HOMEWORK_SECTIONS: SectionDef[] = [
     stripe: 'border-teal-500',
     iconWrap: 'bg-teal-100 text-teal-900',
     hasContent: (h) => !!h.supportHint,
-    render: (h) => <p className="text-sm whitespace-pre-wrap text-slate-800">{h.supportHint}</p>,
+    render: (h) => <PlainField text={h.supportHint} />,
   },
   {
     num: 9,
@@ -114,7 +118,7 @@ const HOMEWORK_SECTIONS: SectionDef[] = [
     stripe: 'border-emerald-500',
     iconWrap: 'bg-emerald-100 text-emerald-900',
     hasContent: (h) => !!h.answerHints,
-    render: (h) => <p className="text-sm whitespace-pre-wrap text-slate-800">{h.answerHints}</p>,
+    render: (h) => <PlainField text={h.answerHints} />,
   },
   {
     num: 10,
@@ -123,7 +127,7 @@ const HOMEWORK_SECTIONS: SectionDef[] = [
     stripe: 'border-indigo-500',
     iconWrap: 'bg-indigo-100 text-indigo-900',
     hasContent: (h) => !!h.parentNote,
-    render: (h) => <p className="text-sm whitespace-pre-wrap text-slate-800">{h.parentNote}</p>,
+    render: (h) => <PlainField text={h.parentNote} />,
   },
 ];
 
@@ -133,7 +137,7 @@ function BulletList({ items }: { items: string[] }) {
       {items.map((line, i) => (
         <li key={i} className="flex gap-2 text-sm text-slate-800">
           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500" />
-          <span className="whitespace-pre-wrap">{line}</span>
+          <span className="whitespace-pre-wrap">{stripMarkdownSyntax(line)}</span>
         </li>
       ))}
     </ul>
@@ -154,7 +158,7 @@ function PracticeQuestionList({ questions }: { questions: HomeworkPracticeQuesti
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-orange-600 text-xs font-bold text-white mr-2">
                 {num}
               </span>
-              {q.question}
+              {stripMarkdownSyntax(q.question)}
             </p>
             {(q.type || q.marks != null) ? (
               <div className="pl-8 flex flex-wrap gap-2">
@@ -239,40 +243,9 @@ export function HomeworkCreatorViewer({ content, rawContent, className }: Homewo
   );
 
   const homework = resolved.homework;
-  const hasStructuredBody = Boolean(homework && homeworkHasVisibleContent(homework));
-  const useMarkdown = !!resolved.markdownFallback && !hasStructuredBody;
-
-  if (useMarkdown && resolved.markdownFallback) {
-    const md = resolved.markdownFallback;
-    const looksLikeTemplateSections =
-      /^\s*#{0,3}\s*\d{1,2}\.\s/m.test(md) ||
-      /clear\s+student\s+instructions|practice\s+questions|application|creative|challenge|parent\s+note|answer\s+hints/i.test(
-        md,
-      );
-    if (looksLikeTemplateSections) {
-      return (
-        <div className={className}>
-          <GeneratedRecordBody content={md} stripMetadata={false} />
-        </div>
-      );
-    }
-    return (
-      <div className={className}>
-        <div
-          className="prose prose-sm max-w-none rounded-xl border border-orange-200 bg-white p-4 shadow-sm"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(md) }}
-        />
-      </div>
-    );
-  }
 
   if (!homework || !homeworkHasVisibleContent(homework)) {
-    return (
-      <div className={cn('rounded-xl border border-dashed border-orange-300 bg-orange-50/60 px-6 py-10 text-center', className)}>
-        <FileText className="mx-auto h-9 w-9 text-orange-500/70 mb-2" aria-hidden />
-        <p className="text-sm font-medium text-stone-700">No homework content found</p>
-      </div>
-    );
+    return <StructuredContentRequired className={className} toolLabel="Homework Creator" />;
   }
 
   const filled = HOMEWORK_SECTIONS.filter((s) => s.hasContent(homework)).length;
@@ -283,7 +256,7 @@ export function HomeworkCreatorViewer({ content, rawContent, className }: Homewo
         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-800/80 mb-1">
           1. Homework Title
         </p>
-        <h3 className="text-xl font-bold text-slate-900 leading-tight">{homework.title}</h3>
+        <h3 className="text-xl font-bold text-slate-900 leading-tight">{stripMarkdownSyntax(homework.title)}</h3>
         <p className="text-[11px] text-slate-500 mt-2">
           {filled}/{HOMEWORK_SECTIONS.length} sections filled
         </p>

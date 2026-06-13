@@ -16,18 +16,10 @@ import { looksLikeChapterSummaryContent } from "@/lib/parse-chapter-summary";
 import { looksLikeKeyPointsContent } from "@/lib/parse-key-points";
 import { looksLikeQuickAssignmentContent } from "@/lib/parse-quick-assignment";
 
+import { stripMarkdownSyntax } from '@/lib/strip-markdown-syntax';
+
 export function normalizeGeneratedPlainText(content: string): string {
-  return String(content || "")
-    .replace(/\r\n/g, "\n")
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/\*\*(.*?)\*\*/g, "$1")
-    .replace(/\*(.*?)\*/g, "$1")
-    .replace(/`{1,3}/g, "")
-    .replace(/^[-*_]{3,}\s*$/gm, "")
-    .replace(/\[(.*?)\]\((.*?)\)/g, "$1")
-    .replace(/!\[(.*?)\]\((.*?)\)/g, "$1")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  return stripMarkdownSyntax(content);
 }
 
 type Segment =

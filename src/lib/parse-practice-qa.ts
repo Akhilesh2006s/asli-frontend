@@ -2,6 +2,8 @@
  * Parse Smart Q&A Practice Generator payloads (sections A–G + answer key).
  */
 
+import { isStructuredOnlyViewerMode, absorbStructuredRecords, viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
+
 export type PracticeQaQuestion = {
   questionNumber?: number;
   question: string;
@@ -509,6 +511,16 @@ export function resolvePracticeQaFromPayload(
   content: string,
   rawContent?: unknown,
 ): { practice: NormalizedPracticeQa | null; markdownFallback: string | null } {
+  if (isStructuredOnlyViewerMode()) {
+    const records = absorbStructuredRecords(rawContent);
+    let practice: NormalizedPracticeQa | null = null;
+    for (const rec of records) {
+      const next = materializePracticeQa(rec);
+      practice = practice ? mergePracticeQa(practice, next) : next;
+    }
+    return { practice, markdownFallback: null };
+  }
+
   const records = absorbRawRecords(rawContent);
   let practice: NormalizedPracticeQa | null = null;
 
@@ -566,14 +578,8 @@ export function practiceQaViewerPayloadFromRecord(
     renderContent?: unknown;
   } | null,
 ): { content: string; rawContent?: unknown } {
-  const text = String(record?.generatedContent || record?.content || '').trim();
-  const rawContent =
-    record?.renderContent ??
-    record?.structuredContent ??
-    (record?.metadata && typeof record.metadata === 'object'
-      ? (record as { metadata: { structuredContent?: unknown } }).metadata.structuredContent
-      : record);
-  return { content: text, rawContent };
+  const p = viewerPayloadFromRecord(record);
+  return { content: p.content, rawContent: p.rawContent ?? record?.renderContent };
 }
 
 export function looksLikePracticeQaContent(text: string): boolean {

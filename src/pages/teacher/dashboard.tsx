@@ -85,6 +85,7 @@ import {
   learningPathStatsTotal,
 } from '@/lib/learning-path-stats';
 import { resolveIsAsliPrepExclusive } from '@/lib/school-program';
+import { getVideoDisplayTitle } from '@/lib/video-chapter-schedule';
 
 // PDF Upload removed - AI tools now use Gemini API only
 
@@ -677,7 +678,7 @@ const TeacherDashboard = () => {
             return {
               _id: content._id,
               id: content._id,
-              title: content.title || 'Untitled Video',
+              title: getVideoDisplayTitle({ ...content, type: 'Video' }),
               description: content.description || '',
               fileUrl: videoFileUrl, // Use properly formatted fileUrl from database
               videoUrl: videoFileUrl, // Map fileUrl to videoUrl for compatibility

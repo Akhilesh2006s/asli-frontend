@@ -2309,6 +2309,7 @@ export default function StudentToolPage() {
                       content={generatedContent}
                       rawContent={rawGeneratedContent}
                       variant="student"
+                      toolKind="study-schedule-maker"
                     />
                   ) : isProjectIdeaLab ? (
                     <ActivityProjectViewer

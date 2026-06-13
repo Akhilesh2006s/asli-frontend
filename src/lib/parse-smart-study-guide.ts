@@ -1,4 +1,5 @@
 import { formatLabeledMcqOptions } from '@/lib/parse-exam-question-paper';
+import { isStructuredOnlyViewerMode, absorbStructuredRecords, viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
 
 export type StudyGuideKeyConcept = { name: string; explanation: string };
 export type StudyGuideDefinition = { term: string; definition: string };
@@ -524,29 +525,8 @@ export function studyGuideViewerPayloadFromRecord(
     metadata?: { structuredContent?: unknown };
   } | null,
 ): { content: string; rawContent?: unknown } {
-  const generated = String(record?.generatedContent || record?.content || '').trim();
-  let content = generated;
-  let rawContent =
-    record?.structuredContent ??
-    (record?.metadata && typeof record.metadata === 'object'
-      ? (record.metadata as { structuredContent?: unknown }).structuredContent
-      : undefined);
-
-  if (generated.startsWith('{')) {
-    try {
-      const parsed = JSON.parse(generated) as Record<string, unknown>;
-      const formatted = cleanText(parsed.formatted ?? parsed.markdown);
-      if (formatted) content = formatted;
-      if (parsed.raw && typeof parsed.raw === 'object') rawContent = parsed.raw;
-      if (parsed.structuredContent && typeof parsed.structuredContent === 'object') {
-        rawContent = parsed.structuredContent;
-      }
-    } catch {
-      /* plain markdown */
-    }
-  }
-
-  return { content, rawContent };
+  const p = viewerPayloadFromRecord(record);
+  return { content: p.content, rawContent: p.rawContent };
 }
 
 export function looksLikeStudyGuideContent(text: string): boolean {

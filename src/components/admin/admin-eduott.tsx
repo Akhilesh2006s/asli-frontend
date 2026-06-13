@@ -23,6 +23,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
+import { getVideoDisplayTitle } from '@/lib/video-chapter-schedule';
 import { EduOTTVideoCard, EduOTTSubjectBadges } from '@/components/eduott/EduOTTVideoCard';
 import { EduOTTVideoPlayerDialog } from '@/components/eduott/EduOTTVideoPlayerDialog';
 import type { EduOTTVideoCardItem } from '@/components/eduott/EduOTTVideoCard';
@@ -157,7 +158,7 @@ export default function AdminEduOTT() {
 
             return {
               _id: content._id,
-              title: content.title || 'Untitled Video',
+              title: getVideoDisplayTitle({ ...content, type: 'Video' }),
               description: content.description || '',
               duration: durationInMinutes,
               durationSeconds: durationInSeconds,
