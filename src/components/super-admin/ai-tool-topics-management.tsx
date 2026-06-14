@@ -278,7 +278,7 @@ export default function AiToolTopicsManagement() {
 
       if (subTopicsRes?.ok) {
         const subTopicsJson = await subTopicsRes.json();
-        setHierarchySubTopics(sortNatural(subTopicsJson?.data?.subTopics || []));
+        setHierarchySubTopics(subTopicsJson?.data?.subTopics || []);
       } else {
         setHierarchySubTopics([]);
       }
@@ -793,27 +793,30 @@ export default function AiToolTopicsManagement() {
         }}
       >
         <DialogContent
-          className="sm:max-w-xl"
+          className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-xl"
           aria-labelledby="ai-tool-topic-dialog-title"
           aria-describedby="ai-tool-topic-dialog-description"
         >
-          <DialogHeader>
-            <DialogTitle id="ai-tool-topic-dialog-title">
-              {dialogMode === 'edit'
-                ? 'Edit AI Tool Topic'
-                : dialogMode === 'addSubTopic'
-                  ? 'Add Sub Topics to Existing Topic'
-                  : 'Add AI Tool Topic'}
-            </DialogTitle>
-            <DialogDescription id="ai-tool-topic-dialog-description">
-              {dialogMode === 'addSubTopic'
-                ? 'Add sub-topics one at a time under the selected topic.'
-                : dialogMode === 'edit'
-                  ? 'Update this topic mapping.'
-                  : 'Create a topic and add sub-topics one at a time.'}
-            </DialogDescription>
-          </DialogHeader>
+          <div className="shrink-0 border-b px-4 pb-4 pt-4 sm:px-6 sm:pt-6">
+            <DialogHeader>
+              <DialogTitle id="ai-tool-topic-dialog-title">
+                {dialogMode === 'edit'
+                  ? 'Edit AI Tool Topic'
+                  : dialogMode === 'addSubTopic'
+                    ? 'Add Sub Topics to Existing Topic'
+                    : 'Add AI Tool Topic'}
+              </DialogTitle>
+              <DialogDescription id="ai-tool-topic-dialog-description">
+                {dialogMode === 'addSubTopic'
+                  ? 'Add sub-topics one at a time under the selected topic.'
+                  : dialogMode === 'edit'
+                    ? 'Update this topic mapping.'
+                    : 'Create a topic and add sub-topics one at a time.'}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
 
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>Board</Label>
@@ -983,15 +986,16 @@ export default function AiToolTopicsManagement() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Add each sub-topic separately — press Add or Enter after each one.
+                  {pendingSubTopics.length > 0 ? ` (${pendingSubTopics.length} added)` : ''}
                 </p>
                 {pendingSubTopics.length > 0 && (
-                  <ul className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <ul className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3 sm:max-h-56">
                     {pendingSubTopics.map((item, index) => (
                       <li
                         key={`${item}-${index}`}
-                        className="flex items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                        className="flex items-start justify-between gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
                       >
-                        <span className="min-w-0 flex-1 truncate">{item}</span>
+                        <span className="min-w-0 flex-1 break-words">{item}</span>
                         <Button
                           type="button"
                           size="icon"
@@ -1009,8 +1013,9 @@ export default function AiToolTopicsManagement() {
               </div>
             )}
           </div>
+          </div>
 
-          <DialogFooter>
+          <DialogFooter className="shrink-0 border-t bg-background px-4 py-4 sm:px-6">
             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={submitting}>
               Cancel
             </Button>

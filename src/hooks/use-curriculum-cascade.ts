@@ -259,9 +259,12 @@ export function useCurriculumCascade(
         if (cancelled) return;
         const curriculumSubtopics = rowsToNames((data as { data?: CurriculumRow[] }).data);
         const managedSubtopics = (managed as { data?: { subTopics?: string[] } })?.data?.subTopics || [];
-        const allSubtopics = curriculumSubtopics.concat(managedSubtopics).filter(Boolean);
-        const uniqueSubtopics = allSubtopics.filter((subtopic, index) => allSubtopics.indexOf(subtopic) === index);
-        setSubtopics(sortChapterWiseLabels(uniqueSubtopics));
+        const managedSet = new Set(managedSubtopics);
+        const combined = [...managedSubtopics];
+        for (const subtopic of curriculumSubtopics) {
+          if (subtopic && !managedSet.has(subtopic)) combined.push(subtopic);
+        }
+        setSubtopics(combined);
       } catch {
         if (!cancelled) setSubtopics([]);
       } finally {
