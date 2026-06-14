@@ -1,6 +1,7 @@
 import {
   examPaperHasQuestions,
   mergeExamPapers,
+  dedupeAndRenumberExamPaper,
   parseMockTestMarkdown,
   parseMockTestQuestionPaperBody,
   resolveExamPaperFromPayload,
@@ -414,6 +415,10 @@ export function resolveMockTestFromPayload(content: string, rawContent?: unknown
   };
 
   let paper = enrichMockTestPaper(resolved.paper, sources, contentText, meta);
+
+  if (paper) {
+    paper = dedupeAndRenumberExamPaper(paper);
+  }
 
   if (!meta.answerKey.trim()) {
     meta = { ...meta, answerKey: cleanText(parseNumberedMarkdownSections(contentText).get(7) || paper?.answerKey || '') };

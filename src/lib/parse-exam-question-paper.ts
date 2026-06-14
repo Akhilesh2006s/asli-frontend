@@ -777,6 +777,38 @@ export function mergeExamPapers(
   };
 }
 
+function examQuestionDedupeKey(q: ExamQuestion): string {
+  const stem = cleanText(q.question).toLowerCase().replace(/\s+/g, ' ').slice(0, 240);
+  const opts = q.options
+    .map((o) => cleanText(o).toLowerCase().replace(/\s+/g, ' '))
+    .filter(Boolean)
+    .join('|');
+  return `${stem}|${opts}`;
+}
+
+/** Remove duplicate questions and renumber 1..n globally (fixes book-RAG mock test display). */
+export function dedupeAndRenumberExamPaper(paper: NormalizedExamPaper | null): NormalizedExamPaper | null {
+  if (!paper) return null;
+  const seen = new Set<string>();
+  let n = 1;
+  const sections = paper.sections.map((sec) => ({
+    ...sec,
+    questions: sec.questions
+      .filter((q) => {
+        if (!cleanText(q.question) && q.options.length === 0) return false;
+        const key = examQuestionDedupeKey(q);
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map((q) => ({
+        ...q,
+        questionNumber: String(n++),
+      })),
+  }));
+  return { ...paper, sections };
+}
+
 function parseMarkdownExam(markdown: string): NormalizedExamPaper | null {
   const lines = String(markdown || '').split('\n');
   const numberedSections = new Map<number, string[]>();
