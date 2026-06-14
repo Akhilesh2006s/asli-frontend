@@ -187,13 +187,47 @@ function pickFirstKey(record: Record<string, unknown>, keys: string[]): unknown 
   return undefined;
 }
 
+function examQuestionDedupeKey(q: ExamQuestion): string {
+  const stem = cleanText(q.question).toLowerCase().replace(/\s+/g, ' ');
+  const opts = q.options.map((o) => cleanText(o).toLowerCase()).join('|');
+  return `${stem}|${opts}`;
+}
+
+function dedupeExamQuestions(questions: ExamQuestion[]): ExamQuestion[] {
+  const seen = new Set<string>();
+  const out: ExamQuestion[] = [];
+  for (const q of questions) {
+    const key = examQuestionDedupeKey(q);
+    if (!stemHasContent(key) || seen.has(key)) continue;
+    seen.add(key);
+    out.push({ ...q, questionNumber: String(out.length + 1) });
+  }
+  return out;
+}
+
+function stemHasContent(key: string): boolean {
+  const stem = key.split('|')[0] || '';
+  return stem.trim().length > 8;
+}
+
+function sectionKeysWithContent(record: Record<string, unknown>): Set<string> {
+  const filled = new Set<string>();
+  for (const sec of SECTION_META) {
+    const raw = pickFirstKey(record, sec.keys);
+    if (Array.isArray(raw) && raw.length > 0) filled.add(sec.id);
+  }
+  return filled;
+}
+
 function normalizeSection(record: Record<string, unknown>, id: string, title: string, keys: string[]): ExamSection {
   const raw = pickFirstKey(record, keys);
   const list = Array.isArray(raw) ? raw : [];
   return {
     id,
     title,
-    questions: list.map((q, i) => normalizeQuestion(q, i)).filter((q) => q.question || q.options.length > 0),
+    questions: dedupeExamQuestions(
+      list.map((q, i) => normalizeQuestion(q, i)).filter((q) => q.question || q.options.length > 0),
+    ),
   };
 }
 
@@ -236,14 +270,17 @@ function groupFlatQuestionsIntoSections(questions: ExamQuestion[]): ExamSection[
 
 function normalizeExam(record: Record<string, unknown>): NormalizedExamPaper {
   const sections = SECTION_META.map((sec) => normalizeSection(record, sec.id, sec.title, sec.keys));
+  const filledFromKeys = sectionKeysWithContent(record);
   if (Array.isArray(record.sections) && record.sections.length) {
     for (const sec of record.sections) {
       if (!sec || typeof sec !== 'object') continue;
       const row = sec as Record<string, unknown>;
       const name = cleanText(row.sectionName || row.name || row.title || '').toLowerCase();
-      const questions = (Array.isArray(row.questions) ? row.questions : [])
-        .map((q, i) => normalizeQuestion(q, i))
-        .filter((q) => q.question || q.options.length > 0);
+      const questions = dedupeExamQuestions(
+        (Array.isArray(row.questions) ? row.questions : [])
+          .map((q, i) => normalizeQuestion(q, i))
+          .filter((q) => q.question || q.options.length > 0),
+      );
       if (!questions.length) continue;
       const target =
         /^section\s*a|mcq/.test(name)
@@ -260,10 +297,14 @@ function normalizeExam(record: Record<string, unknown>): NormalizedExamPaper {
       if (target) {
         const idx = sections.findIndex((s) => s.id === target);
         if (idx >= 0) {
+          if (filledFromKeys.has(target) && sections[idx].questions.length > 0) continue;
           sections[idx] = {
             ...sections[idx],
             title: cleanText(row.sectionName || row.name || sections[idx].title),
-            questions: [...sections[idx].questions, ...questions],
+            questions:
+              sections[idx].questions.length > 0
+                ? dedupeExamQuestions([...sections[idx].questions, ...questions])
+                : questions,
           };
         }
       }
@@ -341,7 +382,10 @@ function normalizeExam(record: Record<string, unknown>): NormalizedExamPaper {
     ),
     instructions: cleanText(record.instructions),
     blueprint,
-    sections: mergedSections,
+    sections: mergedSections.map((s) => ({
+      ...s,
+      questions: dedupeExamQuestions(s.questions),
+    })),
     internalChoices: cleanText(record.internal_choices),
     answerKey: cleanText(record.answer_key),
     markingScheme: cleanText(record.marking_scheme),
