@@ -128,14 +128,14 @@ function RichTextBlock({ text, className }: { text: string; className?: string }
 
 function QuestionCard({
   question,
-  displayNumber,
+  index,
   showAnswer,
 }: {
   question: ExamQuestion;
-  displayNumber: string;
+  index: number;
   showAnswer: boolean;
 }) {
-  const qNo = displayNumber;
+  const qNo = question.questionNumber || String(index + 1);
   const inline =
     question.options.length < 2 ? extractInlineMcqFromQuestionText(question.question) : null;
   const questionText =
@@ -194,15 +194,7 @@ function QuestionCard({
   );
 }
 
-function ExamSectionBlock({
-  section,
-  showAnswers,
-  questionOffset,
-}: {
-  section: ExamSection;
-  showAnswers: boolean;
-  questionOffset: number;
-}) {
+function ExamSectionBlock({ section, showAnswers }: { section: ExamSection; showAnswers: boolean }) {
   return (
     <div className="rounded-xl border border-rose-200/80 bg-white/90 p-3">
       <div className="mb-2 flex items-center justify-between gap-2 border-b border-rose-100 pb-2">
@@ -214,12 +206,7 @@ function ExamSectionBlock({
       {section.questions.length > 0 ? (
         <div className="space-y-2">
           {section.questions.map((q, idx) => (
-            <QuestionCard
-              key={`${section.id}-${idx}`}
-              question={q}
-              displayNumber={String(questionOffset + idx + 1)}
-              showAnswer={showAnswers}
-            />
+            <QuestionCard key={`${section.id}-${idx}`} question={q} index={idx} showAnswer={showAnswers} />
           ))}
         </div>
       ) : (
@@ -331,21 +318,9 @@ export function MockTestViewer({ content, rawContent, className }: MockTestViewe
     >
       {activeSections.length > 0 ? (
         <div className="space-y-3">
-          {(() => {
-            let runningOffset = 0;
-            return activeSections.map((sec) => {
-              const offset = runningOffset;
-              runningOffset += sec.questions.length;
-              return (
-                <ExamSectionBlock
-                  key={sec.id}
-                  section={sec}
-                  showAnswers={false}
-                  questionOffset={offset}
-                />
-              );
-            });
-          })()}
+          {activeSections.map((sec) => (
+            <ExamSectionBlock key={sec.id} section={sec} showAnswers={false} />
+          ))}
         </div>
       ) : questionPaperMarkdown ? (
         <div
