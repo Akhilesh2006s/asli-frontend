@@ -20,4 +20,6 @@ export type SuperAdminView =
   | 'add-admin'
   | 'calendar'
   | 'ai-content-engine'
-  | 'ai-generator';
+  | 'ai-generator'
+  | 'book-knowledge-base'
+  | 'book-based-generator';

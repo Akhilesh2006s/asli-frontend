@@ -1,5 +1,6 @@
 import {
-  BarChart3Icon,
+  BookOpen,
+  BarChart3 as BarChart3Icon,
   BarChartIcon,
   Calendar,
   CircleDot,
@@ -49,6 +50,8 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
     { id: 'ai-tool-generations', label: 'AI Tool Data', icon: FolderTree },
     { id: 'ai-tool-topics', label: 'AI Tool Topics', icon: CircleDot },
     { id: 'ai-generator', label: 'AI Generator', icon: Sparkles },
+    { id: 'book-knowledge-base', label: 'Book Knowledge Base', icon: BookOpen },
+    { id: 'book-based-generator', label: 'Book-Based Generator', icon: BookOpen },
     { id: 'ai-content-engine', label: 'AI PDF', icon: UploadIcon },
     { id: 'analytics', label: 'Analytics', icon: BarChartIcon },
     { id: 'subscriptions', label: 'Subscriptions', icon: CreditCardIcon },
