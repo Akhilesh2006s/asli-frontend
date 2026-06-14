@@ -13,6 +13,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import { displayQuestionSerial } from '@/lib/renumber-questions';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';

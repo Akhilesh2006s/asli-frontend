@@ -12,6 +12,7 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { displayQuestionSerial } from '@/lib/renumber-questions';
 import { stripMarkdownSyntax } from '@/lib/strip-markdown-syntax';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
