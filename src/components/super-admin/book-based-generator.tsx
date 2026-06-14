@@ -242,9 +242,14 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
       });
     } else {
       const failures = data.failures as string[] | undefined;
+      const failedCount = Number(data.failedCount) || 0;
+      const failNote =
+        failures?.length && failedCount > 0
+          ? `${failedCount} slot(s) failed. ${failures[0]}${failures.length > 1 ? ` (+${failures.length - 1} more)` : ''}`
+          : json.message || "No records were saved.";
       toast({
         title: "Batch failed",
-        description: failures?.[0] || json.message || "No records were saved.",
+        description: failNote,
         variant: "destructive",
       });
     }
