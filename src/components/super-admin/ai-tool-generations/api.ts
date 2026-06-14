@@ -46,6 +46,7 @@ export async function fetchMeta(params: Record<string, string> = {}) {
 
 export type RecordRow = {
   _id: string;
+  sourceType?: string;
   board?: string;
   toolName: string;
   toolDisplayName?: string;

@@ -91,6 +91,13 @@ function isShortNotesToolValue(v: unknown): boolean {
   return t === "short-notes-summaries-maker";
 }
 
+function isBookGroundedRow(row: RecordRow): boolean {
+  if (row.sourceType === "book_rag") return true;
+  const meta = row.metadata;
+  if (!meta || typeof meta !== "object") return false;
+  return Boolean(meta.bookGenerator) || meta.formatSource === "bookRag";
+}
+
 export function SubtopicRecordsSection({
   parents,
 }: {
@@ -318,7 +325,17 @@ export function SubtopicRecordsSection({
                       <Calendar className="h-3.5 w-3.5 text-slate-400" />
                       {row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"}
                     </span>
-                    <Badge variant="outline" className="text-[10px]">{row.board || "—"}</Badge>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge variant="outline" className="text-[10px]">{row.board || "—"}</Badge>
+                      {isBookGroundedRow(row) ? (
+                        <Badge variant="outline" className="text-[10px] border-violet-200 text-violet-800 bg-violet-50">
+                          Book-based
+                          {typeof row.metadata?.bookTitle === "string" && row.metadata.bookTitle
+                            ? ` · ${row.metadata.bookTitle}`
+                            : ""}
+                        </Badge>
+                      ) : null}
+                    </div>
                     <div className="flex items-center gap-1">
                       <Button
                         size="sm"

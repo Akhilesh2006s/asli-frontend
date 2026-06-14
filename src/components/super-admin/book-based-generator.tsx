@@ -5,15 +5,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { BookOpen, CheckCircle2, ExternalLink, Eye, FileText, IndianRupee, Loader2, Sparkles, Trash2 } from "lucide-react";
+import { BookOpen, CheckCircle2, ExternalLink, FileText, FolderTree, IndianRupee, Loader2, Sparkles } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
 import { useToast } from "@/hooks/use-toast";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
 import { cn } from "@/lib/utils";
-import { stripMarkdownSyntax } from "@/lib/strip-markdown-syntax";
-import { extractMcqQuestionsFromRecord, isMcqTool } from "@/lib/mcq-record-utils";
 import {
   BOOK_BASED_TOOLS,
   BOOK_GENERATOR_BATCH_SIZE,
@@ -28,19 +24,6 @@ import {
   type GeminiCostEstimate,
   type TokenTotals,
 } from "@/lib/gemini-token-cost";
-import { GeneratedRecordBody } from "@/components/super-admin/generated-record-body";
-import { WorksheetMcqViewer } from "@/components/worksheet-mcq-viewer";
-import { HomeworkCreatorViewer } from "@/components/homework-creator-viewer";
-import { LessonPlannerViewer } from "@/components/lesson-planner-viewer";
-import { FlashcardViewer } from "@/components/flashcard-viewer";
-import { MyStudyDecksViewer, deckViewerPayloadFromRecord } from "@/components/my-study-decks-viewer";
-import { MockTestViewer, mockTestViewerPayloadFromRecord } from "@/components/mock-test-viewer";
-import { ExamQuestionPaperViewer } from "@/components/exam-question-paper-viewer";
-import { SmartStudyGuideViewer, studyGuideViewerPayloadFromRecord } from "@/components/smart-study-guide-viewer";
-import { ConceptBreakdownViewer, conceptBreakdownViewerPayloadFromRecord } from "@/components/concept-breakdown-viewer";
-import { PracticeQaViewer, practiceQaViewerPayloadFromRecord } from "@/components/practice-qa-viewer";
-import { KeyPointsViewer, keyPointsViewerPayloadFromRecord } from "@/components/key-points-viewer";
-import { ShortNotesViewer } from "@/components/short-notes-viewer";
 
 type BookOption = {
   _id: string;
@@ -55,117 +38,6 @@ type BookOption = {
   embeddingsCreated?: boolean;
 };
 
-type BookRecord = {
-  _id: string;
-  toolName?: string;
-  toolSlug?: string;
-  topic?: string;
-  subtopic?: string;
-  generatedContent: string;
-  createdAt?: string;
-  metadata?: {
-    bookTitle?: string;
-    structuredContent?: unknown;
-    ragChunkCount?: number;
-    extraParams?: { generationVariant?: number; variantAngle?: string };
-    generationVariant?: number;
-  };
-  generationVariant?: number | null;
-  variantAngle?: string;
-};
-
-type GroupedSubtopic = { subtopicName: string; records: BookRecord[] };
-type GroupedTopic = { topicName: string; subtopics: GroupedSubtopic[] };
-type GroupedSubject = { subjectName: string; topics: GroupedTopic[] };
-type GroupedClass = { className: string; boardName?: string; subjects: GroupedSubject[] };
-type GroupedTool = { toolName: string; toolSlug: string; classes: GroupedClass[] };
-
-function groupRecordsForTree(items: BookRecord[]): GroupedTool[] {
-  const toolMap = new Map<string, GroupedTool>();
-
-  for (const record of items) {
-    const slug = String(record.toolSlug || record.toolName || "").trim();
-    const display = String(record.toolName || slug).trim();
-    if (!slug) continue;
-
-    const toolKey = `${slug}::${display}`;
-    if (!toolMap.has(toolKey)) {
-      toolMap.set(toolKey, { toolName: display, toolSlug: slug, classes: [] });
-    }
-    const toolNode = toolMap.get(toolKey)!;
-
-    const boardName = String((record as any).boardName || (record as any).board || "").trim();
-    const className = String((record as any).className || (record as any).classLabel || "").trim();
-    let classNode = toolNode.classes.find(
-      (x) => x.className === className && String(x.boardName || "") === boardName,
-    );
-    if (!classNode) {
-      classNode = { className, boardName, subjects: [] };
-      toolNode.classes.push(classNode);
-    }
-
-    const subjectName = String((record as any).subjectName || (record as any).subject || "").trim();
-    let subjectNode = classNode.subjects.find((x) => x.subjectName === subjectName);
-    if (!subjectNode) {
-      subjectNode = { subjectName, topics: [] };
-      classNode.subjects.push(subjectNode);
-    }
-
-    const topicName = String((record as any).topicName || (record as any).topic || "General").trim() || "General";
-    let topicNode = subjectNode.topics.find((x) => x.topicName === topicName);
-    if (!topicNode) {
-      topicNode = { topicName, subtopics: [] };
-      subjectNode.topics.push(topicNode);
-    }
-
-    const subtopicName = String((record as any).subtopicName || (record as any).subtopic || "").trim();
-    let subtopicNode = topicNode.subtopics.find((x) => x.subtopicName === subtopicName);
-    if (!subtopicNode) {
-      subtopicNode = { subtopicName, records: [] };
-      topicNode.subtopics.push(subtopicNode);
-    }
-
-    subtopicNode.records.push({
-      ...record,
-      toolSlug: slug,
-      toolName: display,
-      generationVariant:
-        record.generationVariant ??
-        record.metadata?.generationVariant ??
-        record.metadata?.extraParams?.generationVariant ??
-        null,
-      variantAngle: record.variantAngle || record.metadata?.extraParams?.variantAngle || "",
-    });
-  }
-
-  return Array.from(toolMap.values());
-}
-
-function parseRecordsPayload(data: unknown): { tree: GroupedTool[]; total: number } {
-  if (data && typeof data === "object" && Array.isArray((data as { grouped?: GroupedTool[] }).grouped)) {
-    const payload = data as { grouped: GroupedTool[]; total?: number };
-    return { tree: payload.grouped, total: Number(payload.total ?? payload.grouped.length) || 0 };
-  }
-  if (Array.isArray(data)) {
-    const tree = groupRecordsForTree(data as BookRecord[]);
-    return { tree, total: data.length };
-  }
-  return { tree: [], total: 0 };
-}
-
-function recordPreviewText(toolSlug: string, generatedContent: string, record?: BookRecord) {
-  const slug = String(toolSlug || "").trim();
-  if (slug === "my-study-decks") {
-    const { content } = deckViewerPayloadFromRecord({ generatedContent, metadata: record?.metadata });
-    return stripMarkdownSyntax(content).slice(0, 400);
-  }
-  if (slug === "mock-test-builder") {
-    const { content } = mockTestViewerPayloadFromRecord({ generatedContent, metadata: record?.metadata });
-    return stripMarkdownSyntax(content).split("\n").find((l) => l.trim())?.slice(0, 200) || "Mock Test";
-  }
-  return stripMarkdownSyntax(String(generatedContent || "")).slice(0, 400);
-}
-
 function statusBadge(status?: string, indexed?: boolean) {
   if (indexed || status === "indexed") return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Ready</Badge>;
   if (status === "processing") return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Indexing…</Badge>;
@@ -176,9 +48,10 @@ function statusBadge(status?: string, indexed?: boolean) {
 
 type BookBasedGeneratorProps = {
   onOpenBookKnowledge?: () => void;
+  onOpenAiToolData?: () => void;
 };
 
-export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGeneratorProps) {
+export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolData }: BookBasedGeneratorProps) {
   const { toast } = useToast();
   const [selectedTool, setSelectedTool] = useState<BookBasedToolId | "">("");
   const [boardOptions, setBoardOptions] = useState<string[]>([]);
@@ -191,11 +64,6 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
   const [useBookKnowledge, setUseBookKnowledge] = useState(true);
   const [books, setBooks] = useState<BookOption[]>([]);
   const [booksLoading, setBooksLoading] = useState(false);
-  const [recordsTree, setRecordsTree] = useState<GroupedTool[]>([]);
-  const [recordsTotal, setRecordsTotal] = useState(0);
-  const [recordsBoardFilter, setRecordsBoardFilter] = useState("__all__");
-  const [recordsLoading, setRecordsLoading] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationLocked, setGenerationLocked] = useState(false);
   const [progress, setProgress] = useState("");
@@ -205,7 +73,6 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
     tokenUsage: TokenTotals;
     cost: GeminiCostEstimate;
   } | null>(null);
-  const [activeRecord, setActiveRecord] = useState<BookRecord | null>(null);
 
   const {
     classOptions,
@@ -249,51 +116,6 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
       setBooks([]);
     } finally {
       setBooksLoading(false);
-    }
-  };
-
-  const loadRecords = async (boardOverride?: string) => {
-    setRecordsLoading(true);
-    try {
-      const qs = new URLSearchParams();
-      const boardFilter = boardOverride ?? recordsBoardFilter;
-      if (boardFilter && boardFilter !== "__all__") {
-        qs.set("board", boardFilter);
-      }
-      const res = await fetch(`${API_BASE_URL}/api/book-generator/records?${qs}`, { headers: { ...authHeaders() } });
-      const json = await res.json();
-      if (json.success) {
-        const { tree, total } = parseRecordsPayload(json.data);
-        setRecordsTree(tree);
-        setRecordsTotal(total);
-      } else {
-        setRecordsTree([]);
-        setRecordsTotal(0);
-      }
-    } catch {
-      setRecordsTree([]);
-      setRecordsTotal(0);
-    } finally {
-      setRecordsLoading(false);
-    }
-  };
-
-  const deleteRecord = async (id: string) => {
-    if (!window.confirm("Delete this record permanently?")) return;
-    setDeletingId(id);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/book-generator/records/${id}`, {
-        method: "DELETE",
-        headers: { ...authHeaders() },
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.message || "Delete failed");
-      toast({ title: "Deleted", description: "Record deleted." });
-      await loadRecords();
-    } catch (e: any) {
-      toast({ title: "Delete failed", description: e.message, variant: "destructive" });
-    } finally {
-      setDeletingId(null);
     }
   };
 
@@ -373,10 +195,6 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
     setSubTopic("");
   };
 
-  useEffect(() => {
-    void loadRecords();
-  }, [recordsBoardFilter]);
-
   const buildGenerationPayload = (forceUnlock = false) => ({
     toolSlug: selectedTool,
     bookId,
@@ -415,9 +233,10 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
 
     const tokenNote = `${formatTokenCount(tokenUsage.totalTokens)} tokens · Est. ${formatInr(cost.inr)}`;
     if (savedCount > 0) {
-      toast({ title: `${savedCount}/${data.batchSize || BOOK_GENERATOR_BATCH_SIZE} records saved`, description: tokenNote });
-      setRecordsBoardFilter("__all__");
-      await loadRecords("__all__");
+      toast({
+        title: `${savedCount}/${data.batchSize || BOOK_GENERATOR_BATCH_SIZE} saved to AI Tool Data`,
+        description: `${tokenNote}. Open AI Tool Data in the sidebar to browse, edit, or delete.`,
+      });
     } else {
       const failures = data.failures as string[] | undefined;
       toast({
@@ -425,7 +244,6 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
         description: failures?.[0] || json.message || "No records were saved.",
         variant: "destructive",
       });
-      await loadRecords();
     }
   };
 
@@ -475,7 +293,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
 
     toast({
       title: "Still generating",
-      description: "The batch is taking longer than expected. Check Records in a few minutes.",
+      description: "The batch is taking longer than expected. Check AI Tool Data in a few minutes.",
     });
   };
 
@@ -566,28 +384,6 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
     }
   };
 
-  const renderViewer = (rec: BookRecord) => {
-    const slug = rec.toolSlug || rec.toolName || "";
-    const payload = { generatedContent: rec.generatedContent, metadata: rec.metadata, toolSlug: slug, toolName: slug };
-    if (slug === "my-study-decks") return <MyStudyDecksViewer {...deckViewerPayloadFromRecord(payload)} />;
-    if (slug === "flashcard-generator") return <FlashcardViewer content={rec.generatedContent} variant="teacher" />;
-    if (slug === "worksheet-mcq-generator") return <WorksheetMcqViewer content={rec.generatedContent} rawContent={rec} variant="teacher" />;
-    if (slug === "lesson-planner") return <LessonPlannerViewer content={rec.generatedContent} rawContent={rec} variant="teacher" toolKind="lesson-planner" />;
-    if (slug === "homework-creator") return <HomeworkCreatorViewer content={rec.generatedContent} rawContent={rec} />;
-    if (slug === "mock-test-builder") return <MockTestViewer {...mockTestViewerPayloadFromRecord(payload)} />;
-    if (slug === "exam-question-paper-generator") return <ExamQuestionPaperViewer content={rec.generatedContent} rawContent={rec.metadata?.structuredContent || rec} variant="teacher" />;
-    if (slug === "smart-study-guide-generator") return <SmartStudyGuideViewer {...studyGuideViewerPayloadFromRecord(payload)} />;
-    if (slug === "concept-breakdown-explainer") return <ConceptBreakdownViewer {...conceptBreakdownViewerPayloadFromRecord(payload)} />;
-    if (slug === "smart-qa-practice-generator") return <PracticeQaViewer {...practiceQaViewerPayloadFromRecord(payload)} />;
-    if (slug === "key-points-formula-extractor") return <KeyPointsViewer {...keyPointsViewerPayloadFromRecord(payload)} />;
-    if (slug === "short-notes-summaries-maker") return <ShortNotesViewer content={rec.generatedContent} rawContent={rec.metadata?.structuredContent || rec} />;
-    return <GeneratedRecordBody content={rec.generatedContent} />;
-  };
-
-  const openView = (row: BookRecord) => {
-    setActiveRecord(row);
-  };
-
   return (
     <div className="w-full max-w-[min(100%,1400px)] mx-auto space-y-6">
       <div>
@@ -597,9 +393,11 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
         </h1>
         <p className="text-sm text-slate-600 mt-1">
           Select an indexed textbook → pick curriculum topic/sub-topic → generate content grounded in your book.
+          Saved batches go to <strong>AI Tool Data</strong> — the same place teachers and students load content from.
         </p>
         <p className="text-xs text-slate-500 mt-1">
-          Upload PDFs in <strong>Book Knowledge Base</strong> (sidebar). This page is only for generation.
+          Upload PDFs in <strong>Book Knowledge Base</strong> (sidebar). Browse or edit saved output in{" "}
+          <strong>AI Tool Data</strong> (sidebar).
         </p>
       </div>
 
@@ -859,224 +657,32 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="space-y-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <CardTitle className="mb-0 text-lg">Records ({recordsTotal})</CardTitle>
-            <div className="flex flex-col gap-1.5 sm:w-64">
-              <Label className="text-xs text-slate-600">Filter by board</Label>
-              <Select value={recordsBoardFilter} onValueChange={setRecordsBoardFilter}>
-                <SelectTrigger><SelectValue placeholder="Board" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">All boards</SelectItem>
-                  {boardOptions.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <p className="text-xs text-slate-500">
-            Showing book-grounded records for:{" "}
-            <span className="font-medium text-slate-700">
-              {recordsBoardFilter === "__all__" ? "All boards" : recordsBoardFilter}
-            </span>
+      <Card className="border-orange-200/80 bg-gradient-to-br from-white via-orange-50/20 to-amber-50/10">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <FolderTree className="h-5 w-5 text-orange-600" />
+            Saved content → AI Tool Data
+          </CardTitle>
+          <p className="text-sm text-slate-500 font-normal">
+            Every successful batch is stored in <strong>AI Tool Data</strong> alongside AI Generator and PDF uploads.
+            That is the single source teachers and students use — browse by tool → class → subject → topic → subtopic.
           </p>
         </CardHeader>
-        <CardContent>
-          {recordsLoading ? (
-            <div className="flex items-center gap-2 text-sm text-slate-600 py-8 justify-center">
-              <Loader2 className="h-4 w-4 animate-spin text-violet-500" />
-              Loading records...
-            </div>
-          ) : recordsTree.length === 0 ? (
-            <p className="text-sm text-slate-500 text-center py-8">
-              No book-grounded records
-              {recordsBoardFilter !== "__all__" ? ` for board “${recordsBoardFilter}”. Try “All boards”.` : " yet. Select a textbook, pick curriculum, then generate."}
-            </p>
-          ) : (
-            <Accordion type="multiple" className="w-full">
-              {recordsTree.map((toolNode) => (
-                <AccordionItem key={toolNode.toolSlug} value={`tool-${toolNode.toolSlug}`} className="border rounded-xl px-3 mb-3">
-                  <AccordionTrigger className="hover:no-underline">
-                    <div className="text-left">
-                      <p className="font-semibold">{toolNode.toolName}</p>
-                      <p className="text-xs text-slate-500">{toolNode.toolSlug}</p>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <p className="text-xs text-slate-500 mb-3">Classes in this tool</p>
-                    <Accordion type="multiple" className="w-full">
-                      {toolNode.classes.map((classNode) => (
-                        <AccordionItem
-                          key={`${toolNode.toolSlug}-${classNode.className}`}
-                          value={`class-${toolNode.toolSlug}-${classNode.className}`}
-                          className="border rounded-lg px-3 mb-2"
-                        >
-                          <AccordionTrigger className="hover:no-underline">
-                            <div className="text-left">
-                              <p className="text-xs text-slate-500">CLASS</p>
-                              <p className="font-medium">
-                                {classNode.className}
-                                {classNode.boardName ? ` (${classNode.boardName})` : ""}
-                              </p>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <Accordion type="multiple" className="w-full">
-                              {classNode.subjects.map((subjectNode) => (
-                                <AccordionItem
-                                  key={`${classNode.className}-${subjectNode.subjectName}`}
-                                  value={`subject-${classNode.className}-${subjectNode.subjectName}`}
-                                  className="border rounded-lg px-3 mb-2"
-                                >
-                                  <AccordionTrigger className="hover:no-underline">
-                                    <div className="text-left">
-                                      <p className="text-xs text-slate-500">SUBJECT</p>
-                                      <p className="font-medium">{subjectNode.subjectName}</p>
-                                    </div>
-                                  </AccordionTrigger>
-                                  <AccordionContent>
-                                    <Accordion type="multiple" className="w-full">
-                                      {subjectNode.topics.map((topicNode) => (
-                                        <AccordionItem
-                                          key={`${subjectNode.subjectName}-${topicNode.topicName}`}
-                                          value={`topic-${subjectNode.subjectName}-${topicNode.topicName}`}
-                                          className="border rounded-lg px-3 mb-2"
-                                        >
-                                          <AccordionTrigger className="hover:no-underline">
-                                            <div className="text-left">
-                                              <p className="text-xs text-slate-500">TOPIC</p>
-                                              <p className="font-medium">{topicNode.topicName || "General"}</p>
-                                            </div>
-                                          </AccordionTrigger>
-                                          <AccordionContent>
-                                            <Accordion type="multiple" className="w-full">
-                                              {topicNode.subtopics.map((subtopicNode) => (
-                                                <AccordionItem
-                                                  key={`${topicNode.topicName}-${subtopicNode.subtopicName}`}
-                                                  value={`subtopic-${topicNode.topicName}-${subtopicNode.subtopicName}`}
-                                                  className="border rounded-lg px-3 mb-2"
-                                                >
-                                                  <AccordionTrigger className="hover:no-underline">
-                                                    <div className="text-left">
-                                                      <p className="text-xs text-slate-500">SUBTOPIC</p>
-                                                      <p className="font-medium">{subtopicNode.subtopicName}</p>
-                                                    </div>
-                                                  </AccordionTrigger>
-                                                  <AccordionContent>
-                                                    <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/30 to-violet-50/20 shadow-sm overflow-hidden">
-                                                      <div className="border-b border-slate-100/80 bg-white/80 px-4 py-3">
-                                                        <p className="text-xs text-slate-500">RECORDS</p>
-                                                        <p className="text-sm font-semibold text-slate-900">
-                                                          {subtopicNode.records.length} generation{subtopicNode.records.length === 1 ? "" : "s"}
-                                                        </p>
-                                                      </div>
-                                                      <div className="p-4 space-y-3">
-                                                        {subtopicNode.records.map((row) => (
-                                                          <div
-                                                            key={row._id}
-                                                            className="group rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm transition-all hover:border-violet-200/80 hover:shadow-md"
-                                                          >
-                                                            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                                                              <div className="flex flex-wrap items-center gap-2">
-                                                                <p className="text-xs text-slate-500">
-                                                                  {row.createdAt ? new Date(row.createdAt).toLocaleString() : "-"}
-                                                                </p>
-                                                                {row.metadata?.bookTitle ? (
-                                                                  <Badge variant="outline" className="text-[10px] h-5 border-violet-200 text-violet-800 bg-violet-50">
-                                                                    {row.metadata.bookTitle}
-                                                                  </Badge>
-                                                                ) : null}
-                                                                {row.generationVariant ? (
-                                                                  <Badge variant="outline" className="text-[10px] h-5 border-violet-200 text-violet-800 bg-violet-50">
-                                                                    Variant {row.generationVariant}
-                                                                  </Badge>
-                                                                ) : null}
-                                                              </div>
-                                                              <div className="flex items-center gap-1">
-                                                                <Button
-                                                                  variant="ghost"
-                                                                  size="sm"
-                                                                  className="h-8 text-xs rounded-lg text-violet-700 hover:text-violet-800 hover:bg-violet-50"
-                                                                  onClick={() => openView(row)}
-                                                                >
-                                                                  <Eye className="h-3.5 w-3.5 mr-1.5" /> View full
-                                                                </Button>
-                                                                <Button
-                                                                  variant="ghost"
-                                                                  size="sm"
-                                                                  className="h-8 text-xs rounded-lg text-red-700 hover:text-red-800 hover:bg-red-50"
-                                                                  onClick={() => void deleteRecord(row._id)}
-                                                                  disabled={deletingId === row._id}
-                                                                >
-                                                                  <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                                                                  {deletingId === row._id ? "Deleting..." : "Delete"}
-                                                                </Button>
-                                                              </div>
-                                                            </div>
-                                                            {(() => {
-                                                              const parsedMcqs = isMcqTool(toolNode.toolSlug)
-                                                                ? extractMcqQuestionsFromRecord({
-                                                                    toolName: toolNode.toolSlug,
-                                                                    generatedContent: String(row.generatedContent || ""),
-                                                                  })
-                                                                : [];
-                                                              if (parsedMcqs.length > 0) {
-                                                                return (
-                                                                  <div className="space-y-3">
-                                                                    {parsedMcqs.slice(0, 2).map((q, i) => (
-                                                                      <div key={`${row._id}-mcq-${i}`} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
-                                                                        <p className="text-sm font-medium text-slate-900">Q{i + 1}. {q.question}</p>
-                                                                      </div>
-                                                                    ))}
-                                                                  </div>
-                                                                );
-                                                              }
-                                                              return (
-                                                                <p className="text-sm text-slate-700 line-clamp-4 leading-relaxed border-l-2 border-violet-200 pl-3">
-                                                                  {recordPreviewText(toolNode.toolSlug, String(row.generatedContent || ""), row)}
-                                                                </p>
-                                                              );
-                                                            })()}
-                                                          </div>
-                                                        ))}
-                                                      </div>
-                                                    </div>
-                                                  </AccordionContent>
-                                                </AccordionItem>
-                                              ))}
-                                            </Accordion>
-                                          </AccordionContent>
-                                        </AccordionItem>
-                                      ))}
-                                    </Accordion>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              ))}
-                            </Accordion>
-                          </AccordionContent>
-                        </AccordionItem>
-                      ))}
-                    </Accordion>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          )}
+        <CardContent className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <p className="text-sm text-slate-600 flex-1">
+            Use <span className="font-medium text-slate-800">All boards</span> in AI Tool Data when your books are IIT/NEET
+            (not CBSE-only).
+          </p>
+          <Button
+            type="button"
+            className="bg-orange-600 hover:bg-orange-700 shrink-0"
+            onClick={() => onOpenAiToolData?.()}
+          >
+            <FolderTree className="h-4 w-4 mr-2" />
+            Open AI Tool Data
+          </Button>
         </CardContent>
       </Card>
-
-      <Dialog open={!!activeRecord} onOpenChange={() => setActiveRecord(null)}>
-        <DialogContent className="flex max-h-[min(92vh,920px)] w-[min(96vw,1400px)] max-w-[min(96vw,1400px)] flex-col gap-0 overflow-hidden p-0">
-          <DialogHeader className="shrink-0 border-b px-4 py-3 sm:px-6">
-            <DialogTitle>Generated Record (Book-RAG)</DialogTitle>
-          </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-6">
-            <div className="min-w-0 rounded-xl border bg-white p-4 shadow-sm">
-              {activeRecord ? renderViewer(activeRecord) : null}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

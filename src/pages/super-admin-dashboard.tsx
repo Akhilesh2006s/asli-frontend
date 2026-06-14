@@ -1099,7 +1099,10 @@ export default function SuperAdminDashboard() {
       case 'book-based-generator':
         return (
           <Suspense fallback={lazySectionFallback}>
-            <BookBasedGenerator onOpenBookKnowledge={() => handleViewChange('book-knowledge-base')} />
+            <BookBasedGenerator
+              onOpenBookKnowledge={() => handleViewChange('book-knowledge-base')}
+              onOpenAiToolData={() => handleViewChange('ai-tool-generations')}
+            />
           </Suspense>
         );
       case 'subscriptions':

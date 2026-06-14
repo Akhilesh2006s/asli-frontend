@@ -37,7 +37,7 @@ export default function AiToolGenerationsPanel() {
   const [metaTotal, setMetaTotal] = useState<number | null>(null);
   const [metaTopicsCount, setMetaTopicsCount] = useState<number | null>(null);
   const [tools, setTools] = useState<BranchItem[] | null>(null);
-  const [board, setBoard] = useState("CBSE");
+  const [board, setBoard] = useState("");
   const [boards, setBoards] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -101,9 +101,9 @@ export default function AiToolGenerationsPanel() {
                   AI tool data
                 </h1>
                 <p className="mt-2 text-xs sm:text-sm md:text-base text-slate-600 leading-relaxed max-w-3xl">
-                  Browse generations from teacher tools (this release onward). Open each tool to drill
-                  down; use <span className="font-medium text-slate-700">PDF</span> on a subtopic to
-                  export that slice.
+                  Single source for all saved AI content shown to teachers and students — including
+                  Book-Based Generator, AI Generator, and PDF uploads. Open each tool to drill down;
+                  use <span className="font-medium text-slate-700">PDF</span> on a subtopic to export that slice.
                 </p>
               </div>
             </div>
