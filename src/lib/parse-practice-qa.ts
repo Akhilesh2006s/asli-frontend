@@ -3,6 +3,7 @@
  */
 
 import { viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
+import { renumberQuestionList, renumberSectionQuestionLists } from '@/lib/renumber-questions';
 
 export type PracticeQaQuestion = {
   questionNumber?: number;
@@ -319,8 +320,8 @@ function materializePracticeQa(raw: Record<string, unknown>): NormalizedPractice
     title: String(r.title || 'Practice Q&A').trim(),
     learningObjectives: coalesceLines(r.learning_objectives),
     instructions: coalesceText(r.instructions),
-    sections,
-    realLifeQuestions,
+    sections: renumberSectionQuestionLists(sections),
+    realLifeQuestions: renumberQuestionList(realLifeQuestions),
     answerKey: coalesceText(r.answer_key),
   };
 }

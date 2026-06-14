@@ -21,6 +21,7 @@ import {
   type NormalizedWorksheet,
   type WorksheetQuestion,
 } from '@/lib/parse-worksheet-mcq';
+import { displayQuestionSerial } from '@/lib/renumber-questions';
 import { StructuredContentRequired } from '@/components/structured-content-required';
 
 export interface WorksheetMcqViewerProps {
@@ -55,7 +56,7 @@ const WORKSHEET_FLOW_PHASES = [
 ] as const;
 
 function QuestionCard({ q, index }: { q: WorksheetQuestion; index: number }) {
-  const num = q.questionNumber ?? index + 1;
+  const num = displayQuestionSerial(index);
   return (
     <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 sm:p-4 shadow-sm space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -202,20 +203,15 @@ function buildTimelineBlocks(worksheet: NormalizedWorksheet): TimelineBlock[] {
 
   const sortedSections = [...worksheet.sections].sort((a, b) => a.order - b.order);
   for (const sec of sortedSections) {
-    const sortedQuestions = [...sec.questions].sort((a, b) => {
-      const qa = Number.isFinite(a.questionNumber) ? (a.questionNumber as number) : Number.MAX_SAFE_INTEGER;
-      const qb = Number.isFinite(b.questionNumber) ? (b.questionNumber as number) : Number.MAX_SAFE_INTEGER;
-      return qa - qb;
-    });
     blocks.push({
       phaseId: 'practice',
       stepNum: sec.order,
       title: sec.label,
       icon: FileQuestion,
       content: (
-        sortedQuestions.length > 0 ? (
+        sec.questions.length > 0 ? (
           <div className="space-y-3">
-            {sortedQuestions.map((q, i) => (
+            {sec.questions.map((q, i) => (
               <QuestionCard key={`${sec.id}-q-${i}`} q={q} index={i} />
             ))}
           </div>

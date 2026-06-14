@@ -13,7 +13,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { displayQuestionSerial } from '@/lib/renumber-questions';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import {
@@ -104,7 +104,7 @@ function BulletList({ items, accent = 'text-rose-500' }: { items: string[]; acce
 }
 
 function QuestionCard({ q, index }: { q: AssignmentQuestion; index: number }) {
-  const num = q.questionNumber ?? index + 1;
+  const num = displayQuestionSerial(index);
   return (
     <div className="rounded-lg border border-rose-100 bg-rose-50/30 px-3 py-2.5 space-y-2">
       <p className="text-sm font-medium text-slate-900">

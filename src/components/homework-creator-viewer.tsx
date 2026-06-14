@@ -12,7 +12,7 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { displayQuestionSerial } from '@/lib/renumber-questions';
 import { stripMarkdownSyntax } from '@/lib/strip-markdown-syntax';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { GeneratedRecordBody } from '@/components/super-admin/generated-record-body';
@@ -148,7 +148,7 @@ function PracticeQuestionList({ questions }: { questions: HomeworkPracticeQuesti
   return (
     <div className="space-y-3">
       {questions.map((q, i) => {
-        const num = q.questionNumber ?? i + 1;
+        const num = displayQuestionSerial(i);
         return (
           <div
             key={i}

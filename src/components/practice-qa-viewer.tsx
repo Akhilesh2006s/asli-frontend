@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { displayQuestionSerial } from '@/lib/renumber-questions';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import {
@@ -155,7 +156,7 @@ function RichTextBlock({ text }: { text: string }) {
 }
 
 function QuestionCard({ q, index }: { q: PracticeQaQuestion; index: number }) {
-  const num = q.questionNumber ?? index + 1;
+  const num = displayQuestionSerial(index);
   const isMcq = q.options.length >= 2;
   const visual = q.section ? SECTION_VISUAL[q.section] : null;
 

@@ -15,7 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { displayQuestionSerial } from '@/lib/renumber-questions';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { renderMockTestMarkdown } from '@/lib/render-mock-test-markdown';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
@@ -135,7 +135,7 @@ function QuestionCard({
   index: number;
   showAnswer: boolean;
 }) {
-  const qNo = question.questionNumber || String(index + 1);
+  const qNo = String(displayQuestionSerial(index));
   const inline =
     question.options.length < 2 ? extractInlineMcqFromQuestionText(question.question) : null;
   const questionText =

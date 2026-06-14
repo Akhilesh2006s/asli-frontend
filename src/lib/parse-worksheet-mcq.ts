@@ -2,6 +2,8 @@
  * Parse Worksheet & MCQ Generator payloads into a 10-section worksheet model.
  */
 
+import { renumberSectionQuestionLists } from '@/lib/renumber-questions';
+
 export type WorksheetQuestion = {
   questionNumber?: number;
   question: string;
@@ -357,7 +359,7 @@ function materializeWorksheet(raw: Record<string, unknown>): NormalizedWorksheet
     title: String(r.title || r.worksheet_title || 'Worksheet').trim(),
     learningObjectives: coalesceLines(r.learning_objectives),
     instructions: coalesceText(r.instructions),
-    sections,
+    sections: renumberSectionQuestionLists(sections),
     answerKey: coalesceText(r.answer_key),
     bloomLevel: coalesceText(r.bloom_level),
     difficultyTag: coalesceText(r.difficulty_tag),

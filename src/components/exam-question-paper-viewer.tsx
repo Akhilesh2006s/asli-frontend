@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { displayQuestionSerial } from '@/lib/renumber-questions';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import {
@@ -73,7 +73,7 @@ function QuestionCard({ question, index }: { question: ExamQuestion; index: numb
     <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="text-sm font-semibold text-slate-900">
-          Q{question.questionNumber || index + 1}. {question.question}
+          Q{displayQuestionSerial(index)}. {question.question}
         </p>
         {question.marks != null ? (
           <Badge className="bg-slate-900 text-white hover:bg-slate-900">{question.marks} marks</Badge>
