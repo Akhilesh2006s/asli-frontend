@@ -387,8 +387,95 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
     subtopicName: subTopic,
     batchSize: BOOK_GENERATOR_BATCH_SIZE,
     useBookKnowledge,
+    async: true,
     ...(forceUnlock ? { forceUnlock: true } : {}),
   });
+
+  const applyBatchResult = async (data: Record<string, unknown>, json: { message?: string }) => {
+    const usage = data.tokenUsage as { totals?: TokenTotals; calls?: unknown[] } | undefined;
+    const tokenUsage =
+      usage?.totals && typeof usage.totals === "object"
+        ? { ...emptyTokenTotals(), ...usage.totals }
+        : emptyTokenTotals();
+    const tokenCalls = Array.isArray(usage?.calls) ? usage.calls : [];
+    const exchangeRateInr = Number((data.cost as GeminiCostEstimate | undefined)?.exchangeRateInr) || 95.11;
+    let cost: GeminiCostEstimate;
+    try {
+      cost = computeGeminiCostFromTokenUsage({ totals: tokenUsage, calls: tokenCalls }, exchangeRateInr);
+    } catch {
+      cost =
+        data.cost && typeof data.cost === "object"
+          ? (data.cost as GeminiCostEstimate)
+          : computeGeminiCostFromTokenUsage({ totals: tokenUsage, calls: [] }, exchangeRateInr);
+    }
+
+    const savedCount = Number(data.savedCount) || 0;
+    const failedCount = Number(data.failedCount) || 0;
+    setLastBatchSummary({ successCount: savedCount, failedCount, tokenUsage, cost });
+
+    const tokenNote = `${formatTokenCount(tokenUsage.totalTokens)} tokens · Est. ${formatInr(cost.inr)}`;
+    if (savedCount > 0) {
+      toast({ title: `${savedCount}/${data.batchSize || BOOK_GENERATOR_BATCH_SIZE} records saved`, description: tokenNote });
+      setRecordsBoardFilter("__all__");
+      await loadRecords("__all__");
+    } else {
+      const failures = data.failures as string[] | undefined;
+      toast({
+        title: "Batch failed",
+        description: failures?.[0] || json.message || "No records were saved.",
+        variant: "destructive",
+      });
+      await loadRecords();
+    }
+  };
+
+  const pollBookGeneratorJob = async (jobId: string) => {
+    const maxPolls = 400;
+    for (let attempt = 0; attempt < maxPolls; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      const res = await fetch(`${API_BASE_URL}/api/book-generator/jobs/${jobId}`, {
+        headers: authHeaders(),
+      });
+      const json = await res.json();
+      const job = (json.data || {}) as {
+        done?: boolean;
+        locked?: boolean;
+        progress?: string;
+        result?: Record<string, unknown>;
+        error?: string;
+      };
+
+      if (job.progress) setProgress(job.progress);
+      if (!job.done) continue;
+
+      if (job.locked) {
+        setGenerationLocked(true);
+        toast({
+          title: "Generation already in progress",
+          description: "A previous batch may still be running, or a lock is stuck. Use “Clear lock & retry” below.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (job.result) {
+        await applyBatchResult(job.result, json);
+        return;
+      }
+
+      toast({
+        title: "Batch failed",
+        description: job.error || json.message || "Generation job failed.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Still generating",
+      description: "The batch is taking longer than expected. Check Records in a few minutes.",
+    });
+  };
 
   const releaseLockAndRetry = async () => {
     try {
@@ -446,39 +533,20 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
         return;
       }
 
-      const data = json.data || {};
-      const usage = data.tokenUsage;
-      const tokenUsage =
-        usage?.totals && typeof usage.totals === "object"
-          ? { ...emptyTokenTotals(), ...usage.totals }
-          : emptyTokenTotals();
-      const tokenCalls = Array.isArray(usage?.calls) ? usage.calls : [];
-      const exchangeRateInr = Number(data.cost?.exchangeRateInr) || 95.11;
-      let cost: GeminiCostEstimate;
-      try {
-        cost = computeGeminiCostFromTokenUsage({ totals: tokenUsage, calls: tokenCalls }, exchangeRateInr);
-      } catch {
-        cost =
-          data.cost && typeof data.cost === "object"
-            ? (data.cost as GeminiCostEstimate)
-            : computeGeminiCostFromTokenUsage({ totals: tokenUsage, calls: [] }, exchangeRateInr);
+      if (res.status === 202 && json.data?.jobId) {
+        setProgress("Generation started — this may take several minutes…");
+        await pollBookGeneratorJob(String(json.data.jobId));
+        return;
       }
 
-      const savedCount = Number(data.savedCount) || 0;
-      const failedCount = Number(data.failedCount) || 0;
-      setLastBatchSummary({ successCount: savedCount, failedCount, tokenUsage, cost });
-
-      const tokenNote = `${formatTokenCount(tokenUsage.totalTokens)} tokens · Est. ${formatInr(cost.inr)}`;
-      if (savedCount > 0) {
-        toast({ title: `${savedCount}/${data.batchSize || BOOK_GENERATOR_BATCH_SIZE} records saved`, description: tokenNote });
-        setRecordsBoardFilter("__all__");
-        await loadRecords("__all__");
-      } else {
-        toast({ title: "Batch failed", description: data.failures?.[0] || json.message, variant: "destructive" });
-        await loadRecords();
-      }
-    } catch (e: any) {
-      toast({ title: "Generation failed", description: e.message, variant: "destructive" });
+      const data = (json.data || {}) as Record<string, unknown>;
+      await applyBatchResult(data, json);
+    } catch (e: unknown) {
+      toast({
+        title: "Generation failed",
+        description: e instanceof Error ? e.message : "Network or server error. If you saw a CORS message, the API likely timed out — deploy the latest backend and retry.",
+        variant: "destructive",
+      });
     } finally {
       setIsGenerating(false);
       setProgress("");
