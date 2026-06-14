@@ -13,7 +13,6 @@ const SuperAdminCalendar = lazy(() => import("@/components/super-admin/super-adm
 const AIChat = lazy(() => import("@/components/ai-chat"));
 const AiToolGenerationsPanel = lazy(() => import("@/components/super-admin/ai-tool-generations/AiToolGenerationsPanel"));
 const AiToolTopicsManagement = lazy(() => import("@/components/super-admin/ai-tool-topics-management"));
-const AIContentEngine = lazy(() => import("@/components/super-admin/ai-content-engine"));
 const SuperAdminAiGenerator = lazy(() => import("@/components/super-admin/ai-generator"));
 const BookKnowledgeBase = lazy(() => import("@/components/super-admin/book-knowledge-base"));
 const BookBasedGenerator = lazy(() => import("@/components/super-admin/book-based-generator"));
@@ -1076,12 +1075,6 @@ export default function SuperAdminDashboard() {
         return (
           <Suspense fallback={lazySectionFallback}>
             <AiToolTopicsManagement />
-          </Suspense>
-        );
-      case 'ai-content-engine':
-        return (
-          <Suspense fallback={lazySectionFallback}>
-            <AIContentEngine />
           </Suspense>
         );
       case 'ai-generator':

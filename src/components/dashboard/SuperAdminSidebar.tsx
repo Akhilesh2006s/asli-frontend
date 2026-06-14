@@ -15,7 +15,6 @@ import {
   Shield,
   Sparkles,
   TrophyIcon,
-  UploadIcon,
   Users2,
   CreditCardIcon,
 } from "lucide-react";
@@ -52,7 +51,6 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
     { id: 'ai-generator', label: 'AI Generator', icon: Sparkles },
     { id: 'book-knowledge-base', label: 'Book Knowledge Base', icon: BookOpen },
     { id: 'book-based-generator', label: 'Book-Based Generator', icon: BookOpen },
-    { id: 'ai-content-engine', label: 'AI PDF', icon: UploadIcon },
     { id: 'analytics', label: 'Analytics', icon: BarChartIcon },
     { id: 'subscriptions', label: 'Subscriptions', icon: CreditCardIcon },
     { id: 'settings', label: 'Settings', icon: SettingsIcon },

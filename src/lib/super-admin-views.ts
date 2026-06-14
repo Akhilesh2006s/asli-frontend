@@ -19,7 +19,6 @@ export type SuperAdminView =
   | 'courses'
   | 'add-admin'
   | 'calendar'
-  | 'ai-content-engine'
   | 'ai-generator'
   | 'book-knowledge-base'
   | 'book-based-generator';
@@ -44,7 +43,6 @@ export const SUPER_ADMIN_VIEWS: SuperAdminView[] = [
   'courses',
   'add-admin',
   'calendar',
-  'ai-content-engine',
   'ai-generator',
   'book-knowledge-base',
   'book-based-generator',
