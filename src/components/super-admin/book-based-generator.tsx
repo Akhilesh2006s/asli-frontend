@@ -6,17 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { BookOpen, CheckCircle2, ExternalLink, Eye, FileText, IndianRupee, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
@@ -207,9 +196,6 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
   const [recordsBoardFilter, setRecordsBoardFilter] = useState("__all__");
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [isDeletingAll, setIsDeletingAll] = useState(false);
-  const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
-  const [deletingSubtopicKey, setDeletingSubtopicKey] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState("");
   const [lastBatchSummary, setLastBatchSummary] = useState<{
@@ -310,88 +296,6 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
     }
   };
 
-  const deleteAllRecords = async () => {
-    setIsDeletingAll(true);
-    try {
-      const qs = new URLSearchParams();
-      if (recordsBoardFilter && recordsBoardFilter !== "__all__") {
-        qs.set("board", recordsBoardFilter);
-      }
-      const res = await fetch(`${API_BASE_URL}/api/book-generator/records/all?${qs.toString()}`, {
-        method: "DELETE",
-        headers: { ...authHeaders() },
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json?.message || "Delete all failed");
-      const count = Number(json?.data?.deletedCount ?? 0);
-      toast({
-        title: "Deleted",
-        description: json?.message || `Deleted ${count} record${count === 1 ? "" : "s"}.`,
-      });
-      setIsDeleteAllDialogOpen(false);
-      await loadRecords();
-    } catch (error: any) {
-      toast({
-        title: "Delete all failed",
-        description: error?.message || "Could not delete all records.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeletingAll(false);
-    }
-  };
-
-  const subtopicSectionKey = (
-    toolSlug: string,
-    className: string,
-    boardName: string,
-    subjectName: string,
-    topicName: string,
-    subtopicName: string,
-  ) => `book-subtopic:${toolSlug}:${className}:${boardName}:${subjectName}:${topicName}:${subtopicName}`;
-
-  const deleteAllSubtopicRecords = async (
-    records: BookRecord[],
-    subtopicLabel: string,
-    sectionKey: string,
-  ) => {
-    const ids = records.map((r) => r._id).filter(Boolean);
-    if (ids.length === 0) return;
-    if (
-      !window.confirm(
-        `Delete all ${ids.length} record${ids.length !== 1 ? "s" : ""} in subtopic “${subtopicLabel}”? This cannot be undone.`,
-      )
-    ) {
-      return;
-    }
-    setDeletingSubtopicKey(sectionKey);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/book-generator/records/bulk-delete`, {
-        method: "POST",
-        headers: { ...authHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ ids }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json?.success) {
-        throw new Error(json?.message || "Bulk delete failed");
-      }
-      const deleted = Number(json?.data?.deletedCount ?? ids.length);
-      toast({
-        title: "Deleted",
-        description: `Deleted ${deleted} record${deleted === 1 ? "" : "s"} from “${subtopicLabel}”.`,
-      });
-      await loadRecords();
-    } catch (error: any) {
-      toast({
-        title: "Delete failed",
-        description: error?.message || "Could not delete subtopic records.",
-        variant: "destructive",
-      });
-    } finally {
-      setDeletingSubtopicKey(null);
-    }
-  };
-
   useEffect(() => {
     void loadBooks();
   }, []);
@@ -472,48 +376,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
     void loadRecords();
   }, [recordsBoardFilter]);
 
-  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-  const pollBookBatchJob = async (jobId: string, options?: { clearLock?: boolean }) => {
-    const maxPolls = 600;
-    for (let i = 0; i < maxPolls; i += 1) {
-      await sleep(3000);
-      const statusRes = await fetch(`${API_BASE_URL}/api/book-generator/batch-jobs/${jobId}`, {
-        headers: { ...authHeaders() },
-      });
-      const statusJson = await statusRes.json();
-      const statusData = statusJson?.data || {};
-      const progress = statusData.progress || {};
-      const saved = Number(progress.savedCount) || 0;
-      const batchSize = Number(progress.batchSize) || BOOK_GENERATOR_BATCH_SIZE;
-      setProgress(
-        statusData.status === "running"
-          ? `Generating with Gemini… (${saved}/${batchSize} saved so far)`
-          : statusData.message || "Processing batch…",
-      );
-
-      if (statusData.status === "running" || statusData.status === "queued") continue;
-
-      if (statusData.status === "locked" && !options?.clearLock) {
-        const lockMsg = statusJson?.message || statusData.message || "Generation already in progress.";
-        const retry = window.confirm(
-          `${lockMsg}\n\nClear the stuck lock and start again? (Only do this if no batch is still running on the server.)`,
-        );
-        if (retry) {
-          setIsGenerating(false);
-          setProgress("");
-          await handleGenerate({ clearLock: true });
-          return null;
-        }
-        throw new Error(lockMsg);
-      }
-
-      return statusData.result || statusData;
-    }
-    throw new Error("Batch timed out while waiting for completion. Check Records — partial saves may exist.");
-  };
-
-  const handleGenerate = async (options?: { clearLock?: boolean }) => {
+  const handleGenerate = async () => {
     if (!selectedTool || !bookId || !classNumber || !subject || !topic || !subTopic) {
       toast({
         title: "Complete all steps",
@@ -543,35 +406,10 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
           subtopicName: subTopic,
           batchSize: BOOK_GENERATOR_BATCH_SIZE,
           useBookKnowledge,
-          clearLock: options?.clearLock === true,
         }),
       });
-      const json = await res.json().catch(() => ({}));
-      let data = json.data || {};
-
-      if (res.status === 202 && data.jobId) {
-        setProgress("Batch started — generating in background…");
-        const polled = await pollBookBatchJob(String(data.jobId), options);
-        if (!polled) return;
-        data = polled;
-      } else if (res.status === 409 && !options?.clearLock) {
-        const lockMsg = json?.message || data.message || "Generation already in progress.";
-        const retry = window.confirm(
-          `${lockMsg}\n\nClear the stuck lock and start again? (Only do this if no batch is still running on the server.)`,
-        );
-        if (retry) {
-          setIsGenerating(false);
-          setProgress("");
-          await handleGenerate({ clearLock: true });
-          return;
-        }
-        throw new Error(lockMsg);
-      }
-
-      if (!res.ok && res.status !== 202 && !data.savedCount) {
-        throw new Error(json?.message || data.message || "Batch generation failed");
-      }
-
+      const json = await res.json();
+      const data = json.data || {};
       const usage = data.tokenUsage;
       const tokenUsage =
         usage?.totals && typeof usage.totals === "object"
@@ -603,11 +441,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
         await loadRecords();
       }
     } catch (e: any) {
-      const msg = String(e?.message || "");
-      const description = msg.includes("Failed to fetch") || msg.includes("NetworkError")
-        ? "Could not reach the API. Confirm https://api.aslilearn.ai/api/health returns 200, then try again."
-        : msg || "Unknown error";
-      toast({ title: "Generation failed", description, variant: "destructive" });
+      toast({ title: "Generation failed", description: e.message, variant: "destructive" });
     } finally {
       setIsGenerating(false);
       setProgress("");
@@ -899,57 +733,15 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
         <CardHeader className="space-y-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <CardTitle className="mb-0 text-lg">Records ({recordsTotal})</CardTitle>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-              <div className="flex flex-col gap-1.5 sm:w-64">
-                <Label className="text-xs text-slate-600">Filter by board</Label>
-                <Select value={recordsBoardFilter} onValueChange={setRecordsBoardFilter}>
-                  <SelectTrigger><SelectValue placeholder="Board" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__all__">All boards</SelectItem>
-                    {boardOptions.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <AlertDialog open={isDeleteAllDialogOpen} onOpenChange={setIsDeleteAllDialogOpen}>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="shrink-0"
-                    disabled={recordsLoading || recordsTotal === 0 || isDeletingAll}
-                  >
-                    <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                    {isDeletingAll ? "Deleting..." : "Delete All"}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete all book-grounded records?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete{" "}
-                      <span className="font-medium text-slate-900">{recordsTotal}</span> record
-                      {recordsTotal === 1 ? "" : "s"}
-                      {recordsBoardFilter === "__all__"
-                        ? " across all boards."
-                        : ` for board “${recordsBoardFilter}”.`}
-                      {" "}This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      className="bg-red-600 hover:bg-red-700"
-                      disabled={isDeletingAll}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        void deleteAllRecords();
-                      }}
-                    >
-                      {isDeletingAll ? "Deleting..." : "Delete All"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+            <div className="flex flex-col gap-1.5 sm:w-64">
+              <Label className="text-xs text-slate-600">Filter by board</Label>
+              <Select value={recordsBoardFilter} onValueChange={setRecordsBoardFilter}>
+                <SelectTrigger><SelectValue placeholder="Board" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All boards</SelectItem>
+                  {boardOptions.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <p className="text-xs text-slate-500">
@@ -1028,17 +820,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
                                           </AccordionTrigger>
                                           <AccordionContent>
                                             <Accordion type="multiple" className="w-full">
-                                              {topicNode.subtopics.map((subtopicNode) => {
-                                                const subtopicKey = subtopicSectionKey(
-                                                  toolNode.toolSlug,
-                                                  classNode.className,
-                                                  classNode.boardName || "",
-                                                  subjectNode.subjectName,
-                                                  topicNode.topicName,
-                                                  subtopicNode.subtopicName,
-                                                );
-                                                const isDeletingSubtopic = deletingSubtopicKey === subtopicKey;
-                                                return (
+                                              {topicNode.subtopics.map((subtopicNode) => (
                                                 <AccordionItem
                                                   key={`${topicNode.topicName}-${subtopicNode.subtopicName}`}
                                                   value={`subtopic-${topicNode.topicName}-${subtopicNode.subtopicName}`}
@@ -1052,38 +834,11 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
                                                   </AccordionTrigger>
                                                   <AccordionContent>
                                                     <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/30 to-violet-50/20 shadow-sm overflow-hidden">
-                                                      <div className="border-b border-slate-100/80 bg-white/80 px-4 py-3 flex items-center justify-between gap-2">
-                                                        <div>
-                                                          <p className="text-xs text-slate-500">RECORDS</p>
-                                                          <p className="text-sm font-semibold text-slate-900">
-                                                            {subtopicNode.records.length} generation{subtopicNode.records.length === 1 ? "" : "s"}
-                                                          </p>
-                                                        </div>
-                                                        {subtopicNode.records.length > 0 ? (
-                                                          <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="h-8 gap-1.5 rounded-lg border-red-200 text-red-700 hover:bg-red-50 shrink-0"
-                                                            disabled={isDeletingSubtopic || !!deletingId || isDeletingAll}
-                                                            onClick={(e) => {
-                                                              e.preventDefault();
-                                                              e.stopPropagation();
-                                                              void deleteAllSubtopicRecords(
-                                                                subtopicNode.records,
-                                                                subtopicNode.subtopicName,
-                                                                subtopicKey,
-                                                              );
-                                                            }}
-                                                          >
-                                                            {isDeletingSubtopic ? (
-                                                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                            ) : (
-                                                              <Trash2 className="h-3.5 w-3.5" />
-                                                            )}
-                                                            Delete all ({subtopicNode.records.length})
-                                                          </Button>
-                                                        ) : null}
+                                                      <div className="border-b border-slate-100/80 bg-white/80 px-4 py-3">
+                                                        <p className="text-xs text-slate-500">RECORDS</p>
+                                                        <p className="text-sm font-semibold text-slate-900">
+                                                          {subtopicNode.records.length} generation{subtopicNode.records.length === 1 ? "" : "s"}
+                                                        </p>
                                                       </div>
                                                       <div className="p-4 space-y-3">
                                                         {subtopicNode.records.map((row) => (
@@ -1121,7 +876,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
                                                                   size="sm"
                                                                   className="h-8 text-xs rounded-lg text-red-700 hover:text-red-800 hover:bg-red-50"
                                                                   onClick={() => void deleteRecord(row._id)}
-                                                                  disabled={deletingId === row._id || isDeletingAll || isDeletingSubtopic}
+                                                                  disabled={deletingId === row._id}
                                                                 >
                                                                   <Trash2 className="h-3.5 w-3.5 mr-1.5" />
                                                                   {deletingId === row._id ? "Deleting..." : "Delete"}
@@ -1158,8 +913,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
                                                     </div>
                                                   </AccordionContent>
                                                 </AccordionItem>
-                                                );
-                                              })}
+                                              ))}
                                             </Accordion>
                                           </AccordionContent>
                                         </AccordionItem>
