@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BookOpen, CheckCircle2, ExternalLink, FileText, FolderTree, IndianRupee, Loader2, Sparkles } from "lucide-react";
+import { GeneratorRecordsPanel } from "@/components/super-admin/generator-records-panel";
 import { API_BASE_URL } from "@/lib/api-config";
 import { useToast } from "@/hooks/use-toast";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
@@ -73,6 +74,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     tokenUsage: TokenTotals;
     cost: GeminiCostEstimate;
   } | null>(null);
+  const [recordsReloadNonce, setRecordsReloadNonce] = useState(0);
 
   const {
     classOptions,
@@ -233,9 +235,10 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
 
     const tokenNote = `${formatTokenCount(tokenUsage.totalTokens)} tokens · Est. ${formatInr(cost.inr)}`;
     if (savedCount > 0) {
+      setRecordsReloadNonce((n) => n + 1);
       toast({
-        title: `${savedCount}/${data.batchSize || BOOK_GENERATOR_BATCH_SIZE} saved to AI Tool Data`,
-        description: `${tokenNote}. Open AI Tool Data in the sidebar to browse, edit, or delete.`,
+        title: `${savedCount}/${data.batchSize || BOOK_GENERATOR_BATCH_SIZE} saved`,
+        description: `${tokenNote}. Browse below or in AI Tool Data — same records, textbook-grounded content.`,
       });
     } else {
       const failures = data.failures as string[] | undefined;
@@ -365,7 +368,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
       }
 
       if (res.status === 202 && json.data?.jobId) {
-        setProgress(`Generation started — 0/${BOOK_GENERATOR_BATCH_SIZE} records (this may take 10–25 min for heavy tools)…`);
+        setProgress(`Generation started — 0/${BOOK_GENERATOR_BATCH_SIZE} saved (this may take 10–25 min for heavy tools)…`);
         await pollBookGeneratorJob(String(json.data.jobId));
         return;
       }
@@ -393,7 +396,8 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
         </h1>
         <p className="text-sm text-slate-600 mt-1">
           Select an indexed textbook → pick curriculum topic/sub-topic → generate content grounded in your book.
-          Saved batches go to <strong>AI Tool Data</strong> — the same place teachers and students load content from.
+          Same tool output as AI Generator, but built from your textbook passages. Saved records appear below and in{" "}
+          <strong>AI Tool Data</strong> for teachers and students.
         </p>
         <p className="text-xs text-slate-500 mt-1">
           Upload PDFs in <strong>Book Knowledge Base</strong> (sidebar). Browse or edit saved output in{" "}
@@ -412,8 +416,8 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
           Scanned PDF OCR may use a small Gemini charge.
         </p>
         <p>
-          <strong>Content generation</strong> (this page): each batch of {BOOK_GENERATOR_BATCH_SIZE} records uses Gemini —
-          token count and estimated ₹ cost appear below the Generate button after each run (same as AI Generator).
+          <strong>Content generation</strong> (this page): each batch generates {BOOK_GENERATOR_BATCH_SIZE} records with Gemini.
+          Token count and estimated ₹ cost appear below after each run. Run again to build toward {BOOK_UNIQUENESS_TARGET}+ unique records per sub-topic.
         </p>
       </div>
 
@@ -609,7 +613,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                 <Label htmlFor="use-book-kb" className="text-sm cursor-pointer">Use textbook as primary source (RAG)</Label>
               </div>
               <p className="text-xs text-slate-600 flex-1 min-w-[200px]">
-                Combines your curriculum inputs with retrieved book content. Target: {BOOK_UNIQUENESS_TARGET}+ unique records per sub-topic.
+                Combines your curriculum inputs with retrieved book content. Target: {BOOK_UNIQUENESS_TARGET}+ unique records per sub-topic ({BOOK_GENERATOR_BATCH_SIZE} per batch).
               </p>
               <Button
                 className="bg-violet-600 hover:bg-violet-700 shrink-0"
@@ -657,32 +661,30 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
         </CardContent>
       </Card>
 
-      <Card className="border-orange-200/80 bg-gradient-to-br from-white via-orange-50/20 to-amber-50/10">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <FolderTree className="h-5 w-5 text-orange-600" />
-            Saved content → AI Tool Data
-          </CardTitle>
-          <p className="text-sm text-slate-500 font-normal">
-            Every successful batch is stored in <strong>AI Tool Data</strong> alongside AI Generator and PDF uploads.
-            That is the single source teachers and students use — browse by tool → class → subject → topic → subtopic.
-          </p>
-        </CardHeader>
-        <CardContent className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <p className="text-sm text-slate-600 flex-1">
-            Use <span className="font-medium text-slate-800">All boards</span> in AI Tool Data when your books are IIT/NEET
-            (not CBSE-only).
-          </p>
-          <Button
-            type="button"
-            className="bg-orange-600 hover:bg-orange-700 shrink-0"
-            onClick={() => onOpenAiToolData?.()}
-          >
-            <FolderTree className="h-4 w-4 mr-2" />
-            Open AI Tool Data
-          </Button>
-        </CardContent>
-      </Card>
+      <GeneratorRecordsPanel
+        apiPrefix="/api/book-generator"
+        boardOptions={boardOptions}
+        boardFilterDefault="__all__"
+        accent="violet"
+        title="Records"
+        subtitle="Textbook-grounded generations — same layout as AI Generator. Also visible in AI Tool Data for end users."
+        showBookBadge
+        reloadNonce={recordsReloadNonce}
+        headerExtra={
+          onOpenAiToolData ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0 border-orange-200 text-orange-800 hover:bg-orange-50"
+              onClick={() => onOpenAiToolData()}
+            >
+              <FolderTree className="h-3.5 w-3.5 mr-1.5" />
+              AI Tool Data
+            </Button>
+          ) : null
+        }
+      />
     </div>
   );
 }

@@ -18,4 +18,5 @@ export const BOOK_BASED_TOOLS = [
 export type BookBasedToolId = (typeof BOOK_BASED_TOOLS)[number]['id'];
 
 export const BOOK_GENERATOR_BATCH_SIZE = 25;
+export const BOOK_GENERATOR_MAX_INR = 0;
 export const BOOK_UNIQUENESS_TARGET = 50;
