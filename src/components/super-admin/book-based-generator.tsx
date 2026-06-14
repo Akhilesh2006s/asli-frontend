@@ -472,6 +472,47 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
     void loadRecords();
   }, [recordsBoardFilter]);
 
+  const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  const pollBookBatchJob = async (jobId: string, options?: { clearLock?: boolean }) => {
+    const maxPolls = 600;
+    for (let i = 0; i < maxPolls; i += 1) {
+      await sleep(3000);
+      const statusRes = await fetch(`${API_BASE_URL}/api/book-generator/batch-jobs/${jobId}`, {
+        headers: { ...authHeaders() },
+      });
+      const statusJson = await statusRes.json();
+      const statusData = statusJson?.data || {};
+      const progress = statusData.progress || {};
+      const saved = Number(progress.savedCount) || 0;
+      const batchSize = Number(progress.batchSize) || BOOK_GENERATOR_BATCH_SIZE;
+      setProgress(
+        statusData.status === "running"
+          ? `Generating with Gemini… (${saved}/${batchSize} saved so far)`
+          : statusData.message || "Processing batch…",
+      );
+
+      if (statusData.status === "running" || statusData.status === "queued") continue;
+
+      if (statusData.status === "locked" && !options?.clearLock) {
+        const lockMsg = statusJson?.message || statusData.message || "Generation already in progress.";
+        const retry = window.confirm(
+          `${lockMsg}\n\nClear the stuck lock and start again? (Only do this if no batch is still running on the server.)`,
+        );
+        if (retry) {
+          setIsGenerating(false);
+          setProgress("");
+          await handleGenerate({ clearLock: true });
+          return null;
+        }
+        throw new Error(lockMsg);
+      }
+
+      return statusData.result || statusData;
+    }
+    throw new Error("Batch timed out while waiting for completion. Check Records — partial saves may exist.");
+  };
+
   const handleGenerate = async (options?: { clearLock?: boolean }) => {
     if (!selectedTool || !bookId || !classNumber || !subject || !topic || !subTopic) {
       toast({
@@ -505,10 +546,15 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
           clearLock: options?.clearLock === true,
         }),
       });
-      const json = await res.json();
-      const data = json.data || {};
+      const json = await res.json().catch(() => ({}));
+      let data = json.data || {};
 
-      if (res.status === 409 && !options?.clearLock) {
+      if (res.status === 202 && data.jobId) {
+        setProgress("Batch started — generating in background…");
+        const polled = await pollBookBatchJob(String(data.jobId), options);
+        if (!polled) return;
+        data = polled;
+      } else if (res.status === 409 && !options?.clearLock) {
         const lockMsg = json?.message || data.message || "Generation already in progress.";
         const retry = window.confirm(
           `${lockMsg}\n\nClear the stuck lock and start again? (Only do this if no batch is still running on the server.)`,
@@ -522,7 +568,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
         throw new Error(lockMsg);
       }
 
-      if (!res.ok && !data.savedCount) {
+      if (!res.ok && res.status !== 202 && !data.savedCount) {
         throw new Error(json?.message || data.message || "Batch generation failed");
       }
 
@@ -557,7 +603,11 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
         await loadRecords();
       }
     } catch (e: any) {
-      toast({ title: "Generation failed", description: e.message, variant: "destructive" });
+      const msg = String(e?.message || "");
+      const description = msg.includes("Failed to fetch") || msg.includes("NetworkError")
+        ? "Could not reach the API. Confirm https://api.aslilearn.ai/api/health returns 200, then try again."
+        : msg || "Unknown error";
+      toast({ title: "Generation failed", description, variant: "destructive" });
     } finally {
       setIsGenerating(false);
       setProgress("");
