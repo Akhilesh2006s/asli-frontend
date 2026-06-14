@@ -19,10 +19,18 @@ export function persistSuperAdminView(view: SuperAdminView) {
   if (typeof window === "undefined") return;
   if (!isSuperAdminView(view)) return;
   sessionStorage.setItem(PERSISTED_VIEW_KEY, view);
+  if (!isSuperAdminDashboardPath(window.location.pathname)) return;
+  const base = `${window.location.pathname}${window.location.search}`;
+  const next = view === "dashboard" ? base : `${base}#${view}`;
+  if (`${window.location.pathname}${window.location.search}${window.location.hash}` !== next) {
+    window.history.replaceState({}, "", next);
+  }
 }
 
 export function readPersistedSuperAdminView(): SuperAdminView | null {
   if (typeof window === "undefined") return null;
+  const hashView = window.location.hash.replace(/^#/, "").trim();
+  if (hashView && isSuperAdminView(hashView)) return hashView;
   const raw = sessionStorage.getItem(PERSISTED_VIEW_KEY);
   if (!raw || !isSuperAdminView(raw)) return null;
   return raw;

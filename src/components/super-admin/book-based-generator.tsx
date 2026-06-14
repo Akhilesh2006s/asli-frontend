@@ -487,7 +487,11 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "Failed to clear lock");
       setGenerationLocked(false);
-      toast({ title: "Lock cleared", description: "Starting a fresh batch…" });
+      const released = Number(json?.data?.released || 0);
+      toast({
+        title: released > 0 ? "Lock cleared" : "Ready to retry",
+        description: json.message || "Starting a fresh batch…",
+      });
       await handleGenerate({ forceUnlock: true });
     } catch (e: unknown) {
       toast({
@@ -525,11 +529,18 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
 
       if (res.status === 409 || json.locked || json.data?.locked) {
         setGenerationLocked(true);
+        const existingJobId = json.data?.jobId;
         toast({
           title: "Generation already in progress",
-          description: "A previous batch may still be running, or a lock is stuck. Use “Clear lock & retry” below.",
+          description: existingJobId
+            ? "A batch is still running for this book/sub-topic. Wait a few minutes or use “Clear lock & retry”."
+            : "A previous batch may still be running, or a lock is stuck. Use “Clear lock & retry” below.",
           variant: "destructive",
         });
+        if (existingJobId) {
+          setProgress("Resuming status check for in-progress batch…");
+          await pollBookGeneratorJob(String(existingJobId));
+        }
         return;
       }
 
