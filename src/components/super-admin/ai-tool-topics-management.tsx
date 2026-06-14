@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Edit, Plus, Search, Trash2 } from 'lucide-react';
 
@@ -31,10 +32,16 @@ const defaultForm = {
   label: '',
   topicName: '',
   subTopic: '',
+  subTopicsText: '',
 };
 
+type DialogMode = 'create' | 'edit' | 'addSubTopic';
+
 function authHeaders() {
-  const token = localStorage.getItem('authToken');
+  const token =
+    localStorage.getItem('authToken') ||
+    localStorage.getItem('superAdminToken') ||
+    localStorage.getItem('token');
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -89,6 +96,8 @@ export default function AiToolTopicsManagement() {
   const [hierarchyTopics, setHierarchyTopics] = useState<string[]>([]);
   const [hierarchySubTopics, setHierarchySubTopics] = useState<string[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [dialogMode, setDialogMode] = useState<DialogMode>('create');
+  const [lockTopicFields, setLockTopicFields] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(defaultForm);
   const [submitting, setSubmitting] = useState(false);
@@ -103,11 +112,19 @@ export default function AiToolTopicsManagement() {
   const [dialogClassOptions, setDialogClassOptions] = useState<string[]>([]);
   const [dialogSubjectOptions, setDialogSubjectOptions] = useState<string[]>([]);
 
-  const refreshPage = () => {
-    if (typeof window !== 'undefined') {
-      window.location.reload();
-    }
+  const reloadData = async () => {
+    await Promise.all([fetchRows(), fetchHierarchyOptions()]);
   };
+
+  const prefillFromSelection = () => ({
+    board: selectedBoard || '',
+    classLabel: selectedClass || '',
+    subject: selectedSubject || '',
+    label: '',
+    topicName: selectedTopic || '',
+    subTopic: '',
+    subTopicsText: '',
+  });
 
   const fetchBoards = async () => {
     try {
@@ -306,7 +323,31 @@ export default function AiToolTopicsManagement() {
 
   const openCreate = () => {
     setEditingId(null);
-    setForm(defaultForm);
+    setDialogMode('create');
+    setLockTopicFields(false);
+    setForm({ ...defaultForm, ...prefillFromSelection() });
+    setIsCustomBoard(false);
+    setCustomBoard('');
+    setIsCustomClass(false);
+    setCustomClass('');
+    setIsCustomSubject(false);
+    setCustomSubject('');
+    setIsDialogOpen(true);
+  };
+
+  const openAddSubTopic = () => {
+    if (!selectedBoard || !selectedClass || !selectedSubject || !selectedTopic) {
+      toast({
+        title: 'Select hierarchy first',
+        description: 'Pick board, class, subject, and topic before adding sub-topics.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setEditingId(null);
+    setDialogMode('addSubTopic');
+    setLockTopicFields(true);
+    setForm({ ...defaultForm, ...prefillFromSelection() });
     setIsCustomBoard(false);
     setCustomBoard('');
     setIsCustomClass(false);
@@ -321,6 +362,8 @@ export default function AiToolTopicsManagement() {
     const normalizedClass = normalizeClassLabel(classNumber);
     const splitTopic = splitTopicByLabel(row.label, row.topicName);
     setEditingId(row._id);
+    setDialogMode('edit');
+    setLockTopicFields(false);
     setForm({
       board: row.board,
       classLabel: normalizedClass || row.classLabel,
@@ -328,6 +371,7 @@ export default function AiToolTopicsManagement() {
       label: splitTopic.label,
       topicName: splitTopic.topicName,
       subTopic: row.subTopic,
+      subTopicsText: '',
     });
     setIsCustomBoard(false);
     setCustomBoard('');
@@ -339,8 +383,20 @@ export default function AiToolTopicsManagement() {
   };
 
   const save = async () => {
-    if (!form.board || !form.classLabel || !form.subject || !form.topicName || !form.subTopic) {
-      toast({ title: 'Validation', description: 'Please fill all required fields.', variant: 'destructive' });
+    if (!form.board || !form.classLabel || !form.subject || !form.topicName) {
+      toast({ title: 'Validation', description: 'Board, class, subject, and topic name are required.', variant: 'destructive' });
+      return;
+    }
+
+    const subTopicsList = editingId
+      ? [form.subTopic.trim()].filter(Boolean)
+      : form.subTopicsText
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean);
+
+    if (subTopicsList.length === 0) {
+      toast({ title: 'Validation', description: 'Enter at least one sub-topic.', variant: 'destructive' });
       return;
     }
 
@@ -350,22 +406,38 @@ export default function AiToolTopicsManagement() {
         ? `${API_BASE_URL}/api/super-admin/ai-tool-topics/${editingId}`
         : `${API_BASE_URL}/api/super-admin/ai-tool-topics`;
       const method = editingId ? 'PUT' : 'POST';
-      const payload = {
-        ...form,
+      const basePayload = {
+        board: form.board,
         classLabel: normalizeClassLabel(form.classLabel),
+        subject: form.subject,
+        label: form.label,
         topicName: buildDisplayTopicName(form.label, form.topicName),
       };
+
       const response = await fetch(endpoint, {
         method,
         headers: authHeaders(),
-        body: JSON.stringify(payload),
+        body: JSON.stringify(
+          editingId
+            ? { ...basePayload, subTopic: subTopicsList[0] }
+            : { ...basePayload, subTopics: subTopicsList },
+        ),
       });
       const json = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(json?.message || 'Failed to save topic');
 
-      toast({ title: 'Success', description: editingId ? 'Topic updated.' : 'Topic created.' });
+      const createdCount = Number(json?.createdCount || (editingId ? 1 : subTopicsList.length));
+      const skipped = Array.isArray(json?.skipped) ? json.skipped.length : 0;
+      toast({
+        title: 'Success',
+        description: editingId
+          ? 'Topic updated.'
+          : `Created ${createdCount} sub-topic${createdCount === 1 ? '' : 's'}${skipped ? ` (${skipped} already existed)` : ''}.`,
+      });
       setIsDialogOpen(false);
       setForm(defaultForm);
+      setDialogMode('create');
+      setLockTopicFields(false);
       setIsCustomBoard(false);
       setCustomBoard('');
       setIsCustomClass(false);
@@ -373,8 +445,7 @@ export default function AiToolTopicsManagement() {
       setIsCustomSubject(false);
       setCustomSubject('');
       setEditingId(null);
-      fetchRows();
-      refreshPage();
+      await reloadData();
     } catch (error) {
       toast({
         title: 'Error',
@@ -396,8 +467,7 @@ export default function AiToolTopicsManagement() {
       const json = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(json?.message || 'Failed to delete');
       toast({ title: 'Deleted', description: 'Topic mapping removed.' });
-      fetchRows();
-      refreshPage();
+      await reloadData();
     } catch (error) {
       toast({
         title: 'Error',
@@ -447,9 +517,7 @@ export default function AiToolTopicsManagement() {
       toast({ title: 'Deleted', description: `Deleted ${count} topic mappings.` });
       setSelectedTopic('');
       setSelectedSubTopic('');
-      fetchRows();
-      fetchHierarchyOptions();
-      refreshPage();
+      await reloadData();
     } catch (error) {
       toast({
         title: 'Error',
@@ -481,10 +549,19 @@ export default function AiToolTopicsManagement() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <div className="flex items-center justify-end">
-              <Button onClick={openCreate}>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button type="button" onClick={openCreate}>
                 <Plus className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                 Add Topic
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!selectedTopic}
+                onClick={openAddSubTopic}
+              >
+                <Plus className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                Add Sub Topic
               </Button>
             </div>
           </div>
@@ -574,7 +651,23 @@ export default function AiToolTopicsManagement() {
                 </div>
               ))}
             </div>
-            <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t pt-4">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t pt-4">
+              <p className="text-xs text-slate-500">
+                {selectedTopic
+                  ? `Selected topic: ${selectedTopic} — use “Add Sub Topic” to add more sub-topics.`
+                  : 'Select a topic to add sub-topics or view records below.'}
+              </p>
+              <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-violet-300 text-violet-700 hover:bg-violet-50"
+                disabled={!selectedTopic}
+                onClick={openAddSubTopic}
+              >
+                <Plus className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                Add Sub Topic to Selected
+              </Button>
               <Button
                 type="button"
                 variant="outline"
@@ -595,6 +688,7 @@ export default function AiToolTopicsManagement() {
                 <Trash2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                 {bulkDeleting === 'subject' ? 'Deleting Subject...' : 'Delete Selected Subject'}
               </Button>
+              </div>
             </div>
           </div>
 
@@ -661,10 +755,18 @@ export default function AiToolTopicsManagement() {
         >
           <DialogHeader>
             <DialogTitle id="ai-tool-topic-dialog-title">
-              {editingId ? 'Edit AI Tool Topic' : 'Add AI Tool Topic'}
+              {dialogMode === 'edit'
+                ? 'Edit AI Tool Topic'
+                : dialogMode === 'addSubTopic'
+                  ? 'Add Sub Topics to Existing Topic'
+                  : 'Add AI Tool Topic'}
             </DialogTitle>
             <DialogDescription id="ai-tool-topic-dialog-description">
-              Create hierarchy mapping for Board, Class, Subject, Topic and Sub Topic.
+              {dialogMode === 'addSubTopic'
+                ? 'Add one or more sub-topics under the selected topic. Enter each sub-topic on a new line.'
+                : dialogMode === 'edit'
+                  ? 'Update this topic mapping.'
+                  : 'Create topic with one or more sub-topics (one per line).'}
             </DialogDescription>
           </DialogHeader>
 
@@ -673,6 +775,7 @@ export default function AiToolTopicsManagement() {
               <Label>Board</Label>
               <Select
                 value={isCustomBoard ? '__custom__' : form.board}
+                disabled={lockTopicFields}
                 onValueChange={(v) => {
                   if (v === '__custom__') {
                     setIsCustomBoard(true);
@@ -692,7 +795,7 @@ export default function AiToolTopicsManagement() {
                   <SelectItem value="__custom__">+ New Board</SelectItem>
                 </SelectContent>
               </Select>
-              {isCustomBoard && (
+              {isCustomBoard && !lockTopicFields && (
                 <Input
                   placeholder="Enter board name"
                   value={customBoard}
@@ -708,6 +811,7 @@ export default function AiToolTopicsManagement() {
               <Label>Class</Label>
               <Select
                 value={isCustomClass ? '__custom__' : classNumberFromLabel(form.classLabel)}
+                disabled={lockTopicFields}
                 onValueChange={(v) => {
                   if (v === '__custom__') {
                     setIsCustomClass(true);
@@ -727,7 +831,7 @@ export default function AiToolTopicsManagement() {
                   <SelectItem value="__custom__">+ New Class</SelectItem>
                 </SelectContent>
               </Select>
-              {isCustomClass && (
+              {isCustomClass && !lockTopicFields && (
                 <Input
                   type="text"
                   inputMode="numeric"
@@ -745,6 +849,7 @@ export default function AiToolTopicsManagement() {
               <Label>Subject</Label>
               <Select
                 value={isCustomSubject ? '__custom__' : form.subject}
+                disabled={lockTopicFields}
                 onValueChange={(v) => {
                   if (v === '__custom__') {
                     setIsCustomSubject(true);
@@ -764,7 +869,7 @@ export default function AiToolTopicsManagement() {
                   <SelectItem value="__custom__">+ New Subject</SelectItem>
                 </SelectContent>
               </Select>
-              {isCustomSubject && (
+              {isCustomSubject && !lockTopicFields && (
                 <Input
                   type="text"
                   placeholder="Enter subject name"
@@ -785,6 +890,7 @@ export default function AiToolTopicsManagement() {
               <Input
                 placeholder="e.g. Chapter 1"
                 value={form.label}
+                disabled={lockTopicFields}
                 onChange={(e) => setForm((p) => ({ ...p, label: e.target.value }))}
               />
             </div>
@@ -793,25 +899,41 @@ export default function AiToolTopicsManagement() {
               <Input
                 placeholder="Enter topic name"
                 value={form.topicName}
+                disabled={lockTopicFields}
                 onChange={(e) => setForm((p) => ({ ...p, topicName: e.target.value }))}
               />
             </div>
-            <div className="space-y-2">
-              <Label>Sub Topic</Label>
-              <Input
-                placeholder="Enter sub topic"
-                value={form.subTopic}
-                onChange={(e) => setForm((p) => ({ ...p, subTopic: e.target.value }))}
-              />
-            </div>
+            {editingId ? (
+              <div className="space-y-2 md:col-span-2">
+                <Label>Sub Topic</Label>
+                <Input
+                  placeholder="Enter sub topic"
+                  value={form.subTopic}
+                  onChange={(e) => setForm((p) => ({ ...p, subTopic: e.target.value }))}
+                />
+              </div>
+            ) : (
+              <div className="space-y-2 md:col-span-2">
+                <Label>Sub Topics (one per line)</Label>
+                <Textarea
+                  placeholder={'Discovery of Hydrogen\nPreparation of Hydrogen\nUses of Hydrogen'}
+                  className="min-h-[120px]"
+                  value={form.subTopicsText}
+                  onChange={(e) => setForm((p) => ({ ...p, subTopicsText: e.target.value }))}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter multiple sub-topics — each line becomes a separate record.
+                </p>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={submitting}>
+            <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={submitting}>
               Cancel
             </Button>
-            <Button onClick={save} disabled={submitting}>
-              {editingId ? 'Update' : 'Create'}
+            <Button type="button" onClick={() => void save()} disabled={submitting}>
+              {editingId ? 'Update' : dialogMode === 'addSubTopic' ? 'Add Sub Topics' : 'Create'}
             </Button>
           </DialogFooter>
         </DialogContent>
