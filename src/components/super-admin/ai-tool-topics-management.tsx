@@ -7,9 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Edit, Plus, Search, Trash2 } from 'lucide-react';
+import { Edit, Plus, Search, Trash2, X } from 'lucide-react';
 
 const NATURAL_COLLATOR = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
 
@@ -32,7 +31,6 @@ const defaultForm = {
   label: '',
   topicName: '',
   subTopic: '',
-  subTopicsText: '',
 };
 
 type DialogMode = 'create' | 'edit' | 'addSubTopic';
@@ -100,6 +98,8 @@ export default function AiToolTopicsManagement() {
   const [lockTopicFields, setLockTopicFields] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(defaultForm);
+  const [pendingSubTopics, setPendingSubTopics] = useState<string[]>([]);
+  const [subTopicInput, setSubTopicInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [isCustomBoard, setIsCustomBoard] = useState(false);
   const [customBoard, setCustomBoard] = useState('');
@@ -123,8 +123,42 @@ export default function AiToolTopicsManagement() {
     label: '',
     topicName: selectedTopic || '',
     subTopic: '',
-    subTopicsText: '',
   });
+
+  const resetSubTopicEntry = () => {
+    setPendingSubTopics([]);
+    setSubTopicInput('');
+  };
+
+  const addSubTopicToList = () => {
+    const trimmed = subTopicInput.trim();
+    if (!trimmed) {
+      toast({ title: 'Validation', description: 'Enter a sub-topic name first.', variant: 'destructive' });
+      return;
+    }
+    const exists = pendingSubTopics.some(
+      (item) => item.toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (exists) {
+      toast({ title: 'Duplicate', description: 'This sub-topic is already in the list.', variant: 'destructive' });
+      return;
+    }
+    setPendingSubTopics((prev) => [...prev, trimmed]);
+    setSubTopicInput('');
+  };
+
+  const removePendingSubTopic = (index: number) => {
+    setPendingSubTopics((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const collectSubTopicsForSave = () => {
+    const list = [...pendingSubTopics];
+    const draft = subTopicInput.trim();
+    if (draft && !list.some((item) => item.toLowerCase() === draft.toLowerCase())) {
+      list.push(draft);
+    }
+    return list;
+  };
 
   const fetchBoards = async () => {
     try {
@@ -326,6 +360,7 @@ export default function AiToolTopicsManagement() {
     setDialogMode('create');
     setLockTopicFields(false);
     setForm({ ...defaultForm, ...prefillFromSelection() });
+    resetSubTopicEntry();
     setIsCustomBoard(false);
     setCustomBoard('');
     setIsCustomClass(false);
@@ -348,6 +383,7 @@ export default function AiToolTopicsManagement() {
     setDialogMode('addSubTopic');
     setLockTopicFields(true);
     setForm({ ...defaultForm, ...prefillFromSelection() });
+    resetSubTopicEntry();
     setIsCustomBoard(false);
     setCustomBoard('');
     setIsCustomClass(false);
@@ -371,8 +407,8 @@ export default function AiToolTopicsManagement() {
       label: splitTopic.label,
       topicName: splitTopic.topicName,
       subTopic: row.subTopic,
-      subTopicsText: '',
     });
+    resetSubTopicEntry();
     setIsCustomBoard(false);
     setCustomBoard('');
     setIsCustomClass(false);
@@ -390,13 +426,14 @@ export default function AiToolTopicsManagement() {
 
     const subTopicsList = editingId
       ? [form.subTopic.trim()].filter(Boolean)
-      : form.subTopicsText
-          .split('\n')
-          .map((line) => line.trim())
-          .filter(Boolean);
+      : collectSubTopicsForSave();
 
     if (subTopicsList.length === 0) {
-      toast({ title: 'Validation', description: 'Enter at least one sub-topic.', variant: 'destructive' });
+      toast({
+        title: 'Validation',
+        description: 'Add at least one sub-topic using the Add button.',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -436,6 +473,7 @@ export default function AiToolTopicsManagement() {
       });
       setIsDialogOpen(false);
       setForm(defaultForm);
+      resetSubTopicEntry();
       setDialogMode('create');
       setLockTopicFields(false);
       setIsCustomBoard(false);
@@ -747,7 +785,13 @@ export default function AiToolTopicsManagement() {
         </CardContent>
       </Card>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <Dialog
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          setIsDialogOpen(open);
+          if (!open) resetSubTopicEntry();
+        }}
+      >
         <DialogContent
           className="sm:max-w-xl"
           aria-labelledby="ai-tool-topic-dialog-title"
@@ -763,10 +807,10 @@ export default function AiToolTopicsManagement() {
             </DialogTitle>
             <DialogDescription id="ai-tool-topic-dialog-description">
               {dialogMode === 'addSubTopic'
-                ? 'Add one or more sub-topics under the selected topic. Enter each sub-topic on a new line.'
+                ? 'Add sub-topics one at a time under the selected topic.'
                 : dialogMode === 'edit'
                   ? 'Update this topic mapping.'
-                  : 'Create topic with one or more sub-topics (one per line).'}
+                  : 'Create a topic and add sub-topics one at a time.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -913,17 +957,55 @@ export default function AiToolTopicsManagement() {
                 />
               </div>
             ) : (
-              <div className="space-y-2 md:col-span-2">
-                <Label>Sub Topics (one per line)</Label>
-                <Textarea
-                  placeholder={'Discovery of Hydrogen\nPreparation of Hydrogen\nUses of Hydrogen'}
-                  className="min-h-[120px]"
-                  value={form.subTopicsText}
-                  onChange={(e) => setForm((p) => ({ ...p, subTopicsText: e.target.value }))}
-                />
+              <div className="space-y-3 md:col-span-2">
+                <Label>Sub Topics</Label>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    placeholder="Enter sub topic"
+                    value={subTopicInput}
+                    onChange={(e) => setSubTopicInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addSubTopicToList();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="shrink-0"
+                    onClick={addSubTopicToList}
+                  >
+                    <Plus className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                    Add
+                  </Button>
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  Enter multiple sub-topics — each line becomes a separate record.
+                  Add each sub-topic separately — press Add or Enter after each one.
                 </p>
+                {pendingSubTopics.length > 0 && (
+                  <ul className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    {pendingSubTopics.map((item, index) => (
+                      <li
+                        key={`${item}-${index}`}
+                        className="flex items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                      >
+                        <span className="min-w-0 flex-1 truncate">{item}</span>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 shrink-0 text-slate-500 hover:text-red-600"
+                          onClick={() => removePendingSubTopic(index)}
+                          aria-label={`Remove ${item}`}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
           </div>
