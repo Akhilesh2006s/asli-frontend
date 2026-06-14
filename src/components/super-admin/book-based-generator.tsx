@@ -432,7 +432,9 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
   const pollBookGeneratorJob = async (jobId: string) => {
     const maxPolls = 400;
     for (let attempt = 0; attempt < maxPolls; attempt += 1) {
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      if (attempt > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
       const res = await fetch(`${API_BASE_URL}/api/book-generator/jobs/${jobId}`, {
         headers: authHeaders(),
       });
@@ -545,7 +547,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
       }
 
       if (res.status === 202 && json.data?.jobId) {
-        setProgress("Generation started — this may take several minutes…");
+        setProgress(`Generation started — 0/${BOOK_GENERATOR_BATCH_SIZE} records (this may take 10–25 min for heavy tools)…`);
         await pollBookGeneratorJob(String(json.data.jobId));
         return;
       }
@@ -780,6 +782,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
           <p className="text-sm text-slate-500 font-normal">
             AI retrieves relevant passages from <strong>{selectedBook?.title || "your textbook"}</strong> for{" "}
             <strong>{topic || "…"} / {subTopic || "…"}</strong> and generates {BOOK_GENERATOR_BATCH_SIZE} unique records.
+            {" "}Each batch runs <strong>3 Gemini calls at a time</strong> — exam papers and mock tests often take <strong>10–25 minutes</strong>.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
