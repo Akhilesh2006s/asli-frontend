@@ -197,6 +197,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationLocked, setGenerationLocked] = useState(false);
   const [progress, setProgress] = useState("");
   const [lastBatchSummary, setLastBatchSummary] = useState<{
     successCount: number;
@@ -376,7 +377,41 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
     void loadRecords();
   }, [recordsBoardFilter]);
 
-  const handleGenerate = async () => {
+  const buildGenerationPayload = (forceUnlock = false) => ({
+    toolSlug: selectedTool,
+    bookId,
+    board,
+    className: classNumber,
+    subjectName: subject,
+    topicName: topic,
+    subtopicName: subTopic,
+    batchSize: BOOK_GENERATOR_BATCH_SIZE,
+    useBookKnowledge,
+    ...(forceUnlock ? { forceUnlock: true } : {}),
+  });
+
+  const releaseLockAndRetry = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/book-generator/release-lock`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify(buildGenerationPayload()),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Failed to clear lock");
+      setGenerationLocked(false);
+      toast({ title: "Lock cleared", description: "Starting a fresh batch…" });
+      await handleGenerate({ forceUnlock: true });
+    } catch (e: unknown) {
+      toast({
+        title: "Could not clear lock",
+        description: e instanceof Error ? e.message : "Failed to clear lock",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleGenerate = async (opts?: { forceUnlock?: boolean }) => {
     if (!selectedTool || !bookId || !classNumber || !subject || !topic || !subTopic) {
       toast({
         title: "Complete all steps",
@@ -390,25 +425,27 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
       return;
     }
     setIsGenerating(true);
+    setGenerationLocked(false);
     setProgress("Retrieving textbook chunks for your topic…");
-    setLastBatchSummary(null);
+    if (!opts?.forceUnlock) setLastBatchSummary(null);
     try {
       const res = await fetch(`${API_BASE_URL}/api/book-generator/generate-batch`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({
-          toolSlug: selectedTool,
-          bookId,
-          board,
-          className: classNumber,
-          subjectName: subject,
-          topicName: topic,
-          subtopicName: subTopic,
-          batchSize: BOOK_GENERATOR_BATCH_SIZE,
-          useBookKnowledge,
-        }),
+        body: JSON.stringify(buildGenerationPayload(opts?.forceUnlock)),
       });
       const json = await res.json();
+
+      if (res.status === 409 || json.locked || json.data?.locked) {
+        setGenerationLocked(true);
+        toast({
+          title: "Generation already in progress",
+          description: "A previous batch may still be running, or a lock is stuck. Use “Clear lock & retry” below.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const data = json.data || {};
       const usage = data.tokenUsage;
       const tokenUsage =
@@ -702,6 +739,17 @@ export default function BookBasedGenerator({ onOpenBookKnowledge }: BookBasedGen
                 {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
                 {isGenerating ? progress || "Generating…" : `Generate ${BOOK_GENERATOR_BATCH_SIZE} with Gemini`}
               </Button>
+              {generationLocked ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="shrink-0 border-amber-300 text-amber-800 hover:bg-amber-50"
+                  disabled={isGenerating}
+                  onClick={() => void releaseLockAndRetry()}
+                >
+                  Clear lock & retry
+                </Button>
+              ) : null}
             </div>
           ) : null}
 
