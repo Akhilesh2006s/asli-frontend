@@ -47,6 +47,8 @@ import { useSuperAdminDrawerNav } from "@/hooks/use-mobile";
 import {
   clearSuperAdminDashboardQueryFromUrl,
   consumeSuperAdminViewRestore,
+  persistSuperAdminView,
+  readPersistedSuperAdminView,
 } from "@/lib/super-admin-nav";
 import { VidyaAnalyticsCard } from "@/components/super-admin/VidyaAnalyticsCard";
 
@@ -62,7 +64,9 @@ const lazySectionFallback = (
 export default function SuperAdminDashboard() {
   const { toast } = useToast();
   const superAdminDrawerNav = useSuperAdminDrawerNav();
-  const [currentView, setCurrentView] = useState<SuperAdminView>("dashboard");
+  const [currentView, setCurrentView] = useState<SuperAdminView>(
+    () => readPersistedSuperAdminView() ?? "dashboard",
+  );
   const [user] = useState({ 
     fullName: 'Super Admin', 
     role: 'super-admin',
@@ -107,6 +111,10 @@ export default function SuperAdminDashboard() {
       setCurrentView(restore);
     }
   }, []);
+
+  useEffect(() => {
+    persistSuperAdminView(currentView);
+  }, [currentView]);
 
   const handleViewChange = (view: SuperAdminView) => {
     setCurrentView(view);

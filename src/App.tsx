@@ -76,7 +76,9 @@ function Router() {
       <Route path="/teacher/tools/:toolType" component={TeacherToolPage} />
       <Route path="/student/tools/:toolType" component={StudentToolPage} />
       <Route path="/super-admin/dashboard" component={SuperAdminDashboard} />
+      <Route path="/super_admin/dashboard" component={SuperAdminDashboard} />
       <Route path="/super-admin/schools/:id" component={SuperAdminSchoolDetail} />
+      <Route path="/super_admin/schools/:id" component={SuperAdminSchoolDetail} />
       <Route path="/super-admin/test" component={SuperAdminTest} />
       <Route path="/onboarding" component={Onboarding} />
       <Route path="/privacy" component={Privacy} />
