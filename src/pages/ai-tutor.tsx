@@ -31,6 +31,7 @@ import {
   hasStoryPassageLanguageSubject,
   READING_PRACTICE_TOOL_ID,
 } from "@/lib/ai-tool-subject-rules";
+import { isVidyaEnabledForUser } from "@/lib/vidya-access";
 
 // Mock user ID - in a real app, this would come from authentication
 const MOCK_USER_ID = "user-1";
@@ -291,13 +292,16 @@ export default function AITutor() {
     [subjectProgress, subjects, user?.assignedSubjects, user?.assignedClass?.assignedSubjects]
   );
 
+  const vidyaChatEnabled = isVidyaEnabledForUser(user);
+
   const visibleStudentTools = useMemo(() => {
     return studentTools.filter((tool) => {
+      if (tool.id === 'ai-chat' && !vidyaChatEnabled) return false;
       if (tool.id !== READING_PRACTICE_TOOL_ID) return true;
       if (vidyaSubjectNames.length === 0) return true;
       return hasStoryPassageLanguageSubject(vidyaSubjectNames);
     });
-  }, [vidyaSubjectNames]);
+  }, [vidyaSubjectNames, vidyaChatEnabled]);
 
   // Fetch user's chat sessions
   const { data: chatSessions = [], isLoading: sessionsLoading } = useQuery<any[]>({
@@ -405,6 +409,7 @@ export default function AITutor() {
   // Handle tool click
   const handleToolClick = (toolId: string) => {
     if (toolId === 'ai-chat') {
+      if (!vidyaChatEnabled) return;
       setSelectedTool('ai-chat');
     } else {
       setLocation(`/student/tools/${toolId}`);

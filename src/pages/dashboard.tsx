@@ -16,6 +16,7 @@ import {
   filterContentsBySchoolProgram,
   resolveIsAsliPrepExclusive,
 } from "@/lib/school-program";
+import { isVidyaEnabledForUser } from "@/lib/vidya-access";
 import {
   buildTodaysTasksContentList,
   capTodaysTasksForDay,
@@ -597,6 +598,7 @@ export default function Dashboard() {
     () => String(user?.assignedAdmin?.schoolName || user?.schoolName || '').trim(),
     [user?.assignedAdmin?.schoolName, user?.schoolName],
   );
+  const vidyaEnabled = isVidyaEnabledForUser(user);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -1906,7 +1908,9 @@ export default function Dashboard() {
                   Welcome back, {getStudentDisplayName(user)}!
                 </h1>
                 <p className="text-white/90 mb-2 sm:mb-4 text-[11px] sm:text-sm leading-snug line-clamp-3 sm:line-clamp-none">
-                  Ready to continue your {user?.educationStream || 'JEE'} preparation journey? Your Vidya AI has personalized recommendations waiting.
+                  {vidyaEnabled
+                    ? `Ready to continue your ${user?.educationStream || 'JEE'} preparation journey? Your Vidya AI has personalized recommendations waiting.`
+                    : `Ready to continue your ${user?.educationStream || 'JEE'} preparation journey? Pick up where you left off.`}
                 </p>
                 
                 <div className="flex flex-row flex-wrap gap-2 sm:gap-3">
@@ -1916,6 +1920,7 @@ export default function Dashboard() {
                   >
                     Continue Learning
                   </Button>
+                  {vidyaEnabled ? (
                   <Button 
                     variant="outline" 
                     className="border-white/30 bg-white/10 text-white hover:bg-white/20 text-[11px] sm:text-sm py-1.5 sm:py-2 px-2.5 sm:px-4 h-auto whitespace-nowrap"
@@ -1923,10 +1928,12 @@ export default function Dashboard() {
                   >
                     Ask Vidya AI
                   </Button>
+                  ) : null}
                 </div>
               </div>
               
               {/* Right side - Vidya image (same row as desktop) */}
+              {vidyaEnabled ? (
               <div className="flex-shrink-0">
                 <div className="w-[4.5rem] h-[3.25rem] sm:w-40 sm:h-28 lg:w-44 lg:h-32 relative">
                   <div className="absolute inset-0 bg-white/15 rounded-xl sm:rounded-2xl backdrop-blur-sm p-1 sm:p-1.5 border border-white/30 shadow-lg">
@@ -1939,6 +1946,7 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
+              ) : null}
             </div>
           </div>
         </div>

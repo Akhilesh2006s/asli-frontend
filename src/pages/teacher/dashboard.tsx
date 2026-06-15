@@ -70,6 +70,7 @@ import { resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
+import { isVidyaEnabledForUser } from '@/lib/vidya-access';
 import { TeacherDashboardSchedule } from '@/components/teacher/TeacherDashboardSchedule';
 import TeacherTimetableDashboard from '@/components/teacher/TeacherTimetableDashboard';
 import { ClassCard } from '@/components/teacher/ClassCard';
@@ -249,6 +250,7 @@ const TeacherDashboard = () => {
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [teacherEmail, setTeacherEmail] = useState<string>(localStorage.getItem('userEmail') || '');
+  const [teacherUser, setTeacherUser] = useState<any>(null);
   const [expandedClasses, setExpandedClasses] = useState<Set<string>>(new Set());
   const [, setLocation] = useLocation();
   const search = useSearch();
@@ -273,6 +275,8 @@ const TeacherDashboard = () => {
     const active = mobileNavScrollRef.current?.querySelector('[aria-current="page"]');
     active?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
   }, [dashboardSubTab]);
+
+  const vidyaChatEnabled = isVidyaEnabledForUser(teacherUser);
 
   const dashboardSubTabNav = (
     <div
@@ -445,8 +449,14 @@ const TeacherDashboard = () => {
   const [generatedLessonPlan, setGeneratedLessonPlan] = useState('');
   const [vidyaAiTab, setVidyaAiTab] = useState<'teacher-tools' | 'chat'>('teacher-tools');
   const [teacherChatFocusTab, setTeacherChatFocusTab] = useState<'lesson-planning' | 'assessments' | 'classroom-help'>('lesson-planning');
+
+  useEffect(() => {
+    if (!vidyaChatEnabled && dashboardSubTab === 'vidya-ai' && vidyaAiTab === 'chat') {
+      setVidyaAiTab('teacher-tools');
+    }
+  }, [vidyaChatEnabled, dashboardSubTab, vidyaAiTab]);
+
   const [teacherId, setTeacherId] = useState<string>('');
-  const [teacherUser, setTeacherUser] = useState<any>(null);
   
   // Quiz Generator form state
   const [quizForm, setQuizForm] = useState({
@@ -2503,6 +2513,7 @@ const TeacherDashboard = () => {
                       <Wrench className="w-3 h-3 sm:w-4 sm:h-4 inline mr-2" />
                       Teacher Tools
                     </button>
+                    {vidyaChatEnabled ? (
                     <button
                       onClick={() => setVidyaAiTab('chat')}
                       className={`flex-1 px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
@@ -2514,6 +2525,7 @@ const TeacherDashboard = () => {
                       <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 inline mr-2" />
                       Chat
                     </button>
+                    ) : null}
                   </div>
                 </div>
 
@@ -2741,7 +2753,7 @@ const TeacherDashboard = () => {
                 )}
 
                 {/* Chat Content */}
-                {vidyaAiTab === 'chat' && (
+                {vidyaAiTab === 'chat' && vidyaChatEnabled && (
                   <div className="space-y-4 max-w-4xl mx-auto">
                     <div className={`rounded-2xl p-5 shadow-md border border-white/40 ${
                       teacherChatFocusTab === 'lesson-planning'
@@ -4777,11 +4789,13 @@ const TeacherDashboard = () => {
         </DialogContent>
       </Dialog>
 
+      {vidyaChatEnabled ? (
       <VidyaAIFloatingAssistant
         role="teacher"
         className="max-lg:bottom-24"
         onClick={() => selectDashboardSubTab('vidya-ai')}
       />
+      ) : null}
 
       {/* Mobile / tablet — fixed bottom tab bar (horizontal swipe scroll) */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">

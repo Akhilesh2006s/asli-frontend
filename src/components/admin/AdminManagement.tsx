@@ -278,6 +278,8 @@ export default function AdminManagement() {
     schoolDetails: emptySchoolDetails(),
     accessMode: 'unlimited' as 'unlimited' | 'limited',
     limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS] as string[],
+    vidyaEnabledForTeachers: true,
+    vidyaEnabledForStudents: true,
   });
   const [showNewAdminPassword, setShowNewAdminPassword] = useState(false);
   const [showEditPasswordChange, setShowEditPasswordChange] = useState(false);
@@ -311,6 +313,8 @@ export default function AdminManagement() {
     isActive: true,
     accessMode: 'unlimited' as 'unlimited' | 'limited',
     limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS] as string[],
+    vidyaEnabledForTeachers: true,
+    vidyaEnabledForStudents: true,
   });
   const [isUploadingAddLogo, setIsUploadingAddLogo] = useState(false);
   const [isUploadingEditLogo, setIsUploadingEditLogo] = useState(false);
@@ -588,6 +592,8 @@ export default function AdminManagement() {
         secondaryContactPhone: sanitizePhoneInput(newAdmin.secondaryContactPhone),
         pin: newAdmin.pin?.trim() || '',
         permissions: resolvePortalPermissions(newAdmin.accessMode, newAdmin.limitedFeatures),
+        vidyaEnabledForTeachers: newAdmin.vidyaEnabledForTeachers,
+        vidyaEnabledForStudents: newAdmin.vidyaEnabledForStudents,
         schoolDetails: {
           ...sd,
           state: newAdmin.state
@@ -638,6 +644,8 @@ export default function AdminManagement() {
           schoolDetails: emptySchoolDetails(),
           accessMode: "unlimited",
           limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS],
+          vidyaEnabledForTeachers: true,
+          vidyaEnabledForStudents: true,
         });
         setShowNewAdminPassword(false);
         setIsAddDialogOpen(false);
@@ -760,6 +768,8 @@ export default function AdminManagement() {
       limitedFeatures: unlimited
         ? [...SCHOOL_PORTAL_FEATURE_IDS]
         : SCHOOL_PORTAL_FEATURE_IDS.filter((f) => perms.includes(f)),
+      vidyaEnabledForTeachers: admin.vidyaEnabledForTeachers !== false,
+      vidyaEnabledForStudents: admin.vidyaEnabledForStudents !== false,
     });
     setIsEditDialogOpen(true);
   };
@@ -843,6 +853,8 @@ export default function AdminManagement() {
           },
           isActive: editAdmin.isActive,
           permissions: resolvePortalPermissions(editAdmin.accessMode, editAdmin.limitedFeatures),
+          vidyaEnabledForTeachers: editAdmin.vidyaEnabledForTeachers,
+          vidyaEnabledForStudents: editAdmin.vidyaEnabledForStudents,
         }),
       });
 
@@ -888,6 +900,8 @@ export default function AdminManagement() {
           isActive: true,
           accessMode: "unlimited",
           limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS],
+          vidyaEnabledForTeachers: true,
+          vidyaEnabledForStudents: true,
         });
         toast({
           title: "Success",
@@ -1585,6 +1599,39 @@ export default function AdminManagement() {
                   </div>
                 )}
               </div>
+
+              <div className="space-y-3 rounded-lg border border-orange-100 bg-orange-50/40 p-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-900">Vidya AI chatbot access</h4>
+                  <p className="mt-1 text-xs text-slate-600">
+                    Turn the Vidya chatbot on or off for teachers and students. AI tools remain available when chat is off.
+                  </p>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="new-vidya-teachers" className="text-sm text-slate-800">
+                    Vidya chatbot for teachers
+                  </Label>
+                  <Switch
+                    id="new-vidya-teachers"
+                    checked={newAdmin.vidyaEnabledForTeachers}
+                    onCheckedChange={(checked) =>
+                      setNewAdmin({ ...newAdmin, vidyaEnabledForTeachers: checked === true })
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="new-vidya-students" className="text-sm text-slate-800">
+                    Vidya chatbot for students
+                  </Label>
+                  <Switch
+                    id="new-vidya-students"
+                    checked={newAdmin.vidyaEnabledForStudents}
+                    onCheckedChange={(checked) =>
+                      setNewAdmin({ ...newAdmin, vidyaEnabledForStudents: checked === true })
+                    }
+                  />
+                </div>
+              </div>
             </div>
             <div className="flex shrink-0 justify-end gap-3 border-t bg-background px-4 sm:px-6 lg:px-8 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -2206,6 +2253,39 @@ export default function AdminManagement() {
                     </div>
                   </div>
                 )}
+              </div>
+
+              <div className="space-y-3 rounded-lg border border-orange-100 bg-orange-50/40 p-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-900">Vidya AI chatbot access</h4>
+                  <p className="mt-1 text-xs text-slate-600">
+                    Turn the Vidya chatbot on or off for teachers and students. AI tools remain available when chat is off.
+                  </p>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="edit-vidya-teachers" className="text-sm text-slate-800">
+                    Vidya chatbot for teachers
+                  </Label>
+                  <Switch
+                    id="edit-vidya-teachers"
+                    checked={editAdmin.vidyaEnabledForTeachers}
+                    onCheckedChange={(checked) =>
+                      setEditAdmin({ ...editAdmin, vidyaEnabledForTeachers: checked === true })
+                    }
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="edit-vidya-students" className="text-sm text-slate-800">
+                    Vidya chatbot for students
+                  </Label>
+                  <Switch
+                    id="edit-vidya-students"
+                    checked={editAdmin.vidyaEnabledForStudents}
+                    onCheckedChange={(checked) =>
+                      setEditAdmin({ ...editAdmin, vidyaEnabledForStudents: checked === true })
+                    }
+                  />
+                </div>
               </div>
             </div>
             <div className="flex shrink-0 justify-end gap-3 border-t bg-background px-4 sm:px-6 lg:px-8 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
