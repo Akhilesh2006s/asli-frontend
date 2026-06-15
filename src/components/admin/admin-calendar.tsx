@@ -533,7 +533,7 @@ export default function AdminCalendar() {
                     <motion.div
                       key={index}
                       className={`
-                        min-h-[116px] sm:min-h-[100px] border border-gray-200 rounded-lg p-1.5 sm:p-2 cursor-pointer
+                        min-h-[64px] sm:min-h-[72px] md:min-h-[84px] border border-gray-200 rounded-lg p-1.5 sm:p-2 cursor-pointer
                         transition-all hover:bg-gray-50 relative
                         ${!isCurrentMonthDay ? 'bg-gray-50 opacity-50' : 'bg-white'}
                         ${isTodayDate ? 'ring-2 ring-orange-500' : ''}

@@ -13,6 +13,7 @@ import {
   examIncludesClass,
   getExamClassStrings,
 } from '@/lib/exam-classes';
+import { downloadSchoolPerformanceAnalysisExcel } from '@/lib/school-performance-analysis-excel';
 
 interface Exam {
   _id: string;
@@ -56,6 +57,14 @@ interface ExamResult {
   timeTaken?: number;
   attemptNumber?: number;
   subjectWiseScore?: Record<string, { correct?: number; total?: number; marks?: number }>;
+  questionAnalytics?: Array<{
+    subject?: string;
+    chapter?: string;
+    difficulty?: string;
+    questionType?: string;
+    timeTaken?: number;
+    status?: 'correct' | 'wrong' | 'not_answered';
+  }>;
   completedAt: string;
 }
 
@@ -327,65 +336,28 @@ export default function ExamViewOnly() {
     return { status: 'Active', color: 'bg-green-100 text-green-700' };
   };
 
-  const exportToCSV = () => {
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportToExcel = async () => {
     if (!selectedExam || examResults.length === 0) {
       alert('No results to export');
       return;
     }
 
-    // CSV Headers
-    const headers = [
-      'Rank',
-      'Student Name',
-      'Email',
-      'Class',
-      'Attempt',
-      'Correct',
-      'Wrong',
-      'Skipped',
-      'Marks Obtained',
-      'Total Marks',
-      'Marks %',
-      'Question Accuracy %',
-      'Time Taken',
-      'Completed At',
-    ];
-
-    const rows = rankedExamResults
-      .map(({ result }, idx) => {
-        const rank = idx + 1;
-        return [
-          rank,
-          result.userId.fullName,
-          result.userId.email,
-          normalizeClassNumberForDisplay(result.userId.classNumber),
-          result.attemptNumber || 1,
-          result.correctAnswers ?? '',
-          result.wrongAnswers ?? '',
-          result.unattempted ?? '',
-          result.obtainedMarks,
-          result.totalMarks,
-          `${getResultPercentage(result).toFixed(2)}%`,
-          `${getQuestionAccuracy(result)}%`,
-          formatTimeTaken(result.timeTaken),
-          new Date(result.completedAt).toLocaleString(),
-        ];
-      })
-      .map(row => row.map(cell => `"${cell}"`).join(','));
-
-    // Combine headers and rows
-    const csvContent = [headers.map(h => `"${h}"`).join(','), ...rows].join('\n');
-
-    // Create blob and download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${selectedExam.title}_results_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    setIsExporting(true);
+    try {
+      const ok = await downloadSchoolPerformanceAnalysisExcel(selectedExam.title, examResults);
+      if (!ok) alert('No results to export');
+    } catch (error) {
+      console.error('Excel export failed:', error);
+      toast({
+        title: 'Export failed',
+        description: error instanceof Error ? error.message : 'Could not generate Excel file',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   if (isLoading) {
@@ -578,10 +550,11 @@ export default function ExamViewOnly() {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => exportToCSV()}
+                disabled={isExporting || examResults.length === 0}
+                onClick={() => void exportToExcel()}
               >
                 <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                Export CSV
+                {isExporting ? 'Exporting…' : 'Export Excel'}
               </Button>
             </CardTitle>
           </CardHeader>

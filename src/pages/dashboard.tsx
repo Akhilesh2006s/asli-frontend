@@ -93,7 +93,7 @@ import DriveViewer from '@/components/drive-viewer';
 import VideoModal from '@/components/video-modal';
 import { API_BASE_URL, apiFetch, isPdfPreviewContent } from '@/lib/api-config';
 import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
-import { buildExamCalendarEntries } from '@/lib/exam-calendar-entries';
+import { buildExamCalendarEntries, buildSchoolEventCalendarEntries } from '@/lib/exam-calendar-entries';
 import { buildTimetableCalendarEntries } from '@/lib/timetable-calendar-entries';
 import { useTimetableEntries } from '@/hooks/useTimetable';
 import { format, startOfMonth, endOfMonth, startOfWeek, addDays, parseISO } from 'date-fns';
@@ -561,6 +561,37 @@ export default function Dashboard() {
     startDate: calendarMonthStart,
     endDate: calendarMonthEnd,
   });
+  const calendarMonthKey = format(calendarMonth, 'yyyy-MM');
+  const [schoolCalendarEvents, setSchoolCalendarEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return;
+        const response = await fetch(
+          `${API_BASE_URL}/api/student/calendar/events?month=${calendarMonthKey}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        if (!response.ok || cancelled) return;
+        const payload = await response.json();
+        if (!cancelled) {
+          setSchoolCalendarEvents(Array.isArray(payload?.data) ? payload.data : []);
+        }
+      } catch {
+        if (!cancelled) setSchoolCalendarEvents([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [calendarMonthKey]);
 
   const schoolDisplayName = useMemo(
     () => String(user?.assignedAdmin?.schoolName || user?.schoolName || '').trim(),
@@ -1786,9 +1817,10 @@ export default function Dashboard() {
 
     const examEntries = buildExamCalendarEntries(exams);
     const timetableCalendarEntries = buildTimetableCalendarEntries(monthTimetableEntries);
+    const schoolEventEntries = buildSchoolEventCalendarEntries(schoolCalendarEvents);
 
-    return [...quizEntries, ...examEntries, ...timetableCalendarEntries];
-  }, [incompleteQuizzes, exams, monthTimetableEntries]);
+    return [...quizEntries, ...examEntries, ...timetableCalendarEntries, ...schoolEventEntries];
+  }, [incompleteQuizzes, exams, monthTimetableEntries, schoolCalendarEvents]);
 
   const entriesByDate = useMemo(() => {
     return calendarEntries.reduce((acc: Record<string, any[]>, entry: any) => {
@@ -2136,18 +2168,22 @@ export default function Dashboard() {
                         ? 'bg-red-100 text-red-700'
                         : entry.type === 'quiz'
                         ? 'bg-orange-100 text-orange-700'
+                        : entry.type === 'event'
+                        ? 'bg-amber-100 text-amber-800'
                         : entry.type === 'timetable'
                         ? 'bg-sky-100 text-sky-700'
                         : 'bg-blue-100 text-blue-700';
                     const badgeLabel =
                       entry.type === 'timetable'
                         ? (entry.sessionType || 'CLASS').toUpperCase()
+                        : entry.type === 'event'
+                        ? 'EVENT'
                         : entry.type.toUpperCase();
                     const timeLabel =
                       entry.type === 'timetable'
                         ? `${entry.startTime || ''}${entry.endTime ? `â€“${entry.endTime}` : ''}`
                         : entry.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    const isClickable = entry.type !== 'timetable';
+                    const isClickable = entry.type !== 'timetable' && entry.type !== 'event';
                     return (
                       <div
                         key={`${entry.type}-${entry.id}`}
