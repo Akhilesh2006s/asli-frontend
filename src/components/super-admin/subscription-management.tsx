@@ -1,4 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import CreateOrderModal from '@/components/CreateOrder/CreateOrderModal';
+import { OrderCatalogProvider } from '@/components/CreateOrder/OrderCatalogContext';
+import OrderListPanel from '@/components/CreateOrder/OrderListPanel';
+import type { SavedOrder } from '@/lib/create-order-api';
+import { orderBtnPrimary, orderPageHero, orderTabActive, orderSpinner } from '@/components/CreateOrder/create-order-theme';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,14 +19,18 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { API_BASE_URL } from '@/lib/api-config';
+import { cn } from '@/lib/utils';
 import {
   CreditCard,
   ExternalLink,
   Loader2,
+  Plus,
   RefreshCw,
   IndianRupee,
   Repeat,
   AlertTriangle,
+  ShoppingBag,
+  Receipt,
 } from 'lucide-react';
 
 type PaymentRow = {
@@ -74,7 +83,6 @@ const emptyBillingPayload = (): BillingPayload => ({
   subscriptions: [],
 });
 
-/** Handles legacy array responses and partial objects from the API. */
 function normalizeBillingPayload(raw: unknown): BillingPayload {
   if (raw == null || typeof raw !== 'object' || Array.isArray(raw)) {
     return emptyBillingPayload();
@@ -106,7 +114,7 @@ function formatInr(n: number) {
 function formatDate(iso: string | null) {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleString();
+    return new Date(iso).toLocaleString('en-IN');
   } catch {
     return iso;
   }
@@ -115,7 +123,7 @@ function formatDate(iso: string | null) {
 function statusBadge(status: string) {
   const s = (status || '').toLowerCase();
   if (s === 'captured' || s === 'active' || s === 'authenticated')
-    return <Badge className="bg-emerald-600 hover:bg-emerald-600"> {status}</Badge>;
+    return <Badge className="bg-emerald-600 hover:bg-emerald-600">{status}</Badge>;
   if (s === 'failed' || s === 'cancelled' || s === 'halted')
     return <Badge variant="destructive">{status}</Badge>;
   if (s === 'authorized' || s === 'created' || s === 'pending')
@@ -123,10 +131,40 @@ function statusBadge(status: string) {
   return <Badge variant="outline">{status}</Badge>;
 }
 
+function BillingLoader() {
+  return (
+    <div className="flex justify-center py-16">
+      <Loader2 className={cn('h-8 w-8 animate-spin', orderSpinner)} />
+    </div>
+  );
+}
+
 export default function SubscriptionManagement() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<BillingPayload | null>(null);
+  const [createOrderOpen, setCreateOrderOpen] = useState(false);
+  const [editOrder, setEditOrder] = useState<SavedOrder | null>(null);
+  const [orderRefreshKey, setOrderRefreshKey] = useState(0);
+  const [mainTab, setMainTab] = useState('school-orders');
+
+  const openCreateOrder = useCallback(() => {
+    setEditOrder(null);
+    setCreateOrderOpen(true);
+  }, []);
+
+  const openEditOrder = useCallback((order: SavedOrder) => {
+    if (!order.id) {
+      toast({
+        title: 'Cannot edit order',
+        description: 'This order is missing an id. Refresh the list and try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setEditOrder(order);
+    setCreateOrderOpen(true);
+  }, [toast]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -139,17 +177,15 @@ export default function SubscriptionManagement() {
         },
       });
       const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error(json.message || `Request failed (${res.status})`);
-      }
-      if (json.success) {
-        setData(normalizeBillingPayload(json.data));
-      } else {
-        throw new Error(json.message || 'Invalid response');
-      }
+      if (!res.ok) throw new Error(json.message || `Request failed (${res.status})`);
+      if (json.success) setData(normalizeBillingPayload(json.data));
+      else throw new Error(json.message || 'Invalid response');
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Failed to load billing data';
-      toast({ title: 'Error', description: msg, variant: 'destructive' });
+      toast({
+        title: 'Error',
+        description: e instanceof Error ? e.message : 'Failed to load billing data',
+        variant: 'destructive',
+      });
       setData(null);
     } finally {
       setLoading(false);
@@ -161,123 +197,167 @@ export default function SubscriptionManagement() {
   }, [load]);
 
   return (
-    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Payments &amp; subscriptions</h2>
-          <p className="text-gray-600 mt-1">
-            Live data from Razorpay (payments and subscriptions). Configure API keys in the backend{' '}
-            <code className="rounded bg-muted px-1 text-xs">.env</code>.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={load} disabled={loading}>
-            {loading ? <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4" />}
-            <span className="ml-2">Refresh</span>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <a
-              href="https://dashboard.razorpay.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center"
-            >
-              Razorpay dashboard
-              <ExternalLink className="ml-2 h-3 w-3 sm:h-4 sm:w-4" />
-            </a>
-          </Button>
+    <OrderCatalogProvider>
+    <div className="space-y-6">
+      {/* Page header */}
+      <div className={cn('relative overflow-hidden p-5 sm:p-6', orderPageHero)}>
+        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-400" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-orange-600 mb-1">
+              <Receipt className="h-5 w-5" />
+              <span className="text-xs font-semibold uppercase tracking-wider">
+                Finance
+              </span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+              Payments &amp; Subscriptions
+            </h2>
+            <p className="text-slate-600 mt-1 max-w-xl text-sm">
+              Manage school orders, track Razorpay payments, and monitor subscriptions — all in one place.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 shrink-0 w-full sm:w-auto">
+            {mainTab === 'school-orders' && (
+              <Button size="sm" className={cn('flex-1 sm:flex-none', orderBtnPrimary)} onClick={openCreateOrder}>
+                <Plus className="h-4 w-4" />
+                <span className="ml-2">Create Order</span>
+              </Button>
+            )}
+            {mainTab !== 'school-orders' && (
+              <>
+                <Button variant="outline" size="sm" onClick={load} disabled={loading}>
+                  {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  <span className="ml-2">Refresh</span>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <a
+                    href="https://dashboard.razorpay.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Razorpay
+                    <ExternalLink className="ml-2 h-3.5 w-3.5" />
+                  </a>
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      {loading && !data ? (
-        <div className="flex justify-center py-16 text-gray-500">
-          <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 animate-spin text-orange-500" />
-        </div>
-      ) : data ? (
-        <>
-          {!data.razorpayConfigured && (
-            <Alert>
-              <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4" />
-              <AlertTitle>Razorpay not connected</AlertTitle>
-              <AlertDescription className="text-xs sm:text-sm mt-1">
-                Add <code className="rounded bg-muted px-1">RAZORPAY_KEY_ID</code> and{' '}
-                <code className="rounded bg-muted px-1">RAZORPAY_KEY_SECRET</code> to your server environment (from the
-                Razorpay Dashboard → API Keys), then restart the API. Tables will fill with live data.
-              </AlertDescription>
-            </Alert>
-          )}
+      {/* Tabs */}
+      <Tabs value={mainTab} onValueChange={setMainTab} className="w-full">
+        <TabsList className="inline-flex h-auto w-full max-w-none flex-wrap justify-start gap-1 rounded-xl bg-slate-100/80 p-1 sm:w-auto">
+          <TabsTrigger value="school-orders" className={cn('gap-2 rounded-lg', orderTabActive)}>
+            <ShoppingBag className="h-4 w-4" />
+            School Orders
+          </TabsTrigger>
+          <TabsTrigger
+            value="payments"
+            className="gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
+            <CreditCard className="h-4 w-4" />
+            Payments
+          </TabsTrigger>
+          <TabsTrigger
+            value="subscriptions"
+            className="gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
+            <Repeat className="h-4 w-4" />
+            Subscriptions
+          </TabsTrigger>
+        </TabsList>
 
-          {data.razorpayError && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4" />
-              <AlertTitle>Razorpay error</AlertTitle>
-              <AlertDescription>{data.razorpayError}</AlertDescription>
-            </Alert>
-          )}
+        <TabsContent value="school-orders" className="mt-5 focus-visible:outline-none">
+          <OrderListPanel
+            refreshKey={orderRefreshKey}
+            onCreateOrder={openCreateOrder}
+            onEditOrder={openEditOrder}
+          />
+        </TabsContent>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Captured revenue (listed)</CardDescription>
-                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                  <IndianRupee className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
-                  {formatInr(data.summary.capturedAmountInr)}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-xs text-muted-foreground">
-                Sum of captured payments in the current fetch (latest 50).
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Payments</CardDescription>
-                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                  <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 text-sky-600" />
-                  {data.summary.paymentsListed}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-xs text-muted-foreground">Rows loaded from Razorpay.</CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Subscriptions</CardDescription>
-                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-                  <Repeat className="h-4 w-4 sm:h-5 sm:w-5 text-violet-600" />
-                  {data.summary.subscriptionsListed}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-xs text-muted-foreground">Razorpay subscription objects.</CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription>Active subscriptions</CardDescription>
-                <CardTitle className="text-lg sm:text-xl">{data.summary.activeSubscriptions}</CardTitle>
-              </CardHeader>
-              <CardContent className="text-xs text-muted-foreground">Status active / authenticated.</CardContent>
-            </Card>
-          </div>
+        <TabsContent value="payments" className="mt-5 space-y-4 focus-visible:outline-none">
+          {loading && !data ? (
+            <BillingLoader />
+          ) : data ? (
+            <>
+              {!data.razorpayConfigured && (
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Razorpay not connected</AlertTitle>
+                  <AlertDescription className="text-sm">
+                    Add <code className="rounded bg-muted px-1">RAZORPAY_KEY_ID</code> and{' '}
+                    <code className="rounded bg-muted px-1">RAZORPAY_KEY_SECRET</code> to your server
+                    .env, then restart the API.
+                  </AlertDescription>
+                </Alert>
+              )}
+              {data.razorpayError && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Razorpay error</AlertTitle>
+                  <AlertDescription>{data.razorpayError}</AlertDescription>
+                </Alert>
+              )}
 
-          <Tabs defaultValue="payments" className="w-full">
-            <TabsList className="grid w-full max-w-md grid-cols-1 sm:grid-cols-2">
-              <TabsTrigger value="payments">Payments &amp; billing</TabsTrigger>
-              <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
-            </TabsList>
-            <TabsContent value="payments" className="mt-4">
-              <Card>
-                <CardHeader>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  {
+                    label: 'Captured revenue',
+                    value: formatInr(data.summary.capturedAmountInr),
+                    icon: IndianRupee,
+                    color: 'text-emerald-600',
+                  },
+                  {
+                    label: 'Payments',
+                    value: data.summary.paymentsListed,
+                    icon: CreditCard,
+                    color: 'text-sky-600',
+                  },
+                  {
+                    label: 'Subscriptions',
+                    value: data.summary.subscriptionsListed,
+                    icon: Repeat,
+                    color: 'text-orange-600',
+                  },
+                  {
+                    label: 'Active subs',
+                    value: data.summary.activeSubscriptions,
+                    icon: Repeat,
+                    color: 'text-slate-700',
+                  },
+                ].map((stat) => (
+                  <Card key={stat.label} className="rounded-xl border-slate-200/80 shadow-sm">
+                    <CardHeader className="pb-2">
+                      <CardDescription>{stat.label}</CardDescription>
+                      <CardTitle className={cn('flex items-center gap-2 text-xl', stat.color)}>
+                        <stat.icon className="h-5 w-5" />
+                        {stat.value}
+                      </CardTitle>
+                    </CardHeader>
+                  </Card>
+                ))}
+              </div>
+
+              <Card className="rounded-xl border-slate-200/80 shadow-sm overflow-hidden">
+                <CardHeader className="border-b bg-slate-50/50">
                   <CardTitle>Recent payments</CardTitle>
-                  <CardDescription>Card, UPI, netbanking, wallet — as reported by Razorpay.</CardDescription>
+                  <CardDescription>From Razorpay — latest 50 transactions</CardDescription>
                 </CardHeader>
-                <CardContent className="overflow-x-auto">
+                <CardContent className="p-0 overflow-x-auto">
                   {data.payments.length === 0 ? (
-                    <p className="text-xs sm:text-sm text-muted-foreground py-3 sm:py-4 lg:py-6 text-center">
-                      No payments returned. Complete a test payment in Razorpay test mode or widen the date range in the
-                      Razorpay dashboard.
+                    <p className="py-12 text-center text-sm text-muted-foreground">
+                      No payments returned from Razorpay.
                     </p>
                   ) : (
                     <Table>
                       <TableHeader>
-                        <TableRow>
+                        <TableRow className="bg-slate-50/50">
                           <TableHead>Date</TableHead>
                           <TableHead>Payment ID</TableHead>
                           <TableHead>Amount</TableHead>
@@ -289,16 +369,18 @@ export default function SubscriptionManagement() {
                       <TableBody>
                         {data.payments.map((p) => (
                           <TableRow key={p.id}>
-                            <TableCell className="whitespace-nowrap text-xs">{formatDate(p.createdAt)}</TableCell>
-                            <TableCell className="font-mono text-xs max-w-[140px] truncate" title={p.id}>
+                            <TableCell className="whitespace-nowrap text-xs">
+                              {formatDate(p.createdAt)}
+                            </TableCell>
+                            <TableCell className="font-mono text-xs max-w-[140px] truncate">
                               {p.id}
                             </TableCell>
                             <TableCell>{formatInr(p.amount)}</TableCell>
                             <TableCell>{statusBadge(p.status)}</TableCell>
                             <TableCell className="capitalize">{p.method}</TableCell>
-                            <TableCell className="text-xs sm:text-sm">
+                            <TableCell className="text-xs">
                               <div>{p.email}</div>
-                              <div className="text-muted-foreground text-xs">{p.contact}</div>
+                              <div className="text-muted-foreground">{p.contact}</div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -307,58 +389,85 @@ export default function SubscriptionManagement() {
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
-            <TabsContent value="subscriptions" className="mt-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Subscriptions</CardTitle>
-                  <CardDescription>Recurring plans managed in Razorpay.</CardDescription>
-                </CardHeader>
-                <CardContent className="overflow-x-auto">
-                  {data.subscriptions.length === 0 ? (
-                    <p className="text-xs sm:text-sm text-muted-foreground py-3 sm:py-4 lg:py-6 text-center">
-                      No subscriptions yet. Create plans and subscriptions in the Razorpay dashboard, or via your app’s
-                      checkout flow.
-                    </p>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Subscription ID</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Plan</TableHead>
-                          <TableHead>Customer</TableHead>
-                          <TableHead>Current period</TableHead>
-                          <TableHead>Paid / left</TableHead>
+            </>
+          ) : (
+            <p className="py-12 text-center text-sm text-muted-foreground">
+              Could not load Razorpay data.
+            </p>
+          )}
+        </TabsContent>
+
+        <TabsContent value="subscriptions" className="mt-5 focus-visible:outline-none">
+          {loading && !data ? (
+            <BillingLoader />
+          ) : data ? (
+            <Card className="rounded-xl border-slate-200/80 shadow-sm overflow-hidden">
+              <CardHeader className="border-b bg-slate-50/50">
+                <CardTitle>Subscriptions</CardTitle>
+                <CardDescription>Recurring plans from Razorpay</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0 overflow-x-auto">
+                {data.subscriptions.length === 0 ? (
+                  <p className="py-12 text-center text-sm text-muted-foreground">
+                    No subscriptions yet.
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-slate-50/50">
+                        <TableHead>ID</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Plan</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Period</TableHead>
+                        <TableHead>Paid / left</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.subscriptions.map((s) => (
+                        <TableRow key={s.id}>
+                          <TableCell className="font-mono text-xs max-w-[140px] truncate">
+                            {s.id}
+                          </TableCell>
+                          <TableCell>{statusBadge(s.status)}</TableCell>
+                          <TableCell className="font-mono text-xs">{s.planId}</TableCell>
+                          <TableCell className="font-mono text-xs max-w-[100px] truncate">
+                            {s.customerId}
+                          </TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {formatDate(s.currentStart)} → {formatDate(s.currentEnd)}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {s.paidCount ?? '—'} / {s.remainingCount ?? '—'}
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {data.subscriptions.map((s) => (
-                          <TableRow key={s.id}>
-                            <TableCell className="font-mono text-xs max-w-[160px] truncate" title={s.id}>
-                              {s.id}
-                            </TableCell>
-                            <TableCell>{statusBadge(s.status)}</TableCell>
-                            <TableCell className="font-mono text-xs">{s.planId}</TableCell>
-                            <TableCell className="font-mono text-xs max-w-[120px] truncate">{s.customerId}</TableCell>
-                            <TableCell className="text-xs whitespace-nowrap">
-                              <div>{formatDate(s.currentStart)}</div>
-                              <div className="text-muted-foreground">→ {formatDate(s.currentEnd)}</div>
-                            </TableCell>
-                            <TableCell className="text-xs sm:text-sm">
-                              {s.paidCount ?? '—'} / {s.remainingCount ?? '—'}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </>
-      ) : null}
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <p className="py-12 text-center text-sm text-muted-foreground">
+              Could not load subscription data.
+            </p>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      <CreateOrderModal
+        open={createOrderOpen}
+        onOpenChange={(open) => {
+          setCreateOrderOpen(open);
+          if (!open) setEditOrder(null);
+        }}
+        editOrder={editOrder}
+        onOrderSaved={() => {
+          setOrderRefreshKey((k) => k + 1);
+          setMainTab('school-orders');
+        }}
+      />
     </div>
+    </OrderCatalogProvider>
   );
 }
