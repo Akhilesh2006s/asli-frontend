@@ -93,6 +93,7 @@ import YouTubePlayer from '@/components/youtube-player';
 import DriveViewer from '@/components/drive-viewer';
 import VideoModal from '@/components/video-modal';
 import { API_BASE_URL, apiFetch, isPdfPreviewContent } from '@/lib/api-config';
+import SchoolBrandRow from '@/components/ui/school-brand-row';
 import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 import { buildExamCalendarEntries, buildSchoolEventCalendarEntries } from '@/lib/exam-calendar-entries';
 import { buildTimetableCalendarEntries } from '@/lib/timetable-calendar-entries';
@@ -1904,6 +1905,7 @@ export default function Dashboard() {
             <div className="relative z-10 flex flex-row items-center justify-between gap-3 sm:gap-4">
               {/* Left side - Text content */}
               <div className="flex-1 min-w-0">
+                <SchoolBrandRow user={user} variant="onPrimary" className="mb-3" />
                 <h1 className="text-base sm:text-xl lg:text-3xl font-bold mb-1 sm:mb-2 leading-tight">
                   Welcome back, {getStudentDisplayName(user)}!
                 </h1>

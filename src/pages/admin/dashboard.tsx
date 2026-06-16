@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { API_BASE_URL } from '@/lib/api-config';
+import SchoolBrandRow from '@/components/ui/school-brand-row';
 import { AtRiskStudentsPanel } from '@/components/admin/AtRiskStudentsPanel';
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import { 
@@ -697,12 +698,13 @@ const AdminDashboard = () => {
                 <h2 className="text-responsive-xl font-bold capitalize text-gray-900">{activeTab}</h2>
                 <p className="text-gray-900 text-responsive-sm font-medium">Manage your learning platform with style</p>
                 {userData && (
-                  <div className="mt-2">
+                  <div className="mt-2 space-y-2">
+                    <SchoolBrandRow user={userData} variant="onPrimary" />
                     <p className="text-gray-800 text-xs sm:text-sm font-medium">
-                      {userData.email} ::: {userData.schoolName || userData.fullName || 'School'}
+                      {userData.email}
                     </p>
-                    <p className="text-gray-900 text-sm sm:text-base font-semibold mt-1">
-                      Welcome {userData.schoolName || userData.fullName || 'Admin'}
+                    <p className="text-gray-900 text-sm sm:text-base font-semibold">
+                      Welcome {userData.fullName || 'Admin'}
                     </p>
                   </div>
                 )}

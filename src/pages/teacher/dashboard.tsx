@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { API_BASE_URL } from '@/lib/api-config';
+import SchoolBrandRow from '@/components/ui/school-brand-row';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -2079,11 +2080,8 @@ const TeacherDashboard = () => {
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-xl">
-                <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-              </div>
+              <SchoolBrandRow user={teacherUser} variant="onPrimary" />
               <div>
-                <h1 className="text-lg sm:text-xl font-bold">ASLILEARN AI</h1>
                 <p className="text-xs text-white/80 font-medium">Teacher Portal</p>
               </div>
             </div>
