@@ -206,7 +206,7 @@ export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
           </div>
           <div>
             <h3 className="text-base sm:text-lg font-bold tracking-tight text-gray-900 sm:text-xl">
-              Daily
+              Diary
             </h3>
             <p className="text-xs sm:text-sm text-gray-600">
               Log what you covered today — visible to your students and school admin.
@@ -227,7 +227,7 @@ export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
             ) : classes.length === 0 ? (
               <p className="rounded-xl border border-dashed border-amber-200 bg-amber-50 px-3 py-2 text-xs sm:text-sm text-amber-800">
                 No classes assigned yet. Contact your administrator to assign a class before
-                posting a daily entry.
+                posting a diary entry.
               </p>
             ) : (
               <Select value={classId} onValueChange={setClassId}>

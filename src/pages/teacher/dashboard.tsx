@@ -2916,7 +2916,7 @@ const TeacherDashboard = () => {
                         onClick={() => setStudentsSubTab('submissions')}
                       >
                         <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                        Submissions
+                        H.W Submissions
                       </Button>
                       <Button
                         variant={studentsSubTab === 'daily' ? 'default' : 'outline'}
@@ -2924,7 +2924,7 @@ const TeacherDashboard = () => {
                         onClick={() => setStudentsSubTab('daily')}
                       >
                         <BookMarked className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                        Daily
+                        Diary
                       </Button>
                     </div>
                     </div>
@@ -3663,7 +3663,7 @@ const TeacherDashboard = () => {
                               <FileText className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                             </div>
                             <div>
-                              <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Homework Submissions</h2>
+                              <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">H.W Submissions</h2>
                               <p className="text-gray-600">View and manage student homework submissions</p>
                             </div>
                           </div>
@@ -3690,7 +3690,7 @@ const TeacherDashboard = () => {
                           <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
                             <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                               <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
-                              Homework Submissions
+                              H.W Submissions
                             </h3>
                             <div className="space-y-4">
                               {homeworkSubmissions.homeworks && homeworkSubmissions.homeworks.length > 0 ? (
@@ -3855,7 +3855,7 @@ const TeacherDashboard = () => {
                           <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
                             <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                               <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
-                              Submissions by Students
+                              H.W Submissions by Students
                             </h3>
 
                             <div className="space-y-1">
