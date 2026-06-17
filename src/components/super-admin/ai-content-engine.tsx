@@ -228,7 +228,6 @@ export default function AIContentEngine() {
       { value: "lesson-planner", label: "Lesson Planner" },
       { value: "study-schedule-maker", label: "Study Schedule Maker" },
       { value: "homework-creator", label: "Homework Creator" },
-      { value: "rubrics-evaluation-generator", label: "Rubrics, Evaluation & Report Card" },
       { value: "reading-practice-room", label: "Reading Practice Room" },
       { value: "story-passage-creator", label: "Story and Passage Creator" },
       { value: "short-notes-summaries-maker", label: "Short Notes & Summaries" },
@@ -2543,10 +2542,9 @@ export default function AIContentEngine() {
     }
 
     if (
-      item.toolType === "rubrics-evaluation-generator" ||
       kind === "rubric" ||
       Array.isArray((content as Record<string, unknown>).criteriaRows) ||
-      (Array.isArray(fallback.criteria) && item.toolType === "rubrics-evaluation-generator")
+      Array.isArray(fallback.criteria)
     ) {
       const fb = fallback as Record<string, unknown>;
       const rc = content as Record<string, unknown>;

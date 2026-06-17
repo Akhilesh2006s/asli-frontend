@@ -65,7 +65,6 @@ import {
 import { HomeworkCreatorViewer } from "@/components/homework-creator-viewer";
 import { LessonPlannerViewer } from "@/components/lesson-planner-viewer";
 import { DailyClassPlanViewer } from "@/components/daily-class-plan-viewer";
-import { RubricsEvaluationViewer } from "@/components/rubrics-evaluation-viewer";
 import { StoryPassageViewer } from "@/components/story-passage-viewer";
 import { ShortNotesViewer } from "@/components/short-notes-viewer";
 import { WorksheetMcqViewer } from "@/components/worksheet-mcq-viewer";
@@ -154,8 +153,7 @@ type ToolId =
   | "smart-qa-practice-generator"
   | "chapter-summary-creator"
   | "key-points-formula-extractor"
-  | "quick-assignment-builder"
-  | "rubrics-evaluation-generator";
+  | "quick-assignment-builder";
 
 const TOOLS: Array<{ id: ToolId; name: string; description: string }> = [
   { id: "project-idea-lab", name: "Project Idea Lab", description: "14-point student project format with safety, observation table, creative output, and self-assessment." },
@@ -165,7 +163,6 @@ const TOOLS: Array<{ id: ToolId; name: string; description: string }> = [
   { id: "study-schedule-maker", name: "Study Schedule Maker", description: "13-point student study schedule with plan table, concept slot, and self-assessment." },
   { id: "lesson-planner", name: "Lesson Planner", description: "14-point teacher lesson plan with classroom activities and formative assessment." },
   { id: "homework-creator", name: "Homework Creator", description: "Generate homework tasks and practice sets." },
-  { id: "rubrics-evaluation-generator", name: "Rubrics & Evaluation Generator", description: "10-section rubrics with criteria rows, grading guidance, and remedial suggestions." },
   { id: "reading-practice-room", name: "Reading Practice Room", description: "13-section reading practice with recall, infer, and connect questions (English & Hindi only)." },
   { id: "story-passage-creator", name: "Story and Passage Creator", description: "19-section teacher story and passage sets (English & Hindi only)." },
   { id: "short-notes-summaries-maker", name: "Short Notes & Summaries", description: "Create concise revision notes." },
@@ -207,7 +204,6 @@ const TEACHER_TOOL_IDS: ToolId[] = [
   "story-passage-creator",
   "short-notes-summaries-maker",
   "flashcard-generator",
-  "rubrics-evaluation-generator",
 ];
 
 const TEACHER_TOOL_LABELS: Partial<Record<ToolId, string>> = {
@@ -219,7 +215,6 @@ const TEACHER_TOOL_LABELS: Partial<Record<ToolId, string>> = {
   "daily-class-plan-maker": "Daily Class Plan Maker",
   "homework-creator": "Homework Creator",
   "short-notes-summaries-maker": "Short Notes & Summarizer",
-  "rubrics-evaluation-generator": "Rubrics & Evaluation Generator",
 };
 
 type GeneratorRecord = {
@@ -1480,12 +1475,6 @@ export default function SuperAdminAiGenerator() {
             ) : activeRecord?.toolSlug === "homework-creator" ||
               activeRecord?.toolName === "homework-creator" ? (
               <HomeworkCreatorViewer
-                content={String(activeRecord?.generatedContent || "")}
-                rawContent={activeRecord}
-              />
-            ) : activeRecord?.toolSlug === "rubrics-evaluation-generator" ||
-              activeRecord?.toolName === "rubrics-evaluation-generator" ? (
-              <RubricsEvaluationViewer
                 content={String(activeRecord?.generatedContent || "")}
                 rawContent={activeRecord}
               />

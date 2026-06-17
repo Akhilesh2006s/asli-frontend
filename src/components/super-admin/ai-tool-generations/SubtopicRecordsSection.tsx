@@ -24,7 +24,6 @@ import { GeneratedRecordBody } from "@/components/super-admin/generated-record-b
 import { HomeworkCreatorViewer } from "@/components/homework-creator-viewer";
 import { LessonPlannerViewer } from "@/components/lesson-planner-viewer";
 import { DailyClassPlanViewer } from "@/components/daily-class-plan-viewer";
-import { RubricsEvaluationViewer } from "@/components/rubrics-evaluation-viewer";
 import { StoryPassageViewer } from "@/components/story-passage-viewer";
 import { ShortNotesViewer } from "@/components/short-notes-viewer";
 import { WorksheetMcqViewer } from "@/components/worksheet-mcq-viewer";
@@ -74,11 +73,6 @@ function isDailyClassPlanToolValue(v: unknown): boolean {
 function isHomeworkCreatorToolValue(v: unknown): boolean {
   const t = String(v || "").trim().toLowerCase();
   return t === "homework-creator";
-}
-
-function isRubricsToolValue(v: unknown): boolean {
-  const t = String(v || "").trim().toLowerCase();
-  return t === "rubrics-evaluation-generator";
 }
 
 function isStoryPassageToolValue(v: unknown): boolean {
@@ -514,16 +508,6 @@ export function SubtopicRecordsSection({
                   return (
                     <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
                       <HomeworkCreatorViewer
-                        content={String(fullText || "")}
-                        rawContent={viewDetail}
-                      />
-                    </div>
-                  );
-                }
-                if (isRubricsToolValue(resolvedTool)) {
-                  return (
-                    <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
-                      <RubricsEvaluationViewer
                         content={String(fullText || "")}
                         rawContent={viewDetail}
                       />

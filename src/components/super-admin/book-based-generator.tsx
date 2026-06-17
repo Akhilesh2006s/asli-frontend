@@ -12,11 +12,19 @@ import { useToast } from "@/hooks/use-toast";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
 import { cn } from "@/lib/utils";
 import {
+  BOOK_BASED_STUDENT_TOOLS,
+  BOOK_BASED_TEACHER_TOOLS,
   BOOK_BASED_TOOLS,
   BOOK_GENERATOR_BATCH_SIZE,
   BOOK_UNIQUENESS_TARGET,
+  type BookBasedTool,
   type BookBasedToolId,
 } from "@/lib/book-based-tools";
+import {
+  filterSubjectsForAiTool,
+  isStoryLanguageTool,
+  isStoryPassageLanguageSubject,
+} from "@/lib/ai-tool-subject-rules";
 import {
   computeGeminiCostFromTokenUsage,
   emptyTokenTotals,
@@ -88,6 +96,10 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   } = useCurriculumCascade(classNumber || undefined, subject || undefined, topic || undefined, board || undefined);
 
   const currentTool = useMemo(() => BOOK_BASED_TOOLS.find((t) => t.id === selectedTool), [selectedTool]);
+  const subjectsForTool = useMemo(
+    () => filterSubjectsForAiTool(selectedTool || "", subjects),
+    [selectedTool, subjects],
+  );
   const selectedBook = useMemo(() => books.find((b) => b._id === bookId), [books, bookId]);
   const bookReady = Boolean(selectedBook?.embeddingsCreated && selectedBook?.processingStatus === "indexed");
   const step1Done = Boolean(bookId && bookReady);
@@ -196,6 +208,39 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     setTopic(value);
     setSubTopic("");
   };
+
+  const handleToolSelect = (toolId: BookBasedToolId) => {
+    setSelectedTool(toolId);
+    if (isStoryLanguageTool(toolId) && subject && !isStoryPassageLanguageSubject(subject)) {
+      setSubject("");
+      setTopic("");
+      setSubTopic("");
+    }
+  };
+
+  useEffect(() => {
+    if (!isStoryLanguageTool(selectedTool)) return;
+    if (!subject || isStoryPassageLanguageSubject(subject)) return;
+    setSubject("");
+    setTopic("");
+    setSubTopic("");
+  }, [selectedTool, subject]);
+
+  const renderToolButton = (tool: BookBasedTool) => (
+    <button
+      key={tool.id}
+      type="button"
+      onClick={() => handleToolSelect(tool.id as BookBasedToolId)}
+      disabled={!step2Done}
+      className={cn(
+        "text-left rounded-xl border p-4 transition shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed",
+        selectedTool === tool.id ? "border-violet-500 bg-violet-50 ring-2 ring-violet-200" : "border-slate-200 bg-white",
+      )}
+    >
+      <p className="font-semibold text-sm text-slate-900">{tool.name}</p>
+      <p className="text-xs text-slate-500 mt-1 line-clamp-2">{tool.description}</p>
+    </button>
+  );
 
   const buildGenerationPayload = (forceUnlock = false) => ({
     toolSlug: selectedTool,
@@ -341,6 +386,14 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     }
     if (!bookReady) {
       toast({ title: "Book not ready", description: "Wait for indexing to finish or reindex from Book Knowledge Base.", variant: "destructive" });
+      return;
+    }
+    if (isStoryLanguageTool(selectedTool) && !isStoryPassageLanguageSubject(subject)) {
+      toast({
+        title: "English or Hindi only",
+        description: "Story & Passage and Reading Practice tools work only with English or Hindi subjects.",
+        variant: "destructive",
+      });
       return;
     }
     setIsGenerating(true);
@@ -552,9 +605,21 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
           <div className="space-y-2">
             <Label>Subject</Label>
             <Select value={subject} onValueChange={handleSubjectChange} disabled={!classNumber || loadingSubjects}>
-              <SelectTrigger><SelectValue placeholder={!classNumber ? "Select class first" : loadingSubjects ? "Loading subjects…" : "Select subject"} /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue
+                  placeholder={
+                    !classNumber
+                      ? "Select class first"
+                      : loadingSubjects
+                        ? "Loading subjects…"
+                        : isStoryLanguageTool(selectedTool) && subjectsForTool.length === 0
+                          ? "English or Hindi only"
+                          : "Select subject"
+                  }
+                />
+              </SelectTrigger>
               <SelectContent>
-                {subjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                {(selectedTool ? subjectsForTool : subjects).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -590,29 +655,39 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
             AI retrieves relevant passages from <strong>{selectedBook?.title || "your textbook"}</strong> for{" "}
             <strong>{topic || "…"} / {subTopic || "…"}</strong> and generates {BOOK_GENERATOR_BATCH_SIZE} unique records.
             {" "}Each batch runs <strong>3 Gemini calls at a time</strong> — exam papers and mock tests often take <strong>10–25 minutes</strong>.
+            {" "}<strong>{BOOK_BASED_STUDENT_TOOLS.length} student</strong> and <strong>{BOOK_BASED_TEACHER_TOOLS.length} teacher</strong> tools available.
           </p>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {BOOK_BASED_TOOLS.map((tool) => (
-              <button
-                key={tool.id}
-                type="button"
-                onClick={() => setSelectedTool(tool.id)}
-                disabled={!step2Done}
-                className={cn(
-                  "text-left rounded-xl border p-4 transition shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed",
-                  selectedTool === tool.id ? "border-violet-500 bg-violet-50 ring-2 ring-violet-200" : "border-slate-200 bg-white",
-                )}
-              >
-                <p className="font-semibold text-sm text-slate-900">{tool.name}</p>
-                <p className="text-xs text-slate-500 mt-1 line-clamp-2">{tool.description}</p>
-              </button>
-            ))}
+        <CardContent className="space-y-6">
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Student ({BOOK_BASED_STUDENT_TOOLS.length})
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {BOOK_BASED_STUDENT_TOOLS.map(renderToolButton)}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Teacher ({BOOK_BASED_TEACHER_TOOLS.length})
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {BOOK_BASED_TEACHER_TOOLS.map(renderToolButton)}
+            </div>
           </div>
 
           {selectedTool && step2Done ? (
             <div className="flex flex-wrap items-center gap-4 rounded-lg border border-violet-100 bg-violet-50/50 p-4">
+              {currentTool ? (
+                <Badge variant="secondary" className="shrink-0">
+                  {currentTool.audience === "student" ? "Student" : "Teacher"} · {currentTool.name}
+                </Badge>
+              ) : null}
+              {isStoryLanguageTool(selectedTool) ? (
+                <p className="text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded-md px-2 py-1.5 w-full sm:w-auto">
+                  English and Hindi subjects only for this tool.
+                </p>
+              ) : null}
               <div className="flex items-center gap-2">
                 <Checkbox id="use-book-kb" checked={useBookKnowledge} onCheckedChange={(v) => setUseBookKnowledge(v === true)} />
                 <Label htmlFor="use-book-kb" className="text-sm cursor-pointer">Use textbook as primary source (RAG)</Label>
