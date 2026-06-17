@@ -286,6 +286,7 @@ export default function SuperAdminAiGenerator() {
   const [difficulty, setDifficulty] = useState("medium");
   const [duration, setDuration] = useState("30");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationLocked, setGenerationLocked] = useState(false);
   const [activeTab, setActiveTab] = useState<"generate" | "audit">("generate");
   const [forceGenerateNew, setForceGenerateNew] = useState(false);
   const [generationProgress, setGenerationProgress] = useState<{
@@ -475,7 +476,47 @@ export default function SuperAdminAiGenerator() {
     setSubTopic("");
   }, [selectedTool, subject]);
 
-  const generate = async () => {
+  const buildGenerationPayload = (forceUnlock = false) => ({
+    toolSlug: selectedTool,
+    toolName: currentTool?.name || selectedTool,
+    board,
+    className: classNumber,
+    subjectName: subject,
+    topicName: topic,
+    subtopicName: subTopic,
+    batchSize: GENERATION_BATCH_SIZE,
+    forceGenerate: forceGenerateNew,
+    forceGenerateNew: forceGenerateNew,
+    extraParams: buildExtraParams(),
+    ...(forceUnlock ? { forceUnlock: true } : {}),
+  });
+
+  const releaseLockAndRetry = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/ai-generator/release-lock`, {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify(buildGenerationPayload()),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Failed to clear lock");
+      setGenerationLocked(false);
+      const released = Number(json?.data?.released || 0);
+      toast({
+        title: released > 0 ? "Lock cleared" : "Ready to retry",
+        description: json.message || "Starting a fresh batch…",
+      });
+      await generate({ forceUnlock: true });
+    } catch (e: unknown) {
+      toast({
+        title: "Could not clear lock",
+        description: e instanceof Error ? e.message : "Failed to clear lock",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const generate = async (opts?: { forceUnlock?: boolean }) => {
     if (!selectedTool || !board || !classNumber || !subject || !subTopic) {
       toast({
         title: "Missing fields",
@@ -507,30 +548,19 @@ export default function SuperAdminAiGenerator() {
       return;
     }
     setIsGenerating(true);
+    setGenerationLocked(false);
     setGenerationProgress({
       current: 0,
       total: GENERATION_BATCH_SIZE,
       phase: "Server batch in progress (please wait)",
     });
-    setLastBatchSummary(null);
+    if (!opts?.forceUnlock) setLastBatchSummary(null);
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/ai-generator/generate-batch`, {
         method: "POST",
         headers: { ...authHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({
-          toolSlug: selectedTool,
-          toolName: currentTool?.name || selectedTool,
-          board,
-          className: classNumber,
-          subjectName: subject,
-          topicName: topic,
-          subtopicName: subTopic,
-          batchSize: GENERATION_BATCH_SIZE,
-          forceGenerate: forceGenerateNew,
-          forceGenerateNew: forceGenerateNew,
-          extraParams: buildExtraParams(),
-        }),
+        body: JSON.stringify(buildGenerationPayload(opts?.forceUnlock)),
       });
       const json = await res.json();
       const savedCount = Number(json?.data?.savedCount) || 0;
@@ -538,8 +568,12 @@ export default function SuperAdminAiGenerator() {
       const failures: string[] = Array.isArray(json?.data?.failures) ? json.data.failures : [];
 
       if (!res.ok && savedCount === 0) {
-        if (res.status === 409) {
-          throw new Error(json?.message || "Generation already in progress for this topic.");
+        if (res.status === 409 || json?.data?.locked) {
+          setGenerationLocked(true);
+          throw new Error(
+            json?.message ||
+              "Generation already in progress for this topic. Use “Clear lock & retry” if a previous batch was interrupted.",
+          );
         }
         throw new Error(json?.message || "Batch generation failed");
       }
@@ -993,32 +1027,45 @@ export default function SuperAdminAiGenerator() {
               />
               Force Generate New Content (even when topic has 1000+ records)
             </label>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:flex-wrap">
               <p className="text-xs text-slate-500">
                 Smart strategy: 0–100 generate · 101–500 strong uniqueness · 501–1000 strict · 1000+ random pool (₹0, unless forced).
                 Ultra economy: Flash-Lite only, 1 LLM call per record — target ~₹2–3 per 25 batch (not ₹6+).
               </p>
-              <Button
-                onClick={generate}
-                disabled={isGenerating || !selectedTool}
-                className="bg-blue-600 hover:bg-blue-700 shrink-0"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {generationProgress
-                      ? generationProgress.current > 0
-                        ? `${generationProgress.current}/${generationProgress.total} saved…`
-                        : generationProgress.phase || `Generating ${generationProgress.total}…`
-                      : "Generating..."}
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Generate {GENERATION_BATCH_SIZE} with Gemini
-                  </>
-                )}
-              </Button>
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <Button
+                  onClick={() => void generate()}
+                  disabled={isGenerating || !selectedTool}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {generationProgress
+                        ? generationProgress.current > 0
+                          ? `${generationProgress.current}/${generationProgress.total} saved…`
+                          : generationProgress.phase || `Generating ${generationProgress.total}…`
+                        : "Generating..."}
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Generate {GENERATION_BATCH_SIZE} with Gemini
+                    </>
+                  )}
+                </Button>
+                {generationLocked ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-amber-300 text-amber-800 hover:bg-amber-50"
+                    disabled={isGenerating}
+                    onClick={() => void releaseLockAndRetry()}
+                  >
+                    Clear lock & retry
+                  </Button>
+                ) : null}
+              </div>
             </div>
             {lastBatchSummary ? (
               <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2.5 text-xs text-slate-700 space-y-2">
