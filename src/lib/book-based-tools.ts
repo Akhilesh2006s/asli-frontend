@@ -68,5 +68,6 @@ export const BOOK_BASED_STUDENT_TOOLS = BOOK_BASED_TOOLS.filter((t) => t.audienc
 export const BOOK_BASED_TEACHER_TOOLS = BOOK_BASED_TOOLS.filter((t) => t.audience === 'teacher');
 
 export const BOOK_GENERATOR_BATCH_SIZE = 25;
+export const BOOK_GENERATOR_MAX_BATCH_SIZE = 25;
 export const BOOK_GENERATOR_MAX_INR = 0;
 export const BOOK_UNIQUENESS_TARGET = 50;

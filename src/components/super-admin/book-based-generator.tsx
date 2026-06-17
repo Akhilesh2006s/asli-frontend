@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { BookOpen, CheckCircle2, ExternalLink, FileText, FolderTree, IndianRupee, Loader2, Sparkles } from "lucide-react";
 import { GeneratorRecordsPanel } from "@/components/super-admin/generator-records-panel";
+import { GenerationRecordCountField } from "@/components/super-admin/generation-record-count-field";
 import { API_BASE_URL } from "@/lib/api-config";
 import { useToast } from "@/hooks/use-toast";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
@@ -15,7 +16,7 @@ import {
   BOOK_BASED_STUDENT_TOOLS,
   BOOK_BASED_TEACHER_TOOLS,
   BOOK_BASED_TOOLS,
-  BOOK_GENERATOR_BATCH_SIZE,
+  BOOK_GENERATOR_MAX_BATCH_SIZE,
   BOOK_UNIQUENESS_TARGET,
   type BookBasedTool,
   type BookBasedToolId,
@@ -33,6 +34,12 @@ import {
   type GeminiCostEstimate,
   type TokenTotals,
 } from "@/lib/gemini-token-cost";
+import {
+  GENERATION_RECORD_COUNT_MIN,
+  generationRecordCountButtonLabel,
+  isValidGenerationRecordCount,
+  parseGenerationRecordCount,
+} from "@/lib/generation-record-count";
 
 type BookOption = {
   _id: string;
@@ -71,6 +78,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   const [subTopic, setSubTopic] = useState("");
   const [bookId, setBookId] = useState("");
   const [useBookKnowledge, setUseBookKnowledge] = useState(true);
+  const [generationRecordCount, setGenerationRecordCount] = useState("");
   const [books, setBooks] = useState<BookOption[]>([]);
   const [booksLoading, setBooksLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -79,6 +87,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   const [lastBatchSummary, setLastBatchSummary] = useState<{
     successCount: number;
     failedCount: number;
+    batchSize: number;
     tokenUsage: TokenTotals;
     cost: GeminiCostEstimate;
   } | null>(null);
@@ -242,6 +251,8 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     </button>
   );
 
+  const parseBatchSize = () => parseGenerationRecordCount(generationRecordCount)!;
+
   const buildGenerationPayload = (forceUnlock = false) => ({
     toolSlug: selectedTool,
     bookId,
@@ -250,7 +261,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     subjectName: subject,
     topicName: topic,
     subtopicName: subTopic,
-    batchSize: BOOK_GENERATOR_BATCH_SIZE,
+    batchSize: parseBatchSize(),
     useBookKnowledge,
     async: true,
     ...(forceUnlock ? { forceUnlock: true } : {}),
@@ -276,13 +287,14 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
 
     const savedCount = Number(data.savedCount) || 0;
     const failedCount = Number(data.failedCount) || 0;
-    setLastBatchSummary({ successCount: savedCount, failedCount, tokenUsage, cost });
+    const resultBatchSize = Number(data.batchSize) || parseGenerationRecordCount(generationRecordCount) || 0;
+    setLastBatchSummary({ successCount: savedCount, failedCount, batchSize: resultBatchSize, tokenUsage, cost });
 
     const tokenNote = `${formatTokenCount(tokenUsage.totalTokens)} tokens · Est. ${formatInr(cost.inr)}`;
     if (savedCount > 0) {
       setRecordsReloadNonce((n) => n + 1);
       toast({
-        title: `${savedCount}/${data.batchSize || BOOK_GENERATOR_BATCH_SIZE} saved`,
+        title: `${savedCount}/${resultBatchSize} saved`,
         description: `${tokenNote}. Browse below or in AI Tool Data — same records, textbook-grounded content.`,
       });
     } else {
@@ -396,6 +408,15 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
       });
       return;
     }
+    if (!isValidGenerationRecordCount(generationRecordCount)) {
+      toast({
+        title: "Invalid record count",
+        description: `Enter a whole number from ${GENERATION_RECORD_COUNT_MIN} to ${BOOK_GENERATOR_MAX_BATCH_SIZE} only.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    const batchSize = parseBatchSize();
     setIsGenerating(true);
     setGenerationLocked(false);
     setProgress("Retrieving textbook chunks for your topic…");
@@ -426,7 +447,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
       }
 
       if (res.status === 202 && json.data?.jobId) {
-        setProgress(`Generation started — 0/${BOOK_GENERATOR_BATCH_SIZE} saved (this may take 10–25 min for heavy tools)…`);
+        setProgress(`Generation started — 0/${batchSize} saved (this may take 10–25 min for heavy tools)…`);
         await pollBookGeneratorJob(String(json.data.jobId));
         return;
       }
@@ -474,7 +495,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
           Scanned PDF OCR may use a small Gemini charge.
         </p>
         <p>
-          <strong>Content generation</strong> (this page): each batch generates {BOOK_GENERATOR_BATCH_SIZE} records with Gemini.
+          <strong>Content generation</strong> (this page): choose how many records to generate per batch ({GENERATION_RECORD_COUNT_MIN}–{BOOK_GENERATOR_MAX_BATCH_SIZE}) with Gemini.
           Token count and estimated ₹ cost appear below after each run. Run again to build toward {BOOK_UNIQUENESS_TARGET}+ unique records per sub-topic.
         </p>
       </div>
@@ -580,7 +601,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
         <CardHeader>
           <CardTitle className="text-lg">Step 2 — Select Curriculum (your inputs)</CardTitle>
           <p className="text-sm text-slate-500 font-normal">
-            Board/class/subject are pre-filled from the book. Pick the <strong>topic</strong> and <strong>sub-topic</strong> you want content for — generation uses these + textbook passages.
+            Board/class/subject are pre-filled from the book. Pick <strong>topic</strong>, <strong>sub-topic</strong>, and how many records to generate (1–{BOOK_GENERATOR_MAX_BATCH_SIZE}).
           </p>
         </CardHeader>
         <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -641,6 +662,14 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
               </SelectContent>
             </Select>
           </div>
+          <div className="sm:col-span-2 lg:col-span-3 rounded-xl border border-violet-200 bg-violet-50/60 p-4">
+            <GenerationRecordCountField
+              id="book-generation-count"
+              value={generationRecordCount}
+              onChange={setGenerationRecordCount}
+              disabled={isGenerating}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -653,7 +682,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
           </CardTitle>
           <p className="text-sm text-slate-500 font-normal">
             AI retrieves relevant passages from <strong>{selectedBook?.title || "your textbook"}</strong> for{" "}
-            <strong>{topic || "…"} / {subTopic || "…"}</strong> and generates {BOOK_GENERATOR_BATCH_SIZE} unique records.
+            <strong>{topic || "…"} / {subTopic || "…"}</strong> and generates unique records (you choose how many per batch).
             {" "}Each batch runs <strong>3 Gemini calls at a time</strong> — exam papers and mock tests often take <strong>10–25 minutes</strong>.
             {" "}<strong>{BOOK_BASED_STUDENT_TOOLS.length} student</strong> and <strong>{BOOK_BASED_TEACHER_TOOLS.length} teacher</strong> tools available.
           </p>
@@ -693,15 +722,15 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                 <Label htmlFor="use-book-kb" className="text-sm cursor-pointer">Use textbook as primary source (RAG)</Label>
               </div>
               <p className="text-xs text-slate-600 flex-1 min-w-[200px]">
-                Combines your curriculum inputs with retrieved book content. Target: {BOOK_UNIQUENESS_TARGET}+ unique records per sub-topic ({BOOK_GENERATOR_BATCH_SIZE} per batch).
+                Combines your curriculum inputs with retrieved book content. Record count is set in Step 2.
               </p>
               <Button
                 className="bg-violet-600 hover:bg-violet-700 shrink-0"
                 onClick={() => void handleGenerate()}
-                disabled={isGenerating || !bookReady}
+                disabled={isGenerating || !bookReady || !isValidGenerationRecordCount(generationRecordCount)}
               >
                 {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                {isGenerating ? progress || "Generating…" : `Generate ${BOOK_GENERATOR_BATCH_SIZE} with Gemini`}
+                {isGenerating ? progress || "Generating…" : generationRecordCountButtonLabel(generationRecordCount)}
               </Button>
               {generationLocked ? (
                 <Button
@@ -720,7 +749,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
           {lastBatchSummary ? (
             <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2.5 text-xs text-slate-700 space-y-2">
               <p className="font-semibold text-emerald-900">
-                Last batch: {lastBatchSummary.successCount}/{BOOK_GENERATOR_BATCH_SIZE} saved
+                Last batch: {lastBatchSummary.successCount}/{lastBatchSummary.batchSize} saved
                 {lastBatchSummary.failedCount > 0 ? ` (${lastBatchSummary.failedCount} failed)` : ""}
               </p>
               <p>

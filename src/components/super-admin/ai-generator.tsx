@@ -86,8 +86,16 @@ import {
   type TokenUsageSnapshot,
 } from "@/lib/gemini-token-cost";
 import { AiGeneratorAuditPanel } from "@/components/super-admin/ai-generator-audit";
+import {
+  GENERATION_RECORD_COUNT_MAX,
+  GENERATION_RECORD_COUNT_MIN,
+  generationRecordCountButtonLabel,
+  isValidGenerationRecordCount,
+  parseGenerationRecordCount,
+  sanitizeGenerationRecordCountInput,
+} from "@/lib/generation-record-count";
 
-const GENERATION_BATCH_SIZE = 25;
+const MAX_GENERATION_BATCH_SIZE = GENERATION_RECORD_COUNT_MAX;
 /** Parallel workers — each picks the latest avoid-list before calling Gemini. */
 const BATCH_CONCURRENCY = 3;
 const RECOVERY_ATTEMPTS_PER_VARIANT = 2;
@@ -278,6 +286,7 @@ export default function SuperAdminAiGenerator() {
   const [subTopic, setSubTopic] = useState("");
   const [questionType, setQuestionType] = useState("All Types");
   const [questionCount, setQuestionCount] = useState("10");
+  const [generationRecordCount, setGenerationRecordCount] = useState("");
   const [difficulty, setDifficulty] = useState("medium");
   const [duration, setDuration] = useState("30");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -292,6 +301,7 @@ export default function SuperAdminAiGenerator() {
   const [lastBatchSummary, setLastBatchSummary] = useState<{
     successCount: number;
     failedCount: number;
+    batchSize: number;
     tokenUsage: TokenTotals;
     cost: GeminiCostEstimate;
   } | null>(null);
@@ -471,6 +481,8 @@ export default function SuperAdminAiGenerator() {
     setSubTopic("");
   }, [selectedTool, subject]);
 
+  const parseBatchSize = () => parseGenerationRecordCount(generationRecordCount)!;
+
   const buildGenerationPayload = (forceUnlock = false) => ({
     toolSlug: selectedTool,
     toolName: currentTool?.name || selectedTool,
@@ -479,7 +491,7 @@ export default function SuperAdminAiGenerator() {
     subjectName: subject,
     topicName: topic,
     subtopicName: subTopic,
-    batchSize: GENERATION_BATCH_SIZE,
+    batchSize: parseBatchSize(),
     forceGenerate: forceGenerateNew,
     forceGenerateNew: forceGenerateNew,
     extraParams: buildExtraParams(),
@@ -542,11 +554,20 @@ export default function SuperAdminAiGenerator() {
       });
       return;
     }
+    if (!isValidGenerationRecordCount(generationRecordCount)) {
+      toast({
+        title: "Invalid record count",
+        description: `Enter a whole number from ${GENERATION_RECORD_COUNT_MIN} to ${MAX_GENERATION_BATCH_SIZE} only.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    const batchSize = parseBatchSize();
     setIsGenerating(true);
     setGenerationLocked(false);
     setGenerationProgress({
       current: 0,
-      total: GENERATION_BATCH_SIZE,
+      total: batchSize,
       phase: "Server batch in progress (please wait)",
     });
     if (!opts?.forceUnlock) setLastBatchSummary(null);
@@ -560,6 +581,7 @@ export default function SuperAdminAiGenerator() {
       const json = await res.json();
       const savedCount = Number(json?.data?.savedCount) || 0;
       const failedCount = Number(json?.data?.failedCount) || 0;
+      const resultBatchSize = Number(json?.data?.batchSize) || batchSize;
       const failures: string[] = Array.isArray(json?.data?.failures) ? json.data.failures : [];
 
       if (!res.ok && savedCount === 0) {
@@ -591,16 +613,17 @@ export default function SuperAdminAiGenerator() {
           : computeGeminiCostFromTokenUsage({ totals: tokenUsage, calls: [] }, exchangeRateInr);
       }
 
-      setGenerationProgress({ current: savedCount, total: GENERATION_BATCH_SIZE, phase: "Complete" });
+      setGenerationProgress({ current: savedCount, total: resultBatchSize, phase: "Complete" });
       setLastBatchSummary({
         successCount: savedCount,
         failedCount,
+        batchSize: resultBatchSize,
         tokenUsage,
         cost,
       });
 
       if (savedCount === 0) {
-        throw new Error(failures[0] || "All 25 generations failed");
+        throw new Error(failures[0] || `All ${resultBatchSize} generations failed`);
       }
 
       const tokenNote = `${formatTokenCount(tokenUsage.totalTokens)} tokens (${formatTokenCount(tokenUsage.promptTokens)} in / ${formatTokenCount(tokenUsage.completionTokens)} out, ${tokenUsage.callCount} LLM calls). Est. cost: ${formatInr(cost.inr)}.`;
@@ -608,13 +631,13 @@ export default function SuperAdminAiGenerator() {
         title:
           mode === "random_retrieval"
             ? `Retrieved ${savedCount} records from pool (0 Gemini tokens)`
-            : savedCount === GENERATION_BATCH_SIZE
-              ? "25 unique records saved"
-              : `${savedCount}/25 records saved`,
+            : savedCount === resultBatchSize
+              ? `${resultBatchSize} unique records saved`
+              : `${savedCount}/${resultBatchSize} records saved`,
         description:
           (mode === "random_retrieval"
             ? `Topic saturation: ${saturation?.saturationLevel || "Saturated"}. Random diverse selection from ${json?.data?.existingCountBefore ?? "existing"} records. `
-            : savedCount === GENERATION_BATCH_SIZE
+            : savedCount === resultBatchSize
               ? "Batch orchestrator saved all unique variants with fingerprint indexing."
               : `${failures.length} slot(s) failed after max retries. `) +
           (geminiAvoided > 0 ? `Gemini generations avoided: ${geminiAvoided}. ` : "") +
@@ -1015,6 +1038,24 @@ export default function SuperAdminAiGenerator() {
           )}
 
           <div className="lg:col-span-3 space-y-3">
+            <div className="max-w-xs">
+              <Label>Records to generate</Label>
+              <Input
+                type="number"
+                min={GENERATION_RECORD_COUNT_MIN}
+                max={MAX_GENERATION_BATCH_SIZE}
+                placeholder={`${GENERATION_RECORD_COUNT_MIN}–${MAX_GENERATION_BATCH_SIZE}`}
+                value={generationRecordCount}
+                onChange={(e) => {
+                  const next = sanitizeGenerationRecordCountInput(e.target.value);
+                  if (next !== null) setGenerationRecordCount(next);
+                }}
+                disabled={isGenerating}
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Only {GENERATION_RECORD_COUNT_MIN}–{MAX_GENERATION_BATCH_SIZE} allowed. Other values are not accepted.
+              </p>
+            </div>
             <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
               <Checkbox
                 checked={forceGenerateNew}
@@ -1025,12 +1066,12 @@ export default function SuperAdminAiGenerator() {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:flex-wrap">
               <p className="text-xs text-slate-500">
                 Smart strategy: 0–100 generate · 101–500 strong uniqueness · 501–1000 strict · 1000+ random pool (₹0, unless forced).
-                Ultra economy: Flash-Lite only, 1 LLM call per record — target ~₹2–3 per 25 batch (not ₹6+).
+                Ultra economy: Flash-Lite only, 1 LLM call per record — lower cost for smaller batches.
               </p>
               <div className="flex flex-wrap items-center gap-2 shrink-0">
                 <Button
                   onClick={() => void generate()}
-                  disabled={isGenerating || !selectedTool}
+                  disabled={isGenerating || !selectedTool || !isValidGenerationRecordCount(generationRecordCount)}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
                   {isGenerating ? (
@@ -1045,7 +1086,7 @@ export default function SuperAdminAiGenerator() {
                   ) : (
                     <>
                       <Sparkles className="h-4 w-4 mr-2" />
-                      Generate {GENERATION_BATCH_SIZE} with Gemini
+                      {generationRecordCountButtonLabel(generationRecordCount)}
                     </>
                   )}
                 </Button>
@@ -1065,7 +1106,7 @@ export default function SuperAdminAiGenerator() {
             {lastBatchSummary ? (
               <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2.5 text-xs text-slate-700 space-y-2">
                 <p className="font-semibold text-emerald-900">
-                  Last batch: {lastBatchSummary.successCount}/{GENERATION_BATCH_SIZE} saved
+                  Last batch: {lastBatchSummary.successCount}/{lastBatchSummary.batchSize} saved
                   {lastBatchSummary.failedCount > 0 ? ` (${lastBatchSummary.failedCount} failed)` : ""}
                 </p>
                 <p>
