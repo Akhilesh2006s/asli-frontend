@@ -62,6 +62,70 @@ function statusBadge(status?: string, indexed?: boolean) {
   return <Badge variant="secondary">Pending</Badge>;
 }
 
+function normalizeClassLabel(value: string): string {
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return "Unassigned";
+  return /^class\b/i.test(trimmed) ? trimmed : `Class ${trimmed}`;
+}
+
+type BookListGroup = {
+  key: string;
+  label: string;
+  books: BookOption[];
+};
+
+function groupBooksByClass(books: BookOption[]): BookListGroup[] {
+  const map = new Map<string, BookListGroup>();
+  for (const book of books) {
+    const board = String(book.board || "Other").trim() || "Other";
+    const classLabel = normalizeClassLabel(book.class);
+    const key = `${board}|${classLabel}`;
+    const label = `${board} · ${classLabel}`;
+    const existing = map.get(key);
+    if (existing) {
+      existing.books.push(book);
+    } else {
+      map.set(key, { key, label, books: [book] });
+    }
+  }
+  return Array.from(map.values())
+    .map((group) => ({
+      ...group,
+      books: [...group.books].sort((a, b) => {
+        const subjectCmp = String(a.subject || "").localeCompare(String(b.subject || ""));
+        if (subjectCmp !== 0) return subjectCmp;
+        return String(a.title || "").localeCompare(String(b.title || ""));
+      }),
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+function groupBooksBySubject(books: BookOption[]): BookListGroup[] {
+  const map = new Map<string, BookListGroup>();
+  for (const book of books) {
+    const board = String(book.board || "Other").trim() || "Other";
+    const subject = String(book.subject || "Other").trim() || "Other";
+    const key = `${board}|${subject}`;
+    const label = `${board} · ${subject}`;
+    const existing = map.get(key);
+    if (existing) {
+      existing.books.push(book);
+    } else {
+      map.set(key, { key, label, books: [book] });
+    }
+  }
+  return Array.from(map.values())
+    .map((group) => ({
+      ...group,
+      books: [...group.books].sort((a, b) => {
+        const classCmp = normalizeClassLabel(a.class).localeCompare(normalizeClassLabel(b.class));
+        if (classCmp !== 0) return classCmp;
+        return String(a.title || "").localeCompare(String(b.title || ""));
+      }),
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
 type BookBasedGeneratorProps = {
   onOpenBookKnowledge?: () => void;
   onOpenAiToolData?: () => void;
@@ -114,6 +178,19 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   const step1Done = Boolean(bookId && bookReady);
   const step2Done = Boolean(step1Done && classNumber && subject && topic && subTopic);
   const step3Done = Boolean(step2Done && selectedTool);
+
+  const [bookGroupMode, setBookGroupMode] = useState<"class" | "subject">("class");
+  const [bookGroupFilter, setBookGroupFilter] = useState("__all__");
+
+  const bookGroups = useMemo(
+    () => (bookGroupMode === "class" ? groupBooksByClass(books) : groupBooksBySubject(books)),
+    [books, bookGroupMode],
+  );
+
+  const visibleBookGroups = useMemo(() => {
+    if (bookGroupFilter === "__all__") return bookGroups;
+    return bookGroups.filter((group) => group.key === bookGroupFilter);
+  }, [bookGroupFilter, bookGroups]);
 
   const authHeaders = (): Record<string, string> => {
     const token = localStorage.getItem("authToken") || localStorage.getItem("superAdminToken") || localStorage.getItem("token");
@@ -548,38 +625,77 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
             </div>
           ) : (
             <>
-              <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <p className="text-sm font-medium text-slate-800">Your indexed textbooks</p>
-                <Button type="button" variant="outline" size="sm" onClick={() => { void loadBooks(); }}>
-                  Refresh list
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select value={bookGroupMode} onValueChange={(v) => { setBookGroupMode(v as "class" | "subject"); setBookGroupFilter("__all__"); }}>
+                    <SelectTrigger className="h-8 w-[9.5rem] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="class">Group by class</SelectItem>
+                      <SelectItem value="subject">Group by subject</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {bookGroups.length > 1 ? (
+                    <Select value={bookGroupFilter} onValueChange={setBookGroupFilter}>
+                      <SelectTrigger className="h-8 w-[11rem] text-xs">
+                        <SelectValue placeholder="All groups" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">All groups</SelectItem>
+                        {bookGroups.map((group) => (
+                          <SelectItem key={group.key} value={group.key}>
+                            {group.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : null}
+                  <Button type="button" variant="outline" size="sm" onClick={() => { void loadBooks(); }}>
+                    Refresh list
+                  </Button>
+                </div>
               </div>
               {booksLoading ? (
                 <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-violet-500" /></div>
               ) : (
-                <ul className="max-h-72 overflow-y-auto space-y-2 rounded-lg border p-2">
-                  {books.map((b) => (
-                    <li key={b._id}>
-                      <button
-                        type="button"
-                        onClick={() => applyBookToCurriculum(b)}
-                        className={cn(
-                          "w-full text-left rounded-lg border px-3 py-2 text-sm transition hover:bg-slate-50",
-                          bookId === b._id ? "border-violet-500 bg-violet-50 ring-1 ring-violet-200" : "border-slate-200",
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="font-medium text-slate-900 line-clamp-1">{b.title}</span>
-                          {statusBadge(b.processingStatus, b.embeddingsCreated)}
-                        </div>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          {b.board} · Class {b.class} · {b.subject}
-                          {b.chunkCount ? ` · ${b.chunkCount} chunks` : ""}
-                        </p>
-                      </button>
-                    </li>
+                <div className="max-h-[min(22rem,52vh)] overflow-y-auto rounded-lg border">
+                  {visibleBookGroups.map((group) => (
+                    <section key={group.key} className="border-b border-slate-100 last:border-b-0">
+                      <p className="sticky top-0 z-10 border-b border-violet-100 bg-violet-50/95 px-3 py-2 text-xs font-bold uppercase tracking-wide text-violet-900 backdrop-blur-sm">
+                        {group.label}
+                        <span className="ml-2 font-medium normal-case tracking-normal text-violet-700">
+                          ({group.books.length})
+                        </span>
+                      </p>
+                      <ul className="space-y-2 p-2">
+                        {group.books.map((b) => (
+                          <li key={b._id}>
+                            <button
+                              type="button"
+                              onClick={() => applyBookToCurriculum(b)}
+                              className={cn(
+                                "w-full text-left rounded-lg border px-3 py-2.5 text-sm transition hover:bg-slate-50",
+                                bookId === b._id ? "border-violet-500 bg-violet-50 ring-1 ring-violet-200" : "border-slate-200",
+                              )}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <span className="font-medium text-slate-900 line-clamp-2">{b.title}</span>
+                                {statusBadge(b.processingStatus, b.embeddingsCreated)}
+                              </div>
+                              <p className="text-xs text-slate-500 mt-1">
+                                {bookGroupMode === "class"
+                                  ? `${b.subject || "Subject"}${b.chunkCount ? ` · ${b.chunkCount} chunks` : ""}`
+                                  : `${normalizeClassLabel(b.class)}${b.chunkCount ? ` · ${b.chunkCount} chunks` : ""}`}
+                              </p>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
                   ))}
-                </ul>
+                </div>
               )}
             </>
           )}
