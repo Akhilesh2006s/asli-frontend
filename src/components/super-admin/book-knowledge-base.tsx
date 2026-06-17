@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +16,7 @@ import {
 import {
   BookOpen,
   FileText,
+  Link2,
   Loader2,
   RefreshCw,
   Trash2,
@@ -39,9 +41,25 @@ type BookRow = {
   chunkCount?: number;
   extractedTextLength?: number;
   embeddingsCreated?: boolean;
+  contentId?: string;
   chapters?: Array<{ title: string; topic?: string; wordCount?: number }>;
   generationStats?: { totalGenerations?: number; toolBreakdown?: Record<string, number> };
   createdAt?: string;
+};
+
+type ImportableContentRow = {
+  contentId: string;
+  title: string;
+  type: string;
+  board: string;
+  classNumber: string;
+  subjectName: string;
+  topic?: string;
+  fileUrl: string;
+  imported: boolean;
+  bookId?: string | null;
+  bookStatus?: string | null;
+  bookChunkCount?: number;
 };
 
 export default function BookKnowledgeBase() {
@@ -54,6 +72,13 @@ export default function BookKnowledgeBase() {
   const [viewBook, setViewBook] = useState<BookRow | null>(null);
   const [textPreview, setTextPreview] = useState("");
   const [chunksPreview, setChunksPreview] = useState<Array<{ chunkIndex: number; chapter: string; contentPreview: string }>>([]);
+
+  const [importableContent, setImportableContent] = useState<ImportableContentRow[]>([]);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importingIds, setImportingIds] = useState<Set<string>>(new Set());
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [selectedContentIds, setSelectedContentIds] = useState<Set<string>>(new Set());
+  const [showImportedContent, setShowImportedContent] = useState(false);
 
   const [title, setTitle] = useState("");
   const [boardOptions, setBoardOptions] = useState<string[]>([]);
@@ -103,7 +128,25 @@ export default function BookKnowledgeBase() {
 
   useEffect(() => {
     void loadBooks();
+    void loadImportableContent();
   }, []);
+
+  const loadImportableContent = async () => {
+    setImportLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/book-knowledge/importable-content`, {
+        headers: { ...authHeaders() },
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message || "Failed to load learning-path content");
+      setImportableContent(Array.isArray(json.data) ? json.data : []);
+    } catch (e: any) {
+      toast({ title: "Could not load learning-path content", description: e.message, variant: "destructive" });
+      setImportableContent([]);
+    } finally {
+      setImportLoading(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -177,6 +220,76 @@ export default function BookKnowledgeBase() {
     setSubTopic("");
   };
 
+  const handleImportFromContent = async (contentId: string) => {
+    setImportingIds((prev) => new Set(prev).add(contentId));
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/book-knowledge/books/import-from-content`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ contentId }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message || "Import failed");
+      toast({
+        title: json.alreadyImported ? "Already linked" : "Imported",
+        description: json.message || `${json.data?.title || "Book"} is ready for indexing.`,
+      });
+      await Promise.all([loadBooks(), loadImportableContent()]);
+    } catch (e: any) {
+      toast({ title: "Import failed", description: e.message, variant: "destructive" });
+    } finally {
+      setImportingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(contentId);
+        return next;
+      });
+    }
+  };
+
+  const handleBulkImport = async () => {
+    const ids = [...selectedContentIds];
+    if (!ids.length) return;
+    setBulkImporting(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/book-knowledge/books/import-from-content/bulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ contentIds: ids }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message || "Bulk import failed");
+      toast({
+        title: "Bulk import complete",
+        description: json.message || `Imported ${json.summary?.imported || 0} books.`,
+      });
+      setSelectedContentIds(new Set());
+      await Promise.all([loadBooks(), loadImportableContent()]);
+    } catch (e: any) {
+      toast({ title: "Bulk import failed", description: e.message, variant: "destructive" });
+    } finally {
+      setBulkImporting(false);
+    }
+  };
+
+  const toggleContentSelection = (contentId: string, checked: boolean) => {
+    setSelectedContentIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(contentId);
+      else next.delete(contentId);
+      return next;
+    });
+  };
+
+  const visibleImportable = useMemo(
+    () => importableContent.filter((row) => (showImportedContent ? true : !row.imported)),
+    [importableContent, showImportedContent],
+  );
+
+  const pendingImportable = useMemo(
+    () => importableContent.filter((row) => !row.imported),
+    [importableContent],
+  );
+
   const handleUpload = async () => {
     if (!file || !title.trim() || !board || !classLabel || !subject) {
       toast({ title: "Missing fields", description: "Title, board, class, subject, and file are required.", variant: "destructive" });
@@ -239,7 +352,7 @@ export default function BookKnowledgeBase() {
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message || "Delete failed");
       toast({ title: "Book deleted" });
-      await loadBooks();
+      await Promise.all([loadBooks(), loadImportableContent()]);
     } catch (e: any) {
       toast({ title: "Delete failed", description: e.message, variant: "destructive" });
     } finally {
@@ -287,7 +400,7 @@ export default function BookKnowledgeBase() {
             Book Knowledge Base
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            Upload IIT/JEE/NEET/CBSE textbooks and coaching material. After indexing, generate content in{" "}
+            Import textbooks and materials already uploaded in the learning path, or upload new PDFs. After indexing, generate content in{" "}
             <strong>Book-Based Generator</strong>.
           </p>
           <p className="text-xs text-slate-500 mt-1">
@@ -295,8 +408,15 @@ export default function BookKnowledgeBase() {
             Scanned PDF OCR may use a small Gemini charge. Generation cost is shown on Book-Based Generator after each batch.
           </p>
         </div>
-        <Button variant="outline" onClick={() => void loadBooks()} disabled={loading}>
-          <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+        <Button
+          variant="outline"
+          onClick={() => {
+            void loadBooks();
+            void loadImportableContent();
+          }}
+          disabled={loading || importLoading}
+        >
+          <RefreshCw className={cn("h-4 w-4 mr-2", (loading || importLoading) && "animate-spin")} />
           Refresh
         </Button>
       </div>
@@ -321,6 +441,114 @@ export default function BookKnowledgeBase() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-emerald-200/80 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Link2 className="h-5 w-5 text-emerald-600" />
+            Import from Learning Path
+          </CardTitle>
+          <p className="text-sm text-slate-500 font-normal">
+            Link textbooks, workbooks, and materials already uploaded in Subjects &amp; Content. Files are reused — no duplicate upload.
+            Only server-uploaded PDF/DOCX/TXT files are supported (external flipbook links cannot be indexed).
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+              <span>{pendingImportable.length} ready to import</span>
+              <span>·</span>
+              <span>{importableContent.filter((r) => r.imported).length} already linked</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="flex items-center gap-2 text-sm text-slate-600">
+                <Checkbox checked={showImportedContent} onCheckedChange={(v) => setShowImportedContent(v === true)} />
+                Show already linked
+              </label>
+              {selectedContentIds.size > 0 && (
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                  onClick={() => void handleBulkImport()}
+                  disabled={bulkImporting}
+                >
+                  {bulkImporting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Link2 className="h-4 w-4 mr-1" />}
+                  Import selected ({selectedContentIds.size})
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {importLoading ? (
+            <div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin text-emerald-500" /></div>
+          ) : visibleImportable.length === 0 ? (
+            <p className="text-sm text-slate-500 py-8 text-center">
+              {importableContent.length === 0
+                ? "No importable textbooks or materials found. Upload PDFs in Subjects & Content first."
+                : "All importable items are already linked to the book knowledge base."}
+            </p>
+          ) : (
+            <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+              {visibleImportable.map((row) => (
+                <div
+                  key={row.contentId}
+                  className="flex flex-wrap items-center gap-3 justify-between rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+                >
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    {!row.imported && (
+                      <Checkbox
+                        checked={selectedContentIds.has(row.contentId)}
+                        onCheckedChange={(v) => toggleContentSelection(row.contentId, v === true)}
+                        className="mt-1"
+                      />
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-medium text-slate-900 truncate">{row.title}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {row.type} · {row.board} · Class {row.classNumber || "—"} · {row.subjectName}
+                        {row.topic ? ` · ${row.topic}` : ""}
+                      </p>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {row.imported ? (
+                          <>
+                            <Badge className="bg-emerald-100 text-emerald-800">Linked</Badge>
+                            {row.bookStatus && <Badge className={statusBadge(row.bookStatus)}>{row.bookStatus}</Badge>}
+                            {row.bookChunkCount ? <Badge variant="outline">{row.bookChunkCount} chunks</Badge> : null}
+                          </>
+                        ) : (
+                          <Badge variant="outline">Not linked</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {row.imported ? (
+                      <Button size="sm" variant="outline" disabled>
+                        Linked
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                        onClick={() => void handleImportFromContent(row.contentId)}
+                        disabled={importingIds.has(row.contentId)}
+                      >
+                        {importingIds.has(row.contentId) ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Link2 className="h-4 w-4 mr-1" /> Import
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="border-violet-200/80 shadow-sm">
         <CardHeader>
@@ -454,6 +682,7 @@ export default function BookKnowledgeBase() {
                   </p>
                   <div className="flex flex-wrap gap-2 mt-2">
                     <Badge className={statusBadge(book.processingStatus)}>{book.processingStatus}</Badge>
+                    {book.contentId && <Badge variant="outline" className="border-emerald-300 text-emerald-700">Learning path</Badge>}
                     <Badge variant="outline">{book.chunkCount || 0} chunks</Badge>
                     <Badge variant="outline">{book.generationStats?.totalGenerations || 0} generations</Badge>
                   </div>
