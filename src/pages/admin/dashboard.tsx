@@ -325,15 +325,15 @@ const AdminDashboard = () => {
       </div>
       {/* Mobile Header */}
       {isMobile && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 backdrop-blur-xl border-b border-white/30 md:hidden">
-          <div className="flex items-center justify-between p-responsive">
-            <div className="flex items-center space-x-responsive">
-              <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-responsive-sm">AS</span>
+        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 backdrop-blur-xl md:hidden pt-[env(safe-area-inset-top,0px)]">
+          <div className="flex h-14 min-h-[3.5rem] items-center justify-between px-4">
+            <div className="flex min-w-0 items-center space-x-2.5">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/20">
+                <span className="text-sm font-bold text-white">AS</span>
               </div>
-              <div>
-                <h1 className="text-responsive-base font-bold text-white">ASLILEARN AI</h1>
-                <p className="text-responsive-xs text-white/90 font-medium">Admin Panel</p>
+              <div className="min-w-0">
+                <h1 className="truncate text-sm font-bold leading-tight text-white">ASLILEARN AI</h1>
+                <p className="text-[11px] font-medium text-white/90">Admin Panel</p>
               </div>
             </div>
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -689,21 +689,18 @@ const AdminDashboard = () => {
       )}
 
         {/* Main Content Area */}
-        <div className="flex-1 w-full min-w-0 flex flex-col relative z-10 md:h-screen md:overflow-y-auto hide-scrollbar">
+        <div className={`flex-1 w-full min-w-0 flex flex-col relative z-10 md:h-screen md:overflow-y-auto hide-scrollbar ${isMobile ? 'pt-[calc(3.5rem+env(safe-area-inset-top,0px))]' : ''}`}>
           {/* Top Header - Student Dashboard Theme */}
-          <div className="bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 shadow-xl border-b-0 rounded-b-3xl md:rounded-b-3xl rounded-b-2xl px-responsive py-3 sm:py-4 lg:py-6 relative z-10">
-            <div className="flex-responsive-col items-center sm:items-start justify-between space-y-responsive sm:space-y-0">
-              <div className="text-center sm:text-left">
-                <p className="text-xs uppercase tracking-[0.3em] text-gray-900 mb-2">Admin Control Center</p>
-                <h2 className="text-responsive-xl font-bold capitalize text-gray-900">{activeTab}</h2>
-                <p className="text-gray-900 text-responsive-sm font-medium">Manage your learning platform with style</p>
+          <div className={`bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 shadow-xl border-b-0 rounded-b-3xl px-4 sm:px-6 lg:px-8 py-4 sm:py-4 lg:py-6 relative z-10 ${isMobile ? 'rounded-t-none shadow-none' : 'rounded-b-2xl'}`}>
+            <div className="flex-responsive-col items-start justify-between space-y-responsive sm:space-y-0">
+              <div className="w-full min-w-0 text-left">
+                <p className="mb-2 hidden text-xs uppercase tracking-[0.3em] text-gray-900 sm:block">Admin Control Center</p>
+                <h2 className="text-lg font-bold capitalize text-gray-900 sm:text-responsive-xl">{activeTab}</h2>
+                <p className="mt-0.5 text-sm font-medium text-gray-900 sm:text-responsive-sm">Manage your learning platform with style</p>
                 {userData && (
-                  <div className="mt-2 space-y-2">
+                  <div className="mt-3 space-y-1.5">
                     <SchoolBrandRow user={userData} variant="onPrimary" />
-                    <p className="text-gray-800 text-xs sm:text-sm font-medium">
-                      {userData.email}
-                    </p>
-                    <p className="text-gray-900 text-sm sm:text-base font-semibold">
+                    <p className="text-sm font-semibold text-gray-900 sm:text-base">
                       Welcome {userData.fullName || 'Admin'}
                     </p>
                   </div>
@@ -758,7 +755,7 @@ const AdminDashboard = () => {
           </div>
 
           {/* Content Area */}
-          <div className={`flex-1 w-full p-responsive ${isMobile ? 'pt-20 pb-24' : ''} relative z-10`}>
+          <div className={`flex-1 w-full p-responsive ${isMobile ? 'pb-24' : ''} relative z-10`}>
           {activeTab === 'overview' && (
             <div className="space-y-4 sm:space-y-6 lg:space-y-8">
             {/* Colorful Stats Cards */}

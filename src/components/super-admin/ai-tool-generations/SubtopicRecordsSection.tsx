@@ -27,6 +27,11 @@ import { DailyClassPlanViewer } from "@/components/daily-class-plan-viewer";
 import { StoryPassageViewer } from "@/components/story-passage-viewer";
 import { ShortNotesViewer } from "@/components/short-notes-viewer";
 import { WorksheetMcqViewer } from "@/components/worksheet-mcq-viewer";
+import {
+  ActivityProjectViewer,
+  activityViewerPayloadFromRecord,
+} from "@/components/activity-project-viewer";
+import { isActivityToolSlug, normalizeAiToolSlug } from "@/lib/normalize-ai-tool-slug";
 
 function labelEmpty(v: string) {
   return v === "" || v == null ? "(None)" : v;
@@ -85,11 +90,31 @@ function isShortNotesToolValue(v: unknown): boolean {
   return t === "short-notes-summaries-maker";
 }
 
+function isActivityToolValue(v: unknown): boolean {
+  return isActivityToolSlug(v);
+}
+
 function isBookGroundedRow(row: RecordRow): boolean {
   if (row.sourceType === "book_rag") return true;
   const meta = row.metadata;
   if (!meta || typeof meta !== "object") return false;
   return Boolean(meta.bookGenerator) || meta.formatSource === "bookRag";
+}
+
+function structuredContentFromViewDetail(
+  detail: Record<string, unknown> | null | undefined,
+): unknown {
+  if (!detail) return undefined;
+  if (detail.structuredContent != null) return detail.structuredContent;
+  const metadata = detail.metadata;
+  if (metadata && typeof metadata === "object") {
+    return (metadata as Record<string, unknown>).structuredContent;
+  }
+  return undefined;
+}
+
+function viewDetailRawContent(detail: Record<string, unknown> | null | undefined): unknown {
+  return structuredContentFromViewDetail(detail) ?? detail;
 }
 
 export function SubtopicRecordsSection({
@@ -469,7 +494,7 @@ export function SubtopicRecordsSection({
                       metadata: viewDetail.metadata,
                     })
                   : [];
-                const resolvedTool = String(viewDetail?.toolName || parents.toolName || "");
+                const resolvedTool = normalizeAiToolSlug(viewDetail?.toolName || parents.toolName || "");
                 if (isWorksheetToolValue(resolvedTool)) {
                   return (
                     <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
@@ -498,7 +523,7 @@ export function SubtopicRecordsSection({
                     <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
                       <DailyClassPlanViewer
                         content={String(fullText || "")}
-                        rawContent={viewDetail?.structuredContent || viewDetail}
+                        rawContent={viewDetailRawContent(viewDetail)}
                         variant="teacher"
                       />
                     </div>
@@ -529,7 +554,20 @@ export function SubtopicRecordsSection({
                     <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
                       <ShortNotesViewer
                         content={String(fullText || "")}
-                        rawContent={viewDetail?.structuredContent || viewDetail?.metadata?.structuredContent || viewDetail}
+                        rawContent={viewDetailRawContent(viewDetail)}
+                      />
+                    </div>
+                  );
+                }
+                if (isActivityToolValue(resolvedTool)) {
+                  return (
+                    <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
+                      <ActivityProjectViewer
+                        {...activityViewerPayloadFromRecord({
+                          ...(viewDetail || {}),
+                          generatedContent: String(fullText || ""),
+                          toolSlug: resolvedTool,
+                        })}
                       />
                     </div>
                   );
@@ -573,7 +611,7 @@ export function SubtopicRecordsSection({
                 }
                 return (
                   <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm max-h-[min(70vh,620px)] overflow-y-auto">
-                    <GeneratedRecordBody content={fullText} />
+                    <GeneratedRecordBody content={fullText} toolType={resolvedTool} />
                   </div>
                 );
               })()}

@@ -69,6 +69,10 @@ import { StoryPassageViewer } from "@/components/story-passage-viewer";
 import { ShortNotesViewer } from "@/components/short-notes-viewer";
 import { WorksheetMcqViewer } from "@/components/worksheet-mcq-viewer";
 import {
+  ActivityProjectViewer,
+  activityViewerPayloadFromRecord,
+} from "@/components/activity-project-viewer";
+import {
   filterSubjectsForAiTool,
   isStoryLanguageTool,
   isStoryPassageLanguageSubject,
@@ -1064,24 +1068,20 @@ export default function SuperAdminAiGenerator() {
               Force Generate New Content (even when topic has 1000+ records)
             </label>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:flex-wrap">
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-500 w-full sm:flex-1 sm:min-w-0">
                 Smart strategy: 0–100 generate · 101–500 strong uniqueness · 501–1000 strict · 1000+ random pool (₹0, unless forced).
                 Ultra economy: Flash-Lite only, 1 LLM call per record — lower cost for smaller batches.
               </p>
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:shrink-0">
                 <Button
                   onClick={() => void generate()}
                   disabled={isGenerating || !selectedTool || !isValidGenerationRecordCount(generationRecordCount)}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto"
                 >
                   {isGenerating ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {generationProgress
-                        ? generationProgress.current > 0
-                          ? `${generationProgress.current}/${generationProgress.total} saved…`
-                          : generationProgress.phase || `Generating ${generationProgress.total}…`
-                        : "Generating..."}
+                      Generating…
                     </>
                   ) : (
                     <>
@@ -1094,7 +1094,7 @@ export default function SuperAdminAiGenerator() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="border-amber-300 text-amber-800 hover:bg-amber-50"
+                    className="w-full border-amber-300 text-amber-800 hover:bg-amber-50 sm:w-auto"
                     disabled={isGenerating}
                     onClick={() => void releaseLockAndRetry()}
                   >
@@ -1102,6 +1102,13 @@ export default function SuperAdminAiGenerator() {
                   </Button>
                 ) : null}
               </div>
+              {isGenerating && generationProgress ? (
+                <p className="w-full rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs leading-relaxed text-blue-900 break-words">
+                  {generationProgress.current > 0
+                    ? `${generationProgress.current}/${generationProgress.total} saved…`
+                    : generationProgress.phase || `Generating ${generationProgress.total}…`}
+                </p>
+              ) : null}
             </div>
             {lastBatchSummary ? (
               <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2.5 text-xs text-slate-700 space-y-2">
@@ -1573,8 +1580,16 @@ export default function SuperAdminAiGenerator() {
             ) : activeRecord?.toolSlug === "quick-assignment-builder" ||
               activeRecord?.toolName === "quick-assignment-builder" ? (
               <QuickAssignmentViewer {...quickAssignmentViewerPayloadFromRecord(activeRecord)} />
+            ) : activeRecord?.toolSlug === "activity-project-generator" ||
+              activeRecord?.toolName === "activity-project-generator" ||
+              activeRecord?.toolSlug === "project-idea-lab" ||
+              activeRecord?.toolName === "project-idea-lab" ? (
+              <ActivityProjectViewer {...activityViewerPayloadFromRecord(activeRecord)} />
             ) : (
-              <GeneratedRecordBody content={String(activeRecord?.generatedContent || "")} />
+              <GeneratedRecordBody
+                content={String(activeRecord?.generatedContent || "")}
+                toolType={String(activeRecord?.toolSlug || activeRecord?.toolName || "")}
+              />
             )}
           </div>
           </div>

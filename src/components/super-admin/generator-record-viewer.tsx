@@ -1,4 +1,6 @@
 import { GeneratedRecordBody } from "@/components/super-admin/generated-record-body";
+import { ActivityProjectViewer, activityViewerPayloadFromRecord } from "@/components/activity-project-viewer";
+import { isActivityToolSlug, normalizeAiToolSlug } from "@/lib/normalize-ai-tool-slug";
 import { FlashcardViewer } from "@/components/flashcard-viewer";
 import { MyStudyDecksViewer, deckViewerPayloadFromRecord } from "@/components/my-study-decks-viewer";
 import { MockTestViewer, mockTestViewerPayloadFromRecord } from "@/components/mock-test-viewer";
@@ -19,7 +21,7 @@ function isWorksheetToolValue(v: unknown): boolean {
 
 export function GeneratorRecordViewer({ record }: { record: Record<string, unknown> | null }) {
   if (!record) return null;
-  const slug = String(record.toolSlug || record.toolName || "").trim();
+  const slug = normalizeAiToolSlug(record.toolSlug || record.toolName);
   const generatedContent = String(record.generatedContent || record.content || "");
 
   if (slug === "my-study-decks") {
@@ -74,5 +76,8 @@ export function GeneratorRecordViewer({ record }: { record: Record<string, unkno
       />
     );
   }
-  return <GeneratedRecordBody content={generatedContent} />;
+  if (isActivityToolSlug(slug)) {
+    return <ActivityProjectViewer {...activityViewerPayloadFromRecord(record)} />;
+  }
+  return <GeneratedRecordBody content={generatedContent} toolType={slug} />;
 }

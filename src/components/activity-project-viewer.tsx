@@ -20,11 +20,17 @@ import {
   cleanReflectionProse,
   dedupePeriodTimeCues,
   dedupeStringLines,
+  looksLikeActivityProjectContent,
   normalizeParsedActivityFields,
   resolveActivitiesFromPayload,
   type ParsedActivity,
 } from '@/lib/parse-activity-markdown';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
+import {
+  isActivityProjectGeneratorSlug,
+  isProjectIdeaLabSlug,
+  normalizeAiToolSlug,
+} from '@/lib/normalize-ai-tool-slug';
 
 export type ActivityProject = ParsedActivity;
 
@@ -594,9 +600,10 @@ function JournalBlock({
         <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', iconWrap)}>
           <Icon className="h-4 w-4" aria-hidden />
         </div>
-        <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400">{sectionNum}</p>
-          <h4 className="text-sm font-bold text-stone-900 leading-tight">{title}</h4>
+        <div className="min-w-0 flex-1">
+          <h4 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 border-b border-slate-200 pb-1.5 leading-tight">
+            {sectionNum}. {title}
+          </h4>
         </div>
       </div>
       <div className={cn('px-3 pb-3 pt-1 text-sm leading-relaxed text-stone-700', bodyClassName)}>
@@ -641,7 +648,7 @@ function StudentActivityCard({
           <div key={sec.id} className="mb-2 break-inside-avoid">
             <JournalBlock
               id={`${prefix}-${sec.id}`}
-              sectionNum={`Section ${sec.num}`}
+              sectionNum={String(sec.num)}
               title={sec.title}
               icon={sec.icon}
               stripe={sec.stripe}
@@ -710,7 +717,7 @@ function TeacherActivityCard({
         <JournalBlock
           key={sec.id}
           id={`${prefix}-${sec.id}`}
-          sectionNum={`Section ${sec.num}`}
+          sectionNum={String(sec.num)}
           title={sec.title}
           icon={sec.icon}
           stripe={sec.stripe}
@@ -911,4 +918,46 @@ export function ActivityProjectViewer({
       </div>
     );
   }
+}
+
+export function activityViewerPayloadFromRecord(
+  record: Record<string, unknown> | null | undefined,
+): {
+  content: string;
+  activities?: ParsedActivity[];
+  variant: 'default' | 'student' | 'teacher';
+} {
+  const generatedContent = String(record?.generatedContent || record?.content || '');
+  const slug = normalizeAiToolSlug(record?.toolSlug || record?.toolName);
+
+  const structured =
+    (record as { structuredContent?: unknown })?.structuredContent ??
+    (record as { metadata?: { structuredContent?: unknown } })?.metadata?.structuredContent;
+
+  let activities: ParsedActivity[] | undefined;
+  if (Array.isArray(structured)) {
+    activities = structured as ParsedActivity[];
+  } else if (structured && typeof structured === 'object') {
+    const sc = structured as Record<string, unknown>;
+    if (Array.isArray(sc.activities)) {
+      activities = sc.activities as ParsedActivity[];
+    } else if (
+      sc.title ||
+      sc.step_by_step_procedure ||
+      sc.learning_objectives ||
+      sc.learningObjectives
+    ) {
+      activities = [sc as ParsedActivity];
+    }
+  }
+
+  const variant: 'default' | 'student' | 'teacher' = isActivityProjectGeneratorSlug(slug)
+    ? 'teacher'
+    : isProjectIdeaLabSlug(slug)
+      ? 'student'
+      : looksLikeActivityProjectContent(generatedContent)
+        ? 'teacher'
+        : 'student';
+
+  return { content: generatedContent, activities, variant };
 }

@@ -706,42 +706,53 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
           </div>
 
           {selectedTool && step2Done ? (
-            <div className="flex flex-wrap items-center gap-4 rounded-lg border border-violet-100 bg-violet-50/50 p-4">
-              {currentTool ? (
-                <Badge variant="secondary" className="shrink-0">
-                  {currentTool.audience === "student" ? "Student" : "Teacher"} · {currentTool.name}
-                </Badge>
-              ) : null}
-              {isStoryLanguageTool(selectedTool) ? (
-                <p className="text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded-md px-2 py-1.5 w-full sm:w-auto">
-                  English and Hindi subjects only for this tool.
-                </p>
-              ) : null}
-              <div className="flex items-center gap-2">
-                <Checkbox id="use-book-kb" checked={useBookKnowledge} onCheckedChange={(v) => setUseBookKnowledge(v === true)} />
-                <Label htmlFor="use-book-kb" className="text-sm cursor-pointer">Use textbook as primary source (RAG)</Label>
+            <div className="flex flex-col gap-3 rounded-lg border border-violet-100 bg-violet-50/50 p-4 sm:gap-4">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                {currentTool ? (
+                  <Badge variant="secondary" className="shrink-0 max-w-full">
+                    {currentTool.audience === "student" ? "Student" : "Teacher"} · {currentTool.name}
+                  </Badge>
+                ) : null}
+                {isStoryLanguageTool(selectedTool) ? (
+                  <p className="text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded-md px-2 py-1.5 w-full sm:w-auto">
+                    English and Hindi subjects only for this tool.
+                  </p>
+                ) : null}
               </div>
-              <p className="text-xs text-slate-600 flex-1 min-w-[200px]">
+              <div className="flex items-start gap-2">
+                <Checkbox id="use-book-kb" checked={useBookKnowledge} onCheckedChange={(v) => setUseBookKnowledge(v === true)} />
+                <Label htmlFor="use-book-kb" className="text-sm cursor-pointer leading-snug">
+                  Use textbook as primary source (RAG)
+                </Label>
+              </div>
+              <p className="text-xs text-slate-600 w-full">
                 Combines your curriculum inputs with retrieved book content. Record count is set in Step 2.
               </p>
-              <Button
-                className="bg-violet-600 hover:bg-violet-700 shrink-0"
-                onClick={() => void handleGenerate()}
-                disabled={isGenerating || !bookReady || !isValidGenerationRecordCount(generationRecordCount)}
-              >
-                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                {isGenerating ? progress || "Generating…" : generationRecordCountButtonLabel(generationRecordCount)}
-              </Button>
-              {generationLocked ? (
+              <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                 <Button
-                  type="button"
-                  variant="outline"
-                  className="shrink-0 border-amber-300 text-amber-800 hover:bg-amber-50"
-                  disabled={isGenerating}
-                  onClick={() => void releaseLockAndRetry()}
+                  className="bg-violet-600 hover:bg-violet-700 w-full sm:w-auto sm:shrink-0"
+                  onClick={() => void handleGenerate()}
+                  disabled={isGenerating || !bookReady || !isValidGenerationRecordCount(generationRecordCount)}
                 >
-                  Clear lock & retry
+                  {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                  {isGenerating ? "Generating…" : generationRecordCountButtonLabel(generationRecordCount)}
                 </Button>
+                {generationLocked ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full shrink-0 border-amber-300 text-amber-800 hover:bg-amber-50 sm:w-auto"
+                    disabled={isGenerating}
+                    onClick={() => void releaseLockAndRetry()}
+                  >
+                    Clear lock & retry
+                  </Button>
+                ) : null}
+              </div>
+              {isGenerating && progress ? (
+                <p className="w-full rounded-md border border-violet-200 bg-violet-100/70 px-3 py-2 text-xs leading-relaxed text-violet-900 break-words">
+                  {progress}
+                </p>
               ) : null}
             </div>
           ) : null}

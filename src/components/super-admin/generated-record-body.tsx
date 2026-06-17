@@ -15,6 +15,15 @@ import { looksLikePracticeQaContent } from "@/lib/parse-practice-qa";
 import { looksLikeChapterSummaryContent } from "@/lib/parse-chapter-summary";
 import { looksLikeKeyPointsContent } from "@/lib/parse-key-points";
 import { looksLikeQuickAssignmentContent } from "@/lib/parse-quick-assignment";
+import {
+  legacyActivitySectionNumFromTitle,
+  looksLikeActivityProjectContent,
+} from "@/lib/parse-activity-markdown";
+import { ActivityProjectViewer } from "@/components/activity-project-viewer";
+import {
+  isActivityProjectGeneratorSlug,
+  isProjectIdeaLabSlug,
+} from "@/lib/normalize-ai-tool-slug";
 
 import { stripMarkdownSyntax } from '@/lib/strip-markdown-syntax';
 
@@ -38,7 +47,22 @@ const MAJOR_DOT_SHORT_RE = /^(\d{1,2})\.\s+(.+)$/;
 /** Subsections: "a. Title" or "a) Title" */
 const SUBSECTION_RE = /^([a-zA-Z])[\.\)]\s+(.+)$/;
 
-/** Lesson planner template sections use "2. Learning Objectives" … "14. Closure". */
+/** Activity / Project Generator 13-point template: "2. Learning Objectives" … "13. Reflection". */
+const ACTIVITY_TEMPLATE_SECTION_HINT =
+  /subtopic|prior\s+knowledge|learning\s+objectives?|ncf|competency|materials?\s+required|step[-\s]?by[-\s]?step|procedure|teacher\s+instructions?|student\s+instructions?|differentiation|assessment|rubric|expected\s+learning|real[-\s]?life|reflection|exit\s+ticket|safety|observation|creative\s+output|self[-\s]?assessment/i;
+
+function isActivityTemplateMajorSection(line: string): boolean {
+  const m = line.match(MAJOR_DOT_SHORT_RE);
+  if (!m) return false;
+  const num = Number(m[1]);
+  const title = String(m[2] || "").trim();
+  if (num < 2 || num > 13) return false;
+  if (line.length > 96) return false;
+  if (/^\d{1,2}\.\s+\d/.test(line)) return false;
+  if (ACTIVITY_TEMPLATE_SECTION_HINT.test(title)) return true;
+  return num >= 6 && num <= 13 && title.length > 0 && title.length < 72;
+}
+
 const LESSON_TEMPLATE_SECTION_HINT =
   /learning\s+objectives?|ncf|competency|prior\s+knowledge|diagnostic|introduction|warm[-\s]?up|teaching\s+strategy|classroom\s+activit|teacher\s+talk|student\s+tasks?|formative|assessment\s+questions?|differentiation|homework|practice|teaching\s+aids|materials?\s+required|closure|exit\s+ticket|timeline|period\s*\/\s*time/i;
 
@@ -103,11 +127,28 @@ function parseSegments(lines: string[]): Segment[] {
       continue;
     }
 
+    if (isActivityTemplateMajorSection(t)) {
+      flushBullets();
+      flushPara();
+      const m = t.match(MAJOR_DOT_SHORT_RE);
+      currentMainTitle = m?.[2]?.trim() || t;
+      segments.push({ kind: "h1", title: t });
+      continue;
+    }
+
     if (isLessonTemplateMajorSection(t)) {
       flushBullets();
       flushPara();
       const m = t.match(MAJOR_DOT_SHORT_RE);
       currentMainTitle = m?.[2]?.trim() || t;
+      segments.push({ kind: "h1", title: t });
+      continue;
+    }
+
+    const legacySection = legacyActivitySectionNumFromTitle(t);
+    if (legacySection != null && t.length < 96) {
+      flushBullets();
+      flushPara();
       segments.push({ kind: "h1", title: t });
       continue;
     }
@@ -128,8 +169,15 @@ function parseSegments(lines: string[]): Segment[] {
     }
 
     if (/^[-*•]\s+/.test(t)) {
+      const bulletText = t.replace(/^[-*•]\s+/, "").trim();
+      if (legacyActivitySectionNumFromTitle(bulletText) != null && bulletText.length < 80) {
+        flushBullets();
+        flushPara();
+        segments.push({ kind: "h1", title: bulletText });
+        continue;
+      }
       flushPara();
-      bufBullets.push(t.replace(/^[-*•]\s+/, "").trim());
+      bufBullets.push(bulletText);
       continue;
     }
 
@@ -157,6 +205,14 @@ export function GeneratedRecordBody({
   toolType,
 }: GeneratedRecordBodyProps) {
   const raw = stripMetadata ? stripStructuredAiToolMetadata(String(content || "")) : String(content || "");
+  if (
+    isActivityProjectGeneratorSlug(toolType) ||
+    isProjectIdeaLabSlug(toolType) ||
+    looksLikeActivityProjectContent(raw)
+  ) {
+    const variant = isProjectIdeaLabSlug(toolType) ? "student" : "teacher";
+    return <ActivityProjectViewer content={raw} variant={variant} className={className} />;
+  }
   if (toolType === "chapter-summary-creator") {
     return <ChapterSummaryViewer content={String(content || "")} className={className} />;
   }

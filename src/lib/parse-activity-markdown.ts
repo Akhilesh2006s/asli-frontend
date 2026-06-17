@@ -278,14 +278,17 @@ const SECTION_TITLE_HINT: Record<number, RegExp> = {
 };
 
 /** Legacy section labels without a leading number. */
-function legacyActivitySectionNumFromTitle(title: string): number | null {
+export function legacyActivitySectionNumFromTitle(title: string): number | null {
   const t = String(title || '').trim();
   if (!t) return null;
   if (/^teacher\s+instruction/i.test(t)) return 7;
   if (/^student\s+instruction/i.test(t)) return 8;
   if (/^assessment\s+(?:criteria\s+)?rubric/i.test(t)) return 10;
   if (/^differentiation/i.test(t)) return 9;
-  if (/^step-by-step\s+procedure$/i.test(t)) return 6;
+  if (/^step-by-step\s+procedure/i.test(t)) return 6;
+  if (/^expected\s+learning\s+outcome/i.test(t)) return 11;
+  if (/^real[-\s]?life\s+application/i.test(t)) return 12;
+  if (/^reflection\s*\/\s*exit\s+ticket/i.test(t)) return 13;
   return null;
 }
 
@@ -410,6 +413,103 @@ function extractMisplacedMaterials(text: string): { prose: string; materials: st
   return { prose: kept.join('\n').trim(), materials };
 }
 
+type EmbeddedSectionSplit = {
+  field: keyof ParsedActivity;
+  list?: boolean;
+  ordered?: boolean;
+};
+
+const EMBEDDED_SECTION_SPLITS: Array<{ pattern: RegExp; split: EmbeddedSectionSplit }> = [
+  { pattern: /^step-by-step\s+procedure/i, split: { field: 'step_by_step_procedure', list: true, ordered: true } },
+  { pattern: /^teacher\s+instructions?/i, split: { field: 'teacher_instructions', list: true } },
+  { pattern: /^student\s+instructions?/i, split: { field: 'student_instructions', list: true } },
+  { pattern: /^assessment\s+(?:criteria\s+)?rubric/i, split: { field: 'assessment_criteria_rubric', list: true } },
+  { pattern: /^expected\s+learning\s+outcomes?/i, split: { field: 'expected_learning_outcomes' } },
+  { pattern: /^real[-\s]?life\s+application/i, split: { field: 'real_life_application' } },
+  { pattern: /^reflection\s*\/\s*exit\s+ticket/i, split: { field: 'reflection_exit_ticket' } },
+];
+
+function splitListOnEmbeddedSectionHeaders(
+  items: string[],
+): { kept: string[]; extracted: Partial<Record<keyof ParsedActivity, string[] | string>> } {
+  const kept: string[] = [];
+  const extracted: Partial<Record<keyof ParsedActivity, string[] | string>> = {};
+  let current: EmbeddedSectionSplit | null = null;
+  let buf: string[] = [];
+
+  const flush = () => {
+    if (!current || !buf.length) {
+      buf = [];
+      return;
+    }
+    const lines = buf.map((line) => line.trim()).filter(Boolean);
+    if (!lines.length) {
+      buf = [];
+      return;
+    }
+    const prev = extracted[current.field];
+    if (current.list) {
+      const merged = [...(Array.isArray(prev) ? prev : []), ...lines];
+      extracted[current.field] = merged;
+    } else {
+      extracted[current.field] = [String(prev || ''), lines.join('\n')].filter(Boolean).join('\n\n');
+    }
+    buf = [];
+  };
+
+  for (const raw of items) {
+    const line = String(raw || '').trim();
+    if (!line) continue;
+    const bare = line.replace(/^\s*[-*•]\s*/, '').trim();
+    const match = EMBEDDED_SECTION_SPLITS.find(({ pattern }) => pattern.test(bare));
+    if (match && bare.length < 80) {
+      flush();
+      current = match.split;
+      continue;
+    }
+    if (current) {
+      buf.push(bare);
+    } else {
+      kept.push(bare);
+    }
+  }
+  flush();
+  return { kept, extracted };
+}
+
+function applyEmbeddedSectionSplits(activity: ParsedActivity, items: string[]) {
+  const { kept, extracted } = splitListOnEmbeddedSectionHeaders(items);
+  for (const [field, value] of Object.entries(extracted) as Array<[keyof ParsedActivity, string[] | string]>) {
+    if (!value || (Array.isArray(value) && !value.length)) continue;
+    const existing = (activity as Record<string, unknown>)[field];
+    if (Array.isArray(value)) {
+      (activity as Record<string, unknown>)[field] = dedupeStringLines([
+        ...asStringList(existing),
+        ...value,
+      ]);
+    } else if (!String(existing || '').trim()) {
+      (activity as Record<string, unknown>)[field] = value;
+    }
+  }
+  return kept;
+}
+
+export function looksLikeActivityProjectContent(text: string): boolean {
+  const sample = String(text || '');
+  if (!sample.trim()) return false;
+  const teacherSignals = [
+    /step-by-step\s+procedure/i,
+    /teacher\s+instructions?/i,
+    /student\s+instructions?/i,
+    /assessment\s+(?:criteria\s+)?rubric/i,
+    /expected\s+learning\s+outcomes?/i,
+    /real[-\s]?life\s+application/i,
+    /reflection\s*\/\s*exit\s+ticket/i,
+  ];
+  const hits = teacherSignals.filter((re) => re.test(sample)).length;
+  return hits >= 3 || (/^##\s+Activity\s+\d+/im.test(sample) && hits >= 2);
+}
+
 export function sanitizeParsedActivity(activity: ParsedActivity): ParsedActivity {
   const out: ParsedActivity = normalizeParsedActivityFields({ ...activity });
 
@@ -417,6 +517,25 @@ export function sanitizeParsedActivity(activity: ParsedActivity): ParsedActivity
     ...asStringList(out.materials_required),
     ...asStringList(out.materials),
   ]);
+  materials = applyEmbeddedSectionSplits(out, materials);
+  out.materials_required = materials;
+  out.materials = materials;
+
+  if (Array.isArray(out.differentiation_support_extension)) {
+    const diffLines = applyEmbeddedSectionSplits(out, out.differentiation_support_extension as unknown as string[]);
+    out.differentiation_support_extension = diffLines.join('\n');
+  } else {
+    const diffText = String(out.differentiation_support_extension || out.differentiation || '').trim();
+    if (diffText) {
+      const diffLines = diffText
+        .split(/\n+/)
+        .map((line) => line.replace(/^\s*[-*•]\s*/, '').trim())
+        .filter(Boolean);
+      const kept = applyEmbeddedSectionSplits(out, diffLines);
+      out.differentiation_support_extension = kept.join('\n');
+      out.differentiation = kept.join('\n');
+    }
+  }
 
   if (out.period_time_cues) {
     out.period_time_cues = dedupePeriodTimeCues(String(out.period_time_cues));
