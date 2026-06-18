@@ -22,7 +22,7 @@ import { Eye, FileDown, Loader2, Pencil, Trash2 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
 import { stripMarkdownSyntax } from "@/lib/strip-markdown-syntax";
 import { useToast } from "@/hooks/use-toast";
-import { extractMcqQuestionsFromRecord, isMcqTool } from "@/lib/mcq-record-utils";
+import { displayMcqQuestionSerial, extractMcqQuestionsFromRecord, isMcqTool, isWorksheetMcqTool, worksheetRecordListPreview } from "@/lib/mcq-record-utils";
 import { GeneratorRecordViewer } from "@/components/super-admin/generator-record-viewer";
 import { deckViewerPayloadFromRecord } from "@/components/my-study-decks-viewer";
 import { mockTestViewerPayloadFromRecord } from "@/components/mock-test-viewer";
@@ -65,6 +65,13 @@ function recordListPreviewText(toolSlug: string, generatedContent: string, recor
     const { content } = mockTestViewerPayloadFromRecord({ generatedContent, metadata: record?.metadata });
     const first = stripMarkdownSyntax(content).split("\n").find((l) => l.trim()) || "Mock Test";
     return first.slice(0, 120);
+  }
+  if (slug === "worksheet-mcq-generator") {
+    return worksheetRecordListPreview({
+      generatedContent,
+      content: generatedContent,
+      metadata: record?.metadata,
+    });
   }
   return stripMarkdownSyntax(generatedContent);
 }
@@ -616,22 +623,46 @@ export function GeneratorRecordsPanel({
                                                                 </div>
                                                               </div>
                                                               {(() => {
+                                                                const isWorksheet = isWorksheetMcqTool(toolNode.toolSlug);
+                                                                if (isWorksheet) {
+                                                                  return (
+                                                                    <div
+                                                                      className={cn(
+                                                                        "rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm",
+                                                                      )}
+                                                                    >
+                                                                      <p
+                                                                        className={cn(
+                                                                          "text-sm text-slate-700 line-clamp-4 leading-relaxed",
+                                                                        )}
+                                                                      >
+                                                                        {recordListPreviewText(
+                                                                          toolNode.toolSlug,
+                                                                          String(row.generatedContent || ""),
+                                                                          row,
+                                                                        )}
+                                                                      </p>
+                                                                    </div>
+                                                                  );
+                                                                }
                                                                 const parsedMcqs = isMcqTool(toolNode.toolSlug)
                                                                   ? extractMcqQuestionsFromRecord({
                                                                       toolName: toolNode.toolSlug,
                                                                       generatedContent: String(row.generatedContent || ""),
+                                                                      content: String(row.generatedContent || ""),
+                                                                      metadata: row.metadata,
                                                                     })
                                                                   : [];
                                                                 if (parsedMcqs.length > 0) {
                                                                   return (
                                                                     <div className="space-y-3">
-                                                                      {parsedMcqs.slice(0, 2).map((q, i) => (
+                                                                      {parsedMcqs.map((q, i) => (
                                                                         <div
                                                                           key={`${row._id}-mcq-${i}`}
                                                                           className="rounded-xl border border-slate-200 bg-white px-4 py-3"
                                                                         >
                                                                           <p className="text-sm font-medium text-slate-900">
-                                                                            Q{i + 1}. {q.question}
+                                                                            Q{displayMcqQuestionSerial(q, i)}. {q.question}
                                                                           </p>
                                                                         </div>
                                                                       ))}
@@ -639,18 +670,24 @@ export function GeneratorRecordsPanel({
                                                                   );
                                                                 }
                                                                 return (
-                                                                  <p
+                                                                  <div
                                                                     className={cn(
-                                                                      "text-sm text-slate-700 line-clamp-4 leading-relaxed border-l-2 pl-3",
-                                                                      accentLine,
+                                                                      "rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm",
                                                                     )}
                                                                   >
-                                                                    {recordListPreviewText(
-                                                                      toolNode.toolSlug,
-                                                                      String(row.generatedContent || ""),
-                                                                      row,
-                                                                    )}
-                                                                  </p>
+                                                                    <p
+                                                                      className={cn(
+                                                                        "text-sm text-slate-700 line-clamp-4 leading-relaxed",
+                                                                        accentLine,
+                                                                      )}
+                                                                    >
+                                                                      {recordListPreviewText(
+                                                                        toolNode.toolSlug,
+                                                                        String(row.generatedContent || ""),
+                                                                        row,
+                                                                      )}
+                                                                    </p>
+                                                                  </div>
                                                                 );
                                                               })()}
                                                             </div>

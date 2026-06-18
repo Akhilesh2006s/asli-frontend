@@ -26,7 +26,7 @@ import { stripMarkdownSyntax } from "@/lib/strip-markdown-syntax";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
-import { extractMcqQuestionsFromRecord, isMcqTool } from "@/lib/mcq-record-utils";
+import { displayMcqQuestionSerial, extractMcqQuestionsFromRecord, isMcqTool, isWorksheetMcqTool, worksheetRecordListPreview } from "@/lib/mcq-record-utils";
 import { GeneratedRecordBody } from "@/components/super-admin/generated-record-body";
 import { FlashcardViewer } from "@/components/flashcard-viewer";
 import {
@@ -273,6 +273,13 @@ function recordListPreviewText(toolSlug: string, generatedContent: string, recor
     });
     const first = toDisplayPlainText(content).split("\n").find((l) => l.trim()) || "Mock Test";
     return first.slice(0, 120);
+  }
+  if (slug === "worksheet-mcq-generator") {
+    return worksheetRecordListPreview({
+      generatedContent,
+      content: generatedContent,
+      metadata: record?.metadata,
+    });
   }
   return toDisplayPlainText(generatedContent);
 }
@@ -1377,10 +1384,26 @@ export default function SuperAdminAiGenerator() {
                                                               </div>
                                                             </div>
                                                             {(() => {
+                                                              const isWorksheet = isWorksheetMcqTool(toolNode.toolSlug);
+                                                              if (isWorksheet) {
+                                                                return (
+                                                                  <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 shadow-sm">
+                                                                    <p className="text-xs sm:text-sm text-slate-700 line-clamp-4 leading-relaxed">
+                                                                      {recordListPreviewText(
+                                                                        toolNode.toolSlug,
+                                                                        String(row.generatedContent || ""),
+                                                                        row,
+                                                                      )}
+                                                                    </p>
+                                                                  </div>
+                                                                );
+                                                              }
                                                               const parsedMcqs = isMcqTool(toolNode.toolSlug)
                                                                 ? extractMcqQuestionsFromRecord({
                                                                     toolName: toolNode.toolSlug,
                                                                     generatedContent: String(row.generatedContent || ""),
+                                                                    content: String(row.generatedContent || ""),
+                                                                    metadata: row.metadata,
                                                                   })
                                                                 : [];
                                                               if (parsedMcqs.length > 0) {
@@ -1389,16 +1412,18 @@ export default function SuperAdminAiGenerator() {
                                                                     {parsedMcqs.map((q, i) => (
                                                                   <div key={`${row._id}-mcq-${i}`} className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                                                                     <p className="text-xs sm:text-sm font-medium text-slate-900 leading-relaxed">
-                                                                      Q{i + 1}. {q.question}
+                                                                      Q{displayMcqQuestionSerial(q, i)}. {q.question}
                                                                     </p>
-                                                                    <ul className="mt-3 space-y-2.5 pl-0.5">
-                                                                      {q.options.map((opt, j) => (
-                                                                        <li key={j} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700">
-                                                                          <span className="mt-1.5 h-3.5 w-3.5 rounded-full border border-slate-400 shrink-0 bg-white" />
-                                                                          <span>{opt}</span>
-                                                                        </li>
-                                                                      ))}
-                                                                    </ul>
+                                                                    {q.options.length > 0 ? (
+                                                                      <ul className="mt-3 space-y-2.5 pl-0.5">
+                                                                        {q.options.map((opt, j) => (
+                                                                          <li key={j} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700">
+                                                                            <span className="mt-1.5 h-3.5 w-3.5 rounded-full border border-slate-400 shrink-0 bg-white" />
+                                                                            <span>{opt}</span>
+                                                                          </li>
+                                                                        ))}
+                                                                      </ul>
+                                                                    ) : null}
                                                                     {q.answer ? (
                                                                       <p className="mt-3 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-2 py-1">
                                                                         <span className="font-semibold">Answer:</span> {q.answer}
@@ -1415,13 +1440,15 @@ export default function SuperAdminAiGenerator() {
                                                                 );
                                                               }
                                                               return (
-                                                              <p className="text-xs sm:text-sm text-slate-700 line-clamp-4 leading-relaxed border-l-2 border-orange-200 pl-3">
-                                                                {recordListPreviewText(
-                                                                  toolNode.toolSlug,
-                                                                  String(row.generatedContent || ""),
-                                                                  row,
-                                                                )}
-                                                              </p>
+                                                              <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 shadow-sm">
+                                                                <p className="text-xs sm:text-sm text-slate-700 line-clamp-4 leading-relaxed">
+                                                                  {recordListPreviewText(
+                                                                    toolNode.toolSlug,
+                                                                    String(row.generatedContent || ""),
+                                                                    row,
+                                                                  )}
+                                                                </p>
+                                                              </div>
                                                               );
                                                             })()}
                                                           </div>

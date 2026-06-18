@@ -16,8 +16,11 @@ import type { RecordRow } from "./api";
 import { downloadGenerationsPdf } from "./pdf-utils";
 import { useToast } from "@/hooks/use-toast";
 import {
+  displayMcqQuestionSerial,
   extractMcqQuestionsFromRecord,
   isMcqTool,
+  isWorksheetMcqTool,
+  worksheetRecordListPreview,
   type McqQuestion,
 } from "@/lib/mcq-record-utils";
 import { GeneratedRecordBody } from "@/components/super-admin/generated-record-body";
@@ -176,8 +179,15 @@ export function SubtopicRecordsSection({
     }
   };
 
+  const recordMcqQuestions = (row: RecordRow) =>
+    extractMcqQuestionsFromRecord({
+      ...row,
+      toolName: normalizeAiToolSlug(row.toolName || parents.toolName),
+      generatedContent: String(row.content || row.preview || ""),
+    });
+
   const removeQuestionFromRecord = async (row: RecordRow, questionIndex: number) => {
-    const qs = extractMcqQuestionsFromRecord(row);
+    const qs = recordMcqQuestions(row);
     if (questionIndex < 0 || questionIndex >= qs.length) return;
     const nextQs = qs.filter((_, i) => i !== questionIndex);
     const key = `${row._id}:${questionIndex}`;
@@ -331,9 +341,13 @@ export function SubtopicRecordsSection({
         ) : (
           <ul className="space-y-3">
             {items.map((row) => {
-              const mcqQs = isMcqTool(parents.toolName)
-                ? extractMcqQuestionsFromRecord(row)
-                : [];
+              const toolSlug = normalizeAiToolSlug(parents.toolName);
+              const isWorksheet = isWorksheetMcqTool(toolSlug);
+              const mcqQs =
+                isMcqTool(toolSlug) && !isWorksheet ? recordMcqQuestions(row) : [];
+              const previewText = isWorksheet
+                ? worksheetRecordListPreview(row)
+                : toEditablePlainText(String(row.content || row.preview || ""));
               return (
                 <li
                   key={row._id}
@@ -395,7 +409,7 @@ export function SubtopicRecordsSection({
                         >
                           <div className="flex items-start justify-between gap-2">
                             <p className="text-xs sm:text-sm font-medium text-slate-900 leading-relaxed flex-1">
-                              Q{qIdx + 1}. {q.question}
+                              Q{displayMcqQuestionSerial(q, qIdx)}. {q.question}
                             </p>
                             <Button
                               type="button"
@@ -409,17 +423,19 @@ export function SubtopicRecordsSection({
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
-                          <ul className="mt-3 space-y-2.5 pl-0.5">
-                            {q.options.map((opt, j) => (
-                              <li key={j} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700">
-                                <span
-                                  className="mt-1.5 h-3.5 w-3.5 rounded-full border border-slate-400 shrink-0 bg-white"
-                                  aria-hidden
-                                />
-                                <span>{opt}</span>
-                              </li>
-                            ))}
-                          </ul>
+                          {q.options.length > 0 ? (
+                            <ul className="mt-3 space-y-2.5 pl-0.5">
+                              {q.options.map((opt, j) => (
+                                <li key={j} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700">
+                                  <span
+                                    className="mt-1.5 h-3.5 w-3.5 rounded-full border border-slate-400 shrink-0 bg-white"
+                                    aria-hidden
+                                  />
+                                  <span>{opt}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : null}
                           {q.answer ? (
                             <p className="mt-3 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-2 py-1">
                               <span className="font-semibold">Answer:</span> {q.answer}
@@ -434,9 +450,11 @@ export function SubtopicRecordsSection({
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs sm:text-sm text-slate-700 line-clamp-4 leading-relaxed border-l-2 border-orange-200 pl-3">
-                      {toEditablePlainText(String(row.content || row.preview || ""))}
-                    </p>
+                    <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 shadow-sm">
+                      <p className="text-xs sm:text-sm text-slate-700 line-clamp-4 leading-relaxed">
+                        {previewText}
+                      </p>
+                    </div>
                   )}
                 </li>
               );
@@ -488,9 +506,11 @@ export function SubtopicRecordsSection({
             ) : (() => {
                 const dialogQs = viewDetail
                   ? extractMcqQuestionsFromRecord({
-                      toolName: String(viewDetail.toolName || parents.toolName || ""),
-                      content: String(viewDetail.content || ""),
-                      generatedContent: String(viewDetail.generatedContent || viewDetail.content || ""),
+                      toolName: normalizeAiToolSlug(viewDetail.toolName || parents.toolName || ""),
+                      content: String(viewDetail.content || fullText || ""),
+                      generatedContent: String(
+                        viewDetail.generatedContent || viewDetail.content || fullText || "",
+                      ),
                       metadata: viewDetail.metadata,
                     })
                   : [];
@@ -581,19 +601,21 @@ export function SubtopicRecordsSection({
                           className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm space-y-3"
                         >
                           <p className="text-xs sm:text-sm font-semibold text-slate-900 leading-relaxed pr-2">
-                            Q{idx + 1}. {q.question}
+                            Q{displayMcqQuestionSerial(q, idx)}. {q.question}
                           </p>
-                          <ul className="space-y-2.5 pl-0.5">
-                            {q.options.map((opt, j) => (
-                              <li key={j} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700">
-                                <span
-                                  className="mt-1.5 h-3.5 w-3.5 rounded-full border border-slate-400 shrink-0 bg-white"
-                                  aria-hidden
-                                />
-                                <span>{opt}</span>
-                              </li>
-                            ))}
-                          </ul>
+                          {q.options.length > 0 ? (
+                            <ul className="space-y-2.5 pl-0.5">
+                              {q.options.map((opt, j) => (
+                                <li key={j} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700">
+                                  <span
+                                    className="mt-1.5 h-3.5 w-3.5 rounded-full border border-slate-400 shrink-0 bg-white"
+                                    aria-hidden
+                                  />
+                                  <span>{opt}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          ) : null}
                           {q.answer ? (
                             <p className="text-xs text-slate-500 pt-1 border-t border-slate-100">
                               Answer: {q.answer}
