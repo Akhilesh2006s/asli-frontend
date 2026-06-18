@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -40,6 +40,7 @@ import {
   isValidGenerationRecordCount,
   parseGenerationRecordCount,
 } from "@/lib/generation-record-count";
+import { resolveBookCurriculumSelection } from "@/lib/book-curriculum-resolve";
 
 type BookOption = {
   _id: string;
@@ -197,14 +198,55 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
-  const applyBookToCurriculum = useCallback((book: BookOption) => {
-    setBookId(book._id);
-    if (book.board) setBoard(book.board);
-    if (book.class) setClassNumber(book.class);
-    if (book.subject) setSubject(book.subject);
-    setTopic(book.topic || "");
-    setSubTopic(book.subtopic || "");
-  }, []);
+  const bookCurriculumSyncRef = useRef("");
+
+  const applyBookToCurriculum = useCallback(
+    (book: BookOption) => {
+      bookCurriculumSyncRef.current = "";
+      setBookId(book._id);
+      const resolved = resolveBookCurriculumSelection(
+        book,
+        boardOptions,
+        classOptions,
+        filterSubjectsForAiTool(selectedTool || "", subjects),
+      );
+      if (resolved.board) setBoard(resolved.board);
+      if (resolved.classNumber) setClassNumber(resolved.classNumber);
+      if (resolved.subject) setSubject(resolved.subject);
+      setTopic(resolved.topic);
+      setSubTopic(resolved.subTopic);
+    },
+    [boardOptions, classOptions, subjects, selectedTool],
+  );
+
+  /** Re-sync when cascade dropdown options load after selecting a content-import book. */
+  useEffect(() => {
+    if (!bookId || !selectedBook || loadingClasses || !classOptions.length) return;
+    const syncToken = `${bookId}|${classOptions.join("\u001f")}|${subjects.join("\u001f")}|${selectedTool || ""}`;
+    if (bookCurriculumSyncRef.current === syncToken) return;
+
+    const resolved = resolveBookCurriculumSelection(
+      selectedBook,
+      boardOptions,
+      classOptions,
+      filterSubjectsForAiTool(selectedTool || "", subjects),
+    );
+    if (resolved.board) setBoard(resolved.board);
+    if (resolved.classNumber) setClassNumber(resolved.classNumber);
+    if (!loadingSubjects && resolved.subject) setSubject(resolved.subject);
+    if (resolved.topic) setTopic(resolved.topic);
+    if (resolved.subTopic) setSubTopic(resolved.subTopic);
+    bookCurriculumSyncRef.current = syncToken;
+  }, [
+    bookId,
+    selectedBook,
+    boardOptions,
+    classOptions,
+    subjects,
+    selectedTool,
+    loadingClasses,
+    loadingSubjects,
+  ]);
 
   const loadBooks = async () => {
     setBooksLoading(true);
