@@ -402,6 +402,7 @@ export default function SuperAdminAiGenerator() {
     const payload: Record<string, any> = {};
     if (selectedTool === "worksheet-mcq-generator") {
       payload.questionType = questionType;
+      payload.questionCount = Number(questionCount) || 10;
     }
     if (selectedTool === "smart-qa-practice-generator") {
       payload.questionType = questionType;

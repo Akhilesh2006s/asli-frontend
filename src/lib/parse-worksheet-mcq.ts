@@ -94,14 +94,86 @@ function stripInlineMarkdown(text: string): string {
   return t.trim();
 }
 
+function normalizeQuestionKeyText(text: string): string {
+  return stripInlineMarkdown(text).toLowerCase().replace(/\s+/g, ' ').trim().slice(0, 200);
+}
+
+function worksheetQuestionDedupeKey(q: WorksheetQuestion, sectionLabel?: string): string {
+  const question = normalizeQuestionKeyText(q.question);
+  if (!question) return '';
+  const section = String(sectionLabel || q.section || '')
+    .toLowerCase()
+    .trim();
+  return `${section}::${question}`;
+}
+
+function dedupeWorksheetQuestions(
+  questions: WorksheetQuestion[],
+  sectionLabel?: string,
+): WorksheetQuestion[] {
+  const seen = new Set<string>();
+  const out: WorksheetQuestion[] = [];
+  for (const q of questions) {
+    const key = worksheetQuestionDedupeKey(q, sectionLabel);
+    if (key && seen.has(key)) continue;
+    if (key) seen.add(key);
+    out.push(q);
+  }
+  return out;
+}
+
+function renumberWorksheetSectionQuestions(sections: WorksheetSection[]): WorksheetSection[] {
+  return renumberSectionQuestionLists(
+    sections.map((sec) => ({
+      ...sec,
+      questions: dedupeWorksheetQuestions(sec.questions, sec.label),
+    })),
+  );
+}
+
+function finalizeNormalizedWorksheet(worksheet: NormalizedWorksheet): NormalizedWorksheet {
+  return {
+    ...worksheet,
+    sections: renumberWorksheetSectionQuestions(worksheet.sections),
+  };
+}
+
+function sectionsArrayHasQuestions(sectionsRaw: unknown): boolean {
+  if (!Array.isArray(sectionsRaw)) return false;
+  return sectionsRaw.some((sec) => {
+    if (!sec || typeof sec !== 'object') return false;
+    const qs = (sec as Record<string, unknown>).questions;
+    return Array.isArray(qs) && qs.length > 0;
+  });
+}
+
+function cleanMcqOptionAnswerBleed(option: string, answer: string, index = 0): string {
+  const raw = stripInlineMarkdown(String(option || '').trim());
+  if (!raw) return '';
+  const labeled = raw.match(/^([A-D])\s*[\).:\-]?\s*(.+)$/i);
+  const letter = labeled?.[1]?.toUpperCase() || String.fromCharCode(65 + index);
+  let text = (labeled?.[2] || raw.replace(/^[A-D][\).:\-\s]+/i, '')).trim();
+  const ans = stripInlineMarkdown(answer)
+    .replace(/^[A-D][\).:\-\s]+/i, '')
+    .trim();
+  if (ans.length >= 4 && text.endsWith(ans) && text.length > ans.length + 3) {
+    text = text.slice(0, -ans.length).trim();
+  }
+  if (!text) return '';
+  return `${letter}) ${text}`;
+}
+
 function normalizeOptions(entry: Record<string, unknown>): string[] {
   if (!Array.isArray(entry?.options)) return [];
+  const answer = stripInlineMarkdown(String(entry.answer || entry.correctAnswer || '').trim());
   return (entry.options as unknown[])
     .map((opt: unknown, idx: number) => {
       const text = stripInlineMarkdown(String(opt || '').trim());
       if (!text) return '';
-      if (/^[A-D][\).]/i.test(text)) return text.replace(/^([A-D])\./i, '$1)');
-      return `${String.fromCharCode(65 + idx)}) ${text}`;
+      if (/^[A-D][\).]/i.test(text)) {
+        return cleanMcqOptionAnswerBleed(text.replace(/^([A-D])\./i, '$1)'), answer, idx);
+      }
+      return cleanMcqOptionAnswerBleed(`${String.fromCharCode(65 + idx)}) ${text}`, answer, idx);
     })
     .filter(Boolean);
 }
@@ -252,17 +324,19 @@ function buildSectionsFromQuestions(questions: WorksheetQuestion[]): WorksheetSe
       sectionMap.set(eKey, eQuestions);
     }
   }
-  return balanceWorksheetSectionList(
-    WORKSHEET_SECTION_ORDER.map((label) => {
-      const meta = SECTION_META[label];
-      return {
-        id: meta.id,
-        order: meta.order,
-        label,
-        displayLabel: `${meta.displayPrefix}. ${label}`,
-        questions: sectionMap.get(label) || [],
-      };
-    }),
+  return renumberWorksheetSectionQuestions(
+    balanceWorksheetSectionList(
+      WORKSHEET_SECTION_ORDER.map((label) => {
+        const meta = SECTION_META[label];
+        return {
+          id: meta.id,
+          order: meta.order,
+          label,
+          displayLabel: `${meta.displayPrefix}. ${label}`,
+          questions: sectionMap.get(label) || [],
+        };
+      }),
+    ),
   );
 }
 
@@ -282,6 +356,7 @@ function materializeWorksheet(raw: Record<string, unknown>): NormalizedWorksheet
   const sectionMap = new Map<string, WorksheetQuestion[]>();
 
   const sectionsRaw = r.sections;
+  const canonicalFromSections = sectionsArrayHasQuestions(sectionsRaw);
   if (Array.isArray(sectionsRaw)) {
     for (const sec of sectionsRaw) {
       if (!sec || typeof sec !== 'object') continue;
@@ -291,6 +366,32 @@ function materializeWorksheet(raw: Record<string, unknown>): NormalizedWorksheet
       const prev = sectionMap.get(name) || [];
       sectionMap.set(name, [...prev, ...qs]);
     }
+  }
+
+  if (canonicalFromSections) {
+    const sections = renumberWorksheetSectionQuestions(
+      balanceWorksheetSectionList(
+        WORKSHEET_SECTION_ORDER.map((label) => {
+          const meta = SECTION_META[label];
+          return {
+            id: meta.id,
+            order: meta.order,
+            label,
+            displayLabel: `${meta.displayPrefix}. ${label}`,
+            questions: sectionMap.get(label) || [],
+          };
+        }),
+      ),
+    );
+    return {
+      title: String(r.title || r.worksheet_title || 'Worksheet').trim(),
+      learningObjectives: coalesceLines(r.learning_objectives),
+      instructions: coalesceText(r.instructions),
+      sections,
+      answerKey: coalesceText(r.answer_key),
+      bloomLevel: coalesceText(r.bloom_level),
+      difficultyTag: coalesceText(r.difficulty_tag),
+    };
   }
 
   const sectionKeyMap: Array<[string, string]> = [
@@ -342,24 +443,26 @@ function materializeWorksheet(raw: Record<string, unknown>): NormalizedWorksheet
     }
   }
 
-  const sections = balanceWorksheetSectionList(
-    WORKSHEET_SECTION_ORDER.map((label) => {
-      const meta = SECTION_META[label];
-      return {
-        id: meta.id,
-        order: meta.order,
-        label,
-        displayLabel: `${meta.displayPrefix}. ${label}`,
-        questions: sectionMap.get(label) || [],
-      };
-    }),
+  const sections = renumberWorksheetSectionQuestions(
+    balanceWorksheetSectionList(
+      WORKSHEET_SECTION_ORDER.map((label) => {
+        const meta = SECTION_META[label];
+        return {
+          id: meta.id,
+          order: meta.order,
+          label,
+          displayLabel: `${meta.displayPrefix}. ${label}`,
+          questions: sectionMap.get(label) || [],
+        };
+      }),
+    ),
   );
 
   return {
     title: String(r.title || r.worksheet_title || 'Worksheet').trim(),
     learningObjectives: coalesceLines(r.learning_objectives),
     instructions: coalesceText(r.instructions),
-    sections: renumberSectionQuestionLists(sections),
+    sections,
     answerKey: coalesceText(r.answer_key),
     bloomLevel: coalesceText(r.bloom_level),
     difficultyTag: coalesceText(r.difficulty_tag),
@@ -569,7 +672,7 @@ function parseQuestionsFromLines(
   }
 
   flush();
-  return out;
+  return dedupeWorksheetQuestions(out);
 }
 
 function splitMarkdownIntoNamedBlocks(markdown: string): Array<{ heading: string; lines: string[] }> {
@@ -643,17 +746,19 @@ function parseWorksheetFromMarkdown(text: string): NormalizedWorksheet | null {
   // Fallback: parse questions from entire body if no section blocks were found.
   let sections = buildSectionsFromQuestions([]);
   if (sectionMap.size) {
-    sections = balanceWorksheetSectionList(
-      WORKSHEET_SECTION_ORDER.map((label) => {
-        const meta = SECTION_META[label];
-        return {
-          id: meta.id,
-          order: meta.order,
-          label,
-          displayLabel: `${meta.displayPrefix}. ${label}`,
-          questions: sectionMap.get(label) || [],
-        };
-      }),
+    sections = renumberWorksheetSectionQuestions(
+      balanceWorksheetSectionList(
+        WORKSHEET_SECTION_ORDER.map((label) => {
+          const meta = SECTION_META[label];
+          return {
+            id: meta.id,
+            order: meta.order,
+            label,
+            displayLabel: `${meta.displayPrefix}. ${label}`,
+            questions: sectionMap.get(label) || [],
+          };
+        }),
+      ),
     );
   } else {
     const qs = parseQuestionsFromLines(body.split('\n'));
@@ -700,7 +805,7 @@ function mergeWorksheetWithMarkdown(
   base: NormalizedWorksheet,
   fromMd: NormalizedWorksheet,
 ): NormalizedWorksheet {
-  return {
+  return finalizeNormalizedWorksheet({
     // Prefer markdown title when base is generic.
     title:
       !base.title || /^worksheet$/i.test(base.title.trim())
@@ -719,7 +824,7 @@ function mergeWorksheetWithMarkdown(
     answerKey: fromMd.answerKey || base.answerKey,
     bloomLevel: fromMd.bloomLevel || base.bloomLevel,
     difficultyTag: fromMd.difficultyTag || base.difficultyTag,
-  };
+  });
 }
 
 export function worksheetHasVisibleContent(w: NormalizedWorksheet): boolean {
@@ -812,6 +917,8 @@ export function resolveWorksheetFromPayload(
   let markdownFallback: string | null = null;
   if (!worksheet || !worksheetHasVisibleContent(worksheet)) {
     if (displayMarkdown) markdownFallback = displayMarkdown;
+  } else {
+    worksheet = finalizeNormalizedWorksheet(worksheet);
   }
 
   return { worksheet, markdownFallback };
