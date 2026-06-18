@@ -14,11 +14,16 @@ export type TokenTotals = {
 export type GeminiCostEstimate = {
   usd: number;
   inr: number;
-  inputUsd: number;
-  outputUsd: number;
+  inputUsd?: number;
+  outputUsd?: number;
   exchangeRateInr: number;
   model: string;
   pricingNote: string;
+  batchTotalUsd?: number;
+  batchTotalInr?: number;
+  perRecordUsd?: number;
+  perRecordInr?: number;
+  savedCount?: number;
 };
 
 export type TokenCall = {
@@ -68,6 +73,78 @@ export function formatInr(value: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(Number(value || 0));
+}
+
+/** INR for Gemini costs — extra precision when amount is under ₹1. */
+export function formatCostInr(value: number): string {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n) || n <= 0) return formatInr(0);
+  if (n < 0.01) {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 4,
+      maximumFractionDigits: 4,
+    }).format(n);
+  }
+  if (n < 1) {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 3,
+      maximumFractionDigits: 3,
+    }).format(n);
+  }
+  return formatInr(n);
+}
+
+export type StoredRecordCost = {
+  usd?: number;
+  inr?: number;
+  batchTotalUsd?: number;
+  batchTotalInr?: number;
+  batchSize?: number;
+  exchangeRateInr?: number;
+  model?: string;
+  pricingNote?: string;
+};
+
+/** Prefer batch total when present; otherwise per-record share. */
+export function resolveRecordCostUsd(cost?: StoredRecordCost | null): number {
+  if (!cost || typeof cost !== "object") return 0;
+  const batch = Number(cost.batchTotalUsd);
+  if (Number.isFinite(batch) && batch > 0) return batch;
+  const usd = Number(cost.usd);
+  return Number.isFinite(usd) && usd > 0 ? usd : 0;
+}
+
+export function resolveRecordCostInr(cost?: StoredRecordCost | null, exchangeRate = DEFAULT_USD_TO_INR): number {
+  if (!cost || typeof cost !== "object") return 0;
+  const batch = Number(cost.batchTotalInr);
+  if (Number.isFinite(batch) && batch > 0) return batch;
+  const inr = Number(cost.inr);
+  if (Number.isFinite(inr) && inr > 0) return inr;
+  const usd = resolveRecordCostUsd(cost);
+  return usd > 0 ? Number((usd * exchangeRate).toFixed(4)) : 0;
+}
+
+export function perRecordShareFromCost(
+  cost?: StoredRecordCost | null,
+  savedCount = 1,
+): { usd: number; inr: number } {
+  const n = Math.max(1, Number(savedCount) || 1);
+  const totalUsd = resolveRecordCostUsd(cost);
+  const totalInr = resolveRecordCostInr(cost, Number(cost?.exchangeRateInr) || DEFAULT_USD_TO_INR);
+  if (Number(cost?.batchTotalUsd) > 0 || Number(cost?.batchTotalInr) > 0) {
+    return {
+      usd: Number((totalUsd / n).toFixed(6)),
+      inr: Number((totalInr / n).toFixed(4)),
+    };
+  }
+  return {
+    usd: Number(cost?.usd || 0),
+    inr: Number(cost?.inr || 0),
+  };
 }
 
 export function computeGeminiFlashCost(

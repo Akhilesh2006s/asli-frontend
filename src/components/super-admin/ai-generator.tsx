@@ -80,11 +80,14 @@ import {
 import {
   computeGeminiCostFromTokenUsage,
   emptyTokenTotals,
+  formatCostInr,
   formatInr,
   formatTokenCount,
   mergeTokenTotals,
   mergeTokenUsageSnapshots,
+  perRecordShareFromCost,
   type GeminiCostEstimate,
+  type StoredRecordCost,
   type TokenCall,
   type TokenTotals,
   type TokenUsageSnapshot,
@@ -233,7 +236,11 @@ type GeneratorRecord = {
   _id: string;
   generatedContent: string;
   createdAt?: string;
-  metadata?: { structuredContent?: unknown; extraParams?: { generationVariant?: number; variantAngle?: string } };
+  metadata?: {
+    structuredContent?: unknown;
+    extraParams?: { generationVariant?: number; variantAngle?: string };
+    cost?: StoredRecordCost;
+  };
   generationVariant?: number | null;
   variantAngle?: string;
 };
@@ -315,6 +322,7 @@ export default function SuperAdminAiGenerator() {
     batchSize: number;
     tokenUsage: TokenTotals;
     cost: GeminiCostEstimate;
+    perRecordCost?: { usd: number; inr: number };
   } | null>(null);
   const [recordsTree, setRecordsTree] = useState<GroupedTool[]>([]);
   const [recordsTotal, setRecordsTotal] = useState(0);
@@ -617,13 +625,23 @@ export default function SuperAdminAiGenerator() {
       const tokenCalls: TokenCall[] = Array.isArray(usage?.calls) ? usage.calls : [];
       const exchangeRateInr = Number(json?.data?.cost?.exchangeRateInr) || 95.11;
       let cost: GeminiCostEstimate;
-      try {
-        cost = computeGeminiCostFromTokenUsage({ totals: tokenUsage, calls: tokenCalls }, exchangeRateInr);
-      } catch {
-        cost = json?.data?.cost && typeof json.data.cost === "object"
+      const apiCost =
+        json?.data?.cost && typeof json.data.cost === "object"
           ? (json.data.cost as GeminiCostEstimate)
-          : computeGeminiCostFromTokenUsage({ totals: tokenUsage, calls: [] }, exchangeRateInr);
+          : null;
+      if (apiCost && Number(apiCost.inr) >= 0) {
+        cost = apiCost;
+      } else {
+        try {
+          cost = computeGeminiCostFromTokenUsage({ totals: tokenUsage, calls: tokenCalls }, exchangeRateInr);
+        } catch {
+          cost = computeGeminiCostFromTokenUsage({ totals: tokenUsage, calls: [] }, exchangeRateInr);
+        }
       }
+      const perRecord =
+        Number(cost.perRecordInr) > 0
+          ? { usd: Number(cost.perRecordUsd || 0), inr: Number(cost.perRecordInr) }
+          : perRecordShareFromCost(cost, savedCount || 1);
 
       setGenerationProgress({ current: savedCount, total: resultBatchSize, phase: "Complete" });
       setLastBatchSummary({
@@ -632,13 +650,14 @@ export default function SuperAdminAiGenerator() {
         batchSize: resultBatchSize,
         tokenUsage,
         cost,
+        perRecordCost: perRecord,
       });
 
       if (savedCount === 0) {
         throw new Error(failures[0] || `All ${resultBatchSize} generations failed`);
       }
 
-      const tokenNote = `${formatTokenCount(tokenUsage.totalTokens)} tokens (${formatTokenCount(tokenUsage.promptTokens)} in / ${formatTokenCount(tokenUsage.completionTokens)} out, ${tokenUsage.callCount} LLM calls). Est. cost: ${formatInr(cost.inr)}.`;
+      const tokenNote = `${formatTokenCount(tokenUsage.totalTokens)} tokens (${formatTokenCount(tokenUsage.promptTokens)} in / ${formatTokenCount(tokenUsage.completionTokens)} out, ${tokenUsage.callCount} LLM calls). Batch cost: ${formatCostInr(cost.inr)}${savedCount > 0 ? ` · ~${formatCostInr(perRecord.inr)}/record` : ""}.`;
       toast({
         title:
           mode === "random_retrieval"
@@ -1132,9 +1151,20 @@ export default function SuperAdminAiGenerator() {
                   {lastBatchSummary.tokenUsage.callCount} LLM calls)
                 </p>
                 <p>
-                  Estimated cost:{" "}
-                  <span className="font-semibold text-emerald-900">{formatInr(lastBatchSummary.cost.inr)}</span>
+                  Batch cost:{" "}
+                  <span className="font-semibold text-emerald-900">{formatCostInr(lastBatchSummary.cost.inr)}</span>
                   {" "}(~${lastBatchSummary.cost.usd.toFixed(4)} USD at ₹{lastBatchSummary.cost.exchangeRateInr}/$)
+                  {lastBatchSummary.successCount > 0 && lastBatchSummary.perRecordCost ? (
+                    <>
+                      {" · "}
+                      <span className="font-medium text-emerald-800">
+                        ~{formatCostInr(lastBatchSummary.perRecordCost.inr)}/record
+                      </span>
+                    </>
+                  ) : null}
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  Model: {lastBatchSummary.cost.model} · Flash-Lite $0.10/M in · $0.40/M out
                 </p>
                 <p className="text-[11px] text-slate-500">{lastBatchSummary.cost.pricingNote}</p>
                 {lastBatchSummary.cost.model.includes("mixed") ? (
@@ -1346,6 +1376,11 @@ export default function SuperAdminAiGenerator() {
                                                                   <span className="text-[10px] text-slate-500 max-w-[220px] truncate" title={row.variantAngle}>
                                                                     {row.variantAngle}
                                                                   </span>
+                                                                ) : null}
+                                                                {row.metadata?.cost?.inr != null && Number(row.metadata.cost.inr) > 0 ? (
+                                                                  <Badge variant="outline" className="text-[10px] h-5 border-emerald-200 text-emerald-800 bg-emerald-50">
+                                                                    {formatCostInr(Number(row.metadata.cost.inr))}
+                                                                  </Badge>
                                                                 ) : null}
                                                               </div>
                                                               <div className="flex items-center gap-1">
