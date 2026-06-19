@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -32,6 +32,7 @@ import {
   formatInr,
   formatTokenCount,
   type GeminiCostEstimate,
+  type TokenCall,
   type TokenTotals,
 } from "@/lib/gemini-token-cost";
 import {
@@ -40,7 +41,7 @@ import {
   isValidGenerationRecordCount,
   parseGenerationRecordCount,
 } from "@/lib/generation-record-count";
-import { resolveBookCurriculumSelection } from "@/lib/book-curriculum-resolve";
+import { sortClassLabelsAscending } from "@/lib/super-admin-curriculum-classes";
 
 type BookOption = {
   _id: string;
@@ -66,6 +67,7 @@ function statusBadge(status?: string, indexed?: boolean) {
 function normalizeClassLabel(value: string): string {
   const trimmed = String(value || "").trim();
   if (!trimmed) return "Unassigned";
+  if (/^iit-\d+/i.test(trimmed) || trimmed === "Class-6-IIT") return "Class 6";
   return /^class\b/i.test(trimmed) ? trimmed : `Class ${trimmed}`;
 }
 
@@ -174,11 +176,19 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     () => filterSubjectsForAiTool(selectedTool || "", subjects),
     [selectedTool, subjects],
   );
+  const classOptionsForSelect = useMemo(
+    () => sortClassLabelsAscending(classOptions),
+    [classOptions],
+  );
+  const subjectOptionsForSelect = useMemo(
+    () => (selectedTool ? subjectsForTool : subjects),
+    [selectedTool, subjectsForTool, subjects],
+  );
   const selectedBook = useMemo(() => books.find((b) => b._id === bookId), [books, bookId]);
   const bookReady = Boolean(selectedBook?.embeddingsCreated && selectedBook?.processingStatus === "indexed");
   const step1Done = Boolean(bookId && bookReady);
-  const step2Done = Boolean(step1Done && classNumber && subject && topic && subTopic);
-  const step3Done = Boolean(step2Done && selectedTool);
+  const curriculumDone = Boolean(step1Done && classNumber && subject && topic && subTopic);
+  const step2Done = Boolean(curriculumDone && selectedTool);
 
   const [bookGroupMode, setBookGroupMode] = useState<"class" | "subject">("class");
   const [bookGroupFilter, setBookGroupFilter] = useState("__all__");
@@ -198,55 +208,9 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
-  const bookCurriculumSyncRef = useRef("");
-
-  const applyBookToCurriculum = useCallback(
-    (book: BookOption) => {
-      bookCurriculumSyncRef.current = "";
-      setBookId(book._id);
-      const resolved = resolveBookCurriculumSelection(
-        book,
-        boardOptions,
-        classOptions,
-        filterSubjectsForAiTool(selectedTool || "", subjects),
-      );
-      if (resolved.board) setBoard(resolved.board);
-      if (resolved.classNumber) setClassNumber(resolved.classNumber);
-      if (resolved.subject) setSubject(resolved.subject);
-      setTopic(resolved.topic);
-      setSubTopic(resolved.subTopic);
-    },
-    [boardOptions, classOptions, subjects, selectedTool],
-  );
-
-  /** Re-sync when cascade dropdown options load after selecting a content-import book. */
-  useEffect(() => {
-    if (!bookId || !selectedBook || loadingClasses || !classOptions.length) return;
-    const syncToken = `${bookId}|${classOptions.join("\u001f")}|${subjects.join("\u001f")}|${selectedTool || ""}`;
-    if (bookCurriculumSyncRef.current === syncToken) return;
-
-    const resolved = resolveBookCurriculumSelection(
-      selectedBook,
-      boardOptions,
-      classOptions,
-      filterSubjectsForAiTool(selectedTool || "", subjects),
-    );
-    if (resolved.board) setBoard(resolved.board);
-    if (resolved.classNumber) setClassNumber(resolved.classNumber);
-    if (!loadingSubjects && resolved.subject) setSubject(resolved.subject);
-    if (resolved.topic) setTopic(resolved.topic);
-    if (resolved.subTopic) setSubTopic(resolved.subTopic);
-    bookCurriculumSyncRef.current = syncToken;
-  }, [
-    bookId,
-    selectedBook,
-    boardOptions,
-    classOptions,
-    subjects,
-    selectedTool,
-    loadingClasses,
-    loadingSubjects,
-  ]);
+  const selectBook = useCallback((book: BookOption) => {
+    setBookId(book._id);
+  }, []);
 
   const loadBooks = async () => {
     setBooksLoading(true);
@@ -266,6 +230,14 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   }, []);
 
   useEffect(() => {
+    const boardKey = String(board || "").toUpperCase().replace(/[\s/\\-]+/g, "");
+    const isIitBoard = boardKey.includes("IIT") || boardKey.includes("NEET") || boardKey.includes("JEE");
+    if (isIitBoard && (classNumber === "IIT-6" || classNumber === "Class-6-IIT")) {
+      setClassNumber("Class 6");
+    }
+  }, [board, classNumber]);
+
+  useEffect(() => {
     let cancelled = false;
     const loadBoards = async () => {
       try {
@@ -281,7 +253,6 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
         if (boardsFromOptions.length > 0) {
           const boards = Array.from(new Set<string>(boardsFromOptions)).sort((a, b) => a.localeCompare(b));
           setBoardOptions(boards);
-          if (!board && boards[0]) setBoard(boards[0]);
           return;
         }
         throw new Error("No boards in options response");
@@ -298,7 +269,6 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
           const boards = Array.from(new Set<string>(boardsFromRows)).sort((a, b) => a.localeCompare(b));
           if (!cancelled) {
             setBoardOptions(boards);
-            if (!board && boards[0]) setBoard(boards[0]);
           }
         } catch {
           if (!cancelled) setBoardOptions([]);
@@ -359,7 +329,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
       key={tool.id}
       type="button"
       onClick={() => handleToolSelect(tool.id as BookBasedToolId)}
-      disabled={!step2Done}
+      disabled={!step1Done}
       className={cn(
         "text-left rounded-xl border p-4 transition shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed",
         selectedTool === tool.id ? "border-violet-500 bg-violet-50 ring-2 ring-violet-200" : "border-slate-200 bg-white",
@@ -387,12 +357,12 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   });
 
   const applyBatchResult = async (data: Record<string, unknown>, json: { message?: string }) => {
-    const usage = data.tokenUsage as { totals?: TokenTotals; calls?: unknown[] } | undefined;
+    const usage = data.tokenUsage as { totals?: TokenTotals; calls?: TokenCall[] } | undefined;
     const tokenUsage =
       usage?.totals && typeof usage.totals === "object"
         ? { ...emptyTokenTotals(), ...usage.totals }
         : emptyTokenTotals();
-    const tokenCalls = Array.isArray(usage?.calls) ? usage.calls : [];
+    const tokenCalls: TokenCall[] = Array.isArray(usage?.calls) ? usage.calls : [];
     const exchangeRateInr = Number((data.cost as GeminiCostEstimate | undefined)?.exchangeRateInr) || 95.11;
     let cost: GeminiCostEstimate;
     try {
@@ -620,11 +590,10 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
       </div>
 
       {/* Flow steps */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {[
           { n: 1, label: "Select textbook", done: step1Done },
-          { n: 2, label: "Curriculum inputs", done: step2Done },
-          { n: 3, label: "Tool & generate", done: step3Done },
+          { n: 2, label: "Tool & inputs", done: step2Done },
         ].map((s) => (
           <div
             key={s.n}
@@ -716,7 +685,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                           <li key={b._id}>
                             <button
                               type="button"
-                              onClick={() => applyBookToCurriculum(b)}
+                              onClick={() => selectBook(b)}
                               className={cn(
                                 "w-full text-left rounded-lg border px-3 py-2.5 text-sm transition hover:bg-slate-50",
                                 bookId === b._id ? "border-violet-500 bg-violet-50 ring-1 ring-violet-200" : "border-slate-200",
@@ -754,15 +723,45 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
         </CardContent>
       </Card>
 
-      {/* Step 2: Curriculum */}
+      {/* Step 2: Curriculum + tool + generate */}
       <Card className={cn(!bookId && "opacity-60 pointer-events-none")}>
         <CardHeader>
-          <CardTitle className="text-lg">Step 2 — Select Curriculum (your inputs)</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-violet-600" />
+            Step 2 — Choose Tool, Then Inputs
+          </CardTitle>
           <p className="text-sm text-slate-500 font-normal">
-            Board/class/subject are pre-filled from the book. Pick <strong>topic</strong>, <strong>sub-topic</strong>, and how many records to generate (1–{BOOK_GENERATOR_MAX_BATCH_SIZE}).
+            Pick a <strong>tool</strong> first, then fill <strong>board</strong>, <strong>class</strong>, <strong>subject</strong>, <strong>topic</strong>, <strong>sub-topic</strong>, and record count (1–{BOOK_GENERATOR_MAX_BATCH_SIZE}) to generate.
           </p>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <CardContent className="space-y-8">
+        <div className="space-y-6">
+          <div>
+            <p className="mb-1 text-sm font-semibold text-slate-900">1. Choose tool</p>
+            <p className="mb-3 text-sm text-slate-500">
+              <strong>{BOOK_BASED_STUDENT_TOOLS.length} student</strong> and <strong>{BOOK_BASED_TEACHER_TOOLS.length} teacher</strong> tools for{" "}
+              <strong>{selectedBook?.title || "your textbook"}</strong>.
+            </p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Student ({BOOK_BASED_STUDENT_TOOLS.length})
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {BOOK_BASED_STUDENT_TOOLS.map(renderToolButton)}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Teacher ({BOOK_BASED_TEACHER_TOOLS.length})
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {BOOK_BASED_TEACHER_TOOLS.map(renderToolButton)}
+            </div>
+          </div>
+        </div>
+
+        <div className={cn("space-y-4 border-t border-slate-200 pt-6", !selectedTool && "opacity-60 pointer-events-none")}>
+          <p className="text-sm font-semibold text-slate-900">2. Curriculum inputs</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label>Board</Label>
             <Select value={board} onValueChange={handleBoardChange}>
@@ -777,7 +776,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
             <Select value={classNumber} onValueChange={handleClassChange} disabled={!board || loadingClasses}>
               <SelectTrigger><SelectValue placeholder={!board ? "Select board first" : loadingClasses ? "Loading classes…" : "Select class"} /></SelectTrigger>
               <SelectContent>
-                {classOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                {classOptionsForSelect.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -798,7 +797,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                 />
               </SelectTrigger>
               <SelectContent>
-                {(selectedTool ? subjectsForTool : subjects).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                {subjectOptionsForSelect.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -828,42 +827,9 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
               disabled={isGenerating}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Step 3: Tool + Generate */}
-      <Card className={cn(!step2Done && "opacity-60")}>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-violet-600" />
-            Step 3 — Choose Tool & Generate
-          </CardTitle>
-          <p className="text-sm text-slate-500 font-normal">
-            AI retrieves relevant passages from <strong>{selectedBook?.title || "your textbook"}</strong> for{" "}
-            <strong>{topic || "…"} / {subTopic || "…"}</strong> and generates unique records (you choose how many per batch).
-            {" "}Each batch runs <strong>3 Gemini calls at a time</strong> — exam papers and mock tests often take <strong>10–25 minutes</strong>.
-            {" "}<strong>{BOOK_BASED_STUDENT_TOOLS.length} student</strong> and <strong>{BOOK_BASED_TEACHER_TOOLS.length} teacher</strong> tools available.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Student ({BOOK_BASED_STUDENT_TOOLS.length})
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-              {BOOK_BASED_STUDENT_TOOLS.map(renderToolButton)}
-            </div>
-          </div>
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Teacher ({BOOK_BASED_TEACHER_TOOLS.length})
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-              {BOOK_BASED_TEACHER_TOOLS.map(renderToolButton)}
-            </div>
-          </div>
-
-          {selectedTool && step2Done ? (
+          {selectedTool && curriculumDone ? (
             <div className="flex flex-col gap-3 rounded-lg border border-violet-100 bg-violet-50/50 p-4 sm:gap-4">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 {currentTool ? (
@@ -884,7 +850,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                 </Label>
               </div>
               <p className="text-xs text-slate-600 w-full">
-                Combines your curriculum inputs with retrieved book content. Record count is set in Step 2.
+                Combines your curriculum inputs with retrieved book content.
               </p>
               <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                 <Button
@@ -936,6 +902,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
               <p className="text-[11px] text-slate-500">{lastBatchSummary.cost.pricingNote}</p>
             </div>
           ) : null}
+        </div>
         </CardContent>
       </Card>
 
