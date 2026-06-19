@@ -1,28 +1,18 @@
 import { useState, useEffect, useMemo } from 'react';
 import { API_BASE_URL } from '@/lib/api-config';
+import { getAuthToken } from '@/lib/auth-utils';
+import {
+  getCurriculumResponseCache,
+  hasCurriculumResponseCache,
+  setCurriculumResponseCache,
+} from '@/lib/curriculum-response-cache';
 import { compareClassLabels, sortClassLabelsAscending } from '@/lib/super-admin-curriculum-classes';
 import { sortChapterWiseLabels } from '@/lib/curriculum-chapter-sort';
 
 type CurriculumRow = { id: string; name: string; label: string };
 
-/** In-memory cache to avoid duplicate curriculum API calls (per session). */
-const responseCache = new Map<string, unknown>();
-const MAX_CACHE = 80;
-
 function cacheKey(path: string) {
   return path;
-}
-
-function cacheGet<T>(key: string): T | undefined {
-  return responseCache.get(key) as T | undefined;
-}
-
-function cacheSet(key: string, val: unknown) {
-  if (responseCache.size >= MAX_CACHE) {
-    const first = responseCache.keys().next().value;
-    if (first) responseCache.delete(first);
-  }
-  responseCache.set(key, val);
 }
 
 function rowsToNames(rows: CurriculumRow[] | undefined): string[] {
@@ -70,8 +60,8 @@ export function isGradeWithScienceCurriculumDropdowns(gradeLevel: string | undef
 
 async function fetchCurriculum(path: string, auth: string | null) {
   const key = cacheKey(path);
-  if (responseCache.has(key)) {
-    return cacheGet<{ success?: boolean; data?: CurriculumRow[] }>(key)!;
+  if (hasCurriculumResponseCache(key)) {
+    return getCurriculumResponseCache<{ success?: boolean; data?: CurriculumRow[] }>(key)!;
   }
   const res = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
@@ -80,7 +70,7 @@ async function fetchCurriculum(path: string, auth: string | null) {
     },
   });
   const json = await res.json();
-  cacheSet(key, json);
+  setCurriculumResponseCache(key, json);
   return json;
 }
 
@@ -95,8 +85,8 @@ async function fetchManagedTopicTaxonomy(
   if (params.topicName) qs.set('topicName', params.topicName);
   const path = `/api/ai-generator/topic-taxonomy?${qs.toString()}`;
   const key = cacheKey(path);
-  if (responseCache.has(key)) {
-    return cacheGet<{ data?: { topics?: string[]; subTopics?: string[] } }>(key)!;
+  if (hasCurriculumResponseCache(key)) {
+    return getCurriculumResponseCache<{ data?: { topics?: string[]; subTopics?: string[] } }>(key)!;
   }
   const res = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
@@ -105,7 +95,7 @@ async function fetchManagedTopicTaxonomy(
     },
   });
   const json = await res.json();
-  cacheSet(key, json);
+  setCurriculumResponseCache(key, json);
   return json;
 }
 
@@ -130,14 +120,12 @@ export function useCurriculumCascade(
   const [loadingTopics, setLoadingTopics] = useState(false);
   const [loadingSubtopics, setLoadingSubtopics] = useState(false);
 
-  const authToken = useMemo(() => (typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : null), []);
-
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoadingClasses(true);
       try {
-        const token = typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : null;
+        const token = getAuthToken();
         const qs = new URLSearchParams({ v: '4' });
         if (board) qs.set('board', board);
         const data = await fetchCurriculum(`/api/curriculum/classes?${qs.toString()}`, token);
@@ -157,7 +145,7 @@ export function useCurriculumCascade(
     return () => {
       cancelled = true;
     };
-  }, [authToken, board]);
+  }, [board]);
 
   useEffect(() => {
     let cancelled = false;
@@ -170,7 +158,7 @@ export function useCurriculumCascade(
     (async () => {
       setLoadingSubjects(true);
       try {
-        const token = typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : null;
+        const token = getAuthToken();
         const qs = new URLSearchParams({
           classId: gradeForApi,
           syllabus: 'curriculum-v3',
@@ -203,7 +191,7 @@ export function useCurriculumCascade(
     (async () => {
       setLoadingTopics(true);
       try {
-        const token = typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : null;
+        const token = getAuthToken();
         const qs = new URLSearchParams({
           classId: gradeForApi,
           subjectId: subject,
@@ -243,7 +231,7 @@ export function useCurriculumCascade(
     (async () => {
       setLoadingSubtopics(true);
       try {
-        const token = typeof localStorage !== 'undefined' ? localStorage.getItem('authToken') : null;
+        const token = getAuthToken();
         const qs = new URLSearchParams({
           classId: gradeForApi,
           subjectId: subject,

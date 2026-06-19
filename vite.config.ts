@@ -3,7 +3,16 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
+const appBuildId =
+  process.env.VITE_APP_BUILD_ID ||
+  process.env.VERCEL_GIT_COMMIT_SHA ||
+  process.env.GITHUB_SHA ||
+  `${Date.now()}`;
+
 export default defineConfig({
+  define: {
+    __APP_BUILD_ID__: JSON.stringify(appBuildId),
+  },
   plugins: [
     react(),
     runtimeErrorOverlay(),

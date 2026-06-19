@@ -10,8 +10,8 @@ import { Eye, EyeOff, Mail, Lock, ArrowLeft, Sparkles, Zap, BookOpen, Graduation
 import { Link } from 'wouter';
 import { API_BASE_URL } from '@/lib/api-config';
 import { setAuthToken, setUser } from '@/lib/auth-utils';
-import { invalidateAuthSessionCache } from '@/lib/auth-session';
-import { invalidateDashboardBootstrapCache, fetchDashboardBootstrap } from '@/lib/dashboard-bootstrap';
+import { prepareClientForNewLogin } from '@/lib/client-cache-reset';
+import { fetchDashboardBootstrap } from '@/lib/dashboard-bootstrap';
 
 const LOGIN_INTRO_KEY = 'aslilearn_skip_login_intro';
 
@@ -78,8 +78,7 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        invalidateAuthSessionCache();
-        invalidateDashboardBootstrapCache();
+        prepareClientForNewLogin();
 
         if (data.token) {
           setAuthToken(data.token);

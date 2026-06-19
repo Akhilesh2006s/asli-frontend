@@ -3,16 +3,14 @@
  * Centralized functions for managing authentication state
  */
 
-import { invalidateAuthSessionCache } from './auth-session';
-import { invalidateDashboardBootstrapCache } from './dashboard-bootstrap';
+import { clearClientCachesOnLogout } from './client-cache-reset';
 
 /**
  * Clears all authentication-related data from localStorage
  * This should be called on logout to ensure complete cleanup
  */
 export const clearAuthData = () => {
-  invalidateAuthSessionCache();
-  invalidateDashboardBootstrapCache();
+  clearClientCachesOnLogout();
   // Authentication tokens
   localStorage.removeItem('authToken');
   localStorage.removeItem('superAdminToken');
@@ -34,6 +32,7 @@ export const clearAuthData = () => {
   
   // Note: We intentionally DON'T clear:
   // - completed_content_* (user progress should persist across sessions)
+  // - aslilearn_skip_login_intro / aslilearn_app_build_id (browser UX + deploy recovery)
 };
 
 /**

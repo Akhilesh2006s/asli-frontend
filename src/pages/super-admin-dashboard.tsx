@@ -40,6 +40,7 @@ import { BellIcon, UsersIcon, Users2, TrendingUpIcon, BookIcon, UserPlusIcon, Bo
 import { LineChart, Line, PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
+import { clearAuthData } from "@/lib/auth-utils";
 import { cn } from "@/lib/utils";
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import { useSuperAdminDrawerNav } from "@/hooks/use-mobile";
@@ -1108,9 +1109,7 @@ export default function SuperAdminDashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('superAdminUser');
-    localStorage.removeItem('superAdminToken');
-    localStorage.removeItem('authToken');
+    clearAuthData();
     window.location.href = '/auth/login';
   };
 
