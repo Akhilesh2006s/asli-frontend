@@ -35,6 +35,14 @@ import {
   activityViewerPayloadFromRecord,
 } from "@/components/activity-project-viewer";
 import { isActivityToolSlug, normalizeAiToolSlug } from "@/lib/normalize-ai-tool-slug";
+import {
+  PracticeQaViewer,
+  practiceQaViewerPayloadFromRecord,
+} from "@/components/practice-qa-viewer";
+import {
+  countPracticeQaQuestions,
+  resolvePracticeQaFromPayload,
+} from "@/lib/parse-practice-qa";
 
 function labelEmpty(v: string) {
   return v === "" || v == null ? "(None)" : v;
@@ -95,6 +103,36 @@ function isShortNotesToolValue(v: unknown): boolean {
 
 function isActivityToolValue(v: unknown): boolean {
   return isActivityToolSlug(v);
+}
+
+function isPracticeQaToolValue(v: unknown): boolean {
+  return normalizeAiToolSlug(v) === "smart-qa-practice-generator";
+}
+
+function practiceQaRecordListPreview(row: RecordRow): string {
+  const payload = practiceQaViewerPayloadFromRecord({
+    content: String(row.content || row.preview || ""),
+    generatedContent: String(row.content || row.preview || ""),
+    metadata: row.metadata,
+  });
+  const { practice, markdownFallback } = resolvePracticeQaFromPayload(
+    payload.content,
+    payload.rawContent,
+  );
+  if (practice) {
+    const title = String(practice.title || "").trim();
+    const count = countPracticeQaQuestions(practice);
+    const firstQ = practice.sections
+      .flatMap((section) => section.questions)
+      .find((question) => String(question.question || "").trim());
+    if (firstQ) {
+      const line = `Q${firstQ.questionNumber || 1}. ${String(firstQ.question).trim()}`;
+      return title ? `${title} — ${line}` : line;
+    }
+    if (title) return count ? `${title} · ${count} questions` : title;
+  }
+  if (markdownFallback) return toEditablePlainText(markdownFallback).slice(0, 240);
+  return toEditablePlainText(String(row.content || row.preview || "")).slice(0, 240);
 }
 
 function isBookGroundedRow(row: RecordRow): boolean {
@@ -343,11 +381,16 @@ export function SubtopicRecordsSection({
             {items.map((row) => {
               const toolSlug = normalizeAiToolSlug(parents.toolName);
               const isWorksheet = isWorksheetMcqTool(toolSlug);
+              const isPracticeQa = isPracticeQaToolValue(toolSlug);
               const mcqQs =
-                isMcqTool(toolSlug) && !isWorksheet ? recordMcqQuestions(row) : [];
+                isMcqTool(toolSlug) && !isWorksheet && !isPracticeQa
+                  ? recordMcqQuestions(row)
+                  : [];
               const previewText = isWorksheet
                 ? worksheetRecordListPreview(row)
-                : toEditablePlainText(String(row.content || row.preview || ""));
+                : isPracticeQa
+                  ? practiceQaRecordListPreview(row)
+                  : toEditablePlainText(String(row.content || row.preview || ""));
               return (
                 <li
                   key={row._id}
@@ -587,6 +630,19 @@ export function SubtopicRecordsSection({
                           ...(viewDetail || {}),
                           generatedContent: String(fullText || ""),
                           toolSlug: resolvedTool,
+                        })}
+                      />
+                    </div>
+                  );
+                }
+                if (isPracticeQaToolValue(resolvedTool)) {
+                  return (
+                    <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
+                      <PracticeQaViewer
+                        {...practiceQaViewerPayloadFromRecord({
+                          ...(viewDetail || {}),
+                          content: String(fullText || ""),
+                          generatedContent: String(fullText || ""),
                         })}
                       />
                     </div>
