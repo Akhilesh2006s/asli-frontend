@@ -19,6 +19,7 @@ import {
   getAiToolBoardOptions,
   getDefaultAiToolBoard,
   mapGradeLevelForIitBoard,
+  parseAiToolClassNumber,
   resolveCurriculumBoardForAiTools,
   resolveIsAsliPrepExclusive,
   resolveStudentCurriculumGradeLevel,
@@ -580,7 +581,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
   },
   'reading-practice-room': {
     name: 'Reading Practice Room',
-    description: 'Reading practice sets with passage, vocabulary, and recall/infer/connect questions (English & Hindi only)',
+    description: 'Reading practice sets with passage, vocabulary, and recall/infer/connect questions (English, Hindi & Telugu only)',
     icon: FileText,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
@@ -878,7 +879,7 @@ export default function StudentToolPage() {
       return field.options;
     }
     
-    // For subject field, use curriculum subjects (Story & Passage → English/Hindi only)
+    // For subject field, use curriculum subjects (Story & Passage → English/Hindi/Telugu only)
     if (field.name === 'subject' && field.dependsOn === 'gradeLevel') {
       const classValue = formParams[field.dependsOn];
       if (classValue && subjectsForTool.length > 0) {
@@ -927,8 +928,8 @@ export default function StudentToolPage() {
       !isStoryPassageLanguageSubject(String(formParams.subject || ''))
     ) {
       toast({
-        title: 'English or Hindi only',
-        description: 'Story & Passage Creator works only with English or Hindi subjects.',
+        title: 'English, Hindi, or Telugu only',
+        description: 'Story & Passage Creator works only with English, Hindi, or Telugu subjects.',
         variant: 'destructive',
       });
       return;
@@ -1006,11 +1007,7 @@ export default function StudentToolPage() {
 
         const requestBody = {
           toolType,
-          classNumber: selectedClass
-            ? selectedClass === 'IIT-6' || selectedClass === 'Class-6-IIT'
-              ? 'IIT-6'
-              : parseInt(String(selectedClass).replace('Class ', ''), 10)
-            : undefined,
+          classNumber: parseAiToolClassNumber(selectedClass),
           subject: selectedSubject,
           topic: selectedTopic,
           subTopic: selectedSubTopic,
@@ -2043,7 +2040,7 @@ export default function StudentToolPage() {
                           ? 'Select Class first'
                           : subjectsForTool.length === 0
                             ? isReadingPractice
-                              ? 'English or Hindi only for this tool'
+                              ? 'English, Hindi, or Telugu only for this tool'
                               : 'No data available'
                             : field.placeholder || placeholderText;
                     } else if (

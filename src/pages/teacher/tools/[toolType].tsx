@@ -13,6 +13,7 @@ import {
   getAiToolBoardOptions,
   getDefaultAiToolBoard,
   mapGradeLevelForIitBoard,
+  parseAiToolClassNumber,
   resolveCurriculumBoardForAiTools,
   resolveIsAsliPrepExclusive,
 } from '@/lib/school-program';
@@ -141,7 +142,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
   },
   'story-passage-creator': {
     name: 'Story & Passage Creator',
-    description: 'Generate engaging stories and reading passages (Available for English and Hindi only)',
+    description: 'Generate engaging stories and reading passages (English, Hindi & Telugu only)',
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
@@ -742,8 +743,8 @@ export default function TeacherToolPage() {
     const selectedSubject = String(formParams.subject || formParams.subjects || '');
     if (toolType === STORY_PASSAGE_TOOL_ID && !isStoryPassageLanguageSubject(selectedSubject)) {
       toast({
-        title: 'English or Hindi only',
-        description: 'Story & Passage Creator works only with English or Hindi subjects.',
+        title: 'English, Hindi, or Telugu only',
+        description: 'Story & Passage Creator works only with English, Hindi, or Telugu subjects.',
         variant: 'destructive',
       });
       return;
@@ -766,11 +767,7 @@ export default function TeacherToolPage() {
 
       const requestBody = {
         toolType,
-        classNumber: selectedClass
-          ? selectedClass === 'IIT-6' || selectedClass === 'Class-6-IIT'
-              ? 'IIT-6'
-              : parseInt(String(selectedClass).replace('Class ', ''), 10)
-          : undefined,
+        classNumber: parseAiToolClassNumber(selectedClass),
         subject: selectedSubject,
         topic: selectedTopic,
         subTopic: selectedSubTopic,
@@ -1762,7 +1759,7 @@ export default function TeacherToolPage() {
                                         ? 'Select Class first'
                                         : subjectsForTool.length === 0
                                           ? toolType === STORY_PASSAGE_TOOL_ID
-                                            ? 'English or Hindi only for this tool'
+                                            ? 'English, Hindi, or Telugu only for this tool'
                                             : 'No data available'
                                           : field.placeholder || `Select ${field.label}`
                                       : field.isNCERT && field.name === 'topic'

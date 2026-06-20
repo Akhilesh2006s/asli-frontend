@@ -178,8 +178,8 @@ const TOOLS: Array<{ id: ToolId; name: string; description: string }> = [
   { id: "study-schedule-maker", name: "Study Schedule Maker", description: "13-point student study schedule with plan table, concept slot, and self-assessment." },
   { id: "lesson-planner", name: "Lesson Planner", description: "14-point teacher lesson plan with classroom activities and formative assessment." },
   { id: "homework-creator", name: "Homework Creator", description: "Generate homework tasks and practice sets." },
-  { id: "reading-practice-room", name: "Reading Practice Room", description: "13-section reading practice with recall, infer, and connect questions (English & Hindi only)." },
-  { id: "story-passage-creator", name: "Story and Passage Creator", description: "19-section teacher story and passage sets (English & Hindi only)." },
+  { id: "reading-practice-room", name: "Reading Practice Room", description: "13-section reading practice with recall, infer, and connect questions (English, Hindi & Telugu only)." },
+  { id: "story-passage-creator", name: "Story and Passage Creator", description: "19-section teacher story and passage sets (English, Hindi & Telugu only)." },
   { id: "short-notes-summaries-maker", name: "Short Notes & Summaries", description: "Create concise revision notes." },
   { id: "my-study-decks", name: "My Study Decks", description: "12-section student study decks with flashcard set, difficulty tags, and self-check." },
   { id: "flashcard-generator", name: "Flash Card Generator", description: "5-block teacher deck: Context, Foundations, HOTS Task/Solution cards, Study Aids, and Wrap-Up." },
@@ -568,8 +568,8 @@ export default function SuperAdminAiGenerator() {
     }
     if (isStoryLanguageTool(selectedTool) && !isStoryPassageLanguageSubject(subject)) {
       toast({
-        title: "English or Hindi only",
-        description: "This tool works only with English or Hindi subjects.",
+        title: "English, Hindi, or Telugu only",
+        description: "This tool works only with English, Hindi, or Telugu subjects.",
         variant: "destructive",
       });
       return;
@@ -967,7 +967,7 @@ export default function SuperAdminAiGenerator() {
             <div className="mt-1">{currentTool ? <Badge>{currentTool.name}</Badge> : <Badge variant="secondary">No tool selected</Badge>}</div>
             {isStoryLanguageTool(selectedTool) ? (
               <p className="mt-2 text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded-md px-2 py-1.5">
-                English and Hindi subjects only for Story &amp; Passage Creator.
+                English, Hindi, and Telugu subjects only for Story &amp; Passage Creator.
               </p>
             ) : null}
           </div>
@@ -998,7 +998,7 @@ export default function SuperAdminAiGenerator() {
                       : loadingSubjects
                         ? "Loading subjects..."
                         : isStoryLanguageTool(selectedTool) && subjectsForTool.length === 0
-                          ? "English or Hindi only"
+                          ? "English, Hindi, or Telugu only"
                           : "Select subject"
                   }
                 />

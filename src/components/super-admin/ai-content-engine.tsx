@@ -3840,9 +3840,9 @@ export default function AIContentEngine() {
     }
     const subjectLabel = subjectLabelFromRows(subjectRows, subject);
     if (isStoryLanguageTool(toolType) && !isStoryPassageLanguageSubject(subjectLabel)) {
-      const msg = "Story & Passage Creator works only with English or Hindi subjects.";
+      const msg = "Story & Passage Creator works only with English, Hindi, or Telugu subjects.";
       setUploadError(msg);
-      toast({ title: "English or Hindi only", description: msg, variant: "destructive" });
+      toast({ title: "English, Hindi, or Telugu only", description: msg, variant: "destructive" });
       return;
     }
     if (pdfFile.size > AI_PDF_MAX_BYTES) {
@@ -4346,7 +4346,7 @@ export default function AIContentEngine() {
             </Select>
             {isStoryLanguageTool(toolType) ? (
               <p className="mt-1.5 text-xs text-blue-800">
-                English and Hindi subjects only for Story &amp; Passage Creator.
+                English, Hindi, and Telugu subjects only for Story &amp; Passage Creator.
               </p>
             ) : null}
           </div>

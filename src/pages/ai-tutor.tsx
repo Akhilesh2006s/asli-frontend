@@ -133,7 +133,7 @@ export default function AITutor() {
       name: 'Reading Practice Room',
       icon: FileText,
       color: 'from-blue-400 to-blue-500',
-      description: 'Practice stories and passages (English & Hindi only)'
+      description: 'Practice stories and passages (English, Hindi & Telugu only)'
     },
     {
       id: 'study-schedule-maker',

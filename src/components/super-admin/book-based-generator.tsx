@@ -491,8 +491,8 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     }
     if (isStoryLanguageTool(selectedTool) && !isStoryPassageLanguageSubject(subject)) {
       toast({
-        title: "English or Hindi only",
-        description: "Story & Passage and Reading Practice tools work only with English or Hindi subjects.",
+        title: "English, Hindi, or Telugu only",
+        description: "Story & Passage and Reading Practice tools work only with English, Hindi, or Telugu subjects.",
         variant: "destructive",
       });
       return;
@@ -791,7 +791,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                       : loadingSubjects
                         ? "Loading subjects…"
                         : isStoryLanguageTool(selectedTool) && subjectsForTool.length === 0
-                          ? "English or Hindi only"
+                          ? "English, Hindi, or Telugu only"
                           : "Select subject"
                   }
                 />
@@ -839,7 +839,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                 ) : null}
                 {isStoryLanguageTool(selectedTool) ? (
                   <p className="text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded-md px-2 py-1.5 w-full sm:w-auto">
-                    English and Hindi subjects only for this tool.
+                    English, Hindi, and Telugu subjects only for this tool.
                   </p>
                 ) : null}
               </div>

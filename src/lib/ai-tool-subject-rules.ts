@@ -12,6 +12,7 @@ export function isStoryLanguageTool(toolType: string): boolean {
 export function isStoryPassageLanguageSubject(subject: string | undefined | null): boolean {
   const s = String(subject || '').trim();
   if (!s) return false;
+  if (/(telugu|తెలుగు)/i.test(s)) return true;
   if (/(hindi|हिंदी|हिन्दी)/i.test(s)) return true;
   if (/english/i.test(s)) return true;
   return false;
