@@ -13,6 +13,7 @@ import { Edit, Plus, Search, Trash2, X } from 'lucide-react';
 const NATURAL_COLLATOR = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
 
 type Board = { code: string; name: string };
+type TopicHierarchyTree = Record<string, Record<string, Record<string, string[]>>>;
 type TopicRow = {
   _id: string;
   board: string;
@@ -89,10 +90,7 @@ export default function AiToolTopicsManagement() {
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedTopic, setSelectedTopic] = useState('');
   const [selectedSubTopic, setSelectedSubTopic] = useState('');
-  const [hierarchyClasses, setHierarchyClasses] = useState<string[]>([]);
-  const [hierarchySubjects, setHierarchySubjects] = useState<string[]>([]);
-  const [hierarchyTopics, setHierarchyTopics] = useState<string[]>([]);
-  const [hierarchySubTopics, setHierarchySubTopics] = useState<string[]>([]);
+  const [hierarchyTree, setHierarchyTree] = useState<TopicHierarchyTree | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<DialogMode>('create');
   const [lockTopicFields, setLockTopicFields] = useState(false);
@@ -113,7 +111,7 @@ export default function AiToolTopicsManagement() {
   const [dialogSubjectOptions, setDialogSubjectOptions] = useState<string[]>([]);
 
   const reloadData = async () => {
-    await Promise.all([fetchRows(), fetchHierarchyOptions()]);
+    await Promise.all([fetchRows(), loadBoards(), loadBoardHierarchy(selectedBoard)]);
   };
 
   const prefillFromSelection = () => ({
@@ -204,92 +202,62 @@ export default function AiToolTopicsManagement() {
     }
   };
 
-  const fetchHierarchyOptions = async () => {
+  const loadBoards = async () => {
     try {
-      const baseUrl = `${API_BASE_URL}/api/super-admin/ai-tool-topics/options`;
-      const [boardsRes, classesRes, subjectsRes, topicsRes, subTopicsRes] = await Promise.all([
-        fetch(baseUrl, { headers: authHeaders() }),
-        selectedBoard
-          ? fetch(`${baseUrl}?${new URLSearchParams({ board: selectedBoard }).toString()}`, { headers: authHeaders() })
-          : Promise.resolve(null),
-        selectedBoard && selectedClass
-          ? fetch(
-              `${baseUrl}?${new URLSearchParams({ board: selectedBoard, classLabel: selectedClass }).toString()}`,
-              { headers: authHeaders() },
-            )
-          : Promise.resolve(null),
-        selectedBoard && selectedClass && selectedSubject
-          ? fetch(
-              `${baseUrl}?${new URLSearchParams({
-                board: selectedBoard,
-                classLabel: selectedClass,
-                subject: selectedSubject,
-              }).toString()}`,
-              { headers: authHeaders() },
-            )
-          : Promise.resolve(null),
-        selectedBoard && selectedClass && selectedSubject && selectedTopic
-          ? fetch(
-              `${baseUrl}?${new URLSearchParams({
-                board: selectedBoard,
-                classLabel: selectedClass,
-                subject: selectedSubject,
-                topicName: selectedTopic,
-              }).toString()}`,
-              { headers: authHeaders() },
-            )
-          : Promise.resolve(null),
-      ]);
-
-      if (boardsRes?.ok) {
-        const boardsJson = await boardsRes.json();
-        setAvailableBoards(sortNatural(boardsJson?.data?.boards || []));
-      } else {
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/ai-tool-topics/hierarchy`, {
+        headers: authHeaders(),
+      });
+      if (!response.ok) {
         setAvailableBoards([]);
+        return;
       }
-
-      if (!selectedBoard) {
-        setHierarchyClasses([]);
-        setHierarchySubjects([]);
-        setHierarchyTopics([]);
-        setHierarchySubTopics([]);
-      }
-
-      if (classesRes?.ok) {
-        const classesJson = await classesRes.json();
-        setHierarchyClasses(sortNatural(classesJson?.data?.classes || []));
-      } else {
-        setHierarchyClasses([]);
-      }
-
-      if (subjectsRes?.ok) {
-        const subjectsJson = await subjectsRes.json();
-        setHierarchySubjects(sortNatural(subjectsJson?.data?.subjects || []));
-      } else {
-        setHierarchySubjects([]);
-      }
-
-      if (topicsRes?.ok) {
-        const topicsJson = await topicsRes.json();
-        setHierarchyTopics(sortNatural(topicsJson?.data?.topics || []));
-      } else {
-        setHierarchyTopics([]);
-      }
-
-      if (subTopicsRes?.ok) {
-        const subTopicsJson = await subTopicsRes.json();
-        setHierarchySubTopics(subTopicsJson?.data?.subTopics || []);
-      } else {
-        setHierarchySubTopics([]);
-      }
+      const json = await response.json();
+      setAvailableBoards(sortNatural(json?.data?.boards || []));
     } catch {
       setAvailableBoards([]);
-      setHierarchyClasses([]);
-      setHierarchySubjects([]);
-      setHierarchyTopics([]);
-      setHierarchySubTopics([]);
     }
   };
+
+  const loadBoardHierarchy = async (board: string) => {
+    if (!board) {
+      setHierarchyTree(null);
+      return;
+    }
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/super-admin/ai-tool-topics/hierarchy?${new URLSearchParams({ board }).toString()}`,
+        { headers: authHeaders() },
+      );
+      if (!response.ok) {
+        setHierarchyTree(null);
+        return;
+      }
+      const json = await response.json();
+      setHierarchyTree(json?.data?.tree || {});
+    } catch {
+      setHierarchyTree(null);
+    }
+  };
+
+  const hierarchyClasses = useMemo(
+    () => (hierarchyTree ? sortNatural(Object.keys(hierarchyTree)) : []),
+    [hierarchyTree],
+  );
+
+  const hierarchySubjects = useMemo(() => {
+    if (!hierarchyTree || !selectedClass) return [];
+    return sortNatural(Object.keys(hierarchyTree[selectedClass] || {}));
+  }, [hierarchyTree, selectedClass]);
+
+  const hierarchyTopics = useMemo(() => {
+    if (!hierarchyTree || !selectedClass || !selectedSubject) return [];
+    return Object.keys(hierarchyTree[selectedClass]?.[selectedSubject] || {});
+  }, [hierarchyTree, selectedClass, selectedSubject]);
+
+  const hierarchySubTopics = useMemo(() => {
+    if (!hierarchyTree || !selectedClass || !selectedSubject || !selectedTopic) return [];
+    return hierarchyTree[selectedClass]?.[selectedSubject]?.[selectedTopic] || [];
+  }, [hierarchyTree, selectedClass, selectedSubject, selectedTopic]);
 
   const fetchDialogOptions = async (boardValue: string, classLabelValue: string) => {
     try {
@@ -342,9 +310,14 @@ export default function AiToolTopicsManagement() {
   }, [search, selectedBoard, selectedClass, selectedSubject, selectedTopic, selectedSubTopic]);
 
   useEffect(() => {
-    fetchHierarchyOptions();
+    void loadBoards();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedBoard, selectedClass, selectedSubject, selectedTopic]);
+  }, []);
+
+  useEffect(() => {
+    void loadBoardHierarchy(selectedBoard);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBoard]);
 
   useEffect(() => {
     if (selectedBoard || availableBoards.length === 0) return;
