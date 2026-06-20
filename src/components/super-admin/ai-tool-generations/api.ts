@@ -31,6 +31,24 @@ export async function fetchBranch(params: Record<string, string>) {
   return (await res.json()) as BranchResponse;
 }
 
+export async function fetchBootstrap(params: Record<string, string> = {}) {
+  const qs = new URLSearchParams(params);
+  const res = await fetch(
+    `${API_BASE_URL}/api/super-admin/ai-tool-generations/bootstrap?${qs.toString()}`,
+    { headers: authHeaders() },
+  );
+  if (!res.ok) throw new Error(`Bootstrap fetch failed: ${res.status}`);
+  return res.json() as Promise<{
+    success: boolean;
+    data: {
+      total: number;
+      topicsCount?: number;
+      nextLevel: string;
+      items: BranchItem[];
+    };
+  }>;
+}
+
 export async function fetchMeta(params: Record<string, string> = {}) {
   const qs = new URLSearchParams(params);
   const res = await fetch(

@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Layers, ChevronRight, FileStack, Wrench, BookOpen } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
-import { fetchBranch, fetchMeta } from "./api";
+import { fetchBootstrap } from "./api";
 import type { BranchItem } from "./api";
 import { ToolSection } from "./ToolSection";
 
@@ -47,9 +47,8 @@ export default function AiToolGenerationsPanel() {
       setLoading(true);
       setError(null);
       try {
-        const [meta, branch, boardBranch] = await Promise.all([
-          fetchMeta({ ...(board ? { board } : {}) }),
-          fetchBranch({ ...(board ? { board } : {}) }),
+        const [bootstrap, boardBranch] = await Promise.all([
+          fetchBootstrap({ ...(board ? { board } : {}) }),
           fetch(`${API_BASE_URL}/api/super-admin/ai-tool-topics/options`, {
             headers: {
               "Content-Type": "application/json",
@@ -60,13 +59,18 @@ export default function AiToolGenerationsPanel() {
           }).then((r) => (r.ok ? r.json() : Promise.resolve({ data: { boards: [] } }))),
         ]);
         if (cancelled) return;
-        setMetaTotal(meta.data.total);
-        setMetaTopicsCount(meta.data.topicsCount ?? 0);
-        setTools(branch.data.items || []);
+        setMetaTotal(bootstrap.data.total);
+        setMetaTopicsCount(bootstrap.data.topicsCount ?? 0);
+        setTools(bootstrap.data.items || []);
         setBoards(Array.isArray(boardBranch?.data?.boards) ? boardBranch.data.boards : []);
       } catch (e: unknown) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Failed to load");
+          const message = e instanceof Error ? e.message : "Failed to load";
+          setError(
+            message === "Failed to fetch"
+              ? "Could not reach the API. Restart the backend (npm run server) and refresh this page."
+              : message,
+          );
         }
       } finally {
         if (!cancelled) setLoading(false);

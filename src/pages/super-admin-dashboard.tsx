@@ -121,8 +121,13 @@ export default function SuperAdminDashboard() {
     clearSuperAdminDashboardQueryFromUrl();
   };
 
-  // Fetch real dashboard stats
+  // Fetch dashboard stats only on the home dashboard view (avoids slow/noisy calls on other tabs).
   useEffect(() => {
+    if (currentView !== "dashboard") {
+      setIsLoadingStats(false);
+      return;
+    }
+
     const fetchDashboardStats = async () => {
       try {
         const token = localStorage.getItem('authToken');
@@ -157,7 +162,7 @@ export default function SuperAdminDashboard() {
     };
 
     fetchDashboardStats();
-  }, [toast]);
+  }, [toast, currentView]);
 
   // Defer heavy analytics request so first paint is faster.
   useEffect(() => {
