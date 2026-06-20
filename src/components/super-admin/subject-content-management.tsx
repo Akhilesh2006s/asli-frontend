@@ -16,7 +16,12 @@ import {
 } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { API_BASE_URL, getEmbeddedPdfIframeSrc, isOurBackendPdfUrl } from '@/lib/api-config';
+import {
+  API_BASE_URL,
+  getEmbeddedPdfIframeSrc,
+  isOurBackendPdfUrl,
+  isPdfPreviewContent,
+} from '@/lib/api-config';
 import { getVideoDisplayTitle } from '@/lib/video-chapter-schedule';
 import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 import { useToast } from '@/hooks/use-toast';
@@ -362,11 +367,6 @@ const isUploadType = (type: ContentType) =>
   type === 'Audio' ||
   type === 'Homework';
 
-const isPdfUrl = (url: string): boolean => {
-  const lower = url.toLowerCase();
-  return lower.endsWith('.pdf') || lower.includes('.pdf');
-};
-
 const getUploadAcceptForContentType = (type: ContentType): string => {
   if (type === 'Video') {
     return 'video/mp4,video/mpeg,video/quicktime,video/x-msvideo,video/webm,video/x-matroska';
@@ -470,7 +470,7 @@ function resolveContentCardPreview(content: ContentItem, fileUrl: string): Conte
 
   if (isImageFileUrl(url)) return { kind: 'image', src: url };
 
-  if (isPdfUrl(url)) {
+  if (isPdfPreviewContent(url, content.type)) {
     const pdfSrc = isOurBackendPdfUrl(url)
       ? url
       : `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
@@ -2131,7 +2131,7 @@ export default function SubjectContentManagement() {
                         const hasBrokenThumbnail = failedThumbnailIds.has(content._id);
                         const showImageThumb =
                           cardPreview.kind === 'image' && !hasBrokenThumbnail;
-                        const pdfFetchUrl = isPdfUrl(fileUrl)
+                        const pdfFetchUrl = isPdfPreviewContent(fileUrl, content.type)
                           ? getEmbeddedPdfIframeSrc(fileUrl, content.title).split('#')[0]
                           : '';
                         const skipPdfThumbFetch =
@@ -2927,8 +2927,8 @@ export default function SubjectContentManagement() {
           if (!open) setContentPreviewItem(null);
         }}
       >
-        <DialogContent className="flex max-h-[92vh] w-full max-w-[min(100vw-1.5rem,1280px)] flex-col gap-4 overflow-hidden p-3 sm:p-4 lg:p-6">
-          <DialogHeader>
+        <DialogContent className="flex h-[min(92dvh,900px)] max-h-[92dvh] w-full max-w-[min(100vw-1.5rem,1280px)] flex-col gap-4 overflow-hidden p-3 sm:p-4 lg:p-6">
+          <DialogHeader className="shrink-0">
             <DialogTitle className="pr-8">
               {contentPreviewItem
                 ? getVideoContentDisplayTitle(contentPreviewItem)
@@ -2948,8 +2948,11 @@ export default function SubjectContentManagement() {
           {contentPreviewItem && (
             <>
               <div
-                className={`min-h-0 flex-1 rounded-md border bg-muted/30 ${
-                  contentPreviewItem.type === 'Video' || contentPreviewItem.type === 'Audio'
+                className={`flex min-h-0 flex-1 flex-col rounded-md border bg-muted/30 ${
+                  contentPreviewItem.type === 'Video' ||
+                  contentPreviewItem.type === 'Audio' ||
+                  (contentPreviewUrl &&
+                    isPdfPreviewContent(contentPreviewUrl, contentPreviewItem.type))
                     ? 'overflow-hidden'
                     : 'overflow-y-auto overflow-x-hidden'
                 }`}
@@ -3011,11 +3014,12 @@ export default function SubjectContentManagement() {
                       Your browser does not support embedded audio.
                     </audio>
                   </div>
-                ) : isPdfUrl(contentPreviewUrl) ? (
+                ) : isPdfPreviewContent(contentPreviewUrl, contentPreviewItem.type) ? (
                   <PdfPreviewPanel
-                    fileUrl={contentPreviewItem.fileUrl}
+                    fileUrl={contentPreviewUrl}
                     title={contentPreviewItem.title}
-                    className="h-full min-h-0 w-full flex-1"
+                    className="h-full min-h-[min(48dvh,520px)] w-full flex-1"
+                    showOpenInNewTab
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center gap-4 p-4 sm:p-6 lg:p-8 text-center text-xs sm:text-sm text-muted-foreground">
