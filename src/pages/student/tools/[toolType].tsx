@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { API_BASE_URL } from '@/lib/api-config';
-import { contentGeneratedToast } from '@/lib/ai-tool-content-messages';
+import {
+  isAiToolApiFailureInline,
+  isAiToolClientValidationError,
+  isAiToolInlineOnlyError,
+  resolveAiToolApiInlineMessage,
+  validateAiToolForm,
+} from '@/lib/ai-tool-generate';
 import {
   getAiToolBoardOptions,
   getDefaultAiToolBoard,
@@ -29,6 +35,7 @@ import {
   normalizeGradeForCurriculum,
 } from '@/hooks/use-curriculum-cascade';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
@@ -910,39 +917,38 @@ export default function StudentToolPage() {
 
   const fieldUsesCurriculumSelect = (field: ToolConfig['fields'][0]) => field.type === 'select';
 
-  const handleGenerate = async () => {
-    const requiredFields = config.fields.filter(f => f.required);
-    const missingFields = requiredFields.filter(f => !formParams[f.name]);
-    
-    if (missingFields.length > 0) {
-      toast({
-        title: 'Validation Error',
-        description: `Please fill in: ${missingFields.map(f => f.label).join(', ')}`,
-        variant: 'destructive'
-      });
-      return;
-    }
+  const showInlineOutputMessage = useCallback((message: string) => {
+    setGeneratedContent('');
+    setRawGeneratedContent(null);
+    setResponseMeta(null);
+    setFallbackEmptyMessage(message);
+  }, []);
 
-    if (
-      isReadingPractice &&
-      !isStoryPassageLanguageSubject(String(formParams.subject || ''))
-    ) {
-      toast({
-        title: 'English, Hindi, or Telugu only',
-        description: 'Story & Passage Creator works only with English, Hindi, or Telugu subjects.',
-        variant: 'destructive',
-      });
+  const handleGenerate = async () => {
+    if (!config) return;
+
+    const validationError = validateAiToolForm({
+      config,
+      formParams: { ...formParams, board: selectedBoard },
+      isReadingPractice,
+      requireBoard: true,
+    });
+    if (validationError) {
+      showInlineOutputMessage(validationError);
       return;
     }
 
     setIsGenerating(true);
-    // Prevent stale previous output from looking like a successful new topic render
     setGeneratedContent('');
     setRawGeneratedContent(null);
     setResponseMeta(null);
     setFallbackEmptyMessage('');
     try {
       const token = localStorage.getItem('authToken');
+      if (!token) {
+        showInlineOutputMessage('Please sign in again.');
+        return;
+      }
 
       const teacherTools = [
         'worksheet-mcq-generator',
@@ -971,7 +977,6 @@ export default function StudentToolPage() {
           throw new Error(data.message || 'AI returned empty response');
         }
         setResponseMeta(data.data.metadata || null);
-        const { title: okTitle, description: okDescription } = contentGeneratedToast();
 
         if (data.data.rawData) {
           setRawGeneratedContent(data.data.rawData);
@@ -981,20 +986,18 @@ export default function StudentToolPage() {
             isStudySchedule ||
             isMyStudyDecks
           ) {
-            const contentWithData = JSON.stringify({
-              formatted: data.data.content,
-              raw: data.data.rawData,
-            });
-            setGeneratedContent(contentWithData);
-            toast({ title: okTitle, description: okDescription });
+            setGeneratedContent(
+              JSON.stringify({
+                formatted: data.data.content,
+                raw: data.data.rawData,
+              }),
+            );
           } else {
             setGeneratedContent(data.data.content);
-            toast({ title: okTitle, description: okDescription });
           }
         } else {
           setRawGeneratedContent(null);
           setGeneratedContent(data.data.content);
-          toast({ title: okTitle, description: okDescription });
         }
       };
 
@@ -1044,47 +1047,12 @@ export default function StudentToolPage() {
         }
 
         if (!response.ok) {
-          if (
-            data?.code === 'AI_TOOL_CONTENT_INCOMPLETE' ||
-            data?.code === 'AI_TOOL_WRONG_TYPE' ||
-            (response.status === 404 && data?.code === 'AI_TOOL_DATA_NOT_FOUND')
-          ) {
-            setGeneratedContent('');
-            setRawGeneratedContent(null);
-            setResponseMeta(null);
-            setFallbackEmptyMessage(
-              data.message ||
-                'Saved content for this selection is incomplete or not in the correct tool format. Ask your Super Admin to complete all sections.',
-            );
-            toast({
-              title:
-                data?.code === 'AI_TOOL_WRONG_TYPE'
-                  ? 'Wrong tool content'
-                  : data?.code === 'AI_TOOL_CONTENT_INCOMPLETE'
-                    ? 'Content incomplete'
-                    : 'No content found',
-              description:
-                data.message ||
-                'No complete content is available for this class, subject, topic, and sub-topic.',
-              variant: 'destructive',
-            });
+          if (isAiToolApiFailureInline(response, data?.code)) {
+            showInlineOutputMessage(resolveAiToolApiInlineMessage(data, config?.name));
             return;
           }
           if (response.status === 503 && data?.code === 'AI_UNAVAILABLE_NO_FALLBACK') {
-            setGeneratedContent('');
-            setRawGeneratedContent(null);
-            setResponseMeta(null);
-            setFallbackEmptyMessage(
-              data.message ||
-                'AI service is unavailable and no previously generated content was found for this selection.',
-            );
-            toast({
-              title: 'AI unavailable',
-              description:
-                data.message ||
-                'No stored content matched. Ask your Super Admin to add content or fix the API quota.',
-              variant: 'destructive',
-            });
+            showInlineOutputMessage(resolveAiToolApiInlineMessage(data, config?.name));
             return;
           }
           const errorMessage =
@@ -1136,47 +1104,12 @@ export default function StudentToolPage() {
         }
 
         if (!response.ok) {
-          if (
-            data?.code === 'AI_TOOL_CONTENT_INCOMPLETE' ||
-            data?.code === 'AI_TOOL_WRONG_TYPE' ||
-            (response.status === 404 && data?.code === 'AI_TOOL_DATA_NOT_FOUND')
-          ) {
-            setGeneratedContent('');
-            setRawGeneratedContent(null);
-            setResponseMeta(null);
-            setFallbackEmptyMessage(
-              data.message ||
-                'Saved content for this selection is incomplete or not in the correct tool format. Ask your Super Admin to complete all sections.',
-            );
-            toast({
-              title:
-                data?.code === 'AI_TOOL_WRONG_TYPE'
-                  ? 'Wrong tool content'
-                  : data?.code === 'AI_TOOL_CONTENT_INCOMPLETE'
-                    ? 'Content incomplete'
-                    : 'No content found',
-              description:
-                data.message ||
-                'No complete content is available for this class, subject, topic, and sub-topic.',
-              variant: 'destructive',
-            });
+          if (isAiToolApiFailureInline(response, data?.code)) {
+            showInlineOutputMessage(resolveAiToolApiInlineMessage(data, config?.name));
             return;
           }
           if (response.status === 503 && data?.code === 'AI_UNAVAILABLE_NO_FALLBACK') {
-            setGeneratedContent('');
-            setRawGeneratedContent(null);
-            setResponseMeta(null);
-            setFallbackEmptyMessage(
-              data.message ||
-                'AI service is unavailable and no previously generated content was found for this selection.',
-            );
-            toast({
-              title: 'AI unavailable',
-              description:
-                data.message ||
-                'No stored content matched. Ask your Super Admin to add content or fix the API quota.',
-              variant: 'destructive',
-            });
+            showInlineOutputMessage(resolveAiToolApiInlineMessage(data, config?.name));
             return;
           }
           const errorMessage =
@@ -1188,20 +1121,13 @@ export default function StudentToolPage() {
       }
     } catch (error: unknown) {
       console.error('Generate error:', error);
-      const errMsg = String((error as Error)?.message || '');
-      const isClientValidationError =
-        /invalid subject|topic is required|sub topic is required|class number and subject are required|only available for english and hindi|incomplete for|missing sections|not in the correct tool format/i.test(
-          errMsg,
-        );
-      if (isClientValidationError) {
-        setFallbackEmptyMessage(errMsg);
-        toast({
-          title: 'Cannot generate',
-          description: errMsg,
-          variant: 'destructive',
-        });
-      } else {
-        try {
+      const errMsg = String((error as Error)?.message || 'Network error. Please try again.');
+      if (isAiToolClientValidationError(errMsg) || /AI_TOOL_DATA_NOT_FOUND/i.test(errMsg)) {
+        showInlineOutputMessage(errMsg);
+        return;
+      }
+
+      try {
           const selectedClass = formParams.gradeLevel;
           const selectedSubject = formParams.subject || formParams.subjects;
           if (!selectedClass || !selectedSubject) {
@@ -1235,24 +1161,13 @@ export default function StudentToolPage() {
           const fallbackContent =
             fallbackJson?.data?.generatedContent ?? fallbackJson?.data?.content ?? '';
           if (
-            fallbackJson?.code === 'AI_TOOL_CONTENT_INCOMPLETE' ||
-            fallbackJson?.code === 'AI_TOOL_WRONG_TYPE' ||
+            isAiToolInlineOnlyError(fallbackJson?.code) ||
             (fallbackJson?.success && !fallbackJson?.data)
           ) {
-            setGeneratedContent('');
-            setRawGeneratedContent(null);
-            setResponseMeta(null);
-            setFallbackEmptyMessage(
+            showInlineOutputMessage(
               fallbackJson?.message ||
                 'Saved content is incomplete or not in the correct tool format for this tool.',
             );
-            toast({
-              title: 'Content incomplete',
-              description:
-                fallbackJson?.message ||
-                'Ask your Super Admin to complete all sections before this can be shown.',
-              variant: 'destructive',
-            });
           } else if (fallbackJson?.success && String(fallbackContent).trim().length > 0) {
             setGeneratedContent(String(fallbackContent));
             setRawGeneratedContent(null);
@@ -1261,37 +1176,18 @@ export default function StudentToolPage() {
               totalCandidates: fallbackJson?.data?.totalCandidates,
               selectedIndex: fallbackJson?.data?.selectedIndex,
             });
-            toast(contentGeneratedToast());
+            setFallbackEmptyMessage('');
           } else {
-            setGeneratedContent('');
-            setRawGeneratedContent(null);
-            setResponseMeta(null);
             const savedPart =
               fallbackJson?.message ||
               'No saved copy matched this class, subject, topic, sub-topic, and tool.';
-            const combined = `${errMsg} ${savedPart}`;
-            setFallbackEmptyMessage(combined);
-            toast({
-              title: 'Generation failed',
-              description: combined,
-              variant: 'destructive',
-            });
+            showInlineOutputMessage(`${errMsg} ${savedPart}`.trim());
           }
         } catch (fallbackError: unknown) {
           console.error('Fallback error:', fallbackError);
-          setGeneratedContent('');
-          setRawGeneratedContent(null);
-          setResponseMeta(null);
           const fe = String((fallbackError as Error)?.message || 'Fallback lookup failed');
-          const combined = `${errMsg} ${fe}`;
-          setFallbackEmptyMessage(combined);
-          toast({
-            title: 'Error',
-            description: combined,
-            variant: 'destructive',
-          });
+          showInlineOutputMessage(`${errMsg} ${fe}`.trim());
         }
-      }
     } finally {
       setIsGenerating(false);
     }
@@ -2374,12 +2270,33 @@ export default function StudentToolPage() {
                     </motion.div>
                   )
                 ) : (
-                  <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/60 py-12 text-center text-gray-500">
-                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm">
+                  <div
+                    className={cn(
+                      'rounded-xl border border-dashed py-12 text-center',
+                      fallbackEmptyMessage
+                        ? 'border-red-200 bg-red-50/60 text-red-700'
+                        : 'border-slate-300 bg-slate-50/60 text-gray-500',
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm',
+                        fallbackEmptyMessage && 'text-red-400',
+                      )}
+                    >
                       <Sparkles className="h-7 w-7 opacity-60" />
                     </div>
-                    <p className="text-sm font-medium text-slate-700">{fallbackEmptyMessage || 'Generated content will appear here'}</p>
-                    <p className="mt-1 text-xs text-slate-500">Choose tool parameters and click Generate.</p>
+                    <p
+                      className={cn(
+                        'text-sm font-medium',
+                        fallbackEmptyMessage ? 'text-red-700' : 'text-slate-700',
+                      )}
+                    >
+                      {fallbackEmptyMessage || 'Generated content will appear here'}
+                    </p>
+                    {!fallbackEmptyMessage ? (
+                      <p className="mt-1 text-xs text-slate-500">Choose tool parameters and click Generate.</p>
+                    ) : null}
                   </div>
                 )}
               </CardContent>

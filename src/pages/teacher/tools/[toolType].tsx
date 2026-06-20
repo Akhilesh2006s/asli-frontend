@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Sparkles, Download, Copy, Check, FileText, FileSpreadsheet, FileDown, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
-import { contentGeneratedToast } from '@/lib/ai-tool-content-messages';
+import {
+  isAiToolApiFailureInline,
+  isAiToolClientValidationError,
+  isAiToolInlineOnlyError,
+  resolveAiToolApiInlineMessage,
+  validateAiToolForm,
+} from '@/lib/ai-tool-generate';
 import {
   getAiToolBoardOptions,
   getDefaultAiToolBoard,
@@ -726,32 +732,29 @@ export default function TeacherToolPage() {
     return [];
   };
 
-  const handleGenerate = async () => {
-    // Validate required fields
-    const requiredFields = config.fields.filter(f => f.required);
-    const missingFields = requiredFields.filter(f => !formParams[f.name]);
-    
-    if (missingFields.length > 0) {
-      toast({
-        title: 'Validation Error',
-        description: `Please fill in: ${missingFields.map(f => f.label).join(', ')}`,
-        variant: 'destructive'
-      });
-      return;
-    }
+  const showInlineOutputMessage = useCallback((message: string) => {
+    setGeneratedContent('');
+    setRawGeneratedContent(null);
+    setResponseMeta(null);
+    setIsFallbackContent(false);
+    setFallbackEmptyMessage(message);
+  }, []);
 
-    const selectedSubject = String(formParams.subject || formParams.subjects || '');
-    if (toolType === STORY_PASSAGE_TOOL_ID && !isStoryPassageLanguageSubject(selectedSubject)) {
-      toast({
-        title: 'English, Hindi, or Telugu only',
-        description: 'Story & Passage Creator works only with English, Hindi, or Telugu subjects.',
-        variant: 'destructive',
-      });
+  const handleGenerate = async () => {
+    if (!config || !toolType) return;
+
+    const validationError = validateAiToolForm({
+      config,
+      formParams: { ...formParams, board: selectedBoard },
+      isReadingPractice: isStoryLanguageTool(toolType),
+      requireBoard: true,
+    });
+    if (validationError) {
+      showInlineOutputMessage(validationError);
       return;
     }
 
     setIsGenerating(true);
-    // Prevent stale previous output from looking like a successful new topic render
     setGeneratedContent('');
     setRawGeneratedContent(null);
     setResponseMeta(null);
@@ -759,6 +762,11 @@ export default function TeacherToolPage() {
     setIsFallbackContent(false);
     try {
       const token = localStorage.getItem('authToken');
+      if (!token) {
+        showInlineOutputMessage('Please sign in again.');
+        return;
+      }
+
       const selectedClass = mapGradeLevelForIitBoard(selectedBoard, formParams.gradeLevel);
       const selectedSubject = formParams.subject || formParams.subjects;
       const selectedTopic = formParams.topic || '';
@@ -797,56 +805,12 @@ export default function TeacherToolPage() {
       }
 
       if (!response.ok) {
-        if (
-          data?.code === 'AI_TOOL_CONTENT_INCOMPLETE' ||
-          data?.code === 'AI_TOOL_WRONG_TYPE' ||
-          (response.status === 404 &&
-            (data?.code === 'AI_TOOL_DATA_NOT_FOUND' ||
-              data?.code === 'AI_TOOL_CONTENT_INCOMPLETE' ||
-              data?.code === 'AI_TOOL_WRONG_TYPE'))
-        ) {
-          setGeneratedContent('');
-          setRawGeneratedContent(null);
-          setResponseMeta(null);
-          setIsFallbackContent(false);
-          setFallbackEmptyMessage(
-            data.message ||
-              (data?.code === 'AI_TOOL_WRONG_TYPE'
-                ? 'Saved content belongs to a different AI tool. Super Admin must generate using this tool name only.'
-                : data?.code === 'AI_TOOL_CONTENT_INCOMPLETE'
-                  ? 'Saved content is incomplete or not in the correct tool format. Ask Super Admin to complete all sections.'
-                  : `No ${config?.name || 'tool'} content found for this selection. Ask Super Admin to add it in AI Tool Generations.`),
-          );
-          toast({
-            title:
-              data?.code === 'AI_TOOL_WRONG_TYPE'
-                ? 'Wrong tool content'
-                : data?.code === 'AI_TOOL_CONTENT_INCOMPLETE'
-                  ? 'Content incomplete'
-                  : 'No content found',
-            description:
-              data.message ||
-              'No complete content is available for this class, subject, topic, and sub-topic.',
-            variant: 'destructive',
-          });
+        if (isAiToolApiFailureInline(response, data?.code)) {
+          showInlineOutputMessage(resolveAiToolApiInlineMessage(data, config?.name));
           return;
         }
         if (response.status === 503 && data?.code === 'AI_UNAVAILABLE_NO_FALLBACK') {
-          setGeneratedContent('');
-          setRawGeneratedContent(null);
-          setResponseMeta(null);
-          setIsFallbackContent(false);
-          setFallbackEmptyMessage(
-            data.message ||
-              'AI service is unavailable and no previously generated content was found for this selection.',
-          );
-          toast({
-            title: 'AI unavailable',
-            description:
-              data.message ||
-              'No stored content matched. Ask your Super Admin to add content or fix the API quota.',
-            variant: 'destructive',
-          });
+          showInlineOutputMessage(resolveAiToolApiInlineMessage(data, config?.name));
           return;
         }
         const errorMessage =
@@ -857,14 +821,9 @@ export default function TeacherToolPage() {
       if (data.success && data?.data?.content && String(data.data.content).trim().length > 0) {
         setResponseMeta(data.data.metadata || null);
         setIsFallbackContent(!!data.data.metadata?.aiUnavailable);
-        const { title: okTitle, description: okDescription } = contentGeneratedToast();
 
-        // Store raw data if available (for Short Notes, Concept Mastery, Lesson Planner, Flashcards, etc.)
         if (data.data.rawData) {
-          // Store raw data separately for viewer components
           setRawGeneratedContent(data.data.rawData);
-          // For exam papers and other tools, use the formatted content directly
-          // Only use JSON format for tools that need special viewers
           if (toolType === 'short-notes-summaries-maker' || 
               toolType === 'concept-mastery-helper' || 
               toolType === 'lesson-planner' ||
@@ -872,60 +831,28 @@ export default function TeacherToolPage() {
               toolType === 'worksheet-mcq-generator' ||
               toolType === 'homework-creator' ||
               toolType === 'daily-class-plan-maker') {
-            // Store in a way the viewer can access
-            const contentWithData = JSON.stringify({
+            setGeneratedContent(JSON.stringify({
               formatted: data.data.content,
               raw: data.data.rawData
-            });
-            setGeneratedContent(contentWithData);
-            toast({
-              title: okTitle,
-              description: okDescription
-            });
+            }));
           } else {
-            // For exam papers and other tools, use content directly
             setGeneratedContent(data.data.content);
-            toast({
-              title: okTitle,
-              description: okDescription
-            });
           }
         } else {
-          // Clear raw content if not available
           setRawGeneratedContent(null);
           setGeneratedContent(data.data.content);
-          toast({
-            title: okTitle,
-            description: okDescription
-          });
         }
       } else {
         throw new Error(data.message || 'AI returned empty response');
       }
     } catch (error: any) {
       console.error('Generate error:', error);
-      const errMsg = String(error?.message || '');
-      console.log('Fallback trigger reason:', errMsg || 'Unknown API failure');
-      // Do not treat DB fallback as a fix for request validation (wrong subject, missing topic, etc.)
-      const isClientValidationError =
-        /invalid subject|topic is required|sub topic is required|class number and subject are required|only available for english and hindi|incomplete for|missing sections|not in the correct tool format/i.test(
-          errMsg,
-        );
-      if (isClientValidationError) {
-        setFallbackEmptyMessage(errMsg);
-        toast({
-          title: 'Cannot generate',
-          description: errMsg,
-          variant: 'destructive',
-        });
-      } else if (/AI_TOOL_DATA_NOT_FOUND/i.test(errMsg)) {
-        setFallbackEmptyMessage(errMsg);
-        toast({
-          title: 'No content found',
-          description: errMsg,
-          variant: 'destructive',
-        });
-      } else {
+      const errMsg = String(error?.message || 'Network error. Please try again.');
+      if (isAiToolClientValidationError(errMsg) || /AI_TOOL_DATA_NOT_FOUND/i.test(errMsg)) {
+        showInlineOutputMessage(errMsg);
+        return;
+      }
+
       try {
         const selectedClass = formParams.gradeLevel;
         const selectedSubject = formParams.subject || formParams.subjects;
@@ -940,6 +867,8 @@ export default function TeacherToolPage() {
           toolType: String(toolType || ''),
         });
         const token = localStorage.getItem('authToken');
+        if (!token) throw new Error('Please sign in again.');
+
         const fallbackRes = await fetch(`${API_BASE_URL}/api/teacher/ai/generated-content?${params.toString()}`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -952,15 +881,19 @@ export default function TeacherToolPage() {
           fallbackJson?.data?.generatedContent ??
           fallbackJson?.data?.content ??
           '';
+
+        if (
+          isAiToolInlineOnlyError(fallbackJson?.code) ||
+          (fallbackJson?.success && !fallbackJson?.data)
+        ) {
+          showInlineOutputMessage(
+            fallbackJson?.message ||
+              'Saved content is incomplete or not in the correct tool format for this tool.',
+          );
+          return;
+        }
+
         if (fallbackJson?.success && String(fallbackContent).trim().length > 0) {
-          console.log('Fallback query used:', {
-            class: selectedClass,
-            subject: selectedSubject,
-            topic: formParams.topic || '',
-            subTopic: formParams.subTopic || '',
-            toolType,
-          });
-          console.log('Fallback record id returned:', fallbackJson?.data?._id || 'N/A');
           setGeneratedContent(String(fallbackContent));
           setRawGeneratedContent(null);
           setResponseMeta({
@@ -969,38 +902,17 @@ export default function TeacherToolPage() {
             selectedIndex: fallbackJson?.data?.selectedIndex,
           });
           setIsFallbackContent(true);
-          toast(contentGeneratedToast());
+          setFallbackEmptyMessage('');
         } else {
-          setGeneratedContent('');
-          setRawGeneratedContent(null);
-          setResponseMeta(null);
-          setIsFallbackContent(false);
           const savedPart =
             fallbackJson?.message ||
             'No saved copy matched this class, subject, topic, sub-topic, and tool.';
-          const combined = `${errMsg} ${savedPart}`;
-          setFallbackEmptyMessage(combined);
-          toast({
-            title: 'Generation failed',
-            description: combined,
-            variant: 'destructive',
-          });
+          showInlineOutputMessage(`${errMsg} ${savedPart}`.trim());
         }
       } catch (fallbackError: any) {
         console.error('Fallback error:', fallbackError);
-        setGeneratedContent('');
-        setRawGeneratedContent(null);
-        setResponseMeta(null);
-        setIsFallbackContent(false);
         const fe = String(fallbackError?.message || 'Fallback lookup failed');
-        const combined = `${errMsg} ${fe}`;
-        setFallbackEmptyMessage(combined);
-        toast({
-          title: 'Error',
-          description: combined,
-          variant: 'destructive',
-        });
-      }
+        showInlineOutputMessage(`${errMsg} ${fe}`.trim());
       }
     } finally {
       setIsGenerating(false);
@@ -2052,9 +1964,16 @@ export default function TeacherToolPage() {
                   </motion.div>
                 )
               ) : (
-                <div className="text-center py-12 text-gray-500">
-                  <Icon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <p>{fallbackEmptyMessage || 'Fill in the form and click Generate to create content'}</p>
+                <div className={cn('text-center py-12', fallbackEmptyMessage ? 'text-red-700' : 'text-gray-500')}>
+                  <Icon
+                    className={cn(
+                      'w-16 h-16 mx-auto mb-4',
+                      fallbackEmptyMessage ? 'text-red-300' : 'text-gray-300',
+                    )}
+                  />
+                  <p className={cn('text-sm font-medium', fallbackEmptyMessage ? 'text-red-700' : 'text-gray-500')}>
+                    {fallbackEmptyMessage || 'Fill in the form and click Generate to create content'}
+                  </p>
                 </div>
               )}
             </CardContent>
