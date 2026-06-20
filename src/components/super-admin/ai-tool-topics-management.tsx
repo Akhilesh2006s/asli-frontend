@@ -346,6 +346,11 @@ export default function AiToolTopicsManagement() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBoard, selectedClass, selectedSubject, selectedTopic]);
 
+  useEffect(() => {
+    if (selectedBoard || availableBoards.length === 0) return;
+    setSelectedBoard(availableBoards[0]);
+  }, [availableBoards, selectedBoard]);
+
   const boardTabs = useMemo(() => availableBoards, [availableBoards]);
 
   const visibleRows = useMemo(() => {

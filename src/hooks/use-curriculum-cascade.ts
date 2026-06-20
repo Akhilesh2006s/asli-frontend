@@ -7,7 +7,7 @@ import {
   setCurriculumResponseCache,
 } from '@/lib/curriculum-response-cache';
 import { compareClassLabels, sortClassLabelsAscending } from '@/lib/super-admin-curriculum-classes';
-import { sortChapterWiseLabels } from '@/lib/curriculum-chapter-sort';
+import { mergePreservingPrimaryOrder } from '@/lib/curriculum-chapter-sort';
 
 type CurriculumRow = { id: string; name: string; label: string };
 
@@ -231,9 +231,7 @@ export function useCurriculumCascade(
         if (cancelled) return;
         const curriculumTopics = rowsToNames((data as { data?: CurriculumRow[] }).data);
         const managedTopics = (managed as { data?: { topics?: string[] } })?.data?.topics || [];
-        const allTopics = curriculumTopics.concat(managedTopics).filter(Boolean);
-        const uniqueTopics = allTopics.filter((topic, index) => allTopics.indexOf(topic) === index);
-        setTopics(sortChapterWiseLabels(uniqueTopics));
+        setTopics(mergePreservingPrimaryOrder(managedTopics, curriculumTopics));
       } catch {
         if (!cancelled) setTopics([]);
       } finally {
@@ -272,12 +270,7 @@ export function useCurriculumCascade(
         if (cancelled) return;
         const curriculumSubtopics = rowsToNames((data as { data?: CurriculumRow[] }).data);
         const managedSubtopics = (managed as { data?: { subTopics?: string[] } })?.data?.subTopics || [];
-        const managedSet = new Set(managedSubtopics);
-        const combined = [...managedSubtopics];
-        for (const subtopic of curriculumSubtopics) {
-          if (subtopic && !managedSet.has(subtopic)) combined.push(subtopic);
-        }
-        setSubtopics(combined);
+        setSubtopics(mergePreservingPrimaryOrder(managedSubtopics, curriculumSubtopics));
       } catch {
         if (!cancelled) setSubtopics([]);
       } finally {
