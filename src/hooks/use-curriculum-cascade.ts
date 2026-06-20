@@ -78,24 +78,45 @@ async function fetchManagedTopicTaxonomy(
   auth: string | null,
   params: { board?: string; classLabel?: string; subject?: string; topicName?: string },
 ) {
-  const qs = new URLSearchParams();
-  if (params.board) qs.set('board', params.board);
-  if (params.classLabel) qs.set('classLabel', params.classLabel);
-  if (params.subject) qs.set('subject', params.subject);
-  if (params.topicName) qs.set('topicName', params.topicName);
-  const path = `/api/ai-generator/topic-taxonomy?${qs.toString()}`;
-  const key = cacheKey(path);
-  if (hasCurriculumResponseCache(key)) {
-    return getCurriculumResponseCache<{ data?: { topics?: string[]; subTopics?: string[] } }>(key)!;
+  const buildPath = (includeBoard: boolean) => {
+    const qs = new URLSearchParams();
+    if (includeBoard && params.board) qs.set('board', params.board);
+    if (params.classLabel) qs.set('classLabel', params.classLabel);
+    if (params.subject) qs.set('subject', params.subject);
+    if (params.topicName) qs.set('topicName', params.topicName);
+    return `/api/ai-generator/topic-taxonomy?${qs.toString()}`;
+  };
+
+  const load = async (includeBoard: boolean) => {
+    const path = buildPath(includeBoard);
+    const key = cacheKey(path);
+    if (hasCurriculumResponseCache(key)) {
+      return getCurriculumResponseCache<{
+        success?: boolean;
+        data?: { subjects?: string[]; topics?: string[]; subTopics?: string[] };
+      }>(key)!;
+    }
+    const res = await fetch(`${API_BASE_URL}${path}`, {
+      headers: {
+        Authorization: auth ? `Bearer ${auth}` : '',
+        'Content-Type': 'application/json',
+      },
+    });
+    const json = await res.json();
+    if (res.ok && json?.success !== false) {
+      setCurriculumResponseCache(key, json);
+    }
+    return json;
+  };
+
+  let json = await load(true);
+  const data = (json as { data?: { subjects?: string[]; topics?: string[]; subTopics?: string[] } })?.data;
+  const hasRows = Boolean(
+    data?.subjects?.length || data?.topics?.length || data?.subTopics?.length
+  );
+  if (!hasRows && params.board) {
+    json = await load(false);
   }
-  const res = await fetch(`${API_BASE_URL}${path}`, {
-    headers: {
-      Authorization: auth ? `Bearer ${auth}` : '',
-      'Content-Type': 'application/json',
-    },
-  });
-  const json = await res.json();
-  setCurriculumResponseCache(key, json);
   return json;
 }
 
@@ -165,10 +186,14 @@ export function useCurriculumCascade(
         });
         if (board) qs.set('board', board);
         const q = `/api/curriculum/subjects?${qs.toString()}`;
-        const data = await fetchCurriculum(q, token);
+        const [data, managed] = await Promise.all([
+          fetchCurriculum(q, token),
+          fetchManagedTopicTaxonomy(token, { board, classLabel: gradeForApi }),
+        ]);
         if (cancelled) return;
-        const fetched = dedupeSubjectOptions(rowsToNames((data as { data?: CurriculumRow[] }).data));
-        setSubjects(fetched);
+        const curriculumSubjects = dedupeSubjectOptions(rowsToNames((data as { data?: CurriculumRow[] }).data));
+        const managedSubjects = (managed as { data?: { subjects?: string[] } })?.data?.subjects || [];
+        setSubjects(dedupeSubjectOptions([...curriculumSubjects, ...managedSubjects]));
       } catch {
         if (!cancelled) setSubjects([]);
       } finally {

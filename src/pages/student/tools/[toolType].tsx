@@ -26,7 +26,6 @@ import {
 import {
   useCurriculumCascade,
   normalizeGradeForCurriculum,
-  isGradeWithScienceCurriculumDropdowns,
 } from '@/hooks/use-curriculum-cascade';
 import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
@@ -668,8 +667,7 @@ export default function StudentToolPage() {
   }, [assignedGradeLevel, cascade.classOptions]);
 
   const availableSubjects = (() => {
-    const gv = formParams.gradeLevel;
-    if (!gv || !isGradeWithScienceCurriculumDropdowns(gv)) return [];
+    if (!formParams.gradeLevel) return [];
     const raw = cascade.subjects;
     if (cascade.loadingSubjects && raw.length === 0) return [];
     if (raw.length > 0) return raw;

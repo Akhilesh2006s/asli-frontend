@@ -41,7 +41,7 @@ import { StoryPassageViewer } from '@/components/story-passage-viewer';
 import { WorksheetMcqViewer } from '@/components/worksheet-mcq-viewer';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import type { AiToolGenerationMeta } from '@/lib/ai-tool-generation-summary';
-import { useCurriculumCascade, isGradeWithScienceCurriculumDropdowns } from '@/hooks/use-curriculum-cascade';
+import { useCurriculumCascade } from '@/hooks/use-curriculum-cascade';
 import {
   filterSubjectsForAiTool,
   isStoryPassageLanguageSubject,
@@ -266,7 +266,7 @@ export default function TeacherToolPage() {
   );
 
   const availableSubjects = (() => {
-    if (!formParams.gradeLevel || !isGradeWithScienceCurriculumDropdowns(formParams.gradeLevel)) {
+    if (!formParams.gradeLevel) {
       return [];
     }
     const raw = cascade.subjects;
@@ -428,7 +428,7 @@ export default function TeacherToolPage() {
     fetchStudents();
   }, [toolType]);
 
-  // Topics from curriculum API + optional hardcoded filtering; local NCERT fallback if empty
+  // Topics from curriculum API + AI Tool Topics (skip NCERT-only filters for IIT/NEET boards)
   useEffect(() => {
     const classValue = formParams.gradeLevel;
     const subjectValue = formParams.subject || formParams.subjects;
@@ -443,7 +443,17 @@ export default function TeacherToolPage() {
       return;
     }
 
-    let topics = [...cascade.topics];
+    const topics = [...cascade.topics];
+    const boardKey = String(selectedBoard || formParams.board || '')
+      .toUpperCase()
+      .replace(/[\s/\\-]+/g, '');
+    const isIitBoard =
+      boardKey.includes('IIT') || boardKey.includes('NEET') || boardKey.includes('JEE');
+
+    if (isIitBoard || topics.length > 0) {
+      setAvailableNCERTTopics(topics);
+      return;
+    }
 
     const classNumber =
       classValue === 'IIT-6' ? NaN : parseInt(classValue.replace('Class ', '').trim());
@@ -620,6 +630,8 @@ export default function TeacherToolPage() {
     formParams.gradeLevel,
     formParams.subject,
     formParams.subjects,
+    formParams.board,
+    selectedBoard,
     toolType,
     cascade.topics,
     cascade.loadingTopics,

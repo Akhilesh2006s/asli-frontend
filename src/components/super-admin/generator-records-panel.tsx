@@ -344,7 +344,7 @@ export function GeneratorRecordsPanel({
         <CardHeader className="space-y-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <CardTitle className="mb-0">{title} ({recordsTotal})</CardTitle>
+              <CardTitle className="mb-0">{title} ({recordsTotal.toLocaleString()})</CardTitle>
               {subtitle ? <p className="text-sm text-slate-500 font-normal mt-1">{subtitle}</p> : null}
             </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
