@@ -62,6 +62,60 @@ export async function fetchMeta(params: Record<string, string> = {}) {
   }>;
 }
 
+export type RecordSectionGap = {
+  complete: boolean;
+  missingSections: string[];
+  optionalMissingSections?: string[];
+};
+
+export type ToolSectionGapSummary = {
+  toolName: string;
+  toolDisplayName: string;
+  totalScanned: number;
+  incompleteCount: number;
+  truncated?: boolean;
+  items: Pick<
+    RecordRow,
+    | "_id"
+    | "toolName"
+    | "toolDisplayName"
+    | "classLabel"
+    | "subject"
+    | "topic"
+    | "subtopic"
+    | "sectionGap"
+  >[];
+};
+
+export type AllToolSectionGapSummaries = {
+  totalScanned: number;
+  cachedAt?: string;
+  byTool: Record<string, ToolSectionGapSummary>;
+};
+
+export async function fetchSectionGapSummaries(board = "", limit = 50, refresh = false) {
+  const qs = new URLSearchParams({ limit: String(limit) });
+  if (board) qs.set("board", board);
+  if (refresh) qs.set("refresh", "1");
+  const res = await fetch(
+    `${API_BASE_URL}/api/super-admin/ai-tool-generations/section-gap-summary?${qs.toString()}`,
+    { headers: authHeaders() },
+  );
+  if (!res.ok) throw new Error(`Section gap summaries failed: ${res.status}`);
+  return res.json() as Promise<{ success: boolean; data: AllToolSectionGapSummaries }>;
+}
+
+export async function fetchToolSectionGapSummary(toolName: string, board = "", limit = 50) {
+  const qs = new URLSearchParams({ toolName, limit: String(limit) });
+  if (board) qs.set("board", board);
+  const res = await fetch(
+    `${API_BASE_URL}/api/super-admin/ai-tool-generations/section-gap-summary?${qs.toString()}`,
+    { headers: authHeaders() },
+  );
+  if (!res.ok) throw new Error(`Section gap summary failed: ${res.status}`);
+  return res.json() as Promise<{ success: boolean; data: ToolSectionGapSummary }>;
+}
+
 export type RecordRow = {
   _id: string;
   sourceType?: string;
@@ -77,6 +131,7 @@ export type RecordRow = {
   /** Full stored text / markdown (needed to parse fallback MCQ blobs in the list). */
   content?: string;
   metadata?: Record<string, unknown>;
+  sectionGap?: RecordSectionGap;
 };
 
 export async function fetchRecords(

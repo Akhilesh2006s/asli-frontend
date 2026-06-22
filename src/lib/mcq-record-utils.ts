@@ -5,6 +5,11 @@
 
 import { normalizeAiToolSlug } from "@/lib/normalize-ai-tool-slug";
 import { resolveWorksheetFromPayload } from "@/lib/parse-worksheet-mcq";
+import {
+  examPaperHasQuestions,
+  resolveExamPaperFromPayload,
+} from "@/lib/parse-exam-question-paper";
+import { resolveMockTestFromPayload } from "@/lib/parse-mock-test";
 
 export type McqQuestion = {
   question: string;
@@ -32,6 +37,80 @@ export function isMcqTool(toolName?: string): boolean {
 
 export function isWorksheetMcqTool(toolName?: string): boolean {
   return resolveMcqToolSlug(toolName) === "worksheet-mcq-generator";
+}
+
+export function isExamQuestionPaperTool(toolName?: string): boolean {
+  return resolveMcqToolSlug(toolName) === "exam-question-paper-generator";
+}
+
+export function isMockTestTool(toolName?: string): boolean {
+  return resolveMcqToolSlug(toolName) === "mock-test-builder";
+}
+
+/** Full section-based papers — use dedicated viewers, not generic MCQ cards. */
+export function isStructuredPaperTool(toolName?: string): boolean {
+  return isExamQuestionPaperTool(toolName) || isMockTestTool(toolName);
+}
+
+function paperListPreviewFromResolved(
+  row: { content?: string; generatedContent?: string; preview?: string },
+  title: string,
+  sections: Array<{ questions: Array<{ question?: string; questionNumber?: string | number }> }>,
+): string {
+  const first = sections
+    .flatMap((s) => s.questions)
+    .find((q) => String(q.question || "").trim());
+  if (first) {
+    const num = first.questionNumber != null ? String(first.questionNumber) : "1";
+    const line = `Q${num}. ${String(first.question).trim()}`;
+    return title ? `${title} — ${line}` : line;
+  }
+  if (title) return title;
+  if (row.preview) return String(row.preview).trim();
+  const plain = stripInlineMarkdown(stripMarkdownLeader(recordRawText(row)));
+  return plain.slice(0, 240);
+}
+
+/** One-line preview for exam question paper records (book-based or AI). */
+export function examPaperRecordListPreview(row: {
+  content?: string;
+  generatedContent?: string;
+  preview?: string;
+  metadata?: unknown;
+}): string {
+  const rawText = recordRawText(row);
+  const meta = row.metadata as Record<string, unknown> | undefined;
+  const { paper } = resolveExamPaperFromPayload(rawText, meta?.structuredContent ?? meta);
+  if (paper && examPaperHasQuestions(paper)) {
+    const title = String(paper.paperTitle || "").trim();
+    return paperListPreviewFromResolved(row, title, paper.sections);
+  }
+  if (row.preview) return String(row.preview).trim();
+  const plain = stripInlineMarkdown(stripMarkdownLeader(rawText));
+  return plain.slice(0, 240);
+}
+
+/** One-line preview for mock test records. */
+export function mockTestRecordListPreview(row: {
+  content?: string;
+  generatedContent?: string;
+  preview?: string;
+  metadata?: unknown;
+}): string {
+  const rawText = recordRawText(row);
+  const meta = row.metadata as Record<string, unknown> | undefined;
+  const { paper, meta: mockMeta } = resolveMockTestFromPayload(
+    rawText,
+    meta?.structuredContent ?? meta,
+  );
+  const title = String(mockMeta?.title || paper?.paperTitle || "").trim();
+  if (paper && examPaperHasQuestions(paper)) {
+    return paperListPreviewFromResolved(row, title, paper.sections);
+  }
+  if (title) return title;
+  if (row.preview) return String(row.preview).trim();
+  const plain = stripInlineMarkdown(stripMarkdownLeader(rawText));
+  return plain.slice(0, 240);
 }
 
 /** One-line preview for a whole worksheet record (list view — not per-question). */

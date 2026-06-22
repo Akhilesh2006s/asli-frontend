@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Layers, ChevronRight, FileStack, Wrench, BookOpen } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
-import { fetchBootstrap } from "./api";
-import type { BranchItem } from "./api";
+import { fetchBootstrap, fetchSectionGapSummaries } from "./api";
+import type { BranchItem, ToolSectionGapSummary } from "./api";
 import { ToolSection } from "./ToolSection";
 
 const TOOL_LABELS: Record<string, string> = {
@@ -40,6 +40,9 @@ export default function AiToolGenerationsPanel() {
   const [board, setBoard] = useState("");
   const [boards, setBoards] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [gapByTool, setGapByTool] = useState<Record<string, ToolSectionGapSummary | null>>({});
+  const [gapLoading, setGapLoading] = useState(false);
+  const gapFetchKey = useRef("");
 
   useEffect(() => {
     let cancelled = false;
@@ -85,6 +88,41 @@ export default function AiToolGenerationsPanel() {
     if (!tools) return [];
     return [...tools].sort((a, b) => a.value.localeCompare(b.value));
   }, [tools]);
+
+  useEffect(() => {
+    if (loading || !sortedTools.length) {
+      setGapByTool({});
+      setGapLoading(false);
+      return;
+    }
+
+    const fetchKey = board || "__all__";
+    if (gapFetchKey.current === fetchKey) return;
+    gapFetchKey.current = fetchKey;
+
+    let cancelled = false;
+    setGapLoading(true);
+    setGapByTool({});
+
+    (async () => {
+      try {
+        const res = await fetchSectionGapSummaries(board);
+        if (!cancelled) {
+          setGapByTool(res.data.byTool || {});
+          setGapLoading(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setGapByTool({});
+          setGapLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [board, loading, sortedTools.length]);
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50/80 flex flex-col">
@@ -212,16 +250,20 @@ export default function AiToolGenerationsPanel() {
 
         <section className="space-y-4">
           <div className="px-0.5">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <h2 className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-slate-500">
                   By tool
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
                   Records Board: <span className="font-medium text-slate-700">{board || "All Boards"}</span>
+                  <span className="text-slate-300 mx-1.5">·</span>
+                  <span className="text-slate-500">
+                    Tools with a red flag badge have records missing required sections
+                  </span>
                 </p>
               </div>
-              <div className="w-[220px]">
+              <div className="w-full sm:w-[220px]">
                 <Select value={board || "__all__"} onValueChange={(v) => setBoard(v === "__all__" ? "" : v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="All boards" />
@@ -229,7 +271,9 @@ export default function AiToolGenerationsPanel() {
                   <SelectContent>
                     <SelectItem value="__all__">All boards</SelectItem>
                     {boards.map((b) => (
-                      <SelectItem key={b} value={b}>{b}</SelectItem>
+                      <SelectItem key={b} value={b}>
+                        {b}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -270,6 +314,8 @@ export default function AiToolGenerationsPanel() {
                     tool={t}
                     displayName={TOOL_LABELS[t.value]}
                     board={board}
+                    gapSummary={gapByTool[t.value]}
+                    gapLoading={gapLoading && !(t.value in gapByTool)}
                   />
                 ))}
             </CardContent>
