@@ -533,3 +533,20 @@ export function resolveDailyPlansFromPayload(
     markdownFallback: content.trim() || null,
   };
 }
+
+export function looksLikeDailyClassPlanContent(text: string): boolean {
+  const sample = String(text || '').slice(0, 16000);
+  if (!sample.trim()) return false;
+  const hasLabel =
+    /daily\s+class\s+plan/i.test(sample) ||
+    /day\s*\/\s*period[-\s]?wise/i.test(sample) ||
+    /period[-\s]?wise\s+topic/i.test(sample);
+  const hasSections =
+    /(?:^|\n)\s*#{1,3}\s*\d{1,2}\.\s*(Day\s*\/\s*Period|Learning Objective|Teaching Method|Classroom Activit|Exit Ticket|Differentiated|Homework|Teaching Aids|Teacher Reflection)/im.test(
+      sample,
+    ) ||
+    /(?:^|\n)\s*\d{1,2}\.\s*(Day\s*\/\s*Period|Learning Objective|Teaching Method|Classroom Activit)/im.test(
+      sample,
+    );
+  return hasLabel || hasSections;
+}

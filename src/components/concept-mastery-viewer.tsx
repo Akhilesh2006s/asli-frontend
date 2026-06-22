@@ -23,11 +23,15 @@ import { formatInlineMarkdown, renderMarkdown } from '@/lib/render-teacher-markd
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import {
   conceptHasVisibleContent,
+  countConceptMasterySectionHeaders,
   fillConceptGapsFromMarkdown,
   parseSingleConceptDocument,
   resolveConceptsFromPayload,
+  shouldPreferConceptMasteryMarkdown,
   type NormalizedConcept,
 } from '@/lib/parse-concept-mastery';
+
+export { conceptMasteryViewerPayloadFromRecord } from '@/lib/parse-concept-mastery';
 
 export interface ConceptMasteryViewerProps {
   content: string;
@@ -671,12 +675,20 @@ export function ConceptMasteryViewer({
     !!resolved.markdownFallback &&
     (!resolved.concepts.length || !resolved.concepts.some(conceptHasVisibleContent));
 
-  if (useMarkdown && resolved.markdownFallback) {
+  const preferMarkdownBody = useMemo(() => {
+    if (useMarkdown && resolved.markdownFallback?.trim()) return resolved.markdownFallback.trim();
+    const md = markdownSource.trim();
+    if (!md || countConceptMasterySectionHeaders(md) < 3) return null;
+    if (current && shouldPreferConceptMasteryMarkdown(md, current)) return md;
+    return null;
+  }, [useMarkdown, resolved.markdownFallback, markdownSource, current]);
+
+  if (preferMarkdownBody) {
     if (useTeacher) {
       return (
         <div className={className}>
-          <TeacherConceptShell conceptCount={0}>
-            <TeacherMarkdownBody markdown={resolved.markdownFallback} />
+          <TeacherConceptShell conceptCount={resolved.concepts.length || 1}>
+            <TeacherMarkdownBody markdown={preferMarkdownBody} />
           </TeacherConceptShell>
         </div>
       );
@@ -685,7 +697,7 @@ export function ConceptMasteryViewer({
       <div className={cn('w-full', className)}>
         <div
           className="prose prose-sm max-w-none rounded-xl border border-fuchsia-100 bg-white p-4 sm:p-5 shadow-sm"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(resolved.markdownFallback) }}
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(preferMarkdownBody) }}
         />
       </div>
     );

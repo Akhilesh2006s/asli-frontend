@@ -73,6 +73,10 @@ import {
   activityViewerPayloadFromRecord,
 } from "@/components/activity-project-viewer";
 import {
+  ConceptMasteryViewer,
+  conceptMasteryViewerPayloadFromRecord,
+} from "@/components/concept-mastery-viewer";
+import {
   filterSubjectsForAiTool,
   isStoryLanguageTool,
   isStoryPassageLanguageSubject,
@@ -1648,6 +1652,12 @@ export default function SuperAdminAiGenerator() {
               activeRecord?.toolSlug === "project-idea-lab" ||
               activeRecord?.toolName === "project-idea-lab" ? (
               <ActivityProjectViewer {...activityViewerPayloadFromRecord(activeRecord)} />
+            ) : activeRecord?.toolSlug === "concept-mastery-helper" ||
+              activeRecord?.toolName === "concept-mastery-helper" ? (
+              <ConceptMasteryViewer
+                {...conceptMasteryViewerPayloadFromRecord(activeRecord)}
+                variant="teacher"
+              />
             ) : (
               <GeneratedRecordBody
                 content={String(activeRecord?.generatedContent || "")}

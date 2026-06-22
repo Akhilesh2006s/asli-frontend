@@ -11,12 +11,23 @@ import { PracticeQaViewer, practiceQaViewerPayloadFromRecord } from "@/component
 import { KeyPointsViewer, keyPointsViewerPayloadFromRecord } from "@/components/key-points-viewer";
 import { HomeworkCreatorViewer } from "@/components/homework-creator-viewer";
 import { LessonPlannerViewer } from "@/components/lesson-planner-viewer";
+import { DailyClassPlanViewer } from "@/components/daily-class-plan-viewer";
+import { StoryPassageViewer } from "@/components/story-passage-viewer";
 import { ShortNotesViewer } from "@/components/short-notes-viewer";
 import { WorksheetMcqViewer } from "@/components/worksheet-mcq-viewer";
+import {
+  ConceptMasteryViewer,
+  conceptMasteryViewerPayloadFromRecord,
+} from "@/components/concept-mastery-viewer";
 
 function isWorksheetToolValue(v: unknown): boolean {
   const t = String(v || "").trim().toLowerCase();
   return t === "worksheet-mcq-generator" || (t.includes("worksheet") && t.includes("mcq"));
+}
+
+function recordStructuredRaw(record: Record<string, unknown>): unknown {
+  const meta = record.metadata as { structuredContent?: unknown } | undefined;
+  return record.structuredContent ?? meta?.structuredContent ?? record;
 }
 
 export function GeneratorRecordViewer({ record }: { record: Record<string, unknown> | null }) {
@@ -37,6 +48,25 @@ export function GeneratorRecordViewer({ record }: { record: Record<string, unkno
   if (slug === "lesson-planner") {
     return (
       <LessonPlannerViewer content={generatedContent} rawContent={record} variant="teacher" toolKind="lesson-planner" />
+    );
+  }
+  if (slug === "study-schedule-maker") {
+    return (
+      <LessonPlannerViewer
+        content={generatedContent}
+        rawContent={record}
+        variant="student"
+        toolKind="study-schedule-maker"
+      />
+    );
+  }
+  if (slug === "daily-class-plan-maker") {
+    return (
+      <DailyClassPlanViewer
+        content={generatedContent}
+        rawContent={recordStructuredRaw(record)}
+        variant="teacher"
+      />
     );
   }
   if (slug === "homework-creator") {
@@ -78,6 +108,18 @@ export function GeneratorRecordViewer({ record }: { record: Record<string, unkno
   }
   if (isActivityToolSlug(slug)) {
     return <ActivityProjectViewer {...activityViewerPayloadFromRecord(record)} />;
+  }
+  if (slug === "concept-mastery-helper") {
+    return <ConceptMasteryViewer {...conceptMasteryViewerPayloadFromRecord(record)} variant="teacher" />;
+  }
+  if (slug === "story-passage-creator" || slug === "reading-practice-room") {
+    return (
+      <StoryPassageViewer
+        content={generatedContent}
+        rawData={record}
+        variant={slug === "reading-practice-room" ? "student" : "default"}
+      />
+    );
   }
   return <GeneratedRecordBody content={generatedContent} toolType={slug} />;
 }

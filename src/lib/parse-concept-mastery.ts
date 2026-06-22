@@ -1105,3 +1105,75 @@ function buildConceptDeckMarkdown(records: Record<string, unknown>[]): string {
   }
   return blocks.join('\n\n');
 }
+
+export function countConceptMasterySectionHeaders(text: string): number {
+  return countCanonicalSectionHeaders(text);
+}
+
+export function countFilledConceptSections(c: NormalizedConcept): number {
+  let n = 0;
+  if (c.simpleDefinition?.trim()) n += 1;
+  if (c.whyImportant?.trim()) n += 1;
+  if (c.priorKnowledge?.trim()) n += 1;
+  if (c.explanation?.trim()) n += 1;
+  if (c.diagramSuggestion?.trim()) n += 1;
+  if (c.realLifeExamples?.trim()) n += 1;
+  if (c.misconceptions.length) n += 1;
+  if (c.conceptCheckQuestions.length) n += 1;
+  if (c.keyPoints.length) n += 1;
+  if (c.examTips?.trim()) n += 1;
+  if (c.hotsQuestion?.trim()) n += 1;
+  if (c.reflectionPrompt?.trim()) n += 1;
+  return n;
+}
+
+/** Prefer full API markdown when structured fields omit numbered sections from the template. */
+export function shouldPreferConceptMasteryMarkdown(
+  markdown: string,
+  concept: NormalizedConcept | null | undefined,
+): boolean {
+  const apiCount = countCanonicalSectionHeaders(markdown);
+  if (apiCount < 3) return false;
+  if (!concept || !conceptHasVisibleContent(concept)) return true;
+  const filled = countFilledConceptSections(concept);
+  if (filled < apiCount - 1) return true;
+  if (apiCount >= 6 && filled < Math.ceil(apiCount * 0.6)) return true;
+  return false;
+}
+
+export function looksLikeConceptMasteryContent(text: string): boolean {
+  const sample = String(text || '').slice(0, 16000);
+  if (!sample.trim()) return false;
+  const headerCount = countCanonicalSectionHeaders(sample);
+  if (headerCount >= 2) return true;
+  const hasLabel =
+    /concept\s*mastery/i.test(sample) ||
+    /simple\s*definition/i.test(sample) ||
+    /prior\s+knowledge/i.test(sample) ||
+    /higher[-\s]?order\s+thinking/i.test(sample) ||
+    /quick\s+self[-\s]?reflection/i.test(sample);
+  const hasSections = /(?:^|\n)\s*#{1,3}\s*\d{1,2}\.\s*(Simple Definition|Why This|Prior Knowledge|Step-by-step|Diagram|Real-life|Misconception|Concept Check|Key Points|Exam Tips|Higher-order|Self-reflection)/im.test(
+    sample,
+  );
+  return hasLabel && (hasSections || headerCount >= 1);
+}
+
+export function conceptMasteryViewerPayloadFromRecord(
+  record?: {
+    generatedContent?: string;
+    content?: string;
+    structuredContent?: unknown;
+    rawData?: unknown;
+    metadata?: { structuredContent?: unknown; rawData?: unknown };
+  } | null,
+): { content: string; rawContent?: unknown } {
+  const content = String(record?.generatedContent || record?.content || '').trim();
+  const meta = record?.metadata as Record<string, unknown> | undefined;
+  const rawContent =
+    record?.rawData ??
+    meta?.rawData ??
+    meta?.structuredContent ??
+    record?.structuredContent ??
+    record;
+  return { content, rawContent };
+}

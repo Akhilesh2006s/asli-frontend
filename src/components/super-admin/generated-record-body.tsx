@@ -15,6 +15,10 @@ import { looksLikePracticeQaContent } from "@/lib/parse-practice-qa";
 import { looksLikeChapterSummaryContent } from "@/lib/parse-chapter-summary";
 import { looksLikeKeyPointsContent } from "@/lib/parse-key-points";
 import { looksLikeQuickAssignmentContent } from "@/lib/parse-quick-assignment";
+import { looksLikeConceptMasteryContent } from "@/lib/parse-concept-mastery";
+import { looksLikeDailyClassPlanContent } from "@/lib/parse-daily-class-plan";
+import { ConceptMasteryViewer } from "@/components/concept-mastery-viewer";
+import { DailyClassPlanViewer } from "@/components/daily-class-plan-viewer";
 import {
   legacyActivitySectionNumFromTitle,
   looksLikeActivityProjectContent,
@@ -255,6 +259,24 @@ export function GeneratedRecordBody({
   }
   if (looksLikeConceptBreakdownContent(raw)) {
     return <ConceptBreakdownViewer content={String(content || "")} className={className} />;
+  }
+  if (toolType === "concept-mastery-helper" || looksLikeConceptMasteryContent(raw)) {
+    return (
+      <ConceptMasteryViewer
+        content={String(content || "")}
+        variant="teacher"
+        className={className}
+      />
+    );
+  }
+  if (toolType === "daily-class-plan-maker" || looksLikeDailyClassPlanContent(raw)) {
+    return (
+      <DailyClassPlanViewer
+        content={String(content || "")}
+        variant="teacher"
+        className={className}
+      />
+    );
   }
   if (looksLikePracticeQaContent(raw)) {
     return <PracticeQaViewer content={String(content || "")} className={className} />;

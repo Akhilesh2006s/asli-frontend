@@ -44,6 +44,10 @@ import {
   practiceQaViewerPayloadFromRecord,
 } from "@/components/practice-qa-viewer";
 import {
+  ConceptMasteryViewer,
+  conceptMasteryViewerPayloadFromRecord,
+} from "@/components/concept-mastery-viewer";
+import {
   countPracticeQaQuestions,
   resolvePracticeQaFromPayload,
 } from "@/lib/parse-practice-qa";
@@ -107,6 +111,10 @@ function isActivityToolValue(v: unknown): boolean {
 
 function isPracticeQaToolValue(v: unknown): boolean {
   return normalizeAiToolSlug(v) === "smart-qa-practice-generator";
+}
+
+function isConceptMasteryToolValue(v: unknown): boolean {
+  return normalizeAiToolSlug(v) === "concept-mastery-helper";
 }
 
 function practiceQaRecordListPreview(row: RecordRow): string {
@@ -619,6 +627,20 @@ export function GenerationRecordsList({
                         content: String(fullText || ""),
                         generatedContent: String(fullText || ""),
                       })}
+                    />
+                  </div>
+                );
+              }
+              if (isConceptMasteryToolValue(resolvedTool)) {
+                return (
+                  <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
+                    <ConceptMasteryViewer
+                      {...conceptMasteryViewerPayloadFromRecord({
+                        ...(viewDetail || {}),
+                        generatedContent: String(fullText || ""),
+                        content: String(fullText || ""),
+                      })}
+                      variant="teacher"
                     />
                   </div>
                 );
