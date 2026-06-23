@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronDown, Flag, Sparkles } from "lucide-react";
 import type { BranchItem, ToolSectionGapSummary } from "./api";
 import { ClassSection } from "./ClassSection";
-import { SectionGapFlagPanel } from "./SectionGapFlagPanel";
 
 function humanizeToolId(id: string) {
   return id
@@ -74,7 +73,7 @@ export function ToolSection({
               {hasGaps ? (
                 <span className="text-red-700 font-medium">
                   {gapCount} record{gapCount === 1 ? "" : "s"} missing sections
-                  {open ? " · hide details" : " · expand to see flags & browse"}
+                  {open ? " · hide classes" : " · expand to browse flagged records"}
                 </span>
               ) : gapLoading ? (
                 "Checking section completeness…"
@@ -99,29 +98,6 @@ export function ToolSection({
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className="px-4 pb-4 md:px-5 md:pb-5 pt-0 border-t border-slate-100/80 bg-slate-50/40 space-y-4">
-            {hasGaps && gapSummary?.items?.length ? (
-              <div className="pt-4 space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-red-800 flex items-center gap-1.5">
-                  <Flag className="h-3.5 w-3.5" aria-hidden />
-                  Flagged records — missing required sections
-                </p>
-                <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                  {gapSummary.items.map((row) => (
-                    <SectionGapFlagPanel
-                      key={row._id}
-                      row={row}
-                      defaultToolName={tool.value}
-                    />
-                  ))}
-                </div>
-                {gapSummary.truncated ? (
-                  <p className="text-xs text-slate-500">
-                    Showing first {gapSummary.items.length} of {gapCount} flagged records. Drill
-                    into class → subject → topic for the full list.
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
             <ClassSection toolName={tool.value} board={board} />
           </div>
         </CollapsibleContent>

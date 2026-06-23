@@ -45,10 +45,13 @@ export function SectionGapFlagPanel({
   row,
   defaultToolName = "",
   className = "",
+  compact = false,
 }: {
   row: SectionGapPathRow | RecordRow;
   defaultToolName?: string;
   className?: string;
+  /** When true, only show the flag and missing sections (for inline use on a record card). */
+  compact?: boolean;
 }) {
   if (!recordHasSectionGap(row)) return null;
   const missing = row.sectionGap?.missingSections || [];
@@ -58,34 +61,58 @@ export function SectionGapFlagPanel({
     <div
       className={`rounded-lg border border-red-200/80 bg-red-50/50 px-3 py-2.5 space-y-1.5 ${className}`}
     >
-      <div className="flex items-center gap-1.5 text-xs font-semibold text-red-800">
-        <Flag className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        Section gap
-      </div>
-      <p className="text-xs text-slate-700 leading-relaxed break-words">
-        <span className="font-medium text-slate-500">Tool: </span>
-        {recordToolLabel(row, defaultToolName)}
-      </p>
-      {formatRecordPath(row).map(({ label, value }) => (
-        <p key={label} className="text-xs text-slate-700 leading-relaxed break-words">
-          <span className="font-medium text-slate-500">{label}: </span>
-          {value}
-        </p>
-      ))}
-      {(missing.length > 0 || optional.length > 0) && (
-        <div className="flex flex-wrap gap-1 pt-0.5">
-          {missing.map((section) => (
-            <Badge key={section} variant="destructive" className="font-normal text-[10px]">
-              Missing: {section}
-            </Badge>
-          ))}
-          {optional.map((section) => (
-            <Badge key={`opt-${section}`} variant="secondary" className="font-normal text-[10px]">
-              Optional: {section}
-            </Badge>
-          ))}
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-red-800">
+          <Flag className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          Missing required sections
         </div>
-      )}
+        {compact && (missing.length > 0 || optional.length > 0) ? (
+          <div className="flex flex-wrap gap-1">
+            {missing.map((section) => (
+              <Badge key={section} variant="destructive" className="font-normal text-[10px]">
+                {section}
+              </Badge>
+            ))}
+            {optional.map((section) => (
+              <Badge key={`opt-${section}`} variant="secondary" className="font-normal text-[10px]">
+                Optional: {section}
+              </Badge>
+            ))}
+          </div>
+        ) : null}
+      </div>
+      {!compact ? (
+        <>
+          <p className="text-xs text-slate-700 leading-relaxed break-words">
+            <span className="font-medium text-slate-500">Tool: </span>
+            {recordToolLabel(row, defaultToolName)}
+          </p>
+          {formatRecordPath(row).map(({ label, value }) => (
+            <p key={label} className="text-xs text-slate-700 leading-relaxed break-words">
+              <span className="font-medium text-slate-500">{label}: </span>
+              {value}
+            </p>
+          ))}
+          {(missing.length > 0 || optional.length > 0) && (
+            <div className="flex flex-wrap gap-1 pt-0.5">
+              {missing.map((section) => (
+                <Badge key={section} variant="destructive" className="font-normal text-[10px]">
+                  Missing: {section}
+                </Badge>
+              ))}
+              {optional.map((section) => (
+                <Badge
+                  key={`opt-${section}`}
+                  variant="secondary"
+                  className="font-normal text-[10px]"
+                >
+                  Optional: {section}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </>
+      ) : null}
     </div>
   );
 }

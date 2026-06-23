@@ -296,7 +296,11 @@ export function GenerationRecordsList({
           return (
             <li
               key={row._id}
-              className="group rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm transition-all hover:border-orange-200/80 hover:shadow-md"
+              className={`group rounded-xl border bg-white p-4 shadow-sm transition-all hover:shadow-md ${
+                hasGap
+                  ? "border-red-200/90 ring-1 ring-red-100/60 hover:border-red-300/80"
+                  : "border-slate-200/90 hover:border-orange-200/80"
+              }`}
             >
               <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -383,6 +387,7 @@ export function GenerationRecordsList({
                   row={row}
                   defaultToolName={defaultToolName}
                   className="mb-3"
+                  compact
                 />
               ) : null}
 
