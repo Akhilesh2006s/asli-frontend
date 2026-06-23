@@ -67,6 +67,8 @@ import { TeacherTrackProgressPanels } from '@/components/teacher/TeacherTrackPro
 import { EduOTTVideoCard, EduOTTSubjectBadges } from '@/components/eduott/EduOTTVideoCard';
 import type { EduOTTVideoCardItem } from '@/components/eduott/EduOTTVideoCard';
 import { EduOTTVideoPlayerDialog } from '@/components/eduott/EduOTTVideoPlayerDialog';
+import { EduOTTLiveSessionDialog } from '@/components/eduott/EduOTTLiveSessionDialog';
+import { EduOTTJoinSessionButton } from '@/components/eduott/EduOTTJoinSessionButton';
 import { resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
@@ -237,6 +239,7 @@ const TeacherDashboard = () => {
   const [eduottSubjectFilter, setEduottSubjectFilter] = useState<string>('all');
   const [isLoadingEduott, setIsLoadingEduott] = useState(false);
   const [selectedEduottVideo, setSelectedEduottVideo] = useState<EduOTTVideoCardItem | null>(null);
+  const [selectedLiveSession, setSelectedLiveSession] = useState<any | null>(null);
   const [eduottActiveTab, setEduottActiveTab] = useState<'videos' | 'live-sessions'>('videos');
   const [liveSessions, setLiveSessions] = useState<any[]>([]);
   const [isLoadingLiveSessions, setIsLoadingLiveSessions] = useState(false);
@@ -739,6 +742,44 @@ const TeacherDashboard = () => {
       fetchEduottVideos();
     }
   }, [dashboardSubTab, teacherSubjects, eduottActiveTab]);
+
+  useEffect(() => {
+    const fetchLiveSessions = async () => {
+      if (dashboardSubTab !== 'eduott' || eduottActiveTab !== 'live-sessions') return;
+
+      try {
+        setIsLoadingLiveSessions(true);
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          setLiveSessions([]);
+          return;
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/teacher/streams`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setLiveSessions(data.data || data || []);
+        } else {
+          setLiveSessions([]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch live sessions:', error);
+        setLiveSessions([]);
+      } finally {
+        setIsLoadingLiveSessions(false);
+      }
+    };
+
+    if (dashboardSubTab === 'eduott' && eduottActiveTab === 'live-sessions') {
+      fetchLiveSessions();
+    }
+  }, [dashboardSubTab, eduottActiveTab]);
 
   useEffect(() => {
     const loadProgram = async () => {
@@ -4386,20 +4427,10 @@ const TeacherDashboard = () => {
                                           )}
                                         </div>
                                       </div>
-                                      {session.status === 'live' && (session.hlsUrl || session.playbackUrl) && (
-                                        <Button
-                                          variant="outline"
-                                          onClick={() => {
-                                            const streamUrl = session.hlsUrl || session.playbackUrl;
-                                            if (streamUrl) {
-                                              window.open(streamUrl, '_blank');
-                                            }
-                                          }}
-                                        >
-                                          <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                                          Watch Live
-                                        </Button>
-                                      )}
+                                      <EduOTTJoinSessionButton
+                                        session={session}
+                                        onJoin={setSelectedLiveSession}
+                                      />
                                     </div>
                                   </CardContent>
                                 </Card>
@@ -4416,6 +4447,13 @@ const TeacherDashboard = () => {
                     open={!!selectedEduottVideo}
                     onOpenChange={(open) => {
                       if (!open) setSelectedEduottVideo(null);
+                    }}
+                  />
+                  <EduOTTLiveSessionDialog
+                    session={selectedLiveSession}
+                    open={!!selectedLiveSession}
+                    onOpenChange={(open) => {
+                      if (!open) setSelectedLiveSession(null);
                     }}
                   />
                 </div>

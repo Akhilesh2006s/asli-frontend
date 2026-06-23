@@ -17,6 +17,7 @@ import {
   TrophyIcon,
   Users2,
   CreditCardIcon,
+  Radio,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -42,6 +43,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
     { id: 'board', label: 'Board Management', icon: Users2 },
     { id: 'admins', label: 'School Management', icon: Shield },
     { id: 'subjects-and-content', label: 'Subject & Content', icon: LayoutList },
+    { id: 'edu-ott-live', label: 'Edu OTT Live', icon: Radio },
     { id: 'exams', label: 'Exam Management', icon: FileTextIcon },
     { id: 'iq-rank-boost', label: 'IQ/Rank Boost Activities', icon: TrophyIcon },
     { id: 'calendar', label: 'School Calendar', icon: Calendar },

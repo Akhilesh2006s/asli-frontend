@@ -92,7 +92,6 @@ export function resolveContentDurationSeconds(source: DurationSource): number {
   return Math.round(raw * 60);
 }
 
-/** Human-readable length for EduOTT cards (e.g. 8:05, 1h 12m). */
 export function formatEduOTTDurationLabel(totalSeconds: number): string {
   const sec = Math.max(0, Math.round(totalSeconds));
   if (sec <= 0) return '';
@@ -108,4 +107,52 @@ export function formatEduOTTDurationLabel(totalSeconds: number): string {
     return seconds > 0 ? `${minutes}:${String(seconds).padStart(2, '0')}` : `${minutes} min`;
   }
   return `${seconds}s`;
+}
+
+/** Build an in-app YouTube embed URL (no redirect to youtube.com). */
+export function getYoutubeEmbedUrl(url: string): string | null {
+  const id = extractYouTubeId(url);
+  if (!id) return null;
+  return `https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1&playsinline=1&autoplay=1&fs=1`;
+}
+
+export type EduOTTLiveSessionLike = {
+  _id: string;
+  title: string;
+  description?: string;
+  status?: 'scheduled' | 'live' | 'ended' | 'cancelled';
+  youtubeUrl?: string;
+  youtubeEmbedUrl?: string;
+  playbackUrl?: string;
+  visibility?: 'teacher' | 'student' | 'both';
+  viewerCount?: number;
+  joinCount?: number;
+};
+
+export function resolveLiveSessionEmbedUrl(session: EduOTTLiveSessionLike): string | null {
+  let url: string | null = null;
+  if (session.youtubeEmbedUrl?.trim()) url = session.youtubeEmbedUrl.trim();
+  else if (session.youtubeUrl?.trim()) url = getYoutubeEmbedUrl(session.youtubeUrl);
+  else if (session.playbackUrl?.includes('youtube') || session.playbackUrl?.includes('youtu')) {
+    url = getYoutubeEmbedUrl(session.playbackUrl) || session.playbackUrl;
+  }
+  return url ? ensureYoutubeEmbedFullscreen(url) : null;
+}
+
+/** Ensure YouTube iframe shows the native fullscreen control. */
+export function ensureYoutubeEmbedFullscreen(embedUrl: string): string {
+  try {
+    const parsed = new URL(embedUrl);
+    parsed.searchParams.set('fs', '1');
+    parsed.searchParams.set('playsinline', '1');
+    return parsed.toString();
+  } catch {
+    return embedUrl.includes('fs=1') ? embedUrl : `${embedUrl}${embedUrl.includes('?') ? '&' : '?'}fs=1`;
+  }
+}
+
+/** True when the session row should show a Join Session action (live or scheduled). */
+export function canJoinLiveSession(session: EduOTTLiveSessionLike): boolean {
+  const status = session.status || 'live';
+  return ['live', 'scheduled'].includes(status);
 }

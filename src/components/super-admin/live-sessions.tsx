@@ -1,100 +1,161 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { 
-  Video, 
-  Play, 
-  Square, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Search, 
-  Filter,
-  Users,
-  Clock,
-  Calendar,
-  Radio,
-  Eye,
-  EyeOff
-} from 'lucide-react';
+import { Video, Plus, Trash2, Search, Radio, School, Pencil } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
-interface LiveSession {
+type SchoolOption = {
+  id: string;
+  schoolName: string;
+  name?: string;
+};
+
+type LiveSessionRow = {
   _id: string;
   title: string;
   description?: string;
-  streamer: {
-    _id: string;
-    fullName: string;
-    email: string;
-  };
-  status: 'scheduled' | 'live' | 'ended' | 'cancelled';
-  streamUrl?: string;
-  hlsUrl?: string;
-  rtmpUrl?: string;
-  scheduledTime?: string;
-  duration?: number;
-  subject?: {
-    _id: string;
-    name: string;
-  };
-  board?: string;
-  classNumber?: string;
-  isRecorded: boolean;
-  chatEnabled: boolean;
-  viewerCount: number;
+  youtubeUrl?: string;
+  visibility: 'teacher' | 'student' | 'both';
+  status: string;
+  viewerCount?: number;
+  joinCount?: number;
+  adminId?: { _id: string; schoolName?: string; fullName?: string };
+  schoolAdminIds?: Array<{ _id: string; schoolName?: string; fullName?: string }>;
+  schoolNames?: string[];
   createdAt: string;
-  updatedAt: string;
+};
+
+const VISIBILITY_LABELS: Record<string, string> = {
+  teacher: 'Teachers only',
+  student: 'Students only',
+  both: 'Teachers & Students',
+};
+
+function isMongoObjectId(value: string): boolean {
+  return /^[a-f\d]{24}$/i.test(value);
+}
+
+function mapSchoolOption(a: Record<string, unknown>): SchoolOption | null {
+  const adminId = String(a.adminUserId || a.id || a._id || '').trim();
+  if (!adminId || !isMongoObjectId(adminId)) return null;
+  return {
+    id: adminId,
+    schoolName: String(a.schoolName || a.name || 'Unnamed school'),
+    name: a.name ? String(a.name) : undefined,
+  };
+}
+
+function sessionSchoolNames(session: LiveSessionRow): string[] {
+  const names: string[] = [];
+  if (session.schoolNames?.length) {
+    names.push(...session.schoolNames);
+  } else if (session.schoolAdminIds?.length) {
+    for (const school of session.schoolAdminIds) {
+      if (school?.schoolName) names.push(school.schoolName);
+    }
+  } else if (session.adminId?.schoolName) {
+    names.push(session.adminId.schoolName);
+  }
+  return [...new Set(names.filter(Boolean))];
+}
+
+function SchoolsCell({ names }: { names: string[] }) {
+  if (names.length === 0) {
+    return <span className="text-sm text-gray-400">—</span>;
+  }
+
+  const preview = names.slice(0, 2).join(', ');
+  const extra = names.length - 2;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="max-w-[220px] rounded-lg border border-transparent px-1 py-0.5 text-left transition-colors hover:border-sky-200 hover:bg-sky-50/60"
+        >
+          <Badge variant="secondary" className="text-xs font-medium">
+            {names.length} school{names.length === 1 ? '' : 's'}
+          </Badge>
+          <p className="mt-1 text-xs text-gray-600 line-clamp-2">
+            {preview}
+            {extra > 0 ? ` +${extra} more` : ''}
+          </p>
+          <p className="mt-0.5 text-[11px] font-medium text-sky-600">View all</p>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-80 p-0">
+        <div className="border-b px-3 py-2">
+          <p className="text-sm font-semibold text-gray-900">
+            {names.length} school{names.length === 1 ? '' : 's'} assigned
+          </p>
+        </div>
+        <ul className="max-h-64 overflow-y-auto py-1">
+          {names.map((name) => (
+            <li
+              key={name}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700"
+            >
+              <School className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+              <span className="min-w-0 break-words">{name}</span>
+            </li>
+          ))}
+        </ul>
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 export default function LiveSessions() {
   const { toast } = useToast();
-  const [sessions, setSessions] = useState<LiveSession[]>([]);
+  const [sessions, setSessions] = useState<LiveSessionRow[]>([]);
+  const [schools, setSchools] = useState<SchoolOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedSession, setSelectedSession] = useState<LiveSession | null>(null);
-  const [subjects, setSubjects] = useState<any[]>([]);
+  const [schoolPickerSearch, setSchoolPickerSearch] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
+    youtubeUrl: '',
+    schoolAdminIds: [] as string[],
+    visibility: 'both' as 'teacher' | 'student' | 'both',
     description: '',
-    scheduledTime: '',
-    subject: '',
-    board: 'ASLI_EXCLUSIVE_SCHOOLS',
-    classNumber: '',
-    isRecorded: false,
-    chatEnabled: true
   });
 
   useEffect(() => {
     fetchSessions();
-    fetchSubjects();
+    fetchSchools();
   }, []);
+
+  const authHeaders = () => {
+    const token = localStorage.getItem('authToken');
+    return {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+  };
 
   const fetchSessions = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('authToken');
-      // Super admin can access all streams
       const response = await fetch(`${API_BASE_URL}/api/super-admin/streams`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: authHeaders(),
       });
-
       if (response.ok) {
         const data = await response.json();
         setSessions(data.data || data || []);
@@ -102,7 +163,7 @@ export default function LiveSessions() {
         toast({
           title: 'Error',
           description: 'Failed to fetch live sessions',
-          variant: 'destructive'
+          variant: 'destructive',
         });
       }
     } catch (error) {
@@ -110,162 +171,177 @@ export default function LiveSessions() {
       toast({
         title: 'Error',
         description: 'An error occurred while fetching sessions',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const fetchSubjects = async () => {
+  const fetchSchools = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/subjects`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/admins`, {
+        headers: authHeaders(),
       });
-
       if (response.ok) {
         const data = await response.json();
-        setSubjects(data.data || []);
+        const list = data.data || data.admins || data || [];
+        setSchools(
+          list
+            .map((a: Record<string, unknown>) => mapSchoolOption(a))
+            .filter((school: SchoolOption | null): school is SchoolOption => school !== null)
+        );
       }
     } catch (error) {
-      console.error('Error fetching subjects:', error);
+      console.error('Error fetching schools:', error);
     }
   };
 
-  const handleCreate = async () => {
-    if (!formData.title || !formData.subject || !formData.board || !formData.scheduledTime) {
+  const filteredSchoolOptions = useMemo(() => {
+    const q = schoolPickerSearch.trim().toLowerCase();
+    if (!q) return schools;
+    return schools.filter((school) => school.schoolName.toLowerCase().includes(q));
+  }, [schools, schoolPickerSearch]);
+
+  const toggleSchool = (schoolId: string, checked: boolean) => {
+    setFormData((prev) => {
+      const next = new Set(prev.schoolAdminIds);
+      if (checked) next.add(schoolId);
+      else next.delete(schoolId);
+      return { ...prev, schoolAdminIds: [...next] };
+    });
+  };
+
+  const selectAllSchools = () => {
+    setFormData((prev) => ({
+      ...prev,
+      schoolAdminIds: filteredSchoolOptions.map((s) => s.id),
+    }));
+  };
+
+  const clearSchools = () => {
+    setFormData((prev) => ({ ...prev, schoolAdminIds: [] }));
+  };
+
+  const resetForm = () => {
+    setSchoolPickerSearch('');
+    setEditingSessionId(null);
+    setFormData({
+      title: '',
+      youtubeUrl: '',
+      schoolAdminIds: [],
+      visibility: 'both',
+      description: '',
+    });
+  };
+
+  const openCreateModal = () => {
+    resetForm();
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (session: LiveSessionRow) => {
+    const schoolIds =
+      session.schoolAdminIds?.map((s) => String(s._id)).filter(Boolean) ||
+      (session.adminId?._id ? [String(session.adminId._id)] : []);
+
+    setEditingSessionId(session._id);
+    setSchoolPickerSearch('');
+    setFormData({
+      title: session.title || '',
+      youtubeUrl: session.youtubeUrl || '',
+      schoolAdminIds: schoolIds,
+      visibility: session.visibility || 'both',
+      description: session.description || '',
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleModalOpenChange = (open: boolean) => {
+    setIsModalOpen(open);
+    if (!open) resetForm();
+  };
+
+  const handleSave = async () => {
+    if (!formData.title.trim() || !formData.youtubeUrl.trim() || formData.schoolAdminIds.length === 0) {
       toast({
         title: 'Validation Error',
-        description: 'Please fill in all required fields (Title, Subject, Board, Scheduled Time)',
-        variant: 'destructive'
+        description: 'Session name, YouTube link, and at least one school are required',
+        variant: 'destructive',
       });
       return;
     }
 
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/streams`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          title: formData.title,
-          description: formData.description,
-          subject: formData.subject,
-          board: formData.board,
-          classNumber: formData.classNumber || null,
-          scheduledStartTime: formData.scheduledTime,
-          isChatEnabled: formData.chatEnabled,
-          isRecording: formData.isRecorded
-        })
-      });
+      setIsSaving(true);
+      const payload = {
+        title: formData.title.trim(),
+        youtubeUrl: formData.youtubeUrl.trim(),
+        schoolAdminIds: formData.schoolAdminIds,
+        visibility: formData.visibility,
+        description: formData.description.trim(),
+        status: 'live',
+      };
 
+      const response = await fetch(
+        editingSessionId
+          ? `${API_BASE_URL}/api/super-admin/live-sessions/${editingSessionId}`
+          : `${API_BASE_URL}/api/super-admin/live-sessions`,
+        {
+          method: editingSessionId ? 'PUT' : 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const result = await response.json();
       if (response.ok) {
+        const count = formData.schoolAdminIds.length;
         toast({
-          title: 'Success',
-          description: 'Live session created successfully',
+          title: editingSessionId ? 'Updated' : 'Saved',
+          description: editingSessionId
+            ? 'Live session updated'
+            : `Live session is visible in Edu OTT for ${count} school${count === 1 ? '' : 's'}`,
         });
-        setIsCreateModalOpen(false);
-        setFormData({
-          title: '',
-          description: '',
-          scheduledTime: '',
-          subject: '',
-          board: '',
-          classNumber: '',
-          isRecorded: false,
-          chatEnabled: true
-        });
+        setIsModalOpen(false);
+        resetForm();
         fetchSessions();
       } else {
-        const errorData = await response.json();
         toast({
           title: 'Error',
-          description: errorData.message || 'Failed to create session',
-          variant: 'destructive'
+          description: result.message || `Failed to ${editingSessionId ? 'update' : 'save'} live session`,
+          variant: 'destructive',
         });
       }
     } catch (error) {
-      console.error('Error creating session:', error);
+      console.error('Error saving session:', error);
       toast({
         title: 'Error',
-        description: 'An error occurred while creating session',
-        variant: 'destructive'
+        description: 'An error occurred while saving the session',
+        variant: 'destructive',
       });
-    }
-  };
-
-  const handleUpdate = async () => {
-    if (!selectedSession) return;
-
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/streams/${selectedSession._id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (response.ok) {
-        toast({
-          title: 'Success',
-          description: 'Live session updated successfully',
-        });
-        setIsEditModalOpen(false);
-        setSelectedSession(null);
-        fetchSessions();
-      } else {
-        const errorData = await response.json();
-        toast({
-          title: 'Error',
-          description: errorData.message || 'Failed to update session',
-          variant: 'destructive'
-        });
-      }
-    } catch (error) {
-      console.error('Error updating session:', error);
-      toast({
-        title: 'Error',
-        description: 'An error occurred while updating session',
-        variant: 'destructive'
-      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDelete = async (sessionId: string) => {
-    if (!confirm('Are you sure you want to delete this session?')) return;
+    if (!confirm('Remove this live session from Edu OTT?')) return;
 
     try {
-      const token = localStorage.getItem('authToken');
       const response = await fetch(`${API_BASE_URL}/api/streams/${sessionId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: authHeaders(),
       });
-
       if (response.ok) {
-        toast({
-          title: 'Success',
-          description: 'Live session deleted successfully',
-        });
+        toast({ title: 'Removed', description: 'Live session deleted' });
         fetchSessions();
       } else {
-        const errorData = await response.json();
+        const payload = await response.json();
         toast({
           title: 'Error',
-          description: errorData.message || 'Failed to delete session',
-          variant: 'destructive'
+          description: payload.message || 'Failed to delete session',
+          variant: 'destructive',
         });
       }
     } catch (error) {
@@ -273,106 +349,20 @@ export default function LiveSessions() {
       toast({
         title: 'Error',
         description: 'An error occurred while deleting session',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     }
   };
 
-  const handleStartStream = async (sessionId: string) => {
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/streams/${sessionId}/start`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        toast({
-          title: 'Success',
-          description: 'Stream started successfully',
-        });
-        fetchSessions();
-      } else {
-        const errorData = await response.json();
-        toast({
-          title: 'Error',
-          description: errorData.message || 'Failed to start stream',
-          variant: 'destructive'
-        });
-      }
-    } catch (error) {
-      console.error('Error starting stream:', error);
-      toast({
-        title: 'Error',
-        description: 'An error occurred while starting stream',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const handleStopStream = async (sessionId: string) => {
-    try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch(`${API_BASE_URL}/api/streams/${sessionId}/end`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        toast({
-          title: 'Success',
-          description: 'Stream stopped successfully',
-        });
-        fetchSessions();
-      } else {
-        const errorData = await response.json();
-        toast({
-          title: 'Error',
-          description: errorData.message || 'Failed to stop stream',
-          variant: 'destructive'
-        });
-      }
-    } catch (error) {
-      console.error('Error stopping stream:', error);
-      toast({
-        title: 'Error',
-        description: 'An error occurred while stopping stream',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'live':
-        return 'bg-red-100 text-red-700';
-      case 'scheduled':
-        return 'bg-blue-100 text-blue-700';
-      case 'ended':
-        return 'bg-gray-100 text-gray-700';
-      case 'cancelled':
-        return 'bg-orange-100 text-orange-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
-  };
-
-  const filteredSessions = sessions.filter(session => {
-    const matchesSearch = session.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      session.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || session.status === filterStatus;
-    return matchesSearch && matchesStatus;
+  const filteredSessions = sessions.filter((session) => {
+    const names = sessionSchoolNames(session).join(' ');
+    const haystack = `${session.title} ${session.description || ''} ${names}`.toLowerCase();
+    return haystack.includes(searchTerm.toLowerCase());
   });
 
   if (isLoading) {
     return (
-      <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+      <div className="space-y-4">
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-96 w-full" />
       </div>
@@ -380,384 +370,247 @@ export default function LiveSessions() {
   }
 
   return (
-    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 lg:space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Live Sessions</h1>
-          <p className="text-gray-600 mt-1">Manage and monitor live streaming sessions</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Edu OTT — Live Sessions</h1>
+          <p className="text-gray-600 mt-1">
+            Paste an unlisted YouTube Live link. Assign one or more schools — users watch inside AsliLearn.
+          </p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)} className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white">
-          <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-          Create Session
+        <Button
+          onClick={openCreateModal}
+          className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Live Session
         </Button>
       </div>
 
-      {/* Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
-                <Input
-                  placeholder="Search sessions..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="px-0 pl-10 sm:pl-11"
-                />
-              </div>
-            </div>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-48">
-                <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="scheduled">Scheduled</SelectItem>
-                <SelectItem value="live">Live</SelectItem>
-                <SelectItem value="ended">Ended</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              placeholder="Search by session or school..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
           </div>
         </CardContent>
       </Card>
 
-      {/* Sessions Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Sessions ({filteredSessions.length})</CardTitle>
-          <CardDescription>View and manage all live streaming sessions</CardDescription>
+          <CardTitle>All Live Sessions ({filteredSessions.length})</CardTitle>
+          <CardDescription>
+            Manage YouTube Live sessions assigned to schools in Edu OTT
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {filteredSessions.length === 0 ? (
             <div className="text-center py-12">
               <Video className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Sessions Found</h3>
-              <p className="text-gray-500">Create a new live session to get started</p>
+              <h3 className="text-lg font-semibold text-gray-600 mb-2">No live sessions yet</h3>
+              <p className="text-gray-500">Add a YouTube Live link for one or more schools to get started</p>
             </div>
           ) : (
-            <Table>
+            <div className="overflow-x-auto -mx-1 px-1">
+            <Table className="min-w-[880px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Streamer</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead>Class</TableHead>
-                  <TableHead>Viewers</TableHead>
-                  <TableHead>Scheduled</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="min-w-[200px]">Session</TableHead>
+                  <TableHead className="min-w-[180px]">Schools</TableHead>
+                  <TableHead className="whitespace-nowrap">Visible to</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredSessions.map((session) => (
-                  <TableRow key={session._id}>
-                    <TableCell className="font-medium">{session.title}</TableCell>
-                    <TableCell>
-                      {session.streamer?.fullName || session.streamer?.email || 'Unknown'}
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(session.status)}>
-                        {session.status.toUpperCase()}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {session.subject?.name || 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      {session.classNumber || 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Eye className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
-                        {session.viewerCount || 0}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {session.scheduledTime 
-                        ? new Date(session.scheduledTime).toLocaleString()
-                        : 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {session.status === 'scheduled' && (
+                {filteredSessions.map((session) => {
+                  const names = sessionSchoolNames(session);
+                  return (
+                    <TableRow key={session._id} className="align-top">
+                      <TableCell className="max-w-[280px]">
+                        <div className="font-medium text-gray-900">{session.title}</div>
+                        {session.youtubeUrl ? (
+                          <a
+                            href={session.youtubeUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1 block text-xs text-sky-600 hover:underline truncate"
+                            title={session.youtubeUrl}
+                          >
+                            {session.youtubeUrl}
+                          </a>
+                        ) : null}
+                        {session.description ? (
+                          <p className="mt-1 text-xs text-gray-500 line-clamp-2">{session.description}</p>
+                        ) : null}
+                      </TableCell>
+                      <TableCell>
+                        <SchoolsCell names={names} />
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <Badge variant="outline">
+                          {VISIBILITY_LABELS[session.visibility] || session.visibility || 'Both'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleStartStream(session._id)}
+                            onClick={() => openEditModal(session)}
+                            aria-label="Edit session"
                           >
-                            <Play className="w-3 h-3 sm:w-4 sm:h-4" />
+                            <Pencil className="w-4 h-4" />
                           </Button>
-                        )}
-                        {session.status === 'live' && (
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handleStopStream(session._id)}
+                            onClick={() => handleDelete(session._id)}
+                            aria-label="Delete session"
                           >
-                            <Square className="w-3 h-3 sm:w-4 sm:h-4" />
+                            <Trash2 className="w-4 h-4" />
                           </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedSession(session);
-                            setFormData({
-                              title: session.title,
-                              description: session.description || '',
-                              scheduledTime: session.scheduledTime ? new Date(session.scheduledTime).toISOString().slice(0, 16) : '',
-                              subject: session.subject?._id || '',
-                              board: session.board || '',
-                              classNumber: session.classNumber || '',
-                              isRecorded: session.isRecorded,
-                              chatEnabled: session.chatEnabled
-                            });
-                            setIsEditModalOpen(true);
-                          }}
-                        >
-                          <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDelete(session._id)}
-                        >
-                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Create Modal */}
-      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="max-w-2xl">
+      <Dialog open={isModalOpen} onOpenChange={handleModalOpenChange}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create Live Session</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Radio className="w-5 h-5 text-red-500" />
+              {editingSessionId ? 'Edit Live Session' : 'Add Live Session'}
+            </DialogTitle>
             <DialogDescription>
-              Create a new live streaming session
+              Stream on YouTube Live (unlisted), then paste the watch or embed link here.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="title">Title *</Label>
-              <Input
-                id="title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Enter session title"
-              />
-            </div>
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Enter session description"
-                rows={3}
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="scheduledTime">Scheduled Time</Label>
-                <Input
-                  id="scheduledTime"
-                  type="datetime-local"
-                  value={formData.scheduledTime}
-                  onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="subject">Subject</Label>
-                <Select value={formData.subject} onValueChange={(value) => setFormData({ ...formData, subject: value })}>
-                  <SelectTrigger id="subject">
-                    <SelectValue placeholder="Select subject" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subjects.map((subject) => (
-                      <SelectItem key={subject._id} value={subject._id}>
-                        {subject.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="board">Board</Label>
-                <Select value={formData.board} onValueChange={(value) => setFormData({ ...formData, board: value })}>
-                  <SelectTrigger id="board">
-                    <SelectValue placeholder="Select board" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ASLI_EXCLUSIVE_SCHOOLS">Asli Exclusive Schools</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="classNumber">Class Number</Label>
-                <Input
-                  id="classNumber"
-                  value={formData.classNumber}
-                  onChange={(e) => setFormData({ ...formData, classNumber: e.target.value })}
-                  placeholder="e.g., 10, 11, 12"
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="isRecorded"
-                  checked={formData.isRecorded}
-                  onChange={(e) => setFormData({ ...formData, isRecorded: e.target.checked })}
-                  className="rounded"
-                />
-                <Label htmlFor="isRecorded">Record Session</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="chatEnabled"
-                  checked={formData.chatEnabled}
-                  onChange={(e) => setFormData({ ...formData, chatEnabled: e.target.checked })}
-                  className="rounded"
-                />
-                <Label htmlFor="chatEnabled">Enable Chat</Label>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreate} disabled={!formData.title || !formData.subject || !formData.board || !formData.scheduledTime} className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white">
-              Create Session
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
-      {/* Edit Modal */}
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Edit Live Session</DialogTitle>
-            <DialogDescription>
-              Update live session details
-            </DialogDescription>
-          </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="edit-title">Title *</Label>
+              <Label htmlFor="live-title">Live session name *</Label>
               <Input
-                id="edit-title"
+                id="live-title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Enter session title"
+                placeholder="e.g. Class 10 Maths — Live Doubt Session"
               />
             </div>
+
             <div>
-              <Label htmlFor="edit-description">Description</Label>
+              <Label htmlFor="live-youtube">YouTube Live link *</Label>
+              <Input
+                id="live-youtube"
+                value={formData.youtubeUrl}
+                onChange={(e) => setFormData({ ...formData, youtubeUrl: e.target.value })}
+                placeholder="https://www.youtube.com/watch?v=... or embed URL"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label>Schools * ({formData.schoolAdminIds.length} selected)</Label>
+                <div className="flex gap-2">
+                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={selectAllSchools}>
+                    Select all
+                  </Button>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={clearSchools}>
+                    Clear
+                  </Button>
+                </div>
+              </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                <Input
+                  value={schoolPickerSearch}
+                  onChange={(e) => setSchoolPickerSearch(e.target.value)}
+                  placeholder="Search schools..."
+                  className="pl-9 h-9"
+                />
+              </div>
+              <div className="rounded-md border max-h-48 overflow-y-auto divide-y">
+                {filteredSchoolOptions.length === 0 ? (
+                  <p className="p-3 text-sm text-gray-500 text-center">No schools found</p>
+                ) : (
+                  filteredSchoolOptions.map((school) => {
+                    const checked = formData.schoolAdminIds.includes(school.id);
+                    return (
+                      <label
+                        key={school.id}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-sky-50/80',
+                          checked && 'bg-sky-50'
+                        )}
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(value) => toggleSchool(school.id, value === true)}
+                        />
+                        <span className="text-sm font-medium text-gray-800">{school.schoolName}</span>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            <div>
+              <Label>Who can see this session? *</Label>
+              <Select
+                value={formData.visibility}
+                onValueChange={(value: 'teacher' | 'student' | 'both') =>
+                  setFormData({ ...formData, visibility: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="teacher">Teachers only</SelectItem>
+                  <SelectItem value="student">Students only</SelectItem>
+                  <SelectItem value="both">Teachers & Students</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="live-description">Description (optional)</Label>
               <Textarea
-                id="edit-description"
+                id="live-description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Enter session description"
-                rows={3}
+                rows={2}
+                placeholder="Short note for teachers/students"
               />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit-scheduledTime">Scheduled Time</Label>
-                <Input
-                  id="edit-scheduledTime"
-                  type="datetime-local"
-                  value={formData.scheduledTime}
-                  onChange={(e) => setFormData({ ...formData, scheduledTime: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-subject">Subject</Label>
-                <Select value={formData.subject} onValueChange={(value) => setFormData({ ...formData, subject: value })}>
-                  <SelectTrigger id="edit-subject">
-                    <SelectValue placeholder="Select subject" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subjects.map((subject) => (
-                      <SelectItem key={subject._id} value={subject._id}>
-                        {subject.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit-board">Board</Label>
-                <Select value={formData.board} onValueChange={(value) => setFormData({ ...formData, board: value })}>
-                  <SelectTrigger id="edit-board">
-                    <SelectValue placeholder="Select board" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ASLI_EXCLUSIVE_SCHOOLS">Asli Exclusive Schools</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="edit-classNumber">Class Number</Label>
-                <Input
-                  id="edit-classNumber"
-                  value={formData.classNumber}
-                  onChange={(e) => setFormData({ ...formData, classNumber: e.target.value })}
-                  placeholder="e.g., 10, 11, 12"
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="edit-isRecorded"
-                  checked={formData.isRecorded}
-                  onChange={(e) => setFormData({ ...formData, isRecorded: e.target.checked })}
-                  className="rounded"
-                />
-                <Label htmlFor="edit-isRecorded">Record Session</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="edit-chatEnabled"
-                  checked={formData.chatEnabled}
-                  onChange={(e) => setFormData({ ...formData, chatEnabled: e.target.checked })}
-                  className="rounded"
-                />
-                <Label htmlFor="edit-chatEnabled">Enable Chat</Label>
-              </div>
-            </div>
           </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+            <Button variant="outline" onClick={() => handleModalOpenChange(false)}>
               Cancel
             </Button>
-            <Button onClick={handleUpdate}>Update Session</Button>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
+            >
+              {isSaving ? 'Saving...' : editingSessionId ? 'Update' : 'Save'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
-

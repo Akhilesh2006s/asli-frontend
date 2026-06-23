@@ -26,6 +26,8 @@ import { API_BASE_URL } from '@/lib/api-config';
 import { getVideoDisplayTitle } from '@/lib/video-chapter-schedule';
 import { EduOTTVideoCard, EduOTTSubjectBadges } from '@/components/eduott/EduOTTVideoCard';
 import { EduOTTVideoPlayerDialog } from '@/components/eduott/EduOTTVideoPlayerDialog';
+import { EduOTTLiveSessionDialog } from '@/components/eduott/EduOTTLiveSessionDialog';
+import { EduOTTJoinSessionButton } from '@/components/eduott/EduOTTJoinSessionButton';
 import type { EduOTTVideoCardItem } from '@/components/eduott/EduOTTVideoCard';
 import { resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -63,6 +65,9 @@ interface LiveSession {
   status: 'scheduled' | 'live' | 'ended' | 'cancelled';
   streamUrl?: string;
   hlsUrl?: string;
+  playbackUrl?: string;
+  youtubeUrl?: string;
+  youtubeEmbedUrl?: string;
   scheduledTime?: string;
   scheduledStartTime?: string;
   subject?: {
@@ -88,6 +93,7 @@ export default function AdminEduOTT() {
   const [sessionClassFilter, setSessionClassFilter] = useState<string>('all');
   const [sessionSubjectFilter, setSessionSubjectFilter] = useState<string>('all');
   const [selectedVideo, setSelectedVideo] = useState<EduOTTVideoCardItem | null>(null);
+  const [selectedLiveSession, setSelectedLiveSession] = useState<LiveSession | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
 
   useEffect(() => {
@@ -578,17 +584,10 @@ export default function AdminEduOTT() {
                             )}
                           </div>
                         </div>
-                        {session.status === 'live' && session.hlsUrl && (
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              window.open(session.hlsUrl, '_blank');
-                            }}
-                          >
-                            <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                            Watch Live
-                          </Button>
-                        )}
+                        <EduOTTJoinSessionButton
+                          session={session}
+                          onJoin={setSelectedLiveSession}
+                        />
                       </div>
                     </CardContent>
                   </Card>
@@ -604,6 +603,13 @@ export default function AdminEduOTT() {
         open={!!selectedVideo}
         onOpenChange={(open) => {
           if (!open) setSelectedVideo(null);
+        }}
+      />
+      <EduOTTLiveSessionDialog
+        session={selectedLiveSession}
+        open={!!selectedLiveSession}
+        onOpenChange={(open) => {
+          if (!open) setSelectedLiveSession(null);
         }}
       />
     </div>

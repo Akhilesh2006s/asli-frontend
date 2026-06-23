@@ -14,7 +14,8 @@ function shouldIgnoreUrlForSessionExpiry(urlString: string): boolean {
     return (
       p === "/api/auth/login" ||
       p === "/api/auth/register" ||
-      p === "/api/auth/logout"
+      p === "/api/auth/logout" ||
+      /\/api\/streams\/[^/]+\/join$/.test(p)
     );
   } catch {
     return false;

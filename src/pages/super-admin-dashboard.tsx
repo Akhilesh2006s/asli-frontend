@@ -16,6 +16,7 @@ const AiToolTopicsManagement = lazy(() => import("@/components/super-admin/ai-to
 const SuperAdminAiGenerator = lazy(() => import("@/components/super-admin/ai-generator"));
 const BookKnowledgeBase = lazy(() => import("@/components/super-admin/book-knowledge-base"));
 const BookBasedGenerator = lazy(() => import("@/components/super-admin/book-based-generator"));
+const LiveSessions = lazy(() => import("@/components/super-admin/live-sessions"));
 const SubscriptionManagement = lazy(() => import("@/components/super-admin/subscription-management"));
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1025,6 +1026,12 @@ export default function SuperAdminDashboard() {
         return (
           <Suspense fallback={lazySectionFallback}>
             <SubjectContentManagement />
+          </Suspense>
+        );
+      case 'edu-ott-live':
+        return (
+          <Suspense fallback={lazySectionFallback}>
+            <LiveSessions />
           </Suspense>
         );
       case 'content':
