@@ -48,7 +48,7 @@ import { ConceptMasteryViewer } from '@/components/concept-mastery-viewer';
 import { LessonPlannerViewer } from '@/components/lesson-planner-viewer';
 import { ActivityProjectViewer } from '@/components/activity-project-viewer';
 import { StoryPassageViewer } from '@/components/story-passage-viewer';
-import { ExamQuestionPaperViewer } from '@/components/exam-question-paper-viewer';
+import { resolveStudentAiApiToolType } from '@/lib/student-ai-tool-routes';
 import { MockTestViewer } from '@/components/mock-test-viewer';
 import { SmartStudyGuideViewer } from '@/components/smart-study-guide-viewer';
 import { ConceptBreakdownViewer } from '@/components/concept-breakdown-viewer';
@@ -683,28 +683,12 @@ export default function StudentToolPage() {
   })();
 
   const toolType = params?.toolType || '';
-  const isProjectIdeaLab =
-    toolType === 'project-idea-lab' || toolType === 'activity-project-generator';
-  const isStudySchedule =
-    toolType === 'study-schedule-maker' || toolType === 'lesson-planner';
-  const isReadingPractice =
-    toolType === 'reading-practice-room' || toolType === 'story-passage-creator';
-  const apiToolType =
-    toolType === 'activity-project-generator'
-      ? 'project-idea-lab'
-      : toolType === 'lesson-planner'
-        ? 'study-schedule-maker'
-        : toolType === 'story-passage-creator'
-          ? 'reading-practice-room'
-          : toolType === 'flashcard-generator'
-            ? 'my-study-decks'
-            : toolType === 'exam-question-paper-generator'
-              ? 'mock-test-builder'
-              : toolType;
-  const isMyStudyDecks =
-    toolType === 'my-study-decks' || toolType === 'flashcard-generator';
-  const isMockTest =
-    toolType === 'mock-test-builder' || toolType === 'exam-question-paper-generator';
+  const apiToolType = resolveStudentAiApiToolType(toolType);
+  const isProjectIdeaLab = apiToolType === 'project-idea-lab';
+  const isStudySchedule = apiToolType === 'study-schedule-maker';
+  const isReadingPractice = apiToolType === 'reading-practice-room';
+  const isMyStudyDecks = apiToolType === 'my-study-decks';
+  const isMockTest = apiToolType === 'mock-test-builder';
 
   const subjectsForTool = useMemo(
     () => filterSubjectsForAiTool(apiToolType, availableSubjects),
@@ -2218,16 +2202,10 @@ export default function StudentToolPage() {
                       rawData={rawGeneratedContent}
                       variant="student"
                     />
-                  ) : toolType === 'mock-test-builder' ? (
+                  ) : isMockTest ? (
                     <MockTestViewer
                       content={displayGeneratedContent}
                       rawContent={rawGeneratedContent}
-                    />
-                  ) : toolType === 'exam-question-paper-generator' ? (
-                    <ExamQuestionPaperViewer
-                      content={displayGeneratedContent}
-                      rawContent={rawGeneratedContent}
-                      variant="teacher"
                     />
                   ) : isSmartStudyGuide ? (
                     <SmartStudyGuideViewer

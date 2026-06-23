@@ -32,7 +32,7 @@ function labelEmpty(v?: string) {
   return !v || v.trim() === "" ? "(None)" : v;
 }
 
-function formatRecordPath(row: SectionGapPathRow) {
+export function formatRecordPath(row: SectionGapPathRow) {
   return [
     { label: "Class", value: labelEmpty(row.classLabel) },
     { label: "Subject", value: labelEmpty(row.subject) },

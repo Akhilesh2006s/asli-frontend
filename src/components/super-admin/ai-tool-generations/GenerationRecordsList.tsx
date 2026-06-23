@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Calendar, Eye, Pencil, Trash2 } from "lucide-react";
+import { Loader2, Calendar, Eye, Pencil, Trash2, FileDown } from "lucide-react";
 import {
   fetchDocument,
   updateDocument,
@@ -15,42 +15,25 @@ import { useToast } from "@/hooks/use-toast";
 import {
   displayMcqQuestionSerial,
   extractMcqQuestionsFromRecord,
-  examPaperRecordListPreview,
   isMcqTool,
   isStructuredPaperTool,
   isWorksheetMcqTool,
-  mockTestRecordListPreview,
-  isExamQuestionPaperTool,
-  isMockTestTool,
-  worksheetRecordListPreview,
   type McqQuestion,
 } from "@/lib/mcq-record-utils";
-import { GeneratedRecordBody } from "@/components/super-admin/generated-record-body";
-import { ExamQuestionPaperViewer } from "@/components/exam-question-paper-viewer";
-import { MockTestViewer, mockTestViewerPayloadFromRecord } from "@/components/mock-test-viewer";
-import { HomeworkCreatorViewer } from "@/components/homework-creator-viewer";
-import { LessonPlannerViewer } from "@/components/lesson-planner-viewer";
-import { DailyClassPlanViewer } from "@/components/daily-class-plan-viewer";
-import { StoryPassageViewer } from "@/components/story-passage-viewer";
-import { ShortNotesViewer } from "@/components/short-notes-viewer";
-import { WorksheetMcqViewer } from "@/components/worksheet-mcq-viewer";
 import {
-  ActivityProjectViewer,
-  activityViewerPayloadFromRecord,
-} from "@/components/activity-project-viewer";
-import { isActivityToolSlug, normalizeAiToolSlug } from "@/lib/normalize-ai-tool-slug";
+  SectionGapFlagPanel,
+  recordHasSectionGap,
+  formatRecordPath,
+} from "./SectionGapFlagPanel";
+import { GeneratorRecordViewer } from "@/components/super-admin/generator-record-viewer";
+import { AiToolRecordPreviewBody } from "@/components/super-admin/ai-tool-record-preview-body";
+import { normalizeAiToolSlug } from "@/lib/normalize-ai-tool-slug";
 import {
-  PracticeQaViewer,
-  practiceQaViewerPayloadFromRecord,
-} from "@/components/practice-qa-viewer";
-import {
-  ConceptMasteryViewer,
-  conceptMasteryViewerPayloadFromRecord,
-} from "@/components/concept-mastery-viewer";
-import {
-  countPracticeQaQuestions,
-  resolvePracticeQaFromPayload,
-} from "@/lib/parse-practice-qa";
+  recordGenerationVariant,
+  recordVariantAngle,
+} from "@/lib/ai-tool-record-list-preview";
+import { openAiToolRecordPdf } from "@/lib/ai-tool-record-pdf";
+import { sortAiToolRecordsByVariantThenDate } from "@/lib/ai-tool-record-sort";
 
 function questionsToStructuredPayload(questions: McqQuestion[]) {
   return questions.map((q) => ({
@@ -75,74 +58,6 @@ function toEditablePlainText(content: string) {
     .trim();
 }
 
-function isWorksheetToolValue(v: unknown): boolean {
-  const t = String(v || "").trim().toLowerCase();
-  return t === "worksheet-mcq-generator" || (t.includes("worksheet") && t.includes("mcq"));
-}
-
-function isLessonPlannerToolValue(v: unknown): boolean {
-  const t = String(v || "").trim().toLowerCase();
-  return t === "lesson-planner" || t === "study-schedule-maker";
-}
-
-function isDailyClassPlanToolValue(v: unknown): boolean {
-  const t = String(v || "").trim().toLowerCase();
-  return t === "daily-class-plan-maker";
-}
-
-function isHomeworkCreatorToolValue(v: unknown): boolean {
-  const t = String(v || "").trim().toLowerCase();
-  return t === "homework-creator";
-}
-
-function isStoryPassageToolValue(v: unknown): boolean {
-  const t = String(v || "").trim().toLowerCase();
-  return t === "story-passage-creator" || t === "reading-practice-room";
-}
-
-function isShortNotesToolValue(v: unknown): boolean {
-  const t = String(v || "").trim().toLowerCase();
-  return t === "short-notes-summaries-maker";
-}
-
-function isActivityToolValue(v: unknown): boolean {
-  return isActivityToolSlug(v);
-}
-
-function isPracticeQaToolValue(v: unknown): boolean {
-  return normalizeAiToolSlug(v) === "smart-qa-practice-generator";
-}
-
-function isConceptMasteryToolValue(v: unknown): boolean {
-  return normalizeAiToolSlug(v) === "concept-mastery-helper";
-}
-
-function practiceQaRecordListPreview(row: RecordRow): string {
-  const payload = practiceQaViewerPayloadFromRecord({
-    content: String(row.content || row.preview || ""),
-    generatedContent: String(row.content || row.preview || ""),
-    metadata: row.metadata,
-  });
-  const { practice, markdownFallback } = resolvePracticeQaFromPayload(
-    payload.content,
-    payload.rawContent,
-  );
-  if (practice) {
-    const title = String(practice.title || "").trim();
-    const count = countPracticeQaQuestions(practice);
-    const firstQ = practice.sections
-      .flatMap((section) => section.questions)
-      .find((question) => String(question.question || "").trim());
-    if (firstQ) {
-      const line = `Q${firstQ.questionNumber || 1}. ${String(firstQ.question).trim()}`;
-      return title ? `${title} — ${line}` : line;
-    }
-    if (title) return count ? `${title} · ${count} questions` : title;
-  }
-  if (markdownFallback) return toEditablePlainText(markdownFallback).slice(0, 240);
-  return toEditablePlainText(String(row.content || row.preview || "")).slice(0, 240);
-}
-
 function isBookGroundedRow(row: RecordRow): boolean {
   if (row.sourceType === "book_rag") return true;
   const meta = row.metadata;
@@ -150,25 +65,26 @@ function isBookGroundedRow(row: RecordRow): boolean {
   return Boolean(meta.bookGenerator) || meta.formatSource === "bookRag";
 }
 
-function structuredContentFromViewDetail(
-  detail: Record<string, unknown> | null | undefined,
-): unknown {
-  if (!detail) return undefined;
-  if (detail.structuredContent != null) return detail.structuredContent;
-  const metadata = detail.metadata;
-  if (metadata && typeof metadata === "object") {
-    return (metadata as Record<string, unknown>).structuredContent;
-  }
-  return undefined;
+function buildViewRecord(
+  row: RecordRow | null,
+  detail: Record<string, unknown> | null,
+  fullText: string | null,
+  defaultToolName: string,
+): Record<string, unknown> {
+  const toolName = normalizeAiToolSlug(
+    String(detail?.toolName || row?.toolName || defaultToolName || ""),
+  );
+  const text = String(detail?.content || detail?.generatedContent || fullText || row?.content || "");
+  return {
+    ...(detail || {}),
+    toolName,
+    toolSlug: toolName,
+    content: text,
+    generatedContent: String(detail?.generatedContent || text),
+    metadata: detail?.metadata ?? row?.metadata,
+  };
 }
 
-function viewDetailRawContent(detail: Record<string, unknown> | null | undefined): unknown {
-  return structuredContentFromViewDetail(detail) ?? detail;
-}
-import {
-  SectionGapFlagPanel,
-  recordHasSectionGap,
-} from "./SectionGapFlagPanel";
 export type GenerationRecordsListProps = {
   items: RecordRow[];
   defaultToolName?: string;
@@ -330,6 +246,18 @@ export function GenerationRecordsList({
     }
   };
 
+  const openPdf = async (row: RecordRow) => {
+    try {
+      await openAiToolRecordPdf(row._id);
+    } catch (error: unknown) {
+      toast({
+        title: "PDF failed",
+        description: error instanceof Error ? error.message : "Could not generate PDF.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-12 text-slate-500">
@@ -350,50 +278,63 @@ export function GenerationRecordsList({
   return (
     <>
       <ul className="space-y-3">
-        {items.map((row) => {
+        {sortAiToolRecordsByVariantThenDate(items).map((row) => {
           const toolSlug = normalizeAiToolSlug(resolveToolName(row));
-          const isWorksheet = isWorksheetMcqTool(toolSlug);
-          const isPracticeQa = isPracticeQaToolValue(toolSlug);
-          const isExamPaper = isExamQuestionPaperTool(toolSlug);
-          const isMockTest = isMockTestTool(toolSlug);
-          const mcqQs =
-            isMcqTool(toolSlug) && !isWorksheet && !isPracticeQa && !isStructuredPaperTool(toolSlug)
-              ? recordMcqQuestions(row)
-              : [];
-          const previewText = isWorksheet
-            ? worksheetRecordListPreview(row)
-            : isPracticeQa
-              ? practiceQaRecordListPreview(row)
-              : isExamPaper
-                ? examPaperRecordListPreview(row)
-                : isMockTest
-                  ? mockTestRecordListPreview(row)
-                  : toEditablePlainText(String(row.content || row.preview || ""));
+          const generationVariant = recordGenerationVariant(row);
+          const variantAngle = recordVariantAngle(row);
           const hasGap = recordHasSectionGap(row);
+          const previewRecord = {
+            toolName: toolSlug,
+            toolSlug,
+            content: String(row.content || row.preview || ""),
+            generatedContent: String(row.content || row.preview || ""),
+            preview: row.preview,
+            metadata: row.metadata,
+            generationVariant,
+            variantAngle,
+          };
           return (
             <li
               key={row._id}
               className="group rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm transition-all hover:border-orange-200/80 hover:shadow-md"
             >
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
-                  <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                  {row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"}
-                </span>
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <Badge variant="outline" className="text-[10px]">
-                    {row.board || "—"}
-                  </Badge>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                    {row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"}
+                  </span>
+                  {row.board ? (
+                    <Badge variant="outline" className="text-[10px] h-5">
+                      {row.board}
+                    </Badge>
+                  ) : null}
                   {isBookGroundedRow(row) ? (
                     <Badge
                       variant="outline"
-                      className="text-[10px] border-violet-200 text-violet-800 bg-violet-50"
+                      className="text-[10px] h-5 border-violet-200 text-violet-800 bg-violet-50"
                     >
                       Book-based
                       {typeof row.metadata?.bookTitle === "string" && row.metadata.bookTitle
                         ? ` · ${row.metadata.bookTitle}`
                         : ""}
                     </Badge>
+                  ) : null}
+                  {generationVariant ? (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] h-5 border-orange-200 text-orange-800 bg-orange-50"
+                    >
+                      Variant {generationVariant}
+                    </Badge>
+                  ) : null}
+                  {variantAngle ? (
+                    <span
+                      className="text-[10px] text-slate-500 max-w-[220px] truncate"
+                      title={variantAngle}
+                    >
+                      {variantAngle}
+                    </span>
                   ) : null}
                 </div>
                 <div className="flex items-center gap-1">
@@ -425,6 +366,15 @@ export function GenerationRecordsList({
                     <Trash2 className="h-3.5 w-3.5 mr-1.5" />
                     {deletingId === row._id ? "Deleting..." : "Delete"}
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 text-xs rounded-lg text-slate-700 hover:text-slate-900 hover:bg-slate-100"
+                    onClick={() => void openPdf(row)}
+                  >
+                    <FileDown className="h-3.5 w-3.5 mr-1.5" />
+                    PDF
+                  </Button>
                 </div>
               </div>
 
@@ -449,65 +399,13 @@ export function GenerationRecordsList({
 
               {renderRowExtras ? <div className="mb-3">{renderRowExtras(row)}</div> : null}
 
-              {mcqQs.length > 0 ? (
-                <div className="space-y-3">
-                  {mcqQs.map((q, qIdx) => (
-                    <div
-                      key={`${row._id}-mcq-${qIdx}`}
-                      className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-xs sm:text-sm font-medium text-slate-900 leading-relaxed flex-1">
-                          Q{displayMcqQuestionSerial(q, qIdx)}. {q.question}
-                        </p>
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                          disabled={deletingQuestionKey === `${row._id}:${qIdx}`}
-                          onClick={() => removeQuestionFromRecord(row, qIdx)}
-                          aria-label="Delete question"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                      {q.options.length > 0 ? (
-                        <ul className="mt-3 space-y-2.5 pl-0.5">
-                          {q.options.map((opt, j) => (
-                            <li
-                              key={j}
-                              className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700"
-                            >
-                              <span
-                                className="mt-1.5 h-3.5 w-3.5 rounded-full border border-slate-400 shrink-0 bg-white"
-                                aria-hidden
-                              />
-                              <span>{opt}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                      {q.answer ? (
-                        <p className="mt-3 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-2 py-1">
-                          <span className="font-semibold">Answer:</span> {q.answer}
-                        </p>
-                      ) : null}
-                      {q.explanation ? (
-                        <p className="mt-2 text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
-                          <span className="font-semibold">Explanation:</span> {q.explanation}
-                        </p>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 shadow-sm">
-                  <p className="text-xs sm:text-sm text-slate-700 line-clamp-4 leading-relaxed">
-                    {previewText}
-                  </p>
-                </div>
-              )}
+              <AiToolRecordPreviewBody
+                toolSlug={toolSlug}
+                record={previewRecord}
+                recordId={row._id}
+                deletingQuestionKey={deletingQuestionKey}
+                onDeleteQuestion={(questionIndex) => void removeQuestionFromRecord(row, questionIndex)}
+              />
             </li>
           );
         })}
@@ -532,144 +430,24 @@ export function GenerationRecordsList({
             </div>
           ) : (
             (() => {
-              const dialogQs = viewDetail
-                ? extractMcqQuestionsFromRecord({
-                    toolName: normalizeAiToolSlug(
-                      viewDetail.toolName || view?.toolName || defaultToolName || "",
-                    ),
-                    content: String(viewDetail.content || fullText || ""),
-                    generatedContent: String(
-                      viewDetail.generatedContent || viewDetail.content || fullText || "",
-                    ),
-                    metadata: viewDetail.metadata,
-                  })
-                : [];
+              const viewRecord = buildViewRecord(view, viewDetail, fullText, defaultToolName);
               const resolvedTool = normalizeAiToolSlug(
-                viewDetail?.toolName || view?.toolName || defaultToolName || "",
+                String(viewRecord.toolName || viewRecord.toolSlug || defaultToolName || ""),
               );
-              if (isWorksheetToolValue(resolvedTool)) {
-                return (
-                  <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
-                    <WorksheetMcqViewer content={String(fullText || "")} variant="teacher" />
-                  </div>
-                );
-              }
-              if (isLessonPlannerToolValue(resolvedTool)) {
-                const lpToolKind =
-                  String(resolvedTool || "").trim().toLowerCase() === "study-schedule-maker"
-                    ? "study-schedule-maker"
-                    : "lesson-planner";
-                return (
-                  <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
-                    <LessonPlannerViewer
-                      content={String(fullText || "")}
-                      rawContent={viewDetail}
-                      variant={lpToolKind === "study-schedule-maker" ? "student" : "teacher"}
-                      toolKind={lpToolKind}
-                    />
-                  </div>
-                );
-              }
-              if (isDailyClassPlanToolValue(resolvedTool)) {
-                return (
-                  <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
-                    <DailyClassPlanViewer
-                      content={String(fullText || "")}
-                      rawContent={viewDetailRawContent(viewDetail)}
-                      variant="teacher"
-                    />
-                  </div>
-                );
-              }
-              if (isHomeworkCreatorToolValue(resolvedTool)) {
-                return (
-                  <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
-                    <HomeworkCreatorViewer content={String(fullText || "")} rawContent={viewDetail} />
-                  </div>
-                );
-              }
-              if (isStoryPassageToolValue(resolvedTool)) {
-                return (
-                  <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
-                    <StoryPassageViewer content={String(fullText || "")} rawData={viewDetail} />
-                  </div>
-                );
-              }
-              if (isShortNotesToolValue(resolvedTool)) {
-                return (
-                  <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
-                    <ShortNotesViewer
-                      content={String(fullText || "")}
-                      rawContent={viewDetailRawContent(viewDetail)}
-                    />
-                  </div>
-                );
-              }
-              if (isActivityToolValue(resolvedTool)) {
-                return (
-                  <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
-                    <ActivityProjectViewer
-                      {...activityViewerPayloadFromRecord({
-                        ...(viewDetail || {}),
-                        generatedContent: String(fullText || ""),
-                        toolSlug: resolvedTool,
-                      })}
-                    />
-                  </div>
-                );
-              }
-              if (isPracticeQaToolValue(resolvedTool)) {
-                return (
-                  <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
-                    <PracticeQaViewer
-                      {...practiceQaViewerPayloadFromRecord({
-                        ...(viewDetail || {}),
-                        content: String(fullText || ""),
-                        generatedContent: String(fullText || ""),
-                      })}
-                    />
-                  </div>
-                );
-              }
-              if (isConceptMasteryToolValue(resolvedTool)) {
-                return (
-                  <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
-                    <ConceptMasteryViewer
-                      {...conceptMasteryViewerPayloadFromRecord({
-                        ...(viewDetail || {}),
-                        generatedContent: String(fullText || ""),
-                        content: String(fullText || ""),
-                      })}
-                      variant="teacher"
-                    />
-                  </div>
-                );
-              }
-              if (isExamQuestionPaperTool(resolvedTool)) {
-                return (
-                  <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
-                    <ExamQuestionPaperViewer
-                      content={String(fullText || "")}
-                      rawContent={viewDetailRawContent(viewDetail)}
-                      variant="teacher"
-                    />
-                  </div>
-                );
-              }
-              if (isMockTestTool(resolvedTool)) {
-                const mockPayload = mockTestViewerPayloadFromRecord({
-                  ...(viewDetail || {}),
-                  content: String(fullText || ""),
-                  generatedContent: String(fullText || ""),
-                  metadata: viewDetail?.metadata as Record<string, unknown> | undefined,
-                });
-                return (
-                  <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
-                    <MockTestViewer {...mockPayload} />
-                  </div>
-                );
-              }
-              if (dialogQs.length > 0) {
+              const dialogQs = extractMcqQuestionsFromRecord({
+                toolName: resolvedTool,
+                content: String(viewRecord.content || ""),
+                generatedContent: String(viewRecord.generatedContent || ""),
+                metadata: viewRecord.metadata as RecordRow["metadata"],
+              });
+              const isPlainMcq =
+                dialogQs.length > 0 &&
+                isMcqTool(resolvedTool) &&
+                !isWorksheetMcqTool(resolvedTool) &&
+                normalizeAiToolSlug(resolvedTool) !== "smart-qa-practice-generator" &&
+                !isStructuredPaperTool(resolvedTool);
+
+              if (isPlainMcq) {
                 return (
                   <div className="space-y-4 max-h-[min(70vh,620px)] overflow-y-auto pr-1">
                     {dialogQs.map((q, idx) => (
@@ -709,9 +487,10 @@ export function GenerationRecordsList({
                   </div>
                 );
               }
+
               return (
-                <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm max-h-[min(70vh,620px)] overflow-y-auto">
-                  <GeneratedRecordBody content={fullText} toolType={resolvedTool} />
+                <div className="max-h-[min(70vh,620px)] overflow-y-auto pr-1">
+                  <GeneratorRecordViewer record={viewRecord} />
                 </div>
               );
             })()

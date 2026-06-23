@@ -3,6 +3,14 @@
  */
 
 import { renumberSectionQuestionLists } from '@/lib/renumber-questions';
+import {
+  cleanWorksheetQuestionText,
+  filterWorksheetLearningObjectiveLine,
+  isValidWorksheetQuestionInput,
+  isWorksheetHeadingLine,
+  isWorksheetPdfChrome,
+  sanitizeWorksheetOptionLine,
+} from '@/lib/worksheet-question-sanitize';
 
 export type WorksheetQuestion = {
   questionNumber?: number;
@@ -62,14 +70,43 @@ const SECTION_META: Record<
 };
 
 function coalesceLines(v: unknown): string[] {
-  if (Array.isArray(v)) return v.map((x) => String(x ?? '').trim()).filter(Boolean);
+  if (Array.isArray(v)) {
+    return v
+      .map((x) => String(x ?? '').trim())
+      .filter(Boolean)
+      .filter(filterWorksheetLearningObjectiveLine);
+  }
   if (typeof v === 'string' && v.trim()) {
     return v
       .split(/\n+/)
       .map((ln) => ln.replace(/^\s*[-*•]\s*|\s*\d+[\).\s]+/i, '').trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      .filter(filterWorksheetLearningObjectiveLine);
   }
   return [];
+}
+
+function polishWorksheetQuestion(q: WorksheetQuestion): WorksheetQuestion | null {
+  const question = cleanWorksheetQuestionText(q.question);
+  const options = q.options
+    .map((opt) => sanitizeWorksheetOptionLine(opt.replace(/^[A-D][\).]\s*/i, '')))
+    .filter(Boolean)
+    .map((text, idx) => `${String.fromCharCode(65 + idx)}) ${text}`);
+  if (!isValidWorksheetQuestionInput(question, options)) return null;
+  return {
+    ...q,
+    question,
+    options,
+  };
+}
+
+function polishWorksheetSections(sections: WorksheetSection[]): WorksheetSection[] {
+  return sections.map((sec) => ({
+    ...sec,
+    questions: sec.questions
+      .map((q) => polishWorksheetQuestion(q))
+      .filter((q): q is WorksheetQuestion => q != null),
+  }));
 }
 
 function coalesceText(v: unknown): string {
@@ -143,10 +180,16 @@ function renumberWorksheetSectionQuestions(sections: WorksheetSection[]): Worksh
 }
 
 function finalizeNormalizedWorksheet(worksheet: NormalizedWorksheet): NormalizedWorksheet {
-  return {
+  const polished = {
     ...worksheet,
     answerKey: sanitizeWorksheetAnswerKey(worksheet.answerKey),
-    sections: renumberWorksheetSectionQuestions(worksheet.sections),
+    sections: polishWorksheetSections(worksheet.sections),
+    learningObjectives: worksheet.learningObjectives.filter(filterWorksheetLearningObjectiveLine),
+    instructions: isWorksheetHeadingLine(worksheet.instructions) ? '' : worksheet.instructions,
+  };
+  return {
+    ...polished,
+    sections: renumberWorksheetSectionQuestions(polished.sections),
   };
 }
 
@@ -182,10 +225,12 @@ function normalizeOptions(entry: Record<string, unknown>): string[] {
     .map((opt: unknown, idx: number) => {
       const text = stripInlineMarkdown(String(opt || '').trim());
       if (!text) return '';
-      if (/^[A-D][\).]/i.test(text)) {
-        return cleanMcqOptionAnswerBleed(text.replace(/^([A-D])\./i, '$1)'), answer, idx);
+      const cleaned = sanitizeWorksheetOptionLine(text);
+      if (!cleaned) return '';
+      if (/^[A-D][\).]/i.test(cleaned)) {
+        return cleanMcqOptionAnswerBleed(cleaned.replace(/^([A-D])\./i, '$1)'), answer, idx);
       }
-      return cleanMcqOptionAnswerBleed(`${String.fromCharCode(65 + idx)}) ${text}`, answer, idx);
+      return cleanMcqOptionAnswerBleed(`${String.fromCharCode(65 + idx)}) ${cleaned}`, answer, idx);
     })
     .filter(Boolean);
 }
@@ -197,8 +242,12 @@ function toWorksheetQuestions(value: unknown): WorksheetQuestion[] {
   for (const row of rows) {
     if (!row || typeof row !== 'object') continue;
     const entry = row as Record<string, unknown>;
-    const question = stripInlineMarkdown(String(entry.question || entry.prompt || entry.text || '').trim());
+    const question = cleanWorksheetQuestionText(
+      stripInlineMarkdown(String(entry.question || entry.prompt || entry.text || '').trim()),
+    );
     if (!question) continue;
+    const options = normalizeOptions(entry);
+    if (!isValidWorksheetQuestionInput(question, options)) continue;
     const marksRaw = entry.marks ?? entry.mark;
     const marks =
       marksRaw != null && !Number.isNaN(Number(marksRaw)) ? Number(marksRaw) : undefined;
@@ -230,11 +279,11 @@ export function mapSectionName(name: string): string {
   if (/^fill\s*in\s*the\s*blanks?$/i.test(n)) return WORKSHEET_SECTION_ORDER[1];
   if (/^very\s*short\s*answer\s*questions?$/i.test(n)) return WORKSHEET_SECTION_ORDER[2];
   if (/^short\s*answer\s*questions?$/i.test(n) && !/very/i.test(n)) return WORKSHEET_SECTION_ORDER[3];
-  if (/^section\s*a|mcq|multiple\s*choice/i.test(n)) return WORKSHEET_SECTION_ORDER[0];
-  if (/^section\s*b|fill|blank|fib/i.test(n)) return WORKSHEET_SECTION_ORDER[1];
-  if (/^section\s*c|very\s*short|vsa/i.test(n)) return WORKSHEET_SECTION_ORDER[2];
-  if (/^section\s*d|short\s*answer/i.test(n) && !/very/i.test(n)) return WORKSHEET_SECTION_ORDER[3];
-  if (/^section\s*[ef]|competency|real[\s-]*life|application/i.test(n)) return WORKSHEET_SECTION_ORDER[4];
+  if (/^(?:section\s*a\b|mcqs?|multiple\s*choice)/i.test(n)) return WORKSHEET_SECTION_ORDER[0];
+  if (/^(?:section\s*b\b|fill|blank|fib)/i.test(n)) return WORKSHEET_SECTION_ORDER[1];
+  if (/^(?:section\s*c\b|very\s*short|vsa)/i.test(n)) return WORKSHEET_SECTION_ORDER[2];
+  if (/^(?:section\s*d\b|short\s*answer)/i.test(n) && !/very/i.test(n)) return WORKSHEET_SECTION_ORDER[3];
+  if (/^(?:section\s*[ef]\b|competency|real[\s-]*life|application)/i.test(n)) return WORKSHEET_SECTION_ORDER[4];
   if ((WORKSHEET_SECTION_ORDER as readonly string[]).includes(n)) return n;
   return n || 'Questions';
 }
@@ -562,23 +611,16 @@ function parseQuestionsFromLines(
       const opts = optionBuf
         .map((l) => l.trim())
         .filter(Boolean)
+        .filter((l) => !isWorksheetHeadingLine(l) && !isWorksheetPdfChrome(l))
         .slice(0, 8)
         .map((l, i) => normalizeOptionLine(l, i))
+        .map((l) => sanitizeWorksheetOptionLine(l))
         .filter(Boolean);
-      // Heuristic: treat as options only if multiple lines (MCQ-style)
       if (opts.length >= 2) current.options = opts;
     }
     optionBuf = [];
-    const qText = current.question.trim();
-    const wordCount = qText.split(/\s+/).filter(Boolean).length;
-    const looksLikeAnswerFragment =
-      !/\?/.test(qText) &&
-      !/_{2,}/.test(qText) &&
-      !/^(what|why|how|which|who|when|where|define|explain|state|list|name|describe|give|write|compare|differentiate|justify|identify|predict|design|plan)\b/i.test(
-        qText,
-      ) &&
-      (wordCount <= 3 || /[,;:]$/.test(qText));
-    if (qText && !looksLikeAnswerFragment) out.push(current);
+    const polished = polishWorksheetQuestion(current);
+    if (polished) out.push(polished);
     current = null;
   };
 
@@ -659,7 +701,8 @@ function parseQuestionsFromLines(
     const labeledOpt = line.match(/^([A-D])\s*[\).:\-]?\s*(.+)$/i);
     if (labeledOpt && current) {
       const normalized = normalizeOptionLine(line, current.options.length);
-      if (normalized) current.options.push(normalized);
+      const cleaned = normalized ? sanitizeWorksheetOptionLine(normalized) : '';
+      if (cleaned) current.options.push(cleaned);
       continue;
     }
 
@@ -668,11 +711,12 @@ function parseQuestionsFromLines(
       if (opts.relaxedNumbered) {
         const bulletMatch = line.match(/^[-*•]\s+(.+)$/);
         if (bulletMatch) {
-          out.push({
+          const polished = polishWorksheetQuestion({
             question: stripInlineMarkdown(String(bulletMatch[1] || '').trim()),
             options: [],
             answer: '',
           });
+          if (polished) out.push(polished);
         }
       }
       continue;
@@ -839,6 +883,18 @@ function mergeWorksheetWithMarkdown(
   });
 }
 
+function worksheetQualityScore(w: NormalizedWorksheet | null): number {
+  if (!w) return 0;
+  let score = countWorksheetQuestions(w) * 10;
+  score += w.learningObjectives.length * 2;
+  if (w.instructions) score += 2;
+  if (w.answerKey) score += 2;
+  for (const sec of w.sections) {
+    if (sec.questions.length > 0) score += 5;
+  }
+  return score;
+}
+
 export function worksheetHasVisibleContent(w: NormalizedWorksheet): boolean {
   return (
     !!w.title ||
@@ -902,25 +958,12 @@ export function resolveWorksheetFromPayload(
       if (!worksheet || !worksheetHasVisibleContent(worksheet)) {
         worksheet = fromMd;
       } else {
-        const baseCount = countWorksheetQuestions(worksheet);
-        const mdCount = countWorksheetQuestions(fromMd);
-        if (baseCount >= mdCount) {
-          worksheet = {
-            ...worksheet,
-            title:
-              !worksheet.title || /^worksheet$/i.test(worksheet.title.trim())
-                ? fromMd.title || worksheet.title
-                : worksheet.title,
-            learningObjectives: worksheet.learningObjectives.length
-              ? worksheet.learningObjectives
-              : fromMd.learningObjectives,
-            instructions: worksheet.instructions || fromMd.instructions,
-            answerKey: worksheet.answerKey || fromMd.answerKey,
-            bloomLevel: worksheet.bloomLevel || fromMd.bloomLevel,
-            difficultyTag: worksheet.difficultyTag || fromMd.difficultyTag,
-          };
-        } else {
+        const baseScore = worksheetQualityScore(worksheet);
+        const mdScore = worksheetQualityScore(fromMd);
+        if (baseScore >= mdScore) {
           worksheet = mergeWorksheetWithMarkdown(worksheet, fromMd);
+        } else {
+          worksheet = mergeWorksheetWithMarkdown(fromMd, worksheet);
         }
       }
     }

@@ -172,6 +172,16 @@ function toSortableStep(stepNum: number | string): number {
 function buildTimelineBlocks(worksheet: NormalizedWorksheet): TimelineBlock[] {
   const blocks: TimelineBlock[] = [];
 
+  if (worksheet.title && !/^worksheet$/i.test(worksheet.title.trim())) {
+    blocks.push({
+      phaseId: 'setup',
+      stepNum: 1,
+      title: 'Worksheet title',
+      icon: ClipboardList,
+      content: <p className="font-medium text-slate-900">{worksheet.title}</p>,
+    });
+  }
+
   if (worksheet.learningObjectives.length > 0) {
     blocks.push({
       phaseId: 'setup',

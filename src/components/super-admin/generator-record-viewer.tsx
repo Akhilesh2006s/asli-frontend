@@ -19,6 +19,14 @@ import {
   ConceptMasteryViewer,
   conceptMasteryViewerPayloadFromRecord,
 } from "@/components/concept-mastery-viewer";
+import {
+  ChapterSummaryViewer,
+  chapterSummaryViewerPayloadFromRecord,
+} from "@/components/chapter-summary-viewer";
+import {
+  QuickAssignmentViewer,
+  quickAssignmentViewerPayloadFromRecord,
+} from "@/components/quick-assignment-viewer";
 
 function isWorksheetToolValue(v: unknown): boolean {
   const t = String(v || "").trim().toLowerCase();
@@ -97,6 +105,12 @@ export function GeneratorRecordViewer({ record }: { record: Record<string, unkno
   }
   if (slug === "key-points-formula-extractor") {
     return <KeyPointsViewer {...keyPointsViewerPayloadFromRecord(record)} />;
+  }
+  if (slug === "chapter-summary-creator") {
+    return <ChapterSummaryViewer {...chapterSummaryViewerPayloadFromRecord(record)} />;
+  }
+  if (slug === "quick-assignment-builder") {
+    return <QuickAssignmentViewer {...quickAssignmentViewerPayloadFromRecord(record)} />;
   }
   if (slug === "short-notes-summaries-maker") {
     return (

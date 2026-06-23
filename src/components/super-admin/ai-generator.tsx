@@ -22,12 +22,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, FileDown, Loader2, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
-import { stripMarkdownSyntax } from "@/lib/strip-markdown-syntax";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
-import { displayMcqQuestionSerial, extractMcqQuestionsFromRecord, isMcqTool, isWorksheetMcqTool, worksheetRecordListPreview } from "@/lib/mcq-record-utils";
 import { GeneratedRecordBody } from "@/components/super-admin/generated-record-body";
+import { AiToolRecordPreviewBody } from "@/components/super-admin/ai-tool-record-preview-body";
+import {
+  recordGenerationVariant,
+  recordVariantAngle,
+} from "@/lib/ai-tool-record-list-preview";
+import { openAiToolRecordPdf } from "@/lib/ai-tool-record-pdf";
+import { sortAiToolRecordsByVariantThenDate } from "@/lib/ai-tool-record-sort";
 import { FlashcardViewer } from "@/components/flashcard-viewer";
 import {
   MyStudyDecksViewer,
@@ -258,41 +263,6 @@ type GroupedTool = { toolName: string; toolSlug: string; classes: GroupedClass[]
 function isWorksheetToolValue(v: unknown): boolean {
   const t = String(v || "").trim().toLowerCase();
   return t === "worksheet-mcq-generator" || (t.includes("worksheet") && t.includes("mcq"));
-}
-
-function toDisplayPlainText(content: string) {
-  return stripMarkdownSyntax(content);
-}
-
-function recordListPreviewText(toolSlug: string, generatedContent: string, record?: { metadata?: { structuredContent?: unknown } }) {
-  const slug = String(toolSlug || "").trim();
-  if (slug === "my-study-decks") {
-    const { content } = deckViewerPayloadFromRecord({
-      generatedContent,
-      metadata: record?.metadata,
-    });
-    return toDisplayPlainText(content);
-  }
-  if (slug === "flashcard-generator") {
-    const { content } = deckViewerPayloadFromRecord({ generatedContent });
-    return toDisplayPlainText(content);
-  }
-  if (slug === "mock-test-builder") {
-    const { content } = mockTestViewerPayloadFromRecord({
-      generatedContent,
-      metadata: record?.metadata,
-    });
-    const first = toDisplayPlainText(content).split("\n").find((l) => l.trim()) || "Mock Test";
-    return first.slice(0, 120);
-  }
-  if (slug === "worksheet-mcq-generator") {
-    return worksheetRecordListPreview({
-      generatedContent,
-      content: generatedContent,
-      metadata: record?.metadata,
-    });
-  }
-  return toDisplayPlainText(generatedContent);
 }
 
 export default function SuperAdminAiGenerator() {
@@ -866,17 +836,7 @@ export default function SuperAdminAiGenerator() {
 
   const openPdf = async (id: string) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/ai-generator/pdf/${id}`, {
-        headers: { ...authHeaders() },
-      });
-      if (!res.ok) {
-        const json = await res.json().catch(() => null);
-        throw new Error(json?.message || "Failed to open PDF");
-      }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      window.open(url, "_blank");
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      await openAiToolRecordPdf(id);
     } catch (error: any) {
       toast({
         title: "PDF failed",
@@ -1364,7 +1324,7 @@ export default function SuperAdminAiGenerator() {
                                                       </div>
                                                       <div className="p-4">
                                                       <div className="space-y-3">
-                                                        {subtopicNode.records.map((row) => (
+                                                        {sortAiToolRecordsByVariantThenDate(subtopicNode.records).map((row) => (
                                                           <div key={row._id} className="group rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm transition-all hover:border-orange-200/80 hover:shadow-md">
                                                             <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                                                               <div className="flex flex-wrap items-center gap-2">
@@ -1423,74 +1383,22 @@ export default function SuperAdminAiGenerator() {
                                                                 </Button>
                                                               </div>
                                                             </div>
-                                                            {(() => {
-                                                              const isWorksheet = isWorksheetMcqTool(toolNode.toolSlug);
-                                                              if (isWorksheet) {
-                                                                return (
-                                                                  <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 shadow-sm">
-                                                                    <p className="text-xs sm:text-sm text-slate-700 line-clamp-4 leading-relaxed">
-                                                                      {recordListPreviewText(
-                                                                        toolNode.toolSlug,
-                                                                        String(row.generatedContent || ""),
-                                                                        row,
-                                                                      )}
-                                                                    </p>
-                                                                  </div>
-                                                                );
-                                                              }
-                                                              const parsedMcqs = isMcqTool(toolNode.toolSlug)
-                                                                ? extractMcqQuestionsFromRecord({
-                                                                    toolName: toolNode.toolSlug,
-                                                                    generatedContent: String(row.generatedContent || ""),
-                                                                    content: String(row.generatedContent || ""),
-                                                                    metadata: row.metadata,
-                                                                  })
-                                                                : [];
-                                                              if (parsedMcqs.length > 0) {
-                                                                return (
-                                                                  <div className="space-y-3">
-                                                                    {parsedMcqs.map((q, i) => (
-                                                                  <div key={`${row._id}-mcq-${i}`} className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                                                                    <p className="text-xs sm:text-sm font-medium text-slate-900 leading-relaxed">
-                                                                      Q{displayMcqQuestionSerial(q, i)}. {q.question}
-                                                                    </p>
-                                                                    {q.options.length > 0 ? (
-                                                                      <ul className="mt-3 space-y-2.5 pl-0.5">
-                                                                        {q.options.map((opt, j) => (
-                                                                          <li key={j} className="flex items-start gap-2.5 text-xs sm:text-sm text-slate-700">
-                                                                            <span className="mt-1.5 h-3.5 w-3.5 rounded-full border border-slate-400 shrink-0 bg-white" />
-                                                                            <span>{opt}</span>
-                                                                          </li>
-                                                                        ))}
-                                                                      </ul>
-                                                                    ) : null}
-                                                                    {q.answer ? (
-                                                                      <p className="mt-3 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-2 py-1">
-                                                                        <span className="font-semibold">Answer:</span> {q.answer}
-                                                                      </p>
-                                                                    ) : null}
-                                                                    {q.explanation ? (
-                                                                      <p className="mt-2 text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
-                                                                        <span className="font-semibold">Explanation:</span> {q.explanation}
-                                                                      </p>
-                                                                    ) : null}
-                                                                  </div>
-                                                                    ))}
-                                                                  </div>
-                                                                );
-                                                              }
-                                                              return (
-                                                              <div className="rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 shadow-sm">
-                                                                <p className="text-xs sm:text-sm text-slate-700 line-clamp-4 leading-relaxed">
-                                                                  {recordListPreviewText(
-                                                                    toolNode.toolSlug,
-                                                                    String(row.generatedContent || ""),
-                                                                    row,
-                                                                  )}
-                                                                </p>
-                                                              </div>
-                                                              );
-                                                            })()}
+                                                            <AiToolRecordPreviewBody
+                                                              toolSlug={toolNode.toolSlug}
+                                                              record={{
+                                                                toolSlug: toolNode.toolSlug,
+                                                                generatedContent: String(row.generatedContent || ""),
+                                                                content: String(row.generatedContent || ""),
+                                                                metadata: row.metadata,
+                                                                generationVariant:
+                                                                  row.generationVariant ??
+                                                                  recordGenerationVariant(row) ??
+                                                                  undefined,
+                                                                variantAngle:
+                                                                  row.variantAngle || recordVariantAngle(row),
+                                                              }}
+                                                              recordId={row._id}
+                                                            />
                                                           </div>
                                                         ))}
                                                       </div>
