@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -28,6 +28,7 @@ import { EduOTTVideoCard, EduOTTSubjectBadges } from '@/components/eduott/EduOTT
 import { EduOTTVideoPlayerDialog } from '@/components/eduott/EduOTTVideoPlayerDialog';
 import { EduOTTLiveSessionDialog } from '@/components/eduott/EduOTTLiveSessionDialog';
 import { EduOTTJoinSessionButton } from '@/components/eduott/EduOTTJoinSessionButton';
+import { EduOTTTabsList } from '@/components/eduott/EduOTTTabsList';
 import type { EduOTTVideoCardItem } from '@/components/eduott/EduOTTVideoCard';
 import { resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -358,10 +359,14 @@ export default function AdminEduOTT() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2">
-            <TabsTrigger value="videos">Videos</TabsTrigger>
-            <TabsTrigger value="live-sessions">Live Sessions</TabsTrigger>
-          </TabsList>
+          <EduOTTTabsList>
+            <TabsTrigger value="videos" className="w-full py-2 text-xs sm:text-sm">
+              Videos
+            </TabsTrigger>
+            <TabsTrigger value="live-sessions" className="w-full py-2 text-xs sm:text-sm">
+              Live Sessions
+            </TabsTrigger>
+          </EduOTTTabsList>
 
           {/* Videos Tab */}
           <TabsContent value="videos" className="space-y-3 sm:space-y-4 lg:space-y-6 mt-6">

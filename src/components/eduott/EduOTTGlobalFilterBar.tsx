@@ -40,15 +40,15 @@ export function EduOTTGlobalFilterBar({
     selectedSubject != null;
 
   return (
-    <div className="space-y-3 rounded-xl border border-sky-200/80 bg-white/90 p-4 shadow-sm">
-      <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end">
-        <div className="space-y-1.5 w-full sm:w-auto min-w-[180px]">
+    <div className="space-y-3 rounded-xl border border-sky-200/80 bg-white/90 p-3 sm:p-4 shadow-sm">
+      <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:flex-wrap lg:items-end">
+        <div className="space-y-1.5 w-full lg:w-auto lg:min-w-[180px]">
           <Label className="text-xs text-gray-500">Select class</Label>
           <Select
             value={eduottClassToSelectValue(selectedClass)}
             onValueChange={(v) => setSelectedClass(eduottSelectValueToClass(v))}
           >
-            <SelectTrigger className="w-full md:w-[200px] bg-white border-2 border-sky-200 hover:border-sky-300 focus:border-sky-400 focus:ring-sky-200 shadow-sm">
+            <SelectTrigger className="w-full lg:w-[200px] bg-white border-2 border-sky-200 hover:border-sky-300 focus:border-sky-400 focus:ring-sky-200 shadow-sm">
               <SelectValue placeholder="All classes" />
             </SelectTrigger>
             <SelectContent>
@@ -61,7 +61,7 @@ export function EduOTTGlobalFilterBar({
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1.5 w-full sm:w-auto min-w-[200px]">
+        <div className="space-y-1.5 w-full lg:w-auto lg:min-w-[200px]">
           <Label className="text-xs text-gray-500">Select subject</Label>
           <Select
             value={selectedSubject ?? SUBJECT_ALL}
@@ -69,7 +69,7 @@ export function EduOTTGlobalFilterBar({
               setSelectedSubject(v === SUBJECT_ALL ? null : v)
             }
           >
-            <SelectTrigger className="w-full md:w-[220px] bg-white border-2 border-sky-200 hover:border-sky-300 focus:border-sky-400 focus:ring-sky-200 shadow-sm">
+            <SelectTrigger className="w-full lg:w-[220px] bg-white border-2 border-sky-200 hover:border-sky-300 focus:border-sky-400 focus:ring-sky-200 shadow-sm">
               <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2 shrink-0 text-gray-500" />
               <SelectValue placeholder="All subjects" />
             </SelectTrigger>

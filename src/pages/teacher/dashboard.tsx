@@ -69,6 +69,7 @@ import type { EduOTTVideoCardItem } from '@/components/eduott/EduOTTVideoCard';
 import { EduOTTVideoPlayerDialog } from '@/components/eduott/EduOTTVideoPlayerDialog';
 import { EduOTTLiveSessionDialog } from '@/components/eduott/EduOTTLiveSessionDialog';
 import { EduOTTJoinSessionButton } from '@/components/eduott/EduOTTJoinSessionButton';
+import { EduOTTTabsList } from '@/components/eduott/EduOTTTabsList';
 import { resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
@@ -4128,10 +4129,14 @@ const TeacherDashboard = () => {
 
                     {/* Tabs */}
                     <Tabs value={eduottActiveTab} onValueChange={(value) => setEduottActiveTab(value as 'videos' | 'live-sessions')} className="space-y-3 sm:space-y-4 lg:space-y-6">
-                      <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2">
-                        <TabsTrigger value="videos">Videos</TabsTrigger>
-                        <TabsTrigger value="live-sessions">Live Sessions</TabsTrigger>
-                      </TabsList>
+                      <EduOTTTabsList>
+                        <TabsTrigger value="videos" className="w-full py-2 text-xs sm:text-sm">
+                          Videos
+                        </TabsTrigger>
+                        <TabsTrigger value="live-sessions" className="w-full py-2 text-xs sm:text-sm">
+                          Live Sessions
+                        </TabsTrigger>
+                      </EduOTTTabsList>
 
                       {/* Videos Tab */}
                       <TabsContent value="videos" className="space-y-3 sm:space-y-4 lg:space-y-6">
