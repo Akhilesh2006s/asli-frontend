@@ -23,8 +23,10 @@ import {
 } from "@/lib/book-based-tools";
 import {
   filterSubjectsForAiTool,
+  isLanguageExcludedTool,
   isStoryLanguageTool,
   isStoryPassageLanguageSubject,
+  LANGUAGE_EXCLUDED_TOOL_ERROR,
 } from "@/lib/ai-tool-subject-rules";
 import {
   computeGeminiCostFromTokenUsage,
@@ -314,11 +316,24 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
       setTopic("");
       setSubTopic("");
     }
+    if (isLanguageExcludedTool(toolId) && subject && isStoryPassageLanguageSubject(subject)) {
+      setSubject("");
+      setTopic("");
+      setSubTopic("");
+    }
   };
 
   useEffect(() => {
     if (!isStoryLanguageTool(selectedTool)) return;
     if (!subject || isStoryPassageLanguageSubject(subject)) return;
+    setSubject("");
+    setTopic("");
+    setSubTopic("");
+  }, [selectedTool, subject]);
+
+  useEffect(() => {
+    if (!isLanguageExcludedTool(selectedTool)) return;
+    if (!subject || !isStoryPassageLanguageSubject(subject)) return;
     setSubject("");
     setTopic("");
     setSubTopic("");
@@ -493,6 +508,14 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
       toast({
         title: "English, Hindi, or Telugu only",
         description: "Story & Passage and Reading Practice tools work only with English, Hindi, or Telugu subjects.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (isLanguageExcludedTool(selectedTool) && isStoryPassageLanguageSubject(subject)) {
+      toast({
+        title: "Language subjects not supported",
+        description: LANGUAGE_EXCLUDED_TOOL_ERROR,
         variant: "destructive",
       });
       return;
@@ -792,7 +815,9 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                         ? "Loading subjects…"
                         : isStoryLanguageTool(selectedTool) && subjectsForTool.length === 0
                           ? "English, Hindi, or Telugu only"
-                          : "Select subject"
+                          : isLanguageExcludedTool(selectedTool) && subjectsForTool.length === 0
+                            ? "Not available for English, Hindi, or Telugu"
+                            : "Select subject"
                   }
                 />
               </SelectTrigger>
@@ -840,6 +865,11 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                 {isStoryLanguageTool(selectedTool) ? (
                   <p className="text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded-md px-2 py-1.5 w-full sm:w-auto">
                     English, Hindi, and Telugu subjects only for this tool.
+                  </p>
+                ) : null}
+                {isLanguageExcludedTool(selectedTool) ? (
+                  <p className="text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5 w-full sm:w-auto">
+                    Not available for English, Hindi, or Telugu subjects.
                   </p>
                 ) : null}
               </div>

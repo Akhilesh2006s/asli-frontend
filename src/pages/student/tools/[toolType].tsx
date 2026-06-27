@@ -60,6 +60,7 @@ import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import type { AiToolGenerationMeta } from '@/lib/ai-tool-generation-summary';
 import {
   filterSubjectsForAiTool,
+  isLanguageExcludedTool,
   isStoryLanguageTool,
   isStoryPassageLanguageSubject,
   READING_PRACTICE_TOOL_ID,
@@ -791,9 +792,13 @@ export default function StudentToolPage() {
   }, [formParams.gradeLevel, formParams.subject, cascade.topics, cascade.loadingTopics]);
 
   useEffect(() => {
-    if (!isReadingPractice) return;
     const sub = formParams.subject;
-    if (!sub || isStoryPassageLanguageSubject(sub)) return;
+    if (!sub) return;
+    const subStr = String(sub);
+    const shouldClear =
+      (isReadingPractice && !isStoryPassageLanguageSubject(subStr)) ||
+      (isLanguageExcludedTool(apiToolType) && isStoryPassageLanguageSubject(subStr));
+    if (!shouldClear) return;
     setFormParams((prev) => {
       const next = { ...prev };
       delete next.subject;
@@ -801,7 +806,7 @@ export default function StudentToolPage() {
       delete next.subTopic;
       return next;
     });
-  }, [toolType, formParams.subject]);
+  }, [toolType, apiToolType, formParams.subject, isReadingPractice]);
 
   useEffect(() => {
     if (!assignedGradeLevel) return;
@@ -914,6 +919,7 @@ export default function StudentToolPage() {
     const validationError = validateAiToolForm({
       config,
       formParams: { ...formParams, board: selectedBoard },
+      toolType: apiToolType,
       isReadingPractice,
       requireBoard: true,
     });
@@ -1875,6 +1881,12 @@ export default function StudentToolPage() {
                     <strong>Hindi</strong> subjects only.
                   </p>
                 ) : null}
+                {isLanguageExcludedTool(apiToolType) ? (
+                  <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                    This tool is not available for <strong>English</strong>, <strong>Hindi</strong>, or{' '}
+                    <strong>Telugu</strong> subjects.
+                  </p>
+                ) : null}
                 {config.fields.map((field) => {
                   let fieldOptions = getFieldOptions(field);
                   let isDisabled = !!(field.dependsOn && !formParams[field.dependsOn]);
@@ -1921,7 +1933,9 @@ export default function StudentToolPage() {
                           : subjectsForTool.length === 0
                             ? isReadingPractice
                               ? 'English, Hindi, or Telugu only for this tool'
-                              : 'No data available'
+                              : isLanguageExcludedTool(apiToolType)
+                                ? 'Not available for English, Hindi, or Telugu'
+                                : 'No data available'
                             : field.placeholder || placeholderText;
                     } else if (
                       field.isNCERT &&

@@ -27,10 +27,7 @@ import { useLocation, useSearch } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { API_BASE_URL } from "@/lib/api-config";
 import { collectVidyaSubjectLabels } from "@/lib/vidya-subjects";
-import {
-  hasStoryPassageLanguageSubject,
-  READING_PRACTICE_TOOL_ID,
-} from "@/lib/ai-tool-subject-rules";
+import { isAiToolVisibleForSubjects } from "@/lib/ai-tool-subject-rules";
 import { isVidyaEnabledForUser } from "@/lib/vidya-access";
 
 // Mock user ID - in a real app, this would come from authentication
@@ -297,9 +294,7 @@ export default function AITutor() {
   const visibleStudentTools = useMemo(() => {
     return studentTools.filter((tool) => {
       if (tool.id === 'ai-chat' && !vidyaChatEnabled) return false;
-      if (tool.id !== READING_PRACTICE_TOOL_ID) return true;
-      if (vidyaSubjectNames.length === 0) return true;
-      return hasStoryPassageLanguageSubject(vidyaSubjectNames);
+      return isAiToolVisibleForSubjects(tool.id, vidyaSubjectNames);
     });
   }, [vidyaSubjectNames, vidyaChatEnabled]);
 

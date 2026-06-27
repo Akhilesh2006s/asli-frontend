@@ -75,6 +75,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
 import { isVidyaEnabledForUser } from '@/lib/vidya-access';
+import { TeacherVidyaToolsGrid } from '@/components/teacher/TeacherVidyaToolsGrid';
+import { isAiToolVisibleForSubjects } from '@/lib/ai-tool-subject-rules';
+import { TEACHER_AI_TOOLS_SUBTITLE } from '@/lib/teacher-ai-tools';
 import { TeacherDashboardSchedule } from '@/components/teacher/TeacherDashboardSchedule';
 import TeacherTimetableDashboard from '@/components/teacher/TeacherTimetableDashboard';
 import { ClassCard } from '@/components/teacher/ClassCard';
@@ -282,6 +285,13 @@ const TeacherDashboard = () => {
   }, [dashboardSubTab]);
 
   const vidyaChatEnabled = isVidyaEnabledForUser(teacherUser);
+  const teacherSubjectNames = useMemo(
+    () =>
+      (teacherSubjects || [])
+        .map((s: any) => String(s?.name || s?.displayName || '').trim())
+        .filter(Boolean),
+    [teacherSubjects],
+  );
 
   const dashboardSubTabNav = (
     <div
@@ -2575,219 +2585,12 @@ const TeacherDashboard = () => {
                     {/* Available Tools Section */}
                       <div>
                       <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Available Tools</h3>
-                      <p className="text-gray-600 mb-6">Select a tool to get started. All tools use Gemini AI to generate content based on your input.</p>
+                      <p className="text-gray-600 mb-6">{TEACHER_AI_TOOLS_SUBTITLE}</p>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
-                        {/* Tool 1: Activity & Project Generator */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.4 }}
-                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
-                          onClick={() => {
-                            setLocation('/teacher/tools/activity-project-generator');
-                          }}
-                        >
-                          <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-orange-600" />
-                      </div>
-                      <div>
-                              <h4 className="font-bold text-gray-900 mb-1">Activity & Project Generator</h4>
-                              <p className="text-xs sm:text-sm text-gray-600">Create engaging activities and projects tailored to your curriculum.</p>
-                            </div>
-                          </div>
-                        </motion.div>
-
-                        {/* Tool 2: Worksheet & MCQ Generator */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.5 }}
-                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
-                          onClick={() => {
-                            setLocation('/teacher/tools/worksheet-mcq-generator');
-                          }}
-                        >
-                          <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <FileText className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-600" />
-                      </div>
-                      <div>
-                              <h4 className="font-bold text-gray-900 mb-1">Worksheet & MCQ Generator</h4>
-                              <p className="text-xs sm:text-sm text-gray-600">Design custom worksheets and MCQs with various question types.</p>
-                      </div>
-                      </div>
-                        </motion.div>
-
-                        {/* Tool 3: Concept Mastery Helper */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.6 }}
-                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
-                          onClick={() => {
-                            setLocation('/teacher/tools/concept-mastery-helper');
-                          }}
-                        >
-                          <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-teal-600" />
-                      </div>
-                            <div>
-                              <h4 className="font-bold text-gray-900 mb-1">Concept Mastery Helper</h4>
-                              <p className="text-xs sm:text-sm text-gray-600">Break down complex concepts into digestible lessons.</p>
-                        </div>
-                      </div>
-                        </motion.div>
-
-                        {/* Tool 4: Lesson Planner */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.7 }}
-                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
-                          onClick={() => {
-                            setLocation('/teacher/tools/lesson-planner');
-                          }}
-                        >
-                          <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-orange-600" />
-                          </div>
-                            <div>
-                              <h4 className="font-bold text-gray-900 mb-1">Lesson Planner</h4>
-                              <p className="text-xs sm:text-sm text-gray-600">Plan structured lessons with objectives and activities.</p>
-                                  </div>
-                          </div>
-                        </motion.div>
-
-                        {/* Tool 5: Exam Question Paper Generator */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.8 }}
-                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
-                          onClick={() => {
-                            setLocation('/teacher/tools/exam-question-paper-generator');
-                          }}
-                        >
-                          <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <FileQuestion className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-600" />
-                                          </div>
-                            <div>
-                              <h4 className="font-bold text-gray-900 mb-1">Exam Question Paper Generator</h4>
-                              <p className="text-xs sm:text-sm text-gray-600">Create comprehensive exam papers with varying difficulty.</p>
-                                    </div>
-                          </div>
-                        </motion.div>
-
-                        {/* Tool 6: Daily Class Plan Maker */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.9 }}
-                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
-                          onClick={() => {
-                            setLocation('/teacher/tools/daily-class-plan-maker');
-                          }}
-                        >
-                          <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <CheckSquare className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-teal-600" />
-                                    </div>
-                            <div>
-                              <h4 className="font-bold text-gray-900 mb-1">Daily Class Plan Maker</h4>
-                              <p className="text-xs sm:text-sm text-gray-600">Organize your daily teaching schedule efficiently.</p>
-                                </div>
-                            </div>
-                        </motion.div>
-
-                        {/* Tool 7: Homework Creator */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 1.0 }}
-                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
-                          onClick={() => {
-                            setLocation('/teacher/tools/homework-creator');
-                          }}
-                        >
-                          <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <Rocket className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-orange-600" />
-                                </div>
-                            <div>
-                              <h4 className="font-bold text-gray-900 mb-1">Homework Creator</h4>
-                              <p className="text-xs sm:text-sm text-gray-600">Generate meaningful homework assignments.</p>
-                              </div>
-                            </div>
-                        </motion.div>
-
-                        {/* Tool 10: Story & Passage Creator */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 1.3 }}
-                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
-                          onClick={() => {
-                            setLocation('/teacher/tools/story-passage-creator');
-                          }}
-                        >
-                          <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-orange-600" />
-                        </div>
-                            <div>
-                              <h4 className="font-bold text-gray-900 mb-1">Story & Passage Creator</h4>
-                              <p className="text-xs sm:text-sm text-gray-600">Generate stories and reading passages (English, Hindi &amp; Telugu only).</p>
-                          </div>
-                          </div>
-                        </motion.div>
-
-                        {/* Tool 11: Short Notes & Summaries Maker */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 1.4 }}
-                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
-                            onClick={() => {
-                            setLocation('/teacher/tools/short-notes-summaries-maker');
-                          }}
-                        >
-                          <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <Layers className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-teal-600" />
-                        </div>
-                            <div>
-                              <h4 className="font-bold text-gray-900 mb-1">Short Notes & Summaries Maker</h4>
-                              <p className="text-xs sm:text-sm text-gray-600">Condense complex topics into concise notes.</p>
-                      </div>
-                </div>
-              </motion.div>
-
-                        {/* Tool 12: Flashcard Generator */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 1.5 }}
-                          className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-md hover:shadow-lg transition-all cursor-pointer border border-gray-200"
-                          onClick={() => {
-                            setLocation('/teacher/tools/flashcard-generator');
-                          }}
-                        >
-                          <div className="flex items-start space-x-4">
-                            <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-orange-600" />
-                    </div>
-                            <div>
-                              <h4 className="font-bold text-gray-900 mb-1">Flashcard Generator</h4>
-                              <p className="text-xs sm:text-sm text-gray-600">Build study flashcards for quick revision.</p>
-                  </div>
-                </div>
-                        </motion.div>
-                            </div>
+                      <TeacherVidyaToolsGrid
+                        subjectNames={teacherSubjectNames}
+                        onOpenTool={(route) => setLocation(route)}
+                      />
                             </div>
                   </div>
                 )}
@@ -2871,6 +2674,7 @@ const TeacherDashboard = () => {
                             : 'Mode: Classroom Help'}
                       </Badge>
                       <div className="flex flex-wrap gap-2">
+                        {isAiToolVisibleForSubjects('worksheet-mcq-generator', teacherSubjectNames) ? (
                         <Button
                           size="sm"
                           variant="outline"
@@ -2879,6 +2683,7 @@ const TeacherDashboard = () => {
                         >
                           Generate Worksheet
                         </Button>
+                        ) : null}
                         <Button
                           size="sm"
                           variant="outline"
@@ -2887,6 +2692,7 @@ const TeacherDashboard = () => {
                         >
                           Create Quiz
                         </Button>
+                        {isAiToolVisibleForSubjects('concept-mastery-helper', teacherSubjectNames) ? (
                         <Button
                           size="sm"
                           variant="outline"
@@ -2895,6 +2701,7 @@ const TeacherDashboard = () => {
                         >
                           Explain Concept
                         </Button>
+                        ) : null}
                       </div>
                     </div>
 

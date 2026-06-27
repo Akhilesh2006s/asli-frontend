@@ -13,8 +13,10 @@ import { cn } from "@/lib/utils";
 import { toCurriculumSelectRows, type CurriculumSelectRow } from "@/lib/vidya-subjects";
 import {
   filterSubjectRowsForAiTool,
+  isLanguageExcludedTool,
   isStoryPassageLanguageSubject,
   isStoryLanguageTool,
+  LANGUAGE_EXCLUDED_TOOL_ERROR,
   subjectLabelFromRows,
 } from "@/lib/ai-tool-subject-rules";
 import { isDeprecatedAiToolIdentifier } from "@/lib/ai-tool-registry";
@@ -3768,19 +3770,35 @@ export default function AIContentEngine() {
   }, [classLabel, subject, topic, board]);
 
   useEffect(() => {
-    if (!isStoryLanguageTool(toolType)) return;
     const label = subjectLabelFromRows(subjectRows, subject);
-    if (!subject || isStoryPassageLanguageSubject(label)) return;
-    setSubject("");
-    setTopic("");
-    setSubTopic("");
+    if (isStoryLanguageTool(toolType)) {
+      if (!subject || isStoryPassageLanguageSubject(label)) return;
+      setSubject("");
+      setTopic("");
+      setSubTopic("");
+      return;
+    }
+    if (isLanguageExcludedTool(toolType)) {
+      if (!subject || !isStoryPassageLanguageSubject(label)) return;
+      setSubject("");
+      setTopic("");
+      setSubTopic("");
+    }
   }, [toolType, subject, subjectRows]);
 
   const handleToolTypeChange = (value: string) => {
     setToolType(value);
+    const label = subjectLabelFromRows(subjectRows, subject);
     if (isStoryLanguageTool(value)) {
-      const label = subjectLabelFromRows(subjectRows, subject);
       if (subject && !isStoryPassageLanguageSubject(label)) {
+        setSubject("");
+        setTopic("");
+        setSubTopic("");
+      }
+      return;
+    }
+    if (isLanguageExcludedTool(value)) {
+      if (subject && isStoryPassageLanguageSubject(label)) {
         setSubject("");
         setTopic("");
         setSubTopic("");
@@ -3843,6 +3861,11 @@ export default function AIContentEngine() {
       const msg = "Story & Passage Creator works only with English, Hindi, or Telugu subjects.";
       setUploadError(msg);
       toast({ title: "English, Hindi, or Telugu only", description: msg, variant: "destructive" });
+      return;
+    }
+    if (isLanguageExcludedTool(toolType) && isStoryPassageLanguageSubject(subjectLabel)) {
+      setUploadError(LANGUAGE_EXCLUDED_TOOL_ERROR);
+      toast({ title: "Language subjects not supported", description: LANGUAGE_EXCLUDED_TOOL_ERROR, variant: "destructive" });
       return;
     }
     if (pdfFile.size > AI_PDF_MAX_BYTES) {
@@ -4347,6 +4370,11 @@ export default function AIContentEngine() {
             {isStoryLanguageTool(toolType) ? (
               <p className="mt-1.5 text-xs text-blue-800">
                 English, Hindi, and Telugu subjects only for Story &amp; Passage Creator.
+              </p>
+            ) : null}
+            {isLanguageExcludedTool(toolType) ? (
+              <p className="mt-1.5 text-xs text-amber-900">
+                Not available for English, Hindi, or Telugu subjects.
               </p>
             ) : null}
           </div>

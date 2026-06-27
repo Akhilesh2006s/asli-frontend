@@ -51,6 +51,7 @@ import type { AiToolGenerationMeta } from '@/lib/ai-tool-generation-summary';
 import { useCurriculumCascade } from '@/hooks/use-curriculum-cascade';
 import {
   filterSubjectsForAiTool,
+  isLanguageExcludedTool,
   isStoryPassageLanguageSubject,
   isStoryLanguageTool,
   STORY_PASSAGE_TOOL_ID,
@@ -363,11 +364,15 @@ export default function TeacherToolPage() {
     }
   }, [boardOptions, formParams.board, isAsliPrepExclusive, schoolBoardName]);
 
-  // Keep subject aligned when class is chosen and list loads (only after a class is selected)
+  // Keep subject aligned with tool-specific language rules
   useEffect(() => {
-    if (!isStoryLanguageTool(toolType)) return;
     const sub = formParams.subject || formParams.subjects;
-    if (!sub || isStoryPassageLanguageSubject(String(sub))) return;
+    if (!sub) return;
+    const subStr = String(sub);
+    const shouldClear =
+      (isStoryLanguageTool(toolType) && !isStoryPassageLanguageSubject(subStr)) ||
+      (isLanguageExcludedTool(toolType) && isStoryPassageLanguageSubject(subStr));
+    if (!shouldClear) return;
     setFormParams((prev) => {
       const next = { ...prev };
       delete next.subject;
@@ -746,6 +751,7 @@ export default function TeacherToolPage() {
     const validationError = validateAiToolForm({
       config,
       formParams: { ...formParams, board: selectedBoard },
+      toolType,
       isReadingPractice: isStoryLanguageTool(toolType),
       requireBoard: true,
     });
@@ -1593,6 +1599,12 @@ export default function TeacherToolPage() {
                   <strong>Hindi</strong> subjects only.
                 </p>
               ) : null}
+              {isLanguageExcludedTool(toolType) ? (
+                <p className="sm:col-span-2 lg:col-span-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  This tool is not available for <strong>English</strong>, <strong>Hindi</strong>, or{' '}
+                  <strong>Telugu</strong> subjects.
+                </p>
+              ) : null}
               {config.fields.map((field: any) => {
                 // Check if field should be shown based on showWhen condition
                 if (field.showWhen && !field.showWhen(formParams)) {
@@ -1672,7 +1684,9 @@ export default function TeacherToolPage() {
                                         : subjectsForTool.length === 0
                                           ? toolType === STORY_PASSAGE_TOOL_ID
                                             ? 'English, Hindi, or Telugu only for this tool'
-                                            : 'No data available'
+                                            : isLanguageExcludedTool(toolType)
+                                              ? 'Not available for English, Hindi, or Telugu'
+                                              : 'No data available'
                                           : field.placeholder || `Select ${field.label}`
                                       : field.isNCERT && field.name === 'topic'
                                         ? !formParams.gradeLevel

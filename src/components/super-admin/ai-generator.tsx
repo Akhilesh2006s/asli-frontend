@@ -83,8 +83,10 @@ import {
 } from "@/components/concept-mastery-viewer";
 import {
   filterSubjectsForAiTool,
+  isLanguageExcludedTool,
   isStoryLanguageTool,
   isStoryPassageLanguageSubject,
+  LANGUAGE_EXCLUDED_TOOL_ERROR,
 } from "@/lib/ai-tool-subject-rules";
 import {
   computeGeminiCostFromTokenUsage,
@@ -465,11 +467,24 @@ export default function SuperAdminAiGenerator() {
       setTopic("");
       setSubTopic("");
     }
+    if (isLanguageExcludedTool(toolId) && subject && isStoryPassageLanguageSubject(subject)) {
+      setSubject("");
+      setTopic("");
+      setSubTopic("");
+    }
   };
 
   useEffect(() => {
     if (!isStoryLanguageTool(selectedTool)) return;
     if (!subject || isStoryPassageLanguageSubject(subject)) return;
+    setSubject("");
+    setTopic("");
+    setSubTopic("");
+  }, [selectedTool, subject]);
+
+  useEffect(() => {
+    if (!isLanguageExcludedTool(selectedTool)) return;
+    if (!subject || !isStoryPassageLanguageSubject(subject)) return;
     setSubject("");
     setTopic("");
     setSubTopic("");
@@ -544,6 +559,14 @@ export default function SuperAdminAiGenerator() {
       toast({
         title: "English, Hindi, or Telugu only",
         description: "This tool works only with English, Hindi, or Telugu subjects.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (isLanguageExcludedTool(selectedTool) && isStoryPassageLanguageSubject(subject)) {
+      toast({
+        title: "Language subjects not supported",
+        description: LANGUAGE_EXCLUDED_TOOL_ERROR,
         variant: "destructive",
       });
       return;
@@ -934,6 +957,11 @@ export default function SuperAdminAiGenerator() {
                 English, Hindi, and Telugu subjects only for Story &amp; Passage Creator.
               </p>
             ) : null}
+            {isLanguageExcludedTool(selectedTool) ? (
+              <p className="mt-2 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
+                Not available for English, Hindi, or Telugu subjects.
+              </p>
+            ) : null}
           </div>
           <div>
             <Label>Board</Label>
@@ -963,7 +991,9 @@ export default function SuperAdminAiGenerator() {
                         ? "Loading subjects..."
                         : isStoryLanguageTool(selectedTool) && subjectsForTool.length === 0
                           ? "English, Hindi, or Telugu only"
-                          : "Select subject"
+                          : isLanguageExcludedTool(selectedTool) && subjectsForTool.length === 0
+                            ? "Not available for English, Hindi, or Telugu"
+                            : "Select subject"
                   }
                 />
               </SelectTrigger>
