@@ -28,9 +28,16 @@ import {
 } from '@/lib/school-program';
 import {
   extractPlainSubjectName,
-  getLearningPathClassLabel,
   isSoftDeletedSubjectName,
 } from '@/lib/subject-names';
+import {
+  buildClassFilterOptions,
+  consolidateLearningPathSubjects,
+  formatClassFilterOptionLabel,
+  formatClassGroupTitle,
+  groupLearningPathsByClass,
+  subjectMatchesClassFilter,
+} from '@/lib/learning-path-admin';
 
 function isActiveCatalogSubject(subject: {
   name?: string;
@@ -55,159 +62,12 @@ function isActiveCatalogContent(item: {
   return true;
 }
 
-function subjectMatchesClassFilter(
-  row: {
-    name?: string;
-    classNumber?: string;
-    asliPrepContent?: Array<{ classNumber?: string }>;
-  },
-  classFilter: string
-): boolean {
-  if (classFilter === 'all') return true;
-  const label = getLearningPathClassLabel(row);
-  return label === classFilter;
-}
-
 function getContentSubjectId(content: any): string | null {
   const subj = content?.subject;
   if (subj == null) return null;
   if (typeof subj === 'object' && subj._id != null) return String(subj._id);
   if (typeof subj === 'string' && subj.trim()) return subj.trim();
   return null;
-}
-
-/** Collapse duplicate Subject rows (e.g. BIO vs Biology vs BIOLOGY) for the same class. */
-function normalizeSubjectNameForMerge(name: string): string {
-  const plain = extractPlainSubjectName(name || '').trim().toLowerCase();
-  if (/^bio(logy)?$/.test(plain) || plain === 'bio') return 'biology';
-  return plain;
-}
-
-function groupKeyForSubjectRow(row: {
-  name?: string;
-  classNumber?: string;
-  asliPrepContent?: any[];
-}): string {
-  const classLabel =
-    getLearningPathClassLabel(row) ||
-    String(row.classNumber || '').trim() ||
-    'none';
-  return `${classLabel}::${normalizeSubjectNameForMerge(row.name || '')}`;
-}
-
-function consolidateDuplicateSubjectCards(rows: any[]): any[] {
-  const byKey = new Map<string, any>();
-
-  for (const row of rows) {
-    if (!isActiveCatalogSubject(row)) continue;
-    const key = groupKeyForSubjectRow(row);
-    const rowId = String(row._id || row.id);
-    const incoming = [...(row.asliPrepContent || [])].filter((c) =>
-      isActiveCatalogContent(c)
-    );
-
-    if (!byKey.has(key)) {
-      byKey.set(key, {
-        ...row,
-        mergedSubjectIds: [rowId],
-        asliPrepContent: incoming,
-      });
-      continue;
-    }
-
-    const agg = byKey.get(key)!;
-    const idSet = new Set<string>(
-      Array.isArray(agg.mergedSubjectIds)
-        ? agg.mergedSubjectIds
-        : [String(agg._id || agg.id)]
-    );
-    idSet.add(rowId);
-    agg.mergedSubjectIds = Array.from(idSet);
-
-    const seen = new Set(
-      (agg.asliPrepContent || []).map((c: any) => String(c._id))
-    );
-    for (const c of incoming) {
-      const cid = String(c._id);
-      if (!seen.has(cid)) {
-        seen.add(cid);
-        agg.asliPrepContent.push(c);
-      }
-    }
-
-    if ((row.name || '').length > (agg.name || '').length) {
-      agg.name = row.name;
-    }
-    if ((!agg.description || !String(agg.description).trim()) && row.description) {
-      agg.description = row.description;
-    }
-    if (
-      (agg.classNumber == null || String(agg.classNumber).trim() === '') &&
-      row.classNumber != null
-    ) {
-      agg.classNumber = row.classNumber;
-    }
-  }
-
-  const result = Array.from(byKey.values()).map((agg) => {
-    const contents = (agg.asliPrepContent || []).slice().sort((a: any, b: any) => {
-      const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return tb - ta;
-    });
-    const ids: string[] =
-      agg.mergedSubjectIds && agg.mergedSubjectIds.length > 0
-        ? agg.mergedSubjectIds
-        : [String(agg._id || agg.id)];
-
-    const countBySubject = new Map<string, number>();
-    for (const c of contents) {
-      const sid = getContentSubjectId(c);
-      if (!sid) continue;
-      countBySubject.set(sid, (countBySubject.get(sid) || 0) + 1);
-    }
-
-    let primaryId = String(agg._id || agg.id);
-    let max = -1;
-    for (const sid of ids) {
-      const n = countBySubject.get(sid) || 0;
-      if (n > max) {
-        max = n;
-        primaryId = sid;
-      }
-    }
-    if (max <= 0) {
-      primaryId = ids[0];
-    }
-
-    const inferredClass =
-      (agg.classNumber != null && String(agg.classNumber).trim() !== ''
-        ? String(agg.classNumber).trim()
-        : null) ||
-      (() => {
-        for (const c of contents) {
-          const cn = c?.classNumber != null && String(c.classNumber).trim() !== ''
-            ? String(c.classNumber).trim()
-            : '';
-          if (cn) return cn;
-        }
-        return null;
-      })();
-
-    return {
-      ...agg,
-      _id: primaryId,
-      id: primaryId,
-      mergedSubjectIds: ids,
-      asliPrepContent: contents,
-      totalContent: contents.length,
-      ...(inferredClass ? { classNumber: inferredClass } : {}),
-    };
-  });
-
-  return result.sort((a: any, b: any) =>
-    (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })
-  );
 }
 
 export default function AdminLearningPaths() {
@@ -239,19 +99,10 @@ export default function AdminLearningPaths() {
     void loadProgram();
   }, []);
 
-  const classOptionsFromData = useMemo(() => {
-    const classSet = new Set<string>();
-    subjectsWithContent.forEach((subj: any) => {
-      const label = getLearningPathClassLabel(subj);
-      if (label) classSet.add(label);
-    });
-    return Array.from(classSet).sort((a, b) => {
-      const na = parseInt(a, 10);
-      const nb = parseInt(b, 10);
-      if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
-      return a.localeCompare(b, undefined, { numeric: true });
-    });
-  }, [subjectsWithContent]);
+  const classOptionsFromData = useMemo(
+    () => buildClassFilterOptions(subjectsWithContent),
+    [subjectsWithContent]
+  );
 
   const subjectNameOptions = useMemo(() => {
     const names = new Set<string>();
@@ -273,34 +124,10 @@ export default function AdminLearningPaths() {
     });
   }, [subjectsWithContent, classFilter, subjectFilter]);
 
-  const groupedSubjectsByClass = useMemo(() => {
-    const grouped = new Map<string, any[]>();
-    for (const subj of filteredSubjectsWithContent) {
-      const classLabel = getLearningPathClassLabel(subj) || 'Unassigned';
-      if (!grouped.has(classLabel)) grouped.set(classLabel, []);
-      grouped.get(classLabel)!.push(subj);
-    }
-
-    const classKeys = Array.from(grouped.keys()).sort((a, b) => {
-      if (a === 'Unassigned') return 1;
-      if (b === 'Unassigned') return -1;
-      const na = parseInt(a, 10);
-      const nb = parseInt(b, 10);
-      if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
-      return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
-    });
-
-    return classKeys.map((classKey) => ({
-      classKey,
-      subjects: (grouped.get(classKey) || []).slice().sort((a: any, b: any) =>
-        extractPlainSubjectName(a.name || '').localeCompare(
-          extractPlainSubjectName(b.name || ''),
-          undefined,
-          { sensitivity: 'base' }
-        )
-      ),
-    }));
-  }, [filteredSubjectsWithContent]);
+  const groupedSubjectsByClass = useMemo(
+    () => groupLearningPathsByClass(filteredSubjectsWithContent),
+    [filteredSubjectsWithContent]
+  );
 
   const totalContentItemsInView = useMemo(
     () =>
@@ -446,7 +273,7 @@ export default function AdminLearningPaths() {
         });
       });
 
-      const consolidated = consolidateDuplicateSubjectCards(merged).filter(
+      const consolidated = consolidateLearningPathSubjects(merged).filter(
         (row) =>
           isActiveCatalogSubject(row) &&
           (row.asliPrepContent?.length ?? 0) > 0
@@ -538,7 +365,7 @@ export default function AdminLearningPaths() {
                     <SelectItem value="all">All classes</SelectItem>
                     {classOptionsFromData.map((c) => (
                       <SelectItem key={c} value={c}>
-                        Class {c}
+                        {formatClassFilterOptionLabel(c)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -594,22 +421,23 @@ export default function AdminLearningPaths() {
         </Card>
       ) : (
         <div className="space-y-5">
-          {groupedSubjectsByClass.map(({ classKey, subjects }) => {
-            const classContentCount = subjects.reduce(
+          {groupedSubjectsByClass.map((group) => {
+            const classContentCount = group.subjects.reduce(
               (sum, s) => sum + (s.asliPrepContent?.length || 0),
               0
             );
+            const classTitle = formatClassGroupTitle(group);
 
             return (
-              <Card key={classKey} className="border-sky-100 overflow-hidden">
+              <Card key={group.classKey} className="border-sky-100 overflow-hidden">
                 <CardHeader className="bg-sky-50/60 border-b border-sky-100">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-2">
                       <Badge className="bg-sky-600 text-white border-0">
-                        {classKey === 'Unassigned' ? 'Unassigned' : `Class ${classKey}`}
+                        {classTitle}
                       </Badge>
                       <CardTitle className="text-sm sm:text-base text-gray-900">
-                        {subjects.length} subject{subjects.length === 1 ? '' : 's'}
+                        {group.subjects.length} subject{group.subjects.length === 1 ? '' : 's'}
                       </CardTitle>
                     </div>
                     <p className="text-xs text-gray-600">
@@ -619,7 +447,7 @@ export default function AdminLearningPaths() {
                 </CardHeader>
                 <CardContent className="p-4 sm:p-5">
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {subjects.map((subject: any) => {
+                    {group.subjects.map((subject: any) => {
                       const Icon = getSubjectIcon(subject.name);
                       const displayName = extractPlainSubjectName(subject.name || '');
                       const primaryId = String(subject._id || subject.id);
@@ -652,9 +480,7 @@ export default function AdminLearningPaths() {
 
                             <p className="text-xs text-gray-600 line-clamp-2">
                               {subject.description ||
-                                `Structured content for ${displayName} in ${
-                                  classKey === 'Unassigned' ? 'unassigned class' : `Class ${classKey}`
-                                }.`}
+                                `Structured content for ${displayName} in ${classTitle}.`}
                             </p>
 
                             <div className="space-y-1.5 min-h-[52px]">

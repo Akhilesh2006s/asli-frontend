@@ -26,6 +26,12 @@ import { getVideoDisplayTitle } from '@/lib/video-chapter-schedule';
 import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 import { useToast } from '@/hooks/use-toast';
 import {
+  boardsMatch,
+  formatClassBoardLabel,
+  normalizeBoardKey,
+  parseClassBoardLabel,
+} from '@/lib/board-label';
+import {
   getCurriculumClassLabels,
   saveCurriculumClass,
 } from '@/lib/super-admin-curriculum-classes';
@@ -239,26 +245,44 @@ function isCatalogSubjectId(id: string | null, catalog: SubjectItem[]): boolean 
   return catalog.some((s) => String(s._id) === String(id));
 }
 
-/** One sidebar row per subject title + class (board can differ on content vs catalog). */
-function subjectSidebarKey(name: string, classNum: string): string {
-  return `${normalizeSubjectDisplayKey(name)}|${classNum}`;
+/** One sidebar row per subject title + class + board track. */
+function subjectSidebarKey(name: string, classNum: string, board = ''): string {
+  return `${normalizeSubjectDisplayKey(name)}|${classNum}|${normalizeBoardKey(board)}`;
+}
+
+function contentMatchesClassBoard(
+  item: ContentItem,
+  catalog: SubjectItem[],
+  classNum: string,
+  board: string
+): boolean {
+  if (item.isActive === false) return false;
+  const effClass = effectiveContentClass(item, catalog);
+  if (normalizeClassNumber(effClass || '') !== normalizeClassNumber(classNum)) return false;
+  if (!board) return true;
+  return boardsMatch(normalizeBoardKey(item.board || ''), board);
 }
 
 /** All active catalog subjects that share a sidebar row (e.g. Mat + Maths duplicates). */
 function catalogSubjectsForSidebarRow(
   catalog: SubjectItem[],
   classNum: string,
+  board: string,
   row: SubjectItem
 ): SubjectItem[] {
   const normClass = normalizeClassNumber(classNum);
-  const key = subjectSidebarKey(row.name, normClass);
+  const normBoard = normalizeBoardKey(board);
+  const key = subjectSidebarKey(row.name, normClass, normBoard);
   return catalog.filter((subj) => {
     if (!isActiveCatalogSubject(subj)) return false;
     const subjClass = subj.classNumber
       ? normalizeClassNumber(subj.classNumber)
       : normalizeClassNumber(extractClassNumberFromSubjectName(subj.name) || '');
     if (subjClass !== normClass) return false;
-    return subjectSidebarKey(subj.name, normClass) === key;
+    if (normBoard && normalizeBoardKey(subj.board || '') && !boardsMatch(subj.board, normBoard)) {
+      return false;
+    }
+    return subjectSidebarKey(subj.name, normClass, normBoard) === key;
   });
 }
 
@@ -740,30 +764,32 @@ export default function SubjectContentManagement() {
     fetchContents();
   }, []);
 
-  // Class labels from subjects, linked content, and manual entries
+  // Class labels from subjects, linked content, and manual entries (board-scoped)
   const classOptions = useMemo(() => {
-    const classSet = new Set<string>();
-    const addClassNum = (num: string | null | undefined) => {
-      if (!isValidGradeClassNumber(num)) return;
-      classSet.add(`Class ${normalizeClassNumber(num)}`);
+    const labels = new Set<string>();
+    const add = (classNum: string | null | undefined, board?: string) => {
+      if (!isValidGradeClassNumber(classNum)) return;
+      labels.add(formatClassBoardLabel(normalizeClassNumber(classNum!), board));
     };
 
     subjects.forEach((subj) => {
-      if (subj.classNumber) {
-        addClassNum(subj.classNumber);
-        return;
-      }
-      addClassNum(extractClassNumberFromSubjectName(subj.name));
+      const cn = subj.classNumber
+        ? normalizeClassNumber(subj.classNumber)
+        : normalizeClassNumber(extractClassNumberFromSubjectName(subj.name) || '');
+      if (cn) add(cn, subj.board);
     });
 
     contents.forEach((item) => {
-      addClassNum(effectiveContentClass(item, subjects));
+      const cn = effectiveContentClass(item, subjects);
+      if (cn) add(cn, item.board || BOARD_CODE);
     });
 
-    return Array.from(classSet).sort((a, b) => {
-      const aNum = parseInt(a.replace('Class ', ''), 10);
-      const bNum = parseInt(b.replace('Class ', ''), 10);
-      if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) return aNum - bNum;
+    return Array.from(labels).sort((a, b) => {
+      const pa = parseClassBoardLabel(a);
+      const pb = parseClassBoardLabel(b);
+      const na = parseInt(pa.classNum, 10);
+      const nb = parseInt(pb.classNum, 10);
+      if (!Number.isNaN(na) && !Number.isNaN(nb) && na !== nb) return na - nb;
       return a.localeCompare(b);
     });
   }, [subjects, contents]);
@@ -779,10 +805,12 @@ export default function SubjectContentManagement() {
   const displayClassOptions = useMemo(() => {
     const merged = new Set([...classOptions, ...manualClassLabels]);
     return Array.from(merged).sort((a, b) => {
-      const aNum = parseInt(a.replace('Class ', ''), 10);
-      const bNum = parseInt(b.replace('Class ', ''), 10);
-      if (Number.isNaN(aNum) || Number.isNaN(bNum)) return a.localeCompare(b);
-      return aNum - bNum;
+      const pa = parseClassBoardLabel(a);
+      const pb = parseClassBoardLabel(b);
+      const na = parseInt(pa.classNum, 10);
+      const nb = parseInt(pb.classNum, 10);
+      if (!Number.isNaN(na) && !Number.isNaN(nb) && na !== nb) return na - nb;
+      return a.localeCompare(b);
     });
   }, [classOptions, manualClassLabels]);
 
@@ -793,14 +821,20 @@ export default function SubjectContentManagement() {
     }
   }, [displayClassOptions, selectedClassLabel]);
 
-  const selectedClassNumber = selectedClassLabel?.startsWith('Class ')
-    ? normalizeClassNumber(selectedClassLabel.replace('Class ', ''))
+  const selectedClassParsed = useMemo(
+    () => parseClassBoardLabel(selectedClassLabel || ''),
+    [selectedClassLabel]
+  );
+  const selectedClassNumber = selectedClassParsed.classNum
+    ? normalizeClassNumber(selectedClassParsed.classNum)
     : '';
+  const selectedBoard = selectedClassParsed.board;
 
   /** Subjects from catalog + groups inferred from content (orphan / deleted subject refs). */
   const subjectsForClass = useMemo(() => {
     if (!selectedClassNumber) return [];
     const normClass = normalizeClassNumber(selectedClassNumber);
+    const normBoard = normalizeBoardKey(selectedBoard);
     const map = new Map<string, SubjectItem>();
 
     subjects.forEach((subj) => {
@@ -809,17 +843,16 @@ export default function SubjectContentManagement() {
       const subjClass = subj.classNumber
         ? normalizeClassNumber(subj.classNumber)
         : normalizeClassNumber(extractClassNumberFromSubjectName(subj.name) || '');
+      const subjBoard = normalizeBoardKey(subj.board || '');
+      if (normBoard && subjBoard && !boardsMatch(subjBoard, normBoard)) return;
       const linkedViaContent = contents.some((item) => {
-        if (item.isActive === false) return false;
-        if (normalizeClassNumber(effectiveContentClass(item, subjects) || '') !== normClass) {
-          return false;
-        }
+        if (!contentMatchesClassBoard(item, subjects, normClass, normBoard)) return false;
         const sid = getContentSubjectId(item);
         return sid != null && String(sid) === String(subj._id);
       });
       if (subjClass === normClass || linkedViaContent) {
         const rowClass = subjClass || normClass;
-        const groupKey = subjectSidebarKey(subj.name, rowClass);
+        const groupKey = subjectSidebarKey(subj.name, rowClass, normBoard || subjBoard);
         const existing = map.get(groupKey);
         const preferThis =
           !existing ||
@@ -829,16 +862,14 @@ export default function SubjectContentManagement() {
             ...subj,
             name: displaySubjectName(subj.name),
             classNumber: rowClass || subj.classNumber,
+            board: normBoard || subjBoard || subj.board,
           });
         }
       }
     });
 
     contents.forEach((item) => {
-      if (item.isActive === false) return;
-      if (normalizeClassNumber(effectiveContentClass(item, subjects) || '') !== normClass) {
-        return;
-      }
+      if (!contentMatchesClassBoard(item, subjects, normClass, normBoard)) return;
       const sid = getContentSubjectId(item);
       if (sid) {
         const linked = subjects.find((s) => String(s._id) === String(sid));
@@ -848,7 +879,7 @@ export default function SubjectContentManagement() {
         ? displaySubjectName(item.subject.name)
         : inferSubjectLabelFromContent(item);
       const board = item.board || BOARD_CODE;
-      const groupKey = subjectSidebarKey(label, normClass);
+      const groupKey = subjectSidebarKey(label, normClass, normBoard || board);
       const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       const idKey =
         sid && isMongoObjectId(sid) && !isInferredSubjectId(sid) ? String(sid) : `inferred-${slug}`;
@@ -860,7 +891,7 @@ export default function SubjectContentManagement() {
         map.set(groupKey, {
           _id: fromCatalog ? String(fromCatalog._id) : idKey,
           name: label,
-          board,
+          board: normBoard || board,
           classNumber: normClass,
           isActive: item.isActive,
         });
@@ -877,7 +908,7 @@ export default function SubjectContentManagement() {
     return Array.from(map.values()).sort((a, b) =>
       extractPlainSubjectName(a.name).localeCompare(extractPlainSubjectName(b.name))
     );
-  }, [subjects, selectedClassNumber, contents]);
+  }, [subjects, selectedClassNumber, selectedBoard, contents]);
 
   // Keep subject selection in sync with the selected class (skip while editing content).
   useEffect(() => {
@@ -918,10 +949,9 @@ export default function SubjectContentManagement() {
       : '';
 
     return (item: ContentItem) => {
-      if (item.isActive === false) return false;
-
-      const effClass = effectiveContentClass(item, subjects);
-      if (normalizeClassNumber(effClass || '') !== selectedClassNumber) return false;
+      if (!contentMatchesClassBoard(item, subjects, selectedClassNumber, selectedBoard)) {
+        return false;
+      }
 
       const sid = getContentSubjectId(item);
       if (sid && String(sid) === String(selectedSubjectId)) return true;
@@ -934,16 +964,14 @@ export default function SubjectContentManagement() {
       ).toLowerCase();
       return selectedPlain !== '' && itemPlain === selectedPlain;
     };
-  }, [contents, selectedSubjectId, selectedClassNumber, subjects, subjectsForClass]);
+  }, [contents, selectedSubjectId, selectedClassNumber, selectedBoard, subjects, subjectsForClass]);
 
   const contentCountForClass = useMemo(() => {
     if (!selectedClassNumber) return 0;
-    return contents.filter(
-      (item) =>
-        normalizeClassNumber(effectiveContentClass(item, subjects) || '') ===
-        selectedClassNumber
+    return contents.filter((item) =>
+      contentMatchesClassBoard(item, subjects, selectedClassNumber, selectedBoard)
     ).length;
-  }, [contents, selectedClassNumber, subjects]);
+  }, [contents, selectedClassNumber, selectedBoard, subjects]);
 
   const filteredContents = useMemo(() => {
     if (!selectedSubjectId || !selectedClassNumber) return [];
@@ -1344,7 +1372,7 @@ export default function SubjectContentManagement() {
       subjects.find((s) => String(s._id) === String(subjectId));
     const targets =
       row && selectedClassNumber
-        ? catalogSubjectsForSidebarRow(subjects, selectedClassNumber, row)
+        ? catalogSubjectsForSidebarRow(subjects, selectedClassNumber, selectedBoard, row)
         : subjects.filter(
             (s) => String(s._id) === String(subjectId) && isActiveCatalogSubject(s)
           );

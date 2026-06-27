@@ -452,8 +452,8 @@ export function GeneratorRecordsPanel({
                     <Accordion type="multiple" className="w-full">
                       {toolNode.classes.map((classNode) => (
                         <AccordionItem
-                          key={`${toolNode.toolSlug}-${classNode.className}`}
-                          value={`class-${toolNode.toolSlug}-${classNode.className}`}
+                          key={`${toolNode.toolSlug}-${classNode.className}-${classNode.boardName || ''}`}
+                          value={`class-${toolNode.toolSlug}-${classNode.className}-${classNode.boardName || ''}`}
                           className="border rounded-lg px-3 mb-2"
                         >
                           <AccordionTrigger className="hover:no-underline">

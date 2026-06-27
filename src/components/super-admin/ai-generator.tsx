@@ -1237,7 +1237,7 @@ export default function SuperAdminAiGenerator() {
                     <p className="text-xs text-slate-500 mb-3">Classes in this tool</p>
                     <Accordion type="multiple" className="w-full">
                       {toolNode.classes.map((classNode) => (
-                        <AccordionItem key={`${toolNode.toolSlug}-${classNode.className}`} value={`class-${toolNode.toolSlug}-${classNode.className}`} className="border rounded-lg px-3 mb-2">
+                        <AccordionItem key={`${toolNode.toolSlug}-${classNode.className}-${classNode.boardName || ''}`} value={`class-${toolNode.toolSlug}-${classNode.className}-${classNode.boardName || ''}`} className="border rounded-lg px-3 mb-2">
                           <AccordionTrigger className="hover:no-underline">
                             <div className="text-left">
                               <p className="text-xs text-slate-500">CLASS</p>
