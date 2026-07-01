@@ -1,6 +1,6 @@
 /** Teacher Vidya AI tools — aligned with teacher dashboard Available Tools */
 
-import { filterVisibleAiTools } from '@/lib/ai-tool-subject-rules';
+import { isAiToolVisibleForSubjects, STORY_PASSAGE_TOOL_ID } from '@/lib/ai-tool-subject-rules';
 
 export type TeacherAiTool = {
   id: string;
@@ -76,5 +76,8 @@ export const TEACHER_AI_TOOLS_SUBTITLE =
   'Select a tool to get started. All tools use Gemini AI to generate content based on your input.';
 
 export function filterVisibleTeacherTools(subjectNames: string[]): TeacherAiTool[] {
-  return filterVisibleAiTools(TEACHER_AI_TOOLS, subjectNames);
+  return TEACHER_AI_TOOLS.filter(
+    (tool) =>
+      tool.id === STORY_PASSAGE_TOOL_ID || isAiToolVisibleForSubjects(tool.id, subjectNames),
+  );
 }

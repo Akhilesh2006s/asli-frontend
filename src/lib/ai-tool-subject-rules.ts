@@ -1,5 +1,7 @@
 /** Story & Passage / Reading Practice tools are limited to language subjects. */
 
+import { extractPlainSubjectName } from '@/lib/subject-names';
+
 export const STORY_PASSAGE_TOOL_ID = 'story-passage-creator';
 export const READING_PRACTICE_TOOL_ID = 'reading-practice-room';
 
@@ -29,12 +31,18 @@ export function isLanguageExcludedTool(toolType: string): boolean {
   return LANGUAGE_EXCLUDED_TOOL_ID_SET.has(String(toolType || '').trim());
 }
 
+const STORY_LANGUAGE_PLAIN_KEYS = new Set(['eng', 'english', 'hin', 'hindi', 'tel', 'telugu']);
+
 export function isStoryPassageLanguageSubject(subject: string | undefined | null): boolean {
-  const s = String(subject || '').trim();
-  if (!s) return false;
-  if (/(telugu|తెలుగు)/i.test(s)) return true;
-  if (/(hindi|हिंदी|हिन्दी)/i.test(s)) return true;
-  if (/english/i.test(s)) return true;
+  const raw = String(subject || '').trim();
+  if (!raw) return false;
+  if (/(telugu|తెలుగు)/i.test(raw)) return true;
+  if (/(hindi|हिंदी|हिन्दी)/i.test(raw)) return true;
+  if (/english/i.test(raw)) return true;
+
+  const plain = extractPlainSubjectName(raw).toLowerCase().trim();
+  if (STORY_LANGUAGE_PLAIN_KEYS.has(plain)) return true;
+  if (plain.includes('english') || plain.includes('hindi') || plain.includes('telugu')) return true;
   return false;
 }
 
