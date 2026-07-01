@@ -45,7 +45,30 @@ export function normalizeSubjectDisplayKey(name: string): string {
   if (plain === 'math' || plain === 'maths' || plain === 'mat' || plain === 'mathematics') {
     return 'math';
   }
+  if (plain === 'phy' || plain === 'physics') return 'physics';
+  if (plain === 'chem' || plain === 'chemistry') return 'chemistry';
+  if (plain === 'sci' || plain === 'science' || plain === 'evs') return 'science';
+  if (
+    plain === 'sst' ||
+    plain === 'social' ||
+    plain === 'social science' ||
+    plain === 'history' ||
+    plain === 'geography' ||
+    plain === 'civics' ||
+    plain === 'economics'
+  ) {
+    return 'social';
+  }
+  if (plain === 'computer' || plain === 'computers' || plain === 'cs' || plain === 'it') {
+    return 'computer';
+  }
+  if (plain === 'eng' || plain === 'english') return 'english';
   return plain;
+}
+
+/** Canonical bucket for teacher learning-path cards (one card per subject name). */
+export function subjectCatalogGroupKey(name: string): string {
+  return normalizeSubjectDisplayKey(name || '');
 }
 
 /** Active catalog row (not soft-deleted / inactive). */
@@ -56,6 +79,12 @@ export function isActiveCatalogSubject(subject: {
   if (subject.isActive === false) return false;
   if (isSoftDeletedSubjectName(subject.name || '')) return false;
   return true;
+}
+
+/** Strip soft-delete suffix and class suffix for display (e.g. Chemistry_10 → Chemistry). */
+export function displaySubjectName(name: string): string {
+  const base = String(name || '').split('__deleted__')[0].trim();
+  return extractPlainSubjectName(base) || base;
 }
 
 export function getSubjectClassLabel(subject: {

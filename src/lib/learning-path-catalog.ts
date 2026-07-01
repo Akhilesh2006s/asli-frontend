@@ -1,6 +1,15 @@
 import { API_BASE_URL } from '@/lib/api-config';
-import { consolidateLearningPathSubjects } from '@/lib/learning-path-admin';
-import { isActiveCatalogSubject, isSoftDeletedSubjectName } from '@/lib/subject-names';
+import {
+  consolidateLearningPathSubjects,
+  dedupeTeacherLearningPathRows,
+  groupTeacherSubjectsForCatalog,
+} from '@/lib/learning-path-admin';
+import {
+  displaySubjectName,
+  isActiveCatalogSubject,
+  isSoftDeletedSubjectName,
+  subjectCatalogGroupKey,
+} from '@/lib/subject-names';
 import { filterContentsBySchoolProgram } from '@/lib/school-program';
 
 export type LearningPathRole = 'admin' | 'teacher' | 'student';
@@ -84,52 +93,88 @@ function sortContentNewestFirst(items: any[]): any[] {
   });
 }
 
-async function fetchTeacherSubjectContent(subjectId: string): Promise<any[]> {
-  const json = await authFetch(
-    `/api/teacher/asli-prep-content?subject=${encodeURIComponent(subjectId)}`
-  );
-  if (!json) return [];
-  const data = json?.data ?? json;
-  return parseContentPayload(data);
-}
-
-/** Teacher cards use per-subject fetch (sibling IDs resolved on the server). */
 async function loadTeacherLearningPathCatalog(
   isAsliPrepExclusive: boolean
 ): Promise<SubjectWithPathContent[]> {
   const subjects = await fetchSubjects('teacher');
-  const rows = await Promise.all(
-    subjects.map(async (subject) => {
-      const subjectId = String(subject._id || subject.id || '');
-      if (!subjectId) return null;
+  const groups = groupTeacherSubjectsForCatalog(subjects);
 
-      try {
-        const asliPrepContent = sortContentNewestFirst(
-          filterContentsBySchoolProgram(
-            await fetchTeacherSubjectContent(subjectId),
-            isAsliPrepExclusive
-          )
-        );
-        if (asliPrepContent.length === 0) return null;
+  const assignedGroupKeys = new Set<string>();
+  const groupMeta = new Map<
+    string,
+    {
+      representative: (typeof groups)[number]['representative'];
+      subjectIds: string[];
+      displayName: string;
+    }
+  >();
+  const subjectIdToGroupKey = new Map<string, string>();
 
-        return {
-          _id: subjectId,
-          id: subjectId,
-          name: subject.name || 'Unknown Subject',
-          description: subject.description || `Content for ${subject.name || 'Subject'}`,
-          board: subject.board || '',
-          classNumber: subject.classNumber,
-          asliPrepContent,
-          totalContent: asliPrepContent.length,
-        };
-      } catch {
-        return null;
-      }
-    })
+  for (const { representative, subjectIds } of groups) {
+    const key = subjectCatalogGroupKey(representative.name || '');
+    assignedGroupKeys.add(key);
+    groupMeta.set(key, {
+      representative,
+      subjectIds,
+      displayName: displaySubjectName(representative.name || '') || 'Unknown Subject',
+    });
+    for (const sid of subjectIds) {
+      subjectIdToGroupKey.set(sid, key);
+    }
+  }
+
+  const allContentRaw = await fetchAllPrepContent('teacher');
+  const allContent = sortContentNewestFirst(
+    filterContentsBySchoolProgram(parseContentPayload(allContentRaw), isAsliPrepExclusive)
   );
 
-  return rows
-    .filter((row): row is SubjectWithPathContent => row != null)
+  const contentByKey = new Map<string, any[]>();
+  const seenByKey = new Map<string, Set<string>>();
+
+  for (const item of allContent) {
+    let key: string | null = null;
+    const sid = getContentSubjectId(item);
+    if (sid && subjectIdToGroupKey.has(sid)) {
+      key = subjectIdToGroupKey.get(sid)!;
+    } else {
+      const subj = item?.subject;
+      const name =
+        typeof subj === 'object' && subj?.name
+          ? String(subj.name)
+          : typeof subj === 'string'
+            ? subj
+            : '';
+      if (name.trim()) key = subjectCatalogGroupKey(name);
+    }
+    if (!key || !assignedGroupKeys.has(key)) continue;
+
+    if (!contentByKey.has(key)) contentByKey.set(key, []);
+    if (!seenByKey.has(key)) seenByKey.set(key, new Set());
+    const cid = String(item._id || '');
+    if (!cid || seenByKey.get(key)!.has(cid)) continue;
+    seenByKey.get(key)!.add(cid);
+    contentByKey.get(key)!.push(item);
+  }
+
+  const rows: SubjectWithPathContent[] = [];
+  for (const [key, meta] of Array.from(groupMeta.entries())) {
+    const asliPrepContent = contentByKey.get(key) || [];
+    if (asliPrepContent.length === 0) continue;
+    const subjectId = meta.subjectIds[0];
+    rows.push({
+      _id: subjectId,
+      id: subjectId,
+      name: meta.displayName,
+      description: meta.representative.description || `Content for ${meta.displayName}`,
+      board: meta.representative.board || '',
+      classNumber: meta.representative.classNumber,
+      asliPrepContent,
+      totalContent: asliPrepContent.length,
+      mergedSubjectIds: meta.subjectIds,
+    });
+  }
+
+  return dedupeTeacherLearningPathRows(rows)
     .filter((row) => isActiveCatalogSubject(row) && row.totalContent > 0)
     .sort((a, b) =>
       (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base', numeric: true })
@@ -201,7 +246,7 @@ export async function loadLearningPathCatalog(
 
   const withContent = merged.filter((row) => row.totalContent > 0);
 
-  if (role === 'admin' || role === 'teacher') {
+  if (role === 'admin') {
     return consolidateLearningPathSubjects(withContent).filter(
       (row) => isActiveCatalogSubject(row) && row.totalContent > 0
     );

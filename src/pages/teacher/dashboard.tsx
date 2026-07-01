@@ -2447,7 +2447,7 @@ const TeacherDashboard = () => {
 
                         return (
                           <div
-                            key={subject._id || subject.id}
+                            key={subject.mergedSubjectIds?.join(':') || subject._id || subject.id}
                             className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-200 hover:scale-105 h-full flex flex-col"
                           >
                             <div className="flex items-center justify-between mb-4">
