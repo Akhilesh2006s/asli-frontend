@@ -296,6 +296,7 @@ export default function SuperAdminAiGenerator() {
     successCount: number;
     failedCount: number;
     batchSize: number;
+    mode?: string;
     tokenUsage: TokenTotals;
     cost: GeminiCostEstimate;
     perRecordCost?: { usd: number; inr: number };
@@ -645,6 +646,7 @@ export default function SuperAdminAiGenerator() {
         successCount: savedCount,
         failedCount,
         batchSize: resultBatchSize,
+        mode,
         tokenUsage,
         cost,
         perRecordCost: perRecord,
@@ -1132,11 +1134,36 @@ export default function SuperAdminAiGenerator() {
               ) : null}
             </div>
             {lastBatchSummary ? (
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 px-3 py-2.5 text-xs text-slate-700 space-y-2">
-                <p className="font-semibold text-emerald-900">
-                  Last batch: {lastBatchSummary.successCount}/{lastBatchSummary.batchSize} saved
-                  {lastBatchSummary.failedCount > 0 ? ` (${lastBatchSummary.failedCount} failed)` : ""}
+              <div
+                className={`rounded-lg border px-3 py-2.5 text-xs text-slate-700 space-y-2 ${
+                  lastBatchSummary.mode === "random_retrieval"
+                    ? "border-amber-200 bg-amber-50/80"
+                    : "border-emerald-200 bg-emerald-50/80"
+                }`}
+              >
+                <p
+                  className={`font-semibold ${
+                    lastBatchSummary.mode === "random_retrieval" ? "text-amber-900" : "text-emerald-900"
+                  }`}
+                >
+                  {lastBatchSummary.mode === "random_retrieval" ? (
+                    <>
+                      Last batch: {lastBatchSummary.successCount}/{lastBatchSummary.batchSize} retrieved from existing
+                      pool (not newly generated)
+                    </>
+                  ) : (
+                    <>
+                      Last batch: {lastBatchSummary.successCount}/{lastBatchSummary.batchSize} generated & saved
+                      {lastBatchSummary.failedCount > 0 ? ` (${lastBatchSummary.failedCount} failed)` : ""}
+                    </>
+                  )}
                 </p>
+                {lastBatchSummary.mode === "random_retrieval" ? (
+                  <p className="text-amber-800">
+                    No Gemini call was made (0 tokens). Old records were reused. For fresh Hindi content, check{" "}
+                    <strong>Force Generate New Content</strong> or use Story/Reading tools (always generate fresh).
+                  </p>
+                ) : null}
                 <p>
                   Tokens:{" "}
                   <span className="font-medium">{formatTokenCount(lastBatchSummary.tokenUsage.totalTokens)}</span> total

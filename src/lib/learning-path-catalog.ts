@@ -1,6 +1,7 @@
 import { API_BASE_URL } from '@/lib/api-config';
 import {
   consolidateLearningPathSubjects,
+  consolidateTeacherLearningPathSubjects,
   dedupeTeacherLearningPathRows,
   groupTeacherSubjectsForCatalog,
 } from '@/lib/learning-path-admin';
@@ -174,7 +175,7 @@ async function loadTeacherLearningPathCatalog(
     });
   }
 
-  return dedupeTeacherLearningPathRows(rows)
+  return consolidateTeacherLearningPathSubjects(dedupeTeacherLearningPathRows(rows))
     .filter((row) => isActiveCatalogSubject(row) && row.totalContent > 0)
     .sort((a, b) =>
       (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base', numeric: true })

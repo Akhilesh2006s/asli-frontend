@@ -35,3 +35,16 @@ export function hasCurriculumResponseCache(key: string) {
 export function clearCurriculumResponseCache() {
   responseCache.clear();
 }
+
+/** Drop cached topic/subtopic taxonomy only (keep class/subject lists when possible). */
+export function invalidateCurriculumTaxonomyCache() {
+  for (const key of [...responseCache.keys()]) {
+    if (
+      key.includes('topic-taxonomy') ||
+      key.includes('/api/curriculum/topics') ||
+      key.includes('/api/curriculum/subtopics')
+    ) {
+      responseCache.delete(key);
+    }
+  }
+}

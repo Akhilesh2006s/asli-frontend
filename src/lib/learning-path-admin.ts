@@ -77,16 +77,24 @@ export function groupTeacherSubjectsForCatalog(
 
   for (const subject of subjects) {
     if (!isActiveCatalogSubject(subject)) continue;
-    const subjectId = String(subject._id || subject.id || '');
-    if (!subjectId) continue;
+
+    const mergedFromApi = Array.isArray((subject as { mergedSubjectIds?: string[] }).mergedSubjectIds)
+      ? (subject as { mergedSubjectIds?: string[] }).mergedSubjectIds!.map(String).filter(Boolean)
+      : [];
+    const primaryId = String(subject._id || subject.id || '');
+    const subjectIds =
+      mergedFromApi.length > 0 ? mergedFromApi : primaryId ? [primaryId] : [];
+    if (subjectIds.length === 0) continue;
 
     const key = groupKeyForTeacherSubjectRecord(subject);
     const existing = byKey.get(key);
     if (!existing) {
-      byKey.set(key, { representative: subject, subjectIds: [subjectId] });
+      byKey.set(key, { representative: subject, subjectIds: [...new Set(subjectIds)] });
       continue;
     }
-    existing.subjectIds.push(subjectId);
+    for (const sid of subjectIds) {
+      if (!existing.subjectIds.includes(sid)) existing.subjectIds.push(sid);
+    }
   }
 
   return Array.from(byKey.values());
@@ -210,15 +218,45 @@ export function consolidateTeacherLearningPathSubjects(
   );
 }
 
-function learningPathContentFingerprint(contents: any[]): string {
-  return (contents || [])
-    .map((item) => String(item?._id || ''))
-    .filter(Boolean)
-    .sort()
-    .join('|');
+function mergeTeacherLearningPathRow(
+  existing: SubjectWithPathContent,
+  row: SubjectWithPathContent
+): SubjectWithPathContent {
+  const mergedIds = Array.from(
+    new Set([
+      ...(existing.mergedSubjectIds || [String(existing._id || existing.id)]),
+      ...(row.mergedSubjectIds || [String(row._id || row.id)]),
+    ])
+  );
+
+  const seen = new Set((existing.asliPrepContent || []).map((item: any) => String(item._id)));
+  const mergedContent = [...(existing.asliPrepContent || [])];
+  for (const item of row.asliPrepContent || []) {
+    const cid = String(item._id);
+    if (!cid || seen.has(cid)) continue;
+    seen.add(cid);
+    mergedContent.push(item);
+  }
+
+  const plainName = extractPlainSubjectName(existing.name || row.name || '');
+  const primaryId = existing._id || mergedIds[0];
+
+  return {
+    ...existing,
+    _id: primaryId,
+    id: primaryId,
+    name: plainName,
+    description:
+      existing.description ||
+      row.description ||
+      `Content for ${plainName}`,
+    mergedSubjectIds: mergedIds,
+    asliPrepContent: mergedContent,
+    totalContent: mergedContent.length,
+  };
 }
 
-/** Final safety pass: drop cards with identical content sets or duplicate name buckets. */
+/** Final safety pass: one learning-path card per canonical subject name. */
 export function dedupeTeacherLearningPathRows(
   rows: SubjectWithPathContent[]
 ): SubjectWithPathContent[] {
@@ -231,58 +269,10 @@ export function dedupeTeacherLearningPathRows(
       byName.set(nameKey, row);
       continue;
     }
-
-    const mergedIds = Array.from(
-      new Set([
-        ...(existing.mergedSubjectIds || [String(existing._id || existing.id)]),
-        ...(row.mergedSubjectIds || [String(row._id || row.id)]),
-      ])
-    );
-
-    const seen = new Set((existing.asliPrepContent || []).map((item: any) => String(item._id)));
-    const mergedContent = [...(existing.asliPrepContent || [])];
-    for (const item of row.asliPrepContent || []) {
-      const cid = String(item._id);
-      if (!cid || seen.has(cid)) continue;
-      seen.add(cid);
-      mergedContent.push(item);
-    }
-
-    const primaryId = existing._id || mergedIds[0];
-    byName.set(nameKey, {
-      ...existing,
-      _id: primaryId,
-      id: primaryId,
-      name: extractPlainSubjectName(existing.name || row.name || ''),
-      description: existing.description || row.description || `Content for ${extractPlainSubjectName(existing.name || row.name || '')}`,
-      mergedSubjectIds: mergedIds,
-      asliPrepContent: mergedContent,
-      totalContent: mergedContent.length,
-    });
+    byName.set(nameKey, mergeTeacherLearningPathRow(existing, row));
   }
 
-  const byFingerprint = new Map<string, SubjectWithPathContent>();
-  for (const row of Array.from(byName.values())) {
-    const fp = learningPathContentFingerprint(row.asliPrepContent);
-    const key = `${subjectCatalogGroupKey(row.name || '')}::${fp}`;
-    const existing = byFingerprint.get(key);
-    if (!existing) {
-      byFingerprint.set(key, row);
-      continue;
-    }
-    const mergedIds = Array.from(
-      new Set([
-        ...(existing.mergedSubjectIds || [String(existing._id || existing.id)]),
-        ...(row.mergedSubjectIds || [String(row._id || row.id)]),
-      ])
-    );
-    byFingerprint.set(key, {
-      ...existing,
-      mergedSubjectIds: mergedIds,
-    });
-  }
-
-  return Array.from(byFingerprint.values());
+  return Array.from(byName.values());
 }
 
 export function subjectMatchesClassFilter(

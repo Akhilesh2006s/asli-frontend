@@ -8,6 +8,10 @@ import {
 } from '@/lib/curriculum-response-cache';
 import { compareClassLabels, sortClassLabelsAscending } from '@/lib/super-admin-curriculum-classes';
 import { mergePreservingPrimaryOrder } from '@/lib/curriculum-chapter-sort';
+import {
+  CURRICULUM_TAXONOMY_CHANGED_EVENT,
+  getCurriculumTaxonomyRevision,
+} from '@/lib/curriculum-taxonomy-refresh';
 
 type CurriculumRow = { id: string; name: string; label: string };
 
@@ -133,6 +137,13 @@ export function useCurriculumCascade(
   const [loadingSubjects, setLoadingSubjects] = useState(false);
   const [loadingTopics, setLoadingTopics] = useState(false);
   const [loadingSubtopics, setLoadingSubtopics] = useState(false);
+  const [taxonomyRevision, setTaxonomyRevision] = useState(getCurriculumTaxonomyRevision);
+
+  useEffect(() => {
+    const onTaxonomyChanged = () => setTaxonomyRevision(getCurriculumTaxonomyRevision());
+    window.addEventListener(CURRICULUM_TAXONOMY_CHANGED_EVENT, onTaxonomyChanged);
+    return () => window.removeEventListener(CURRICULUM_TAXONOMY_CHANGED_EVENT, onTaxonomyChanged);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -196,7 +207,7 @@ export function useCurriculumCascade(
     return () => {
       cancelled = true;
     };
-  }, [gradeLevel, gradeForApi, board]);
+  }, [gradeLevel, gradeForApi, board, taxonomyRevision]);
 
   useEffect(() => {
     let cancelled = false;
@@ -234,7 +245,7 @@ export function useCurriculumCascade(
     return () => {
       cancelled = true;
     };
-  }, [gradeLevel, gradeForApi, subject, board]);
+  }, [gradeLevel, gradeForApi, subject, board, taxonomyRevision]);
 
   useEffect(() => {
     let cancelled = false;
@@ -273,7 +284,7 @@ export function useCurriculumCascade(
     return () => {
       cancelled = true;
     };
-  }, [gradeLevel, gradeForApi, subject, topic, board]);
+  }, [gradeLevel, gradeForApi, subject, topic, board, taxonomyRevision]);
 
   const classOptions = useMemo(() => {
     if (classRows.length === 0) return [];

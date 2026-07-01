@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Edit, Plus, Search, Trash2, X } from 'lucide-react';
+import { notifyCurriculumTaxonomyChanged } from '@/lib/curriculum-taxonomy-refresh';
 
 const NATURAL_COLLATOR = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
 
@@ -426,7 +427,7 @@ export default function AiToolTopicsManagement() {
         classLabel: normalizeClassLabel(form.classLabel),
         subject: form.subject,
         label: form.label,
-        topicName: buildDisplayTopicName(form.label, form.topicName),
+        topicName: form.topicName.trim(),
       };
 
       const response = await fetch(endpoint, {
@@ -461,6 +462,7 @@ export default function AiToolTopicsManagement() {
       setIsCustomSubject(false);
       setCustomSubject('');
       setEditingId(null);
+      notifyCurriculumTaxonomyChanged();
       await reloadData();
     } catch (error) {
       toast({
@@ -483,6 +485,7 @@ export default function AiToolTopicsManagement() {
       const json = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(json?.message || 'Failed to delete');
       toast({ title: 'Deleted', description: 'Topic mapping removed.' });
+      notifyCurriculumTaxonomyChanged();
       await reloadData();
     } catch (error) {
       toast({
@@ -533,6 +536,7 @@ export default function AiToolTopicsManagement() {
       toast({ title: 'Deleted', description: `Deleted ${count} topic mappings.` });
       setSelectedTopic('');
       setSelectedSubTopic('');
+      notifyCurriculumTaxonomyChanged();
       await reloadData();
     } catch (error) {
       toast({

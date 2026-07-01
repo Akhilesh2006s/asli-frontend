@@ -37,6 +37,17 @@ import {
 import { AdminTeacherDailyDialog } from '@/components/admin/AdminTeacherDailyDialog';
 import { Checkbox } from '@/components/ui/checkbox';
 
+interface AssignedClassSummary {
+  id: string;
+  name: string;
+  classNumber?: string;
+  section?: string;
+  schedule?: string;
+  room?: string;
+  studentCount?: number;
+  assignedSubjects?: Array<{ id?: string; _id?: string; name?: string; code?: string }>;
+}
+
 interface Teacher {
   id: string;
   fullName: string;
@@ -46,6 +57,7 @@ interface Teacher {
   qualifications?: string;
   subjects: Subject[];
   assignedClassIds?: string[];
+  assignedClasses?: AssignedClassSummary[];
   isActive: boolean;
   createdAt: string;
   lastLogin?: string;
@@ -85,8 +97,8 @@ const dedupeSubjectsForDisplay = (subjects: Subject[] | undefined) => {
   return Array.from(byKey.values());
 };
 
-const getClassSubjectLine = (
-  classItem: Class | undefined,
+const getClassSubjectLineFromSummary = (
+  classItem: AssignedClassSummary | Class | undefined,
   teacherSubjects: Subject[] = []
 ) => {
   if (!classItem) return '';
@@ -107,7 +119,7 @@ const getClassSubjectLine = (
 
   const unique = Array.from(new Set(labels));
   if (unique.length > 0) return unique.join(', ');
-  const subjectField = classItem.subject;
+  const subjectField = 'subject' in classItem ? classItem.subject : undefined;
   if (subjectField && subjectField !== 'General') {
     return String(subjectField)
       .split(',')
@@ -115,6 +127,38 @@ const getClassSubjectLine = (
       .join(', ');
   }
   return '';
+};
+
+const resolveTeacherAssignedClasses = (
+  teacher: Teacher,
+  classList: Class[] | undefined
+): AssignedClassSummary[] => {
+  if (teacher.assignedClasses?.length) {
+    return teacher.assignedClasses;
+  }
+
+  return (teacher.assignedClassIds ?? []).map((classId) => {
+    const classItem = resolveAssignedClass(classId, classList);
+    if (!classItem) {
+      return {
+        id: classId,
+        name: classId,
+        schedule: 'Not scheduled',
+        room: '—',
+        studentCount: 0,
+      };
+    }
+    return {
+      id: classItem.id,
+      name: classItem.name,
+      classNumber: classItem.classNumber,
+      section: classItem.section,
+      schedule: classItem.schedule,
+      room: classItem.room,
+      studentCount: classItem.studentCount,
+      assignedSubjects: classItem.assignedSubjects,
+    };
+  });
 };
 
 const resolveAssignedClass = (classId: string, classList: Class[] | undefined) => {
@@ -221,6 +265,11 @@ function mapTeacherFromApi(
     qualifications: t.qualifications,
     subjects,
     assignedClassIds,
+    assignedClasses: Array.isArray(
+      (t as Teacher & { assignedClasses?: AssignedClassSummary[] }).assignedClasses
+    )
+      ? (t as Teacher & { assignedClasses?: AssignedClassSummary[] }).assignedClasses
+      : undefined,
     isActive: t.isActive !== false,
     createdAt: t.createdAt || new Date().toISOString(),
     lastLogin: t.lastLogin,
@@ -243,8 +292,8 @@ function mapClassFromApi(classItem: unknown): Class | null {
     assignedSubjects: Array.isArray(c.assignedSubjects) ? c.assignedSubjects : [],
     grade: String(c.grade ?? c.classNumber ?? ''),
     teacher: String(c.teacher ?? 'TBD'),
-    schedule: String(c.schedule ?? 'Mon-Fri 9:00 AM'),
-    room: String(c.room ?? '—'),
+    schedule: c.schedule != null && String(c.schedule).trim() !== '' ? String(c.schedule) : 'Not scheduled',
+    room: c.room != null && String(c.room).trim() !== '' ? String(c.room) : '—',
     studentCount: Number(c.studentCount) || 0,
     students: Array.isArray(c.students) ? c.students : [],
     createdAt: c.createdAt || new Date().toISOString(),
@@ -462,10 +511,7 @@ const TeacherManagement = () => {
       setClasses(mappedClasses);
     } catch (error) {
       console.error('Failed to fetch classes:', error);
-      setClasses([
-        { id: '1', name: 'Class 10A', subject: 'General', grade: '10', teacher: 'TBD', schedule: 'Mon-Fri 9:00 AM', room: 'Room 101', studentCount: 0, students: [], createdAt: new Date().toISOString() },
-        { id: '2', name: 'Class 5B', subject: 'General', grade: '5', teacher: 'TBD', schedule: 'Mon-Fri 10:00 AM', room: 'Room 102', studentCount: 0, students: [], createdAt: new Date().toISOString() }
-      ]);
+      setClasses([]);
     }
   };
 
@@ -1497,7 +1543,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6 items-stretch">
           {sortedFilteredTeachers.map((teacher, index) => {
             const teacherSubjects = teacher.subjects ?? [];
-            const assignedClassIds = teacher.assignedClassIds ?? [];
+            const assignedClasses = resolveTeacherAssignedClasses(teacher, classes);
             const isSelected = selectedTeacherIds.includes(teacher.id);
             const gradientColors = [
               'from-orange-500 to-orange-400',
@@ -1581,22 +1627,11 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                   <div className="mb-4 flex flex-col flex-1 min-h-[8rem]">
                     <h4 className="font-bold text-gray-900 text-xs sm:text-sm mb-2">Assigned Classes:</h4>
                     <div className="space-y-2 flex-1 overflow-y-auto max-h-48 pr-0.5">
-                      {assignedClassIds.length > 0 ? (
-                        assignedClassIds.map((classId) => {
-                          const classItem = resolveAssignedClass(classId, classes);
-                          if (!classItem) {
-                            return (
-                              <div key={classId} className="bg-amber-50 rounded-lg p-3 border border-amber-200 min-h-[4.5rem]">
-                                <span className="text-amber-800 text-xs font-medium">
-                                  Assigned (class not found — re-assign from Class Management)
-                                </span>
-                                <span className="text-gray-500 text-xs block mt-1">ID: {classId}</span>
-                              </div>
-                            );
-                          }
-                          const subjectLine = getClassSubjectLine(classItem, teacherSubjects);
+                      {assignedClasses.length > 0 ? (
+                        assignedClasses.map((classItem) => {
+                          const subjectLine = getClassSubjectLineFromSummary(classItem, teacherSubjects);
                           return (
-                            <div key={classId} className="bg-gray-50 rounded-lg p-3 border border-gray-200 min-h-[4.5rem]">
+                            <div key={classItem.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200 min-h-[4.5rem]">
                               <div className="text-sm leading-snug">
                                 <span className="font-medium text-gray-900">{classItem.name}</span>
                                 {subjectLine ? (
@@ -1604,7 +1639,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                                 ) : null}
                               </div>
                               <div className="text-xs text-gray-500 mt-1">
-                                📅 {classItem.schedule ?? '—'}
+                                📅 {classItem.schedule ?? 'Not scheduled'}
                               </div>
                               <div className="text-xs text-gray-500">
                                 🏫 {classItem.room ?? '—'} • 👥 {classItem.studentCount ?? 0} students
