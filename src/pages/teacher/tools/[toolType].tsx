@@ -29,7 +29,6 @@ import { motion } from 'framer-motion';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, ExternalHyperlink, InternalHyperlink } from 'docx';
 import { saveAs } from 'file-saver';
-import html2pdf from 'html2pdf.js';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,6 +55,11 @@ import {
   isStoryLanguageTool,
   STORY_PASSAGE_TOOL_ID,
 } from '@/lib/ai-tool-subject-rules';
+import {
+  downloadAiToolPdf,
+  downloadTeacherToolCsv,
+  isTeacherDownloadTool,
+} from '@/lib/ai-tool-teacher-export';
 
 interface ToolConfig {
   name: string;
@@ -1353,66 +1357,21 @@ export default function TeacherToolPage() {
   const handleDownloadPDF = async () => {
     try {
       setIsDownloading(true);
-      
-      // Find the content container - try multiple selectors
-      let contentElement = document.querySelector('.prose') || 
-                          document.querySelector('[class*="prose"]') ||
-                          document.querySelector('.bg-white.border') ||
-                          document.querySelector('[dangerouslySetInnerHTML]')?.parentElement;
-      
-      if (!contentElement) {
-        // Fallback: create content from generatedContent
-        const tempDiv = document.createElement('div');
-        tempDiv.style.width = '210mm';
-        tempDiv.style.padding = '20mm';
-        tempDiv.style.fontFamily = 'Arial, sans-serif';
-        tempDiv.style.backgroundColor = 'white';
-        tempDiv.innerHTML = renderMarkdown(displayGeneratedContent);
-        document.body.appendChild(tempDiv);
-        contentElement = tempDiv;
-      } else {
-        // Create a temporary container for PDF generation
-        const tempDiv = document.createElement('div');
-        tempDiv.style.width = '210mm'; // A4 width
-        tempDiv.style.padding = '20mm';
-        tempDiv.style.fontFamily = 'Arial, sans-serif';
-        tempDiv.style.backgroundColor = 'white';
-        tempDiv.innerHTML = contentElement.innerHTML;
-        document.body.appendChild(tempDiv);
-        contentElement = tempDiv;
-      }
-
-      const opt = {
-        margin: [10, 10, 10, 10] as [number, number, number, number],
-        filename: `${config.name.replace(/\s+/g, '-')}-${Date.now()}.pdf`,
-        image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { 
-          scale: 2, 
-          useCORS: true,
-          logging: false,
-          windowWidth: contentElement.scrollWidth,
-          windowHeight: contentElement.scrollHeight
-        },
-        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
-      };
-
-      await html2pdf().set(opt).from(contentElement as HTMLElement).save();
-      
-      // Clean up temporary element if we created it
-      if (contentElement.parentElement === document.body) {
-        document.body.removeChild(contentElement);
-      }
-
+      const fileName = `${config.name.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
+      await downloadAiToolPdf(
+        fileName,
+        `<div class="prose">${renderMarkdown(displayGeneratedContent)}</div>`,
+      );
       toast({
         title: 'Downloaded!',
-        description: 'Content downloaded as PDF successfully'
+        description: 'Content downloaded as PDF successfully',
       });
     } catch (error) {
       console.error('Error generating PDF:', error);
       toast({
         title: 'Error',
         description: 'Failed to generate PDF',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     } finally {
       setIsDownloading(false);
@@ -1422,105 +1381,30 @@ export default function TeacherToolPage() {
   const handleDownloadCSV = () => {
     try {
       setIsDownloading(true);
-      
-      // For exam papers, extract questions from rawGeneratedContent
-      if (toolType === 'exam-question-paper-generator' && rawGeneratedContent) {
-        const csvRows: string[] = [];
-        
-        // CSV Headers
-        csvRows.push('Question Number,Type,Question,Option A,Option B,Option C,Option D,Correct Answer,Answer,Explanation,Marks');
-        
-        // Extract questions from sections
-        if (rawGeneratedContent.questions) {
-          const questionTypes = ['mcqs', 'fillInBlanks', 'vsaqs', 'saqs', 'laqs'];
-          const typeLabels = {
-            'mcqs': 'MCQ',
-            'fillInBlanks': 'Fill in the Blanks',
-            'vsaqs': 'Very Short Answer',
-            'saqs': 'Short Answer',
-            'laqs': 'Long Answer'
-          };
-
-          questionTypes.forEach(type => {
-            if (rawGeneratedContent.questions[type] && Array.isArray(rawGeneratedContent.questions[type])) {
-              rawGeneratedContent.questions[type].forEach((q: any) => {
-                const row = [
-                  q.question_number || '',
-                  typeLabels[type as keyof typeof typeLabels] || type,
-                  `"${(q.question || '').replace(/"/g, '""')}"`,
-                  q.options?.A ? `"${q.options.A.replace(/"/g, '""')}"` : '',
-                  q.options?.B ? `"${q.options.B.replace(/"/g, '""')}"` : '',
-                  q.options?.C ? `"${q.options.C.replace(/"/g, '""')}"` : '',
-                  q.options?.D ? `"${q.options.D.replace(/"/g, '""')}"` : '',
-                  q.correct_answer ? `"${q.correct_answer.replace(/"/g, '""')}"` : '',
-                  q.answer ? `"${q.answer.replace(/"/g, '""')}"` : '',
-                  q.explanation ? `"${q.explanation.replace(/"/g, '""')}"` : '',
-                  q.marks || ''
-                ];
-                csvRows.push(row.join(','));
-              });
-            }
-          });
-        } else if (rawGeneratedContent.sections && Array.isArray(rawGeneratedContent.sections)) {
-          // Alternative format with sections
-          rawGeneratedContent.sections.forEach((section: any) => {
-            if (section.questions && Array.isArray(section.questions)) {
-              section.questions.forEach((q: any) => {
-                const row = [
-                  q.question_number || '',
-                  section.type || '',
-                  `"${(q.question || '').replace(/"/g, '""')}"`,
-                  q.options?.A ? `"${q.options.A.replace(/"/g, '""')}"` : '',
-                  q.options?.B ? `"${q.options.B.replace(/"/g, '""')}"` : '',
-                  q.options?.C ? `"${q.options.C.replace(/"/g, '""')}"` : '',
-                  q.options?.D ? `"${q.options.D.replace(/"/g, '""')}"` : '',
-                  q.correct_answer ? `"${q.correct_answer.replace(/"/g, '""')}"` : '',
-                  q.answer ? `"${q.answer.replace(/"/g, '""')}"` : '',
-                  q.explanation ? `"${q.explanation.replace(/"/g, '""')}"` : '',
-                  q.marks || ''
-                ];
-                csvRows.push(row.join(','));
-              });
-            }
-          });
-        }
-
-        const csvContent = csvRows.join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const fileName = `${config.name.replace(/\s+/g, '-')}-${Date.now()}.csv`;
+      const fileName = `${config.name.replace(/\s+/g, '-')}-${Date.now()}.csv`;
+      const saved = downloadTeacherToolCsv(toolType, displayGeneratedContent, rawGeneratedContent, fileName);
+      if (!saved) {
+        const csvRows = ['Content', `"${displayGeneratedContent.replace(/"/g, '""').replace(/\n/g, ' ')}"`];
+        const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
         saveAs(blob, fileName);
-
-        toast({
-          title: 'Downloaded!',
-          description: 'Content downloaded as CSV successfully'
-        });
-      } else {
-        // For other tools, create a simple CSV from the content
-        const csvRows: string[] = [];
-        csvRows.push('Content');
-        csvRows.push(`"${displayGeneratedContent.replace(/"/g, '""').replace(/\n/g, ' ')}"`);
-        
-        const csvContent = csvRows.join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const fileName = `${config.name.replace(/\s+/g, '-')}-${Date.now()}.csv`;
-        saveAs(blob, fileName);
-
-        toast({
-          title: 'Downloaded!',
-          description: 'Content downloaded as CSV successfully'
-        });
       }
+      toast({
+        title: 'Downloaded!',
+        description: 'Content downloaded as CSV successfully',
+      });
     } catch (error) {
       console.error('Error generating CSV:', error);
       toast({
         title: 'Error',
         description: 'Failed to generate CSV',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     } finally {
       setIsDownloading(false);
     }
   };
+
+  const showDownloadActions = isTeacherDownloadTool(toolType);
 
   // Early return check must be AFTER all hooks
   if (!config) {
@@ -1861,7 +1745,33 @@ export default function TeacherToolPage() {
                     >
                       {copied ? <Check className="w-3 h-3 sm:w-4 sm:h-4" /> : <Copy className="w-3 h-3 sm:w-4 sm:h-4" />}
                     </Button>
-                    {/* Download removed from Tools pages */}
+                    {showDownloadActions ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="outline" disabled={isDownloading}>
+                            {isDownloading ? (
+                              <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                            ) : (
+                              <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                            )}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={handleDownloadPDF} disabled={isDownloading}>
+                            <FileDown className="w-4 h-4 mr-2" />
+                            Download PDF
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleDownloadWord} disabled={isDownloading}>
+                            <FileText className="w-4 h-4 mr-2" />
+                            Download Word
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={handleDownloadCSV} disabled={isDownloading}>
+                            <FileSpreadsheet className="w-4 h-4 mr-2" />
+                            Download CSV
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : null}
                   </div>
                 )}
               </div>
@@ -1902,11 +1812,13 @@ export default function TeacherToolPage() {
                 </div>
               ) : generatedContent ? (
                 toolType === 'flashcard-generator' ? (
-                  <FlashcardViewer
-                    content={displayGeneratedContent}
-                    rawContent={rawGeneratedContent}
-                    variant="teacher"
-                  />
+                  <div data-ai-tool-export>
+                    <FlashcardViewer
+                      content={displayGeneratedContent}
+                      rawContent={rawGeneratedContent}
+                      variant="teacher"
+                    />
+                  </div>
                 ) : toolType === 'short-notes-summaries-maker' ? (
                   <div className="bg-gradient-to-b from-cyan-50/60 via-white to-sky-50/40 p-4 sm:p-5 lg:p-6">
                     <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -1950,21 +1862,27 @@ export default function TeacherToolPage() {
                     rawData={rawGeneratedContent}
                   />
                 ) : toolType === 'worksheet-mcq-generator' ? (
-                  <WorksheetMcqViewer
-                    content={displayGeneratedContent}
-                    rawContent={rawGeneratedContent}
-                    variant="teacher"
-                  />
+                  <div data-ai-tool-export>
+                    <WorksheetMcqViewer
+                      content={displayGeneratedContent}
+                      rawContent={rawGeneratedContent}
+                      variant="teacher"
+                    />
+                  </div>
                 ) : toolType === 'homework-creator' ? (
-                  <HomeworkCreatorViewer
-                    content={displayGeneratedContent}
-                    rawContent={rawGeneratedContent}
-                  />
+                  <div data-ai-tool-export>
+                    <HomeworkCreatorViewer
+                      content={displayGeneratedContent}
+                      rawContent={rawGeneratedContent}
+                    />
+                  </div>
                 ) : toolType === 'exam-question-paper-generator' ? (
-                  <ExamQuestionPaperViewer
-                    content={displayGeneratedContent}
-                    rawContent={rawGeneratedContent}
-                  />
+                  <div data-ai-tool-export>
+                    <ExamQuestionPaperViewer
+                      content={displayGeneratedContent}
+                      rawContent={rawGeneratedContent}
+                    />
+                  </div>
                 ) : (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}

@@ -63,7 +63,7 @@ export default function SchoolBrandRow({
       <p
         className={cn(
           "min-w-0 font-semibold leading-snug",
-          compact ? "text-xs" : "text-sm",
+          compact ? "text-[15px]" : "text-[17px]",
           isOnPrimary ? "text-white/95" : "text-slate-900"
         )}
       >
