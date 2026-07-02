@@ -1819,31 +1819,57 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     return insights.find((x) => Number(x.index) === questionIndex + 1);
   };
 
-  const getQuestionAnalysisBlocks = (questionIndex: number) => {
-    const item = getQuestionInsightByIndex(questionIndex);
-    const question = analysisQuestions[questionIndex];
-    const blocks: string[] = [];
-    const gap = String(item?.conceptGap || '').trim();
-    const fix = String(item?.fixStrategy || '').trim();
-    if (gap) blocks.push(gap);
-    if (fix) blocks.push(fix);
-    const solution = String(question?.explanation || item?.geminiExplanation || '').trim();
-    if (solution) blocks.push(`Solution: ${solution}`);
-    return blocks;
-  };
-
   const resolveQuestionAnalysisStatus = (questionIndex: number) => {
+    const question = analysisQuestions[questionIndex];
+    if (question) {
+      const ua = getUserAnswerForQuestion(question, questionIndex);
+      const attempted = ua !== undefined && ua !== null && ua !== '';
+      if (!attempted) return 'unattempted';
+      return compareAnswers(question, ua, question.correctAnswer) ? 'correct' : 'wrong';
+    }
+
     const item = getQuestionInsightByIndex(questionIndex);
     const fromInsight = String(item?.status || '').toLowerCase();
     if (fromInsight === 'correct' || fromInsight === 'wrong' || fromInsight === 'unattempted') {
       return fromInsight;
     }
+    return 'unattempted';
+  };
+
+  const getQuestionAnalysisBlocks = (questionIndex: number) => {
+    const item = getQuestionInsightByIndex(questionIndex);
     const question = analysisQuestions[questionIndex];
-    if (!question) return 'unattempted';
-    const ua = getUserAnswerForQuestion(question, questionIndex);
-    const attempted = ua !== undefined && ua !== null && ua !== '';
-    if (!attempted) return 'unattempted';
-    return compareAnswers(question, ua, question.correctAnswer) ? 'correct' : 'wrong';
+    const actualStatus = resolveQuestionAnalysisStatus(questionIndex);
+    const insightStatus = String(item?.status || '').toLowerCase();
+    const alignedInsight =
+      !!insightStatus &&
+      (actualStatus === 'unattempted'
+        ? insightStatus === 'unattempted'
+        : insightStatus === actualStatus);
+    const blocks: string[] = [];
+    const gap = String(item?.conceptGap || '').trim();
+    const fix = String(item?.fixStrategy || '').trim();
+
+    if (actualStatus === 'correct') {
+      if (alignedInsight) {
+        if (gap) blocks.push(gap);
+        if (fix) blocks.push(fix);
+      } else {
+        blocks.push('You answered this question correctly.');
+      }
+    } else if (actualStatus === 'wrong') {
+      if (gap) blocks.push(gap);
+      if (fix) blocks.push(fix);
+    } else if (alignedInsight || !item) {
+      if (gap) blocks.push(gap);
+      if (fix) blocks.push(fix);
+    } else {
+      blocks.push('This question was not attempted.');
+    }
+
+    const solution = String(question?.explanation || item?.geminiExplanation || '').trim();
+    if (solution) blocks.push(`Solution: ${solution}`);
+    return blocks;
   };
 
   const renderQuestionAnalysisSection = (questionIndex: number) => {
@@ -2247,25 +2273,37 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                                 const correctAnswerTexts = resolveAnswerTexts(activeQuestion, activeQuestion.correctAnswer);
                                 const isUser = userAnswerTexts.includes(optionText);
                                 const isRight = correctAnswerTexts.includes(optionText);
+                                const isCorrectSelection = isUser && isRight;
                                 
                                 return (
                                   <div 
                                     key={index} 
                                     className={`flex items-center space-x-3 p-4 rounded-lg border-2 ${
-                                      isRight 
-                                        ? 'border-green-400 bg-green-50' 
-                                        : isUser && !isRight 
-                                        ? 'border-red-400 bg-red-50' 
+                                      isCorrectSelection
+                                        ? 'border-emerald-400 bg-emerald-50 ring-2 ring-purple-200'
+                                        : isRight
+                                        ? 'border-emerald-400 bg-emerald-50'
+                                        : isUser
+                                        ? 'border-red-400 bg-red-50'
                                         : 'border-gray-200 bg-gray-50'
                                     }`}
                                   >
                                     <span className="text-xs sm:text-sm font-medium text-gray-600 w-6">{String.fromCharCode(65 + index)}.</span>
                                     <span className={`flex-1 ${
-                                      isRight ? 'text-green-800 font-medium' : isUser && !isRight ? 'text-red-800 font-medium' : 'text-gray-700'
+                                      isCorrectSelection || isRight
+                                        ? 'text-emerald-800 font-medium'
+                                        : isUser
+                                        ? 'text-red-800 font-medium'
+                                        : 'text-gray-700'
                                     }`}>
                                       {optionText}
                                     </span>
-                                    {isRight && <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />}
+                                    {isCorrectSelection && (
+                                      <span className="text-[10px] font-semibold uppercase tracking-wide text-purple-700 bg-purple-100 px-2 py-0.5 rounded">
+                                        Your answer
+                                      </span>
+                                    )}
+                                    {(isRight || isCorrectSelection) && <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />}
                                     {isUser && !isRight && <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />}
                                   </div>
                                 );
