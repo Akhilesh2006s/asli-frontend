@@ -124,8 +124,12 @@ export function parseNumberedTemplateSections(text: string): {
 
     const boldNumbered = t.match(/^\*{1,2}(\d{1,2})\.\s*(.+?)\*{1,2}\s*$/i);
     if (boldNumbered) {
-      tryStartSection(Number(boldNumbered[1]), boldNumbered[2]);
-      continue;
+      const num = Number(boldNumbered[1]);
+      const title = boldNumbered[2].trim();
+      if (num > currentSection) {
+        tryStartSection(num, title);
+        continue;
+      }
     }
 
     const plainNumbered = t.match(/^(\d{1,2})\.\s+(.+)$/);
@@ -137,7 +141,7 @@ export function parseNumberedTemplateSections(text: string): {
         /^(Section\s+[A-G]|Alignment|Learning|Instructions|Objectives|Chapter|Topic|Simple|Why|Prior|Step|Diagram|Real|Common|Concept|Key|Exam|Higher|Quick|Worksheet|Mock|Answer|Bloom|NCF|Materials|Procedure|Teacher|Student|Differentiation|Assessment|Expected|Reflection|Subtopic|Study|Practice|Safety|Observation|Creative|Activity|Homework|Story|Passage|Short|Note|Summary|Misconception)/i.test(
           title,
         );
-      if (looksLikeTemplateHeader) {
+      if (looksLikeTemplateHeader && num > currentSection) {
         tryStartSection(num, title);
         continue;
       }
@@ -145,8 +149,11 @@ export function parseNumberedTemplateSections(text: string): {
 
     const sectionLabel = t.match(/^Section\s+(\d{1,2})\s*:\s*(.+)$/i);
     if (sectionLabel) {
-      tryStartSection(Number(sectionLabel[1]), sectionLabel[2]);
-      continue;
+      const num = Number(sectionLabel[1]);
+      if (num > currentSection) {
+        tryStartSection(num, sectionLabel[2]);
+        continue;
+      }
     }
 
     if (currentSection > 0) bodyLines.push(raw);
