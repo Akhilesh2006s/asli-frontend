@@ -1,3 +1,5 @@
+import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
+
 /**
  * Super Admin / AI Tool Data sometimes stores `generatedContent` as a JSON
  * envelope `{ formatted, raw }` (occasionally with mangled keys inside `raw`).
@@ -10,7 +12,11 @@ export function normalizeAiToolResponsePayload(
 ): { formatted: string; raw: unknown | null } {
   let formatted = String(content ?? '').trim();
   let raw: unknown | null =
-    rawData && typeof rawData === 'object' ? rawData : null;
+    rawData && typeof rawData === 'object' && !Array.isArray(rawData)
+      ? rawData
+      : Array.isArray(rawData)
+        ? { items: rawData }
+        : null;
 
   const tryUnwrap = (text: string): boolean => {
     if (!text.startsWith('{') && !text.startsWith('[')) return false;
@@ -64,4 +70,32 @@ export function buildAiToolViewerContent(
     };
   }
   return { displayContent: formatted, rawContent: null };
+}
+
+/**
+ * Teacher/student display state: plain markdown for prose + structured raw for cards/sections.
+ * Always unwraps `{ formatted, raw }` so viewers never render the JSON envelope as text.
+ */
+export function resolveAiToolDisplayState(
+  content: unknown,
+  rawData?: unknown,
+): { displayText: string; rawContent: unknown | null } {
+  const { formatted, raw } = normalizeAiToolResponsePayload(content, rawData);
+  return {
+    displayText: stripStructuredAiToolMetadata(formatted || ''),
+    rawContent: raw,
+  };
+}
+
+/** Prefer API rawData, then structuredContent, then envelope embedded in content. */
+export function pickAiToolRawData(payload?: {
+  rawData?: unknown;
+  structuredContent?: unknown;
+} | null): unknown {
+  if (!payload || typeof payload !== 'object') return null;
+  if (payload.rawData && typeof payload.rawData === 'object') return payload.rawData;
+  if (payload.structuredContent && typeof payload.structuredContent === 'object') {
+    return payload.structuredContent;
+  }
+  return null;
 }

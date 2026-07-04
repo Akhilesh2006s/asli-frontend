@@ -15,6 +15,7 @@ export type SuperAdminView =
   | 'iq-rank-boost'
   | 'vidya-ai'
   | 'ai-tool-generations'
+  | 'ai-tool-duplicates'
   | 'ai-tool-topics'
   | 'courses'
   | 'add-admin'
@@ -40,6 +41,7 @@ export const SUPER_ADMIN_VIEWS: SuperAdminView[] = [
   'iq-rank-boost',
   'vidya-ai',
   'ai-tool-generations',
+  'ai-tool-duplicates',
   'ai-tool-topics',
   'courses',
   'add-admin',

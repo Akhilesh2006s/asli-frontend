@@ -21,7 +21,11 @@ import {
   resolveAiToolApiInlineMessage,
   validateAiToolForm,
 } from '@/lib/ai-tool-generate';
-import { buildAiToolViewerContent } from '@/lib/ai-tool-response-payload';
+import {
+  buildAiToolViewerContent,
+  pickAiToolRawData,
+  resolveAiToolDisplayState,
+} from '@/lib/ai-tool-response-payload';
 import {
   getAiToolBoardOptions,
   getDefaultAiToolBoard,
@@ -43,6 +47,7 @@ import 'katex/dist/katex.min.css';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
 import html2pdf from 'html2pdf.js';
+import { FlashcardViewer } from '@/components/flashcard-viewer';
 import { MyStudyDecksViewer } from '@/components/my-study-decks-viewer';
 import { ShortNotesViewer } from '@/components/short-notes-viewer';
 import { ConceptMasteryViewer } from '@/components/concept-mastery-viewer';
@@ -57,7 +62,6 @@ import { PracticeQaViewer } from '@/components/practice-qa-viewer';
 import { ChapterSummaryViewer } from '@/components/chapter-summary-viewer';
 import { KeyPointsViewer } from '@/components/key-points-viewer';
 import { QuickAssignmentViewer } from '@/components/quick-assignment-viewer';
-import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import type { AiToolGenerationMeta } from '@/lib/ai-tool-generation-summary';
 import {
   filterSubjectsForAiTool,
@@ -644,9 +648,9 @@ export default function StudentToolPage() {
   const [rawGeneratedContent, setRawGeneratedContent] = useState<any>(null);
   const [responseMeta, setResponseMeta] = useState<any>(null);
   const [fallbackEmptyMessage, setFallbackEmptyMessage] = useState<string>('');
-  const displayGeneratedContent = useMemo(
-    () => stripStructuredAiToolMetadata(generatedContent),
-    [generatedContent],
+  const { displayText: displayGeneratedContent, rawContent: effectiveRawContent } = useMemo(
+    () => resolveAiToolDisplayState(generatedContent, rawGeneratedContent),
+    [generatedContent, rawGeneratedContent],
   );
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -690,6 +694,7 @@ export default function StudentToolPage() {
   const isStudySchedule = apiToolType === 'study-schedule-maker';
   const isReadingPractice = apiToolType === 'reading-practice-room';
   const isMyStudyDecks = apiToolType === 'my-study-decks';
+  const isFlashcardGenerator = apiToolType === 'flashcard-generator';
   const isMockTest = apiToolType === 'mock-test-builder';
 
   const subjectsForTool = useMemo(
@@ -971,7 +976,7 @@ export default function StudentToolPage() {
 
         const { displayContent, rawContent } = buildAiToolViewerContent(
           data.data.content,
-          data.data.rawData,
+          pickAiToolRawData(data.data),
         );
         setRawGeneratedContent(rawContent);
         // Always keep structured sections (cards, questions, steps) when present.
@@ -1140,8 +1145,6 @@ export default function StudentToolPage() {
           const fallbackJson = await fallbackRes.json();
           const fallbackContent =
             fallbackJson?.data?.generatedContent ?? fallbackJson?.data?.content ?? '';
-          const fallbackRaw =
-            fallbackJson?.data?.rawData ?? fallbackJson?.data?.structuredContent ?? null;
           if (
             isAiToolInlineOnlyError(fallbackJson?.code) ||
             (fallbackJson?.success && !fallbackJson?.data)
@@ -1153,7 +1156,7 @@ export default function StudentToolPage() {
           } else if (fallbackJson?.success && String(fallbackContent).trim().length > 0) {
             const { displayContent, rawContent } = buildAiToolViewerContent(
               fallbackContent,
-              fallbackRaw,
+              pickAiToolRawData(fallbackJson?.data),
             );
             setGeneratedContent(displayContent || String(fallbackContent));
             setRawGeneratedContent(rawContent);
@@ -1680,15 +1683,19 @@ export default function StudentToolPage() {
     try {
       setIsDownloading(true);
       
-      // For exam papers, extract questions from rawGeneratedContent
-      if (isMockTest && rawGeneratedContent) {
+      // For exam papers, extract questions from structured payload
+      const csvRaw =
+        effectiveRawContent && typeof effectiveRawContent === 'object'
+          ? (effectiveRawContent as Record<string, any>)
+          : null;
+      if (isMockTest && csvRaw) {
         const csvRows: string[] = [];
         
         // CSV Headers
         csvRows.push('Question Number,Type,Question,Option A,Option B,Option C,Option D,Correct Answer,Answer,Explanation,Marks');
         
         // Extract questions from sections
-        if (rawGeneratedContent.questions) {
+        if (csvRaw.questions) {
           const questionTypes = ['mcqs', 'fillInBlanks', 'vsaqs', 'saqs', 'laqs'];
           const typeLabels = {
             'mcqs': 'MCQ',
@@ -1699,8 +1706,8 @@ export default function StudentToolPage() {
           };
 
           questionTypes.forEach(type => {
-            if (rawGeneratedContent.questions[type] && Array.isArray(rawGeneratedContent.questions[type])) {
-              rawGeneratedContent.questions[type].forEach((q: any) => {
+            if (csvRaw.questions[type] && Array.isArray(csvRaw.questions[type])) {
+              csvRaw.questions[type].forEach((q: any) => {
                 const row = [
                   q.question_number || '',
                   typeLabels[type as keyof typeof typeLabels] || type,
@@ -1718,9 +1725,9 @@ export default function StudentToolPage() {
               });
             }
           });
-        } else if (rawGeneratedContent.sections && Array.isArray(rawGeneratedContent.sections)) {
+        } else if (csvRaw.sections && Array.isArray(csvRaw.sections)) {
           // Alternative format with sections
-          rawGeneratedContent.sections.forEach((section: any) => {
+          csvRaw.sections.forEach((section: any) => {
             if (section.questions && Array.isArray(section.questions)) {
               section.questions.forEach((q: any) => {
                 const row = [
@@ -2067,6 +2074,7 @@ export default function StudentToolPage() {
             <Card
               className={
                 (isMyStudyDecks ||
+                  isFlashcardGenerator ||
                   isProjectIdeaLab ||
                   isReadingPractice ||
                   isStudySchedule) &&
@@ -2080,6 +2088,7 @@ export default function StudentToolPage() {
               <CardHeader
                 className={
                   (isMyStudyDecks ||
+                    isFlashcardGenerator ||
                     isProjectIdeaLab ||
                     isReadingPractice ||
                     isStudySchedule) &&
@@ -2105,6 +2114,8 @@ export default function StudentToolPage() {
                   <CardTitle>
                     {isMyStudyDecks
                       ? 'Your study deck'
+                      : isFlashcardGenerator
+                        ? 'Your flashcards'
                       : isProjectIdeaLab
                         ? 'Your project idea lab'
                         : isReadingPractice
@@ -2147,6 +2158,7 @@ export default function StudentToolPage() {
               <CardContent
                 className={
                   (isMyStudyDecks ||
+                    isFlashcardGenerator ||
                     isProjectIdeaLab ||
                     isReadingPractice ||
                     isStudySchedule) &&
@@ -2183,69 +2195,81 @@ export default function StudentToolPage() {
                   isMyStudyDecks ? (
                     <MyStudyDecksViewer
                       content={displayGeneratedContent}
-                      rawContent={rawGeneratedContent}
+                      rawContent={effectiveRawContent}
+                    />
+                  ) : isFlashcardGenerator ? (
+                    <FlashcardViewer
+                      content={displayGeneratedContent}
+                      rawContent={effectiveRawContent}
+                      variant="student"
                     />
                   ) : toolType === 'short-notes-summaries-maker' ? (
-                    <ShortNotesViewer content={displayGeneratedContent} rawContent={rawGeneratedContent} />
+                    <ShortNotesViewer content={displayGeneratedContent} rawContent={effectiveRawContent} />
                   ) : toolType === 'concept-mastery-helper' ? (
                     <ConceptMasteryViewer
                       content={displayGeneratedContent}
-                      rawContent={rawGeneratedContent}
-                      variant="teacher"
+                      rawContent={effectiveRawContent}
+                      variant="student"
                     />
                   ) : isStudySchedule ? (
                     <LessonPlannerViewer
-                      content={generatedContent}
-                      rawContent={rawGeneratedContent}
+                      content={displayGeneratedContent}
+                      rawContent={effectiveRawContent}
                       variant="student"
                       toolKind="study-schedule-maker"
                     />
                   ) : isProjectIdeaLab ? (
                     <ActivityProjectViewer
-                      activities={rawGeneratedContent?.activities}
-                      content={generatedContent}
+                      activities={
+                        effectiveRawContent &&
+                        typeof effectiveRawContent === 'object' &&
+                        !Array.isArray(effectiveRawContent)
+                          ? (effectiveRawContent as { activities?: unknown[] }).activities
+                          : undefined
+                      }
+                      content={displayGeneratedContent}
                       variant="student"
                     />
                   ) : isReadingPractice ? (
                     <StoryPassageViewer
-                      content={generatedContent}
-                      rawData={rawGeneratedContent}
+                      content={displayGeneratedContent}
+                      rawData={effectiveRawContent}
                       variant="student"
                     />
                   ) : isMockTest ? (
                     <MockTestViewer
                       content={displayGeneratedContent}
-                      rawContent={rawGeneratedContent}
+                      rawContent={effectiveRawContent}
                     />
                   ) : isSmartStudyGuide ? (
                     <SmartStudyGuideViewer
                       content={displayGeneratedContent}
-                      rawContent={rawGeneratedContent}
+                      rawContent={effectiveRawContent}
                     />
                   ) : toolType === 'concept-breakdown-explainer' ? (
                     <ConceptBreakdownViewer
                       content={displayGeneratedContent}
-                      rawContent={rawGeneratedContent}
+                      rawContent={effectiveRawContent}
                     />
                   ) : toolType === 'smart-qa-practice-generator' ? (
                     <PracticeQaViewer
                       content={displayGeneratedContent}
-                      rawContent={rawGeneratedContent}
+                      rawContent={effectiveRawContent}
                     />
                   ) : toolType === 'chapter-summary-creator' ? (
                     <ChapterSummaryViewer
                       content={displayGeneratedContent}
-                      rawContent={rawGeneratedContent}
+                      rawContent={effectiveRawContent}
                     />
                   ) : toolType === 'key-points-formula-extractor' ? (
                     <KeyPointsViewer
                       content={displayGeneratedContent}
-                      rawContent={rawGeneratedContent}
+                      rawContent={effectiveRawContent}
                     />
                   ) : toolType === 'quick-assignment-builder' ? (
                     <QuickAssignmentViewer
                       content={displayGeneratedContent}
-                      rawContent={rawGeneratedContent}
+                      rawContent={effectiveRawContent}
                     />
                   ) : (
                     <motion.div

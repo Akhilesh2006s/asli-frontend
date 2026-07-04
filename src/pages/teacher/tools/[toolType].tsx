@@ -15,7 +15,11 @@ import {
   resolveAiToolApiInlineMessage,
   validateAiToolForm,
 } from '@/lib/ai-tool-generate';
-import { buildAiToolViewerContent } from '@/lib/ai-tool-response-payload';
+import {
+  buildAiToolViewerContent,
+  pickAiToolRawData,
+  resolveAiToolDisplayState,
+} from '@/lib/ai-tool-response-payload';
 import {
   getAiToolBoardOptions,
   getDefaultAiToolBoard,
@@ -37,6 +41,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { FlashcardViewer } from '@/components/flashcard-viewer';
+import { MyStudyDecksViewer } from '@/components/my-study-decks-viewer';
 import { ShortNotesViewer } from '@/components/short-notes-viewer';
 import { ConceptMasteryViewer } from '@/components/concept-mastery-viewer';
 import { LessonPlannerViewer } from '@/components/lesson-planner-viewer';
@@ -46,7 +51,6 @@ import { ExamQuestionPaperViewer } from '@/components/exam-question-paper-viewer
 import { ActivityProjectViewer } from '@/components/activity-project-viewer';
 import { StoryPassageViewer } from '@/components/story-passage-viewer';
 import { WorksheetMcqViewer } from '@/components/worksheet-mcq-viewer';
-import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import type { AiToolGenerationMeta } from '@/lib/ai-tool-generation-summary';
 import { useCurriculumCascade } from '@/hooks/use-curriculum-cascade';
 import {
@@ -223,9 +227,9 @@ export default function TeacherToolPage() {
   const [responseMeta, setResponseMeta] = useState<any>(null);
   const [fallbackEmptyMessage, setFallbackEmptyMessage] = useState<string>('');
   const [isFallbackContent, setIsFallbackContent] = useState(false);
-  const displayGeneratedContent = useMemo(
-    () => stripStructuredAiToolMetadata(generatedContent),
-    [generatedContent],
+  const { displayText: displayGeneratedContent, rawContent: effectiveRawContent } = useMemo(
+    () => resolveAiToolDisplayState(generatedContent, rawGeneratedContent),
+    [generatedContent, rawGeneratedContent],
   );
   const [copied, setCopied] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -835,7 +839,7 @@ export default function TeacherToolPage() {
 
         const { displayContent, rawContent } = buildAiToolViewerContent(
           data.data.content,
-          data.data.rawData,
+          pickAiToolRawData(data.data),
         );
         setRawGeneratedContent(rawContent);
         // Always keep structured sections (cards, questions, steps) when present.
@@ -880,11 +884,6 @@ export default function TeacherToolPage() {
           fallbackJson?.data?.generatedContent ??
           fallbackJson?.data?.content ??
           '';
-        const fallbackRaw =
-          fallbackJson?.data?.rawData ??
-          fallbackJson?.data?.structuredContent ??
-          null;
-
         if (
           isAiToolInlineOnlyError(fallbackJson?.code) ||
           (fallbackJson?.success && !fallbackJson?.data)
@@ -899,7 +898,7 @@ export default function TeacherToolPage() {
         if (fallbackJson?.success && String(fallbackContent).trim().length > 0) {
           const { displayContent, rawContent } = buildAiToolViewerContent(
             fallbackContent,
-            fallbackRaw,
+            pickAiToolRawData(fallbackJson?.data),
           );
           setGeneratedContent(displayContent || String(fallbackContent));
           setRawGeneratedContent(rawContent);
@@ -1379,7 +1378,7 @@ export default function TeacherToolPage() {
     try {
       setIsDownloading(true);
       const fileName = `${config.name.replace(/\s+/g, '-')}-${Date.now()}.csv`;
-      const saved = downloadTeacherToolCsv(toolType, displayGeneratedContent, rawGeneratedContent, fileName);
+      const saved = downloadTeacherToolCsv(toolType, displayGeneratedContent, effectiveRawContent, fileName);
       if (!saved) {
         const csvRows = ['Content', `"${displayGeneratedContent.replace(/"/g, '""').replace(/\n/g, ' ')}"`];
         const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
@@ -1812,8 +1811,15 @@ export default function TeacherToolPage() {
                   <div data-ai-tool-export>
                     <FlashcardViewer
                       content={displayGeneratedContent}
-                      rawContent={rawGeneratedContent}
+                      rawContent={effectiveRawContent}
                       variant="teacher"
+                    />
+                  </div>
+                ) : toolType === 'my-study-decks' ? (
+                  <div data-ai-tool-export>
+                    <MyStudyDecksViewer
+                      content={displayGeneratedContent}
+                      rawContent={effectiveRawContent}
                     />
                   </div>
                 ) : toolType === 'short-notes-summaries-maker' ? (
@@ -1826,43 +1832,49 @@ export default function TeacherToolPage() {
                         Teacher focus view
                       </span>
                     </div>
-                    <ShortNotesViewer content={displayGeneratedContent} rawContent={rawGeneratedContent} />
+                    <ShortNotesViewer content={displayGeneratedContent} rawContent={effectiveRawContent} />
                   </div>
                 ) : toolType === 'concept-mastery-helper' ? (
                   <ConceptMasteryViewer
                     content={displayGeneratedContent}
-                    rawContent={rawGeneratedContent}
+                    rawContent={effectiveRawContent}
                     variant="teacher"
                   />
                 ) : toolType === 'lesson-planner' ? (
                   <LessonPlannerViewer
-                    content={generatedContent}
-                    rawContent={rawGeneratedContent}
+                    content={displayGeneratedContent}
+                    rawContent={effectiveRawContent}
                     variant="teacher"
                     toolKind="lesson-planner"
                   />
                 ) : toolType === 'daily-class-plan-maker' ? (
                   <DailyClassPlanViewer
                     content={displayGeneratedContent}
-                    rawContent={rawGeneratedContent}
+                    rawContent={effectiveRawContent}
                     variant="teacher"
                   />
                 ) : toolType === 'activity-project-generator' ? (
                   <ActivityProjectViewer
-                    activities={rawGeneratedContent?.activities}
+                    activities={
+                      effectiveRawContent &&
+                      typeof effectiveRawContent === 'object' &&
+                      !Array.isArray(effectiveRawContent)
+                        ? (effectiveRawContent as { activities?: unknown[] }).activities
+                        : undefined
+                    }
                     content={displayGeneratedContent}
                     variant="teacher"
                   />
                 ) : toolType === 'story-passage-creator' ? (
                   <StoryPassageViewer
                     content={displayGeneratedContent}
-                    rawData={rawGeneratedContent}
+                    rawData={effectiveRawContent}
                   />
                 ) : toolType === 'worksheet-mcq-generator' ? (
                   <div data-ai-tool-export>
                     <WorksheetMcqViewer
                       content={displayGeneratedContent}
-                      rawContent={rawGeneratedContent}
+                      rawContent={effectiveRawContent}
                       variant="teacher"
                     />
                   </div>
@@ -1870,14 +1882,14 @@ export default function TeacherToolPage() {
                   <div data-ai-tool-export>
                     <HomeworkCreatorViewer
                       content={displayGeneratedContent}
-                      rawContent={rawGeneratedContent}
+                      rawContent={effectiveRawContent}
                     />
                   </div>
                 ) : toolType === 'exam-question-paper-generator' ? (
                   <div data-ai-tool-export>
                     <ExamQuestionPaperViewer
                       content={displayGeneratedContent}
-                      rawContent={rawGeneratedContent}
+                      rawContent={effectiveRawContent}
                     />
                   </div>
                 ) : (
