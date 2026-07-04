@@ -33,6 +33,7 @@ import {
 } from '@/lib/board-label';
 import {
   getCurriculumClassLabels,
+  removeCurriculumClass,
   saveCurriculumClass,
 } from '@/lib/super-admin-curriculum-classes';
 import {
@@ -738,6 +739,7 @@ export default function SubjectContentManagement() {
   const [isSavingContent, setIsSavingContent] = useState(false);
   const [deletingSubjectId, setDeletingSubjectId] = useState<string | null>(null);
   const [deletingContentId, setDeletingContentId] = useState<string | null>(null);
+  const [deletingClassLabel, setDeletingClassLabel] = useState<string | null>(null);
   const [failedThumbnailIds, setFailedThumbnailIds] = useState<Set<string>>(new Set());
   /** In-page preview instead of opening files in a new browser tab. */
   const [contentPreviewItem, setContentPreviewItem] = useState<ContentItem | null>(null);
@@ -773,6 +775,7 @@ export default function SubjectContentManagement() {
     };
 
     subjects.forEach((subj) => {
+      if (!isActiveCatalogSubject(subj)) return;
       const cn = subj.classNumber
         ? normalizeClassNumber(subj.classNumber)
         : normalizeClassNumber(extractClassNumberFromSubjectName(subj.name) || '');
@@ -780,6 +783,7 @@ export default function SubjectContentManagement() {
     });
 
     contents.forEach((item) => {
+      if (item.isActive === false) return;
       const cn = effectiveContentClass(item, subjects);
       if (cn) add(cn, item.board || BOARD_CODE);
     });
@@ -1198,6 +1202,126 @@ export default function SubjectContentManagement() {
       title: 'Class added',
       description: `${label} selected. Use Add Subject to add subjects for this class.`,
     });
+  };
+
+  const handleDeleteClass = async (label: string) => {
+    const { classNum, board } = parseClassBoardLabel(label);
+    if (!classNum) return;
+
+    const normClass = normalizeClassNumber(classNum);
+    const normBoard = normalizeBoardKey(board);
+
+    const subjectsToDelete = subjects.filter((subj) => {
+      if (!isActiveCatalogSubject(subj)) return false;
+      const subjClass = subj.classNumber
+        ? normalizeClassNumber(subj.classNumber)
+        : normalizeClassNumber(extractClassNumberFromSubjectName(subj.name) || '');
+      if (subjClass !== normClass) return false;
+      if (normBoard) {
+        return boardsMatch(subj.board, normBoard);
+      }
+      return !normalizeBoardKey(subj.board || '');
+    });
+
+    const contentsToDelete = contents.filter((item) =>
+      contentMatchesClassBoard(item, subjects, normClass, normBoard)
+    );
+
+    const hasData = subjectsToDelete.length > 0 || contentsToDelete.length > 0;
+    const confirmMsg = hasData
+      ? `Delete "${label}" and all its subjects (${subjectsToDelete.length}) and content (${contentsToDelete.length})? This cannot be undone.`
+      : `Remove "${label}" from the list?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setDeletingClassLabel(label);
+    try {
+      const token = localStorage.getItem('authToken');
+      let deletedSubjects = 0;
+      let deletedContents = 0;
+      let lastError = '';
+
+      for (const target of subjectsToDelete) {
+        const response = await fetch(
+          `${API_BASE_URL}/api/super-admin/subjects/${target._id}`,
+          {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && data.success !== false) {
+          deletedSubjects += 1;
+        } else {
+          lastError = data.message || 'Failed to delete subject';
+        }
+      }
+
+      // Subject delete may cascade content; remove any items still listed for this class.
+      for (const item of contentsToDelete) {
+        const response = await fetch(
+          `${API_BASE_URL}/api/super-admin/content/${item._id}`,
+          {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && data.success !== false) {
+          deletedContents += 1;
+        } else if (!lastError) {
+          lastError = data.message || 'Failed to delete content';
+        }
+      }
+
+      removeCurriculumClass(label);
+      setManualClassLabels((prev) => prev.filter((l) => l !== label));
+
+      if (selectedClassLabel === label) {
+        setSelectedClassLabel(null);
+        setSelectedSubjectId(null);
+      }
+
+      await fetchSubjects();
+      await fetchContents();
+
+      if (
+        hasData &&
+        deletedSubjects === 0 &&
+        deletedContents === 0 &&
+        subjectsToDelete.length > 0
+      ) {
+        toast({
+          title: 'Error',
+          description: lastError || 'Failed to delete class',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Class deleted',
+        description:
+          deletedSubjects > 0 || deletedContents > 0
+            ? `Removed ${label} with ${deletedSubjects} subject${deletedSubjects === 1 ? '' : 's'} and related content.`
+            : `${label} removed from the list.`,
+      });
+    } catch (error) {
+      console.error('Failed to delete class:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete class',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingClassLabel(null);
+    }
   };
 
   const handleOpenAddSubject = () => {
@@ -1944,22 +2068,46 @@ export default function SubjectContentManagement() {
               <div className="space-y-2 max-h-[480px] overflow-auto pr-1">
                 {displayClassOptions.map((label) => {
                   const isActive = label === selectedClassLabel;
+                  const isDeleting = deletingClassLabel === label;
                   return (
-                    <button
+                    <div
                       key={label}
-                      onClick={() => {
-                        setSelectedClassLabel(label);
-                        setSelectedSubjectId(null);
-                      }}
-                      className={`w-full flex items-center justify-between rounded-md border px-3 py-2 text-left text-xs sm:text-sm transition-colors ${
+                      className={`flex items-center justify-between rounded-md border px-3 py-2 text-xs sm:text-sm ${
                         isActive
                           ? 'border-sky-400 bg-sky-50'
                           : 'border-gray-200 hover:bg-gray-50'
                       }`}
                     >
-                      <div className="font-medium text-gray-900">{label}</div>
-                      <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedClassLabel(label);
+                          setSelectedSubjectId(null);
+                        }}
+                        className="flex items-center justify-between flex-1 min-w-0 text-left"
+                      >
+                        <div className="font-medium text-gray-900 truncate">{label}</div>
+                        <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 shrink-0 ml-2" />
+                      </button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClass(label);
+                        }}
+                        disabled={isDeleting || deletingClassLabel !== null}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 ml-1 shrink-0"
+                        title="Delete class"
+                      >
+                        {isDeleting ? (
+                          <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                        )}
+                      </Button>
+                    </div>
                   );
                 })}
               </div>

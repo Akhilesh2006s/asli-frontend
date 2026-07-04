@@ -15,6 +15,7 @@ import {
   resolveAiToolApiInlineMessage,
   validateAiToolForm,
 } from '@/lib/ai-tool-generate';
+import { buildAiToolViewerContent } from '@/lib/ai-tool-response-payload';
 import {
   getAiToolBoardOptions,
   getDefaultAiToolBoard,
@@ -90,7 +91,7 @@ type CitationItem = {
   preview: string;
 };
 
-const CLASS_OPTIONS = ['Class 6', 'Class 7', 'Class 8', 'Class 10'];
+const CLASS_OPTIONS = ['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'];
 
 const TOOL_CONFIGS: Record<string, ToolConfig> = {
   'activity-project-generator': {
@@ -832,37 +833,13 @@ export default function TeacherToolPage() {
         setResponseMeta(data.data.metadata || null);
         setIsFallbackContent(!!data.data.metadata?.aiUnavailable);
 
-        if (data.data.rawData) {
-          setRawGeneratedContent(data.data.rawData);
-          if (
-            toolType === 'short-notes-summaries-maker' ||
-            toolType === 'concept-mastery-helper' ||
-            toolType === 'lesson-planner' ||
-            toolType === 'flashcard-generator' ||
-            toolType === 'my-study-decks' ||
-            toolType === 'worksheet-mcq-generator' ||
-            toolType === 'homework-creator' ||
-            toolType === 'daily-class-plan-maker' ||
-            toolType === 'story-passage-creator' ||
-            toolType === 'reading-practice-room' ||
-            toolType === 'activity-project-generator' ||
-            toolType === 'project-idea-lab' ||
-            toolType === 'mock-test-builder' ||
-            toolType === 'exam-question-paper-generator'
-          ) {
-            setGeneratedContent(
-              JSON.stringify({
-                formatted: data.data.content,
-                raw: data.data.rawData,
-              }),
-            );
-          } else {
-            setGeneratedContent(data.data.content);
-          }
-        } else {
-          setRawGeneratedContent(null);
-          setGeneratedContent(data.data.content);
-        }
+        const { displayContent, rawContent } = buildAiToolViewerContent(
+          data.data.content,
+          data.data.rawData,
+        );
+        setRawGeneratedContent(rawContent);
+        // Always keep structured sections (cards, questions, steps) when present.
+        setGeneratedContent(displayContent || String(data.data.content));
       } else {
         throw new Error(data.message || 'AI returned empty response');
       }
@@ -886,6 +863,7 @@ export default function TeacherToolPage() {
           topic: String(formParams.topic || ''),
           subTopic: String(formParams.subTopic || ''),
           toolType: String(toolType || ''),
+          board: String(selectedBoard || formParams.board || ''),
         });
         const token = localStorage.getItem('authToken');
         if (!token) throw new Error('Please sign in again.');
@@ -919,19 +897,12 @@ export default function TeacherToolPage() {
         }
 
         if (fallbackJson?.success && String(fallbackContent).trim().length > 0) {
-          // Keep structured sections (cards, questions, steps) — do not drop rawData.
-          if (fallbackRaw && typeof fallbackRaw === 'object') {
-            setRawGeneratedContent(fallbackRaw);
-            setGeneratedContent(
-              JSON.stringify({
-                formatted: String(fallbackContent),
-                raw: fallbackRaw,
-              }),
-            );
-          } else {
-            setRawGeneratedContent(null);
-            setGeneratedContent(String(fallbackContent));
-          }
+          const { displayContent, rawContent } = buildAiToolViewerContent(
+            fallbackContent,
+            fallbackRaw,
+          );
+          setGeneratedContent(displayContent || String(fallbackContent));
+          setRawGeneratedContent(rawContent);
           setResponseMeta({
             matchType: fallbackJson?.data?.matchType,
             totalCandidates: fallbackJson?.data?.totalCandidates,

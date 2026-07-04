@@ -197,6 +197,24 @@ function getSubjectRecordId(subject: { id?: string; _id?: string } | null | unde
   return String(subject.id || subject._id || '');
 }
 
+function buildAvailableSubjectIndex(availableSubjects: Subject[]) {
+  const idSet = new Set<string>();
+  const keyToId = new Map<string, string>();
+
+  for (const subject of availableSubjects) {
+    const id = getSubjectRecordId(subject);
+    if (!id) continue;
+    idSet.add(id);
+
+    const raw = String(subject.name || subject.code || '').trim();
+    if (!raw) continue;
+    const key = normalizeSubjectDisplayKey(raw);
+    if (!keyToId.has(key)) keyToId.set(key, id);
+  }
+
+  return { idSet, keyToId };
+}
+
 function mapSubjectFromApi(subject: unknown): Subject | null {
   if (!subject || typeof subject !== 'object') return null;
   const s = subject as {
@@ -971,10 +989,25 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
     
     setAssigningTeacher(teacher);
     
-    // Map existing subjects to their IDs properly
-    const existingSubjectIds = (teacher.subjects ?? [])
-      .map((subject) => getSubjectRecordId(subject))
-      .filter(Boolean);
+    // Keep only subject IDs that are actually selectable in the dialog.
+    // Also map older/variant subject IDs to visible IDs by normalized name.
+    const { idSet, keyToId } = buildAvailableSubjectIndex(subjects);
+    const existingSubjectIds = Array.from(
+      new Set(
+        (teacher.subjects ?? []).flatMap((subject) => {
+          const mapped: string[] = [];
+          const sid = getSubjectRecordId(subject);
+          if (sid && idSet.has(sid)) mapped.push(sid);
+
+          const raw = String(subject.name || subject.code || '').trim();
+          if (raw) {
+            const visibleId = keyToId.get(normalizeSubjectDisplayKey(raw));
+            if (visibleId) mapped.push(visibleId);
+          }
+          return mapped;
+        }),
+      ),
+    );
     
     console.log('Existing subject IDs:', existingSubjectIds);
     setSelectedSubjects(existingSubjectIds);
@@ -1032,10 +1065,18 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
     }
 
     console.log('Final teacher ID:', teacherId);
-    console.log('Final selected subjects:', selectedSubjects);
+    const availableSubjectIds = new Set(
+      subjects.map((subject) => getSubjectRecordId(subject)).filter(Boolean),
+    );
+    const sanitizedSubjectIds = Array.from(
+      new Set(selectedSubjects.filter((id) => availableSubjectIds.has(id))),
+    );
+
+    console.log('Final selected subjects (raw):', selectedSubjects);
+    console.log('Final selected subjects (sanitized):', sanitizedSubjectIds);
 
     try {
-      await handleAssignSubjects(teacherId, selectedSubjects);
+      await handleAssignSubjects(teacherId, sanitizedSubjectIds);
       setIsAssignDialogOpen(false);
       setAssigningTeacher(null);
       setSelectedSubjects([]);
@@ -1725,6 +1766,9 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                 <div className="mt-3 space-y-3 max-h-60 overflow-y-auto">
                   {subjects.map(subject => {
                     const subjectId = getSubjectRecordId(subject);
+                    const subjectLabel = formatSubjectDisplayLabel(subject.name || subject.code || '').trim();
+                    if (!subjectId || !subjectLabel) return null;
+                    const subtitle = [subject.code, subject.description].filter(Boolean).join(' - ');
                     return (
                       <div key={subjectId} className="flex items-center space-x-4 p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-purple-100 hover:border-orange-200 transition-colors">
                         <input
@@ -1741,8 +1785,10 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                           className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 border-purple-300 rounded focus:ring-purple-500"
                         />
                         <label htmlFor={`subject-${subjectId}`} className="flex-1 cursor-pointer">
-                          <div className="font-bold text-gray-900 text-base sm:text-lg">{subject.name}</div>
-                          <div className="text-xs sm:text-sm text-gray-600">{subject.code} - {subject.description}</div>
+                          <div className="font-bold text-gray-900 text-base sm:text-lg">{subjectLabel}</div>
+                          {subtitle ? (
+                            <div className="text-xs sm:text-sm text-gray-600">{subtitle}</div>
+                          ) : null}
                         </label>
                       </div>
                     );

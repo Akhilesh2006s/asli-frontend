@@ -242,8 +242,25 @@ export function FlashcardViewer({
   const visualCount = allCards.filter((c) => c.cardCategory === 'visual').length;
 
   useEffect(() => {
-    const parsedCards = parseFlashcards(content);
-    setDeckTitle(tryParseDeckTitle(content));
+    let parsedCards = parseFlashcards(content);
+    // Prefer structured rawData from Super Admin / AI Tool Data when markdown parse is empty.
+    if (
+      !parsedCards.length &&
+      rawContent &&
+      typeof rawContent === 'object' &&
+      !Array.isArray(rawContent)
+    ) {
+      parsedCards = parseFlashcards(JSON.stringify({ raw: rawContent }));
+    }
+    setDeckTitle(
+      tryParseDeckTitle(content) ||
+        String(
+          (rawContent as Record<string, unknown> | null | undefined)?.flashcard_deck_title ||
+            (rawContent as Record<string, unknown> | null | undefined)?.deck_title ||
+            (rawContent as Record<string, unknown> | null | undefined)?.title ||
+            '',
+        ).trim(),
+    );
     setTeacherMeta(
       variant === 'teacher' ? tryParseTeacherDeckMeta(content, rawContent) : null,
     );

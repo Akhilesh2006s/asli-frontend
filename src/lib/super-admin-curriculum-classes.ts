@@ -42,6 +42,16 @@ export function saveCurriculumClass(entry: CurriculumClassEntry): boolean {
   return true;
 }
 
+/** Remove a manually added class by its display label. */
+export function removeCurriculumClass(label: string): boolean {
+  if (typeof window === 'undefined') return false;
+  const existing = loadCurriculumClasses();
+  const next = existing.filter((c) => c.label !== label);
+  if (next.length === existing.length) return false;
+  localStorage.setItem(CURRICULUM_CLASSES_STORAGE_KEY, JSON.stringify(next));
+  return true;
+}
+
 const CLASS_LABEL_COLLATOR = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
 
 export function classNumberFromLabel(value: string): number {

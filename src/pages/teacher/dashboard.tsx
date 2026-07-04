@@ -556,6 +556,48 @@ const TeacherDashboard = () => {
     }
   };
 
+  const fetchTeacherSubjectsFallback = async (token: string) => {
+    try {
+      const subjectsRes = await fetch(`${API_BASE_URL}/api/teacher/subjects`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (subjectsRes.ok) {
+        const subjectsJson = await subjectsRes.json();
+        const subjectRows = Array.isArray(subjectsJson?.data)
+          ? subjectsJson.data
+          : Array.isArray(subjectsJson?.subjects)
+            ? subjectsJson.subjects
+            : [];
+        if (subjectRows.length > 0) {
+          return subjectRows;
+        }
+      }
+    } catch (error) {
+      console.warn('[Mobile Debug] /api/teacher/subjects fallback failed:', error);
+    }
+
+    try {
+      const meRes = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (meRes.ok) {
+        const meJson = await meRes.json();
+        const meSubjects = Array.isArray(meJson?.user?.subjects) ? meJson.user.subjects : [];
+        return meSubjects;
+      }
+    } catch (error) {
+      console.warn('[Mobile Debug] /api/auth/me fallback failed:', error);
+    }
+
+    return [];
+  };
+
   const trackProgressFilteredStudents = useMemo(() => {
     let list = students;
     if (filterByClass !== 'all') {
@@ -1808,7 +1850,9 @@ const TeacherDashboard = () => {
           const studentsData = data.data.students || [];
           const videosData = data.data.videos || [];
           const assignedClassesData = data.data.assignedClasses || [];
-          const teacherSubjectsData = data.data.teacherSubjects || [];
+          let teacherSubjectsData = Array.isArray(data.data.teacherSubjects)
+            ? data.data.teacherSubjects
+            : [];
           
           // Calculate stats from actual data if not provided
           const calculatedStats = {
@@ -1838,6 +1882,10 @@ const TeacherDashboard = () => {
           fetchStudentPerformance();
           setVideos(videosData);
           console.log('[Mobile Debug] Videos set:', videosData.length);
+
+          if (teacherSubjectsData.length === 0) {
+            teacherSubjectsData = await fetchTeacherSubjectsFallback(token);
+          }
 
           setTeacherEmail(data.data.teacherEmail || localStorage.getItem('userEmail') || '');
           setAssignedClasses(assignedClassesData);
