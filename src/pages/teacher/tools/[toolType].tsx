@@ -834,17 +834,28 @@ export default function TeacherToolPage() {
 
         if (data.data.rawData) {
           setRawGeneratedContent(data.data.rawData);
-          if (toolType === 'short-notes-summaries-maker' || 
-              toolType === 'concept-mastery-helper' || 
-              toolType === 'lesson-planner' ||
-              toolType === 'flashcard-generator' ||
-              toolType === 'worksheet-mcq-generator' ||
-              toolType === 'homework-creator' ||
-              toolType === 'daily-class-plan-maker') {
-            setGeneratedContent(JSON.stringify({
-              formatted: data.data.content,
-              raw: data.data.rawData
-            }));
+          if (
+            toolType === 'short-notes-summaries-maker' ||
+            toolType === 'concept-mastery-helper' ||
+            toolType === 'lesson-planner' ||
+            toolType === 'flashcard-generator' ||
+            toolType === 'my-study-decks' ||
+            toolType === 'worksheet-mcq-generator' ||
+            toolType === 'homework-creator' ||
+            toolType === 'daily-class-plan-maker' ||
+            toolType === 'story-passage-creator' ||
+            toolType === 'reading-practice-room' ||
+            toolType === 'activity-project-generator' ||
+            toolType === 'project-idea-lab' ||
+            toolType === 'mock-test-builder' ||
+            toolType === 'exam-question-paper-generator'
+          ) {
+            setGeneratedContent(
+              JSON.stringify({
+                formatted: data.data.content,
+                raw: data.data.rawData,
+              }),
+            );
           } else {
             setGeneratedContent(data.data.content);
           }
@@ -891,6 +902,10 @@ export default function TeacherToolPage() {
           fallbackJson?.data?.generatedContent ??
           fallbackJson?.data?.content ??
           '';
+        const fallbackRaw =
+          fallbackJson?.data?.rawData ??
+          fallbackJson?.data?.structuredContent ??
+          null;
 
         if (
           isAiToolInlineOnlyError(fallbackJson?.code) ||
@@ -904,8 +919,19 @@ export default function TeacherToolPage() {
         }
 
         if (fallbackJson?.success && String(fallbackContent).trim().length > 0) {
-          setGeneratedContent(String(fallbackContent));
-          setRawGeneratedContent(null);
+          // Keep structured sections (cards, questions, steps) — do not drop rawData.
+          if (fallbackRaw && typeof fallbackRaw === 'object') {
+            setRawGeneratedContent(fallbackRaw);
+            setGeneratedContent(
+              JSON.stringify({
+                formatted: String(fallbackContent),
+                raw: fallbackRaw,
+              }),
+            );
+          } else {
+            setRawGeneratedContent(null);
+            setGeneratedContent(String(fallbackContent));
+          }
           setResponseMeta({
             matchType: fallbackJson?.data?.matchType,
             totalCandidates: fallbackJson?.data?.totalCandidates,

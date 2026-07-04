@@ -1150,6 +1150,8 @@ export default function StudentToolPage() {
           const fallbackJson = await fallbackRes.json();
           const fallbackContent =
             fallbackJson?.data?.generatedContent ?? fallbackJson?.data?.content ?? '';
+          const fallbackRaw =
+            fallbackJson?.data?.rawData ?? fallbackJson?.data?.structuredContent ?? null;
           if (
             isAiToolInlineOnlyError(fallbackJson?.code) ||
             (fallbackJson?.success && !fallbackJson?.data)
@@ -1159,8 +1161,19 @@ export default function StudentToolPage() {
                 'Saved content is incomplete or not in the correct tool format for this tool.',
             );
           } else if (fallbackJson?.success && String(fallbackContent).trim().length > 0) {
-            setGeneratedContent(String(fallbackContent));
-            setRawGeneratedContent(null);
+            // Keep structured sections (cards, questions, steps) — do not drop rawData.
+            if (fallbackRaw && typeof fallbackRaw === 'object') {
+              setRawGeneratedContent(fallbackRaw);
+              setGeneratedContent(
+                JSON.stringify({
+                  formatted: String(fallbackContent),
+                  raw: fallbackRaw,
+                }),
+              );
+            } else {
+              setRawGeneratedContent(null);
+              setGeneratedContent(String(fallbackContent));
+            }
             setResponseMeta({
               matchType: fallbackJson?.data?.matchType,
               totalCandidates: fallbackJson?.data?.totalCandidates,

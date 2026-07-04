@@ -44,18 +44,18 @@ export function resolveGeminiPricing(modelName = "") {
   const model = String(modelName || "").toLowerCase();
   if (model.includes("flash-lite") || model.includes("flash_lite")) {
     return {
-      model: "gemini-2.5-flash-lite",
+      model: model.includes("3.1") ? "gemini-3.1-flash-lite" : "gemini-2.5-flash-lite",
       inputUsdPerM: GEMINI_25_FLASH_LITE_INPUT_USD_PER_M,
       outputUsdPerM: GEMINI_25_FLASH_LITE_OUTPUT_USD_PER_M,
       pricingNote:
-        "Estimated from Gemini 2.5 Flash-Lite list pricing (input $0.10/M, output $0.40/M).",
+        "Estimated from Flash-Lite list pricing (input $0.10/M, output $0.40/M).",
     };
   }
   return {
-    model: "gemini-2.5-flash",
+    model: model.includes("3.5") ? "gemini-3.5-flash" : "gemini-2.5-flash",
     inputUsdPerM: GEMINI_25_FLASH_INPUT_USD_PER_M,
     outputUsdPerM: GEMINI_25_FLASH_OUTPUT_USD_PER_M,
-    pricingNote: "Estimated from Gemini 2.5 Flash list pricing (input $0.30/M, output $2.50/M).",
+    pricingNote: "Estimated from Flash list pricing (input $0.30/M, output $2.50/M).",
   };
 }
 
@@ -149,7 +149,7 @@ export function perRecordShareFromCost(
 
 export function computeGeminiFlashCost(
   totals: Partial<TokenTotals>,
-  modelName = "gemini-2.5-flash-lite",
+  modelName = "gemini-3.1-flash-lite",
   exchangeRateInr = DEFAULT_USD_TO_INR,
 ): GeminiCostEstimate {
   const promptTokens = Math.max(0, Number(totals.promptTokens || 0));
@@ -219,7 +219,7 @@ export function computeGeminiCostFromTokenUsage(
 
   return computeGeminiFlashCost(
     tokenUsage?.totals || {},
-    "gemini-2.5-flash-lite",
+    "gemini-3.1-flash-lite",
     exchangeRateInr,
   );
 }
