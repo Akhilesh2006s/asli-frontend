@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, FileDown, Loader2, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
+import { networkErrorUserMessage, resilientFetch } from "@/lib/resilient-fetch";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
@@ -591,10 +592,14 @@ export default function SuperAdminAiGenerator() {
     if (!opts?.forceUnlock) setLastBatchSummary(null);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/ai-generator/generate-batch`, {
+      // Long batches can run 2–5+ minutes; retry only brief gateway/DB blips (not mid-batch aborts).
+      const res = await resilientFetch(`${API_BASE_URL}/api/ai-generator/generate-batch`, {
         method: "POST",
         headers: { ...authHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify(buildGenerationPayload(opts?.forceUnlock)),
+        retries: 2,
+        retryDelayMs: 2500,
+        timeoutMs: 0,
       });
       const json = await res.json();
       const savedCount = Number(json?.data?.savedCount) || 0;
@@ -676,7 +681,17 @@ export default function SuperAdminAiGenerator() {
       });
       await loadRecords();
     } catch (error: any) {
-      toast({ title: "Generation failed", description: error?.message || "Could not generate", variant: "destructive" });
+      toast({
+        title: "Generation failed",
+        description: networkErrorUserMessage(error),
+        variant: "destructive",
+      });
+      // Batch may still finish on the server after the browser drops the connection.
+      try {
+        await loadRecords();
+      } catch {
+        /* ignore */
+      }
     } finally {
       setIsGenerating(false);
       setGenerationProgress(null);

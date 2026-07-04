@@ -9,6 +9,7 @@ import { BookOpen, CheckCircle2, ExternalLink, FileText, FolderTree, IndianRupee
 import { GeneratorRecordsPanel } from "@/components/super-admin/generator-records-panel";
 import { GenerationRecordCountField } from "@/components/super-admin/generation-record-count-field";
 import { API_BASE_URL } from "@/lib/api-config";
+import { networkErrorUserMessage, resilientFetch } from "@/lib/resilient-fetch";
 import { useToast } from "@/hooks/use-toast";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
 import { cn } from "@/lib/utils";
@@ -534,10 +535,13 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     setProgress("Retrieving textbook chunks for your topic…");
     if (!opts?.forceUnlock) setLastBatchSummary(null);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/book-generator/generate-batch`, {
+      const res = await resilientFetch(`${API_BASE_URL}/api/book-generator/generate-batch`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(buildGenerationPayload(opts?.forceUnlock)),
+        retries: 2,
+        retryDelayMs: 2500,
+        timeoutMs: 0,
       });
       const json = await res.json();
 
@@ -569,7 +573,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     } catch (e: unknown) {
       toast({
         title: "Generation failed",
-        description: e instanceof Error ? e.message : "Network or server error. If you saw a CORS message, the API likely timed out — deploy the latest backend and retry.",
+        description: networkErrorUserMessage(e),
         variant: "destructive",
       });
     } finally {

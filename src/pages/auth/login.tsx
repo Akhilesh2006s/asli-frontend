@@ -65,8 +65,8 @@ const Login = () => {
     setIsLoading(true);
     setError('');
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    const attemptLogin = async (): Promise<Response> =>
+      fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -75,7 +75,51 @@ const Login = () => {
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
+    const isRealNetworkFailure = (err: unknown) => {
+      const msg = String((err as Error)?.message || err || '').toLowerCase();
+      // fetch() only throws for transport failures (offline, DNS, connection reset, CORS block).
+      return (
+        err instanceof TypeError ||
+        msg.includes('failed to fetch') ||
+        msg.includes('networkerror') ||
+        msg.includes('load failed') ||
+        msg.includes('err_connection') ||
+        msg.includes('err_network')
+      );
+    };
+
+    try {
+      let response: Response;
+      try {
+        response = await attemptLogin();
+      } catch (firstErr) {
+        // One retry only for genuine transport failures (brief DB/server blip).
+        if (!isRealNetworkFailure(firstErr)) throw firstErr;
+        await new Promise((r) => setTimeout(r, 1200));
+        response = await attemptLogin();
+      }
+
+      let data: { message?: string; token?: string; user?: { role?: string; email?: string } } = {};
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch {
+          setError(
+            response.ok
+              ? 'Login failed. Invalid response from server.'
+              : `Login failed (server error ${response.status}). Please try again.`,
+          );
+          return;
+        }
+      } else {
+        setError(
+          response.status === 503
+            ? 'Server is starting up. Please wait a few seconds and try again.'
+            : `Login failed (server error ${response.status || 'unknown'}). Please try again.`,
+        );
+        return;
+      }
 
       if (response.ok) {
         prepareClientForNewLogin();
@@ -85,24 +129,29 @@ const Login = () => {
         }
         if (data.user) {
           setUser(data.user);
-          localStorage.setItem('userRole', data.user.role);
-          localStorage.setItem('userEmail', data.user.email);
+          localStorage.setItem('userRole', data.user.role || '');
+          localStorage.setItem('userEmail', data.user.email || '');
         }
-        if (data.user.role === 'super-admin') {
+        if (data.user?.role === 'super-admin') {
           setLocation('/super-admin/dashboard');
-        } else if (data.user.role === 'admin') {
+        } else if (data.user?.role === 'admin') {
           setLocation('/admin/dashboard');
-        } else if (data.user.role === 'teacher') {
+        } else if (data.user?.role === 'teacher') {
           setLocation('/teacher/dashboard');
         } else {
           void fetchDashboardBootstrap({ force: true });
           setLocation('/dashboard');
         }
       } else {
-        setError(data.message || 'Login failed');
+        // Real API error (wrong password, DB reconnecting, etc.) — never label as network.
+        setError(data.message || 'Login failed. Please check your email and password.');
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      if (isRealNetworkFailure(err)) {
+        setError('Network error. Cannot reach the server. Check your connection and try again.');
+      } else {
+        setError('Login failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
