@@ -21,6 +21,7 @@ import {
   resolveAiToolApiInlineMessage,
   validateAiToolForm,
 } from '@/lib/ai-tool-generate';
+import { buildAiToolViewerContent } from '@/lib/ai-tool-response-payload';
 import {
   getAiToolBoardOptions,
   getDefaultAiToolBoard,
@@ -337,7 +338,7 @@ const renderMarkdown = (text: string, variant: RenderMarkdownVariant = 'default'
   return html;
 };
 
-const CLASS_OPTIONS = ['Class 6', 'Class 7', 'Class 8', 'Class 10'];
+const CLASS_OPTIONS = ['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'];
 
 interface ToolConfig {
   name: string;
@@ -968,27 +969,22 @@ export default function StudentToolPage() {
         }
         setResponseMeta(data.data.metadata || null);
 
-        if (data.data.rawData) {
-          setRawGeneratedContent(data.data.rawData);
-          if (
-            toolType === 'short-notes-summaries-maker' ||
-            toolType === 'concept-mastery-helper' ||
-            isStudySchedule ||
-            isMyStudyDecks
-          ) {
-            setGeneratedContent(
-              JSON.stringify({
-                formatted: data.data.content,
-                raw: data.data.rawData,
-              }),
-            );
-          } else {
-            setGeneratedContent(data.data.content);
-          }
-        } else {
-          setRawGeneratedContent(null);
-          setGeneratedContent(data.data.content);
-        }
+        const { displayContent, rawContent } = buildAiToolViewerContent(
+          data.data.content,
+          data.data.rawData,
+        );
+        setRawGeneratedContent(rawContent);
+        const useEnvelope =
+          toolType === 'short-notes-summaries-maker' ||
+          toolType === 'concept-mastery-helper' ||
+          isStudySchedule ||
+          isMyStudyDecks ||
+          apiToolType === 'flashcard-generator';
+        setGeneratedContent(
+          useEnvelope && rawContent
+            ? displayContent
+            : displayContent || String(data.data.content),
+        );
       };
 
       if (isTeacherTool) {
@@ -999,7 +995,7 @@ export default function StudentToolPage() {
         const selectedSection = formParams.section || formParams.className || '';
 
         const requestBody = {
-          toolType,
+          toolType: apiToolType || toolType,
           classNumber: parseAiToolClassNumber(selectedClass),
           subject: selectedSubject,
           topic: selectedTopic,
@@ -1008,6 +1004,8 @@ export default function StudentToolPage() {
           questionCount: formParams.questionCount ? parseInt(String(formParams.questionCount), 10) : undefined,
           duration: formParams.duration ? parseInt(String(formParams.duration), 10) : undefined,
           ...formParams,
+          board: selectedBoard,
+          gradeLevel: selectedClass,
         };
 
         const response = await fetch(`${API_BASE_URL}/api/teacher/ai/generate-content`, {
@@ -1135,6 +1133,7 @@ export default function StudentToolPage() {
             topic: String(mappedTopic),
             subTopic: String(formParams.subTopic || ''),
             toolType: String(apiToolType || ''),
+            board: String(selectedBoard || formParams.board || ''),
           });
           const token = localStorage.getItem('authToken');
           const fallbackRes = await fetch(
@@ -1159,8 +1158,12 @@ export default function StudentToolPage() {
                 'Saved content is incomplete or not in the correct tool format for this tool.',
             );
           } else if (fallbackJson?.success && String(fallbackContent).trim().length > 0) {
-            setGeneratedContent(String(fallbackContent));
-            setRawGeneratedContent(null);
+            const { displayContent, rawContent } = buildAiToolViewerContent(
+              fallbackContent,
+              fallbackJson?.data?.rawData ?? fallbackJson?.data?.structuredContent,
+            );
+            setGeneratedContent(displayContent || String(fallbackContent));
+            setRawGeneratedContent(rawContent);
             setResponseMeta({
               matchType: fallbackJson?.data?.matchType,
               totalCandidates: fallbackJson?.data?.totalCandidates,

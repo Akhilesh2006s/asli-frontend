@@ -16,6 +16,71 @@ export function getContentSubjectId(content: {
   return String(content?.subjectId || '');
 }
 
+/** Title Case each word (e.g. "introduction to chemistry" → "Introduction To Chemistry"). */
+export function toTitleCaseWords(value: string): string {
+  return String(value || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => {
+      if (/^\d+$/.test(word)) return word;
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(' ');
+}
+
+/**
+ * Pull chapter/module numbers out of legacy title strings so we can rebuild a
+ * consistent label: "Chapter Name - Chapter N - Module M".
+ */
+function parseLegacyVideoTitle(raw: string): {
+  name: string;
+  chapter: string;
+  module: string;
+} {
+  let name = String(raw || '').trim();
+  let chapter = '';
+  let module = '';
+
+  // "chapter - 2 module - 1 · MATERIALS AROUND US"
+  let m = name.match(
+    /^chapter\s*[-–—]?\s*(\d+)\s+module\s*[-–—]?\s*(\d+)\s*[·•|]\s*(.+)$/i,
+  );
+  if (m) {
+    return { chapter: m[1], module: m[2], name: m[3].trim() };
+  }
+
+  // "chapter - 2 · NAME" / "module - 1 · NAME"
+  m = name.match(/^chapter\s*[-–—]?\s*(\d+)\s*[·•|]\s*(.+)$/i);
+  if (m) return { chapter: m[1], module: '', name: m[2].trim() };
+  m = name.match(/^module\s*[-–—]?\s*(\d+)\s*[·•|]\s*(.+)$/i);
+  if (m) return { chapter: '', module: m[1], name: m[2].trim() };
+
+  // "NAME - Module 4 - Chapter-1" (legacy wrong order)
+  m = name.match(
+    /^(.+?)\s*[-–—]\s*Module\s*[-–—]?\s*(\d+)\s*[-–—]\s*Chapter\s*[-–—]?\s*(\d+)\s*$/i,
+  );
+  if (m) return { name: m[1].trim(), module: m[2], chapter: m[3] };
+
+  // "NAME - Chapter 1 - Module 2"
+  m = name.match(
+    /^(.+?)\s*[-–—]\s*Chapter\s*[-–—]?\s*(\d+)\s*[-–—]\s*Module\s*[-–—]?\s*(\d+)\s*$/i,
+  );
+  if (m) return { name: m[1].trim(), chapter: m[2], module: m[3] };
+
+  // "NAME - Chapter 1" / "NAME - Module 2"
+  m = name.match(/^(.+?)\s*[-–—]\s*Chapter\s*[-–—]?\s*(\d+)\s*$/i);
+  if (m) return { name: m[1].trim(), chapter: m[2], module: '' };
+  m = name.match(/^(.+?)\s*[-–—]\s*Module\s*[-–—]?\s*(\d+)\s*$/i);
+  if (m) return { name: m[1].trim(), chapter: '', module: m[2] };
+
+  return { name, chapter, module };
+}
+
+/**
+ * Video titles: Chapter Name - Chapter N - Module M (Title Case name).
+ * Normalizes legacy "chapter - N module - M · NAME" and "NAME - Module M - Chapter-N".
+ */
 export function getVideoDisplayTitle(content: {
   type?: string;
   title?: string;
@@ -23,14 +88,20 @@ export function getVideoDisplayTitle(content: {
   chapter?: string;
   module?: string;
 }): string {
-  const title = String(content.title || content.topic || '').trim() || 'Untitled Video';
-  if (!isVideoContentType(content.type)) return title;
-  const chapter = videoNumberOnly(content.chapter);
-  const mod = videoNumberOnly(content.module);
-  if (!chapter && !mod) return title;
-  if (chapter && mod) return `chapter - ${chapter} module - ${mod} · ${title}`;
-  if (chapter) return `chapter - ${chapter} · ${title}`;
-  return `module - ${mod} · ${title}`;
+  const rawTitle = String(content.title || content.topic || '').trim() || 'Untitled Video';
+  if (!isVideoContentType(content.type)) return rawTitle;
+
+  const parsed = parseLegacyVideoTitle(rawTitle);
+  const chapter =
+    videoNumberOnly(content.chapter) || videoNumberOnly(parsed.chapter);
+  const mod = videoNumberOnly(content.module) || videoNumberOnly(parsed.module);
+  const chapterName =
+    toTitleCaseWords(parsed.name) || toTitleCaseWords(rawTitle) || 'Untitled Video';
+
+  if (chapter && mod) return `${chapterName} - Chapter ${chapter} - Module ${mod}`;
+  if (chapter) return `${chapterName} - Chapter ${chapter}`;
+  if (mod) return `${chapterName} - Module ${mod}`;
+  return chapterName;
 }
 
 export function getSortedChapterNumbers(videos: { chapter?: string }[]): string[] {
