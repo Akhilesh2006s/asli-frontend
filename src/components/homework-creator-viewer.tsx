@@ -1,3 +1,5 @@
+import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
+import { ToolSectionIcon } from '@/components/ai-tool-3d-icons';
 import { useMemo, type ReactNode } from 'react';
 import {
   BookOpen,
@@ -205,30 +207,19 @@ function SectionCard({
   sectionNum,
   label,
   icon: Icon,
-  stripe,
-  iconWrap,
   children,
 }: {
   sectionNum: string;
   label: string;
   icon: LucideIcon;
-  stripe: string;
-  iconWrap: string;
+  stripe?: string;
+  iconWrap?: string;
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-stone-200/90 bg-white shadow-sm overflow-hidden">
-      <div className={cn('flex items-center gap-2.5 px-3 py-2.5 border-l-[5px]', stripe)}>
-        <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', iconWrap)}>
-          <Icon className="h-4 w-4" aria-hidden />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400">{sectionNum}</p>
-          <h4 className="text-xs font-bold text-stone-900 leading-snug">{label}</h4>
-        </div>
-      </div>
-      <div className="px-3 pb-3 pt-1">{children}</div>
-    </section>
+    <AiToolStackedSection num={sectionNum} title={label} icon={Icon}>
+      {children}
+    </AiToolStackedSection>
   );
 }
 

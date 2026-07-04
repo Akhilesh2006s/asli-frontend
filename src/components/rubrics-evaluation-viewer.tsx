@@ -1,3 +1,5 @@
+import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
+import { ToolSectionIcon } from '@/components/ai-tool-3d-icons';
 import { useMemo, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
@@ -64,40 +66,19 @@ function SectionCard({
   sectionNum,
   label,
   icon: Icon,
-  stripe,
-  iconWrap,
   children,
 }: {
   sectionNum: string;
   label: string;
   icon: LucideIcon;
-  stripe: string;
-  iconWrap: string;
+  stripe?: string;
+  iconWrap?: string;
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-slate-200/90 bg-white shadow-md shadow-slate-100/70 overflow-hidden">
-      <div
-        className={cn(
-          'flex items-center gap-2.5 px-4 py-3 border-l-[5px] bg-gradient-to-r from-white via-slate-50/70 to-white',
-          stripe,
-        )}
-      >
-        <div
-          className={cn(
-            'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-black/5 shadow-sm',
-            iconWrap,
-          )}
-        >
-          <Icon className="h-4 w-4" aria-hidden />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">{sectionNum}</p>
-          <h4 className="text-sm font-bold text-slate-900 leading-snug">{label}</h4>
-        </div>
-      </div>
-      <div className="px-4 pb-4 pt-2">{children}</div>
-    </section>
+    <AiToolStackedSection num={sectionNum} title={label} icon={Icon}>
+      {children}
+    </AiToolStackedSection>
   );
 }
 
@@ -319,37 +300,17 @@ export function RubricsEvaluationViewer({ content, rawContent, className }: Rubr
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        {RUBRIC_SECTIONS.map((sec) =>
-          sec.num === 3 ? (
-            <div
-              key={sec.num}
-              className="lg:col-span-2 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-teal-50/50 p-3"
-            >
-              <SectionCard
-                sectionNum={`Section ${sec.num}`}
-                label={sec.label}
-                icon={sec.icon}
-                stripe={sec.stripe}
-                iconWrap={sec.iconWrap}
-              >
-                {sec.hasContent(r) ? sec.render(r) : <EmptyHint />}
-              </SectionCard>
-            </div>
-          ) : (
-            <div key={sec.num}>
-              <SectionCard
-                sectionNum={`Section ${sec.num}`}
-                label={sec.label}
-                icon={sec.icon}
-                stripe={sec.stripe}
-                iconWrap={sec.iconWrap}
-              >
-                {sec.hasContent(r) ? sec.render(r) : <EmptyHint />}
-              </SectionCard>
-            </div>
-          ),
-        )}
+      <div className="flex w-full flex-col gap-4">
+        {RUBRIC_SECTIONS.map((sec) => (
+          <SectionCard
+            key={sec.num}
+            sectionNum={String(sec.num)}
+            label={sec.label}
+            icon={sec.icon}
+          >
+            {sec.hasContent(r) ? sec.render(r) : <EmptyHint />}
+          </SectionCard>
+        ))}
       </div>
     </div>
   );

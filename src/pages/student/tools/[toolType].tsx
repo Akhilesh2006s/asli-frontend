@@ -47,6 +47,7 @@ import 'katex/dist/katex.min.css';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
 import html2pdf from 'html2pdf.js';
+import { AiToolResultShell } from '@/components/ai-tool-result-shell';
 import { FlashcardViewer } from '@/components/flashcard-viewer';
 import { MyStudyDecksViewer } from '@/components/my-study-decks-viewer';
 import { ShortNotesViewer } from '@/components/short-notes-viewer';
@@ -2064,134 +2065,56 @@ export default function StudentToolPage() {
             </Card>
           </motion.div>
 
-          {/* Generated content — full width below parameters */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 }}
+          {/* Generated content — shared mobile-friendly result shell */}
+          <AiToolResultShell
             className="w-full"
-          >
-            <Card
-              className={
-                (isMyStudyDecks ||
-                  isFlashcardGenerator ||
-                  isProjectIdeaLab ||
-                  isReadingPractice ||
-                  isStudySchedule) &&
-                generatedContent
-                  ? 'overflow-hidden border-0 bg-transparent shadow-none'
-                  : isSmartStudyGuide
-                    ? 'overflow-hidden border border-indigo-100/90 bg-white/90 shadow-[0_25px_60px_-28px_rgba(79,70,229,0.45)] backdrop-blur'
-                    : 'overflow-hidden border border-slate-200/80 bg-white shadow-[0_14px_40px_-22px_rgba(15,23,42,0.35)]'
-              }
-            >
-              <CardHeader
-                className={
-                  (isMyStudyDecks ||
-                    isFlashcardGenerator ||
-                    isProjectIdeaLab ||
-                    isReadingPractice ||
-                    isStudySchedule) &&
-                  generatedContent
-                    ? 'px-0 pt-0'
-                    : isSmartStudyGuide
-                      ? 'border-b border-indigo-100 bg-gradient-to-r from-indigo-50/70 via-blue-50/40 to-cyan-50/40 pb-4'
-                      : 'border-b border-slate-100 bg-gradient-to-r from-slate-50 via-blue-50/40 to-indigo-50/40 pb-4'
-                }
-              >
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="space-y-2">
-                    <div
-                      className={
-                        isSmartStudyGuide
-                          ? 'inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-indigo-700'
-                          : 'inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700'
-                      }
-                    >
-                      <Sparkles className="h-3.5 w-3.5" />
-                      {isSmartStudyGuide ? 'Premium Result Panel' : 'AI Result Panel'}
-                    </div>
-                  <CardTitle>
-                    {isMyStudyDecks
-                      ? 'Your study deck'
-                      : isFlashcardGenerator
-                        ? 'Your flashcards'
-                      : isProjectIdeaLab
-                        ? 'Your project idea lab'
-                        : isReadingPractice
-                          ? 'Your reading studio'
-                          : isStudySchedule
-                            ? 'Your study schedule'
-                            : toolType === 'smart-study-guide-generator'
-                              ? 'Your smart study guide'
-                            : 'Generated Content'}
-                  </CardTitle>
-                  {generatedContent && Array.isArray(responseMeta?.citations) && responseMeta.citations.length > 0 && (
-                    <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-2 max-h-32 overflow-y-auto">
-                      <p className="text-[11px] font-semibold text-blue-700 mb-1">Top Citations</p>
-                      <div className="space-y-1">
-                        {responseMeta.citations.slice(0, 3).map((c: CitationItem) => (
-                          <p key={`${c.index}-${c.chapter}`} className="text-[11px] text-gray-600">
-                            [{c.index}] {c.subject} / {c.chapter} ({c.score})
-                          </p>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+            toolType={apiToolType || toolType}
+            toolName={config.name}
+            toolDescription={config.description}
+            meta={{
+              board: selectedBoard || formParams.board || '',
+              classLabel: String(formParams.gradeLevel || assignedGradeLevel || ''),
+              subject: String(formParams.subject || formParams.subjects || ''),
+              chapter: String(formParams.topic || formParams.chapter || formParams.concept || ''),
+              subtopic: String(formParams.subTopic || ''),
+            }}
+            isLoading={isGenerating}
+            citations={
+              generatedContent && Array.isArray(responseMeta?.citations) && responseMeta.citations.length > 0 ? (
+                <div className="mt-2 rounded-lg border border-blue-100 bg-blue-50/50 p-2 max-h-28 overflow-y-auto">
+                  <p className="text-[11px] font-semibold text-blue-700 mb-1">Top Citations</p>
+                  <div className="space-y-1">
+                    {responseMeta.citations.slice(0, 3).map((c: CitationItem) => (
+                      <p key={String(c.index) + '-' + String(c.chapter)} className="text-[11px] text-gray-600">
+                        [{c.index}] {c.subject} / {c.chapter} ({c.score})
+                      </p>
+                    ))}
                   </div>
-                  {generatedContent && (
-                    <div className="flex items-center gap-2 sm:pt-8">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleCopy}
-                        className="border-slate-300 bg-white hover:bg-slate-50"
-                      >
-                        {copied ? <Check className="w-3 h-3 sm:w-4 sm:h-4" /> : <Copy className="w-3 h-3 sm:w-4 sm:h-4" />}
-                        <span className="ml-1.5 text-xs">{copied ? 'Copied' : 'Copy'}</span>
-                      </Button>
-                      {/* Download removed from Tools pages */}
-                    </div>
-                  )}
                 </div>
-              </CardHeader>
-              <CardContent
-                className={
-                  (isMyStudyDecks ||
-                    isFlashcardGenerator ||
-                    isProjectIdeaLab ||
-                    isReadingPractice ||
-                    isStudySchedule) &&
-                  generatedContent
-                    ? 'p-0'
-                    : ''
-                }
-              >
-                {isGenerating ? (
-                  <div className="relative overflow-hidden rounded-xl border border-blue-100 bg-gradient-to-br from-white via-blue-50/40 to-indigo-50/50 px-4 py-16 sm:px-8">
-                    <div className="pointer-events-none absolute inset-0 opacity-50">
-                      <div className="absolute -left-14 top-8 h-40 w-40 rounded-full bg-blue-200/30 blur-3xl" />
-                      <div className="absolute -right-12 bottom-8 h-36 w-36 rounded-full bg-indigo-200/30 blur-3xl" />
-                    </div>
-                    <div className="relative flex flex-col items-center justify-center space-y-3 sm:space-y-4 lg:space-y-6">
-                    <div className="relative">
-                      <div className="w-20 h-20 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-blue-600 animate-pulse" />
-                      </div>
-                    </div>
-                    <div className="text-center space-y-2">
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">Generating Content...</h3>
-                      <p className="text-xs sm:text-sm text-gray-600">Please wait while we prepare your content</p>
-                      <div className="flex items-center justify-center space-x-1 mt-4">
-                        <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                        <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                        <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                      </div>
-                    </div>
-                  </div>
-                  </div>
-                ) : generatedContent ? (
+              ) : null
+            }
+            actions={
+              generatedContent ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopy}
+                  className="border-slate-300 bg-white hover:bg-slate-50"
+                >
+                  {copied ? <Check className="w-3 h-3 sm:w-4 sm:h-4" /> : <Copy className="w-3 h-3 sm:w-4 sm:h-4" />}
+                  <span className="ml-1.5 text-xs">{copied ? 'Copied' : 'Copy'}</span>
+                </Button>
+              ) : null
+            }
+            empty={
+              <div className={cn('text-center py-10', fallbackEmptyMessage ? 'text-red-700' : 'text-slate-500')}>
+                <p className="text-sm font-medium">
+                  {fallbackEmptyMessage || 'Fill in the form and generate to see your result'}
+                </p>
+              </div>
+            }
+          >
+            {generatedContent ? (
                   isMyStudyDecks ? (
                     <MyStudyDecksViewer
                       content={displayGeneratedContent}
@@ -2224,7 +2147,7 @@ export default function StudentToolPage() {
                         effectiveRawContent &&
                         typeof effectiveRawContent === 'object' &&
                         !Array.isArray(effectiveRawContent)
-                          ? (effectiveRawContent as { activities?: unknown[] }).activities
+                          ? (effectiveRawContent as { activities?: any[] }).activities
                           : undefined
                       }
                       content={displayGeneratedContent}
@@ -2285,39 +2208,8 @@ export default function StudentToolPage() {
                       />
                     </motion.div>
                   )
-                ) : (
-                  <div
-                    className={cn(
-                      'rounded-xl border border-dashed py-12 text-center',
-                      fallbackEmptyMessage
-                        ? 'border-red-200 bg-red-50/60 text-red-700'
-                        : 'border-slate-300 bg-slate-50/60 text-gray-500',
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        'mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm',
-                        fallbackEmptyMessage && 'text-red-400',
-                      )}
-                    >
-                      <Sparkles className="h-7 w-7 opacity-60" />
-                    </div>
-                    <p
-                      className={cn(
-                        'text-sm font-medium',
-                        fallbackEmptyMessage ? 'text-red-700' : 'text-slate-700',
-                      )}
-                    >
-                      {fallbackEmptyMessage || 'Generated content will appear here'}
-                    </p>
-                    {!fallbackEmptyMessage ? (
-                      <p className="mt-1 text-xs text-slate-500">Choose tool parameters and click Generate.</p>
-                    ) : null}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
+            ) : null}
+          </AiToolResultShell>
         </div>
       </div>
     </div>

@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { type AiTool3dIconName } from '@/components/ai-tool-3d-icons';
+import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { extractDisplayContent } from '@/lib/ai-tool-display-content';
 import {
@@ -14,31 +16,32 @@ interface ShortNotesViewerProps {
   rawContent?: unknown;
 }
 
-const SECTION_ACCENTS = [
-  'border-indigo-200 bg-gradient-to-br from-indigo-50/80 to-white',
-  'border-violet-200 bg-gradient-to-br from-violet-50/70 to-white',
-  'border-cyan-200 bg-gradient-to-br from-cyan-50/70 to-white',
-  'border-emerald-200 bg-gradient-to-br from-emerald-50/70 to-white',
-  'border-amber-200 bg-gradient-to-br from-amber-50/70 to-white',
-  'border-rose-200 bg-gradient-to-br from-rose-50/70 to-white',
-  'border-sky-200 bg-gradient-to-br from-sky-50/70 to-white',
-  'border-teal-200 bg-gradient-to-br from-teal-50/70 to-white',
-  'border-fuchsia-200 bg-gradient-to-br from-fuchsia-50/70 to-white',
-  'border-slate-200 bg-gradient-to-br from-slate-50/80 to-white',
+const SECTION_ICONS: AiTool3dIconName[] = [
+  'notebook',
+  'brain',
+  'lightbulb',
+  'checklist',
+  'star',
+  'target',
+  'memo',
+  'sparkle',
+  'openBook',
+  'rocket',
 ];
 
 function SectionCard({ section, index }: { section: ShortNoteSection; index: number }) {
-  const accent = SECTION_ACCENTS[index % SECTION_ACCENTS.length];
+  const icon = SECTION_ICONS[index % SECTION_ICONS.length];
   return (
-    <section className={`rounded-2xl border p-4 shadow-sm ${accent}`}>
-      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
-        {section.num}. {section.label}
-      </p>
+    <AiToolStackedSection
+      num={String(section.num || index + 1)}
+      title={section.label}
+      iconName={icon}
+    >
       <div
-        className="short-notes-markdown mt-2 prose prose-sm max-w-none text-slate-700 leading-relaxed prose-p:text-slate-700 prose-li:text-slate-700 prose-li:marker:text-indigo-400 prose-strong:text-slate-900"
+        className="short-notes-markdown prose prose-sm max-w-none text-slate-700 leading-relaxed prose-p:text-slate-700 prose-li:text-slate-700 prose-li:marker:text-indigo-400 prose-strong:text-slate-900"
         dangerouslySetInnerHTML={{ __html: renderMarkdown(section.body || '') }}
       />
-    </section>
+    </AiToolStackedSection>
   );
 }
 
@@ -79,7 +82,7 @@ function TemplateNoteBody({ item }: { item: ShortNoteItem }) {
           ) : null}
         </div>
       ) : null}
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+      <div className="flex w-full flex-col gap-4">
         {item.sections.map((section, index) => (
           <SectionCard key={`${section.num}-${section.label}`} section={section} index={index} />
         ))}

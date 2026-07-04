@@ -1,4 +1,6 @@
+import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
 import { useMemo, type ReactNode } from 'react';
+import { ToolSectionIcon } from '@/components/ai-tool-3d-icons';
 import { AiToolPairedSectionColumns } from '@/lib/ai-tool-section-layout';
 import {
   BookOpen,
@@ -95,37 +97,21 @@ function SectionCard({
   sectionNum,
   title,
   icon: Icon,
-  stripe,
-  iconWrap,
   children,
   className,
 }: {
   sectionNum: string;
   title: string;
   icon: LucideIcon;
-  stripe: string;
-  iconWrap: string;
+  stripe?: string;
+  iconWrap?: string;
   children: ReactNode;
   className?: string;
 }) {
   return (
-    <section
-      className={cn(
-        'h-fit w-full min-w-0 overflow-hidden rounded-xl border border-emerald-200/90 bg-white shadow-sm',
-        className,
-      )}
-    >
-      <div className={cn('flex items-center gap-2.5 border-l-[4px] px-3 py-2 sm:px-4', stripe)}>
-        <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-md', iconWrap)}>
-          <Icon className="h-4 w-4" aria-hidden />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">{sectionNum}</p>
-          <h4 className="text-sm font-bold leading-tight text-slate-900 sm:text-base">{title}</h4>
-        </div>
-      </div>
-      <div className="px-3 pb-3 pt-1 sm:px-4">{children}</div>
-    </section>
+    <AiToolStackedSection num={sectionNum} title={title} icon={Icon} className={className}>
+      {children}
+    </AiToolStackedSection>
   );
 }
 

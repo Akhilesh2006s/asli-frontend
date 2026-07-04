@@ -1,3 +1,5 @@
+import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
+import { ToolSectionIcon } from '@/components/ai-tool-3d-icons';
 import { useMemo, type ReactNode } from 'react';
 import {
   ClipboardList,
@@ -37,30 +39,19 @@ function SectionCard({
   sectionNum,
   title,
   icon: Icon,
-  stripe,
-  iconWrap,
   children,
 }: {
   sectionNum: string;
   title: string;
   icon: LucideIcon;
-  stripe: string;
-  iconWrap: string;
+  stripe?: string;
+  iconWrap?: string;
   children: ReactNode;
 }) {
   return (
-    <section className="h-fit w-full overflow-hidden rounded-xl border border-rose-200/90 bg-white shadow-sm">
-      <div className={cn('flex items-center gap-2 border-l-[4px] px-2.5 py-1.5', stripe)}>
-        <div className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-md', iconWrap)}>
-          <Icon className="h-3.5 w-3.5" aria-hidden />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-rose-400">{sectionNum}</p>
-          <h4 className="text-xs font-bold leading-tight text-slate-900">{title}</h4>
-        </div>
-      </div>
-      <div className="px-2 pb-1.5 pt-0.5">{children}</div>
-    </section>
+    <AiToolStackedSection num={sectionNum} title={title} icon={Icon}>
+      {children}
+    </AiToolStackedSection>
   );
 }
 

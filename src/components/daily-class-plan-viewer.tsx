@@ -1,3 +1,5 @@
+import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
+import { ToolSectionIcon } from '@/components/ai-tool-3d-icons';
 import { useMemo, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -68,7 +70,11 @@ function BulletBlock({
     <ul className="space-y-2">
       {items.map((line, i) => (
         <li key={i} className="flex gap-2.5 text-sm text-slate-800 leading-relaxed">
-          <Icon className={cn('h-4 w-4 shrink-0 mt-0.5', iconClass)} aria-hidden />
+          <ToolSectionIcon
+            icon={Icon}
+            size="sm"
+            wrapClassName={cn('mt-0.5 bg-transparent shadow-none h-5 w-5', iconClass)}
+          />
           <span className="whitespace-pre-wrap">{line}</span>
         </li>
       ))}
@@ -84,32 +90,21 @@ function TextBlock({ text }: { text: string }) {
 function BentoCard({
   title,
   icon: Icon,
-  accent,
   children,
   className,
+  sectionNum = '1',
 }: {
   title: string;
   icon: LucideIcon;
-  accent: string;
+  accent?: string;
   children: ReactNode;
   className?: string;
+  sectionNum?: string;
 }) {
   return (
-    <div
-      className={cn(
-        'rounded-2xl border bg-white/90 p-4 shadow-sm backdrop-blur-sm',
-        accent,
-        className,
-      )}
-    >
-      <div className="mb-3 flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white shadow-sm ring-1 ring-black/5">
-          <Icon className="h-4 w-4 text-slate-700" aria-hidden />
-        </div>
-        <h4 className="text-sm font-bold text-slate-900">{title}</h4>
-      </div>
+    <AiToolStackedSection num={sectionNum} title={title} icon={Icon} className={className}>
       {children}
-    </div>
+    </AiToolStackedSection>
   );
 }
 
@@ -182,65 +177,61 @@ function DayPlanBoard({ plan }: { plan: NormalizedDailyPlan }) {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="flex w-full flex-col gap-4">
         {plan.objectives.length > 0 ? (
-          <BentoCard title="Learning objectives" icon={Target} accent="border-emerald-100">
+          <BentoCard sectionNum="1" title="Learning objectives" icon={Target}>
             <BulletBlock items={plan.objectives} icon={CheckCircle2} iconClass="text-emerald-600" />
           </BentoCard>
         ) : null}
 
         {plan.teachingMethods.length > 0 ? (
-          <BentoCard title="Teaching methods" icon={Lightbulb} accent="border-amber-100">
+          <BentoCard sectionNum="2" title="Teaching methods" icon={Lightbulb}>
             <BulletBlock items={plan.teachingMethods} icon={Sparkles} iconClass="text-amber-600" />
           </BentoCard>
         ) : null}
 
         {plan.classroomActivities.length > 0 ? (
-          <BentoCard title="Classroom activities" icon={Users} accent="border-sky-100 md:col-span-2">
+          <BentoCard sectionNum="3" title="Classroom activities" icon={Users}>
             <BulletBlock items={plan.classroomActivities} icon={Layers} iconClass="text-sky-600" />
           </BentoCard>
         ) : null}
 
         {plan.exitTicket ? (
-          <BentoCard title="Exit ticket" icon={ClipboardCheck} accent="border-rose-100">
+          <BentoCard sectionNum="4" title="Exit ticket" icon={ClipboardCheck}>
             <TextBlock text={plan.exitTicket} />
           </BentoCard>
         ) : null}
 
         {plan.differentiatedSupport ? (
-          <BentoCard title="Differentiated support" icon={Users} accent="border-violet-100">
+          <BentoCard sectionNum="5" title="Differentiated support" icon={Users}>
             <TextBlock text={plan.differentiatedSupport} />
           </BentoCard>
         ) : null}
 
         {plan.homeworkFollowup ? (
-          <BentoCard title="Homework & follow-up" icon={BookMarked} accent="border-orange-100">
+          <BentoCard sectionNum="6" title="Homework & follow-up" icon={BookMarked}>
             <TextBlock text={plan.homeworkFollowup} />
           </BentoCard>
         ) : null}
 
         {plan.teachingAids.length > 0 ? (
-          <BentoCard title="Teaching aids" icon={Package} accent="border-slate-200">
+          <BentoCard sectionNum="7" title="Teaching aids" icon={Package}>
             <BulletBlock items={plan.teachingAids} icon={Package} iconClass="text-slate-600" />
           </BentoCard>
         ) : null}
+
+        {plan.teacherReflection ? (
+          <BentoCard sectionNum="8" title="Teacher reflection notes" icon={NotebookPen}>
+            <TextBlock text={plan.teacherReflection} />
+          </BentoCard>
+        ) : null}
+
+        {plan.timeline.length > 0 ? (
+          <BentoCard sectionNum="9" title="Additional schedule notes" icon={Clock3}>
+            <BulletBlock items={plan.timeline} icon={Clock3} iconClass="text-indigo-600" />
+          </BentoCard>
+        ) : null}
       </div>
-
-      {plan.teacherReflection ? (
-        <div className="rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/40 p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <NotebookPen className="h-5 w-5 text-indigo-700" aria-hidden />
-            <h4 className="text-sm font-bold text-indigo-950">Teacher reflection notes</h4>
-          </div>
-          <TextBlock text={plan.teacherReflection} />
-        </div>
-      ) : null}
-
-      {plan.timeline.length > 0 ? (
-        <BentoCard title="Additional schedule notes" icon={Clock3} accent="border-indigo-100 md:col-span-2">
-          <BulletBlock items={plan.timeline} icon={Clock3} iconClass="text-indigo-600" />
-        </BentoCard>
-      ) : null}
 
       {periodCount === 0 && !planHasVisibleContent(plan) ? (
         <p className="text-sm text-slate-500 italic text-center py-6">No structured sections in this plan.</p>

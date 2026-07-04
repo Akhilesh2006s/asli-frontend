@@ -1,3 +1,4 @@
+import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
 import { useMemo, useState, useEffect, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -305,43 +306,19 @@ function ConceptTimelineStep({
   sectionNum,
   title,
   icon: Icon,
-  dotClass,
-  isLast,
   children,
 }: {
   sectionNum: number;
   title: string;
   icon: LucideIcon;
-  dotClass: string;
-  isLast: boolean;
+  dotClass?: string;
+  isLast?: boolean;
   children: ReactNode;
 }) {
   return (
-    <div className="relative flex gap-3 sm:gap-4">
-      <div className="flex flex-col items-center pt-0.5">
-        <div
-          className={cn(
-            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm ring-4',
-            dotClass,
-          )}
-        >
-          {sectionNum}
-        </div>
-        {!isLast ? (
-          <div
-            className="w-px flex-1 min-h-[20px] mt-2 bg-gradient-to-b from-slate-300 via-slate-200 to-transparent"
-            aria-hidden
-          />
-        ) : null}
-      </div>
-      <article className="mb-5 min-w-0 flex-1 rounded-xl border border-slate-200/90 bg-white p-3.5 sm:p-4 shadow-sm last:mb-0">
-        <header className="mb-2.5 flex items-center gap-2 border-b border-slate-100 pb-2">
-          <Icon className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
-          <h4 className="text-sm font-semibold text-slate-900 leading-snug">{title}</h4>
-        </header>
-        <div className="text-sm leading-relaxed text-slate-800">{children}</div>
-      </article>
-    </div>
+    <AiToolStackedSection num={String(sectionNum)} title={title} icon={Icon}>
+      {children}
+    </AiToolStackedSection>
   );
 }
 
@@ -408,7 +385,7 @@ function TeacherConceptCard({ concept }: { concept: NormalizedConcept }) {
                 <p className="text-[11px] opacity-80">{phase.hint}</p>
               </div>
             </div>
-            <div className="pl-1 sm:pl-2">
+            <div className="flex flex-col gap-4">
               {phaseSections.map((sec, idx) => (
                 <ConceptTimelineStep
                   key={sec.num}

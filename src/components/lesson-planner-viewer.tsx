@@ -1,3 +1,5 @@
+import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
+import { ToolSectionIcon } from '@/components/ai-tool-3d-icons';
 import { useMemo, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -65,7 +67,11 @@ function BulletList({ items, icon: Icon, iconClass }: { items: string[]; icon: L
     <ul className="space-y-2">
       {items.map((line, i) => (
         <li key={i} className="flex gap-2 text-sm text-slate-800">
-          <Icon className={cn('h-4 w-4 shrink-0 mt-0.5', iconClass)} aria-hidden />
+          <ToolSectionIcon
+            icon={Icon}
+            size="sm"
+            wrapClassName={cn('mt-0.5 bg-transparent shadow-none h-5 w-5', iconClass)}
+          />
           <span className="whitespace-pre-wrap">{line}</span>
         </li>
       ))}
@@ -386,30 +392,19 @@ function PlanSectionCard({
   sectionNum,
   title,
   icon: Icon,
-  stripe,
-  iconWrap,
   children,
 }: {
   sectionNum: string;
   title: string;
   icon: LucideIcon;
-  stripe: string;
-  iconWrap: string;
+  stripe?: string;
+  iconWrap?: string;
   children: ReactNode;
 }) {
   return (
-    <section className="h-fit w-full rounded-2xl bg-white border border-stone-200/90 shadow-sm overflow-hidden">
-      <div className={cn('flex items-center gap-2.5 px-3 py-2.5 border-l-[5px]', stripe)}>
-        <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', iconWrap)}>
-          <Icon className="h-4 w-4" aria-hidden />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-stone-400">{sectionNum}</p>
-          <h4 className="text-xs font-bold text-stone-900 leading-snug">{title}</h4>
-        </div>
-      </div>
-      <div className="px-3 pb-3 pt-1">{children}</div>
-    </section>
+    <AiToolStackedSection num={sectionNum} title={title} icon={Icon}>
+      {children}
+    </AiToolStackedSection>
   );
 }
 
@@ -469,31 +464,9 @@ function PlannerTimelineStep({
   children: ReactNode;
 }) {
   return (
-    <div className="relative flex gap-3 sm:gap-4">
-      <div className="flex flex-col items-center pt-0.5">
-        <div
-          className={cn(
-            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-sm ring-4',
-            dotClass,
-          )}
-        >
-          {sectionNum}
-        </div>
-        {!isLast ? (
-          <div
-            className="w-px flex-1 min-h-[20px] mt-2 bg-gradient-to-b from-slate-300 via-slate-200 to-transparent"
-            aria-hidden
-          />
-        ) : null}
-      </div>
-      <article className="mb-5 min-w-0 flex-1 rounded-xl border border-slate-200/90 bg-white p-3.5 sm:p-4 shadow-sm last:mb-0">
-        <header className="mb-2.5 flex items-center gap-2 border-b border-slate-100 pb-2">
-          <Icon className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
-          <h4 className="text-sm font-semibold text-slate-900 leading-snug">{title}</h4>
-        </header>
-        <div className="text-sm leading-relaxed text-slate-800">{children}</div>
-      </article>
-    </div>
+    <AiToolStackedSection num={String(sectionNum)} title={title} icon={Icon}>
+      {children}
+    </AiToolStackedSection>
   );
 }
 
@@ -563,7 +536,7 @@ function TeacherLessonCard({ lesson }: { lesson: NormalizedLesson }) {
                 <p className="text-[11px] opacity-80">{phase.hint}</p>
               </div>
             </div>
-            <div className="pl-1 sm:pl-2">
+            <div className="flex flex-col gap-4">
               {phaseSections.map((sec, idx) => (
                 <PlannerTimelineStep
                   key={sec.num}

@@ -40,6 +40,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { AiToolResultShell } from '@/components/ai-tool-result-shell';
 import { FlashcardViewer } from '@/components/flashcard-viewer';
 import { MyStudyDecksViewer } from '@/components/my-study-decks-viewer';
 import { ShortNotesViewer } from '@/components/short-notes-viewer';
@@ -1652,161 +1653,85 @@ export default function TeacherToolPage() {
             </CardContent>
           </Card>
 
-          {/* Generated content — full width below parameters */}
-          <Card
-            className={cn(
-              'w-full',
-              toolType !== 'concept-mastery-helper' &&
-                toolType !== 'worksheet-mcq-generator' &&
-                'overflow-hidden',
-              toolType === 'activity-project-generator' && generatedContent && 'border-indigo-100',
-              toolType === 'lesson-planner' && generatedContent && 'border-amber-200/80',
-              toolType === 'daily-class-plan-maker' && generatedContent && 'border-indigo-200/80',
-              toolType === 'concept-mastery-helper' && generatedContent && 'border-fuchsia-200/80',
-              toolType === 'worksheet-mcq-generator' && generatedContent && 'border-emerald-200/80',
-              toolType === 'homework-creator' && generatedContent && 'border-orange-200/80',
-              toolType === 'exam-question-paper-generator' && generatedContent && 'border-slate-300/90',
-              toolType === 'short-notes-summaries-maker' && generatedContent && 'border-cyan-200/80',
-            )}
-          >
-            <CardHeader
-              className={
-                (toolType === 'activity-project-generator' ||
-                  toolType === 'lesson-planner' ||
-                  toolType === 'daily-class-plan-maker' ||
-                  toolType === 'concept-mastery-helper' ||
-                  toolType === 'worksheet-mcq-generator' ||
-                  toolType === 'homework-creator' ||
-                  toolType === 'exam-question-paper-generator' ||
-                  toolType === 'short-notes-summaries-maker') &&
-                generatedContent
-                  ? toolType === 'lesson-planner'
-                    ? 'border-b bg-gradient-to-r from-amber-50/90 via-white to-teal-50/50'
-                    : toolType === 'daily-class-plan-maker'
-                      ? 'border-b bg-gradient-to-r from-violet-50/90 via-white to-sky-50/50'
-                    : toolType === 'concept-mastery-helper'
-                      ? 'border-b bg-gradient-to-r from-fuchsia-50/90 via-white to-violet-50/50'
-                      : toolType === 'worksheet-mcq-generator'
-                        ? 'border-b bg-gradient-to-r from-emerald-50/90 via-white to-teal-50/50'
-                        : toolType === 'homework-creator'
-                          ? 'border-b bg-gradient-to-r from-orange-50/90 via-white to-amber-50/50'
-                          : toolType === 'exam-question-paper-generator'
-                            ? 'border-b bg-gradient-to-r from-slate-100/90 via-white to-indigo-50/60'
-                            : toolType === 'short-notes-summaries-maker'
-                              ? 'border-b bg-gradient-to-r from-cyan-50/90 via-white to-sky-50/60'
-                            : 'border-b bg-gradient-to-r from-slate-50 to-indigo-50/40'
-                  : ''
-              }
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>
-                    {toolType === 'activity-project-generator' && generatedContent
-                      ? 'Your lesson kit'
-                      : toolType === 'lesson-planner' && generatedContent
-                        ? 'Classroom day flow'
-                        : toolType === 'daily-class-plan-maker' && generatedContent
-                          ? 'Your day at a glance'
-                        : toolType === 'concept-mastery-helper' && generatedContent
-                          ? 'Concept teaching reference'
-                          : toolType === 'worksheet-mcq-generator' && generatedContent
-                            ? 'Your worksheet pack'
-                            : toolType === 'homework-creator' && generatedContent
-                              ? 'Your homework pack'
-                              : toolType === 'exam-question-paper-generator' && generatedContent
-                                ? 'Your exam control room'
-                                : toolType === 'short-notes-summaries-maker' && generatedContent
-                                  ? 'Quick revision notebook'
-                                : 'Generated Content'}
-                  </CardTitle>
-                  {generatedContent && Array.isArray(responseMeta?.citations) && responseMeta.citations.length > 0 && (
-                    <div className="mt-2 rounded-md border bg-blue-50/40 p-2 max-h-32 overflow-y-auto">
-                      <p className="text-[11px] font-semibold text-blue-700 mb-1">Top Citations</p>
-                      <div className="space-y-1">
-                        {responseMeta.citations.slice(0, 3).map((c: CitationItem) => (
-                          <p key={`${c.index}-${c.chapter}`} className="text-[11px] text-gray-600">
-                            [{c.index}] {c.subject} / {c.chapter} ({c.score})
-                          </p>
-                        ))}
-                      </div>
-                    </div>
+          {/* Generated content — shared mobile-friendly result shell */}
+          <AiToolResultShell
+            className="w-full"
+            toolType={toolType}
+            toolName={config.name}
+            toolDescription={config.description}
+            meta={{
+              board: selectedBoard || formParams.board || '',
+              classLabel: String(formParams.gradeLevel || ''),
+              subject: String(formParams.subject || formParams.subjects || ''),
+              chapter: String(formParams.topic || ''),
+              subtopic: String(formParams.subTopic || ''),
+            }}
+            isLoading={isGenerating}
+            citations={
+              generatedContent && Array.isArray(responseMeta?.citations) && responseMeta.citations.length > 0 ? (
+                <div className="mt-2 rounded-lg border border-blue-100 bg-blue-50/50 p-2 max-h-28 overflow-y-auto">
+                  <p className="text-[11px] font-semibold text-blue-700 mb-1">Top Citations</p>
+                  <div className="space-y-1">
+                    {responseMeta.citations.slice(0, 3).map((c: CitationItem) => (
+                      <p key={String(c.index) + '-' + String(c.chapter)} className="text-[11px] text-gray-600">
+                        [{c.index}] {c.subject} / {c.chapter} ({c.score})
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ) : null
+            }
+            actions={
+              generatedContent ? (
+                <div className="flex space-x-2">
+                  <Button size="sm" variant="outline" onClick={handleCopy} className="bg-white">
+                    {copied ? <Check className="w-3 h-3 sm:w-4 sm:h-4" /> : <Copy className="w-3 h-3 sm:w-4 sm:h-4" />}
+                  </Button>
+                  {showDownloadActions ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="sm" variant="outline" disabled={isDownloading} className="bg-white">
+                          {isDownloading ? (
+                            <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                          ) : (
+                            <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                          )}
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={handleDownloadPDF} disabled={isDownloading}>
+                          <FileDown className="w-4 h-4 mr-2" />
+                          Download PDF
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleDownloadWord} disabled={isDownloading}>
+                          <FileText className="w-4 h-4 mr-2" />
+                          Download Word
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleDownloadCSV} disabled={isDownloading}>
+                          <FileSpreadsheet className="w-4 h-4 mr-2" />
+                          Download CSV
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : null}
+                </div>
+              ) : null
+            }
+            empty={
+              <div className={cn('text-center py-10', fallbackEmptyMessage ? 'text-red-700' : 'text-slate-500')}>
+                <Icon
+                  className={cn(
+                    'w-14 h-14 mx-auto mb-3',
+                    fallbackEmptyMessage ? 'text-red-300' : 'text-slate-300',
                   )}
-                </div>
-                {generatedContent && (
-                  <div className="flex space-x-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={handleCopy}
-                    >
-                      {copied ? <Check className="w-3 h-3 sm:w-4 sm:h-4" /> : <Copy className="w-3 h-3 sm:w-4 sm:h-4" />}
-                    </Button>
-                    {showDownloadActions ? (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button size="sm" variant="outline" disabled={isDownloading}>
-                            {isDownloading ? (
-                              <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
-                            ) : (
-                              <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                            )}
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={handleDownloadPDF} disabled={isDownloading}>
-                            <FileDown className="w-4 h-4 mr-2" />
-                            Download PDF
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={handleDownloadWord} disabled={isDownloading}>
-                            <FileText className="w-4 h-4 mr-2" />
-                            Download Word
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={handleDownloadCSV} disabled={isDownloading}>
-                            <FileSpreadsheet className="w-4 h-4 mr-2" />
-                            Download CSV
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    ) : null}
-                  </div>
-                )}
+                />
+                <p className="text-sm font-medium">
+                  {fallbackEmptyMessage || 'Fill in the form and click Generate to create content'}
+                </p>
               </div>
-            </CardHeader>
-            <CardContent
-              className={
-                (toolType === 'activity-project-generator' ||
-                  toolType === 'lesson-planner' ||
-                  toolType === 'daily-class-plan-maker' ||
-                  toolType === 'concept-mastery-helper' ||
-                  toolType === 'worksheet-mcq-generator' ||
-                  toolType === 'homework-creator' ||
-                  toolType === 'exam-question-paper-generator' ||
-                  toolType === 'short-notes-summaries-maker') &&
-                generatedContent &&
-                !isGenerating
-                  ? 'p-0'
-                  : ''
-              }
-            >
-              {isGenerating ? (
-                <div className="flex flex-col items-center justify-center py-20 space-y-3 sm:space-y-4 lg:space-y-6">
-                  <div className="relative">
-                    <div className="w-20 h-20 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-blue-600 animate-pulse" />
-                    </div>
-                  </div>
-                  <div className="text-center space-y-2">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">Generating Content...</h3>
-                    <p className="text-xs sm:text-sm text-gray-600">Please wait while we prepare your content</p>
-                    <div className="flex items-center justify-center space-x-1 mt-4">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                    </div>
-                  </div>
-                </div>
-              ) : generatedContent ? (
+            }
+          >
+            {generatedContent ? (
                 toolType === 'flashcard-generator' ? (
                   <div data-ai-tool-export>
                     <FlashcardViewer
@@ -1859,7 +1784,7 @@ export default function TeacherToolPage() {
                       effectiveRawContent &&
                       typeof effectiveRawContent === 'object' &&
                       !Array.isArray(effectiveRawContent)
-                        ? (effectiveRawContent as { activities?: unknown[] }).activities
+                        ? (effectiveRawContent as { activities?: any[] }).activities
                         : undefined
                     }
                     content={displayGeneratedContent}
@@ -1904,21 +1829,8 @@ export default function TeacherToolPage() {
                     />
                   </motion.div>
                 )
-              ) : (
-                <div className={cn('text-center py-12', fallbackEmptyMessage ? 'text-red-700' : 'text-gray-500')}>
-                  <Icon
-                    className={cn(
-                      'w-16 h-16 mx-auto mb-4',
-                      fallbackEmptyMessage ? 'text-red-300' : 'text-gray-300',
-                    )}
-                  />
-                  <p className={cn('text-sm font-medium', fallbackEmptyMessage ? 'text-red-700' : 'text-gray-500')}>
-                    {fallbackEmptyMessage || 'Fill in the form and click Generate to create content'}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            ) : null}
+          </AiToolResultShell>
         </div>
       </div>
     </div>

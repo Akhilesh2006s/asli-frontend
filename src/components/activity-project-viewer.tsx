@@ -1,3 +1,4 @@
+import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
 import { useMemo, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -572,8 +573,6 @@ function JournalBlock({
   sectionNum,
   title,
   icon: Icon,
-  stripe,
-  iconWrap,
   children,
   className,
   bodyClassName,
@@ -582,34 +581,18 @@ function JournalBlock({
   sectionNum: string;
   title: string;
   icon: typeof Target;
-  stripe: string;
-  iconWrap: string;
+  stripe?: string;
+  iconWrap?: string;
   children: ReactNode;
   className?: string;
   bodyClassName?: string;
 }) {
   return (
-    <section
-      id={id}
-      className={cn(
-        'h-fit w-full rounded-2xl bg-white border border-stone-200/90 shadow-sm shadow-stone-200/40 overflow-hidden',
-        className,
-      )}
-    >
-      <div className={cn('flex items-center gap-2.5 px-3 py-2.5 border-l-[5px]', stripe)}>
-        <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', iconWrap)}>
-          <Icon className="h-4 w-4" aria-hidden />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h4 className="text-base sm:text-lg font-bold tracking-tight text-slate-900 border-b border-slate-200 pb-1.5 leading-tight">
-            {sectionNum}. {title}
-          </h4>
-        </div>
-      </div>
-      <div className={cn('px-3 pb-3 pt-1 text-sm leading-relaxed text-stone-700', bodyClassName)}>
-        {children}
-      </div>
-    </section>
+    <div id={id} className={className}>
+      <AiToolStackedSection num={sectionNum} title={title} icon={Icon}>
+        <div className={cn('text-sm leading-relaxed text-stone-700', bodyClassName)}>{children}</div>
+      </AiToolStackedSection>
+    </div>
   );
 }
 

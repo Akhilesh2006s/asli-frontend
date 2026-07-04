@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { RealisticIcon, type AiTool3dIconName } from '@/components/ai-tool-3d-icons';
+import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
 import { cn } from '@/lib/utils';
 import { displayQuestionSerial } from '@/lib/renumber-questions';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
@@ -72,10 +74,13 @@ function extractMockTestMeta(rawContent?: unknown): MockTestMeta | null {
 function QuestionCard({ question, index }: { question: ExamQuestion; index: number }) {
   return (
     <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-slate-900">
-          Q{displayQuestionSerial(index)}. {question.question}
-        </p>
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-start gap-2">
+          <RealisticIcon name="quiz" alt="" className="mt-0.5 h-7 w-7 shrink-0" />
+          <p className="text-sm font-semibold text-slate-900">
+            Q{displayQuestionSerial(index)}. {question.question}
+          </p>
+        </div>
         {question.marks != null ? (
           <Badge className="bg-slate-900 text-white hover:bg-slate-900">{question.marks} marks</Badge>
         ) : null}
@@ -109,13 +114,24 @@ function QuestionCard({ question, index }: { question: ExamQuestion; index: numb
   );
 }
 
-function InfoPanel({ title, value, className }: { title: string; value: string; className?: string }) {
+function InfoPanel({
+  title,
+  value,
+  className,
+  icon = 'document',
+  sectionNum = '1',
+}: {
+  title: string;
+  value: string;
+  className?: string;
+  icon?: AiTool3dIconName;
+  sectionNum?: string;
+}) {
   if (!value) return null;
   return (
-    <section className={cn('rounded-xl border p-4', className)}>
-      <h4 className="mb-2 text-sm font-semibold text-slate-900">{title}</h4>
+    <AiToolStackedSection num={sectionNum} title={title} iconName={icon} className={className}>
       <p className="whitespace-pre-wrap text-sm text-slate-700">{value}</p>
-    </section>
+    </AiToolStackedSection>
   );
 }
 
@@ -169,16 +185,33 @@ export function ExamQuestionPaperViewer({
   return (
     <div className={cn('space-y-4', className)}>
       <header className="overflow-hidden rounded-2xl border border-slate-700 bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-800 p-5 text-white shadow-lg">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-indigo-200">
-          {variant === 'student' ? 'Mock Test Builder' : 'Exam Question Paper Generator'}
-        </p>
-        <h2 className="mt-1 text-xl font-bold">
-          {mockMeta?.mockTestTitle || paper.paperTitle || (variant === 'student' ? 'Mock Test' : 'Exam Question Paper')}
-        </h2>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Badge className="bg-white/15 text-white hover:bg-white/15">{totalQuestions} Questions</Badge>
-          <Badge className="bg-white/15 text-white hover:bg-white/15">{totalMarks || '-'} Total Marks</Badge>
-          <Badge className="bg-white/15 text-white hover:bg-white/15">{paper.sections.length} Sections</Badge>
+        <div className="flex items-start gap-3">
+          <RealisticIcon
+            name={variant === 'student' ? 'medal' : 'document'}
+            alt=""
+            className="h-12 w-12 shrink-0"
+          />
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-[0.18em] text-indigo-200">
+              {variant === 'student' ? 'Mock Test Builder' : 'Exam Question Paper Generator'}
+            </p>
+            <h2 className="mt-1 text-xl font-bold">
+              {mockMeta?.mockTestTitle ||
+                paper.paperTitle ||
+                (variant === 'student' ? 'Mock Test' : 'Exam Question Paper')}
+            </h2>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Badge className="bg-white/15 text-white hover:bg-white/15">
+                {totalQuestions} Questions
+              </Badge>
+              <Badge className="bg-white/15 text-white hover:bg-white/15">
+                {totalMarks || '-'} Total Marks
+              </Badge>
+              <Badge className="bg-white/15 text-white hover:bg-white/15">
+                {paper.sections.length} Sections
+              </Badge>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -201,10 +234,14 @@ export function ExamQuestionPaperViewer({
       )}
 
       <div className="space-y-4">
-        {paper.sections.map((section) => (
-          <section key={section.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <h3 className="text-base font-bold text-slate-900">{section.title}</h3>
+        {paper.sections.map((section, sectionIndex) => (
+          <AiToolStackedSection
+            key={section.id}
+            num={String(sectionIndex + 1)}
+            title={section.title}
+            iconName="clipboard"
+          >
+            <div className="mb-3">
               <Badge variant="outline" className="border-slate-300 text-slate-700">
                 {section.questions.length} Questions
               </Badge>
@@ -218,7 +255,7 @@ export function ExamQuestionPaperViewer({
             ) : (
               <p className="text-sm italic text-slate-400">No questions available in this section.</p>
             )}
-          </section>
+          </AiToolStackedSection>
         ))}
       </div>
 

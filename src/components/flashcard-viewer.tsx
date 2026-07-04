@@ -1,3 +1,4 @@
+import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -181,31 +182,19 @@ function StudyFieldTile({
   label,
   value,
   icon: Icon,
-  chip,
-  iconBg,
+  sectionNum = '1',
 }: {
   label: string;
   value: string;
   icon: typeof Lightbulb;
-  chip: string;
-  iconBg: string;
+  chip?: string;
+  iconBg?: string;
+  sectionNum?: string;
 }) {
   return (
-    <div
-      className={`rounded-xl border p-3 sm:p-4 shadow-sm transition-shadow hover:shadow-md ${chip}`}
-    >
-      <div className="flex gap-3">
-        <div
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${iconBg}`}
-        >
-          <Icon className="h-4 w-4" aria-hidden />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-wide opacity-80">{label}</p>
-          <p className="mt-1 text-sm leading-relaxed text-slate-800">{value}</p>
-        </div>
-      </div>
-    </div>
+    <AiToolStackedSection num={sectionNum} title={label} icon={Icon}>
+      <p className="text-sm leading-relaxed text-slate-800">{value}</p>
+    </AiToolStackedSection>
   );
 }
 
@@ -1118,15 +1107,14 @@ export function FlashcardViewer({
             </p>
             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-violet-200 to-transparent" />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {studyFieldEntries.map((field) => (
+          <div className="flex w-full flex-col gap-4">
+            {studyFieldEntries.map((field, i) => (
               <StudyFieldTile
                 key={field.key}
+                sectionNum={String(i + 1)}
                 label={field.label}
                 value={field.value}
                 icon={field.icon}
-                chip={field.chip}
-                iconBg={field.iconBg}
               />
             ))}
           </div>

@@ -1,20 +1,12 @@
-import { useMemo, type ReactNode, type ReactElement } from 'react';
+import { RealisticIcon, type AiTool3dIconName } from '@/components/ai-tool-3d-icons';
 import {
-  AlertTriangle,
-  CheckCircle2,
-  GraduationCap,
-  Layers,
-  Lightbulb,
-  MessageCircle,
-  Sparkles,
-  Target,
-  Zap,
-  type LucideIcon,
-} from 'lucide-react';
+  AiToolStackedList,
+  AiToolStackedSection,
+} from '@/components/ai-tool-stacked-section';
+import { useMemo, type ReactElement, type ReactNode } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
-import { useIsMobile } from '@/hooks/use-mobile';
 import {
   FlashcardViewer,
   getFlashcardsFromContent,
@@ -262,31 +254,18 @@ export function resolveStudentDeckMeta(content: string, rawContent?: unknown): S
 function DeckSectionCard({
   sectionNum,
   title,
-  icon: Icon,
-  stripe,
-  iconWrap,
+  iconName,
   children,
 }: {
   sectionNum: string;
   title: string;
-  icon: LucideIcon;
-  stripe: string;
-  iconWrap: string;
+  iconName: AiTool3dIconName;
   children: ReactNode;
 }) {
   return (
-    <section className="h-fit w-full rounded-xl bg-white border border-violet-200/90 shadow-sm overflow-hidden">
-      <div className={cn('flex items-center gap-2 px-2.5 py-1.5 border-l-[4px]', stripe)}>
-        <div className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-md', iconWrap)}>
-          <Icon className="h-3.5 w-3.5" aria-hidden />
-        </div>
-        <div className="min-w-0">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-stone-400">{sectionNum}</p>
-          <h4 className="text-xs font-bold text-stone-900 leading-tight">{title}</h4>
-        </div>
-      </div>
-      <div className="px-2.5 pb-2 pt-0.5">{children}</div>
-    </section>
+    <AiToolStackedSection num={sectionNum} title={title} iconName={iconName}>
+      {children}
+    </AiToolStackedSection>
   );
 }
 
@@ -347,9 +326,7 @@ interface MyStudyDecksViewerProps {
 type DeckSectionDef = {
   num: number;
   title: string;
-  icon: LucideIcon;
-  stripe: string;
-  iconWrap: string;
+  iconName: AiTool3dIconName;
   body: ReactElement;
 };
 
@@ -357,47 +334,12 @@ function renderDeckSection(sec: DeckSectionDef) {
   return (
     <DeckSectionCard
       key={sec.num}
-      sectionNum={`Section ${sec.num}`}
+      sectionNum={String(sec.num)}
       title={sec.title}
-      icon={sec.icon}
-      stripe={sec.stripe}
-      iconWrap={sec.iconWrap}
+      iconName={sec.iconName}
     >
       {sec.body}
     </DeckSectionCard>
-  );
-}
-
-/** Even sections in the left stack, odd in the right — avoids grid-row height gaps beside shorter cards. */
-function DeckSectionColumns({ sections }: { sections: DeckSectionDef[] }) {
-  const isMobile = useIsMobile();
-  if (isMobile) {
-    return (
-      <div className="flex flex-col gap-1">
-        {sections.map(renderDeckSection)}
-      </div>
-    );
-  }
-
-  const section5 = sections.find((s) => s.num === 5);
-  const before5 = sections.filter((s) => s.num < 5);
-  const after5 = sections.filter((s) => s.num > 5);
-  const leftOf = (list: DeckSectionDef[]) => list.filter((s) => s.num % 2 === 0);
-  const rightOf = (list: DeckSectionDef[]) => list.filter((s) => s.num % 2 === 1);
-
-  const columnPair = (list: DeckSectionDef[]) => (
-    <div className="grid grid-cols-2 gap-1 items-start">
-      <div className="flex min-w-0 flex-col gap-1">{leftOf(list).map(renderDeckSection)}</div>
-      <div className="flex min-w-0 flex-col gap-1">{rightOf(list).map(renderDeckSection)}</div>
-    </div>
-  );
-
-  return (
-    <div className="flex flex-col gap-1">
-      {before5.length > 0 && columnPair(before5)}
-      {section5 && renderDeckSection(section5)}
-      {after5.length > 0 && columnPair(after5)}
-    </div>
   );
 }
 
@@ -459,9 +401,7 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
     {
       num: 2,
       title: 'Subtopic Link and Prior Knowledge Required',
-      icon: Target,
-      stripe: 'border-cyan-500',
-      iconWrap: 'bg-cyan-100 text-cyan-800',
+      iconName: 'openBook',
       body: meta.subtopicLinkPriorKnowledge ? (
         <p className="text-sm whitespace-pre-wrap text-slate-800">{meta.subtopicLinkPriorKnowledge}</p>
       ) : (
@@ -471,9 +411,7 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
     {
       num: 3,
       title: "Learning Objectives - Bloom's Taxonomy Aligned",
-      icon: Target,
-      stripe: 'border-indigo-500',
-      iconWrap: 'bg-indigo-100 text-indigo-800',
+      iconName: 'target',
       body:
         meta.learningObjectives.length > 0 ? (
           <BulletList items={meta.learningObjectives} />
@@ -484,9 +422,7 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
     {
       num: 4,
       title: 'NCF Competency / Learning Outcome Alignment',
-      icon: GraduationCap,
-      stripe: 'border-blue-500',
-      iconWrap: 'bg-blue-100 text-blue-800',
+      iconName: 'graduation',
       body: meta.ncfAlignment ? (
         <p className="text-sm whitespace-pre-wrap text-slate-800">{meta.ncfAlignment}</p>
       ) : (
@@ -496,11 +432,9 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
     {
       num: 5,
       title: 'Flashcard Set',
-      icon: Zap,
-      stripe: 'border-violet-500',
-      iconWrap: 'bg-violet-100 text-violet-800',
+      iconName: 'rocket',
       body: (
-        <div className="mx-auto w-full max-w-md">
+        <div className="mx-auto w-full max-w-lg">
           <FlashcardViewer
             content={flashcardSessionContent}
             rawContent={payload.rawContent}
@@ -513,9 +447,7 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
     {
       num: 6,
       title: 'Difficulty Tag for Each Card',
-      icon: Target,
-      stripe: 'border-amber-500',
-      iconWrap: 'bg-amber-100 text-amber-900',
+      iconName: 'chart',
       body: hasDifficulty ? (
         <PerCardList
           cards={cards}
@@ -529,9 +461,7 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
     {
       num: 7,
       title: 'Memory Hook / Quick Tip',
-      icon: Lightbulb,
-      stripe: 'border-yellow-500',
-      iconWrap: 'bg-yellow-100 text-yellow-900',
+      iconName: 'lightbulb',
       body: hasMemory ? (
         <PerCardList
           cards={cards}
@@ -545,9 +475,7 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
     {
       num: 8,
       title: 'Self-Check Round',
-      icon: CheckCircle2,
-      stripe: 'border-teal-500',
-      iconWrap: 'bg-teal-100 text-teal-800',
+      iconName: 'checklist',
       body: (
         <>
           {meta.selfCheckRound ? (
@@ -568,9 +496,7 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
     {
       num: 9,
       title: 'Common Mistakes to Avoid',
-      icon: AlertTriangle,
-      stripe: 'border-orange-500',
-      iconWrap: 'bg-orange-100 text-orange-800',
+      iconName: 'shield',
       body:
         meta.commonMistakesToAvoid.length > 0 ? (
           <BulletList items={meta.commonMistakesToAvoid} />
@@ -581,9 +507,7 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
     {
       num: 10,
       title: 'Expected Learning Outcomes',
-      icon: GraduationCap,
-      stripe: 'border-purple-500',
-      iconWrap: 'bg-purple-100 text-purple-800',
+      iconName: 'diploma',
       body:
         meta.expectedLearningOutcomes.length > 0 ? (
           <BulletList items={meta.expectedLearningOutcomes} />
@@ -594,9 +518,7 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
     {
       num: 11,
       title: 'Real-life Application',
-      icon: Sparkles,
-      stripe: 'border-emerald-500',
-      iconWrap: 'bg-emerald-100 text-emerald-800',
+      iconName: 'globe',
       body: meta.realLifeApplication ? (
         <p className="text-sm whitespace-pre-wrap text-slate-800">{meta.realLifeApplication}</p>
       ) : (
@@ -606,9 +528,7 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
     {
       num: 12,
       title: 'Reflection / Exit Ticket',
-      icon: MessageCircle,
-      stripe: 'border-slate-500',
-      iconWrap: 'bg-slate-100 text-slate-800',
+      iconName: 'memo',
       body: meta.reflectionExitTicket ? (
         <p className="text-sm whitespace-pre-wrap text-slate-800">{meta.reflectionExitTicket}</p>
       ) : (
@@ -629,9 +549,7 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
       >
         <div className="border-b border-violet-100 bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 px-4 py-4 sm:px-6">
           <div className="flex flex-wrap items-center gap-3 text-white">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-              <Layers className="h-5 w-5" aria-hidden />
-            </div>
+            <RealisticIcon name="books" alt="" className="h-12 w-12 sm:h-14 sm:w-14" />
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-widest text-violet-100">
                 My Study Decks
@@ -644,21 +562,16 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
           </div>
         </div>
 
-        <div className="p-2 sm:p-3 space-y-1">
-          <div className="relative overflow-hidden rounded-xl bg-white border border-violet-200 shadow-sm">
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-50/90 via-white to-indigo-50/50" />
-            <div className="relative p-2.5 sm:p-3">
-              <p className="text-[9px] font-bold uppercase tracking-wider text-violet-700 mb-0.5">
-                Section 1
-              </p>
-              <Badge className="mb-1 border-0 bg-violet-100 text-violet-900 hover:bg-violet-100 text-xs">
+        <div className="p-3 sm:p-4">
+          <AiToolStackedList>
+            <AiToolStackedSection num="1" title="Deck Title" iconName="books">
+              <Badge className="mb-2 border-0 bg-violet-100 text-violet-900 hover:bg-violet-100 text-xs">
                 Deck
               </Badge>
               <h4 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug">{meta.title}</h4>
-            </div>
-          </div>
-
-          <DeckSectionColumns sections={orderedSections} />
+            </AiToolStackedSection>
+            {orderedSections.map(renderDeckSection)}
+          </AiToolStackedList>
         </div>
       </div>
     </div>
