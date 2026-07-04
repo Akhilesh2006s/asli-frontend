@@ -9,7 +9,9 @@ export function normalizeBoardKey(raw?: string | null): string {
   if (compact.includes('IIT') || compact.includes('NEET') || compact.includes('JEE')) {
     return 'IIT/NEET';
   }
-  if (compact === 'ASLIEXCLUSIVESCHOOLS') return 'ASLI_EXCLUSIVE_SCHOOLS';
+  if (compact === 'ASLIEXCLUSIVESCHOOLS' || compact === 'ASLIEXCLUSIVE') {
+    return 'ASLI_EXCLUSIVE_SCHOOLS';
+  }
   return s.toUpperCase();
 }
 
