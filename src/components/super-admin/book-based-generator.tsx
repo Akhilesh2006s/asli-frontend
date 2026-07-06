@@ -45,6 +45,11 @@ import {
   parseGenerationRecordCount,
 } from "@/lib/generation-record-count";
 import { sortClassLabelsAscending } from "@/lib/super-admin-curriculum-classes";
+import {
+  DEFAULT_GENERATION_QUALITY_TIER,
+  GENERATION_QUALITY_TIERS,
+  type GenerationQualityTierId,
+} from "@/lib/generation-quality-tier";
 
 type BookOption = {
   _id: string;
@@ -148,6 +153,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   const [subTopic, setSubTopic] = useState("");
   const [bookId, setBookId] = useState("");
   const [useBookKnowledge, setUseBookKnowledge] = useState(true);
+  const [qualityTier, setQualityTier] = useState<GenerationQualityTierId>(DEFAULT_GENERATION_QUALITY_TIER);
   const [generationRecordCount, setGenerationRecordCount] = useState("");
   const [books, setBooks] = useState<BookOption[]>([]);
   const [booksLoading, setBooksLoading] = useState(false);
@@ -368,6 +374,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     subtopicName: subTopic,
     batchSize: parseBatchSize(),
     useBookKnowledge,
+    qualityTier,
     async: true,
     ...(forceUnlock ? { forceUnlock: true } : {}),
   });
@@ -882,6 +889,30 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                 <Label htmlFor="use-book-kb" className="text-sm cursor-pointer leading-snug">
                   Use textbook as primary source (RAG)
                 </Label>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="book-quality-tier" className="text-sm">
+                  Generation quality
+                </Label>
+                <Select
+                  value={qualityTier}
+                  onValueChange={(v) => setQualityTier(v as GenerationQualityTierId)}
+                  disabled={isGenerating}
+                >
+                  <SelectTrigger id="book-quality-tier" className="max-w-xs bg-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GENERATION_QUALITY_TIERS.map((tier) => (
+                      <SelectItem key={tier.id} value={tier.id}>
+                        {tier.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-600">
+                  {GENERATION_QUALITY_TIERS.find((t) => t.id === qualityTier)?.description}
+                </p>
               </div>
               <p className="text-xs text-slate-600 w-full">
                 Combines your curriculum inputs with retrieved book content.

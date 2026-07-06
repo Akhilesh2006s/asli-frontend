@@ -113,6 +113,11 @@ import {
   parseGenerationRecordCount,
   sanitizeGenerationRecordCountInput,
 } from "@/lib/generation-record-count";
+import {
+  DEFAULT_GENERATION_QUALITY_TIER,
+  GENERATION_QUALITY_TIERS,
+  type GenerationQualityTierId,
+} from "@/lib/generation-quality-tier";
 
 const MAX_GENERATION_BATCH_SIZE = GENERATION_RECORD_COUNT_MAX;
 /** Parallel workers — each picks the latest avoid-list before calling Gemini. */
@@ -288,6 +293,7 @@ export default function SuperAdminAiGenerator() {
   const [generationLocked, setGenerationLocked] = useState(false);
   const [activeTab, setActiveTab] = useState<"generate" | "audit">("generate");
   const [forceGenerateNew, setForceGenerateNew] = useState(false);
+  const [qualityTier, setQualityTier] = useState<GenerationQualityTierId>(DEFAULT_GENERATION_QUALITY_TIER);
   const [generationProgress, setGenerationProgress] = useState<{
     current: number;
     total: number;
@@ -503,6 +509,7 @@ export default function SuperAdminAiGenerator() {
     topicName: topic,
     subtopicName: subTopic,
     batchSize: parseBatchSize(),
+    qualityTier,
     forceGenerate: forceGenerateNew,
     forceGenerateNew: forceGenerateNew,
     extraParams: buildExtraParams(),
@@ -1105,6 +1112,30 @@ export default function SuperAdminAiGenerator() {
               />
               Force Generate New Content (even when topic has 1000+ records)
             </label>
+            <div className="space-y-1.5">
+              <Label htmlFor="ai-quality-tier" className="text-sm">
+                Generation quality
+              </Label>
+              <Select
+                value={qualityTier}
+                onValueChange={(v) => setQualityTier(v as GenerationQualityTierId)}
+                disabled={isGenerating}
+              >
+                <SelectTrigger id="ai-quality-tier" className="max-w-xs bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {GENERATION_QUALITY_TIERS.map((tier) => (
+                    <SelectItem key={tier.id} value={tier.id}>
+                      {tier.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500">
+                {GENERATION_QUALITY_TIERS.find((t) => t.id === qualityTier)?.description}
+              </p>
+            </div>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:flex-wrap">
               <p className="text-xs text-slate-500 w-full sm:flex-1 sm:min-w-0">
                 Smart strategy: 0–100 generate · 101–500 strong uniqueness · 501–1000 strict · 1000+ random pool (₹0, unless forced).
