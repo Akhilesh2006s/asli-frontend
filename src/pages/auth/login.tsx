@@ -65,15 +65,25 @@ const Login = () => {
     setIsLoading(true);
     setError('');
 
-    const attemptLogin = async (): Promise<Response> =>
-      fetch(`${API_BASE_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(formData),
-      });
+    const LOGIN_TIMEOUT_MS = 25_000;
+
+    const attemptLogin = async (): Promise<Response> => {
+      const controller = new AbortController();
+      const timer = window.setTimeout(() => controller.abort(), LOGIN_TIMEOUT_MS);
+      try {
+        return await fetch(`${API_BASE_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify(formData),
+          signal: controller.signal,
+        });
+      } finally {
+        window.clearTimeout(timer);
+      }
+    };
 
     const isRealNetworkFailure = (err: unknown) => {
       const msg = String((err as Error)?.message || err || '').toLowerCase();
@@ -147,7 +157,11 @@ const Login = () => {
         setError(data.message || 'Login failed. Please check your email and password.');
       }
     } catch (err) {
-      if (isRealNetworkFailure(err)) {
+      if ((err as Error)?.name === 'AbortError') {
+        setError(
+          'Login timed out — the server did not respond in time. Check your connection or try again in a minute.',
+        );
+      } else if (isRealNetworkFailure(err)) {
         setError('Network error. Cannot reach the server. Check your connection and try again.');
       } else {
         setError('Login failed. Please try again.');

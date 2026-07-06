@@ -619,7 +619,8 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
         </p>
         <p>
           <strong>Content generation</strong> (this page): choose how many records to generate per batch ({GENERATION_RECORD_COUNT_MIN}–{BOOK_GENERATOR_MAX_BATCH_SIZE}) with Gemini.
-          Token count and estimated ₹ cost appear below after each run. Run again to build toward {BOOK_UNIQUENESS_TARGET}+ unique records per sub-topic.
+          <strong> Premium</strong> uses Gemini 3.1 Flash-Lite only; <strong>Balanced</strong> uses 2.5 Flash; <strong>Fast</strong> uses 3.1 Flash-Lite.
+          Token count and estimated ₹ cost appear below after each run.
         </p>
       </div>
 

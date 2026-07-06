@@ -594,7 +594,7 @@ export default function SuperAdminAiGenerator() {
     setGenerationProgress({
       current: 0,
       total: batchSize,
-      phase: "Server batch in progress (please wait)",
+      phase: `Generating ${batchSize} with ${GENERATION_QUALITY_TIERS.find((t) => t.id === qualityTier)?.label || "Premium"} tier…`,
     });
     if (!opts?.forceUnlock) setLastBatchSummary(null);
 
@@ -1231,9 +1231,9 @@ export default function SuperAdminAiGenerator() {
                   ) : null}
                 </p>
                 <p className="text-[11px] text-slate-500">
-                  Model: {lastBatchSummary.cost.model} · Flash-Lite $0.10/M in · $0.40/M out
+                  Model: {lastBatchSummary.cost.model}
+                  {lastBatchSummary.cost.pricingNote ? ` · ${lastBatchSummary.cost.pricingNote}` : ""}
                 </p>
-                <p className="text-[11px] text-slate-500">{lastBatchSummary.cost.pricingNote}</p>
                 {lastBatchSummary.cost.model.includes("mixed") ? (
                   <p className="text-[11px] text-slate-500">
                     Pricing model: {lastBatchSummary.cost.model}
