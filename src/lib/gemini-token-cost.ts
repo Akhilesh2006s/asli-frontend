@@ -44,13 +44,16 @@ export function normalizeGeminiModelLabel(modelName = ""): string {
   const raw = String(modelName || "").trim();
   if (!raw) return "";
   const lower = raw.toLowerCase();
+  if (lower.includes("pro")) {
+    return lower.includes("3.1") ? "gemini-3.1-pro-preview" : raw;
+  }
   if (lower.includes("flash-lite") || lower.includes("flash_lite")) {
     return lower.includes("3.1") ? "gemini-3.1-flash-lite" : "gemini-2.5-flash-lite";
   }
   if (lower.includes("3.5")) return "gemini-3.5-flash";
   if (lower.includes("3.1") && lower.includes("flash")) return "gemini-3.1-flash-lite";
   if (lower.startsWith("gemini-1.5") || lower.startsWith("gemini-1.0")) {
-    return "gemini-2.5-flash (legacy env model)";
+    return "gemini-3.1-flash-lite (legacy env model)";
   }
   if (lower.includes("flash")) return "gemini-2.5-flash";
   return raw;
@@ -73,6 +76,14 @@ export function formatModelsUsedFromTokenUsage(tokenUsage?: TokenUsageSnapshot):
 
 export function resolveGeminiPricing(modelName = "") {
   const model = String(modelName || "").toLowerCase();
+  if (model.includes("pro")) {
+    return {
+      model: model.includes("3.1") ? "gemini-3.1-pro-preview" : modelName || "gemini-3.1-pro-preview",
+      inputUsdPerM: 2,
+      outputUsdPerM: 12,
+      pricingNote: "Estimated from Pro list pricing (input $2/M, output $12/M).",
+    };
+  }
   if (model.includes("flash-lite") || model.includes("flash_lite")) {
     return {
       model: model.includes("3.1") ? "gemini-3.1-flash-lite" : "gemini-2.5-flash-lite",
