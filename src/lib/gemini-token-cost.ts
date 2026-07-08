@@ -40,6 +40,37 @@ export type TokenUsageSnapshot = {
   totals?: Partial<TokenTotals>;
 };
 
+export function normalizeGeminiModelLabel(modelName = ""): string {
+  const raw = String(modelName || "").trim();
+  if (!raw) return "";
+  const lower = raw.toLowerCase();
+  if (lower.includes("flash-lite") || lower.includes("flash_lite")) {
+    return lower.includes("3.1") ? "gemini-3.1-flash-lite" : "gemini-2.5-flash-lite";
+  }
+  if (lower.includes("3.5")) return "gemini-3.5-flash";
+  if (lower.includes("3.1") && lower.includes("flash")) return "gemini-3.1-flash-lite";
+  if (lower.startsWith("gemini-1.5") || lower.startsWith("gemini-1.0")) {
+    return "gemini-2.5-flash (legacy env model)";
+  }
+  if (lower.includes("flash")) return "gemini-2.5-flash";
+  return raw;
+}
+
+export function formatModelsUsedFromTokenUsage(tokenUsage?: TokenUsageSnapshot): string {
+  const calls = Array.isArray(tokenUsage?.calls) ? tokenUsage.calls : [];
+  const labels: string[] = [];
+  const seen = new Set<string>();
+  for (const call of calls) {
+    const label = normalizeGeminiModelLabel(call.model || "");
+    if (!label || seen.has(label)) continue;
+    seen.add(label);
+    labels.push(label);
+  }
+  if (!labels.length) return "gemini-3.1-flash-lite";
+  if (labels.length === 1) return labels[0];
+  return `mixed (${labels[0]} + ${labels.length - 1} other${labels.length > 2 ? "s" : ""})`;
+}
+
 export function resolveGeminiPricing(modelName = "") {
   const model = String(modelName || "").toLowerCase();
   if (model.includes("flash-lite") || model.includes("flash_lite")) {
@@ -202,8 +233,7 @@ export function computeGeminiCostFromTokenUsage(
     }
 
     const usd = inputUsd + outputUsd;
-    const model =
-      modelTokenCounts.size > 1 ? `mixed (${dominantModel} + others)` : dominantModel;
+    const model = formatModelsUsedFromTokenUsage(tokenUsage);
 
     return {
       usd: Number(usd.toFixed(6)),

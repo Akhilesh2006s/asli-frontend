@@ -307,6 +307,7 @@ export default function SuperAdminAiGenerator() {
     tokenUsage: TokenTotals;
     cost: GeminiCostEstimate;
     perRecordCost?: { usd: number; inr: number };
+    boardUsed?: string;
   } | null>(null);
   const [recordsTree, setRecordsTree] = useState<GroupedTool[]>([]);
   const [recordsTotal, setRecordsTotal] = useState(0);
@@ -411,12 +412,13 @@ export default function SuperAdminAiGenerator() {
     return payload;
   };
 
-  const loadRecords = async () => {
+  const loadRecords = async (boardOverride?: string) => {
     setRecordsLoading(true);
+    const boardFilter = boardOverride ?? recordsBoardFilter;
     try {
       const qs = new URLSearchParams();
-      if (recordsBoardFilter && recordsBoardFilter !== "__all__") {
-        qs.set("board", recordsBoardFilter);
+      if (boardFilter && boardFilter !== "__all__") {
+        qs.set("board", boardFilter);
       }
       const res = await fetch(`${API_BASE_URL}/api/ai-generator/records?${qs.toString()}`, {
         headers: { ...authHeaders() },
@@ -662,13 +664,22 @@ export default function SuperAdminAiGenerator() {
         tokenUsage,
         cost,
         perRecordCost: perRecord,
+        boardUsed: board,
       });
 
       if (savedCount === 0) {
         throw new Error(failures[0] || `All ${resultBatchSize} generations failed`);
       }
 
-      const tokenNote = `${formatTokenCount(tokenUsage.totalTokens)} tokens (${formatTokenCount(tokenUsage.promptTokens)} in / ${formatTokenCount(tokenUsage.completionTokens)} out, ${tokenUsage.callCount} LLM calls). Batch cost: ${formatCostInr(cost.inr)}${savedCount > 0 ? ` · ~${formatCostInr(perRecord.inr)}/record` : ""}.`;
+      if (board && recordsBoardFilter !== "__all__" && recordsBoardFilter !== board) {
+        setRecordsBoardFilter(board);
+        await loadRecords(board);
+      } else {
+        await loadRecords();
+      }
+
+      const tokenNote = `${formatTokenCount(tokenUsage.totalTokens)} tokens (${formatTokenCount(tokenUsage.promptTokens)} in / ${formatTokenCount(tokenUsage.completionTokens)} out, ${tokenUsage.callCount} LLM calls). Batch cost: ${formatCostInr(cost.inr)}${savedCount > 0 ? ` · ~${formatCostInr(perRecord.inr)}/record` : ""}. Saved under board “${board}”.`;
+
       toast({
         title:
           mode === "random_retrieval"
@@ -686,7 +697,6 @@ export default function SuperAdminAiGenerator() {
           tokenNote,
         variant: failures.length > 0 ? "destructive" : "default",
       });
-      await loadRecords();
     } catch (error: any) {
       toast({
         title: "Generation failed",
@@ -1232,6 +1242,7 @@ export default function SuperAdminAiGenerator() {
                 </p>
                 <p className="text-[11px] text-slate-500">
                   Model: {lastBatchSummary.cost.model}
+                  {lastBatchSummary.boardUsed ? ` · Board: ${lastBatchSummary.boardUsed}` : ""}
                   {lastBatchSummary.cost.pricingNote ? ` · ${lastBatchSummary.cost.pricingNote}` : ""}
                 </p>
                 {lastBatchSummary.cost.model.includes("mixed") ? (
@@ -1324,7 +1335,22 @@ export default function SuperAdminAiGenerator() {
           ) : recordsTree.length === 0 ? (
             <p className="text-xs sm:text-sm text-slate-600">
               No records found
-              {recordsBoardFilter !== "__all__" ? ` for board “${recordsBoardFilter}”.` : "."}
+              {recordsBoardFilter !== "__all__" ? (
+                <>
+                  {" "}
+                  for board “{recordsBoardFilter}”. Try{" "}
+                  <button
+                    type="button"
+                    className="font-medium text-violet-700 underline underline-offset-2"
+                    onClick={() => setRecordsBoardFilter("__all__")}
+                  >
+                    All boards
+                  </button>{" "}
+                  if you generated under IIT/NEET or another board.
+                </>
+              ) : (
+                "."
+              )}
             </p>
           ) : (
             <Accordion type="multiple" className="w-full">

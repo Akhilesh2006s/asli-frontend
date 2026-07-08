@@ -7,9 +7,31 @@ export function isWorksheetAnswerKeyLike(text: string): boolean {
   if (/^(?:answer|correct\s*answer)\s*[:\-]/i.test(q)) return true;
   if (/^---\s*pdf\s+answer\s+key\s*---$/i.test(q)) return true;
   if (/^q\d+[\).:\-]\s*[A-Da-d][);.]?\s*(?:;\s*\d+[\).:\-]\s*[A-Da-d])/i.test(q)) return true;
+  if (/^q?\d+[\).:\-]\s*[A-Da-d][);.]\s+/i.test(q) && !/\?/.test(q) && !/_{2,}/.test(q)) return true;
+  if (
+    /^(?:expected term or phrase|short accurate point|clear explanation linking)\b/i.test(q) &&
+    !/\?/.test(q)
+  ) {
+    return true;
+  }
   const numberedShort = (q.match(/\d+[\).:\-]\s*[A-Da-d][);.]?/g) || []).length;
   if (numberedShort >= 3 && !/\?/.test(q) && !/_{2,}/.test(q) && q.length < 500) return true;
   return false;
+}
+
+export function sanitizeWorksheetDisplayTitle(title: string): string {
+  let t = String(title || '').trim();
+  t = t.replace(/\s*\(Uniqueness\s+Seed:[^)]*\)/gi, '');
+  t = t.replace(/\s*\(Distinct from all other variants[^)]*\)/gi, '');
+  t = t.replace(/\s*\(The title reflects the creative angle\.\)/gi, '');
+  for (let i = 0; i < 4; i += 1) {
+    const next = t.replace(/(\([^)]{12,140}\))\s*(?:\1\s*)+/g, '$1');
+    if (next === t) break;
+    t = next;
+  }
+  t = t.replace(/\s{2,}/g, ' ').trim();
+  if (t.length > 200) t = `${t.slice(0, 197).trim()}…`;
+  return t || 'Worksheet';
 }
 
 export function isWorksheetHeadingLine(text: string): boolean {
@@ -71,7 +93,7 @@ export function looksLikeWorksheetQuestionPrompt(text: string): boolean {
   }
   if (/[?]|_{2,}/.test(t)) return true;
   if (
-    /^\s*(what|which|why|how|define|choose|fill|select|state|identify|explain|describe|list|write|convert|find|calculate|solve|express|match|arrange|compare|name|complete|circle|tick|read|show|represent|form|make|give|design|create|prepare|draw|construct|imagine|suppose|consider)\b/i.test(
+    /^\s*(what|which|why|how|define|choose|fill|select|state|identify|explain|describe|list|write|convert|find|calculate|solve|express|match|arrange|compare|name|complete|circle|tick|read|show|represent|form|make|give|design|create|prepare|draw|construct|imagine|suppose|consider|apply|plan|propose|draft|suggest)\b/i.test(
       t,
     )
   ) {

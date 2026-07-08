@@ -9,6 +9,7 @@ import {
   isValidWorksheetQuestionInput,
   isWorksheetHeadingLine,
   isWorksheetPdfChrome,
+  sanitizeWorksheetDisplayTitle,
   sanitizeWorksheetOptionLine,
 } from '@/lib/worksheet-question-sanitize';
 
@@ -445,7 +446,7 @@ function materializeWorksheet(raw: Record<string, unknown>): NormalizedWorksheet
       ),
     );
     return {
-      title: String(r.title || r.worksheet_title || 'Worksheet').trim(),
+      title: sanitizeWorksheetDisplayTitle(String(r.title || r.worksheet_title || 'Worksheet').trim()),
       learningObjectives: coalesceLines(r.learning_objectives),
       instructions: coalesceText(r.instructions),
       sections,
@@ -520,7 +521,7 @@ function materializeWorksheet(raw: Record<string, unknown>): NormalizedWorksheet
   );
 
   return {
-    title: String(r.title || r.worksheet_title || 'Worksheet').trim(),
+    title: sanitizeWorksheetDisplayTitle(String(r.title || r.worksheet_title || 'Worksheet').trim()),
     learningObjectives: coalesceLines(r.learning_objectives),
     instructions: coalesceText(r.instructions),
     sections,
@@ -662,7 +663,9 @@ function parseQuestionsFromLines(
         if (
           opts.relaxedNumbered &&
           candidate.length >= 15 &&
-          candidate.split(/\s+/).filter(Boolean).length >= 4
+          candidate.split(/\s+/).filter(Boolean).length >= 4 &&
+          !/^q?\d+[\).:\-]\s*[A-D]\)/i.test(candidate) &&
+          !/^(?:expected term|short accurate point|clear explanation linking)\b/i.test(candidate)
         ) {
           return m;
         }
@@ -749,9 +752,17 @@ function splitMarkdownIntoNamedBlocks(markdown: string): Array<{ heading: string
     const sectionHeading = plain.match(
       /^#{0,3}\s*(?:\d+\.\s*)?(Section\s+[A-F]\s*:?.*)$/i,
     );
-    if (sectionHeading) {
+    const metaHeading = plain.match(
+      /^#{0,2}\s*(?:\d+\.\s*)?(?:Answer\s*Key|Bloom'?s?\s*Level|Learning\s+Objectives?|Instructions?\s+to\s+Students?|Worksheet\s+Title)\b.*$/i,
+    );
+    if (sectionHeading || metaHeading) {
       flush();
-      currentHeading = sectionHeading[1].replace(/\s+/g, ' ').trim();
+      if (sectionHeading) {
+        currentHeading = sectionHeading[1].replace(/\s+/g, ' ').trim();
+      } else {
+        currentHeading = '';
+        buf = [];
+      }
       continue;
     }
     buf.push(line);
@@ -871,11 +882,23 @@ function mergeWorksheetWithMarkdown(
       ? fromMd.learningObjectives
       : base.learningObjectives,
     instructions: fromMd.instructions || base.instructions,
-    // IMPORTANT: keep markdown section order/content authoritative, fallback to base only if md section empty.
-    sections: fromMd.sections.map((mdSec, i) => ({
-      ...mdSec,
-      questions: mdSec.questions.length ? mdSec.questions : base.sections[i]?.questions || [],
-    })),
+    // Prefer structured JSON sections when they already have real questions — markdown
+    // must not overwrite them with answer-key fragments parsed from Section E tail.
+    sections: WORKSHEET_SECTION_ORDER.map((label) => {
+      const baseSec = base.sections.find((s) => s.label === label);
+      const mdSec = fromMd.sections.find((s) => s.label === label);
+      if (!baseSec) return mdSec || { id: '', order: 0, label, displayLabel: label, questions: [] };
+      const baseCount = baseSec.questions.length;
+      const mdCount = mdSec?.questions?.length || 0;
+      const useMd =
+        mdSec &&
+        mdCount > 0 &&
+        (baseCount === 0 || (mdCount >= baseCount && mdCount <= baseCount + 2));
+      return {
+        ...(useMd ? mdSec : baseSec),
+        questions: useMd ? mdSec.questions : baseSec.questions,
+      };
+    }),
     // Prefer markdown extraction for these to prevent them being swallowed by question parsing.
     answerKey: fromMd.answerKey || base.answerKey,
     bloomLevel: fromMd.bloomLevel || base.bloomLevel,
