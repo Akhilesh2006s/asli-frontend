@@ -28,6 +28,10 @@ import {
   type AiTool3dIconName,
 } from '@/components/ai-tool-3d-icons';
 import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
+import {
+  AiToolV2InsightTail,
+  parseBloomLevelsFromText,
+} from '@/components/ai-v2';
 
 export { studyGuideViewerPayloadFromRecord };
 
@@ -779,6 +783,25 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
             </SectionShell>
           ) : null}
         </motion.div>
+
+        <AiToolV2InsightTail
+          rawContent={payload.rawContent}
+          startNum={12}
+          includeOverview
+          overviewStats={[
+            { label: 'Concepts', value: conceptCount > 0 ? String(conceptCount) : '' },
+            { label: 'Practice Qs', value: practiceCount > 0 ? String(practiceCount) : '' },
+            { label: 'MCQs', value: mcqCount > 0 ? String(mcqCount) : '' },
+            { label: 'Sections', value: `${sectionsDone}/11` },
+            { label: 'Read time', value: `${readMins} min` },
+          ].filter((s) => s.value)}
+          bloomFromObjectives={guide.learningObjectives}
+          bloomRows={parseBloomLevelsFromText(guide.learningObjectives)}
+          competencyItems={
+            guide.priorKnowledge.length > 0 ? guide.priorKnowledge : guide.learningObjectives
+          }
+          bestPracticesText="Study in order: overview → objectives → concepts → revision notes → practice. Reveal answers only after attempting questions to earn XP and lock in retention."
+        />
 
         {/* Footer gamification */}
         <div className="flex flex-col items-center justify-between gap-3 rounded-[1.75rem] border border-white/80 bg-white/80 px-4 py-4 text-center shadow-sm sm:flex-row sm:text-left">

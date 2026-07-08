@@ -43,7 +43,7 @@ import {
   MockTestViewer,
   mockTestViewerPayloadFromRecord,
 } from "@/components/mock-test-viewer";
-import { ExamQuestionPaperViewer } from "@/components/exam-question-paper-viewer";
+import { GeneratorRecordViewer } from "@/components/super-admin/generator-record-viewer";
 import {
   SmartStudyGuideViewer,
   studyGuideViewerPayloadFromRecord,
@@ -1577,130 +1577,7 @@ export default function SuperAdminAiGenerator() {
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-3 sm:px-4 sm:py-4 lg:px-6">
           <div className="min-w-0 bg-white border border-slate-200 rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm">
-            {activeRecord?.toolSlug === "my-study-decks" ||
-            activeRecord?.toolName === "my-study-decks" ? (
-              <MyStudyDecksViewer
-                {...deckViewerPayloadFromRecord(activeRecord)}
-              />
-            ) : activeRecord?.toolSlug === "flashcard-generator" ||
-              activeRecord?.toolName === "flashcard-generator" ? (
-              (() => {
-                const deckPayload = deckViewerPayloadFromRecord(activeRecord);
-                return (
-                  <FlashcardViewer
-                    content={deckPayload.content}
-                    rawContent={deckPayload.rawContent}
-                    variant="teacher"
-                  />
-                );
-              })()
-            ) : isWorksheetToolValue(activeRecord?.toolSlug) ||
-              isWorksheetToolValue(activeRecord?.toolName) ? (
-              <WorksheetMcqViewer
-                content={String(activeRecord?.generatedContent || "")}
-                rawContent={activeRecord}
-                variant="teacher"
-              />
-            ) : activeRecord?.toolSlug === "study-schedule-maker" ||
-              activeRecord?.toolName === "study-schedule-maker" ? (
-              <LessonPlannerViewer
-                content={String(activeRecord?.generatedContent || "")}
-                rawContent={activeRecord}
-                variant="student"
-                toolKind="study-schedule-maker"
-              />
-            ) : activeRecord?.toolSlug === "lesson-planner" ||
-              activeRecord?.toolName === "lesson-planner" ? (
-              <LessonPlannerViewer
-                content={String(activeRecord?.generatedContent || "")}
-                rawContent={activeRecord}
-                variant="teacher"
-                toolKind="lesson-planner"
-              />
-            ) : activeRecord?.toolSlug === "daily-class-plan-maker" ||
-              activeRecord?.toolName === "daily-class-plan-maker" ? (
-              <DailyClassPlanViewer
-                content={String(activeRecord?.generatedContent || "")}
-                rawContent={activeRecord?.structuredContent || activeRecord}
-                variant="teacher"
-              />
-            ) : activeRecord?.toolSlug === "homework-creator" ||
-              activeRecord?.toolName === "homework-creator" ? (
-              <HomeworkCreatorViewer
-                content={String(activeRecord?.generatedContent || "")}
-                rawContent={activeRecord}
-              />
-            ) : activeRecord?.toolSlug === "reading-practice-room" ||
-              activeRecord?.toolName === "reading-practice-room" ||
-              activeRecord?.toolSlug === "story-passage-creator" ||
-              activeRecord?.toolName === "story-passage-creator" ? (
-              <StoryPassageViewer
-                content={String(activeRecord?.generatedContent || "")}
-                rawData={activeRecord}
-                variant={
-                  activeRecord?.toolSlug === "reading-practice-room" ||
-                  activeRecord?.toolName === "reading-practice-room"
-                    ? "student"
-                    : "default"
-                }
-              />
-            ) : activeRecord?.toolSlug === "short-notes-summaries-maker" ||
-              activeRecord?.toolName === "short-notes-summaries-maker" ? (
-              <ShortNotesViewer
-                content={String(activeRecord?.generatedContent || "")}
-                rawContent={
-                  activeRecord?.structuredContent ||
-                  activeRecord?.metadata?.structuredContent ||
-                  activeRecord
-                }
-              />
-            ) : activeRecord?.toolSlug === "mock-test-builder" ||
-              activeRecord?.toolName === "mock-test-builder" ? (
-              <MockTestViewer {...mockTestViewerPayloadFromRecord(activeRecord)} />
-            ) : activeRecord?.toolSlug === "exam-question-paper-generator" ||
-              activeRecord?.toolName === "exam-question-paper-generator" ? (
-              <ExamQuestionPaperViewer
-                content={String(activeRecord?.generatedContent || "")}
-                rawContent={
-                  (activeRecord as { structuredContent?: unknown })?.structuredContent || activeRecord
-                }
-                variant="teacher"
-              />
-            ) : activeRecord?.toolSlug === "smart-study-guide-generator" ||
-              activeRecord?.toolName === "smart-study-guide-generator" ? (
-              <SmartStudyGuideViewer {...studyGuideViewerPayloadFromRecord(activeRecord)} />
-            ) : activeRecord?.toolSlug === "concept-breakdown-explainer" ||
-              activeRecord?.toolName === "concept-breakdown-explainer" ? (
-              <ConceptBreakdownViewer {...conceptBreakdownViewerPayloadFromRecord(activeRecord)} />
-            ) : activeRecord?.toolSlug === "smart-qa-practice-generator" ||
-              activeRecord?.toolName === "smart-qa-practice-generator" ? (
-              <PracticeQaViewer {...practiceQaViewerPayloadFromRecord(activeRecord)} />
-            ) : activeRecord?.toolSlug === "chapter-summary-creator" ||
-              activeRecord?.toolName === "chapter-summary-creator" ? (
-              <ChapterSummaryViewer {...chapterSummaryViewerPayloadFromRecord(activeRecord)} />
-            ) : activeRecord?.toolSlug === "key-points-formula-extractor" ||
-              activeRecord?.toolName === "key-points-formula-extractor" ? (
-              <KeyPointsViewer {...keyPointsViewerPayloadFromRecord(activeRecord)} />
-            ) : activeRecord?.toolSlug === "quick-assignment-builder" ||
-              activeRecord?.toolName === "quick-assignment-builder" ? (
-              <QuickAssignmentViewer {...quickAssignmentViewerPayloadFromRecord(activeRecord)} />
-            ) : activeRecord?.toolSlug === "activity-project-generator" ||
-              activeRecord?.toolName === "activity-project-generator" ||
-              activeRecord?.toolSlug === "project-idea-lab" ||
-              activeRecord?.toolName === "project-idea-lab" ? (
-              <ActivityProjectViewer {...activityViewerPayloadFromRecord(activeRecord)} />
-            ) : activeRecord?.toolSlug === "concept-mastery-helper" ||
-              activeRecord?.toolName === "concept-mastery-helper" ? (
-              <ConceptMasteryViewer
-                {...conceptMasteryViewerPayloadFromRecord(activeRecord)}
-                variant="teacher"
-              />
-            ) : (
-              <GeneratedRecordBody
-                content={String(activeRecord?.generatedContent || "")}
-                toolType={String(activeRecord?.toolSlug || activeRecord?.toolName || "")}
-              />
-            )}
+            <GeneratorRecordViewer record={activeRecord} />
           </div>
           </div>
         </DialogContent>

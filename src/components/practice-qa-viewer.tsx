@@ -1,4 +1,8 @@
 import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
+import {
+  AiToolV2InsightTail,
+  parseBloomLevelsFromQuestionTags,
+} from '@/components/ai-v2';
 import { useMemo, type ReactNode } from 'react';
 import { ToolSectionIcon } from '@/components/ai-tool-3d-icons';
 import { AiToolPairedSectionColumns } from '@/lib/ai-tool-section-layout';
@@ -255,7 +259,13 @@ function SectionQuestionsBlock({ sec }: { sec: PracticeQaSection }) {
   );
 }
 
-function PracticeQaBody({ practice }: { practice: NormalizedPracticeQa }) {
+function PracticeQaBody({
+  practice,
+  rawContent,
+}: {
+  practice: NormalizedPracticeQa;
+  rawContent?: unknown;
+}) {
   const setupSections = [
     practice.learningObjectives.length > 0 ? (
       <SectionCard
@@ -312,6 +322,13 @@ function PracticeQaBody({ practice }: { practice: NormalizedPracticeQa }) {
       </SectionCard>
     ) : null;
 
+  const allQuestions = [
+    ...practice.sections.flatMap((s) => s.questions),
+    ...practice.realLifeQuestions,
+  ];
+  const filledSections = practice.sections.filter((s) => s.questions.length > 0).length;
+  const mcqCount = allQuestions.filter((q) => q.options.length >= 2).length;
+
   return (
     <div className="mt-1 flex flex-col gap-2">
       {setupSections.length > 0 ? (
@@ -333,6 +350,21 @@ function PracticeQaBody({ practice }: { practice: NormalizedPracticeQa }) {
           </div>
         </SectionCard>
       ) : null}
+
+      <AiToolV2InsightTail
+        rawContent={rawContent}
+        startNum={12}
+        includeOverview
+        overviewStats={[
+          { label: 'Questions', value: String(allQuestions.length) },
+          { label: 'Sections filled', value: String(filledSections) },
+          { label: 'MCQs', value: mcqCount > 0 ? String(mcqCount) : '' },
+        ].filter((s) => s.value)}
+        bloomRows={parseBloomLevelsFromQuestionTags(allQuestions)}
+        bloomFromObjectives={practice.learningObjectives}
+        competencyItems={practice.learningObjectives}
+        bestPracticesText="Use Section A–G as a progressive drill: MCQs for recall, blanks for precision, match-the-following for connections, and HOTS for exam readiness. Reveal the answer key only after students attempt each block."
+      />
     </div>
   );
 }
@@ -425,7 +457,7 @@ export function PracticeQaViewer({ content, rawContent, className }: PracticeQaV
             </div>
           </div>
 
-          <PracticeQaBody practice={practice} />
+          <PracticeQaBody practice={practice} rawContent={payload.rawContent} />
         </div>
       </div>
     </div>

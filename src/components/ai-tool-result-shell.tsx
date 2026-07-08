@@ -200,6 +200,8 @@ export function AiToolResultShell({
   meta,
   actions,
   citations,
+  inputSummary,
+  footer,
   isLoading,
   empty,
   children,
@@ -211,6 +213,10 @@ export function AiToolResultShell({
   meta?: AiToolResultMeta;
   actions?: ReactNode;
   citations?: ReactNode;
+  /** V2: generation context strip between meta chips and content */
+  inputSummary?: ReactNode;
+  /** V2: footer actions (download, regenerate, save) */
+  footer?: ReactNode;
   isLoading?: boolean;
   empty?: ReactNode;
   children?: ReactNode;
@@ -287,6 +293,10 @@ export function AiToolResultShell({
           </div>
         ) : null}
 
+        {inputSummary ? (
+          <div className="px-4 sm:px-5 py-3 border-b border-slate-100 bg-white">{inputSummary}</div>
+        ) : null}
+
         <div className="p-3 sm:p-4 lg:p-5 space-y-4">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-16 space-y-4">
@@ -317,6 +327,10 @@ export function AiToolResultShell({
             )
           )}
         </div>
+
+        {footer ? (
+          <div className="border-t border-slate-100 bg-slate-50/80 px-4 sm:px-5 py-4">{footer}</div>
+        ) : null}
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
+import { AiToolV2InsightTail } from '@/components/ai-v2';
 import { ToolSectionIcon } from '@/components/ai-tool-3d-icons';
 import { useMemo, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -470,7 +471,13 @@ function PlannerTimelineStep({
   );
 }
 
-function TeacherLessonCard({ lesson }: { lesson: NormalizedLesson }) {
+function TeacherLessonCard({
+  lesson,
+  rawContent,
+}: {
+  lesson: NormalizedLesson;
+  rawContent?: unknown;
+}) {
   const filled = countFilledLessonSections(lesson, TEACHER_LESSON_SECTIONS);
   const total = TEACHER_LESSON_SECTIONS.length;
   const progressPct = Math.round((filled / total) * 100);
@@ -557,6 +564,23 @@ function TeacherLessonCard({ lesson }: { lesson: NormalizedLesson }) {
           </section>
         );
       })}
+
+      <AiToolV2InsightTail
+        rawContent={rawContent}
+        startNum={15}
+        includeOverview
+        overviewStats={[
+          { label: 'Lesson', value: lesson.lessonName },
+          { label: 'Period', value: lesson.sl ? `Lesson ${lesson.sl}` : '' },
+          { label: 'Duration', value: lesson.durationLabel || '' },
+          { label: 'Flow blocks', value: `${filled}/${total}` },
+        ].filter((s) => s.value)}
+        bloomFromObjectives={lesson.learningObjectives}
+        competencyItems={
+          lesson.ncfAlignment.length > 0 ? lesson.ncfAlignment : lesson.learningObjectives
+        }
+        bestPracticesText="Follow the prepare → teach → wrap flow in order. Use formative questions mid-lesson, differentiation for mixed ability, and the exit ticket to decide homework or reteach focus for the next period."
+      />
     </div>
   );
 }
@@ -909,7 +933,7 @@ export function LessonPlannerViewer({
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.2 }}
           >
-            <TeacherLessonCard lesson={current} />
+            <TeacherLessonCard lesson={current} rawContent={rawContent} />
           </motion.div>
         </AnimatePresence>
       </TeacherLessonShell>

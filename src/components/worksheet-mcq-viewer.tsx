@@ -1,4 +1,8 @@
 import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
+import {
+  AiToolV2InsightTail,
+  parseBloomLevelsFromText,
+} from '@/components/ai-v2';
 import { useMemo, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -251,7 +255,13 @@ function countFilledBlocks(worksheet: NormalizedWorksheet): number {
   return n;
 }
 
-function TeacherWorksheetCard({ worksheet }: { worksheet: NormalizedWorksheet }) {
+function TeacherWorksheetCard({
+  worksheet,
+  rawContent,
+}: {
+  worksheet: NormalizedWorksheet;
+  rawContent?: unknown;
+}) {
   const totalQuestions = countWorksheetQuestions(worksheet);
   const filledBlocks = countFilledBlocks(worksheet);
   const totalBlocks = 10;
@@ -330,6 +340,28 @@ function TeacherWorksheetCard({ worksheet }: { worksheet: NormalizedWorksheet })
           </section>
         );
       })}
+
+      <AiToolV2InsightTail
+        rawContent={rawContent}
+        startNum={11}
+        includeOverview
+        overviewStats={[
+          { label: 'Questions', value: String(totalQuestions) },
+          { label: 'Sections', value: String(worksheet.sections.filter((s) => s.questions.length > 0).length) },
+          { label: 'Bloom level', value: worksheet.bloomLevel },
+          { label: 'Difficulty', value: worksheet.difficultyTag },
+        ].filter((s) => s.value)}
+        bloomFromObjectives={[
+          ...worksheet.learningObjectives,
+          ...(worksheet.bloomLevel ? [worksheet.bloomLevel] : []),
+        ]}
+        bloomRows={parseBloomLevelsFromText([
+          ...worksheet.learningObjectives,
+          ...(worksheet.bloomLevel ? [worksheet.bloomLevel] : []),
+        ])}
+        competencyItems={worksheet.learningObjectives}
+        bestPracticesText="Print the worksheet for class practice or assign digitally. Walk through objectives first, let students attempt sections A–E independently, then review using the answer key and Bloom/difficulty tags for remediation groups."
+      />
     </div>
   );
 }
@@ -411,7 +443,7 @@ export function WorksheetMcqViewer({
   if (!useTeacher) {
     return (
       <div className={cn('w-full', className)}>
-        <TeacherWorksheetCard worksheet={worksheet} />
+        <TeacherWorksheetCard worksheet={worksheet} rawContent={rawContent} />
       </div>
     );
   }
@@ -428,7 +460,7 @@ export function WorksheetMcqViewer({
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.2 }}
           >
-            <TeacherWorksheetCard worksheet={worksheet} />
+            <TeacherWorksheetCard worksheet={worksheet} rawContent={rawContent} />
           </motion.div>
         </AnimatePresence>
       </TeacherWorksheetShell>

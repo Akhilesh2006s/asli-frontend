@@ -30,13 +30,15 @@ export type ResolvedExamPaper = {
   markdownFallback: string | null;
 };
 
-const SECTION_META: Array<{ id: string; title: string; keys: string[] }> = [
+export const EXAM_SECTION_DEFINITIONS: Array<{ id: string; title: string; keys: string[] }> = [
   { id: 'a', title: 'Section A - MCQs', keys: ['section_a', 'sectionA'] },
   { id: 'b', title: 'Section B - Very Short Answer', keys: ['section_b', 'sectionB'] },
   { id: 'c', title: 'Section C - Short Answer', keys: ['section_c', 'sectionC'] },
   { id: 'd', title: 'Section D - Long Answer', keys: ['section_d', 'sectionD'] },
   { id: 'e', title: 'Section E - Case-based / Competency', keys: ['section_e', 'sectionE'] },
 ];
+
+const SECTION_META = EXAM_SECTION_DEFINITIONS;
 
 function cleanText(value: unknown): string {
   return String(value ?? '')
@@ -480,7 +482,7 @@ function isJunkExamQuestion(q: ExamQuestion): boolean {
   return false;
 }
 
-function parseBlueprintCounts(blueprint = ''): { a: number; b: number; c: number; d: number; e: number } {
+export function parseBlueprintCounts(blueprint = ''): { a: number; b: number; c: number; d: number; e: number } {
   const defaults = { a: 4, b: 3, c: 3, d: 2, e: 1 };
   const text = String(blueprint || '');
   const pick = (letter: string) => {
@@ -1006,5 +1008,210 @@ export function resolveExamPaperFromPayload(content: string, rawContent?: unknow
     return { paper: finalPaper, markdownFallback: null };
   }
   return { paper: null, markdownFallback: markdown || null };
+}
+
+export type ExamBlueprintRow = {
+  sectionId: string;
+  sectionLabel: string;
+  questionType: string;
+  questionCount: number;
+  marks: number;
+  percent: number;
+};
+
+const EXAM_SECTION_TYPE_LABELS: Record<string, string> = {
+  a: 'MCQ',
+  b: 'Very Short Answer',
+  c: 'Short Answer',
+  d: 'Long Answer',
+  e: 'Case-based / Competency',
+};
+
+export function buildExamBlueprintRows(
+  sections: ExamSection[],
+  blueprint = '',
+): ExamBlueprintRow[] {
+  const active = sections.filter((s) => s.questions.length > 0);
+  const totalMarks = active.reduce(
+    (sum, s) => sum + s.questions.reduce((m, q) => m + (q.marks != null ? q.marks : 0), 0),
+    0,
+  );
+  return active.map((s) => {
+    const marks = s.questions.reduce((m, q) => m + (q.marks != null ? q.marks : 0), 0);
+    return {
+      sectionId: s.id,
+      sectionLabel: s.title,
+      questionType: EXAM_SECTION_TYPE_LABELS[s.id] || 'Questions',
+      questionCount: s.questions.length,
+      marks,
+      percent: totalMarks > 0 ? Math.round((marks / totalMarks) * 100) : 0,
+    };
+  });
+}
+
+export type ExamAnswerKeyRow = {
+  qNo: string;
+  sectionId: string;
+  answer: string;
+  marks: number | null;
+};
+
+export function synthesizeExamAnswerKeyRows(sections: ExamSection[]): ExamAnswerKeyRow[] {
+  const rows: ExamAnswerKeyRow[] = [];
+  let serial = 0;
+  for (const sec of sections) {
+    for (const q of sec.questions) {
+      serial += 1;
+      const answer = cleanText(q.answer);
+      if (!answer) continue;
+      rows.push({
+        qNo: cleanText(q.questionNumber) || String(serial),
+        sectionId: sec.id.toUpperCase(),
+        answer,
+        marks: q.marks,
+      });
+    }
+  }
+  return rows;
+}
+
+export type ExamPaperContext = {
+  className: string;
+  subject: string;
+  topic: string;
+  subtopic: string;
+  board: string;
+  bloomLevel: string;
+  duration: string;
+  nepNcfFocus: string;
+};
+
+function pickRecordString(record: Record<string, unknown>, keys: string[]): string {
+  for (const key of keys) {
+    const v = record[key];
+    if (v != null && String(v).trim()) return String(v).trim();
+  }
+  return '';
+}
+
+function collectExamRecordCandidates(rawContent?: unknown): Record<string, unknown>[] {
+  const out: Record<string, unknown>[] = [];
+  if (!rawContent || typeof rawContent !== 'object' || Array.isArray(rawContent)) return out;
+  const root = rawContent as Record<string, unknown>;
+  out.push(root);
+  const meta = root.metadata;
+  if (meta && typeof meta === 'object' && !Array.isArray(meta)) {
+    out.push(meta as Record<string, unknown>);
+    const extra = (meta as Record<string, unknown>).extraParams;
+    if (extra && typeof extra === 'object' && !Array.isArray(extra)) {
+      out.push(extra as Record<string, unknown>);
+    }
+    const structured = (meta as Record<string, unknown>).structuredContent;
+    if (structured && typeof structured === 'object' && !Array.isArray(structured)) {
+      out.push(structured as Record<string, unknown>);
+    }
+  }
+  const structured = root.structuredContent;
+  if (structured && typeof structured === 'object' && !Array.isArray(structured)) {
+    out.push(structured as Record<string, unknown>);
+  }
+  const render = root.renderContent;
+  if (render && typeof render === 'object' && !Array.isArray(render)) {
+    out.push(render as Record<string, unknown>);
+  }
+  return out;
+}
+
+export function extractExamPaperContext(rawContent?: unknown): ExamPaperContext {
+  const candidates = collectExamRecordCandidates(rawContent);
+  const pick = (...keys: string[]) => {
+    for (const c of candidates) {
+      const v = pickRecordString(c, keys);
+      if (v) return v;
+    }
+    return '';
+  };
+  const bloomLevel =
+    pick('bloomLevel', 'bloom_level', 'bloom') ||
+    pick('bloom_mapping', 'bloomMapping', 'learning_outcome_mapping', 'learningOutcomeMapping');
+  const nepNcfFocus =
+    pick('nepNcfFocus', 'nep_ncf_focus', 'ncf_competency_alignment', 'ncfCompetencyAlignment') ||
+    pick('competency_mapping', 'competencyMapping', 'ncf_alignment', 'ncfAlignment');
+  return {
+    className: pick('classLabel', 'className', 'class_name', 'class_level', 'class'),
+    subject: pick('subject', 'subjectName', 'subject_name'),
+    topic: pick('topic', 'topicName', 'topic_name', 'chapter', 'chapterName'),
+    subtopic: pick('subtopic', 'subTopic', 'subtopicName', 'sub_topic', 'sub_topic_name'),
+    board: pick('board', 'boardName', 'board_name'),
+    bloomLevel,
+    duration: pick('duration', 'estimated_time', 'estimatedTime', 'time'),
+    nepNcfFocus,
+  };
+}
+
+export type BloomDistributionRow = {
+  level: string;
+  marks: number;
+  percent: number;
+};
+
+const BLOOM_BY_EXAM_SECTION: Record<string, string> = {
+  a: 'Remember',
+  b: 'Understand',
+  c: 'Apply',
+  d: 'Analyze',
+  e: 'Analyze',
+};
+
+export function buildBloomDistributionFromExamSections(
+  sections: ExamSection[],
+): BloomDistributionRow[] {
+  const totals: Record<string, number> = {};
+  for (const sec of sections) {
+    if (!sec.questions.length) continue;
+    const level = BLOOM_BY_EXAM_SECTION[sec.id] || 'Understand';
+    const marks = sec.questions.reduce((m, q) => m + (q.marks != null ? q.marks : 0), 0);
+    totals[level] = (totals[level] || 0) + marks;
+  }
+  const total = Object.values(totals).reduce((a, b) => a + b, 0);
+  const order = ['Remember', 'Understand', 'Apply', 'Analyze', 'Evaluate', 'Create'];
+  return order
+    .map((level) => ({
+      level,
+      marks: totals[level] || 0,
+      percent: total > 0 ? Math.round(((totals[level] || 0) / total) * 100) : 0,
+    }))
+    .filter((r) => r.marks > 0);
+}
+
+export function parseCompetencyFocusItems(rawContent?: unknown): string[] {
+  const candidates = collectExamRecordCandidates(rawContent);
+  const pick = (...keys: string[]) => {
+    for (const c of candidates) {
+      const v = pickRecordString(c, keys);
+      if (v) return v;
+    }
+    return '';
+  };
+  const raw = pick('competency_mapping', 'competencyMapping', 'competency_focus', 'competencyFocus');
+  if (!raw) return [];
+  return raw
+    .split(/\n|;/)
+    .map((s) => s.replace(/^[-•*]\s*/, '').trim())
+    .filter(Boolean);
+}
+
+export function examViewerPayloadFromRecord(record: Record<string, unknown>): {
+  content: string;
+  rawContent: unknown;
+} {
+  const generatedContent = String(record.generatedContent || record.content || '');
+  const structured =
+    record.structuredContent ??
+    (record.metadata as { structuredContent?: unknown } | undefined)?.structuredContent;
+  return {
+    content: generatedContent,
+    rawContent: structured || record,
+  };
 }
 

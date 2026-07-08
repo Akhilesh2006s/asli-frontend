@@ -1,17 +1,46 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
+import {
+  BookOpen,
+  Brain,
+  CheckCircle2,
+  ClipboardList,
+  Clock,
+  FileQuestion,
+  GraduationCap,
+  ListChecks,
+  Target,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { RealisticIcon, type AiTool3dIconName } from '@/components/ai-tool-3d-icons';
 import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
 import { cn } from '@/lib/utils';
 import { displayQuestionSerial } from '@/lib/renumber-questions';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
-import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
+import { AiToolMockTestSectionLayout } from '@/lib/ai-tool-section-layout';
 import {
+  AiToolV2BestPractices,
+  AiToolV2BloomDistribution,
+  AiToolV2CompetencyFocus,
+  AiToolV2NepAlignment,
+} from '@/components/ai-v2/ai-tool-v2-insights';
+import { AiToolV2DistributionDonut, bloomRowsToDonutRows } from '@/components/ai-v2/ai-tool-v2-analytics';
+import { AiToolV2Section, AiToolV2SectionStack } from '@/components/ai-v2/ai-tool-v2-section';
+import {
+  buildBloomDistributionFromExamSections,
+  buildExamBlueprintRows,
+  EXAM_SECTION_DEFINITIONS,
   examPaperHasVisibleContent,
+  extractExamPaperContext,
+  extractInlineMcqFromQuestionText,
+  formatLabeledMcqOptions,
+  parseBlueprintCounts,
+  parseCompetencyFocusItems,
   resolveExamPaperFromPayload,
+  synthesizeExamAnswerKeyRows,
   type ExamQuestion,
+  type ExamSection,
 } from '@/lib/parse-exam-question-paper';
-import { AiToolInfoPanelGrid } from '@/lib/ai-tool-section-layout';
+
+export { examViewerPayloadFromRecord } from '@/lib/parse-exam-question-paper';
 
 type MockTestMeta = {
   mockTestTitle: string;
@@ -34,7 +63,6 @@ interface ExamQuestionPaperViewerProps {
 }
 
 function extractMockTestMeta(rawContent?: unknown): MockTestMeta | null {
-  const pick = (obj: Record<string, unknown> | undefined) => obj || {};
   const candidates: Record<string, unknown>[] = [];
   if (rawContent && typeof rawContent === 'object' && !Array.isArray(rawContent)) {
     candidates.push(rawContent as Record<string, unknown>);
@@ -71,66 +99,271 @@ function extractMockTestMeta(rawContent?: unknown): MockTestMeta | null {
   return null;
 }
 
-function QuestionCard({ question, index }: { question: ExamQuestion; index: number }) {
+function EmptyHint({ message = 'Not included in this paper.' }: { message?: string }) {
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-2 flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-start gap-2">
-          <RealisticIcon name="quiz" alt="" className="mt-0.5 h-7 w-7 shrink-0" />
-          <p className="text-sm font-semibold text-slate-900">
-            Q{displayQuestionSerial(index)}. {question.question}
-          </p>
-        </div>
+    <p className="rounded-md border border-dashed border-slate-200 bg-slate-50/80 px-2.5 py-1.5 text-xs italic text-slate-400">
+      {message}
+    </p>
+  );
+}
+
+function RichTextBlock({ text, className }: { text: string; className?: string }) {
+  if (!text.trim()) return <EmptyHint />;
+  const hasMarkdown =
+    text.includes('|') ||
+    /^\s*#{1,6}\s/m.test(text) ||
+    /\*\*[^*]+\*\*/.test(text) ||
+    /^\s*[-*•]\s/m.test(text) ||
+    /^\s*\d+\.\s/m.test(text);
+  if (hasMarkdown) {
+    return (
+      <div
+        className={cn(
+          'prose prose-sm max-w-none text-slate-800',
+          'prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-indigo-200 prose-th:bg-indigo-50/90 prose-th:px-2 prose-th:py-1.5 prose-th:text-left prose-th:text-xs prose-th:font-semibold',
+          'prose-td:border prose-td:border-indigo-100 prose-td:px-2 prose-td:py-1.5 prose-td:text-xs prose-td:align-top',
+          className,
+        )}
+        dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }}
+      />
+    );
+  }
+  return <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">{text}</p>;
+}
+
+function OverviewStat({ label, value }: { label: string; value: string }) {
+  if (!value.trim()) return null;
+  return (
+    <div className="rounded-lg border border-indigo-100 bg-white/80 px-3 py-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-indigo-500">{label}</p>
+      <p className="mt-0.5 text-sm font-medium text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+function QuestionCard({
+  question,
+  index,
+  showAnswer = false,
+}: {
+  question: ExamQuestion;
+  index: number;
+  showAnswer?: boolean;
+}) {
+  const qNo = String(displayQuestionSerial(index));
+  const inline =
+    question.options.length < 2 ? extractInlineMcqFromQuestionText(question.question) : null;
+  const questionText =
+    inline && inline.options.length >= 2 ? inline.question : question.question;
+  const displayOptions =
+    question.options.length >= 2
+      ? formatLabeledMcqOptions(question.options)
+      : inline && inline.options.length >= 2
+        ? inline.options
+        : question.options;
+
+  return (
+    <article className="rounded-lg border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/20 p-3 shadow-sm">
+      <div className="mb-1.5 flex items-start justify-between gap-2">
+        <p className="text-sm font-semibold text-slate-900">
+          <span className="mr-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded bg-indigo-700 px-1 text-[10px] font-bold text-white">
+            {qNo}
+          </span>
+          {questionText}
+        </p>
         {question.marks != null ? (
-          <Badge className="bg-slate-900 text-white hover:bg-slate-900">{question.marks} marks</Badge>
+          <Badge className="shrink-0 border-0 bg-indigo-100 text-indigo-800 hover:bg-indigo-100">
+            {question.marks} m
+          </Badge>
         ) : null}
       </div>
 
-      {question.options.length > 0 ? (
-        <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-          {question.options.map((option, optIndex) => (
-            <li
-              key={`${option}-${optIndex}`}
-              className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
-            >
-              {option}
-            </li>
-          ))}
+      {displayOptions.length > 0 ? (
+        <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
+          {displayOptions.map((opt, i) => {
+            const label = opt.match(/^([A-D])\)/i)?.[1]?.toUpperCase() || String.fromCharCode(65 + i);
+            const text = opt.replace(/^[A-D]\)\s*/i, '').trim();
+            return (
+              <li
+                key={`${opt}-${i}`}
+                className="flex gap-2 rounded-md border border-slate-200/80 bg-white px-2.5 py-1.5 text-sm text-slate-700"
+              >
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-800">
+                  {label}
+                </span>
+                <span className="min-w-0 flex-1 pt-0.5">{text}</span>
+              </li>
+            );
+          })}
         </ul>
       ) : null}
 
-      {question.answer ? (
-        <p className="mt-3 text-xs text-emerald-700">
+      {showAnswer && question.answer ? (
+        <p className="mt-2 rounded-md bg-emerald-50 px-2 py-1 text-xs text-emerald-800">
           <span className="font-semibold">Answer:</span> {question.answer}
         </p>
       ) : null}
 
       {question.internalChoiceGroup ? (
-        <p className="mt-2 text-xs text-indigo-700">
-          <span className="font-semibold">Internal Choice:</span> {question.internalChoiceGroup}
+        <p className="mt-1.5 text-[11px] text-violet-700">
+          <span className="font-semibold">OR / Choice:</span> {question.internalChoiceGroup}
         </p>
       ) : null}
     </article>
   );
 }
 
-function InfoPanel({
+function MissingExamSectionBlock({
+  sectionId,
   title,
-  value,
-  className,
-  icon = 'document',
-  sectionNum = '1',
+  expectedCount,
 }: {
+  sectionId: string;
   title: string;
-  value: string;
-  className?: string;
-  icon?: AiTool3dIconName;
-  sectionNum?: string;
+  expectedCount: number;
 }) {
-  if (!value) return null;
   return (
-    <AiToolStackedSection num={sectionNum} title={title} iconName={icon} className={className}>
-      <p className="whitespace-pre-wrap text-sm text-slate-700">{value}</p>
+    <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/60 p-3">
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <h5 className="text-sm font-bold text-amber-900">
+          Section {sectionId.toUpperCase()} — {title.replace(/^Section\s*[A-E]\s*[-–:]\s*/i, '')}
+        </h5>
+        <Badge variant="outline" className="border-amber-300 text-amber-800">
+          0 / {expectedCount} Q
+        </Badge>
+      </div>
+      <p className="text-xs text-amber-800">
+        Blueprint expects {expectedCount} question{expectedCount === 1 ? '' : 's'} here but none were
+        generated. Regenerate this record to complete the full A–E paper.
+      </p>
+    </div>
+  );
+}
+
+function ExamSectionBlock({
+  section,
+  showAnswers,
+}: {
+  section: ExamSection;
+  showAnswers: boolean;
+}) {
+  const sectionMarks = section.questions.reduce(
+    (sum, q) => sum + (q.marks != null ? q.marks : 0),
+    0,
+  );
+  return (
+    <div className="rounded-xl border border-indigo-200/80 bg-white/90 p-3">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b border-indigo-100 pb-2">
+        <h5 className="text-sm font-bold text-indigo-900">
+          Section {section.id.toUpperCase()} — {section.title.replace(/^Section\s*[A-E]\s*[-–:]\s*/i, '')}
+        </h5>
+        <div className="flex flex-wrap gap-1.5">
+          <Badge variant="outline" className="border-indigo-200 text-indigo-700">
+            {section.questions.length} Q
+          </Badge>
+          {sectionMarks > 0 ? (
+            <Badge variant="outline" className="border-indigo-200 text-indigo-700">
+              {sectionMarks} marks
+            </Badge>
+          ) : null}
+        </div>
+      </div>
+      <div className="space-y-2">
+        {section.questions.map((q, idx) => (
+          <QuestionCard
+            key={`${section.id}-${idx}`}
+            question={q}
+            index={idx}
+            showAnswer={showAnswers}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BlueprintTable({ rows }: { rows: ReturnType<typeof buildExamBlueprintRows> }) {
+  if (!rows.length) return <EmptyHint message="Blueprint details will appear when sections are generated." />;
+  return (
+    <div className="overflow-x-auto rounded-lg border border-cyan-100">
+      <table className="w-full min-w-[420px] border-collapse text-left text-xs">
+        <thead>
+          <tr className="bg-cyan-50/90 text-cyan-900">
+            <th className="border border-cyan-100 px-2.5 py-2 font-semibold">Section</th>
+            <th className="border border-cyan-100 px-2.5 py-2 font-semibold">Type</th>
+            <th className="border border-cyan-100 px-2.5 py-2 font-semibold">Questions</th>
+            <th className="border border-cyan-100 px-2.5 py-2 font-semibold">Marks</th>
+            <th className="border border-cyan-100 px-2.5 py-2 font-semibold">% Marks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.sectionId} className="bg-white text-slate-800">
+              <td className="border border-cyan-50 px-2.5 py-2 font-medium">{row.sectionId.toUpperCase()}</td>
+              <td className="border border-cyan-50 px-2.5 py-2">{row.questionType}</td>
+              <td className="border border-cyan-50 px-2.5 py-2">{row.questionCount}</td>
+              <td className="border border-cyan-50 px-2.5 py-2">{row.marks || '—'}</td>
+              <td className="border border-cyan-50 px-2.5 py-2">{row.percent ? `${row.percent}%` : '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function AnswerKeySnapshotTable({
+  rows,
+  fallbackText,
+}: {
+  rows: ReturnType<typeof synthesizeExamAnswerKeyRows>;
+  fallbackText: string;
+}) {
+  if (rows.length > 0) {
+    return (
+      <div className="overflow-x-auto rounded-lg border border-emerald-100">
+        <table className="w-full min-w-[320px] border-collapse text-left text-xs">
+          <thead>
+            <tr className="bg-emerald-50/90 text-emerald-900">
+              <th className="border border-emerald-100 px-2.5 py-2 font-semibold">Q. No.</th>
+              <th className="border border-emerald-100 px-2.5 py-2 font-semibold">Section</th>
+              <th className="border border-emerald-100 px-2.5 py-2 font-semibold">Answer</th>
+              <th className="border border-emerald-100 px-2.5 py-2 font-semibold">Marks</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={`${row.qNo}-${i}`} className="bg-white text-slate-800">
+                <td className="border border-emerald-50 px-2.5 py-2 font-medium">{row.qNo}</td>
+                <td className="border border-emerald-50 px-2.5 py-2">{row.sectionId}</td>
+                <td className="border border-emerald-50 px-2.5 py-2">{row.answer}</td>
+                <td className="border border-emerald-50 px-2.5 py-2">{row.marks ?? '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+  return <RichTextBlock text={fallbackText} />;
+}
+
+function ExamSectionCard({
+  sectionNum,
+  title,
+  icon,
+  children,
+  className,
+}: {
+  sectionNum: string;
+  title: string;
+  icon: typeof ClipboardList;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <AiToolStackedSection num={sectionNum} title={title} icon={icon} className={className}>
+      {children}
     </AiToolStackedSection>
   );
 }
@@ -142,6 +375,8 @@ export function ExamQuestionPaperViewer({
   variant = 'teacher',
 }: ExamQuestionPaperViewerProps) {
   const mockMeta = variant === 'student' ? extractMockTestMeta(rawContent) : null;
+  const context = useMemo(() => extractExamPaperContext(rawContent), [rawContent]);
+
   const parsedContent = useMemo(
     () => stripStructuredAiToolMetadata(String(content || '')),
     [content],
@@ -174,127 +409,306 @@ export function ExamQuestionPaperViewer({
     );
   }
 
-  const totalQuestions = paper.sections.reduce((sum, sec) => sum + sec.questions.length, 0);
-  const totalMarks = paper.sections.reduce(
+  const activeSections = paper.sections.filter((s) => s.questions.length > 0);
+  const totalQuestions = activeSections.reduce((sum, sec) => sum + sec.questions.length, 0);
+  const totalMarks = activeSections.reduce(
     (sum, sec) =>
       sum +
       sec.questions.reduce((sectionSum, q) => sectionSum + (q.marks != null ? q.marks : 0), 0),
     0,
   );
+  const blueprintRows = buildExamBlueprintRows(activeSections, paper.blueprint);
+  const answerKeyRows = synthesizeExamAnswerKeyRows(activeSections);
+  const paperTitle =
+    mockMeta?.mockTestTitle ||
+    paper.paperTitle ||
+    (variant === 'student' ? 'Mock Test' : 'Exam Question Paper');
 
-  return (
-    <div className={cn('space-y-4', className)}>
-      <header className="overflow-hidden rounded-2xl border border-slate-700 bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-800 p-5 text-white shadow-lg">
-        <div className="flex items-start gap-3">
-          <RealisticIcon
-            name={variant === 'student' ? 'medal' : 'document'}
-            alt=""
-            className="h-12 w-12 shrink-0"
-          />
-          <div className="min-w-0">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-indigo-200">
-              {variant === 'student' ? 'Mock Test Builder' : 'Exam Question Paper Generator'}
-            </p>
-            <h2 className="mt-1 text-xl font-bold">
-              {mockMeta?.mockTestTitle ||
-                paper.paperTitle ||
-                (variant === 'student' ? 'Mock Test' : 'Exam Question Paper')}
-            </h2>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Badge className="bg-white/15 text-white hover:bg-white/15">
-                {totalQuestions} Questions
-              </Badge>
-              <Badge className="bg-white/15 text-white hover:bg-white/15">
-                {totalMarks || '-'} Total Marks
-              </Badge>
-              <Badge className="bg-white/15 text-white hover:bg-white/15">
-                {paper.sections.length} Sections
-              </Badge>
-            </div>
+  if (variant === 'student' && mockMeta) {
+    return (
+      <div className={cn('space-y-4', className)}>
+        <header className="overflow-hidden rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-900 via-rose-800 to-orange-900 p-5 text-white shadow-lg">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-rose-200">Mock Test Builder</p>
+          <h2 className="mt-1 text-xl font-bold">{paperTitle}</h2>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Badge className="bg-white/15 text-white hover:bg-white/15">{totalQuestions} Questions</Badge>
+            <Badge className="bg-white/15 text-white hover:bg-white/15">{totalMarks || '—'} Total Marks</Badge>
+            <Badge className="bg-white/15 text-white hover:bg-white/15">{activeSections.length} Sections</Badge>
           </div>
-        </div>
-      </header>
-
-      {variant === 'student' && mockMeta ? (
-        <AiToolInfoPanelGrid>
-          <InfoPanel title="Test Purpose and Subtopic Link" value={mockMeta.testPurposeSubtopicLink} className="border-indigo-100 bg-indigo-50/40" />
-          <InfoPanel
-            title="Learning Objectives – Bloom's"
-            value={mockMeta.learningObjectives.join('\n')}
-            className="border-violet-100 bg-violet-50/40"
-          />
-          <InfoPanel title="NCF Competency / Learning Outcome" value={mockMeta.ncfCompetencyAlignment} className="border-cyan-100 bg-cyan-50/40" />
-          <InfoPanel title="Instructions for Students" value={paper.instructions} className="border-slate-200 bg-slate-50/80" />
-        </AiToolInfoPanelGrid>
-      ) : (
-        <AiToolInfoPanelGrid>
-          <InfoPanel title="General Instructions" value={paper.instructions} className="border-indigo-100 bg-indigo-50/40" />
-          <InfoPanel title="Blueprint / Design Grid" value={paper.blueprint} className="border-cyan-100 bg-cyan-50/40" />
-        </AiToolInfoPanelGrid>
-      )}
-
-      <div className="space-y-4">
-        {paper.sections.map((section, sectionIndex) => (
-          <AiToolStackedSection
-            key={section.id}
-            num={String(sectionIndex + 1)}
-            title={section.title}
-            iconName="clipboard"
-          >
-            <div className="mb-3">
-              <Badge variant="outline" className="border-slate-300 text-slate-700">
-                {section.questions.length} Questions
-              </Badge>
-            </div>
-            {section.questions.length > 0 ? (
+        </header>
+        <AiToolMockTestSectionLayout>
+          <ExamSectionCard sectionNum="2" title="Test Purpose and Subtopic Link" icon={Target}>
+            <RichTextBlock text={mockMeta.testPurposeSubtopicLink} />
+          </ExamSectionCard>
+          <ExamSectionCard sectionNum="3" title="Learning Objectives – Bloom's" icon={Brain}>
+            {mockMeta.learningObjectives.length ? (
+              <ul className="space-y-1 text-sm text-slate-800">
+                {mockMeta.learningObjectives.map((line, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="text-rose-500">•</span>
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyHint />
+            )}
+          </ExamSectionCard>
+          <ExamSectionCard sectionNum="4" title="NCF Competency / Learning Outcome" icon={GraduationCap}>
+            <RichTextBlock text={mockMeta.ncfCompetencyAlignment} />
+          </ExamSectionCard>
+          <ExamSectionCard sectionNum="5" title="Instructions for Students" icon={ClipboardList}>
+            <RichTextBlock text={paper.instructions} />
+          </ExamSectionCard>
+          <ExamSectionCard sectionNum="6" title="Question Paper" icon={FileQuestion}>
+            {activeSections.length > 0 ? (
               <div className="space-y-3">
-                {section.questions.map((question, idx) => (
-                  <QuestionCard key={`${section.id}-${idx}`} question={question} index={idx} />
+                {activeSections.map((sec) => (
+                  <ExamSectionBlock key={sec.id} section={sec} showAnswers={false} />
                 ))}
               </div>
             ) : (
-              <p className="text-sm italic text-slate-400">No questions available in this section.</p>
+              <EmptyHint message="No questions generated yet." />
             )}
-          </AiToolStackedSection>
-        ))}
+          </ExamSectionCard>
+          <ExamSectionCard sectionNum="7" title="Answer Key" icon={CheckCircle2}>
+            <AnswerKeySnapshotTable rows={answerKeyRows} fallbackText={paper.answerKey} />
+          </ExamSectionCard>
+          <ExamSectionCard sectionNum="8" title="Step-by-step Solutions / Explanations" icon={BookOpen}>
+            <RichTextBlock text={mockMeta.stepByStepSolutionsExplanations} />
+          </ExamSectionCard>
+        </AiToolMockTestSectionLayout>
       </div>
+    );
+  }
 
-      {variant === 'student' && mockMeta ? (
-        <AiToolInfoPanelGrid>
-          <InfoPanel title="Answer Key" value={paper.answerKey} className="border-emerald-100 bg-emerald-50/40" />
-          <InfoPanel
-            title="Step-by-step Solutions / Explanations"
-            value={mockMeta.stepByStepSolutionsExplanations}
-            className="border-sky-100 bg-sky-50/40"
-          />
-          <InfoPanel
-            title="Remedial Revision Suggestions"
-            value={mockMeta.remedialRevisionSuggestions.join('\n')}
-            className="border-orange-100 bg-orange-50/40"
-          />
-          <InfoPanel
-            title="Expected Learning Outcomes"
-            value={mockMeta.expectedLearningOutcomes.join('\n')}
-            className="border-teal-100 bg-teal-50/40"
-          />
-          <InfoPanel title="Real-life Application" value={mockMeta.realLifeApplication} className="border-lime-100 bg-lime-50/40" />
-          <InfoPanel title="Reflection / Exit Ticket" value={mockMeta.reflectionExitTicket} className="border-rose-100 bg-rose-50/40" />
-        </AiToolInfoPanelGrid>
-      ) : (
-        <>
-          <AiToolInfoPanelGrid columns={3}>
-            <InfoPanel title="Internal Choices" value={paper.internalChoices} className="border-violet-100 bg-violet-50/40" />
-            <InfoPanel title="Answer Key" value={paper.answerKey} className="border-emerald-100 bg-emerald-50/40" />
-            <InfoPanel title="Marking Scheme" value={paper.markingScheme} className="border-amber-100 bg-amber-50/40" />
-          </AiToolInfoPanelGrid>
-          <InfoPanel
-            title="Rubric for Open-ended Questions"
-            value={paper.openEndedRubric}
-            className="border-rose-100 bg-rose-50/40"
-          />
-        </>
-      )}
+  return (
+    <div className={cn('space-y-4', className)} data-ai-tool-export>
+      <header className="overflow-hidden rounded-2xl border border-indigo-200 bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-800 p-5 text-white shadow-lg print:hidden">
+        <p className="text-[11px] uppercase tracking-[0.18em] text-indigo-200">
+          Exam Question Paper Generator
+        </p>
+        <h2 className="mt-1 text-xl font-bold">{paperTitle}</h2>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Badge className="bg-white/15 text-white hover:bg-white/15">{totalQuestions} Questions</Badge>
+          <Badge className="bg-white/15 text-white hover:bg-white/15">{totalMarks || '—'} Total Marks</Badge>
+          <Badge className="bg-white/15 text-white hover:bg-white/15">{activeSections.length} Sections</Badge>
+        </div>
+      </header>
+
+      <AiToolV2SectionStack>
+        {(() => {
+          const counts = parseBlueprintCounts(paper.blueprint);
+          const countById: Record<string, number> = {
+            a: counts.a,
+            b: counts.b,
+            c: counts.c,
+            d: counts.d,
+            e: counts.e,
+          };
+          const bloomRows = buildBloomDistributionFromExamSections(activeSections);
+          const competencyItems = parseCompetencyFocusItems(rawContent);
+          const sectionAccents = ['indigo', 'violet', 'emerald', 'amber', 'rose', 'cyan', 'slate'] as const;
+
+          const examSectionCards = EXAM_SECTION_DEFINITIONS.map((meta) => {
+            const expected = countById[meta.id] || 0;
+            const section =
+              activeSections.find((s) => s.id === meta.id) ||
+              paper.sections.find((s) => s.id === meta.id) ||
+              null;
+            const questionCount = section?.questions.length ?? 0;
+            if (expected <= 0 && questionCount <= 0) return null;
+            const sectionMarks = section?.questions.reduce(
+              (sum, q) => sum + (q.marks != null ? q.marks : 0),
+              0,
+            ) ?? 0;
+            const title = meta.title.replace(/^Section\s*([A-E])\s*[-–:]\s*/i, 'Section $1 — ');
+            const marksLabel =
+              expected > 0 && sectionMarks > 0
+                ? `${questionCount} × marks = ${sectionMarks} marks`
+                : expected > 0
+                  ? `${expected} question(s) planned`
+                  : `${questionCount} question(s)`;
+            return {
+              key: meta.id,
+              title,
+              description: marksLabel,
+              body:
+                section && questionCount > 0 ? (
+                  <ExamSectionBlock section={section} showAnswers={false} />
+                ) : (
+                  <MissingExamSectionBlock
+                    sectionId={meta.id}
+                    title={meta.title}
+                    expectedCount={expected}
+                  />
+                ),
+            };
+          }).filter(Boolean) as Array<{
+            key: string;
+            title: string;
+            description: string;
+            body: ReactNode;
+          }>;
+
+          const blocks: Array<{
+            key: string;
+            title: string;
+            description?: string;
+            icon: typeof ClipboardList;
+            accent: (typeof sectionAccents)[number];
+            body: ReactNode;
+          }> = [
+            {
+              key: 'overview',
+              title: 'Paper Overview',
+              description: 'Duration, marks, class context, and instructions',
+              icon: ClipboardList,
+              accent: 'indigo',
+              body: (
+                <div className="space-y-3">
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    <OverviewStat label="Class" value={context.className} />
+                    <OverviewStat label="Subject" value={context.subject} />
+                    <OverviewStat label="Chapter / Topic" value={context.topic} />
+                    <OverviewStat label="Subtopic" value={context.subtopic} />
+                    <OverviewStat label="Board" value={context.board} />
+                    <OverviewStat
+                      label="Duration"
+                      value={context.duration ? `${context.duration} min` : '40 min'}
+                    />
+                    <OverviewStat label="Total Questions" value={String(totalQuestions || '—')} />
+                    <OverviewStat label="Total Marks" value={String(totalMarks || '—')} />
+                  </div>
+                  {paper.instructions ? (
+                    <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                        General Instructions
+                      </p>
+                      <RichTextBlock text={paper.instructions} />
+                    </div>
+                  ) : null}
+                </div>
+              ),
+            },
+            {
+              key: 'blueprint',
+              title: 'Blueprint / Question Distribution',
+              description: 'Section-wise marks and weightage',
+              icon: Target,
+              accent: 'violet',
+              body: (
+                <div className="space-y-3">
+                  {paper.blueprint ? (
+                    <RichTextBlock text={paper.blueprint} className="text-xs" />
+                  ) : null}
+                  <BlueprintTable rows={blueprintRows} />
+                </div>
+              ),
+            },
+            ...examSectionCards.map((card, i) => ({
+              key: card.key,
+              title: card.title,
+              description: card.description,
+              icon: FileQuestion,
+              accent: sectionAccents[(i + 2) % sectionAccents.length],
+              body: card.body,
+            })),
+            {
+              key: 'bloom',
+              title: "Bloom's Distribution (by Marks)",
+              description: 'Cognitive level spread across the paper',
+              icon: Brain,
+              accent: 'violet',
+              body: (
+                <div className="space-y-4">
+                  <AiToolV2DistributionDonut
+                    rows={bloomRowsToDonutRows(bloomRows)}
+                    title="Bloom levels"
+                    totalLabel="marks"
+                  />
+                  <AiToolV2BloomDistribution rows={bloomRows} totalMarks={totalMarks} />
+                </div>
+              ),
+            },
+            {
+              key: 'competency',
+              title: 'Competency Focus',
+              description: 'Skills and competencies assessed',
+              icon: GraduationCap,
+              accent: 'emerald',
+              body: <AiToolV2CompetencyFocus items={competencyItems} />,
+            },
+            {
+              key: 'answer-key',
+              title: 'Answer Key Snapshot',
+              description: 'Quick reference for all sections',
+              icon: CheckCircle2,
+              accent: 'amber',
+              body: (
+                <AnswerKeySnapshotTable rows={answerKeyRows} fallbackText={paper.answerKey} />
+              ),
+            },
+            {
+              key: 'nep',
+              title: 'NEP / NCF Alignment',
+              description: 'Curriculum framework alignment',
+              icon: GraduationCap,
+              accent: 'cyan',
+              body: <AiToolV2NepAlignment focusText={context.nepNcfFocus} />,
+            },
+            {
+              key: 'best-practices',
+              title: 'Best Practices',
+              description: 'How to use this paper in class',
+              icon: Clock,
+              accent: 'amber',
+              body: <AiToolV2BestPractices />,
+            },
+          ];
+
+          if (paper.internalChoices) {
+            blocks.push({
+              key: 'internal-choices',
+              title: 'Internal Choices',
+              icon: ListChecks,
+              accent: 'slate',
+              body: <RichTextBlock text={paper.internalChoices} />,
+            });
+          }
+          if (paper.markingScheme) {
+            blocks.push({
+              key: 'marking',
+              title: 'Detailed Marking Scheme',
+              icon: ListChecks,
+              accent: 'slate',
+              body: <RichTextBlock text={paper.markingScheme} />,
+            });
+          }
+          if (paper.openEndedRubric) {
+            blocks.push({
+              key: 'rubric',
+              title: 'Rubric for Open-ended Questions',
+              icon: BookOpen,
+              accent: 'slate',
+              body: <RichTextBlock text={paper.openEndedRubric} />,
+            });
+          }
+
+          return blocks.map((block, index) => (
+            <AiToolV2Section
+              key={block.key}
+              num={index + 1}
+              title={block.title}
+              description={block.description}
+              icon={block.icon}
+              accent={block.accent}
+            >
+              {block.body}
+            </AiToolV2Section>
+          ));
+        })()}
+      </AiToolV2SectionStack>
     </div>
   );
 }
-

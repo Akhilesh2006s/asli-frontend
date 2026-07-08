@@ -25,9 +25,11 @@ import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import {
   extractInlineMcqFromQuestionText,
   formatLabeledMcqOptions,
+  buildBloomDistributionFromExamSections,
   type ExamQuestion,
   type ExamSection,
 } from '@/lib/parse-exam-question-paper';
+import { AiToolV2InsightTail } from '@/components/ai-v2';
 import {
   mockTestViewerPayloadFromRecord,
   parseNumberedMarkdownSections,
@@ -436,6 +438,21 @@ export function MockTestViewer({ content, rawContent, className }: MockTestViewe
           <AiToolMockTestSectionLayout>{bodySections}</AiToolMockTestSectionLayout>
         </div>
       </div>
+
+      <AiToolV2InsightTail
+        rawContent={payload.rawContent}
+        startNum={12}
+        includeOverview
+        overviewStats={[
+          { label: 'Questions', value: String(totalQuestions) },
+          { label: 'Marks', value: totalMarks > 0 ? String(totalMarks) : '' },
+          { label: 'Sections', value: String(activeSections.length) },
+        ].filter((s) => s.value)}
+        bloomRows={paper ? buildBloomDistributionFromExamSections(paper.sections) : []}
+        bloomFromObjectives={meta.learningObjectives}
+        competencyItems={meta.learningObjectives}
+        bestPracticesText="Attempt under timed exam conditions, mark uncertain items, then review solutions section-by-section using the Bloom tags to plan revision."
+      />
     </div>
   );
 }

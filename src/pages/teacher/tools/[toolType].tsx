@@ -41,17 +41,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { AiToolResultShell } from '@/components/ai-tool-result-shell';
-import { FlashcardViewer } from '@/components/flashcard-viewer';
-import { MyStudyDecksViewer } from '@/components/my-study-decks-viewer';
-import { ShortNotesViewer } from '@/components/short-notes-viewer';
-import { ConceptMasteryViewer } from '@/components/concept-mastery-viewer';
-import { LessonPlannerViewer } from '@/components/lesson-planner-viewer';
-import { DailyClassPlanViewer } from '@/components/daily-class-plan-viewer';
-import { HomeworkCreatorViewer } from '@/components/homework-creator-viewer.tsx';
-import { ExamQuestionPaperViewer } from '@/components/exam-question-paper-viewer';
-import { ActivityProjectViewer } from '@/components/activity-project-viewer';
-import { StoryPassageViewer } from '@/components/story-passage-viewer';
-import { WorksheetMcqViewer } from '@/components/worksheet-mcq-viewer';
+import { AiToolV2InputSummary } from '@/components/ai-v2';
+import { GeneratorRecordViewer } from '@/components/super-admin/generator-record-viewer';
+import { buildAiToolViewerRecord } from '@/lib/build-ai-tool-viewer-record';
 import type { AiToolGenerationMeta } from '@/lib/ai-tool-generation-summary';
 import { useCurriculumCascade } from '@/hooks/use-curriculum-cascade';
 import {
@@ -242,6 +234,38 @@ export default function TeacherToolPage() {
   const [isAsliPrepExclusive, setIsAsliPrepExclusive] = useState(false);
   const boardOptions = getAiToolBoardOptions(isAsliPrepExclusive, schoolBoardName);
   const selectedBoard = formParams.board || getDefaultAiToolBoard(isAsliPrepExclusive, schoolBoardName);
+
+  const viewerContextRaw = useMemo(() => {
+    const base =
+      effectiveRawContent && typeof effectiveRawContent === 'object' && !Array.isArray(effectiveRawContent)
+        ? (effectiveRawContent as Record<string, unknown>)
+        : {};
+    return {
+      ...base,
+      classLabel: String(formParams.gradeLevel || base.classLabel || ''),
+      subject: String(formParams.subject || formParams.subjects || base.subject || ''),
+      topic: String(formParams.topic || base.topic || ''),
+      subtopic: String(formParams.subTopic || base.subtopic || ''),
+      board: String(selectedBoard || base.board || ''),
+    };
+  }, [effectiveRawContent, formParams, selectedBoard]);
+
+  const viewerRecord = useMemo(
+    () =>
+      buildAiToolViewerRecord({
+        toolSlug: toolType,
+        generatedContent: displayGeneratedContent,
+        rawContent: viewerContextRaw,
+        meta: {
+          board: selectedBoard || '',
+          classLabel: String(formParams.gradeLevel || ''),
+          subject: String(formParams.subject || formParams.subjects || ''),
+          topic: String(formParams.topic || ''),
+          subtopic: String(formParams.subTopic || ''),
+        },
+      }),
+    [toolType, displayGeneratedContent, viewerContextRaw, selectedBoard, formParams],
+  );
 
   const normalizeSubjectName = (value: string) => {
     let compact = value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -1358,6 +1382,14 @@ export default function TeacherToolPage() {
       await downloadAiToolPdf(
         fileName,
         `<div class="prose">${renderMarkdown(displayGeneratedContent)}</div>`,
+        {
+          toolName: config.name,
+          board: String(selectedBoard || ''),
+          classLabel: String(formParams.gradeLevel || ''),
+          subject: String(formParams.subject || formParams.subjects || ''),
+          topic: String(formParams.topic || ''),
+          subtopic: String(formParams.subTopic || ''),
+        },
       );
       toast({
         title: 'Downloaded!',
@@ -1666,6 +1698,16 @@ export default function TeacherToolPage() {
               chapter: String(formParams.topic || ''),
               subtopic: String(formParams.subTopic || ''),
             }}
+            inputSummary={
+              generatedContent ? <AiToolV2InputSummary rawContent={viewerContextRaw} /> : null
+            }
+            footer={
+              generatedContent ? (
+                <p className="text-center text-xs text-slate-500">
+                  ASLILEARN AI V2 · Use download to export or regenerate to refresh incomplete sections.
+                </p>
+              ) : null
+            }
             isLoading={isGenerating}
             citations={
               generatedContent && Array.isArray(responseMeta?.citations) && responseMeta.citations.length > 0 ? (
@@ -1732,103 +1774,7 @@ export default function TeacherToolPage() {
             }
           >
             {generatedContent ? (
-                toolType === 'flashcard-generator' ? (
-                  <div data-ai-tool-export>
-                    <FlashcardViewer
-                      content={displayGeneratedContent}
-                      rawContent={effectiveRawContent}
-                      variant="teacher"
-                    />
-                  </div>
-                ) : toolType === 'my-study-decks' ? (
-                  <div data-ai-tool-export>
-                    <MyStudyDecksViewer
-                      content={displayGeneratedContent}
-                      rawContent={effectiveRawContent}
-                    />
-                  </div>
-                ) : toolType === 'short-notes-summaries-maker' ? (
-                  <div className="bg-gradient-to-b from-cyan-50/60 via-white to-sky-50/40 p-4 sm:p-5 lg:p-6">
-                    <div className="mb-3 flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[11px] font-medium text-cyan-800">
-                        Revision-ready format
-                      </span>
-                      <span className="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-medium text-sky-800">
-                        Teacher focus view
-                      </span>
-                    </div>
-                    <ShortNotesViewer content={displayGeneratedContent} rawContent={effectiveRawContent} />
-                  </div>
-                ) : toolType === 'concept-mastery-helper' ? (
-                  <ConceptMasteryViewer
-                    content={displayGeneratedContent}
-                    rawContent={effectiveRawContent}
-                    variant="teacher"
-                  />
-                ) : toolType === 'lesson-planner' ? (
-                  <LessonPlannerViewer
-                    content={displayGeneratedContent}
-                    rawContent={effectiveRawContent}
-                    variant="teacher"
-                    toolKind="lesson-planner"
-                  />
-                ) : toolType === 'daily-class-plan-maker' ? (
-                  <DailyClassPlanViewer
-                    content={displayGeneratedContent}
-                    rawContent={effectiveRawContent}
-                    variant="teacher"
-                  />
-                ) : toolType === 'activity-project-generator' ? (
-                  <ActivityProjectViewer
-                    activities={
-                      effectiveRawContent &&
-                      typeof effectiveRawContent === 'object' &&
-                      !Array.isArray(effectiveRawContent)
-                        ? (effectiveRawContent as { activities?: any[] }).activities
-                        : undefined
-                    }
-                    content={displayGeneratedContent}
-                    variant="teacher"
-                  />
-                ) : toolType === 'story-passage-creator' ? (
-                  <StoryPassageViewer
-                    content={displayGeneratedContent}
-                    rawData={effectiveRawContent}
-                  />
-                ) : toolType === 'worksheet-mcq-generator' ? (
-                  <div data-ai-tool-export>
-                    <WorksheetMcqViewer
-                      content={displayGeneratedContent}
-                      rawContent={effectiveRawContent}
-                      variant="teacher"
-                    />
-                  </div>
-                ) : toolType === 'homework-creator' ? (
-                  <div data-ai-tool-export>
-                    <HomeworkCreatorViewer
-                      content={displayGeneratedContent}
-                      rawContent={effectiveRawContent}
-                    />
-                  </div>
-                ) : toolType === 'exam-question-paper-generator' ? (
-                  <div data-ai-tool-export>
-                    <ExamQuestionPaperViewer
-                      content={displayGeneratedContent}
-                      rawContent={effectiveRawContent}
-                    />
-                  </div>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 lg:p-6 max-h-[80vh] overflow-y-auto shadow-sm"
-                  >
-                    <div 
-                      className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-strong:text-gray-900 prose-code:text-gray-800 prose-img:rounded-lg prose-img:shadow-md prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-gray-300 prose-th:bg-gray-50 prose-th:p-2 prose-td:border prose-td:border-gray-300 prose-td:p-2"
-                      dangerouslySetInnerHTML={{ __html: renderMarkdown(displayGeneratedContent) }}
-                    />
-                  </motion.div>
-                )
+              <GeneratorRecordViewer record={viewerRecord} audience="teacher" />
             ) : null}
           </AiToolResultShell>
         </div>

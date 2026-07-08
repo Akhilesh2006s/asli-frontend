@@ -2,60 +2,53 @@ import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AI_V2 } from '@/lib/ai-tool-design-tokens';
 import {
   RealisticIcon,
   lucideTo3dName,
   type AiTool3dIconName,
 } from '@/components/ai-tool-3d-icons';
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 14, scale: 0.99 },
-  show: { opacity: 1, y: 0, scale: 1 },
-};
+const V2_ACCENTS = [
+  'from-indigo-500 to-blue-600',
+  'from-violet-500 to-purple-600',
+  'from-emerald-500 to-green-600',
+  'from-amber-500 to-orange-500',
+  'from-rose-500 to-pink-600',
+  'from-cyan-500 to-teal-600',
+  'from-fuchsia-500 to-purple-600',
+  'from-lime-500 to-emerald-600',
+  'from-orange-500 to-red-500',
+  'from-slate-600 to-slate-800',
+] as const;
 
-const ACCENTS = [
-  'bg-gradient-to-br from-[#6C63FF] to-[#8B5CF6]',
-  'bg-gradient-to-br from-sky-500 to-blue-600',
-  'bg-gradient-to-br from-violet-500 to-purple-600',
-  'bg-gradient-to-br from-emerald-500 to-green-600',
-  'bg-gradient-to-br from-amber-500 to-orange-500',
-  'bg-gradient-to-br from-rose-500 to-pink-600',
-  'bg-gradient-to-br from-cyan-500 to-teal-600',
-  'bg-gradient-to-br from-indigo-500 to-blue-700',
-  'bg-gradient-to-br from-fuchsia-500 to-purple-600',
-  'bg-gradient-to-br from-lime-500 to-emerald-600',
-  'bg-gradient-to-br from-orange-500 to-red-500',
-  'bg-gradient-to-br from-slate-600 to-slate-800',
-];
+const V2_BG = [
+  'from-indigo-50/80 to-blue-50/50',
+  'from-violet-50/80 to-purple-50/50',
+  'from-emerald-50/80 to-lime-50/50',
+  'from-amber-50/80 to-orange-50/50',
+  'from-rose-50/80 to-pink-50/50',
+  'from-cyan-50/80 to-teal-50/50',
+  'from-fuchsia-50/80 to-purple-50/50',
+  'from-lime-50/80 to-emerald-50/50',
+  'from-orange-50/80 to-red-50/50',
+  'from-slate-50/80 to-slate-100/50',
+] as const;
 
-const GRADIENTS = [
-  'bg-gradient-to-r from-violet-50/80 to-indigo-50/50',
-  'bg-gradient-to-r from-sky-50 to-blue-50',
-  'bg-gradient-to-r from-violet-50 to-fuchsia-50',
-  'bg-gradient-to-r from-emerald-50 to-lime-50',
-  'bg-gradient-to-r from-amber-50 to-orange-50',
-  'bg-gradient-to-r from-rose-50 to-pink-50',
-  'bg-gradient-to-r from-cyan-50 to-teal-50',
-  'bg-gradient-to-r from-indigo-50 to-blue-50',
-  'bg-gradient-to-r from-fuchsia-50 to-purple-50',
-  'bg-gradient-to-r from-lime-50 to-emerald-50',
-  'bg-gradient-to-r from-orange-50 to-red-50',
-  'bg-gradient-to-r from-slate-50 to-slate-100',
-];
-
-function accentForNum(num: string) {
+function themeForNum(num: string) {
   const n = parseInt(String(num).replace(/\D/g, ''), 10);
-  const i = Number.isFinite(n) && n > 0 ? (n - 1) % ACCENTS.length : 0;
-  return { accent: ACCENTS[i], gradient: GRADIENTS[i] };
+  const i = Number.isFinite(n) && n > 0 ? (n - 1) % V2_ACCENTS.length : 0;
+  return { accent: V2_ACCENTS[i], gradient: V2_BG[i] };
 }
 
 /**
- * Full-width section card used by every AI tool:
- * one section after another, large header, interactive 3D icon.
+ * Full-width V2 section card used by every AI tool viewer.
+ * Backward-compatible API; visually aligned with AiToolV2Section.
  */
 export function AiToolStackedSection({
   num,
   title,
+  description,
   icon,
   iconName,
   accent,
@@ -63,10 +56,9 @@ export function AiToolStackedSection({
   children,
   className,
 }: {
-  /** Section number label, e.g. "01", "2", or "Section 3". */
   num: string;
   title: string;
-  /** Lucide icon (mapped to Icons8 3D Fluency). Prefer iconName when set. */
+  description?: string;
   icon?: LucideIcon | null;
   iconName?: AiTool3dIconName;
   accent?: string;
@@ -76,48 +68,61 @@ export function AiToolStackedSection({
 }) {
   const resolved = iconName || lucideTo3dName(icon);
   const numLabel = String(num).replace(/^section\s*/i, '').trim() || num;
-  const theme = accentForNum(numLabel);
-  const accentClass = accent || theme.accent;
-  const gradientClass = gradient || theme.gradient;
+  const theme = themeForNum(numLabel);
+  const accentClass = accent || `bg-gradient-to-br ${theme.accent}`;
+  const gradientClass = gradient || `bg-gradient-to-br ${theme.gradient}`;
+  const LucideIcon = icon;
 
   return (
     <motion.section
-      variants={fadeUp}
-      initial="hidden"
-      animate="show"
-      whileHover={{ y: -3, boxShadow: '0 18px 36px -18px rgba(108,99,255,0.35)' }}
-      transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      whileHover={{ y: -2 }}
       className={cn(
-        'group relative w-full overflow-hidden rounded-[1.5rem] border border-white/80 bg-white/95 shadow-[0_12px_36px_-20px_rgba(15,23,42,0.28)]',
+        'group relative w-full overflow-hidden border border-white/90 print:break-inside-avoid',
+        AI_V2.radius.cardLg,
+        AI_V2.shadow.card,
+        'transition-shadow duration-200 hover:shadow-[0_12px_40px_-14px_rgba(15,23,42,0.22)]',
+        gradientClass,
         className,
       )}
     >
-      <div className={cn('absolute inset-y-0 left-0 w-1.5 rounded-l-[1.5rem]', accentClass)} />
-      <div className={cn('border-b border-slate-100/80 px-4 py-3.5 sm:px-5 sm:py-4', gradientClass)}>
-        <div className="flex items-center gap-3 sm:gap-4">
-          <div
+      <header className="flex items-start justify-between gap-3 border-b border-white/80 bg-white/70 px-4 py-3 sm:px-5">
+        <div className="flex min-w-0 items-start gap-3">
+          <span
             className={cn(
-              'flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl text-sm sm:text-base font-black text-white shadow-md',
+              'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white shadow-sm',
               accentClass,
             )}
           >
             {numLabel.length > 3 ? numLabel.slice(0, 2) : numLabel}
+          </span>
+          <div className="min-w-0">
+            <p className={AI_V2.typography.sectionTitle}>{title}</p>
+            {description ? (
+              <p className={cn('mt-0.5', AI_V2.typography.sectionDesc)}>{description}</p>
+            ) : (
+              <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Section {numLabel}
+              </p>
+            )}
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-              Section {numLabel}
-            </p>
-            <h4 className="text-base font-bold leading-snug text-slate-900 sm:text-lg">{title}</h4>
-          </div>
-          <RealisticIcon name={resolved} alt="" className="h-12 w-12 sm:h-14 sm:w-14 shrink-0" />
         </div>
-      </div>
-      <div className="px-4 py-4 sm:px-5 sm:py-5">{children}</div>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/90 bg-white/90 shadow-sm">
+          {LucideIcon ? (
+            <LucideIcon className="h-4 w-4 text-slate-600" aria-hidden />
+          ) : (
+            <RealisticIcon name={resolved} alt="" className="h-8 w-8" />
+          )}
+        </div>
+      </header>
+      <div className={cn('bg-white/60', AI_V2.spacing.cardPadding)}>{children}</div>
     </motion.section>
   );
 }
 
-/** Always one full-width section after another. */
+/** V2 vertical stack — one section after another. */
 export function AiToolStackedList({
   children,
   className,
@@ -125,5 +130,5 @@ export function AiToolStackedList({
   children: ReactNode;
   className?: string;
 }) {
-  return <div className={cn('flex w-full flex-col gap-4', className)}>{children}</div>;
+  return <div className={cn(AI_V2.spacing.section, className)}>{children}</div>;
 }

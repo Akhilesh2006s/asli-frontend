@@ -1,4 +1,5 @@
 import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
+import { AiToolV2InsightTail } from '@/components/ai-v2';
 import { useMemo, useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -37,7 +38,15 @@ type StoryPassageViewerProps = {
   variant?: 'default' | 'student';
 };
 
-function DefaultPassagesBundle({ bundle }: { bundle: ParsedPassagesBundle }) {
+function DefaultPassagesBundle({
+  bundle,
+  rawData,
+}: {
+  bundle: ParsedPassagesBundle;
+  rawData?: unknown;
+}) {
+  const totalQuestions = bundle.passages.reduce((n, p) => n + p.questions.length, 0);
+
   return (
     <div className="max-h-[80vh] overflow-y-auto space-y-4 p-1">
       <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4">
@@ -75,11 +84,34 @@ function DefaultPassagesBundle({ bundle }: { bundle: ParsedPassagesBundle }) {
           </div>
         </div>
       ))}
+      <AiToolV2InsightTail
+        rawContent={rawData}
+        startNum={20}
+        includeOverview
+        overviewStats={[
+          { label: 'Passages', value: String(bundle.passages.length) },
+          { label: 'Comprehension Qs', value: String(totalQuestions) },
+          { label: 'Subject', value: bundle.meta?.subject || '' },
+          { label: 'Chapter', value: bundle.meta?.chapter || '' },
+        ].filter((s) => s.value)}
+        bestPracticesText="Read each passage aloud or silently, then pause for comprehension questions before moving on. Use vocabulary warm-ups when provided, and discuss answer keys as a class to build inferencing skills."
+      />
     </div>
   );
 }
 
-function TeacherStoryReading({ story }: { story: ParsedStory }) {
+function TeacherStoryReading({
+  story,
+  rawData,
+}: {
+  story: ParsedStory;
+  rawData?: unknown;
+}) {
+  const comprehensionCount =
+    story.readRecallQuestions.length +
+    story.thinkInferQuestions.length +
+    story.applyConnectQuestions.length;
+
   return (
     <div className="max-h-[80vh] overflow-y-auto space-y-3 p-1">
       <div className="rounded-xl border border-indigo-200 bg-indigo-50/80 p-4">
@@ -101,6 +133,24 @@ function TeacherStoryReading({ story }: { story: ParsedStory }) {
           </div>
         ))}
       </AiToolMasonrySections>
+
+      <AiToolV2InsightTail
+        rawContent={rawData}
+        startNum={20}
+        includeOverview
+        overviewStats={[
+          { label: 'Story', value: story.title },
+          { label: 'Comprehension Qs', value: comprehensionCount > 0 ? String(comprehensionCount) : '' },
+          { label: 'Vocabulary', value: story.vocabulary.length > 0 ? String(story.vocabulary.length) : '' },
+        ].filter((s) => s.value)}
+        bloomFromObjectives={story.learningObjectives}
+        competencyItems={
+          story.ncfAlignment
+            ? story.ncfAlignment.split(/\n+/).filter(Boolean)
+            : story.learningObjectives
+        }
+        bestPracticesText="Run vocabulary warm-up and pre-reading prompts before the passage. Alternate choral and silent reading, then tackle comprehension in pairs before revealing suggested responses."
+      />
     </div>
   );
 }
@@ -856,7 +906,7 @@ export function StoryPassageViewer({
   if (resolved.mode === 'passages') {
     return (
       <div className={className}>
-        <DefaultPassagesBundle bundle={resolved.bundle} />
+        <DefaultPassagesBundle bundle={resolved.bundle} rawData={rawData} />
       </div>
     );
   }
@@ -864,7 +914,7 @@ export function StoryPassageViewer({
   return (
     <div className={cn('space-y-4', className)}>
       {resolved.stories.map((story, i) => (
-        <TeacherStoryReading key={`${story.title}-${i}`} story={story} />
+        <TeacherStoryReading key={`${story.title}-${i}`} story={story} rawData={rawData} />
       ))}
     </div>
   );

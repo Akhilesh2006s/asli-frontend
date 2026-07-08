@@ -46,23 +46,12 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
-import html2pdf from 'html2pdf.js';
+import { downloadAiToolPdf } from '@/lib/ai-tool-teacher-export';
 import { AiToolResultShell } from '@/components/ai-tool-result-shell';
-import { FlashcardViewer } from '@/components/flashcard-viewer';
-import { MyStudyDecksViewer } from '@/components/my-study-decks-viewer';
-import { ShortNotesViewer } from '@/components/short-notes-viewer';
-import { ConceptMasteryViewer } from '@/components/concept-mastery-viewer';
-import { LessonPlannerViewer } from '@/components/lesson-planner-viewer';
-import { ActivityProjectViewer } from '@/components/activity-project-viewer';
-import { StoryPassageViewer } from '@/components/story-passage-viewer';
+import { AiToolV2InputSummary } from '@/components/ai-v2';
+import { GeneratorRecordViewer } from '@/components/super-admin/generator-record-viewer';
+import { buildAiToolViewerRecord } from '@/lib/build-ai-tool-viewer-record';
 import { resolveStudentAiApiToolType } from '@/lib/student-ai-tool-routes';
-import { MockTestViewer } from '@/components/mock-test-viewer';
-import { SmartStudyGuideViewer } from '@/components/smart-study-guide-viewer';
-import { ConceptBreakdownViewer } from '@/components/concept-breakdown-viewer';
-import { PracticeQaViewer } from '@/components/practice-qa-viewer';
-import { ChapterSummaryViewer } from '@/components/chapter-summary-viewer';
-import { KeyPointsViewer } from '@/components/key-points-viewer';
-import { QuickAssignmentViewer } from '@/components/quick-assignment-viewer';
 import type { AiToolGenerationMeta } from '@/lib/ai-tool-generation-summary';
 import {
   filterSubjectsForAiTool,
@@ -667,6 +656,21 @@ export default function StudentToolPage() {
     [user],
   );
 
+  const viewerContextRaw = useMemo(() => {
+    const base =
+      effectiveRawContent && typeof effectiveRawContent === 'object' && !Array.isArray(effectiveRawContent)
+        ? (effectiveRawContent as Record<string, unknown>)
+        : {};
+    return {
+      ...base,
+      classLabel: String(formParams.gradeLevel || base.classLabel || ''),
+      subject: String(formParams.subject || base.subject || ''),
+      topic: String(formParams.topic || formParams.chapter || base.topic || ''),
+      subtopic: String(formParams.subTopic || base.subtopic || ''),
+      board: String(selectedBoard || base.board || ''),
+    };
+  }, [effectiveRawContent, formParams, selectedBoard]);
+
   const cascadeTopic = formParams.topic || formParams.chapter || '';
 
   const cascade = useCurriculumCascade(
@@ -697,6 +701,31 @@ export default function StudentToolPage() {
   const isMyStudyDecks = apiToolType === 'my-study-decks';
   const isFlashcardGenerator = apiToolType === 'flashcard-generator';
   const isMockTest = apiToolType === 'mock-test-builder';
+
+  const viewerRecord = useMemo(
+    () =>
+      buildAiToolViewerRecord({
+        toolSlug: apiToolType || toolType,
+        generatedContent: displayGeneratedContent,
+        rawContent: viewerContextRaw,
+        meta: {
+          board: selectedBoard || '',
+          classLabel: String(formParams.gradeLevel || assignedGradeLevel || ''),
+          subject: String(formParams.subject || formParams.subjects || ''),
+          topic: String(formParams.topic || formParams.chapter || formParams.concept || ''),
+          subtopic: String(formParams.subTopic || ''),
+        },
+      }),
+    [
+      apiToolType,
+      toolType,
+      displayGeneratedContent,
+      viewerContextRaw,
+      selectedBoard,
+      formParams,
+      assignedGradeLevel,
+    ],
+  );
 
   const subjectsForTool = useMemo(
     () => filterSubjectsForAiTool(apiToolType, availableSubjects),
@@ -1611,69 +1640,32 @@ export default function StudentToolPage() {
   const handleDownloadPDF = async () => {
     try {
       setIsDownloading(true);
-      
-      // Find the content container - try multiple selectors
-      let contentElement = document.querySelector('.prose') || 
-                          document.querySelector('[class*="prose"]') ||
-                          document.querySelector('.bg-white.border') ||
-                          document.querySelector('[dangerouslySetInnerHTML]')?.parentElement;
-      
-      if (!contentElement) {
-        // Fallback: create content from generatedContent
-        const tempDiv = document.createElement('div');
-        tempDiv.style.width = '210mm';
-        tempDiv.style.padding = '20mm';
-        tempDiv.style.fontFamily = 'Arial, sans-serif';
-        tempDiv.style.backgroundColor = 'white';
-        tempDiv.innerHTML = renderMarkdown(
+      const fileName = `${config.name.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
+      await downloadAiToolPdf(
+        fileName,
+        `<div class="prose prose-sm max-w-none">${renderMarkdown(
           displayGeneratedContent,
           toolType === 'smart-study-guide-generator' ? 'smart-study-guide' : 'default',
-        );
-        document.body.appendChild(tempDiv);
-        contentElement = tempDiv;
-      } else {
-        // Create a temporary container for PDF generation
-        const tempDiv = document.createElement('div');
-        tempDiv.style.width = '210mm'; // A4 width
-        tempDiv.style.padding = '20mm';
-        tempDiv.style.fontFamily = 'Arial, sans-serif';
-        tempDiv.style.backgroundColor = 'white';
-        tempDiv.innerHTML = contentElement.innerHTML;
-        document.body.appendChild(tempDiv);
-        contentElement = tempDiv;
-      }
-
-      const opt = {
-        margin: [10, 10, 10, 10] as [number, number, number, number],
-        filename: `${config.name.replace(/\s+/g, '-')}-${Date.now()}.pdf`,
-        image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { 
-          scale: 2, 
-          useCORS: true,
-          logging: false,
-          windowWidth: contentElement.scrollWidth,
-          windowHeight: contentElement.scrollHeight
+        )}</div>`,
+        {
+          toolName: config.name,
+          board: String(selectedBoard || ''),
+          classLabel: String(formParams.gradeLevel || assignedGradeLevel || ''),
+          subject: String(formParams.subject || ''),
+          topic: String(formParams.topic || formParams.chapter || ''),
+          subtopic: String(formParams.subTopic || ''),
         },
-        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
-      };
-
-      await html2pdf().set(opt).from(contentElement as HTMLElement).save();
-      
-      // Clean up temporary element if we created it
-      if (contentElement.parentElement === document.body) {
-        document.body.removeChild(contentElement);
-      }
-
+      );
       toast({
         title: 'Downloaded!',
-        description: 'Content downloaded as PDF successfully'
+        description: 'Content downloaded as PDF successfully',
       });
     } catch (error) {
       console.error('Error generating PDF:', error);
       toast({
         title: 'Error',
         description: 'Failed to generate PDF',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     } finally {
       setIsDownloading(false);
@@ -2078,6 +2070,16 @@ export default function StudentToolPage() {
               chapter: String(formParams.topic || formParams.chapter || formParams.concept || ''),
               subtopic: String(formParams.subTopic || ''),
             }}
+            inputSummary={
+              generatedContent ? <AiToolV2InputSummary rawContent={viewerContextRaw} /> : null
+            }
+            footer={
+              generatedContent ? (
+                <p className="text-center text-xs text-slate-500">
+                  ASLILEARN AI V2 · Regenerate to refresh sections or copy to save your work.
+                </p>
+              ) : null
+            }
             isLoading={isGenerating}
             citations={
               generatedContent && Array.isArray(responseMeta?.citations) && responseMeta.citations.length > 0 ? (
@@ -2115,99 +2117,7 @@ export default function StudentToolPage() {
             }
           >
             {generatedContent ? (
-                  isMyStudyDecks ? (
-                    <MyStudyDecksViewer
-                      content={displayGeneratedContent}
-                      rawContent={effectiveRawContent}
-                    />
-                  ) : isFlashcardGenerator ? (
-                    <FlashcardViewer
-                      content={displayGeneratedContent}
-                      rawContent={effectiveRawContent}
-                      variant="student"
-                    />
-                  ) : toolType === 'short-notes-summaries-maker' ? (
-                    <ShortNotesViewer content={displayGeneratedContent} rawContent={effectiveRawContent} />
-                  ) : toolType === 'concept-mastery-helper' ? (
-                    <ConceptMasteryViewer
-                      content={displayGeneratedContent}
-                      rawContent={effectiveRawContent}
-                      variant="student"
-                    />
-                  ) : isStudySchedule ? (
-                    <LessonPlannerViewer
-                      content={displayGeneratedContent}
-                      rawContent={effectiveRawContent}
-                      variant="student"
-                      toolKind="study-schedule-maker"
-                    />
-                  ) : isProjectIdeaLab ? (
-                    <ActivityProjectViewer
-                      activities={
-                        effectiveRawContent &&
-                        typeof effectiveRawContent === 'object' &&
-                        !Array.isArray(effectiveRawContent)
-                          ? (effectiveRawContent as { activities?: any[] }).activities
-                          : undefined
-                      }
-                      content={displayGeneratedContent}
-                      variant="student"
-                    />
-                  ) : isReadingPractice ? (
-                    <StoryPassageViewer
-                      content={displayGeneratedContent}
-                      rawData={effectiveRawContent}
-                      variant="student"
-                    />
-                  ) : isMockTest ? (
-                    <MockTestViewer
-                      content={displayGeneratedContent}
-                      rawContent={effectiveRawContent}
-                    />
-                  ) : isSmartStudyGuide ? (
-                    <SmartStudyGuideViewer
-                      content={displayGeneratedContent}
-                      rawContent={effectiveRawContent}
-                    />
-                  ) : toolType === 'concept-breakdown-explainer' ? (
-                    <ConceptBreakdownViewer
-                      content={displayGeneratedContent}
-                      rawContent={effectiveRawContent}
-                    />
-                  ) : toolType === 'smart-qa-practice-generator' ? (
-                    <PracticeQaViewer
-                      content={displayGeneratedContent}
-                      rawContent={effectiveRawContent}
-                    />
-                  ) : toolType === 'chapter-summary-creator' ? (
-                    <ChapterSummaryViewer
-                      content={displayGeneratedContent}
-                      rawContent={effectiveRawContent}
-                    />
-                  ) : toolType === 'key-points-formula-extractor' ? (
-                    <KeyPointsViewer
-                      content={displayGeneratedContent}
-                      rawContent={effectiveRawContent}
-                    />
-                  ) : toolType === 'quick-assignment-builder' ? (
-                    <QuickAssignmentViewer
-                      content={displayGeneratedContent}
-                      rawContent={effectiveRawContent}
-                    />
-                  ) : (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={defaultResultWrapperClass}
-                    >
-                      <div
-                        className={defaultProseClass}
-                        dangerouslySetInnerHTML={{
-                          __html: renderMarkdown(displayGeneratedContent, 'default'),
-                        }}
-                      />
-                    </motion.div>
-                  )
+              <GeneratorRecordViewer record={viewerRecord} audience="student" />
             ) : null}
           </AiToolResultShell>
         </div>
