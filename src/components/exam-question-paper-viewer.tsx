@@ -15,6 +15,7 @@ import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
 import { cn } from '@/lib/utils';
 import { displayQuestionSerial } from '@/lib/renumber-questions';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
+import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import { AiToolMockTestSectionLayout } from '@/lib/ai-tool-section-layout';
 import {
   AiToolV2BestPractices,

@@ -212,6 +212,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
 export default function TeacherToolPage() {
   const [, setLocation] = useLocation();
   const [, params] = useRoute('/teacher/tools/:toolType');
+  const toolType = params?.toolType || '';
+  const config = TOOL_CONFIGS[toolType];
   const { toast } = useToast();
   const [formParams, setFormParams] = useState<Record<string, any>>({});
   const [isGenerating, setIsGenerating] = useState(false);
@@ -324,10 +326,6 @@ export default function TeacherToolPage() {
 
   const classSelectOptions =
     cascade.classOptions.length > 0 ? cascade.classOptions : CLASS_OPTIONS;
-
-  // Get tool type from route params
-  const toolType = params?.toolType || '';
-  const config = TOOL_CONFIGS[toolType];
 
   const subjectsForTool = useMemo(
     () => filterSubjectsForAiTool(toolType, availableSubjects),
