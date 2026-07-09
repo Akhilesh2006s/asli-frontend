@@ -2,6 +2,8 @@
  * Parse Concept Mastery Helper content into canonical 12-section concept objects.
  */
 
+import { sanitizeAiDisplayText } from '@/lib/sanitize-ai-display-text';
+
 export type NormalizedConcept = {
   sl: number;
   conceptName: string;
@@ -99,7 +101,7 @@ function coalesceText(v: unknown): string {
     const o = v as Record<string, unknown>;
     return coalesceText(o.text ?? o.content ?? o.body ?? o.prompt ?? o.value ?? o.markdown);
   }
-  return String(v ?? '').trim();
+  return sanitizeAiDisplayText(v);
 }
 
 function stripHtmlBasic(html: string): string {

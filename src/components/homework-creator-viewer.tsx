@@ -1,6 +1,7 @@
 import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
 import { ToolSectionIcon } from '@/components/ai-tool-3d-icons';
 import { useMemo, type ReactNode } from 'react';
+import { motion } from 'framer-motion';
 import {
   BookOpen,
   Brain,
@@ -19,7 +20,7 @@ import { displayQuestionSerial } from '@/lib/renumber-questions';
 import { stripMarkdownSyntax } from '@/lib/strip-markdown-syntax';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { GeneratedRecordBody } from '@/components/super-admin/generated-record-body';
-import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
+import { stripStructuredAiToolMetadata, stripAiGeneratorLeakage } from '@/lib/strip-ai-tool-metadata';
 import {
   homeworkHasVisibleContent,
   resolveHomeworkFromPayload,
@@ -243,22 +244,44 @@ export function HomeworkCreatorViewer({ content, rawContent, className }: Homewo
   const filled = HOMEWORK_SECTIONS.filter((s) => s.hasContent(homework)).length;
 
   return (
-    <div className={cn('space-y-4', className)}>
-      <div className="rounded-xl border-2 border-dashed border-orange-300/70 bg-gradient-to-br from-orange-50/90 via-white to-amber-50/40 px-4 py-4">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-800/80 mb-1">
-          1. Homework Title
-        </p>
-        <h3 className="text-xl font-bold text-slate-900 leading-tight">{stripMarkdownSyntax(homework.title)}</h3>
-        <p className="text-[11px] text-slate-500 mt-2">
-          {filled}/{HOMEWORK_SECTIONS.length} sections filled
-        </p>
-      </div>
+    <div className={cn('space-y-5', className)}>
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        data-ai-focus-hide
+        className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-gradient-to-br from-orange-50 via-white to-amber-50/60 p-5 shadow-[0_20px_50px_-28px_rgba(249,115,22,0.35)] sm:p-7"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-[11px] font-semibold text-orange-800">
+              <Sparkles className="h-3.5 w-3.5" />
+              Homework Creator · AI V2
+            </div>
+            <h3 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
+              {stripAiGeneratorLeakage(stripMarkdownSyntax(homework.title))}
+            </h3>
+            <p className="mt-2 text-sm text-slate-600">
+              {filled}/{HOMEWORK_SECTIONS.length} sections ready · {homework.practiceQuestions.length} practice
+              questions
+            </p>
+          </div>
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-lg">
+            <ClipboardList className="h-7 w-7" aria-hidden />
+          </div>
+        </div>
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-orange-100">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400 transition-all"
+            style={{ width: `${Math.round((filled / HOMEWORK_SECTIONS.length) * 100)}%` }}
+          />
+        </div>
+      </motion.section>
 
       <div className="space-y-3">
         {HOMEWORK_SECTIONS.map((sec) => (
           <div key={sec.num}>
             <SectionCard
-              sectionNum={`Section ${sec.num}`}
+              sectionNum={`${sec.num}`}
               label={sec.label}
               icon={sec.icon}
               stripe={sec.stripe}
@@ -273,6 +296,7 @@ export function HomeworkCreatorViewer({ content, rawContent, className }: Homewo
           </div>
         ))}
       </div>
+
     </div>
   );
 }

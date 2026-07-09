@@ -1,3 +1,5 @@
+import { sanitizeAiDisplayText } from '@/lib/sanitize-ai-display-text';
+
 export type NormalizedLesson = {
   sl: number;
   lessonName: string;
@@ -356,9 +358,9 @@ function coalesceLines(v: unknown): string[] {
 
 function coalesceText(v: unknown): string {
   if (Array.isArray(v)) {
-    return stripDisplayMarkdown(v.map((x) => String(x).trim()).filter(Boolean).join('\n'));
+    return stripDisplayMarkdown(v.map((x) => sanitizeAiDisplayText(x)).filter(Boolean).join('\n'));
   }
-  return stripDisplayMarkdown(String(v ?? ''));
+  return stripDisplayMarkdown(sanitizeAiDisplayText(v));
 }
 
 function coalesceNcf(v: unknown): string[] {

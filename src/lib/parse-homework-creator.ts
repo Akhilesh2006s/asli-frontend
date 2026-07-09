@@ -3,6 +3,10 @@
  */
 
 import { coerceHomeworkText } from '@/lib/coerce-homework-text';
+import {
+  stripAiGeneratorLeakage,
+  stripVariantScaffoldFromQuestionText,
+} from '@/lib/strip-ai-tool-metadata';
 export type HomeworkPracticeQuestion = {
   questionNumber?: number;
   question: string;
@@ -97,8 +101,10 @@ function toPracticeQuestions(value: unknown): HomeworkPracticeQuestion[] {
       continue;
     }
     const entry = row as Record<string, unknown>;
-    const question = coerceHomeworkText(
-      entry.question || entry.prompt || entry.text || entry.statement,
+    const question = stripAiGeneratorLeakage(
+      stripVariantScaffoldFromQuestionText(
+        coerceHomeworkText(entry.question || entry.prompt || entry.text || entry.statement),
+      ),
     );
     if (!question) continue;
     const marksRaw = entry.marks ?? entry.mark;

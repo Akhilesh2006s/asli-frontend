@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Sparkles, Download, Copy, Check, FileText, FileSpreadsheet, FileDown, Loader2 } from 'lucide-react';
+import { ArrowLeft, Sparkles, Download, Copy, Check, FileText, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import {
   isAiToolApiFailureInline,
@@ -54,7 +54,6 @@ import {
   STORY_PASSAGE_TOOL_ID,
 } from '@/lib/ai-tool-subject-rules';
 import {
-  downloadAiToolPdf,
   downloadTeacherToolCsv,
   isTeacherDownloadTool,
 } from '@/lib/ai-tool-teacher-export';
@@ -1373,38 +1372,6 @@ export default function TeacherToolPage() {
     }
   };
 
-  const handleDownloadPDF = async () => {
-    try {
-      setIsDownloading(true);
-      const fileName = `${config.name.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
-      await downloadAiToolPdf(
-        fileName,
-        `<div class="prose">${renderMarkdown(displayGeneratedContent)}</div>`,
-        {
-          toolName: config.name,
-          board: String(selectedBoard || ''),
-          classLabel: String(formParams.gradeLevel || ''),
-          subject: String(formParams.subject || formParams.subjects || ''),
-          topic: String(formParams.topic || ''),
-          subtopic: String(formParams.subTopic || ''),
-        },
-      );
-      toast({
-        title: 'Downloaded!',
-        description: 'Content downloaded as PDF successfully',
-      });
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to generate PDF',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
   const handleDownloadCSV = () => {
     try {
       setIsDownloading(true);
@@ -1739,10 +1706,6 @@ export default function TeacherToolPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={handleDownloadPDF} disabled={isDownloading}>
-                          <FileDown className="w-4 h-4 mr-2" />
-                          Download PDF
-                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={handleDownloadWord} disabled={isDownloading}>
                           <FileText className="w-4 h-4 mr-2" />
                           Download Word

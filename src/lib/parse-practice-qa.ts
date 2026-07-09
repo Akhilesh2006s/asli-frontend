@@ -3,6 +3,7 @@
  */
 
 import { viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
+import { sanitizeAiDisplayText } from '@/lib/sanitize-ai-display-text';
 import { renumberQuestionList, renumberSectionQuestionLists } from '@/lib/renumber-questions';
 
 export type PracticeQaQuestion = {
@@ -58,19 +59,19 @@ const SECTION_META: Record<string, { id: string; order: number; displayPrefix: s
 };
 
 function coalesceLines(v: unknown): string[] {
-  if (Array.isArray(v)) return v.map((x) => String(x ?? '').trim()).filter(Boolean);
+  if (Array.isArray(v)) return v.map((x) => sanitizeAiDisplayText(x)).filter(Boolean);
   if (typeof v === 'string' && v.trim()) {
     return v
       .split(/\n+/)
-      .map((ln) => ln.replace(/^\s*[-*•]\s*|\s*\d+[\).\s]+/i, '').trim())
+      .map((ln) => sanitizeAiDisplayText(ln.replace(/^\s*[-*•]\s*|\s*\d+[\).\s]+/i, '')))
       .filter(Boolean);
   }
   return [];
 }
 
 function coalesceText(v: unknown): string {
-  if (Array.isArray(v)) return v.map((x) => String(x).trim()).filter(Boolean).join('\n');
-  return String(v ?? '').trim();
+  if (Array.isArray(v)) return v.map((x) => sanitizeAiDisplayText(x)).filter(Boolean).join('\n');
+  return sanitizeAiDisplayText(v);
 }
 
 function stripInlineMarkdown(text: string): string {

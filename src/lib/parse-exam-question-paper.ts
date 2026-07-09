@@ -1,3 +1,5 @@
+import { stripVariantScaffoldFromQuestionText, stripAiGeneratorLeakage } from '@/lib/strip-ai-tool-metadata';
+
 export type ExamQuestion = {
   questionNumber: string;
   question: string;
@@ -41,11 +43,13 @@ export const EXAM_SECTION_DEFINITIONS: Array<{ id: string; title: string; keys: 
 const SECTION_META = EXAM_SECTION_DEFINITIONS;
 
 function cleanText(value: unknown): string {
-  return String(value ?? '')
-    .replace(/\r\n/g, '\n')
-    .replace(/\*\*/g, '')
-    .replace(/\s+#+\s*/g, ' ')
-    .trim();
+  return stripAiGeneratorLeakage(
+    String(value ?? '')
+      .replace(/\r\n/g, '\n')
+      .replace(/\*\*/g, '')
+      .replace(/\s+#+\s*/g, ' ')
+      .trim(),
+  );
 }
 
 const MCQ_OPTION_LABEL_RE = /^([A-Da-d])[\).:\-\s]+/;
@@ -162,7 +166,9 @@ function collectOptionsFromRow(row: Record<string, unknown>): string[] {
 
 function normalizeQuestion(value: unknown, idx: number): ExamQuestion {
   const row = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
-  let question = stripEmbeddedExamTail(cleanText(row.question || row.prompt || row.statement || ''));
+  let question = stripVariantScaffoldFromQuestionText(
+    stripEmbeddedExamTail(cleanText(row.question || row.prompt || row.statement || '')),
+  );
   let options = collectOptionsFromRow(row);
   if (options.length < 2) {
     const inline = extractInlineMcqFromQuestionText(question);
@@ -445,8 +451,12 @@ function parseQuestionBlockLines(
     questionBody.push(line);
   }
 
-  const joined = stripEmbeddedExamTail(cleanText([qTextStart, ...questionBody].join(' ').trim()));
-  let question = stripEmbeddedExamTail(cleanText(questionBody.join(' ').trim())) || joined;
+  const joined = stripVariantScaffoldFromQuestionText(
+    stripEmbeddedExamTail(cleanText([qTextStart, ...questionBody].join(' ').trim())),
+  );
+  let question =
+    stripVariantScaffoldFromQuestionText(stripEmbeddedExamTail(cleanText(questionBody.join(' ').trim()))) ||
+    joined;
   let finalOptions = options.length >= 2 ? formatLabeledMcqOptions(options) : options;
 
   if (finalOptions.length < 2) {
@@ -470,7 +480,7 @@ function parseQuestionBlockLines(
 }
 
 function isJunkExamQuestion(q: ExamQuestion): boolean {
-  const t = stripEmbeddedExamTail(String(q.question || '').trim());
+  const t = stripVariantScaffoldFromQuestionText(stripEmbeddedExamTail(String(q.question || '').trim()));
   if (!t) return true;
   if (/^Q\s*\d+\s*$/i.test(t)) return true;
   if (/^Q\s*\d+\s*\([^)]*\)\s*:/i.test(t) && t.length < 48) return true;

@@ -404,6 +404,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
         <motion.section
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
+          data-ai-focus-hide
           className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/80 p-5 shadow-[0_20px_50px_-28px_rgba(108,99,255,0.45)] backdrop-blur sm:p-7"
         >
           <div className="grid items-center gap-5 lg:grid-cols-[1fr_1.2fr_1fr]">
@@ -460,7 +461,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
         </motion.section>
 
         {/* Sticky progress */}
-        <div className="sticky top-2 z-20 rounded-2xl border border-white/80 bg-white/90 p-3 shadow-lg backdrop-blur-md sm:p-4">
+        <div data-ai-focus-hide className="sticky top-2 z-20 rounded-2xl border border-white/80 bg-white/90 p-3 shadow-lg backdrop-blur-md sm:p-4">
           <div className="flex flex-wrap items-center gap-3">
             <div className="min-w-0 flex-1">
               <div className="mb-1 flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
@@ -784,6 +785,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
           ) : null}
         </motion.div>
 
+        <div data-ai-insight-tail data-ai-focus-hide>
         <AiToolV2InsightTail
           rawContent={payload.rawContent}
           startNum={12}
@@ -802,9 +804,10 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
           }
           bestPracticesText="Study in order: overview → objectives → concepts → revision notes → practice. Reveal answers only after attempting questions to earn XP and lock in retention."
         />
+        </div>
 
         {/* Footer gamification */}
-        <div className="flex flex-col items-center justify-between gap-3 rounded-[1.75rem] border border-white/80 bg-white/80 px-4 py-4 text-center shadow-sm sm:flex-row sm:text-left">
+        <div data-ai-focus-hide className="flex flex-col items-center justify-between gap-3 rounded-[1.75rem] border border-white/80 bg-white/80 px-4 py-4 text-center shadow-sm sm:flex-row sm:text-left">
           <p className="flex items-center gap-2 text-sm font-medium text-slate-700">
             <RealisticIcon name="rocket" alt="" className="h-8 w-8" />
             Keep exploring, keep learning! Your journey to knowledge starts here.

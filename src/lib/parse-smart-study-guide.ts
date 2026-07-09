@@ -1,4 +1,5 @@
 import { formatLabeledMcqOptions } from '@/lib/parse-exam-question-paper';
+import { sanitizeAiDisplayText } from '@/lib/sanitize-ai-display-text';
 import { viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
 
 export type StudyGuideKeyConcept = { name: string; explanation: string };
@@ -94,9 +95,7 @@ export function studyGuideHasVisibleBody(guide: StudyGuideContent): boolean {
 }
 
 function cleanText(value: unknown): string {
-  return String(value ?? '')
-    .replace(/\r\n/g, '\n')
-    .trim();
+  return sanitizeAiDisplayText(value);
 }
 
 /** MCQ option lines / answer keys are not study guide titles. */

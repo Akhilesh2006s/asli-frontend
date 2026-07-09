@@ -46,7 +46,6 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { saveAs } from 'file-saver';
-import { downloadAiToolPdf } from '@/lib/ai-tool-teacher-export';
 import { AiToolResultShell } from '@/components/ai-tool-result-shell';
 import { AiToolV2InputSummary } from '@/components/ai-v2';
 import { GeneratorRecordViewer } from '@/components/super-admin/generator-record-viewer';
@@ -1631,41 +1630,6 @@ export default function StudentToolPage() {
         title: 'Error',
         description: 'Failed to generate Word document',
         variant: 'destructive'
-      });
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  const handleDownloadPDF = async () => {
-    try {
-      setIsDownloading(true);
-      const fileName = `${config.name.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
-      await downloadAiToolPdf(
-        fileName,
-        `<div class="prose prose-sm max-w-none">${renderMarkdown(
-          displayGeneratedContent,
-          toolType === 'smart-study-guide-generator' ? 'smart-study-guide' : 'default',
-        )}</div>`,
-        {
-          toolName: config.name,
-          board: String(selectedBoard || ''),
-          classLabel: String(formParams.gradeLevel || assignedGradeLevel || ''),
-          subject: String(formParams.subject || ''),
-          topic: String(formParams.topic || formParams.chapter || ''),
-          subtopic: String(formParams.subTopic || ''),
-        },
-      );
-      toast({
-        title: 'Downloaded!',
-        description: 'Content downloaded as PDF successfully',
-      });
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to generate PDF',
-        variant: 'destructive',
       });
     } finally {
       setIsDownloading(false);

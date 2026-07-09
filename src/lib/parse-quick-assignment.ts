@@ -1,4 +1,5 @@
 import { viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
+import { sanitizeAiDisplayText } from '@/lib/sanitize-ai-display-text';
 
 export type AssignmentQuestion = {
   question: string;
@@ -23,9 +24,7 @@ export type QuickAssignmentContent = {
 };
 
 function cleanText(value: unknown): string {
-  return String(value ?? '')
-    .replace(/\r\n/g, '\n')
-    .trim();
+  return sanitizeAiDisplayText(value);
 }
 
 function toList(value: unknown): string[] {

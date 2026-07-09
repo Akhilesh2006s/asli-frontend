@@ -182,7 +182,7 @@ export function GeneratorRecordViewer({
   const viewer = resolveViewerForRecord(record, slug, audience);
   if (!wrapHost) return viewer;
   return (
-    <AiToolViewerHost toolSlug={slug} rawContent={record}>
+    <AiToolViewerHost toolSlug={slug} rawContent={record} audience={audience}>
       {viewer}
     </AiToolViewerHost>
   );

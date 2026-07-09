@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AI_V2 } from '@/lib/ai-tool-design-tokens';
+import { aiToolSectionDomId } from '@/lib/ai-tool-section-id';
 import {
   RealisticIcon,
   lucideTo3dName,
@@ -72,9 +73,14 @@ export function AiToolStackedSection({
   const accentClass = accent || `bg-gradient-to-br ${theme.accent}`;
   const gradientClass = gradient || `bg-gradient-to-br ${theme.gradient}`;
   const LucideIcon = icon;
+  const sectionDomId = aiToolSectionDomId(numLabel, title);
 
   return (
     <motion.section
+      id={sectionDomId}
+      data-ai-section-id={sectionDomId}
+      data-ai-section-title={title}
+      data-ai-section-num={numLabel}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
@@ -117,7 +123,9 @@ export function AiToolStackedSection({
           )}
         </div>
       </header>
-      <div className={cn('bg-white/60', AI_V2.spacing.cardPadding)}>{children}</div>
+      <div className={cn('bg-white/60 ai-tool-section-body', AI_V2.spacing.cardPadding)} data-ai-section-body>
+        {children}
+      </div>
     </motion.section>
   );
 }

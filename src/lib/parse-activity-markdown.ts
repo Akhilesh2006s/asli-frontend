@@ -2,6 +2,12 @@
  * Parse Activity & Project Generator markdown (## Activity N + numbered sections) into structured rows.
  */
 
+import { stripAiGeneratorLeakage } from '@/lib/strip-ai-tool-metadata';
+
+function cleanActivityLine(line: string): string {
+  return stripAiGeneratorLeakage(String(line || '').trim());
+}
+
 export type ParsedActivity = {
   sl_no?: number;
   title?: string;
@@ -584,6 +590,20 @@ export function sanitizeParsedActivity(activity: ParsedActivity): ParsedActivity
   if (!String(out.differentiation_support_extension || '').trim() && out.differentiation) {
     out.differentiation_support_extension = out.differentiation;
   }
+
+  const cleanList = (value: unknown) =>
+    (Array.isArray(value) ? value : [])
+      .map((x) => cleanActivityLine(String(x ?? '')))
+      .filter(Boolean);
+  out.student_instructions = cleanList(out.student_instructions);
+  out.teacher_instructions = cleanList(out.teacher_instructions);
+  out.step_by_step_procedure = cleanList(out.step_by_step_procedure);
+  out.steps = cleanList(out.steps);
+  out.materials_required = cleanList(out.materials_required);
+  out.materials = cleanList(out.materials);
+  out.subtopic_link_prior_knowledge = cleanActivityLine(String(out.subtopic_link_prior_knowledge || ''));
+  out.title = cleanActivityLine(String(out.title || out.name || ''));
+  out.name = out.title;
 
   return out;
 }

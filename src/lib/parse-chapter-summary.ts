@@ -1,4 +1,5 @@
 import { viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
+import { sanitizeAiDisplayText } from '@/lib/sanitize-ai-display-text';
 
 export type ChapterSummaryConcept = { name: string; explanation: string };
 export type ChapterSummaryDefinition = { term: string; definition: string };
@@ -18,9 +19,7 @@ export type ChapterSummaryContent = {
 };
 
 function cleanText(value: unknown): string {
-  return String(value ?? '')
-    .replace(/\r\n/g, '\n')
-    .trim();
+  return sanitizeAiDisplayText(value);
 }
 
 function toList(value: unknown): string[] {

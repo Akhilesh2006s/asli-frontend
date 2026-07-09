@@ -16,6 +16,20 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { stripAiGeneratorLeakage, isScaffoldFlashcardPair, isScaffoldDeckMetaText, stripLessonPlanLeakFromLabel } from '@/lib/strip-ai-tool-metadata';
+
+function cleanFlashcardText(text: string): string {
+  return stripAiGeneratorLeakage(String(text || '').replace(/\*\*/g, '').trim());
+}
+
+function cleanFlashcardLabel(text: string): string {
+  return stripLessonPlanLeakFromLabel(cleanFlashcardText(text));
+}
+
+function filterDisplayFlashcards(cards: Flashcard[]): Flashcard[] {
+  const real = cards.filter((card) => !isScaffoldFlashcardPair(card.front, card.back));
+  return real.length > 0 ? real : cards.filter((card) => card.front && card.back);
+}
 
 // Add CSS for 3D flip effect
 const flashcardStyles = `
@@ -241,7 +255,14 @@ export function FlashcardViewer({
     ) {
       parsedCards = parseFlashcards(JSON.stringify({ raw: rawContent }));
     }
-    setDeckTitle(
+    const cleanedCards = filterDisplayFlashcards(
+      parsedCards.map((card) => ({
+        ...card,
+        front: cleanFlashcardText(card.front),
+        back: cleanFlashcardText(card.back),
+      })),
+    );
+    setDeckTitle(cleanFlashcardText(
       tryParseDeckTitle(content) ||
         String(
           (rawContent as Record<string, unknown> | null | undefined)?.flashcard_deck_title ||
@@ -249,11 +270,48 @@ export function FlashcardViewer({
             (rawContent as Record<string, unknown> | null | undefined)?.title ||
             '',
         ).trim(),
-    );
+    ));
+    const meta =
+      variant === 'teacher' ? tryParseTeacherDeckMeta(content, rawContent) : null;
     setTeacherMeta(
-      variant === 'teacher' ? tryParseTeacherDeckMeta(content, rawContent) : null,
+      meta
+        ? {
+            ...meta,
+            title: cleanFlashcardText(meta.title || ''),
+            priorKnowledgeRequired: isScaffoldDeckMetaText(meta.priorKnowledgeRequired || '')
+              ? ''
+              : cleanFlashcardText(meta.priorKnowledgeRequired || ''),
+            ncfCompetencyAlignment: isScaffoldDeckMetaText(meta.ncfCompetencyAlignment || '')
+              ? ''
+              : cleanFlashcardText(meta.ncfCompetencyAlignment || ''),
+            learningObjectives: (meta.learningObjectives || [])
+              .map(cleanFlashcardText)
+              .filter((line) => line && !isScaffoldDeckMetaText(line)),
+            topic: cleanFlashcardLabel(meta.topic || ''),
+            subtopic: cleanFlashcardLabel(meta.subtopic || ''),
+            topicAndSubtopicLink: cleanFlashcardLabel(meta.topicAndSubtopicLink || ''),
+            deckMemoryHook: isScaffoldDeckMetaText(meta.deckMemoryHook || '')
+              ? ''
+              : cleanFlashcardText(meta.deckMemoryHook || ''),
+            selfCheckRapidRecallRound: isScaffoldDeckMetaText(meta.selfCheckRapidRecallRound || '')
+              ? ''
+              : cleanFlashcardText(meta.selfCheckRapidRecallRound || ''),
+            commonMistakesToAvoid: (meta.commonMistakesToAvoid || [])
+              .map(cleanFlashcardText)
+              .filter((line) => line && !isScaffoldDeckMetaText(line)),
+            differentiationSupport: isScaffoldDeckMetaText(meta.differentiationSupport || '')
+              ? ''
+              : cleanFlashcardText(meta.differentiationSupport || ''),
+            realLifeConnection: isScaffoldDeckMetaText(meta.realLifeConnection || '')
+              ? ''
+              : cleanFlashcardText(meta.realLifeConnection || ''),
+            reflectionExitTicket: isScaffoldDeckMetaText(meta.reflectionExitTicket || '')
+              ? ''
+              : cleanFlashcardText(meta.reflectionExitTicket || ''),
+          }
+        : null,
     );
-    setAllCards(parsedCards);
+    setAllCards(cleanedCards);
     setActiveCategory('all');
     setCurrentIndex(0);
     setIsFlipped(false);
@@ -1313,9 +1371,13 @@ function tryParseTeacherDeckMeta(content: string, rawContent?: unknown): Teacher
   const raw = rawRecordFromContent(content, rawContent);
   if (!raw) return null;
   const title = String(raw.flashcard_deck_title || raw.deck_title || raw.title || '').trim();
-  const topic = String(raw.topic || '').trim();
-  const subtopic = String(raw.subtopic || raw.sub_topic || '').trim();
-  const topicLink = String(raw.topic_and_subtopic_link || raw.subtopic_link || '').trim();
+  const topic = stripLessonPlanLeakFromLabel(String(raw.topic || '').trim());
+  const subtopic = stripLessonPlanLeakFromLabel(
+    String(raw.subtopic || raw.sub_topic || '').trim(),
+  );
+  const topicLink = stripLessonPlanLeakFromLabel(
+    String(raw.topic_and_subtopic_link || raw.subtopic_link || '').trim(),
+  );
   if (!title && !topic && !subtopic && !topicLink) return null;
   return {
     title: title || 'Flashcard deck',

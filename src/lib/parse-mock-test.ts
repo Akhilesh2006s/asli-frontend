@@ -1,3 +1,4 @@
+import { sanitizeAiDisplayText } from '@/lib/sanitize-ai-display-text';
 import {
   examPaperHasQuestions,
   mergeExamPapers,
@@ -34,9 +35,7 @@ export type ResolvedMockTest = {
 };
 
 function cleanText(value: unknown): string {
-  return String(value ?? '')
-    .replace(/\r\n/g, '\n')
-    .trim();
+  return sanitizeAiDisplayText(value);
 }
 
 /** Strings, string arrays, or simple objects from structuredContent → display text. */

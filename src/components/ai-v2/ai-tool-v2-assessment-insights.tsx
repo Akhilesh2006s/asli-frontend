@@ -286,5 +286,9 @@ export function AiToolV2InsightTail({
   );
 
   if (!sections.length) return null;
-  return <div className={cn(AI_V2.spacing.section, 'mt-4')}>{sections}</div>;
+  return (
+    <div data-ai-insight-tail data-ai-focus-hide className={cn(AI_V2.spacing.section, 'mt-4')}>
+      {sections}
+    </div>
+  );
 }

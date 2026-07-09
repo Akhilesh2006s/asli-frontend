@@ -26,7 +26,7 @@ import {
   resolveActivitiesFromPayload,
   type ParsedActivity,
 } from '@/lib/parse-activity-markdown';
-import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
+import { stripStructuredAiToolMetadata, stripAiGeneratorLeakage } from '@/lib/strip-ai-tool-metadata';
 import {
   isActivityProjectGeneratorSlug,
   isProjectIdeaLabSlug,
@@ -57,10 +57,12 @@ type NormalizedActivity = {
 };
 
 function stripOrderedPrefix(line: string): string {
-  return String(line || '')
-    .replace(/^\s*\d+[\).\s]+/i, '')
-    .replace(/^\s*[-*•]\s*/, '')
-    .trim();
+  return stripAiGeneratorLeakage(
+    String(line || '')
+      .replace(/^\s*\d+[\).\s]+/i, '')
+      .replace(/^\s*[-*•]\s*/, '')
+      .trim(),
+  );
 }
 
 function coalesceLines(v: unknown): string[] {
@@ -111,7 +113,7 @@ function normalizeActivity(
 
   return {
     sl: Number(a.sl_no) || idx + 1,
-    title: String(a.title || a.name || `Activity ${idx + 1}`).trim(),
+    title: stripAiGeneratorLeakage(String(a.title || a.name || `Activity ${idx + 1}`).trim()),
     subtopicLink: firstNonEmptyFromActivity(
       a.subtopic_link_prior_knowledge,
       (a as Record<string, unknown>).subtopicLinkPriorKnowledge,

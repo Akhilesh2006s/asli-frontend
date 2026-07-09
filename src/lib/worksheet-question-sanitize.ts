@@ -1,3 +1,5 @@
+import { stripVariantScaffoldFromQuestionText, stripAiGeneratorLeakage } from '@/lib/strip-ai-tool-metadata';
+
 /** Mirrors backend pdf-worksheet-extract filters for worksheet list/view parsing. */
 
 export function isWorksheetAnswerKeyLike(text: string): boolean {
@@ -83,7 +85,7 @@ export function cleanWorksheetQuestionText(text: string): string {
   if (/\.\s+\d{1,2}[\.\):\-]\s+/i.test(q)) {
     q = q.replace(/\.\s+\d{1,2}[\.\):\-]\s+.+$/i, '.').trim();
   }
-  return q;
+  return stripAiGeneratorLeakage(stripVariantScaffoldFromQuestionText(q));
 }
 
 export function looksLikeWorksheetQuestionPrompt(text: string): boolean {

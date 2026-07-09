@@ -8,6 +8,8 @@ export const TOOLS_WITH_BUILTIN_INSIGHTS = new Set([
   'story-passage-creator',
   'reading-practice-room',
   'smart-study-guide-generator',
+  'homework-creator',
+  'flashcard-generator',
 ]);
 
 export type ToolInsightConfig = {

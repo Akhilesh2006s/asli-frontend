@@ -14,10 +14,10 @@ export type ConceptBreakdownContent = {
   quickRevisionSummary: string;
 };
 
+import { sanitizeAiDisplayText } from '@/lib/sanitize-ai-display-text';
+
 function cleanText(value: unknown): string {
-  return String(value ?? '')
-    .replace(/\r\n/g, '\n')
-    .trim();
+  return sanitizeAiDisplayText(value);
 }
 
 function toList(value: unknown): string[] {
