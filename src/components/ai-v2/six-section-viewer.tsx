@@ -188,15 +188,18 @@ function Blocks({ blocks, accent }: { blocks: ContentBlock[]; accent: Accent }) 
               </div>
             );
           case 'bloom':
+            // 2-up grid: the Bloom block lives in the narrow half-width "Objectives"
+            // section, so 5-across collapsed cards and clipped labels ("Understan…").
+            // A 2-col grid gives wide, balanced cards that never clip.
             return (
-              <div key={i} className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+              <div key={i} className="grid grid-cols-2 gap-3">
                 {b.chips.map((c, j) => {
                   const tone = ACCENTS[BLOOM_TONE[j % BLOOM_TONE.length]];
                   return (
                     <div key={j} className={cn('rounded-2xl border p-3 text-center', tone.soft, tone.ring)}>
                       <div className={cn('mx-auto mb-2 h-1.5 w-8 rounded-full', tone.dot)} />
-                      <div className={cn('text-sm font-extrabold', tone.text)}>{c.level}</div>
-                      <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">{c.desc}</div>
+                      <div className={cn('text-sm font-extrabold leading-tight break-words', tone.text)}>{c.level}</div>
+                      <div className="mt-1 text-xs leading-snug text-slate-500 dark:text-slate-400">{c.desc}</div>
                     </div>
                   );
                 })}
