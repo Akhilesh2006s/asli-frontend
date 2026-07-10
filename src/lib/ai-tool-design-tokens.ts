@@ -74,16 +74,19 @@ export const BLOOM_LEVEL_STYLES: Record<
   },
 };
 
+// Subject-neutral NEP/NCF competencies — true for any subject (Science, Social
+// Science, Maths, Languages). Used only as a fallback when the generated content
+// doesn't supply its own competency list, so it must never read as science-only.
 export const COMPETENCY_DEFAULTS = [
-  { id: 'observation', label: 'Observation', description: 'Students notice and record scientific phenomena accurately.' },
-  { id: 'explanation', label: 'Explanation', description: 'Students describe concepts using correct scientific vocabulary.' },
-  { id: 'reasoning', label: 'Reasoning', description: 'Students connect evidence to conclusions logically.' },
-  { id: 'application', label: 'Everyday Science Connections', description: 'Students relate classroom ideas to daily life contexts.' },
+  { id: 'conceptual', label: 'Conceptual Understanding', description: 'Students grasp core concepts and how they connect.' },
+  { id: 'application', label: 'Application & Problem-Solving', description: 'Students apply learning to new problems and real-life situations.' },
+  { id: 'reasoning', label: 'Critical Thinking', description: 'Students analyse information and reason towards well-supported conclusions.' },
+  { id: 'communication', label: 'Communication', description: 'Students express ideas clearly using accurate subject terminology.' },
 ] as const;
 
 export const NEP_ALIGNMENT_DEFAULTS = [
   { id: 'competency', label: 'Competency-Based Assessment' },
   { id: 'conceptual', label: 'Conceptual Understanding' },
-  { id: 'inquiry', label: 'Inquiry & Scientific Temper' },
+  { id: 'inquiry', label: 'Critical Thinking & Inquiry' },
   { id: 'holistic', label: 'Holistic & Experiential Learning' },
 ] as const;
