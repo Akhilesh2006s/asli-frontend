@@ -29,6 +29,8 @@ import {
   QuickAssignmentViewer,
   quickAssignmentViewerPayloadFromRecord,
 } from '@/components/quick-assignment-viewer';
+import { SixSectionViewer } from '@/components/ai-v2/six-section-viewer';
+import { mapV2ToViewer } from '@/lib/six-section-map';
 
 export type AiToolViewerAudience = 'teacher' | 'student';
 
@@ -49,6 +51,24 @@ export function resolveViewerForRecord(
 ): ReactNode {
   const generatedContent = String(record.generatedContent || record.content || '');
   const isStudent = audience === 'student';
+
+  // V2 six-section content renders through the shared SixSectionViewer.
+  const v2 = recordStructuredRaw(record) as { schema?: string } | undefined;
+  if (v2 && typeof v2 === 'object' && v2.schema === 'asli-v2-six-section') {
+    const val = (k: string) => String((record as Record<string, unknown>)[k] || '');
+    const props = mapV2ToViewer(slug, v2 as Record<string, unknown>, {
+      name: String(record.toolDisplayName || record.toolName || slug),
+      curriculum: {
+        board: val('board'),
+        class: val('classLabel') || val('className'),
+        subject: val('subject'),
+        chapter: val('topic'),
+        subtopic: val('subtopic'),
+      },
+      chapter: { title: val('topic'), subtopic: val('subtopic') },
+    });
+    return <SixSectionViewer {...props} />;
+  }
 
   if (slug === 'my-study-decks') {
     return <MyStudyDecksViewer {...deckViewerPayloadFromRecord(record)} />;

@@ -37,6 +37,7 @@ import AIToolsDashboard from "./pages/ai-tools-dashboard";
 import Privacy from "./pages/privacy";
 import Terms from "./pages/terms";
 import Contact from "./pages/contact";
+import SixPreview from "./pages/six-preview";
 
 function EduOTTWithFilters() {
   return (
@@ -50,6 +51,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Homepage} />
+      <Route path="/six-preview" component={SixPreview} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/learning-paths" component={LearningPaths} />
       <Route path="/tests" component={PracticeTests} />
