@@ -178,7 +178,12 @@ function legacyQuestionsToV2(sc: Dict, content: string): Dict {
   if (worksheet?.sections?.length) {
     let n = 0;
     for (const sec of worksheet.sections) {
-      const label = sec.sectionName.toLowerCase();
+      const label = String(
+        (sec as { sectionName?: string; label?: string; displayLabel?: string }).sectionName ||
+          sec.label ||
+          sec.displayLabel ||
+          '',
+      ).toLowerCase();
       for (const q of sec.questions || []) {
         n += 1;
         const row = {
