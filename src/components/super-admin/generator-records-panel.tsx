@@ -687,10 +687,8 @@ export function GeneratorRecordsPanel({
           <DialogHeader className="shrink-0 border-b px-4 py-3 sm:px-6">
             <DialogTitle>Generated Record</DialogTitle>
           </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-6">
-            <div className="min-w-0 rounded-xl border bg-white p-4 shadow-sm">
-              <GeneratorRecordViewer record={activeRecord} />
-            </div>
+          <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50/80 px-2 py-2 sm:px-4 sm:py-4">
+            <GeneratorRecordViewer record={activeRecord} />
           </div>
         </DialogContent>
       </Dialog>

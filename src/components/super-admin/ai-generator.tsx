@@ -1601,10 +1601,8 @@ export default function SuperAdminAiGenerator() {
           <DialogHeader className="shrink-0 border-b border-slate-100 px-4 py-3 sm:px-6">
             <DialogTitle>Generated Record</DialogTitle>
           </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-3 sm:px-4 sm:py-4 lg:px-6">
-          <div className="min-w-0 bg-white border border-slate-200 rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm">
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-slate-50/80 px-2 py-2 sm:px-4 sm:py-4">
             <GeneratorRecordViewer record={activeRecord} />
-          </div>
           </div>
         </DialogContent>
       </Dialog>

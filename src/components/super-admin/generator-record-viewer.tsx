@@ -1,190 +1,43 @@
 import type { ReactNode } from 'react';
 import { GeneratedRecordBody } from '@/components/super-admin/generated-record-body';
-import { AiToolViewerHost } from '@/components/ai-v2/ai-tool-viewer-host';
-import { ActivityProjectViewer, activityViewerPayloadFromRecord } from '@/components/activity-project-viewer';
-import { isActivityToolSlug, normalizeAiToolSlug } from '@/lib/normalize-ai-tool-slug';
-import { FlashcardViewer } from '@/components/flashcard-viewer';
-import { MyStudyDecksViewer, deckViewerPayloadFromRecord } from '@/components/my-study-decks-viewer';
-import { MockTestViewer, mockTestViewerPayloadFromRecord } from '@/components/mock-test-viewer';
-import { ExamQuestionPaperViewer, examViewerPayloadFromRecord } from '@/components/exam-question-paper-viewer';
-import { SmartStudyGuideViewer, studyGuideViewerPayloadFromRecord } from '@/components/smart-study-guide-viewer';
-import { ConceptBreakdownViewer, conceptBreakdownViewerPayloadFromRecord } from '@/components/concept-breakdown-viewer';
-import { PracticeQaViewer, practiceQaViewerPayloadFromRecord } from '@/components/practice-qa-viewer';
-import { KeyPointsViewer, keyPointsViewerPayloadFromRecord } from '@/components/key-points-viewer';
-import { HomeworkCreatorViewer } from '@/components/homework-creator-viewer';
-import { LessonPlannerViewer } from '@/components/lesson-planner-viewer';
-import { DailyClassPlanViewer } from '@/components/daily-class-plan-viewer';
-import { StoryPassageViewer } from '@/components/story-passage-viewer';
-import { ShortNotesViewer } from '@/components/short-notes-viewer';
-import { WorksheetMcqViewer } from '@/components/worksheet-mcq-viewer';
-import {
-  ConceptMasteryViewer,
-  conceptMasteryViewerPayloadFromRecord,
-} from '@/components/concept-mastery-viewer';
-import {
-  ChapterSummaryViewer,
-  chapterSummaryViewerPayloadFromRecord,
-} from '@/components/chapter-summary-viewer';
-import {
-  QuickAssignmentViewer,
-  quickAssignmentViewerPayloadFromRecord,
-} from '@/components/quick-assignment-viewer';
 import { SixSectionViewer } from '@/components/ai-v2/six-section-viewer';
-import { mapV2ToViewer } from '@/lib/six-section-map';
+import { mapRecordToSixSectionViewer } from '@/lib/six-section-map';
+import { normalizeAiToolSlug } from '@/lib/normalize-ai-tool-slug';
 
 export type AiToolViewerAudience = 'teacher' | 'student';
 
-function isWorksheetToolValue(v: unknown): boolean {
-  const t = String(v || '').trim().toLowerCase();
-  return t === 'worksheet-mcq-generator' || (t.includes('worksheet') && t.includes('mcq'));
-}
-
-function recordStructuredRaw(record: Record<string, unknown>): unknown {
-  const meta = record.metadata as { structuredContent?: unknown } | undefined;
-  return record.structuredContent ?? meta?.structuredContent ?? record;
+function recordMeta(record: Record<string, unknown>, slug: string) {
+  const val = (k: string) => String(record[k] || '').trim();
+  return {
+    name: String(record.toolDisplayName || record.toolName || slug).trim(),
+    curriculum: {
+      board: val('board'),
+      class: val('classLabel') || val('className'),
+      subject: val('subject'),
+      chapter: val('topic'),
+      subtopic: val('subtopic'),
+    },
+    chapter: { title: val('topic'), subtopic: val('subtopic') },
+  };
 }
 
 export function resolveViewerForRecord(
   record: Record<string, unknown>,
   slug: string,
-  audience: AiToolViewerAudience = 'teacher',
+  _audience: AiToolViewerAudience = 'teacher',
 ): ReactNode {
+  const sixSection = mapRecordToSixSectionViewer(slug, record, recordMeta(record, slug));
+  if (sixSection) {
+    return <SixSectionViewer {...sixSection} />;
+  }
+
   const generatedContent = String(record.generatedContent || record.content || '');
-  const isStudent = audience === 'student';
-
-  // V2 six-section content renders through the shared SixSectionViewer.
-  const v2 = recordStructuredRaw(record) as { schema?: string } | undefined;
-  if (v2 && typeof v2 === 'object' && v2.schema === 'asli-v2-six-section') {
-    const val = (k: string) => String((record as Record<string, unknown>)[k] || '');
-    const props = mapV2ToViewer(slug, v2 as Record<string, unknown>, {
-      name: String(record.toolDisplayName || record.toolName || slug),
-      curriculum: {
-        board: val('board'),
-        class: val('classLabel') || val('className'),
-        subject: val('subject'),
-        chapter: val('topic'),
-        subtopic: val('subtopic'),
-      },
-      chapter: { title: val('topic'), subtopic: val('subtopic') },
-    });
-    return <SixSectionViewer {...props} />;
-  }
-
-  if (slug === 'my-study-decks') {
-    return <MyStudyDecksViewer {...deckViewerPayloadFromRecord(record)} />;
-  }
-  if (slug === 'flashcard-generator') {
-    const deckPayload = deckViewerPayloadFromRecord(record);
-    return (
-      <FlashcardViewer
-        content={deckPayload.content}
-        rawContent={deckPayload.rawContent}
-        variant={isStudent ? 'student' : 'teacher'}
-      />
-    );
-  }
-  if (isWorksheetToolValue(slug)) {
-    return (
-      <WorksheetMcqViewer
-        content={generatedContent}
-        rawContent={record}
-        variant={isStudent ? 'student' : 'teacher'}
-      />
-    );
-  }
-  if (slug === 'lesson-planner') {
-    return (
-      <LessonPlannerViewer
-        content={generatedContent}
-        rawContent={record}
-        variant="teacher"
-        toolKind="lesson-planner"
-      />
-    );
-  }
-  if (slug === 'study-schedule-maker') {
-    return (
-      <LessonPlannerViewer
-        content={generatedContent}
-        rawContent={record}
-        variant="student"
-        toolKind="study-schedule-maker"
-      />
-    );
-  }
-  if (slug === 'daily-class-plan-maker') {
-    return (
-      <DailyClassPlanViewer
-        content={generatedContent}
-        rawContent={recordStructuredRaw(record)}
-        variant="teacher"
-      />
-    );
-  }
-  if (slug === 'homework-creator') {
-    return <HomeworkCreatorViewer content={generatedContent} rawContent={record} />;
-  }
-  if (slug === 'mock-test-builder') {
-    return <MockTestViewer {...mockTestViewerPayloadFromRecord(record)} />;
-  }
-  if (slug === 'exam-question-paper-generator') {
-    return (
-      <ExamQuestionPaperViewer
-        {...examViewerPayloadFromRecord(record)}
-        variant={isStudent ? 'student' : 'teacher'}
-      />
-    );
-  }
-  if (slug === 'smart-study-guide-generator') {
-    return <SmartStudyGuideViewer {...studyGuideViewerPayloadFromRecord(record)} />;
-  }
-  if (slug === 'concept-breakdown-explainer') {
-    return <ConceptBreakdownViewer {...conceptBreakdownViewerPayloadFromRecord(record)} />;
-  }
-  if (slug === 'smart-qa-practice-generator') {
-    return <PracticeQaViewer {...practiceQaViewerPayloadFromRecord(record)} />;
-  }
-  if (slug === 'key-points-formula-extractor') {
-    return <KeyPointsViewer {...keyPointsViewerPayloadFromRecord(record)} />;
-  }
-  if (slug === 'chapter-summary-creator') {
-    return <ChapterSummaryViewer {...chapterSummaryViewerPayloadFromRecord(record)} />;
-  }
-  if (slug === 'quick-assignment-builder') {
-    return <QuickAssignmentViewer {...quickAssignmentViewerPayloadFromRecord(record)} />;
-  }
-  if (slug === 'short-notes-summaries-maker') {
-    return (
-      <ShortNotesViewer
-        content={generatedContent}
-        rawContent={
-          (record as { metadata?: { structuredContent?: unknown } }).metadata?.structuredContent ||
-          record
-        }
-      />
-    );
-  }
-  if (isActivityToolSlug(slug)) {
-    return <ActivityProjectViewer {...activityViewerPayloadFromRecord(record)} />;
-  }
-  if (slug === 'concept-mastery-helper') {
-    return (
-      <ConceptMasteryViewer
-        {...conceptMasteryViewerPayloadFromRecord(record)}
-        variant={isStudent ? 'student' : 'teacher'}
-      />
-    );
-  }
-  if (slug === 'story-passage-creator' || slug === 'reading-practice-room') {
-    return (
-      <StoryPassageViewer
-        content={generatedContent}
-        rawData={record}
-        variant={slug === 'reading-practice-room' || isStudent ? 'student' : 'default'}
-      />
-    );
-  }
   return <GeneratedRecordBody content={generatedContent} toolType={slug} />;
+}
+
+export function recordUsesSixSectionViewer(record: Record<string, unknown> | null, slug: string): boolean {
+  if (!record) return false;
+  return mapRecordToSixSectionViewer(slug, record, recordMeta(record, slug)) != null;
 }
 
 export function GeneratorRecordViewer({
@@ -194,16 +47,10 @@ export function GeneratorRecordViewer({
 }: {
   record: Record<string, unknown> | null;
   audience?: AiToolViewerAudience;
-  /** When false, only the tool viewer is returned (host already applied upstream). */
+  /** @deprecated Host wrapper removed — six-section UI is self-contained. */
   wrapHost?: boolean;
 }) {
   if (!record) return null;
   const slug = normalizeAiToolSlug(record.toolSlug || record.toolName);
-  const viewer = resolveViewerForRecord(record, slug, audience);
-  if (!wrapHost) return viewer;
-  return (
-    <AiToolViewerHost toolSlug={slug} rawContent={record} audience={audience}>
-      {viewer}
-    </AiToolViewerHost>
-  );
+  return resolveViewerForRecord(record, slug, audience);
 }
