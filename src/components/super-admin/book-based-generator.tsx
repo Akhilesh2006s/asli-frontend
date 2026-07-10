@@ -400,6 +400,8 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
 
     const savedCount = Number(data.savedCount) || 0;
     const failedCount = Number(data.failedCount) || 0;
+    const bookTextUsed = data.bookTextUsed !== false;
+    const ragChunkCount = Number(data.ragChunkCount) || 0;
     const resultBatchSize = Number(data.batchSize) || parseGenerationRecordCount(generationRecordCount) || 0;
     const batchFailures = Array.isArray(data.failures) ? (data.failures as string[]) : [];
     setLastBatchSummary({
@@ -416,7 +418,10 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
       setRecordsReloadNonce((n) => n + 1);
       toast({
         title: `${savedCount}/${resultBatchSize} saved`,
-        description: `${tokenNote}. Browse below or in AI Tool Data — same records, textbook-grounded content.`,
+        description: bookTextUsed
+          ? `${tokenNote}. Used ${ragChunkCount} textbook passage(s). Browse below or in AI Tool Data.`
+          : `${tokenNote}. Warning: no textbook passages were retrieved — content may not be book-grounded. Reindex the book or verify topic/subtopic.`,
+        variant: bookTextUsed ? "default" : "destructive",
       });
     } else {
       const failures = data.failures as string[] | undefined;
