@@ -36,9 +36,12 @@ const V2_BG = [
   'from-slate-50/80 to-slate-100/50',
 ] as const;
 
-function themeForNum(num: string) {
-  const n = parseInt(String(num).replace(/\D/g, ''), 10);
-  const i = Number.isFinite(n) && n > 0 ? (n - 1) % V2_ACCENTS.length : 0;
+/** Stable color theme from title (no visible section numbers). */
+function themeForTitle(title: string, numHint = '') {
+  const key = `${title}|${numHint}`;
+  let hash = 0;
+  for (let i = 0; i < key.length; i += 1) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+  const i = hash % V2_ACCENTS.length;
   return { accent: V2_ACCENTS[i], gradient: V2_BG[i] };
 }
 
@@ -69,7 +72,7 @@ export function AiToolStackedSection({
 }) {
   const resolved = iconName || lucideTo3dName(icon);
   const numLabel = String(num).replace(/^section\s*/i, '').trim() || num;
-  const theme = themeForNum(numLabel);
+  const theme = themeForTitle(title, numLabel);
   const accentClass = accent || `bg-gradient-to-br ${theme.accent}`;
   const gradientClass = gradient || `bg-gradient-to-br ${theme.gradient}`;
   const LucideIcon = icon;
@@ -80,7 +83,7 @@ export function AiToolStackedSection({
       id={sectionDomId}
       data-ai-section-id={sectionDomId}
       data-ai-section-title={title}
-      data-ai-section-num={numLabel}
+      data-ai-section-num=""
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
@@ -98,21 +101,18 @@ export function AiToolStackedSection({
         <div className="flex min-w-0 items-start gap-3">
           <span
             className={cn(
-              'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white shadow-sm',
+              'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white shadow-sm',
               accentClass,
             )}
+            aria-hidden
           >
-            {numLabel.length > 3 ? numLabel.slice(0, 2) : numLabel}
+            ◆
           </span>
           <div className="min-w-0">
             <p className={AI_V2.typography.sectionTitle}>{title}</p>
             {description ? (
               <p className={cn('mt-0.5', AI_V2.typography.sectionDesc)}>{description}</p>
-            ) : (
-              <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                Section {numLabel}
-              </p>
-            )}
+            ) : null}
           </div>
         </div>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/90 bg-white/90 shadow-sm">

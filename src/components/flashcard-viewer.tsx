@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { stripAiGeneratorLeakage, isScaffoldFlashcardPair, isScaffoldDeckMetaText, stripLessonPlanLeakFromLabel } from '@/lib/strip-ai-tool-metadata';
+import { stripAiGeneratorLeakage, isScaffoldFlashcardPair, isScaffoldDeckMetaText, stripLessonPlanLeakFromLabel, sanitizeFlashcardTopicLink, normalizeFlashcardClassLevel } from '@/lib/strip-ai-tool-metadata';
 
 function cleanFlashcardText(text: string): string {
   return stripAiGeneratorLeakage(String(text || '').replace(/\*\*/g, '').trim());
@@ -27,8 +27,7 @@ function cleanFlashcardLabel(text: string): string {
 }
 
 function filterDisplayFlashcards(cards: Flashcard[]): Flashcard[] {
-  const real = cards.filter((card) => !isScaffoldFlashcardPair(card.front, card.back));
-  return real.length > 0 ? real : cards.filter((card) => card.front && card.back);
+  return cards.filter((card) => card.front && card.back && !isScaffoldFlashcardPair(card.front, card.back));
 }
 
 // Add CSS for 3D flip effect
@@ -271,43 +270,60 @@ export function FlashcardViewer({
             '',
         ).trim(),
     ));
-    const meta =
-      variant === 'teacher' ? tryParseTeacherDeckMeta(content, rawContent) : null;
+    const parsedMeta = variant === 'teacher' ? tryParseTeacherDeckMeta(content, rawContent) : null;
+    let formattedMarkdown = '';
+    if (content.trim().startsWith('{')) {
+      try {
+        const envelope = JSON.parse(content) as { formatted?: string };
+        formattedMarkdown = String(envelope.formatted || '').trim();
+      } catch {
+        formattedMarkdown = '';
+      }
+    } else if (!content.trim().startsWith('{')) {
+      formattedMarkdown = content.trim();
+    }
+    const formattedMeta =
+      variant === 'teacher' && formattedMarkdown
+        ? parseTeacherDeckMetaFromFormatted(formattedMarkdown)
+        : {};
+    const mergedMeta = mergeTeacherDeckMeta(parsedMeta, formattedMeta);
     setTeacherMeta(
-      meta
+      mergedMeta
         ? {
-            ...meta,
-            title: cleanFlashcardText(meta.title || ''),
-            priorKnowledgeRequired: isScaffoldDeckMetaText(meta.priorKnowledgeRequired || '')
+            ...mergedMeta,
+            title: cleanFlashcardText(mergedMeta.title || ''),
+            priorKnowledgeRequired: isScaffoldDeckMetaText(mergedMeta.priorKnowledgeRequired || '')
               ? ''
-              : cleanFlashcardText(meta.priorKnowledgeRequired || ''),
-            ncfCompetencyAlignment: isScaffoldDeckMetaText(meta.ncfCompetencyAlignment || '')
+              : cleanFlashcardText(mergedMeta.priorKnowledgeRequired || ''),
+            ncfCompetencyAlignment: isScaffoldDeckMetaText(mergedMeta.ncfCompetencyAlignment || '')
               ? ''
-              : cleanFlashcardText(meta.ncfCompetencyAlignment || ''),
-            learningObjectives: (meta.learningObjectives || [])
+              : cleanFlashcardText(mergedMeta.ncfCompetencyAlignment || ''),
+            learningObjectives: (mergedMeta.learningObjectives || [])
               .map(cleanFlashcardText)
               .filter((line) => line && !isScaffoldDeckMetaText(line)),
-            topic: cleanFlashcardLabel(meta.topic || ''),
-            subtopic: cleanFlashcardLabel(meta.subtopic || ''),
-            topicAndSubtopicLink: cleanFlashcardLabel(meta.topicAndSubtopicLink || ''),
-            deckMemoryHook: isScaffoldDeckMetaText(meta.deckMemoryHook || '')
+            topic: sanitizeFlashcardTopicLabel(mergedMeta.topic || ''),
+            subtopic: sanitizeFlashcardTopicLabel(mergedMeta.subtopic || ''),
+            topicAndSubtopicLink: sanitizeFlashcardTopicLabel(mergedMeta.topicAndSubtopicLink || ''),
+            deckMemoryHook: isScaffoldDeckMetaText(mergedMeta.deckMemoryHook || '')
               ? ''
-              : cleanFlashcardText(meta.deckMemoryHook || ''),
-            selfCheckRapidRecallRound: isScaffoldDeckMetaText(meta.selfCheckRapidRecallRound || '')
+              : cleanFlashcardText(mergedMeta.deckMemoryHook || ''),
+            selfCheckRapidRecallRound: isScaffoldDeckMetaText(
+              mergedMeta.selfCheckRapidRecallRound || '',
+            )
               ? ''
-              : cleanFlashcardText(meta.selfCheckRapidRecallRound || ''),
-            commonMistakesToAvoid: (meta.commonMistakesToAvoid || [])
+              : cleanFlashcardText(mergedMeta.selfCheckRapidRecallRound || ''),
+            commonMistakesToAvoid: (mergedMeta.commonMistakesToAvoid || [])
               .map(cleanFlashcardText)
               .filter((line) => line && !isScaffoldDeckMetaText(line)),
-            differentiationSupport: isScaffoldDeckMetaText(meta.differentiationSupport || '')
+            differentiationSupport: isScaffoldDeckMetaText(mergedMeta.differentiationSupport || '')
               ? ''
-              : cleanFlashcardText(meta.differentiationSupport || ''),
-            realLifeConnection: isScaffoldDeckMetaText(meta.realLifeConnection || '')
+              : cleanFlashcardText(mergedMeta.differentiationSupport || ''),
+            realLifeConnection: isScaffoldDeckMetaText(mergedMeta.realLifeConnection || '')
               ? ''
-              : cleanFlashcardText(meta.realLifeConnection || ''),
-            reflectionExitTicket: isScaffoldDeckMetaText(meta.reflectionExitTicket || '')
+              : cleanFlashcardText(mergedMeta.realLifeConnection || ''),
+            reflectionExitTicket: isScaffoldDeckMetaText(mergedMeta.reflectionExitTicket || '')
               ? ''
-              : cleanFlashcardText(meta.reflectionExitTicket || ''),
+              : cleanFlashcardText(mergedMeta.reflectionExitTicket || ''),
           }
         : null,
     );
@@ -622,13 +638,30 @@ export function FlashcardViewer({
     const meta = teacherMeta;
     const displayTitle = meta?.title || deckTitle || 'Flashcard deck';
     const topicLabel =
-      meta?.topic ||
-      (meta?.topicAndSubtopicLink ? meta.topicAndSubtopicLink.split(/\s*[—–\-:]\s*/)[0]?.trim() : '');
-    const subtopicLabel =
-      meta?.subtopic ||
+      sanitizeFlashcardTopicLabel(meta?.topic || '') ||
       (meta?.topicAndSubtopicLink
-        ? meta.topicAndSubtopicLink.split(/\s*[—–\-:]\s*/).slice(1).join(' — ').trim()
+        ? sanitizeFlashcardTopicLabel(meta.topicAndSubtopicLink.split(/\s*[—–\-:]\s*/)[0]?.trim() || '')
         : '');
+    const subtopicLabel =
+      sanitizeFlashcardTopicLabel(meta?.subtopic || '') ||
+      (meta?.topicAndSubtopicLink
+        ? sanitizeFlashcardTopicLabel(
+            meta.topicAndSubtopicLink.split(/\s*[—–\-:]\s*/).slice(1).join(' — ').trim(),
+          )
+        : '');
+
+    const hasFoundations =
+      Boolean(meta?.priorKnowledgeRequired) ||
+      Boolean(meta?.learningObjectives?.length) ||
+      Boolean(meta?.ncfCompetencyAlignment);
+    const hasStudyAids =
+      Boolean(meta?.deckMemoryHook) ||
+      Boolean(meta?.commonMistakesToAvoid?.length) ||
+      Boolean(meta?.selfCheckRapidRecallRound);
+    const hasWrapUp =
+      Boolean(meta?.realLifeConnection) ||
+      Boolean(meta?.differentiationSupport) ||
+      Boolean(meta?.reflectionExitTicket);
 
     const contextChips = [
       topicLabel ? { label: 'Topic', value: topicLabel } : null,
@@ -699,6 +732,10 @@ export function FlashcardViewer({
             <p className={blockTitle}>2 · Foundations</p>
           </div>
           <div className="p-4 sm:p-5 space-y-3 text-sm text-slate-800">
+            {!hasFoundations ? (
+              <FlashcardSectionEmpty label="Foundations" />
+            ) : (
+              <>
             {meta?.priorKnowledgeRequired ? (
               <div>
                 <p className="text-[11px] font-semibold uppercase text-slate-500">Prior Knowledge</p>
@@ -721,6 +758,8 @@ export function FlashcardViewer({
                 <p className="mt-1 leading-relaxed">{meta.ncfCompetencyAlignment}</p>
               </div>
             ) : null}
+              </>
+            )}
           </div>
         </section>
 
@@ -812,6 +851,10 @@ export function FlashcardViewer({
             <p className={blockTitle}>4 · Study Aids</p>
           </div>
           <div className="p-4 sm:p-5 space-y-3 text-sm text-slate-800">
+            {!hasStudyAids ? (
+              <FlashcardSectionEmpty label="Study Aids" />
+            ) : (
+              <>
             {meta?.deckMemoryHook ? (
               <div className="flex gap-3 rounded-lg border border-amber-100 bg-amber-50/60 p-3">
                 <Lightbulb className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" aria-hidden />
@@ -840,6 +883,8 @@ export function FlashcardViewer({
                 </div>
               </div>
             ) : null}
+              </>
+            )}
           </div>
         </section>
 
@@ -848,6 +893,12 @@ export function FlashcardViewer({
             <p className={blockTitle}>5 · Wrap-Up</p>
           </div>
           <div className="p-4 sm:p-5 grid gap-3 sm:grid-cols-3 text-sm text-slate-800">
+            {!hasWrapUp ? (
+              <div className="sm:col-span-3">
+                <FlashcardSectionEmpty label="Wrap-Up" />
+              </div>
+            ) : (
+              <>
             {meta?.realLifeConnection ? (
               <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
                 <p className="text-[11px] font-semibold uppercase text-slate-500">Real-life</p>
@@ -866,6 +917,8 @@ export function FlashcardViewer({
                 <p className="mt-1 leading-relaxed">{meta.reflectionExitTicket}</p>
               </div>
             ) : null}
+              </>
+            )}
           </div>
         </section>
       </div>
@@ -1319,6 +1372,142 @@ function parseSevenFieldDeckMarkdown(text: string): Flashcard[] {
   return cards;
 }
 
+function sanitizeFlashcardTopicLabel(value: string): string {
+  const s = sanitizeFlashcardTopicLink(cleanFlashcardLabel(value));
+  if (!s) return '';
+  if (/classlevel|difficultylevel|bloom_level|bloomlevel/i.test(s)) return '';
+  return s;
+}
+
+function pickMarkdownSection(text: string, headingPattern: string): string {
+  const re = new RegExp(
+    `(?:^|\\n)#{1,3}\\s*${headingPattern}[^\\n]*\\n+([\\s\\S]*?)(?=\\n#{1,3}\\s*\\d+\\.|\\n#{1,3}\\s*The Card Set|$)`,
+    'i',
+  );
+  const m = String(text || '').match(re);
+  return m ? m[1].trim() : '';
+}
+
+function pickLabeledMarkdownLine(block: string, label: string): string {
+  const re = new RegExp(`(?:^|\\n)${label}\\s*:?\\s*([^\\n]+)`, 'i');
+  const m = String(block || '').match(re);
+  return m ? cleanFlashcardText(m[1].trim()) : '';
+}
+
+function parseTeacherDeckMetaFromFormatted(text: string): Partial<TeacherDeckMeta> {
+  const body = String(text || '').trim();
+  if (!body) return {};
+
+  const contextBlock = pickMarkdownSection(body, '1\\.\\s*Context');
+  const foundationsBlock = pickMarkdownSection(body, '2\\.\\s*Foundations');
+  const studyAidsBlock = pickMarkdownSection(body, '4\\.\\s*Study Aids');
+  const wrapUpBlock = pickMarkdownSection(body, '5\\.\\s*Wrap-Up');
+
+  const objectivesBlock = foundationsBlock.match(
+    /Learning Objectives:\s*\n([\s\S]*?)(?=\n[A-Z][^\n]*:|$)/i,
+  );
+  const mistakesBlock = studyAidsBlock.match(
+    /Common Mistakes to Avoid:\s*\n([\s\S]*?)(?=\n[A-Z][^\n]*:|$)/i,
+  );
+
+  const listFromBlock = (block: string) =>
+    block
+      .split(/\n+/)
+      .map((l) => l.replace(/^\s*[-*•]\s*/, '').trim())
+      .filter(Boolean);
+
+  return {
+    title:
+      pickLabeledMarkdownLine(contextBlock, 'Deck Title') ||
+      (body.match(/^##\s+(.+)$/m)?.[1] || '').trim(),
+    topic: sanitizeFlashcardTopicLabel(pickLabeledMarkdownLine(contextBlock, 'Topic')),
+    subtopic: sanitizeFlashcardTopicLabel(pickLabeledMarkdownLine(contextBlock, 'Subtopic')),
+    classLevel: normalizeFlashcardClassLevel(pickLabeledMarkdownLine(contextBlock, 'Class')),
+    difficultyLevel: pickLabeledMarkdownLine(contextBlock, 'Difficulty'),
+    bloomLevel: pickLabeledMarkdownLine(contextBlock, "Bloom'?s? Level"),
+    priorKnowledgeRequired: pickLabeledMarkdownLine(foundationsBlock, 'Prior Knowledge Required'),
+    learningObjectives: objectivesBlock ? listFromBlock(objectivesBlock[1]) : [],
+    ncfCompetencyAlignment: pickLabeledMarkdownLine(
+      foundationsBlock,
+      'NCF Competency[^\\n]*',
+    ),
+    deckMemoryHook:
+      pickLabeledMarkdownLine(studyAidsBlock, 'Memory Hook') ||
+      pickLabeledMarkdownLine(studyAidsBlock, 'Deck Memory Hook'),
+    commonMistakesToAvoid: mistakesBlock ? listFromBlock(mistakesBlock[1]) : [],
+    selfCheckRapidRecallRound:
+      pickLabeledMarkdownLine(studyAidsBlock, 'Rapid Recall') ||
+      pickLabeledMarkdownLine(studyAidsBlock, 'Self-Check'),
+    realLifeConnection:
+      pickLabeledMarkdownLine(wrapUpBlock, 'Real-life Connection') ||
+      pickLabeledMarkdownLine(wrapUpBlock, 'Real-life'),
+    differentiationSupport: pickLabeledMarkdownLine(wrapUpBlock, 'Differentiation'),
+    reflectionExitTicket:
+      pickLabeledMarkdownLine(wrapUpBlock, 'Exit Ticket') ||
+      pickLabeledMarkdownLine(wrapUpBlock, 'Reflection'),
+  };
+}
+
+function mergeTeacherDeckMeta(
+  fromRaw: TeacherDeckMeta | null,
+  fromFormatted: Partial<TeacherDeckMeta>,
+): TeacherDeckMeta | null {
+  if (!fromRaw && !Object.values(fromFormatted).some(Boolean)) return null;
+  const base = fromRaw || {
+    title: 'Flashcard deck',
+    topic: '',
+    subtopic: '',
+    topicAndSubtopicLink: '',
+    classLevel: '',
+    difficultyLevel: '',
+    bloomLevel: '',
+    priorKnowledgeRequired: '',
+    learningObjectives: [],
+    ncfCompetencyAlignment: '',
+    deckMemoryHook: '',
+    selfCheckRapidRecallRound: '',
+    commonMistakesToAvoid: [],
+    differentiationSupport: '',
+    realLifeConnection: '',
+    reflectionExitTicket: '',
+  };
+  return {
+    ...base,
+    title: base.title || fromFormatted.title || 'Flashcard deck',
+    topic: base.topic || fromFormatted.topic || '',
+    subtopic: base.subtopic || fromFormatted.subtopic || '',
+    classLevel: normalizeFlashcardClassLevel(base.classLevel || fromFormatted.classLevel || ''),
+    difficultyLevel: base.difficultyLevel || fromFormatted.difficultyLevel || '',
+    bloomLevel: base.bloomLevel || fromFormatted.bloomLevel || '',
+    priorKnowledgeRequired:
+      base.priorKnowledgeRequired || fromFormatted.priorKnowledgeRequired || '',
+    learningObjectives:
+      base.learningObjectives?.length ? base.learningObjectives : fromFormatted.learningObjectives || [],
+    ncfCompetencyAlignment:
+      base.ncfCompetencyAlignment || fromFormatted.ncfCompetencyAlignment || '',
+    deckMemoryHook: base.deckMemoryHook || fromFormatted.deckMemoryHook || '',
+    selfCheckRapidRecallRound:
+      base.selfCheckRapidRecallRound || fromFormatted.selfCheckRapidRecallRound || '',
+    commonMistakesToAvoid:
+      base.commonMistakesToAvoid?.length
+        ? base.commonMistakesToAvoid
+        : fromFormatted.commonMistakesToAvoid || [],
+    differentiationSupport:
+      base.differentiationSupport || fromFormatted.differentiationSupport || '',
+    realLifeConnection: base.realLifeConnection || fromFormatted.realLifeConnection || '',
+    reflectionExitTicket: base.reflectionExitTicket || fromFormatted.reflectionExitTicket || '',
+  };
+}
+
+function FlashcardSectionEmpty({ label }: { label: string }) {
+  return (
+    <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+      {label} was not generated with topic-specific content. Regenerate this record or switch to
+      Premium tier.
+    </p>
+  );
+}
+
 function tryParseDeckTitle(content: string): string {
   const trimmed = String(content || '').trim();
   if (!trimmed.startsWith('{')) return '';
@@ -1371,11 +1560,11 @@ function tryParseTeacherDeckMeta(content: string, rawContent?: unknown): Teacher
   const raw = rawRecordFromContent(content, rawContent);
   if (!raw) return null;
   const title = String(raw.flashcard_deck_title || raw.deck_title || raw.title || '').trim();
-  const topic = stripLessonPlanLeakFromLabel(String(raw.topic || '').trim());
-  const subtopic = stripLessonPlanLeakFromLabel(
-    String(raw.subtopic || raw.sub_topic || '').trim(),
+  const topic = sanitizeFlashcardTopicLabel(stripLessonPlanLeakFromLabel(String(raw.topic || '').trim()));
+  const subtopic = sanitizeFlashcardTopicLabel(
+    stripLessonPlanLeakFromLabel(String(raw.subtopic || raw.sub_topic || '').trim()),
   );
-  const topicLink = stripLessonPlanLeakFromLabel(
+  const topicLink = sanitizeFlashcardTopicLink(
     String(raw.topic_and_subtopic_link || raw.subtopic_link || '').trim(),
   );
   if (!title && !topic && !subtopic && !topicLink) return null;
@@ -1384,7 +1573,9 @@ function tryParseTeacherDeckMeta(content: string, rawContent?: unknown): Teacher
     topic,
     subtopic,
     topicAndSubtopicLink: topicLink,
-    classLevel: String(raw.class_level || raw.classLabel || raw.class || '').trim(),
+    classLevel: normalizeFlashcardClassLevel(
+      String(raw.class_level || raw.classLabel || raw.class || '').trim(),
+    ),
     difficultyLevel: String(raw.difficulty_level || raw.difficulty || 'Medium').trim(),
     bloomLevel: String(raw.bloom_level || raw.bloom || 'Apply / Analyze').trim(),
     priorKnowledgeRequired: String(raw.prior_knowledge_required || '').trim(),

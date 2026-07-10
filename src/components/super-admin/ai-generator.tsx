@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -290,6 +290,7 @@ export default function SuperAdminAiGenerator() {
   const [difficulty, setDifficulty] = useState("medium");
   const [duration, setDuration] = useState("30");
   const [isGenerating, setIsGenerating] = useState(false);
+  const generateInFlightRef = useRef(false);
   const [generationLocked, setGenerationLocked] = useState(false);
   const [activeTab, setActiveTab] = useState<"generate" | "audit">("generate");
   const [forceGenerateNew, setForceGenerateNew] = useState(false);
@@ -304,6 +305,7 @@ export default function SuperAdminAiGenerator() {
     failedCount: number;
     batchSize: number;
     mode?: string;
+    failures?: string[];
     tokenUsage: TokenTotals;
     cost: GeminiCostEstimate;
     perRecordCost?: { usd: number; inr: number };
@@ -354,9 +356,11 @@ export default function SuperAdminAiGenerator() {
     let cancelled = false;
     const loadBoards = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/super-admin/ai-tool-topics/options`, {
+        const res = await resilientFetch(`${API_BASE_URL}/api/super-admin/ai-tool-topics/options`, {
           headers: { ...authHeaders() },
           credentials: "include",
+          timeoutMs: 30_000,
+          retries: 1,
         });
         const json = await res.json();
         if (!res.ok || json?.success === false || cancelled) throw new Error("Options fetch failed");
@@ -544,6 +548,9 @@ export default function SuperAdminAiGenerator() {
   };
 
   const generate = async (opts?: { forceUnlock?: boolean }) => {
+    if (generateInFlightRef.current && !opts?.forceUnlock) {
+      return;
+    }
     if (!selectedTool || !board || !classNumber || !subject || !subTopic) {
       toast({
         title: "Missing fields",
@@ -591,6 +598,7 @@ export default function SuperAdminAiGenerator() {
       return;
     }
     const batchSize = parseBatchSize();
+    generateInFlightRef.current = true;
     setIsGenerating(true);
     setGenerationLocked(false);
     setGenerationProgress({
@@ -661,6 +669,7 @@ export default function SuperAdminAiGenerator() {
         failedCount,
         batchSize: resultBatchSize,
         mode,
+        failures,
         tokenUsage,
         cost,
         perRecordCost: perRecord,
@@ -710,6 +719,7 @@ export default function SuperAdminAiGenerator() {
         /* ignore */
       }
     } finally {
+      generateInFlightRef.current = false;
       setIsGenerating(false);
       setGenerationProgress(null);
     }
@@ -1219,6 +1229,16 @@ export default function SuperAdminAiGenerator() {
                     No Gemini call was made (0 tokens). Old records were reused. For fresh Hindi content, check{" "}
                     <strong>Force Generate New Content</strong> or use Story/Reading tools (always generate fresh).
                   </p>
+                ) : null}
+                {lastBatchSummary.failures && lastBatchSummary.failures.length > 0 ? (
+                  <div className="rounded-md border border-red-200 bg-red-50/80 px-2.5 py-2 text-red-900">
+                    <p className="font-semibold">Failed variants</p>
+                    <ul className="mt-1 list-disc pl-4 space-y-0.5">
+                      {lastBatchSummary.failures.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  </div>
                 ) : null}
                 <p>
                   Tokens:{" "}

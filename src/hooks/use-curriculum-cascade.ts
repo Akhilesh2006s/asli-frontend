@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { getAuthToken } from '@/lib/auth-utils';
+import { resilientFetch } from '@/lib/resilient-fetch';
 import {
   getCurriculumResponseCache,
   hasCurriculumResponseCache,
@@ -67,11 +68,13 @@ async function fetchCurriculum(path: string, auth: string | null) {
   if (hasCurriculumResponseCache(key)) {
     return getCurriculumResponseCache<{ success?: boolean; data?: CurriculumRow[] }>(key)!;
   }
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+  const res = await resilientFetch(`${API_BASE_URL}${path}`, {
     headers: {
       Authorization: auth ? `Bearer ${auth}` : '',
       'Content-Type': 'application/json',
     },
+    timeoutMs: 45_000,
+    retries: 1,
   });
   const json = await res.json();
   setCurriculumResponseCache(key, json);
@@ -100,11 +103,13 @@ async function fetchManagedTopicTaxonomy(
         data?: { subjects?: string[]; topics?: string[]; subTopics?: string[] };
       }>(key)!;
     }
-    const res = await fetch(`${API_BASE_URL}${path}`, {
+    const res = await resilientFetch(`${API_BASE_URL}${path}`, {
       headers: {
         Authorization: auth ? `Bearer ${auth}` : '',
         'Content-Type': 'application/json',
       },
+      timeoutMs: 45_000,
+      retries: 1,
     });
     const json = await res.json();
     if (res.ok && json?.success !== false) {

@@ -166,6 +166,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     batchSize: number;
     tokenUsage: TokenTotals;
     cost: GeminiCostEstimate;
+    failures: string[];
   } | null>(null);
   const [recordsReloadNonce, setRecordsReloadNonce] = useState(0);
 
@@ -400,7 +401,15 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     const savedCount = Number(data.savedCount) || 0;
     const failedCount = Number(data.failedCount) || 0;
     const resultBatchSize = Number(data.batchSize) || parseGenerationRecordCount(generationRecordCount) || 0;
-    setLastBatchSummary({ successCount: savedCount, failedCount, batchSize: resultBatchSize, tokenUsage, cost });
+    const batchFailures = Array.isArray(data.failures) ? (data.failures as string[]) : [];
+    setLastBatchSummary({
+      successCount: savedCount,
+      failedCount,
+      batchSize: resultBatchSize,
+      tokenUsage,
+      cost,
+      failures: batchFailures,
+    });
 
     const tokenNote = `${formatTokenCount(tokenUsage.totalTokens)} tokens · Est. ${formatInr(cost.inr)}`;
     if (savedCount > 0) {
@@ -953,6 +962,16 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                 Last batch: {lastBatchSummary.successCount}/{lastBatchSummary.batchSize} saved
                 {lastBatchSummary.failedCount > 0 ? ` (${lastBatchSummary.failedCount} failed)` : ""}
               </p>
+              {lastBatchSummary.failures && lastBatchSummary.failures.length > 0 ? (
+                <div className="rounded-md border border-red-200 bg-red-50/80 px-2.5 py-2 text-red-900">
+                  <p className="font-semibold">Failed slots</p>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                    {lastBatchSummary.failures.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
               <p>
                 Tokens:{" "}
                 <span className="font-medium">{formatTokenCount(lastBatchSummary.tokenUsage.totalTokens)}</span> total

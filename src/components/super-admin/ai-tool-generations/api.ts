@@ -1,6 +1,9 @@
 import { API_BASE_URL } from "@/lib/api-config";
 import type { PdfRecord } from "./pdf-utils";
+import { resilientFetch } from "@/lib/resilient-fetch";
 export type { PdfRecord };
+
+const BRANCH_FETCH_TIMEOUT_MS = 45_000;
 
 function authHeaders(): HeadersInit {
   const token = localStorage.getItem("authToken");
@@ -23,9 +26,9 @@ export type BranchResponse = {
 
 export async function fetchBranch(params: Record<string, string>) {
   const qs = new URLSearchParams(params);
-  const res = await fetch(
+  const res = await resilientFetch(
     `${API_BASE_URL}/api/super-admin/ai-tool-generations/children?${qs.toString()}`,
-    { headers: authHeaders() },
+    { headers: authHeaders(), timeoutMs: BRANCH_FETCH_TIMEOUT_MS, retries: 1 },
   );
   if (!res.ok) throw new Error(`Branch fetch failed: ${res.status}`);
   return (await res.json()) as BranchResponse;
@@ -97,9 +100,9 @@ export async function fetchSectionGapSummaries(board = "", limit = 50, refresh =
   const qs = new URLSearchParams({ limit: String(limit) });
   if (board) qs.set("board", board);
   if (refresh) qs.set("refresh", "1");
-  const res = await fetch(
+  const res = await resilientFetch(
     `${API_BASE_URL}/api/super-admin/ai-tool-generations/section-gap-summary?${qs.toString()}`,
-    { headers: authHeaders() },
+    { headers: authHeaders(), timeoutMs: 90_000, retries: 1 },
   );
   if (!res.ok) throw new Error(`Section gap summaries failed: ${res.status}`);
   return res.json() as Promise<{ success: boolean; data: AllToolSectionGapSummaries }>;

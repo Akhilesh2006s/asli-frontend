@@ -194,6 +194,101 @@ function parseSegments(lines: string[]): Segment[] {
   return segments;
 }
 
+/** Section accent themes cycled across grouped section cards (matches the AI_V2 look). */
+const SECTION_ACCENTS = [
+  { bar: 'from-violet-500 to-fuchsia-500', bg: 'from-violet-50/70', ring: 'border-violet-100', badge: 'bg-violet-100 text-violet-700', dot: 'bg-violet-400' },
+  { bar: 'from-emerald-500 to-teal-500', bg: 'from-emerald-50/70', ring: 'border-emerald-100', badge: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-400' },
+  { bar: 'from-sky-500 to-blue-500', bg: 'from-sky-50/70', ring: 'border-sky-100', badge: 'bg-sky-100 text-sky-700', dot: 'bg-sky-400' },
+  { bar: 'from-amber-500 to-orange-500', bg: 'from-amber-50/70', ring: 'border-amber-100', badge: 'bg-amber-100 text-amber-700', dot: 'bg-amber-400' },
+  { bar: 'from-rose-500 to-pink-500', bg: 'from-rose-50/70', ring: 'border-rose-100', badge: 'bg-rose-100 text-rose-700', dot: 'bg-rose-400' },
+  { bar: 'from-indigo-500 to-violet-500', bg: 'from-indigo-50/70', ring: 'border-indigo-100', badge: 'bg-indigo-100 text-indigo-700', dot: 'bg-indigo-400' },
+] as const;
+
+type SectionAccent = (typeof SECTION_ACCENTS)[number];
+type SectionGroup = { title: string | null; num: string | null; body: Segment[] };
+
+function splitLeadingNumber(title: string): { num: string | null; text: string } {
+  const m = String(title || '').match(/^(\d{1,2})[\)\.]\s*(.+)$/);
+  if (m) return { num: m[1], text: m[2].trim() };
+  return { num: null, text: String(title || '').trim() };
+}
+
+/** Group flat segments into section cards — everything after an h1 belongs to that section. */
+function groupIntoSections(segments: Segment[]): SectionGroup[] {
+  const groups: SectionGroup[] = [];
+  let current: SectionGroup | null = null;
+  for (const seg of segments) {
+    if (seg.kind === 'h1') {
+      if (current) groups.push(current);
+      const { num, text } = splitLeadingNumber(seg.title);
+      current = { title: text, num, body: [] };
+    } else {
+      if (!current) current = { title: null, num: null, body: [] };
+      current.body.push(seg);
+    }
+  }
+  if (current) groups.push(current);
+  return groups;
+}
+
+function renderSegmentBody(seg: Segment, idx: number, accent: SectionAccent) {
+  if (seg.kind === 'h2') {
+    return (
+      <h3
+        key={`h2-${idx}`}
+        className="text-sm sm:text-[0.95rem] font-semibold text-slate-800 flex items-center gap-2 pt-1"
+      >
+        <span className={`h-3.5 w-1 rounded-full bg-gradient-to-b ${accent.bar}`} />
+        {seg.title}
+      </h3>
+    );
+  }
+  if (seg.kind === 'bullets') {
+    return (
+      <ul key={`ul-${idx}`} className="space-y-2">
+        {seg.items.map((it, j) => (
+          <li key={j} className="flex gap-2.5 text-sm leading-relaxed text-slate-700">
+            <span className={`mt-[0.5rem] h-1.5 w-1.5 shrink-0 rounded-full ${accent.dot}`} />
+            <span>{it}</span>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  if (seg.kind === 'materialsTable') {
+    return (
+      <div key={`tbl-${idx}`} className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gradient-to-r from-slate-100 to-slate-50">
+              <th className="px-3 py-2.5 text-left font-semibold text-slate-700 w-12 border-b border-slate-200">#</th>
+              <th className="px-3 py-2.5 text-left font-semibold text-slate-700 border-b border-slate-200">Item</th>
+            </tr>
+          </thead>
+          <tbody>
+            {seg.items.map((row, r) => (
+              <tr key={r} className="transition-colors hover:bg-slate-50">
+                <td className="px-3 py-2 border-b border-slate-100 text-slate-400 tabular-nums align-top">{r + 1}</td>
+                <td className="px-3 py-2 border-b border-slate-100 text-slate-700 align-top leading-relaxed">{row}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+  if (seg.kind === "paragraphs") {
+    return (
+      <div key={`p-${idx}`} className="space-y-2 text-sm leading-relaxed text-slate-700">
+        {seg.lines.map((ln, j) => (
+          <p key={j}>{ln}</p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+}
+
 type GeneratedRecordBodyProps = {
   content: string;
   /** When true, strips NAME OF THE TOOL … CONTENT header first. Default true. */
@@ -303,71 +398,35 @@ export function GeneratedRecordBody({
     );
   }
 
+  const groups = groupIntoSections(segments);
+
   return (
-    <div className={`space-y-5 text-slate-800 ${className}`}>
-      {segments.map((seg, idx) => {
-        if (seg.kind === "h1") {
-          return (
-            <h2
-              key={`h1-${idx}`}
-              className="text-base sm:text-lg font-bold tracking-tight text-slate-900 border-b border-slate-200 pb-2 scroll-mt-4"
-            >
-              {seg.title}
-            </h2>
-          );
-        }
-        if (seg.kind === "h2") {
-          return (
-            <h3 key={`h2-${idx}`} className="text-sm sm:text-base font-semibold text-slate-800 mt-1 -mb-1">
-              {seg.title}
-            </h3>
-          );
-        }
-        if (seg.kind === "bullets") {
-          return (
-            <ul key={`ul-${idx}`} className="list-disc pl-6 space-y-1.5 text-xs sm:text-sm leading-relaxed">
-              {seg.items.map((it, j) => (
-                <li key={j}>{it}</li>
-              ))}
-            </ul>
-          );
-        }
-        if (seg.kind === "materialsTable") {
-          return (
-            <div key={`tbl-${idx}`} className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
-              <table className="w-full text-xs sm:text-sm">
-                <thead>
-                  <tr className="bg-slate-100">
-                    <th className="px-3 py-2.5 text-left font-semibold text-slate-800 w-12 border-b border-slate-200">
-                      #
-                    </th>
-                    <th className="px-3 py-2.5 text-left font-semibold text-slate-800 border-b border-slate-200">
-                      Item
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {seg.items.map((row, r) => (
-                    <tr key={r} className={r % 2 === 0 ? "bg-white" : "bg-slate-50/80"}>
-                      <td className="px-3 py-2 border-b border-slate-100 text-slate-500 tabular-nums align-top">
-                        {r + 1}
-                      </td>
-                      <td className="px-3 py-2 border-b border-slate-100 text-slate-800 align-top leading-relaxed">
-                        {row}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          );
-        }
+    <div className={`space-y-4 ${className}`}>
+      {groups.map((group, gi) => {
+        const accent = SECTION_ACCENTS[gi % SECTION_ACCENTS.length];
+        const hasHeader = Boolean(group.title);
         return (
-          <div key={`p-${idx}`} className="space-y-2 text-xs sm:text-sm leading-relaxed text-slate-800">
-            {seg.lines.map((ln, j) => (
-              <p key={j}>{ln}</p>
-            ))}
-          </div>
+          <section
+            key={`sec-${gi}`}
+            className={`overflow-hidden rounded-2xl border ${accent.ring} bg-gradient-to-b ${accent.bg} to-white shadow-sm`}
+          >
+            {hasHeader && (
+              <header className="flex items-center gap-3 border-b border-slate-100/80 px-4 py-3 sm:px-5">
+                <span className={`h-8 w-1.5 shrink-0 rounded-full bg-gradient-to-b ${accent.bar}`} />
+                {group.num && (
+                  <span
+                    className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg text-sm font-bold tabular-nums ${accent.badge}`}
+                  >
+                    {group.num}
+                  </span>
+                )}
+                <h2 className="text-base font-bold tracking-tight text-slate-900 sm:text-lg">{group.title}</h2>
+              </header>
+            )}
+            <div className="space-y-4 px-4 py-4 sm:px-5">
+              {group.body.map((seg, idx) => renderSegmentBody(seg, idx, accent))}
+            </div>
+          </section>
         );
       })}
     </div>

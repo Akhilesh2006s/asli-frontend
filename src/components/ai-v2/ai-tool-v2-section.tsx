@@ -66,11 +66,12 @@ export function AiToolV2Section({
         <div className="flex min-w-0 items-start gap-3">
           <span
             className={cn(
-              'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-xs font-bold text-white shadow-sm',
+              'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-sm font-bold text-white shadow-sm',
               ACCENT_STYLES[accent],
             )}
+            aria-hidden
           >
-            {num}
+            ◆
           </span>
           <div className="min-w-0">
             <h3 className={AI_V2.typography.sectionTitle}>{title}</h3>

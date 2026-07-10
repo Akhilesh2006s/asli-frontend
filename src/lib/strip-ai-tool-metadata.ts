@@ -112,6 +112,8 @@ export function isScaffoldFlashcardPair(front: string, back: string): boolean {
   }
   if (/^What is .+\?$/i.test(f) && f.replace(/^What is (.+)\?$/i, '$1') === b) return true;
   if (/— key idea \d+$/i.test(f) && /Summarize one key idea about/i.test(b)) return true;
+  if (/explain how it connects to .+ in /i.test(b)) return true;
+  if (/to short real-life examples\??$/i.test(f)) return true;
   if (
     /^Students should recall basic ideas about .+ before using this deck\.?$/i.test(f) ||
     /^Define and explain key ideas about /i.test(f)
@@ -169,6 +171,41 @@ export function stripAiGeneratorLeakage(text: string): string {
   s = s.replace(/\s*\|\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
   s = s.replace(/^[,;:\-\s.]+|[,;:\-\s.]+$/g, '').trim();
   return s;
+}
+
+/** Strip variant/uniqueness salts from flashcard topic link fields. */
+export function sanitizeFlashcardTopicLink(text: string): string {
+  let s = stripLessonPlanLeakFromLabel(stripAiGeneratorLeakage(String(text || '')));
+  if (!s) return '';
+  if (/classlevel|difficultylevel|bloom_level|bloomlevel/i.test(s)) return '';
+
+  s = s
+    .replace(/\bEdition-[\w-]*/gi, ' ')
+    .replace(/\b\d{10,}-v\d+-a\d+-[a-z0-9][\w-]*/gi, ' ')
+    .replace(/(?:[-\s]V\d+-A\d+-[A-Z0-9]+)+/gi, ' ')
+    .replace(/\bFlashcard Deck\b/gi, ' ')
+    .replace(/\bSecondary Education\b/gi, ' ')
+    .replace(/\bTeacher Manual\b/gi, ' ')
+    .replace(/\bCompetency\b/gi, ' ')
+    .replace(/[,;]+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  s = s.replace(/(?:\s*[—–-]\s*)+$/g, '').trim();
+  s = s.replace(/\s*[—–-]\s*(?:V\d+|A\d+|[\w]{6,})\s*$/gi, '').trim();
+  if (!s || /^[\s,—–-]+$/.test(s)) return '';
+
+  if (s.length > 160 && !/\s[—–-]\s/.test(s)) return '';
+  return s.replace(/\s*[—–-]\s*/g, ' — ').trim();
+}
+
+/** Avoid "Class Class 10" when class_level is stored for display chips. */
+export function normalizeFlashcardClassLevel(text: string): string {
+  const s = String(text || '').trim();
+  if (!s) return '';
+  const digits = s.match(/\d+/)?.[0];
+  if (digits) return `Class ${digits}`;
+  return s.replace(/^Class\s+Class\s+/i, 'Class ').trim();
 }
 
 /**

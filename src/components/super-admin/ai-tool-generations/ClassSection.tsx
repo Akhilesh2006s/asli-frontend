@@ -12,15 +12,20 @@ import { SubjectSection } from "./SubjectSection";
 export function ClassSection({ toolName, board }: { toolName: string; board?: string }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [classes, setClasses] = useState<BranchItem[] | null>(null);
 
   useEffect(() => {
     if (!open || classes !== null) return;
     (async () => {
       setLoading(true);
+      setError(null);
       try {
         const r = await fetchBranch({ ...(board ? { board } : {}), toolName });
         setClasses(r.data.items || []);
+      } catch (e: unknown) {
+        setClasses([]);
+        setError(e instanceof Error ? e.message : "Failed to load classes");
       } finally {
         setLoading(false);
       }
@@ -44,6 +49,11 @@ export function ClassSection({ toolName, board }: { toolName: string; board?: st
         {loading && (
           <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 py-4 justify-center rounded-xl bg-white border border-dashed border-slate-200">
             <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin text-orange-500" /> Loading classes…
+          </div>
+        )}
+        {error && (
+          <div className="text-xs sm:text-sm text-red-700 py-4 text-center rounded-xl bg-red-50 border border-red-200">
+            {error}
           </div>
         )}
         {classes &&

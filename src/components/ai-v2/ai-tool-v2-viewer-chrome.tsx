@@ -157,7 +157,9 @@ export function AiToolV2ViewerChrome({ exportRootId }: { exportRootId: string })
                     : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-indigo-200 hover:bg-indigo-50',
                 )}
               >
-                <span className="opacity-80">{sec.num}</span>
+                <span className="opacity-80" aria-hidden>
+                  ◆
+                </span>
                 <span className="ml-1">{sec.title}</span>
               </button>
             ))}
@@ -170,7 +172,7 @@ export function AiToolV2ViewerChrome({ exportRootId }: { exportRootId: string })
               <SelectContent>
                 {sections.map((sec) => (
                   <SelectItem key={sec.id} value={sec.id} className="text-xs">
-                    {sec.num}. {sec.title}
+                    ◆ {sec.title}
                   </SelectItem>
                 ))}
               </SelectContent>
