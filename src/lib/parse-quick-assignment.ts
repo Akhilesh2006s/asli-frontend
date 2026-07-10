@@ -52,12 +52,14 @@ function normalizeQuestions(raw: unknown): AssignmentQuestion[] {
   for (const entry of rows) {
     if (!entry || typeof entry !== 'object') {
       const q = cleanText(entry);
-      if (q) out.push({ question: q, options: [], answer: '' });
+      if (q && !isQuickAssignmentSectionHeaderLine(q)) {
+        out.push({ question: q, options: [], answer: '' });
+      }
       continue;
     }
     const row = entry as Record<string, unknown>;
     const question = cleanText(row.question || row.prompt || row.text);
-    if (!question) continue;
+    if (!question || isQuickAssignmentSectionHeaderLine(question)) continue;
     const marksRaw = row.marks ?? row.mark;
     const marks =
       marksRaw != null && marksRaw !== '' && !Number.isNaN(Number(marksRaw))
@@ -98,6 +100,20 @@ function detectSectionNumFromTitle(title: string): number {
   if (/assessment|rubric|marking/.test(t)) return 10;
   if (/expected learning|learning outcomes/.test(t)) return 11;
   return 0;
+}
+
+export function isQuickAssignmentSectionHeaderLine(line: string): boolean {
+  const raw = String(line || '').trim().replace(/^#{1,3}\s*/, '');
+  if (!raw || raw.length > 96) return false;
+  const withoutNum = raw.replace(/^\d{1,2}\.\s*/, '').trim();
+  return detectSectionNumFromTitle(withoutNum) > 0 || detectSectionNumFromTitle(raw) > 0;
+}
+
+function isConceptQuestionCandidate(line: string): boolean {
+  const t = String(line || '').trim();
+  if (!t || isQuickAssignmentSectionHeaderLine(t)) return false;
+  if (/^section\s+\d{1,2}\b/i.test(t)) return false;
+  return true;
 }
 
 function parseNumberedSections(markdown: string): Map<number, string> {
@@ -149,7 +165,7 @@ function parseConceptQuestionsBlock(text: string): AssignmentQuestion[] {
 
   for (const raw of String(text || '').split('\n')) {
     const line = raw.trim();
-    if (!line) continue;
+    if (!line || !isConceptQuestionCandidate(line)) continue;
     const qMatch = line.match(/^(?:Q|Question)?\s*(\d+)[\.\):]\s*(.+)$/i);
     if (qMatch) {
       if (current) out.push(current);
@@ -197,7 +213,7 @@ function parseListBlockAsQuestions(text: string): AssignmentQuestion[] {
   return String(text || '')
     .split('\n')
     .map((line) => line.trim())
-    .filter(Boolean)
+    .filter((line) => isConceptQuestionCandidate(line))
     .map((line, i) => {
       const m = line.match(/^\d+\.\s+(.+?)(?:\s*\((\d+)\s*marks?\))?$/i);
       if (m) {
