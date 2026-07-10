@@ -7,6 +7,7 @@ import {
   stripAiGeneratorLeakage,
   stripVariantScaffoldFromQuestionText,
 } from '@/lib/strip-ai-tool-metadata';
+import { isHomeworkSectionHeaderLine, isValidQuestionLine } from '@/lib/ai-tool-section-header';
 export type HomeworkPracticeQuestion = {
   questionNumber?: number;
   question: string;
@@ -97,7 +98,9 @@ function toPracticeQuestions(value: unknown): HomeworkPracticeQuestion[] {
   for (const row of rows) {
     if (!row || typeof row !== 'object') {
       const q = coerceHomeworkText(row);
-      if (q) out.push({ question: q, options: [], answer: '' });
+      if (q && isValidQuestionLine(q) && !isHomeworkSectionHeaderLine(q)) {
+        out.push({ question: q, options: [], answer: '' });
+      }
       continue;
     }
     const entry = row as Record<string, unknown>;
@@ -106,7 +109,7 @@ function toPracticeQuestions(value: unknown): HomeworkPracticeQuestion[] {
         coerceHomeworkText(entry.question || entry.prompt || entry.text || entry.statement),
       ),
     );
-    if (!question) continue;
+    if (!question || isHomeworkSectionHeaderLine(question) || !isValidQuestionLine(question)) continue;
     const marksRaw = entry.marks ?? entry.mark;
     const marks =
       marksRaw != null && !Number.isNaN(Number(marksRaw)) ? Number(marksRaw) : undefined;

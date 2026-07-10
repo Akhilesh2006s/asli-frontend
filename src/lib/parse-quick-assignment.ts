@@ -1,5 +1,11 @@
 import { viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
 import { sanitizeAiDisplayText } from '@/lib/sanitize-ai-display-text';
+import {
+  isQuickAssignmentSectionHeaderLine,
+  isValidQuestionLine,
+} from '@/lib/ai-tool-section-header';
+
+export { isQuickAssignmentSectionHeaderLine } from '@/lib/ai-tool-section-header';
 
 export type AssignmentQuestion = {
   question: string;
@@ -102,18 +108,8 @@ function detectSectionNumFromTitle(title: string): number {
   return 0;
 }
 
-export function isQuickAssignmentSectionHeaderLine(line: string): boolean {
-  const raw = String(line || '').trim().replace(/^#{1,3}\s*/, '');
-  if (!raw || raw.length > 96) return false;
-  const withoutNum = raw.replace(/^\d{1,2}\.\s*/, '').trim();
-  return detectSectionNumFromTitle(withoutNum) > 0 || detectSectionNumFromTitle(raw) > 0;
-}
-
 function isConceptQuestionCandidate(line: string): boolean {
-  const t = String(line || '').trim();
-  if (!t || isQuickAssignmentSectionHeaderLine(t)) return false;
-  if (/^section\s+\d{1,2}\b/i.test(t)) return false;
-  return true;
+  return isValidQuestionLine(line);
 }
 
 function parseNumberedSections(markdown: string): Map<number, string> {

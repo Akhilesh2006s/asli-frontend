@@ -5,6 +5,7 @@
 import { viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
 import { sanitizeAiDisplayText } from '@/lib/sanitize-ai-display-text';
 import { renumberQuestionList, renumberSectionQuestionLists } from '@/lib/renumber-questions';
+import { isPracticeQaSectionHeaderLine, isValidQuestionLine } from '@/lib/ai-tool-section-header';
 
 export type PracticeQaQuestion = {
   questionNumber?: number;
@@ -104,7 +105,9 @@ export function toPracticeQaQuestions(value: unknown): PracticeQaQuestion[] {
   for (const row of rows) {
     if (typeof row === 'string') {
       const question = stripInlineMarkdown(row);
-      if (question) out.push({ question, options: [], answer: '' });
+      if (question && isValidQuestionLine(question) && !isPracticeQaSectionHeaderLine(question)) {
+        out.push({ question, options: [], answer: '' });
+      }
       continue;
     }
     if (!row || typeof row !== 'object') continue;
@@ -112,7 +115,7 @@ export function toPracticeQaQuestions(value: unknown): PracticeQaQuestion[] {
     const question = stripInlineMarkdown(
       String(entry.question || entry.question_text || entry.prompt || entry.text || '').trim(),
     );
-    if (!question) continue;
+    if (!question || isPracticeQaSectionHeaderLine(question) || !isValidQuestionLine(question)) continue;
     const marksRaw = entry.marks ?? entry.mark;
     const marks =
       marksRaw != null && !Number.isNaN(Number(marksRaw)) ? Number(marksRaw) : undefined;
