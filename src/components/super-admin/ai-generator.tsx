@@ -629,7 +629,7 @@ export default function SuperAdminAiGenerator() {
           setGenerationLocked(true);
           throw new Error(
             json?.message ||
-              "Generation already in progress for this topic. Use “Clear lock & retry” if a previous batch was interrupted.",
+              "Generation already in progress for this topic. Tap “Clear lock & retry” below if a previous batch was interrupted.",
           );
         }
         throw new Error(json?.message || "Batch generation failed");
@@ -1191,6 +1191,12 @@ export default function SuperAdminAiGenerator() {
                   </Button>
                 ) : null}
               </div>
+              {generationLocked ? (
+                <p className="w-full rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  A previous batch may still be locked for this topic. Tap <strong>Clear lock &amp; retry</strong>{" "}
+                  if nothing is generating, then run again.
+                </p>
+              ) : null}
               {isGenerating && generationProgress ? (
                 <p className="w-full rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs leading-relaxed text-blue-900 break-words">
                   {generationProgress.current > 0
