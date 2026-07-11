@@ -265,6 +265,16 @@ type GeneratorRecord = {
 type GroupedSubtopic = { subtopicName: string; records: GeneratorRecord[] };
 type GroupedTopic = { topicName: string; subtopics: GroupedSubtopic[] };
 type GroupedSubject = { subjectName: string; topics: GroupedTopic[] };
+
+/** Question tools that support combining multiple subtopics into one paper. */
+const MULTI_SUBTOPIC_TOOLS = new Set([
+  "worksheet-mcq-generator",
+  "homework-creator",
+  "mock-test-builder",
+  "exam-question-paper-generator",
+  "smart-qa-practice-generator",
+  "quick-assignment-builder",
+]);
 type GroupedClass = { className: string; boardName?: string; subjects: GroupedSubject[] };
 type GroupedTool = { toolName: string; toolSlug: string; classes: GroupedClass[] };
 
@@ -284,6 +294,8 @@ export default function SuperAdminAiGenerator() {
   const [subject, setSubject] = useState("");
   const [topic, setTopic] = useState("");
   const [subTopic, setSubTopic] = useState("");
+  // Additional subtopics for a COMBINED paper (question tools only).
+  const [extraSubTopics, setExtraSubTopics] = useState<string[]>([]);
   const [questionType, setQuestionType] = useState("All Types");
   const [questionCount, setQuestionCount] = useState("10");
   const [generationRecordCount, setGenerationRecordCount] = useState("");
@@ -496,6 +508,12 @@ export default function SuperAdminAiGenerator() {
     setSubTopic("");
   }, [selectedTool, subject]);
 
+  // Reset combined-paper extra subtopics whenever the tool, topic, or primary
+  // subtopic changes (also covers the subtopics list reloading on topic change).
+  useEffect(() => {
+    setExtraSubTopics([]);
+  }, [selectedTool, topic, subTopic]);
+
   useEffect(() => {
     if (!isLanguageExcludedTool(selectedTool)) return;
     if (!subject || !isStoryPassageLanguageSubject(subject)) return;
@@ -514,6 +532,9 @@ export default function SuperAdminAiGenerator() {
     subjectName: subject,
     topicName: topic,
     subtopicName: subTopic,
+    ...(MULTI_SUBTOPIC_TOOLS.has(selectedTool) && extraSubTopics.length > 0
+      ? { subTopics: [subTopic, ...extraSubTopics.filter((s) => s && s !== subTopic)] }
+      : {}),
     batchSize: parseBatchSize(),
     qualityTier,
     forceGenerate: forceGenerateNew,
@@ -1068,6 +1089,42 @@ export default function SuperAdminAiGenerator() {
               <SelectContent>{subtopics.map((st) => <SelectItem key={st} value={st}>{st}</SelectItem>)}</SelectContent>
             </Select>
           </div>
+          {MULTI_SUBTOPIC_TOOLS.has(selectedTool) && subTopic && subtopics.length > 1 && (
+            <div className="col-span-full">
+              <Label className="text-xs text-slate-500">
+                Combined paper — add more subtopics ({extraSubTopics.length + 1} selected)
+              </Label>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {subtopics.filter((st) => st !== subTopic).map((st) => {
+                  const on = extraSubTopics.includes(st);
+                  return (
+                    <button
+                      key={st}
+                      type="button"
+                      onClick={() =>
+                        setExtraSubTopics((prev) =>
+                          prev.includes(st) ? prev.filter((x) => x !== st) : [...prev, st],
+                        )
+                      }
+                      className={`rounded-full border px-3 py-1 text-xs font-medium transition ${
+                        on
+                          ? "border-blue-500 bg-blue-50 text-blue-700"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                      }`}
+                    >
+                      {on ? "✓ " : "+ "}
+                      {st}
+                    </button>
+                  );
+                })}
+              </div>
+              {extraSubTopics.length > 0 && (
+                <p className="mt-1 text-[11px] text-slate-400">
+                  One combined paper covering {extraSubTopics.length + 1} subtopics.
+                </p>
+              )}
+            </div>
+          )}
 
           {selectedTool === "worksheet-mcq-generator" ? (
             <div>
