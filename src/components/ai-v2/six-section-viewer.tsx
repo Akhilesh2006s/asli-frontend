@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Check, Sparkles } from 'lucide-react';
+import { Check, ChevronDown, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -419,6 +420,8 @@ function accentKey(accent: Accent): SectionAccent {
 export function SixSectionViewer({ tool, curriculum, chapter, sections, className }: SixSectionViewerProps) {
   const ToolIcon = tool.icon;
   const ChapterIcon = chapter?.icon;
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const toggleSection = (id: string) => setCollapsed((c) => ({ ...c, [id]: !c[id] }));
   const chips = [
     { k: 'Board', v: curriculum?.board },
     { k: 'Class', v: curriculum?.class },
@@ -483,48 +486,71 @@ export function SixSectionViewer({ tool, curriculum, chapter, sections, classNam
         </div>
       )}
 
-      {/* six sections */}
+      {/* six sections — the primary (worksheet/core) dominates; all collapsible */}
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         {sections.map((s, idx) => {
           const accent = ACCENTS[s.accent];
           const Icon = s.icon;
           const emoji = s.emoji ?? DEFAULT_EMOJI[s.id];
+          const isPrimary = s.id === 'core';
+          const isCollapsed = !!collapsed[s.id];
           return (
             <section
               key={s.id}
               className={cn(
-                'group relative flex flex-col overflow-hidden rounded-[1.5rem] border bg-white shadow-[0_2px_10px_-4px_rgba(0,0,0,0.08)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-8px_rgba(0,0,0,0.14)] dark:bg-slate-900',
+                'group relative flex flex-col overflow-hidden rounded-[1.5rem] border bg-white transition-all duration-300 dark:bg-slate-900',
                 accent.ring,
-                s.full && 'md:col-span-2',
+                (s.full || isPrimary) && 'md:col-span-2',
+                isPrimary
+                  ? 'shadow-[0_8px_30px_-8px_rgba(0,0,0,0.16)] ring-1 ring-slate-900/5 dark:ring-white/10'
+                  : 'shadow-[0_2px_10px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-8px_rgba(0,0,0,0.14)]',
               )}
             >
-              {/* top accent bar */}
-              <div className={cn('h-1.5 w-full bg-gradient-to-r', accent.bar)} />
-              {/* tinted header */}
-              <div
+              {/* top accent bar — thicker on the primary section */}
+              <div className={cn('w-full bg-gradient-to-r', accent.bar, isPrimary ? 'h-2' : 'h-1.5')} />
+              {/* tinted header — click to collapse/expand */}
+              <button
+                type="button"
+                onClick={() => toggleSection(s.id)}
+                aria-expanded={!isCollapsed}
                 className={cn(
-                  'flex items-center gap-3 border-b bg-gradient-to-b to-white px-5 py-4 dark:to-slate-900',
+                  'flex w-full items-center gap-3 border-b bg-gradient-to-b to-white px-5 text-left transition-colors hover:brightness-[0.99] dark:to-slate-900',
                   accent.ring,
                   accent.head,
+                  isPrimary ? 'py-5' : 'py-4',
                 )}
               >
                 <span
                   className={cn(
-                    'grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-white shadow-md ring-1 ring-white/30',
+                    'grid shrink-0 place-items-center rounded-2xl text-white shadow-md ring-1 ring-white/30',
                     accent.badge,
                     accent.glow,
+                    isPrimary ? 'h-12 w-12' : 'h-11 w-11',
                   )}
                 >
-                  <Icon className="h-5 w-5" />
+                  <Icon className={isPrimary ? 'h-6 w-6' : 'h-5 w-5'} />
                 </span>
-                <h4 className={cn('flex-1 text-[1.05rem] font-black leading-tight tracking-tight', accent.text)}>
-                  <span className="mr-1.5 tabular-nums opacity-50">{idx + 1}.</span>
-                  {s.label}
-                </h4>
+                <div className="min-w-0 flex-1">
+                  <h4
+                    className={cn(
+                      'font-black leading-tight tracking-tight',
+                      accent.text,
+                      isPrimary ? 'text-[1.2rem]' : 'text-[1.05rem]',
+                    )}
+                  >
+                    <span className="mr-1.5 tabular-nums opacity-50">{idx + 1}.</span>
+                    {s.label}
+                  </h4>
+                </div>
+                {isPrimary && (
+                  <span className="hidden shrink-0 rounded-full bg-white/70 px-2.5 py-0.5 text-[0.6rem] font-black uppercase tracking-widest text-slate-500 ring-1 ring-slate-200 sm:inline-block dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">
+                    Main
+                  </span>
+                )}
                 {s.tag && (
                   <span
                     className={cn(
-                      'ml-auto shrink-0 rounded-full px-2.5 py-0.5 text-[0.7rem] font-bold ring-1 ring-inset',
+                      'shrink-0 rounded-full px-2.5 py-0.5 text-[0.7rem] font-bold ring-1 ring-inset',
                       accent.soft,
                       accent.text,
                       accent.ring,
@@ -533,15 +559,21 @@ export function SixSectionViewer({ tool, curriculum, chapter, sections, classNam
                     {s.tag}
                   </span>
                 )}
-                {emoji && !s.tag && (
-                  <span className="ml-auto shrink-0 text-2xl opacity-90 transition-transform duration-300 group-hover:scale-110">
-                    {emoji}
-                  </span>
+                {emoji && !s.tag && !isPrimary && (
+                  <span className="shrink-0 text-2xl opacity-90">{emoji}</span>
                 )}
-              </div>
-              <div className="flex-1 p-5">
-                <Blocks blocks={s.blocks} accent={accent} />
-              </div>
+                <ChevronDown
+                  className={cn(
+                    'h-5 w-5 shrink-0 text-slate-400 transition-transform duration-300',
+                    isCollapsed && '-rotate-90',
+                  )}
+                />
+              </button>
+              {!isCollapsed && (
+                <div className={cn('flex-1', isPrimary ? 'p-6' : 'p-5')}>
+                  <Blocks blocks={s.blocks} accent={accent} />
+                </div>
+              )}
             </section>
           );
         })}
