@@ -12,7 +12,41 @@ import type { ContentBlock, SixSection, SixSectionViewerProps } from '@/componen
 
 type Dict = Record<string, unknown>;
 const arr = (v: unknown): Dict[] => (Array.isArray(v) ? (v as Dict[]) : []);
-const str = (v: unknown): string => (typeof v === 'string' ? v : v == null ? '' : String(v));
+
+/**
+ * Render-time garble guard: the generation pipeline can corrupt characters above
+ * Latin-1 (superscript charge signs, arrows, roots, Greek) into mojibake/garbage.
+ * Map the common math glyphs to ASCII and DROP any other above-Latin-1 byte, so
+ * even already-stored garbled records display clean. Keeps ASCII + Latin-1 (² ³ °).
+ */
+const GLYPH_MAP: Record<number, string> = {
+  0x2192: '->', 0x2190: '<-', 0x2194: '<->', 0x21cc: ' <=> ', 0x21cb: ' <=> ', 0x21d2: ' => ', 0x21d4: ' <=> ',
+  0x221a: 'sqrt', 0x221b: 'cbrt', 0x2211: 'sum', 0x220f: 'product', 0x222b: 'integral', 0x2202: 'd', 0x221e: 'infinity',
+  0x2264: '<=', 0x2265: '>=', 0x2260: '!=', 0x2248: '~=', 0x2261: '=',
+  0x2070: '^0', 0x2074: '^4', 0x2075: '^5', 0x2076: '^6', 0x2077: '^7', 0x2078: '^8', 0x2079: '^9', 0x207a: '+', 0x207b: '-', 0x207f: '^n',
+  0x2080: '0', 0x2081: '1', 0x2082: '2', 0x2083: '3', 0x2084: '4', 0x2085: '5', 0x2086: '6', 0x2087: '7', 0x2088: '8', 0x2089: '9', 0x208a: '+', 0x208b: '-',
+  0x0394: 'delta ', 0x2206: 'delta ', 0x03c0: 'pi', 0x03b8: 'theta', 0x03b1: 'alpha', 0x03b2: 'beta', 0x03b3: 'gamma', 0x03bb: 'lambda', 0x03bc: 'mu', 0x03a9: 'ohm', 0x03a3: 'sum',
+  0x2013: '-', 0x2014: '-', 0x2018: "'", 0x2019: "'", 0x201c: '"', 0x201d: '"', 0x2026: '...', 0x2032: "'", 0x2033: '"',
+};
+function cleanStr(v: string): string {
+  let out = '';
+  for (const ch of v) {
+    const c = ch.codePointAt(0) as number;
+    if (
+      c === 9 || c === 10 || c === 13 ||
+      (c >= 0x20 && c <= 0xff) || // ASCII + Latin-1 (² ³ ° render fine)
+      (c >= 0x900 && c <= 0x97f) || // Devanagari (Hindi) — keep
+      (c >= 0xc00 && c <= 0xc7f) // Telugu — keep
+    ) {
+      out += ch;
+    } else if (GLYPH_MAP[c] !== undefined) {
+      out += GLYPH_MAP[c];
+    }
+    // else: drop corrupted/garbage byte
+  }
+  return out;
+}
+const str = (v: unknown): string => cleanStr(typeof v === 'string' ? v : v == null ? '' : String(v));
 const list = (v: unknown): string[] => {
   if (Array.isArray(v)) return v.map(str).filter(Boolean);
   const s = str(v);
