@@ -129,7 +129,7 @@ export type SixSectionViewerProps = {
 };
 
 const DEFAULT_EMOJI: Record<string, string> = {
-  core: '📘', objectives: '🎯', differentiation: '🧩', assessment: '🔑', teacher: '🍎', reallife: '🌏',
+  core: '📝', objectives: '🎯', differentiation: '🧩', assessment: '🔑', teacher: '👩‍🏫', reallife: '🌍',
 };
 
 function Blocks({ blocks, accent }: { blocks: ContentBlock[]; accent: Accent }) {

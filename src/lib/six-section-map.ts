@@ -1,4 +1,4 @@
-import { FileText, ClipboardList, Users, KeyRound, GraduationCap, Sparkles } from 'lucide-react';
+import { FileText, Target, Users, KeyRound, GraduationCap, Globe } from 'lucide-react';
 import { resolveWorksheetFromPayload } from '@/lib/parse-worksheet-mcq';
 import { resolveLessonsFromPayload } from '@/lib/parse-lesson-planner';
 import type { ContentBlock, SixSection, SixSectionViewerProps } from '@/components/ai-v2/six-section-viewer';
@@ -446,10 +446,13 @@ export function mapV2ToViewer(
   const family = FAMILY_OF[toolSlug];
   const buildCore = (family && CORE_BUILDERS[family]) || (() => []);
 
+  // Distinct semantic colours per section (students/teachers scan faster) and
+  // education-specific icons. Only the primary worksheet is full-width so it
+  // dominates; the rest are secondary cards in the 2-col grid.
   const sections: SixSection[] = [
     { id: 'core', label: str(core.title) || str(core.worksheetTitle) || 'Core — Classroom Ready', accent: 'blue', icon: FileText, full: true, blocks: buildCore(core) },
     {
-      id: 'objectives', label: 'Objectives & Curriculum Alignment', accent: 'blue', icon: ClipboardList,
+      id: 'objectives', label: 'Objectives & Curriculum Alignment', accent: 'teal', icon: Target,
       blocks: [
         ...(arr(objectives.items).length ? [{ kind: 'bullets', items: (objectives.items as unknown[]).map(str) } as ContentBlock] : []),
         ...(objectives.alignment ? [{ kind: 'lead', text: str(objectives.alignment) } as ContentBlock] : []),
@@ -465,18 +468,18 @@ export function mapV2ToViewer(
       ].filter((r) => r.value) }],
     },
     {
-      id: 'assessment', label: 'Answer Key & Feedback', accent: 'green', icon: KeyRound, full: true,
+      id: 'assessment', label: 'Answer Key & Feedback', accent: 'green', icon: KeyRound,
       blocks: [
         ...(arr(assessment.answerKey).length ? [{ kind: 'answerKey', items: arr(assessment.answerKey).map((a) => ({ n: str(a.q), answer: str(a.answer), work: str(a.working) })) } as ContentBlock] : []),
         ...(Array.isArray(assessment.commonErrors) && assessment.commonErrors.length ? [{ kind: 'tips', items: (assessment.commonErrors as unknown[]).map(str) } as ContentBlock] : []),
       ],
     },
     {
-      id: 'teacher', label: "Teacher's Implementation Guide", accent: 'teal', icon: GraduationCap, full: true,
+      id: 'teacher', label: "Teacher's Implementation Guide", accent: 'amber', icon: GraduationCap,
       blocks: [{ kind: 'tips', items: [str(teacher.timing), ...arr(teacher.tlm).map(str), ...arr(teacher.tips).map(str)].filter(Boolean) }],
     },
     {
-      id: 'reallife', label: 'Real-Life Connection & Reflection', accent: 'amber', icon: Sparkles, full: true,
+      id: 'reallife', label: 'Real-Life Connection & Reflection', accent: 'rose', icon: Globe,
       blocks: [{ kind: 'bullets', items: [str(reallife.connection), str(reallife.family), str(reallife.reflection)].filter(Boolean) }],
     },
   ];
