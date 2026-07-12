@@ -131,7 +131,7 @@ export type SixSectionViewerProps = {
 };
 
 const DEFAULT_EMOJI: Record<string, string> = {
-  core: '📝', objectives: '🎯', differentiation: '🧩', assessment: '🔑', teacher: '👩‍🏫', reallife: '🌍',
+  core: '📄', objectives: '🎯', differentiation: '🪜', assessment: '🔑', teacher: '📋', reallife: '🌏',
 };
 
 /** Short tab labels per known section id (falls back to the first words of the label). */
