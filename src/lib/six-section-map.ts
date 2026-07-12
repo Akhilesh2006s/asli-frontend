@@ -28,13 +28,17 @@ const GLYPH_MAP: Record<number, string> = {
   0x0394: 'delta ', 0x2206: 'delta ', 0x03c0: 'pi', 0x03b8: 'theta', 0x03b1: 'alpha', 0x03b2: 'beta', 0x03b3: 'gamma', 0x03bb: 'lambda', 0x03bc: 'mu', 0x03a9: 'ohm', 0x03a3: 'sum',
   0x2013: '-', 0x2014: '-', 0x2018: "'", 0x2019: "'", 0x201c: '"', 0x201d: '"', 0x2026: '...', 0x2032: "'", 0x2033: '"',
 };
+// Latin-1 math symbols to keep (° ± ² ³ µ · ¹ ¼ ½ ¾ × ÷). Other Latin-1 (accented
+// letters) is mojibake in English/math content, so it is dropped.
+const KEEP_LATIN1 = new Set([0xb0, 0xb1, 0xb2, 0xb3, 0xb5, 0xb7, 0xb9, 0xbc, 0xbd, 0xbe, 0xd7, 0xf7]);
 function cleanStr(v: string): string {
   let out = '';
   for (const ch of v) {
     const c = ch.codePointAt(0) as number;
     if (
       c === 9 || c === 10 || c === 13 ||
-      (c >= 0x20 && c <= 0xff) || // ASCII + Latin-1 (² ³ ° render fine)
+      (c >= 0x20 && c <= 0x7e) || // printable ASCII
+      KEEP_LATIN1.has(c) || // math-only Latin-1 symbols
       (c >= 0x900 && c <= 0x97f) || // Devanagari (Hindi) — keep
       (c >= 0xc00 && c <= 0xc7f) // Telugu — keep
     ) {
@@ -42,7 +46,7 @@ function cleanStr(v: string): string {
     } else if (GLYPH_MAP[c] !== undefined) {
       out += GLYPH_MAP[c];
     }
-    // else: drop corrupted/garbage byte
+    // else: drop corrupted/garbage byte (mojibake, replacement char, etc.)
   }
   return out;
 }
