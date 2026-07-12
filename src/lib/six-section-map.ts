@@ -460,7 +460,7 @@ export function mapV2ToViewer(
       ],
     },
     {
-      id: 'differentiation', label: 'Differentiation & Support', accent: 'violet', icon: Users,
+      id: 'differentiation', label: 'Differentiation & Support', accent: 'violet', icon: Users, full: true,
       blocks: [{ kind: 'keyValue', rows: [
         { label: 'Support', value: str(differentiation.support) },
         { label: 'Core', value: str(differentiation.core) },

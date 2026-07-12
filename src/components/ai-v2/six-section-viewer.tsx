@@ -463,18 +463,20 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
         </div>
       </div>
 
-      {/* curriculum chips */}
+      {/* curriculum chips — label on top, value below (full chip width, no clipping) */}
       {chips.length > 0 && (
         <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
           {chips.map((c) => (
             <div
               key={c.k}
-              className="flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 text-sm font-semibold shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
+              className="min-w-0 rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
             >
-              <span className="text-[0.68rem] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              <div className="text-[0.6rem] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 {c.k}
-              </span>
-              <span className="truncate">{c.v}</span>
+              </div>
+              <div className="mt-0.5 break-words text-sm font-bold leading-snug text-slate-800 dark:text-slate-200">
+                {c.v}
+              </div>
             </div>
           ))}
         </div>
