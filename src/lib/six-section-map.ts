@@ -484,10 +484,27 @@ export function mapV2ToViewer(
     },
   ];
 
+  // AI Teaching Summary — derived entirely from existing content (no new fields).
+  const learn = list(objectives.items).slice(0, 6);
+  const stats: { label: string; value: string }[] = [];
+  if (family === 'questions') {
+    const qKeys = ['sectionA_mcq', 'sectionB_fib', 'sectionC_short', 'sectionD_application', 'sectionE_long'];
+    const qCount = qKeys.reduce((n, k) => n + arr(core[k]).length, 0);
+    if (qCount) stats.push({ label: 'Questions', value: String(qCount) });
+    const totalMarks = qKeys.reduce((n, k) => n + arr(core[k]).reduce((s, q) => s + (Number(q.marks) || 0), 0), 0);
+    if (totalMarks) stats.push({ label: 'Total Marks', value: String(totalMarks) });
+  }
+  const durMatch = `${str(core.instructions)} ${str(teacher.timing)}`.match(/(\d+)\s*(?:min|minute)/i);
+  if (durMatch) stats.push({ label: 'Duration', value: `${durMatch[1]} min` });
+  const bloomCount = toBloomChips(objectives.bloom).filter((c) => c.level).length;
+  if (bloomCount) stats.push({ label: "Bloom's Levels", value: String(bloomCount) });
+  const summary = learn.length || stats.length ? { learn, stats } : undefined;
+
   return {
     tool: { name: meta.name, subtitle: meta.subtitle, icon: meta.icon || FileText },
     curriculum: meta.curriculum,
     chapter: meta.chapter,
+    summary,
     sections,
   };
 }

@@ -124,6 +124,8 @@ export type SixSectionViewerProps = {
   tool: { name: string; subtitle?: string; icon: LucideIcon };
   curriculum?: { board?: string; class?: string; subject?: string; chapter?: string; subtopic?: string };
   chapter?: { title?: string; subtopic?: string; icon?: LucideIcon; emoji?: string };
+  /** Optional "AI Teaching Summary" hero — what students will learn + quick stats. */
+  summary?: { learn?: string[]; stats?: { label: string; value: string }[] };
   sections: SixSection[];
   className?: string;
 };
@@ -417,7 +419,7 @@ function accentKey(accent: Accent): SectionAccent {
   return found || 'blue';
 }
 
-export function SixSectionViewer({ tool, curriculum, chapter, sections, className }: SixSectionViewerProps) {
+export function SixSectionViewer({ tool, curriculum, chapter, summary, sections, className }: SixSectionViewerProps) {
   const ToolIcon = tool.icon;
   const ChapterIcon = chapter?.icon;
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -483,6 +485,47 @@ export function SixSectionViewer({ tool, curriculum, chapter, sections, classNam
             )}
           </div>
           {chapter.emoji && <div className="ml-auto shrink-0 text-4xl drop-shadow-sm">{chapter.emoji}</div>}
+        </div>
+      )}
+
+      {/* AI Teaching Summary hero — what students will learn + quick stats */}
+      {summary && ((summary.learn && summary.learn.length > 0) || (summary.stats && summary.stats.length > 0)) && (
+        <div className="overflow-hidden rounded-[1.75rem] border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-blue-50/40 p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] dark:border-indigo-900/50 dark:from-indigo-950/40 dark:via-slate-900 dark:to-blue-950/20">
+          <div className="flex items-center gap-2 text-[0.72rem] font-black uppercase tracking-[0.18em] text-indigo-500 dark:text-indigo-300">
+            <Sparkles className="h-4 w-4" /> AI Teaching Summary
+          </div>
+          {summary.learn && summary.learn.length > 0 && (
+            <>
+              <p className="mt-2.5 text-[0.78rem] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                Students will learn to
+              </p>
+              <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+                {summary.learn.map((it, i) => (
+                  <li key={i} className="flex items-start gap-2.5 text-[0.92rem] leading-snug text-slate-700 dark:text-slate-300">
+                    <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-emerald-100 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-950/50 dark:ring-emerald-800">
+                      <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-300" strokeWidth={3} />
+                    </span>
+                    <span>{it}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {summary.stats && summary.stats.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2.5">
+              {summary.stats.map((s, i) => (
+                <div
+                  key={i}
+                  className="rounded-2xl border border-slate-200/80 bg-white px-3.5 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-900"
+                >
+                  <div className="text-[0.6rem] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                    {s.label}
+                  </div>
+                  <div className="mt-0.5 text-[0.92rem] font-bold text-slate-800 dark:text-slate-200">{s.value}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
