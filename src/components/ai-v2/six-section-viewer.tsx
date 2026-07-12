@@ -134,6 +134,13 @@ const DEFAULT_EMOJI: Record<string, string> = {
   core: '📝', objectives: '🎯', differentiation: '🧩', assessment: '🔑', teacher: '👩‍🏫', reallife: '🌍',
 };
 
+/** Short tab labels per known section id (falls back to the first words of the label). */
+const TAB_LABEL: Record<string, string> = {
+  core: 'Worksheet', objectives: 'Objectives', differentiation: 'Support', assessment: 'Answer Key', teacher: 'Teacher', reallife: 'Real-Life',
+};
+const shortTabLabel = (s: SixSection) =>
+  TAB_LABEL[s.id] || String(s.label).split(/[—&:(]/)[0].trim().split(/\s+/).slice(0, 2).join(' ');
+
 function Blocks({ blocks, accent }: { blocks: ContentBlock[]; accent: Accent }) {
   return (
     <div className="space-y-5">
@@ -424,6 +431,9 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
   const ChapterIcon = chapter?.icon;
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggleSection = (id: string) => setCollapsed((c) => ({ ...c, [id]: !c[id] }));
+  const [activeTab, setActiveTab] = useState('all');
+  const visibleSections = activeTab === 'all' ? sections : sections.filter((s) => s.id === activeTab);
+  const soloView = activeTab !== 'all';
   const chips = [
     { k: 'Board', v: curriculum?.board },
     { k: 'Class', v: curriculum?.class },
@@ -529,21 +539,59 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
         </div>
       )}
 
+      {/* section tabs — "All" (default) plus one focus tab per section */}
+      {sections.length > 1 && (
+        <div className="sticky top-0 z-20 flex gap-1.5 overflow-x-auto rounded-2xl border border-slate-200/80 bg-white/95 p-1.5 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/95 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <button
+            type="button"
+            onClick={() => setActiveTab('all')}
+            className={cn(
+              'flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-[0.82rem] font-bold transition-colors',
+              activeTab === 'all'
+                ? 'bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900'
+                : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800',
+            )}
+          >
+            <span aria-hidden>📋</span> All
+          </button>
+          {sections.map((s) => {
+            const on = activeTab === s.id;
+            const emoji = s.emoji ?? DEFAULT_EMOJI[s.id];
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setActiveTab(s.id)}
+                className={cn(
+                  'flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-[0.82rem] font-bold transition-colors',
+                  on
+                    ? cn('text-white shadow-sm', ACCENTS[s.accent].badge)
+                    : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800',
+                )}
+              >
+                <span aria-hidden>{emoji}</span> {shortTabLabel(s)}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* six sections — the primary (worksheet/core) dominates; all collapsible */}
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        {sections.map((s, idx) => {
+        {visibleSections.map((s) => {
+          const idx = sections.indexOf(s);
           const accent = ACCENTS[s.accent];
           const Icon = s.icon;
           const emoji = s.emoji ?? DEFAULT_EMOJI[s.id];
           const isPrimary = s.id === 'core';
-          const isCollapsed = !!collapsed[s.id];
+          const isCollapsed = !soloView && !!collapsed[s.id];
           return (
             <section
               key={s.id}
               className={cn(
                 'group relative flex flex-col overflow-hidden rounded-[1.5rem] border bg-white transition-all duration-300 dark:bg-slate-900',
                 accent.ring,
-                (s.full || isPrimary) && 'md:col-span-2',
+                (s.full || isPrimary || soloView) && 'md:col-span-2',
                 isPrimary
                   ? 'shadow-[0_8px_30px_-8px_rgba(0,0,0,0.16)] ring-1 ring-slate-900/5 dark:ring-white/10'
                   : 'shadow-[0_2px_10px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-8px_rgba(0,0,0,0.14)]',
