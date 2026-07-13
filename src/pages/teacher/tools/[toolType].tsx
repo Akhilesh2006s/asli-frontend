@@ -42,6 +42,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { AiToolResultShell } from '@/components/ai-tool-result-shell';
 import { AiToolV2InputSummary } from '@/components/ai-v2';
+import {
+  AiToolGenerateFormCard,
+  AiToolGeneratePageChrome,
+} from '@/components/ai-tools/ai-tool-generate-form';
 import { GeneratorRecordViewer } from '@/components/super-admin/generator-record-viewer';
 import { buildAiToolViewerRecord } from '@/lib/build-ai-tool-viewer-record';
 import type { AiToolGenerationMeta } from '@/lib/ai-tool-generation-summary';
@@ -1418,41 +1422,37 @@ export default function TeacherToolPage() {
   const Icon = config.icon;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-teal-50 p-3 sm:p-4 lg:p-6">
-      <div className="max-w-6xl mx-auto space-y-3 sm:space-y-4 lg:space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-          <Button
-            variant="outline"
-            onClick={() => {
-              // Navigate to dashboard and set Vidya AI tab as active
-              localStorage.setItem('teacherDashboardTab', 'vidya-ai');
-              setLocation('/teacher/dashboard');
-            }}
-            className="shrink-0 border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900"
+    <AiToolGeneratePageChrome
+      title={config.name}
+      description={config.description}
+      icon={Icon}
+      badge="Teacher AI"
+      onBack={() => {
+        localStorage.setItem('teacherDashboardTab', 'vidya-ai');
+        setLocation('/teacher/dashboard');
+      }}
+    >
+        <div className="flex flex-col gap-4 sm:gap-6">
+          <AiToolGenerateFormCard
+            onGenerate={handleGenerate}
+            isGenerating={isGenerating}
+            notices={
+              <>
+              {toolType === STORY_PASSAGE_TOOL_ID ? (
+                <p className="sm:col-span-2 lg:col-span-3 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
+                  Story &amp; Passage Creator is available for <strong>English</strong> and{' '}
+                  <strong>Hindi</strong> subjects only.
+                </p>
+              ) : null}
+              {isLanguageExcludedTool(toolType) ? (
+                <p className="sm:col-span-2 lg:col-span-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  This tool is not available for <strong>English</strong>, <strong>Hindi</strong>, or{' '}
+                  <strong>Telugu</strong> subjects.
+                </p>
+              ) : null}
+              </>
+            }
           >
-            <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" aria-hidden />
-            Back
-          </Button>
-          <div className="flex items-center space-x-3 min-w-0">
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
-              <Icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl sm:text-3xl font-bold text-gray-900 break-words">{config.name}</h1>
-              <p className="text-gray-600">{config.description}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-4 sm:gap-6 sm:p-4 lg:p-6">
-          {/* Tool parameters — 3-column grid, then generate */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Tool Parameters</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="board">Board *</Label>
                 <Select
@@ -1471,18 +1471,6 @@ export default function TeacherToolPage() {
                   </SelectContent>
                 </Select>
               </div>
-              {toolType === STORY_PASSAGE_TOOL_ID ? (
-                <p className="sm:col-span-2 lg:col-span-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
-                  Story &amp; Passage Creator is available for <strong>English</strong> and{' '}
-                  <strong>Hindi</strong> subjects only.
-                </p>
-              ) : null}
-              {isLanguageExcludedTool(toolType) ? (
-                <p className="sm:col-span-2 lg:col-span-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                  This tool is not available for <strong>English</strong>, <strong>Hindi</strong>, or{' '}
-                  <strong>Telugu</strong> subjects.
-                </p>
-              ) : null}
               {config.fields.map((field: any) => {
                 // Check if field should be shown based on showWhen condition
                 if (field.showWhen && !field.showWhen(formParams)) {
@@ -1628,27 +1616,7 @@ export default function TeacherToolPage() {
                   </div>
                 );
               })}
-              </div>
-
-              <Button
-                onClick={handleGenerate}
-                disabled={isGenerating}
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                    Generate
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
+          </AiToolGenerateFormCard>
 
           {/* Generated content — shared mobile-friendly result shell */}
           <AiToolResultShell
@@ -1739,8 +1707,7 @@ export default function TeacherToolPage() {
             ) : null}
           </AiToolResultShell>
         </div>
-      </div>
-    </div>
+    </AiToolGeneratePageChrome>
   );
 }
 

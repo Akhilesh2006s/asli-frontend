@@ -3,8 +3,10 @@ import { GeneratedRecordBody } from '@/components/super-admin/generated-record-b
 import { SixSectionViewer } from '@/components/ai-v2/six-section-viewer';
 import { mapRecordToSixSectionViewer } from '@/lib/six-section-map';
 import { normalizeAiToolSlug } from '@/lib/normalize-ai-tool-slug';
+import { resolveInteractiveAiToolViewer } from '@/components/ai-tools/resolve-interactive-ai-tool-viewer';
 
-export type AiToolViewerAudience = 'teacher' | 'student';
+/** teacher/student = interactive-first; admin = SixSection-first (Super Admin browse). */
+export type AiToolViewerAudience = 'teacher' | 'student' | 'admin';
 
 function recordMeta(record: Record<string, unknown>, slug: string) {
   const val = (k: string) => String(record[k] || '').trim();
@@ -24,11 +26,23 @@ function recordMeta(record: Record<string, unknown>, slug: string) {
 export function resolveViewerForRecord(
   record: Record<string, unknown>,
   slug: string,
-  _audience: AiToolViewerAudience = 'teacher',
+  audience: AiToolViewerAudience = 'admin',
 ): ReactNode {
+  // Teacher / student dashboards: interactive specialized viewers first.
+  if (audience === 'teacher' || audience === 'student') {
+    const interactive = resolveInteractiveAiToolViewer(record, slug, audience);
+    if (interactive) return interactive;
+  }
+
   const sixSection = mapRecordToSixSectionViewer(slug, record, recordMeta(record, slug));
   if (sixSection) {
     return <SixSectionViewer {...sixSection} />;
+  }
+
+  // Admin fallback: still try interactive if SixSection cannot map.
+  if (audience === 'admin') {
+    const interactive = resolveInteractiveAiToolViewer(record, slug, 'teacher');
+    if (interactive) return interactive;
   }
 
   const generatedContent = String(record.generatedContent || record.content || '');
@@ -42,7 +56,7 @@ export function recordUsesSixSectionViewer(record: Record<string, unknown> | nul
 
 export function GeneratorRecordViewer({
   record,
-  audience = 'teacher',
+  audience = 'admin',
   wrapHost = true,
 }: {
   record: Record<string, unknown> | null;
@@ -50,6 +64,7 @@ export function GeneratorRecordViewer({
   /** @deprecated Host wrapper removed — six-section UI is self-contained. */
   wrapHost?: boolean;
 }) {
+  void wrapHost;
   if (!record) return null;
   const slug = normalizeAiToolSlug(record.toolSlug || record.toolName);
   return resolveViewerForRecord(record, slug, audience);

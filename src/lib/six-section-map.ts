@@ -148,9 +148,14 @@ function readingCore(core: Dict): ContentBlock[] {
 }
 
 function cardsCore(core: Dict): ContentBlock[] {
-  const cards = arr(core.cards);
+  const cards = arr(core.cards)
+    .map((c) => ({
+      front: str(c.front || c.task || c.term || c.question),
+      back: str(c.back || c.solution || c.definition || c.answer),
+    }))
+    .filter((c) => c.front && c.back);
   if (!cards.length) return [];
-  return [{ kind: 'table', head: ['#', 'Front', 'Back'], rows: cards.map((c, i) => [String(i + 1), str(c.front), str(c.back)]) }];
+  return [{ kind: 'flashcards', cards }];
 }
 
 const CORE_BUILDERS = { questions: questionsCore, explain: explainCore, plan: planCore, reading: readingCore, cards: cardsCore };
@@ -174,6 +179,8 @@ function blockHasContent(block: ContentBlock): boolean {
       return block.items.some((a) => String(a.answer || '').trim());
     case 'table':
       return block.rows.length > 0;
+    case 'flashcards':
+      return block.cards.some((c) => String(c.front || '').trim() && String(c.back || '').trim());
     case 'bloom':
       return block.chips.some((c) => String(c.desc || c.level || '').trim());
     default:

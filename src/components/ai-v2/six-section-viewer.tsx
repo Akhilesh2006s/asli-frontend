@@ -1,6 +1,15 @@
 import { useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Check, ChevronDown, Sparkles } from 'lucide-react';
+import {
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  RotateCcw,
+  Sparkles,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -106,6 +115,7 @@ export type ContentBlock =
   | { kind: 'shortAnswer'; questions: { n: string; stem: string; marks?: string }[] }
   | { kind: 'answerKey'; items: { n: string; answer: string; work?: string }[] }
   | { kind: 'table'; head: string[]; rows: string[][] }
+  | { kind: 'flashcards'; cards: { front: string; back: string }[] }
   | { kind: 'bloom'; chips: { level: string; desc: string }[] }
   | { kind: 'tips'; items: string[] };
 
@@ -140,6 +150,224 @@ const TAB_LABEL: Record<string, string> = {
 };
 const shortTabLabel = (s: SixSection) =>
   TAB_LABEL[s.id] || String(s.label).split(/[—&:(]/)[0].trim().split(/\s+/).slice(0, 2).join(' ');
+
+function InteractiveFlashcards({
+  cards,
+  accent,
+}: {
+  cards: { front: string; back: string }[];
+  accent: Accent;
+}) {
+  const [idx, setIdx] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+  if (!cards.length) return null;
+  const card = cards[Math.min(idx, cards.length - 1)];
+  const go = (next: number) => {
+    setFlipped(false);
+    setIdx(((next % cards.length) + cards.length) % cards.length);
+  };
+  return (
+    <div className="mx-auto w-full max-w-lg space-y-4">
+      <button
+        type="button"
+        onClick={() => setFlipped((f) => !f)}
+        className={cn(
+          'group relative w-full min-h-[200px] rounded-2xl border bg-white p-6 text-left shadow-md transition-all duration-300',
+          'hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400',
+          accent.ring,
+          flipped && 'bg-gradient-to-br from-sky-50 to-teal-50',
+        )}
+        aria-label={flipped ? 'Show front' : 'Flip card'}
+      >
+        <div className={cn('mb-3 text-[0.68rem] font-black uppercase tracking-widest', accent.text)}>
+          {flipped ? 'Back · Answer' : 'Front · Prompt'} · Card {idx + 1}/{cards.length}
+        </div>
+        <p className="text-[1.02rem] font-semibold leading-relaxed text-slate-900 whitespace-pre-wrap">
+          {flipped ? card.back : card.front}
+        </p>
+        <span className="mt-4 inline-flex items-center gap-1.5 text-[0.72rem] font-semibold text-slate-400 group-hover:text-slate-600">
+          <RotateCcw className="h-3.5 w-3.5" /> Tap to flip
+        </span>
+      </button>
+      <div className="flex items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={() => go(idx - 1)}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+          aria-label="Previous card"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <span className="min-w-[4rem] text-center text-sm font-semibold tabular-nums text-slate-600">
+          {idx + 1} / {cards.length}
+        </span>
+        <button
+          type="button"
+          onClick={() => go(idx + 1)}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50"
+          aria-label="Next card"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function InteractiveMcq({ questions, accent }: { questions: McqQuestion[]; accent: Accent }) {
+  const [picked, setPicked] = useState<Record<string, string>>({});
+  return (
+    <div className="space-y-4">
+      {questions.map((q, j) => {
+        const key = `${q.n}-${j}`;
+        const selected = picked[key];
+        const hasCorrect = q.options.some((o) => o.correct);
+        return (
+          <div
+            key={key}
+            className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-800/30"
+          >
+            <div className="flex gap-2.5 text-[0.92rem] font-semibold leading-snug text-slate-800 dark:text-slate-200">
+              <span className={cn('font-extrabold', accent.text)}>{q.n}.</span>
+              <span className="flex-1">{q.stem}</span>
+              {q.marks && (
+                <span className="ml-auto shrink-0 whitespace-nowrap rounded-full bg-white px-2 py-0.5 text-[0.68rem] font-bold text-slate-400 ring-1 ring-slate-200">
+                  {q.marks}
+                </span>
+              )}
+            </div>
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {q.options.map((o, k) => {
+                const isSelected = selected === o.label;
+                const showResult = Boolean(selected) && hasCorrect;
+                const isCorrectOpt = Boolean(o.correct);
+                const wrongPick = showResult && isSelected && !isCorrectOpt;
+                const rightShow = showResult && isCorrectOpt;
+                return (
+                  <button
+                    type="button"
+                    key={k}
+                    onClick={() => setPicked((p) => ({ ...p, [key]: o.label }))}
+                    className={cn(
+                      'flex items-center gap-2.5 rounded-xl border px-3 py-2 text-left text-[0.86rem] transition-all',
+                      rightShow
+                        ? 'border-emerald-400 bg-emerald-50 ring-1 ring-emerald-300'
+                        : wrongPick
+                          ? 'border-rose-300 bg-rose-50 ring-1 ring-rose-200'
+                          : isSelected
+                            ? cn('ring-1', accent.ring, accent.soft)
+                            : 'border-slate-200 bg-white hover:border-slate-300',
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'grid h-6 w-6 shrink-0 place-items-center rounded-full text-[0.72rem] font-extrabold',
+                        rightShow
+                          ? 'bg-emerald-500 text-white'
+                          : wrongPick
+                            ? 'bg-rose-500 text-white'
+                            : isSelected
+                              ? cn(accent.badge, 'text-white')
+                              : 'bg-slate-100 text-slate-500',
+                      )}
+                    >
+                      {o.label}
+                    </span>
+                    <span className="flex-1 text-slate-700">{o.text}</span>
+                    {rightShow ? <Check className="ml-auto h-4 w-4 shrink-0 text-emerald-500" strokeWidth={3} /> : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function RevealAnswerKey({
+  items,
+}: {
+  items: { n: string; answer: string; work?: string }[];
+}) {
+  const [revealed, setRevealed] = useState(false);
+  return (
+    <div className="space-y-3">
+      <button
+        type="button"
+        onClick={() => setRevealed((r) => !r)}
+        className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100"
+      >
+        {revealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        {revealed ? 'Hide answers' : 'Reveal answers'}
+      </button>
+      {revealed ? (
+        <div className="space-y-2.5 animate-in fade-in duration-200">
+          {items.map((a, j) => (
+            <div
+              key={j}
+              className="grid grid-cols-[auto_1fr] gap-3 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-teal-50/40 p-3.5"
+            >
+              <span className="grid h-7 min-w-7 place-items-center self-start rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 px-1.5 text-[0.72rem] font-extrabold tabular-nums text-white shadow-sm">
+                {a.n}
+              </span>
+              <div className="text-[0.9rem]">
+                <span className="font-semibold text-slate-900">{a.answer}</span>
+                {a.work ? (
+                  <div className="mt-1 text-[0.84rem] leading-relaxed text-slate-500">{a.work}</div>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-slate-500">Answers are hidden — try the questions first, then reveal.</p>
+      )}
+    </div>
+  );
+}
+
+function CheckableSteps({ items, accent }: { items: string[]; accent: Accent }) {
+  const [done, setDone] = useState<Record<number, boolean>>({});
+  const doneCount = Object.values(done).filter(Boolean).length;
+  return (
+    <div className="space-y-3">
+      <p className="text-[0.72rem] font-semibold uppercase tracking-wide text-slate-400">
+        Progress {doneCount}/{items.length}
+      </p>
+      <ol className="relative space-y-3 before:absolute before:left-[15px] before:top-4 before:bottom-4 before:w-px before:bg-slate-200">
+        {items.map((it, j) => {
+          const checked = Boolean(done[j]);
+          return (
+            <li key={j}>
+              <button
+                type="button"
+                onClick={() => setDone((d) => ({ ...d, [j]: !d[j] }))}
+                className={cn(
+                  'relative flex w-full items-start gap-4 rounded-xl border px-3 py-2.5 text-left text-[0.92rem] leading-relaxed transition',
+                  checked
+                    ? 'border-emerald-200 bg-emerald-50/80 text-slate-600'
+                    : 'border-transparent bg-transparent text-slate-700 hover:border-slate-200 hover:bg-white',
+                )}
+              >
+                <span
+                  className={cn(
+                    'relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full text-[0.8rem] font-extrabold text-white shadow-md ring-4 ring-white',
+                    checked ? 'bg-emerald-500' : cn(accent.badge, accent.glow),
+                  )}
+                >
+                  {checked ? <Check className="h-4 w-4" strokeWidth={3} /> : j + 1}
+                </span>
+                <span className={cn('pt-1', checked && 'line-through decoration-emerald-400/80')}>{it}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
 
 function Blocks({ blocks, accent }: { blocks: ContentBlock[]; accent: Accent }) {
   return (
@@ -185,24 +413,7 @@ function Blocks({ blocks, accent }: { blocks: ContentBlock[]; accent: Accent }) 
               </ul>
             );
           case 'steps':
-            return (
-              <ol key={i} className="relative space-y-4 before:absolute before:left-[15px] before:top-4 before:bottom-4 before:w-px before:bg-slate-200 dark:before:bg-slate-700">
-                {b.items.map((it, j) => (
-                  <li key={j} className="relative flex items-start gap-4 text-[0.92rem] leading-relaxed text-slate-700 dark:text-slate-300">
-                    <span
-                      className={cn(
-                        'relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full text-[0.8rem] font-extrabold text-white shadow-md ring-4 ring-white dark:ring-slate-900',
-                        accent.badge,
-                        accent.glow,
-                      )}
-                    >
-                      {j + 1}
-                    </span>
-                    <span className="pt-1">{it}</span>
-                  </li>
-                ))}
-              </ol>
-            );
+            return <CheckableSteps key={i} items={b.items} accent={accent} />;
           case 'keyValue':
             return (
               <div key={i} className="grid gap-3 sm:grid-cols-3">
@@ -230,52 +441,7 @@ function Blocks({ blocks, accent }: { blocks: ContentBlock[]; accent: Accent }) 
               </div>
             );
           case 'mcq':
-            return (
-              <div key={i} className="space-y-4">
-                {b.questions.map((q, j) => (
-                  <div
-                    key={j}
-                    className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 dark:border-slate-800 dark:bg-slate-800/30"
-                  >
-                    <div className="flex gap-2.5 text-[0.92rem] font-semibold leading-snug text-slate-800 dark:text-slate-200">
-                      <span className={cn('font-extrabold', accent.text)}>{q.n}.</span>
-                      <span className="flex-1">{q.stem}</span>
-                      {q.marks && (
-                        <span className="ml-auto shrink-0 whitespace-nowrap rounded-full bg-white px-2 py-0.5 text-[0.68rem] font-bold text-slate-400 ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-700">
-                          {q.marks}
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      {q.options.map((o, k) => (
-                        <div
-                          key={k}
-                          className={cn(
-                            'flex items-center gap-2.5 rounded-xl border px-3 py-2 text-[0.86rem] transition-colors',
-                            o.correct
-                              ? 'border-emerald-400 bg-emerald-50 ring-1 ring-emerald-300 dark:bg-emerald-950/40 dark:ring-emerald-700'
-                              : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900',
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              'grid h-6 w-6 shrink-0 place-items-center rounded-full text-[0.72rem] font-extrabold',
-                              o.correct
-                                ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/40'
-                                : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
-                            )}
-                          >
-                            {o.label}
-                          </span>
-                          <span className="flex-1 text-slate-700 dark:text-slate-300">{o.text}</span>
-                          {o.correct && <Check className="ml-auto h-4 w-4 shrink-0 text-emerald-500" strokeWidth={3} />}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            );
+            return <InteractiveMcq key={i} questions={b.questions} accent={accent} />;
           case 'shortAnswer':
             return (
               <div key={i} className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -296,29 +462,21 @@ function Blocks({ blocks, accent }: { blocks: ContentBlock[]; accent: Accent }) 
               </div>
             );
           case 'answerKey':
-            return (
-              <div key={i} className="space-y-2.5">
-                {b.items.map((a, j) => (
-                  <div
-                    key={j}
-                    className="grid grid-cols-[auto_1fr] gap-3 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-teal-50/40 p-3.5 dark:border-emerald-900/60 dark:from-emerald-950/40 dark:to-teal-950/20"
-                  >
-                    <span className="grid h-7 min-w-7 place-items-center self-start rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 px-1.5 text-[0.72rem] font-extrabold tabular-nums text-white shadow-sm shadow-emerald-500/30">
-                      {a.n}
-                    </span>
-                    <div className="text-[0.9rem]">
-                      <span className="font-semibold text-slate-900 dark:text-slate-100">{a.answer}</span>
-                      {a.work && (
-                        <div className="mt-1 text-[0.84rem] leading-relaxed text-slate-500 dark:text-slate-400">
-                          {a.work}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            );
-          case 'table':
+            return <RevealAnswerKey key={i} items={b.items} />;
+          case 'flashcards':
+            return <InteractiveFlashcards key={i} cards={b.cards} accent={accent} />;
+          case 'table': {
+            const headLower = b.head.map((h) => h.toLowerCase());
+            const isCardTable =
+              headLower.includes('front') && headLower.includes('back') && b.rows.length > 0;
+            if (isCardTable) {
+              const fi = headLower.indexOf('front');
+              const bi = headLower.indexOf('back');
+              const cards = b.rows
+                .map((r) => ({ front: String(r[fi] || '').trim(), back: String(r[bi] || '').trim() }))
+                .filter((c) => c.front && c.back);
+              if (cards.length) return <InteractiveFlashcards key={i} cards={cards} accent={accent} />;
+            }
             return (
               <div key={i} className={cn('overflow-x-auto rounded-2xl border', accent.ring)}>
                 <table className="w-full min-w-[340px] text-[0.86rem]">
@@ -362,9 +520,8 @@ function Blocks({ blocks, accent }: { blocks: ContentBlock[]; accent: Accent }) 
                 </table>
               </div>
             );
+          }
           case 'bloom':
-            // 2-up grid: the Bloom block lives in the narrow half-width "Objectives"
-            // section, so wide balanced cards avoid clipping ("Understan…").
             return (
               <div key={i} className="grid grid-cols-2 gap-3">
                 {b.chips.map((c, j) => {

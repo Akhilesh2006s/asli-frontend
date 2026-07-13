@@ -48,6 +48,10 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } fro
 import { saveAs } from 'file-saver';
 import { AiToolResultShell } from '@/components/ai-tool-result-shell';
 import { AiToolV2InputSummary } from '@/components/ai-v2';
+import {
+  AiToolGenerateFormCard,
+  AiToolGeneratePageChrome,
+} from '@/components/ai-tools/ai-tool-generate-form';
 import { GeneratorRecordViewer } from '@/components/super-admin/generator-record-viewer';
 import { buildAiToolViewerRecord } from '@/lib/build-ai-tool-viewer-record';
 import { resolveStudentAiApiToolType } from '@/lib/student-ai-tool-routes';
@@ -1752,71 +1756,28 @@ export default function StudentToolPage() {
     'prose prose-sm max-w-none leading-relaxed prose-headings:text-slate-900 prose-headings:tracking-tight prose-h2:mt-7 prose-h2:border-b prose-h2:border-slate-200 prose-h2:pb-2 prose-h3:mt-6 prose-h3:text-slate-800 prose-p:text-slate-700 prose-p:leading-7 prose-strong:text-slate-900 prose-li:text-slate-700 prose-code:text-slate-800 prose-img:rounded-lg prose-img:shadow-md prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-gray-300 prose-th:bg-gray-50 prose-th:p-2 prose-td:border prose-td:border-gray-300 prose-td:p-2';
   const smartStudyGuideProseClass =
     'prose prose-sm sm:prose-base max-w-none leading-relaxed prose-headings:font-bold prose-headings:tracking-tight prose-headings:text-slate-900 prose-h1:text-2xl prose-h2:mt-8 prose-h2:text-indigo-900 prose-h3:mt-6 prose-h3:text-slate-800 prose-p:text-slate-700 prose-p:leading-8 prose-strong:text-slate-900 prose-blockquote:rounded-r-xl prose-blockquote:border-l-4 prose-blockquote:border-cyan-300 prose-blockquote:bg-cyan-50/50 prose-blockquote:py-1 prose-blockquote:pl-4 prose-blockquote:text-slate-700 prose-code:rounded prose-code:bg-slate-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:text-slate-800 prose-pre:rounded-xl prose-pre:border prose-pre:border-slate-200 prose-pre:bg-slate-950 prose-pre:text-slate-100 prose-img:rounded-xl prose-img:shadow-lg prose-table:w-full prose-table:border-separate prose-table:border-spacing-0 prose-th:border prose-th:border-indigo-200 prose-th:bg-indigo-50 prose-th:p-2 prose-td:border prose-td:border-slate-200 prose-td:p-2';
-  const pageWrapperClass = isSmartStudyGuide
-    ? 'min-h-screen bg-[radial-gradient(circle_at_top,_rgba(79,70,229,0.14),_transparent_35%),radial-gradient(circle_at_20%_80%,_rgba(6,182,212,0.12),_transparent_30%),linear-gradient(to_bottom_right,_#f8fbff,_#eef2ff,_#f5f3ff)] p-4 sm:p-6 lg:p-8'
-    : 'min-h-screen bg-gradient-to-br from-sky-50 to-teal-50 p-4 sm:p-6 lg:p-8';
-  const parameterCardClass = isSmartStudyGuide
-    ? 'border border-indigo-100/80 bg-white/85 shadow-[0_22px_55px_-30px_rgba(79,70,229,0.45)] backdrop-blur'
-    : 'bg-white shadow-lg';
-  const parameterHeaderTitle = isSmartStudyGuide ? 'Customize your premium guide' : 'Tool Parameters';
-  const generateButtonClass = isSmartStudyGuide
-    ? 'w-full bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 text-white shadow-lg shadow-indigo-200 transition-all hover:scale-[1.01] hover:from-indigo-700 hover:via-blue-700 hover:to-cyan-700'
-    : 'w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white';
+  const parameterHeaderTitle = isSmartStudyGuide ? 'Customize your study guide' : 'Choose what to generate';
 
   return (
-    <div className={pageWrapperClass}>
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
-        >
-          <Button
-            variant="outline"
-            onClick={() => setLocation('/ai-tutor')}
-            className="mb-4 shrink-0 border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900"
-          >
-            <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" aria-hidden />
-            Back
-          </Button>
-          
-          <div className="flex items-center space-x-3 mb-4 min-w-0">
-            <div
-              className={
-                isSmartStudyGuide
-                  ? 'w-12 h-12 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-500'
-                  : 'w-12 h-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg'
-              }
-            >
-              <Icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl sm:text-3xl font-bold text-gray-900 break-words">{config.name}</h1>
-              <p className={isSmartStudyGuide ? 'text-slate-700' : 'text-gray-600'}>{config.description}</p>
-              {isSmartStudyGuide ? (
-                <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-indigo-700">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Premium student experience
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </motion.div>
-
+    <AiToolGeneratePageChrome
+      title={config.name}
+      description={config.description}
+      icon={Icon}
+      badge={isSmartStudyGuide ? 'Premium study' : 'Student AI'}
+      onBack={() => setLocation('/ai-tutor')}
+      backLabel="Back to AI Tutor"
+    >
         <div className="flex flex-col gap-4 sm:gap-6">
-          {/* Tool parameters — compact 3-column grid (~3 rows), then generate */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+          <AiToolGenerateFormCard
+            title={parameterHeaderTitle}
+            subtitle={
+              isSmartStudyGuide
+                ? 'Tune board, class, and topic for a premium interactive study guide.'
+                : undefined
+            }
+            onGenerate={handleGenerate}
+            isGenerating={isGenerating}
           >
-            <Card className={parameterCardClass}>
-              <CardHeader>
-                <CardTitle>{parameterHeaderTitle}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="board">Board *</Label>
                   <Select
@@ -1998,28 +1959,7 @@ export default function StudentToolPage() {
                     </div>
                   );
                 })}
-                </div>
-
-                <Button
-                  onClick={handleGenerate}
-                  disabled={isGenerating}
-                  className={generateButtonClass}
-                >
-                  {isGenerating ? (
-                    <>
-                      <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                      Generate
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
+          </AiToolGenerateFormCard>
 
           {/* Generated content — shared mobile-friendly result shell */}
           <AiToolResultShell
@@ -2047,8 +1987,8 @@ export default function StudentToolPage() {
             isLoading={isGenerating}
             citations={
               generatedContent && Array.isArray(responseMeta?.citations) && responseMeta.citations.length > 0 ? (
-                <div className="mt-2 rounded-lg border border-blue-100 bg-blue-50/50 p-2 max-h-28 overflow-y-auto">
-                  <p className="text-[11px] font-semibold text-blue-700 mb-1">Top Citations</p>
+                <div className="mt-2 rounded-lg border border-sky-100 bg-sky-50/50 p-2 max-h-28 overflow-y-auto">
+                  <p className="text-[11px] font-semibold text-sky-700 mb-1">Top Citations</p>
                   <div className="space-y-1">
                     {responseMeta.citations.slice(0, 3).map((c: CitationItem) => (
                       <p key={String(c.index) + '-' + String(c.chapter)} className="text-[11px] text-gray-600">
@@ -2085,8 +2025,7 @@ export default function StudentToolPage() {
             ) : null}
           </AiToolResultShell>
         </div>
-      </div>
-    </div>
+    </AiToolGeneratePageChrome>
   );
 }
 
