@@ -324,8 +324,7 @@ function ConceptTimelineStep({
 
 function TeacherConceptCard({ concept }: { concept: NormalizedConcept }) {
   const filled = countFilledSections(concept);
-  const total = CONCEPT_TEMPLATE_SECTIONS.length;
-  const progressPct = Math.round((filled / total) * 100);
+  const progressPct = Math.round((filled / Math.max(CONCEPT_TEMPLATE_SECTIONS.length, 1)) * 100);
   return (
     <div className="space-y-5">
       <div className="rounded-xl border-2 border-dashed border-fuchsia-300/70 bg-gradient-to-br from-fuchsia-50/90 via-white to-violet-50/40 px-4 py-4 sm:px-5 sm:py-5">
@@ -362,52 +361,55 @@ function TeacherConceptCard({ concept }: { concept: NormalizedConcept }) {
               />
             </div>
             <p className="text-[11px] text-slate-500 mt-1 text-right">
-              {filled}/{total} blocks
+              {filled} block{filled === 1 ? '' : 's'}
             </p>
           </div>
         </div>
       </div>
 
-      {CONCEPT_FLOW_PHASES.map((phase) => {
-        const phaseSections = CONCEPT_TEMPLATE_SECTIONS.filter((sec) => SECTION_PHASE[sec.num] === phase.id);
+      {(() => {
+        let sectionIndex = 0;
+        return CONCEPT_FLOW_PHASES.map((phase) => {
+          const phaseSections = CONCEPT_TEMPLATE_SECTIONS.filter(
+            (sec) => SECTION_PHASE[sec.num] === phase.id && sec.hasContent(concept),
+          );
+          if (!phaseSections.length) return null;
 
-        return (
-          <section key={phase.id} aria-label={phase.label}>
-            <div
-              className={cn(
-                'mb-3 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2',
-                phase.badgeClass,
-              )}
-            >
-              <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', phase.dotClass.split(' ')[0])} />
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide">{phase.label}</p>
-                <p className="text-[11px] opacity-80">{phase.hint}</p>
+          return (
+            <section key={phase.id} aria-label={phase.label}>
+              <div
+                className={cn(
+                  'mb-3 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2',
+                  phase.badgeClass,
+                )}
+              >
+                <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', phase.dotClass.split(' ')[0])} />
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide">{phase.label}</p>
+                  <p className="text-[11px] opacity-80">{phase.hint}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex flex-col gap-4">
-              {phaseSections.map((sec, idx) => (
-                <ConceptTimelineStep
-                  key={sec.num}
-                  sectionNum={sec.num}
-                  title={sec.title}
-                  icon={sec.icon}
-                  dotClass={phase.dotClass}
-                  isLast={idx === phaseSections.length - 1}
-                >
-                  {sec.hasContent(concept) ? (
-                    sec.render(concept)
-                  ) : (
-                    <p className="text-sm text-stone-400 italic rounded-lg border border-dashed border-stone-200 bg-stone-50 px-2.5 py-1.5">
-                      Not included in this generation — try regenerating with more detail if you need this section.
-                    </p>
-                  )}
-                </ConceptTimelineStep>
-              ))}
-            </div>
-          </section>
-        );
-      })}
+              <div className="flex flex-col gap-4">
+                {phaseSections.map((sec, idx) => {
+                  sectionIndex += 1;
+                  return (
+                    <ConceptTimelineStep
+                      key={sec.num}
+                      sectionNum={sectionIndex}
+                      title={sec.title}
+                      icon={sec.icon}
+                      dotClass={phase.dotClass}
+                      isLast={idx === phaseSections.length - 1}
+                    >
+                      {sec.render(concept)}
+                    </ConceptTimelineStep>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        });
+      })()}
     </div>
   );
 }

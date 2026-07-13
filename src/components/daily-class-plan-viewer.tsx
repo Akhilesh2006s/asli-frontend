@@ -178,59 +178,87 @@ function DayPlanBoard({ plan }: { plan: NormalizedDailyPlan }) {
       ) : null}
 
       <div className="flex w-full flex-col gap-4">
-        {plan.objectives.length > 0 ? (
-          <BentoCard sectionNum="1" title="Learning objectives" icon={Target}>
-            <BulletBlock items={plan.objectives} icon={CheckCircle2} iconClass="text-emerald-600" />
-          </BentoCard>
-        ) : null}
-
-        {plan.teachingMethods.length > 0 ? (
-          <BentoCard sectionNum="2" title="Teaching methods" icon={Lightbulb}>
-            <BulletBlock items={plan.teachingMethods} icon={Sparkles} iconClass="text-amber-600" />
-          </BentoCard>
-        ) : null}
-
-        {plan.classroomActivities.length > 0 ? (
-          <BentoCard sectionNum="3" title="Classroom activities" icon={Users}>
-            <BulletBlock items={plan.classroomActivities} icon={Layers} iconClass="text-sky-600" />
-          </BentoCard>
-        ) : null}
-
-        {plan.exitTicket ? (
-          <BentoCard sectionNum="4" title="Exit ticket" icon={ClipboardCheck}>
-            <TextBlock text={plan.exitTicket} />
-          </BentoCard>
-        ) : null}
-
-        {plan.differentiatedSupport ? (
-          <BentoCard sectionNum="5" title="Differentiated support" icon={Users}>
-            <TextBlock text={plan.differentiatedSupport} />
-          </BentoCard>
-        ) : null}
-
-        {plan.homeworkFollowup ? (
-          <BentoCard sectionNum="6" title="Homework & follow-up" icon={BookMarked}>
-            <TextBlock text={plan.homeworkFollowup} />
-          </BentoCard>
-        ) : null}
-
-        {plan.teachingAids.length > 0 ? (
-          <BentoCard sectionNum="7" title="Teaching aids" icon={Package}>
-            <BulletBlock items={plan.teachingAids} icon={Package} iconClass="text-slate-600" />
-          </BentoCard>
-        ) : null}
-
-        {plan.teacherReflection ? (
-          <BentoCard sectionNum="8" title="Teacher reflection notes" icon={NotebookPen}>
-            <TextBlock text={plan.teacherReflection} />
-          </BentoCard>
-        ) : null}
-
-        {plan.timeline.length > 0 ? (
-          <BentoCard sectionNum="9" title="Additional schedule notes" icon={Clock3}>
-            <BulletBlock items={plan.timeline} icon={Clock3} iconClass="text-indigo-600" />
-          </BentoCard>
-        ) : null}
+        {(() => {
+          const cards: Array<{ title: string; icon: typeof Target; body: ReactNode }> = [];
+          if (plan.objectives.length > 0) {
+            cards.push({
+              title: 'Learning objectives',
+              icon: Target,
+              body: (
+                <BulletBlock items={plan.objectives} icon={CheckCircle2} iconClass="text-emerald-600" />
+              ),
+            });
+          }
+          if (plan.teachingMethods.length > 0) {
+            cards.push({
+              title: 'Teaching methods',
+              icon: Lightbulb,
+              body: (
+                <BulletBlock items={plan.teachingMethods} icon={Sparkles} iconClass="text-amber-600" />
+              ),
+            });
+          }
+          if (plan.classroomActivities.length > 0) {
+            cards.push({
+              title: 'Classroom activities',
+              icon: Users,
+              body: (
+                <BulletBlock items={plan.classroomActivities} icon={Layers} iconClass="text-sky-600" />
+              ),
+            });
+          }
+          if (plan.exitTicket) {
+            cards.push({
+              title: 'Exit ticket',
+              icon: ClipboardCheck,
+              body: <TextBlock text={plan.exitTicket} />,
+            });
+          }
+          if (plan.differentiatedSupport) {
+            cards.push({
+              title: 'Differentiated support',
+              icon: Users,
+              body: <TextBlock text={plan.differentiatedSupport} />,
+            });
+          }
+          if (plan.homeworkFollowup) {
+            cards.push({
+              title: 'Homework & follow-up',
+              icon: BookMarked,
+              body: <TextBlock text={plan.homeworkFollowup} />,
+            });
+          }
+          if (plan.teachingAids.length > 0) {
+            cards.push({
+              title: 'Teaching aids',
+              icon: Package,
+              body: (
+                <BulletBlock items={plan.teachingAids} icon={Package} iconClass="text-slate-600" />
+              ),
+            });
+          }
+          if (plan.teacherReflection) {
+            cards.push({
+              title: 'Teacher reflection notes',
+              icon: NotebookPen,
+              body: <TextBlock text={plan.teacherReflection} />,
+            });
+          }
+          if (plan.timeline.length > 0) {
+            cards.push({
+              title: 'Additional schedule notes',
+              icon: Clock3,
+              body: (
+                <BulletBlock items={plan.timeline} icon={Clock3} iconClass="text-indigo-600" />
+              ),
+            });
+          }
+          return cards.map((card, i) => (
+            <BentoCard key={card.title} sectionNum={String(i + 1)} title={card.title} icon={card.icon}>
+              {card.body}
+            </BentoCard>
+          ));
+        })()}
       </div>
 
       {periodCount === 0 && !planHasVisibleContent(plan) ? (

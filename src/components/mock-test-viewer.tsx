@@ -68,16 +68,8 @@ function MockSectionCard({
   );
 }
 
-function EmptyHint() {
-  return (
-    <p className="rounded-md border border-dashed border-rose-200 bg-rose-50/50 px-2 py-1 text-xs italic text-stone-400">
-      Not included in this mock test.
-    </p>
-  );
-}
-
 function BulletList({ items }: { items: string[] }) {
-  if (!items.length) return <EmptyHint />;
+  if (!items.length) return null;
   return (
     <ul className="space-y-1">
       {items.map((line, i) => (
@@ -91,7 +83,7 @@ function BulletList({ items }: { items: string[] }) {
 }
 
 function RichTextBlock({ text, className }: { text: string; className?: string }) {
-  if (!text.trim()) return <EmptyHint />;
+  if (!text.trim()) return null;
   const hasMarkdown =
     text.includes('|') ||
     /^\s*#{1,6}\s/m.test(text) ||
@@ -255,134 +247,149 @@ export function MockTestViewer({ content, rawContent, className }: MockTestViewe
     ) ?? 0;
   const activeSections = paper?.sections.filter((s) => s.questions.length > 0) ?? [];
 
-  const bodySections = [
-    <MockSectionCard
-      key="2"
-      sectionNum="Section 2"
-      title="Test Purpose and Subtopic Link"
-      icon={Target}
-      stripe="border-amber-500"
-      iconWrap="bg-amber-100 text-amber-800"
-    >
-      <RichTextBlock text={meta.testPurpose} />
-    </MockSectionCard>,
-    <MockSectionCard
-      key="3"
-      sectionNum="Section 3"
-      title="Learning Objectives – Bloom's Taxonomy"
-      icon={Brain}
-      stripe="border-violet-500"
-      iconWrap="bg-violet-100 text-violet-800"
-    >
-      <BulletList items={meta.learningObjectives} />
-    </MockSectionCard>,
-    <MockSectionCard
-      key="4"
-      sectionNum="Section 4"
-      title="NCF Competency / Learning Outcome Alignment"
-      icon={GraduationCap}
-      stripe="border-cyan-500"
-      iconWrap="bg-cyan-100 text-cyan-800"
-    >
-      <RichTextBlock text={meta.ncfAlignment} />
-    </MockSectionCard>,
-    <MockSectionCard
-      key="5"
-      sectionNum="Section 5"
-      title="Instructions for Students"
-      icon={ClipboardList}
-      stripe="border-slate-500"
-      iconWrap="bg-slate-100 text-slate-800"
-    >
-      <RichTextBlock text={meta.instructions} />
-    </MockSectionCard>,
-    <MockSectionCard
-      key="6"
-      sectionNum="Section 6"
-      title="Question Paper"
-      icon={FileQuestion}
-      stripe="border-rose-600"
-      iconWrap="bg-rose-100 text-rose-800"
-      className="sm:col-span-2"
-    >
-      {activeSections.length > 0 ? (
-        <div className="space-y-3">
-          {activeSections.map((sec) => (
-            <ExamSectionBlock key={sec.id} section={sec} showAnswers={false} />
-          ))}
-        </div>
-      ) : questionPaperMarkdown ? (
-        <div
-          className="rounded-lg border border-rose-100 bg-rose-50/30 p-1"
-          dangerouslySetInnerHTML={{
-            __html: renderMockTestMarkdown(`## 6. Question Paper\n\n${questionPaperMarkdown}`),
-          }}
-        />
-      ) : (
-        <EmptyHint />
-      )}
-    </MockSectionCard>,
-    <MockSectionCard
-      key="7"
-      sectionNum="Section 7"
-      title="Answer Key"
-      icon={CheckCircle2}
-      stripe="border-emerald-500"
-      iconWrap="bg-emerald-100 text-emerald-800"
-    >
-      <RichTextBlock text={meta.answerKey} />
-    </MockSectionCard>,
-    <MockSectionCard
-      key="8"
-      sectionNum="Section 8"
-      title="Step-by-step Solutions / Explanations"
-      icon={BookOpen}
-      stripe="border-sky-500"
-      iconWrap="bg-sky-100 text-sky-800"
-    >
-      <RichTextBlock text={meta.solutions} />
-    </MockSectionCard>,
-    <MockSectionCard
-      key="9"
-      sectionNum="Section 9"
-      title="Remedial Revision Suggestions"
-      icon={ListChecks}
-      stripe="border-orange-500"
-      iconWrap="bg-orange-100 text-orange-800"
-    >
-      <BulletList items={meta.remedial} />
-    </MockSectionCard>,
-    <MockSectionCard
-      key="10"
-      sectionNum="Section 10"
-      title="Expected Learning Outcomes"
-      icon={Sparkles}
-      stripe="border-teal-500"
-      iconWrap="bg-teal-100 text-teal-800"
-    >
-      <BulletList items={meta.outcomes} />
-    </MockSectionCard>,
-    <MockSectionCard
-      key="11"
-      sectionNum="Section 11"
-      title="Real-life Application"
-      icon={Lightbulb}
-      stripe="border-lime-600"
-      iconWrap="bg-lime-100 text-lime-900"
-    >
-      <RichTextBlock text={meta.realLife} />
-    </MockSectionCard>,
-    <MockSectionCard
-      key="12"
-      sectionNum="Section 12"
-      title="Reflection / Exit Ticket"
-      icon={MessageCircle}
-      stripe="border-slate-600"
-      iconWrap="bg-slate-100 text-slate-800"
-    >
-      <RichTextBlock text={meta.reflection} />
-    </MockSectionCard>,
+  const bodyDefs: Array<{
+    key: string;
+    title: string;
+    icon: LucideIcon;
+    stripe?: string;
+    iconWrap?: string;
+    className?: string;
+    hasContent: boolean;
+    body: ReactNode;
+  }> = [
+    {
+      key: 'purpose',
+      title: 'Test Purpose and Subtopic Link',
+      icon: Target,
+      stripe: 'border-amber-500',
+      iconWrap: 'bg-amber-100 text-amber-800',
+      hasContent: !!meta.testPurpose.trim(),
+      body: <RichTextBlock text={meta.testPurpose} />,
+    },
+    {
+      key: 'objectives',
+      title: "Learning Objectives – Bloom's Taxonomy",
+      icon: Brain,
+      stripe: 'border-violet-500',
+      iconWrap: 'bg-violet-100 text-violet-800',
+      hasContent: meta.learningObjectives.length > 0,
+      body: <BulletList items={meta.learningObjectives} />,
+    },
+    {
+      key: 'ncf',
+      title: 'NCF Competency / Learning Outcome Alignment',
+      icon: GraduationCap,
+      stripe: 'border-cyan-500',
+      iconWrap: 'bg-cyan-100 text-cyan-800',
+      hasContent: !!meta.ncfAlignment.trim(),
+      body: <RichTextBlock text={meta.ncfAlignment} />,
+    },
+    {
+      key: 'instructions',
+      title: 'Instructions for Students',
+      icon: ClipboardList,
+      stripe: 'border-slate-500',
+      iconWrap: 'bg-slate-100 text-slate-800',
+      hasContent: !!meta.instructions.trim(),
+      body: <RichTextBlock text={meta.instructions} />,
+    },
+    {
+      key: 'paper',
+      title: 'Question Paper',
+      icon: FileQuestion,
+      stripe: 'border-rose-600',
+      iconWrap: 'bg-rose-100 text-rose-800',
+      className: 'sm:col-span-2',
+      hasContent: activeSections.length > 0 || !!questionPaperMarkdown,
+      body:
+        activeSections.length > 0 ? (
+          <div className="space-y-3">
+            {activeSections.map((sec) => (
+              <ExamSectionBlock key={sec.id} section={sec} showAnswers={false} />
+            ))}
+          </div>
+        ) : (
+          <div
+            className="rounded-lg border border-rose-100 bg-rose-50/30 p-1"
+            dangerouslySetInnerHTML={{
+              __html: renderMockTestMarkdown(`## Question Paper\n\n${questionPaperMarkdown}`),
+            }}
+          />
+        ),
+    },
+    {
+      key: 'answerKey',
+      title: 'Answer Key',
+      icon: CheckCircle2,
+      stripe: 'border-emerald-500',
+      iconWrap: 'bg-emerald-100 text-emerald-800',
+      hasContent: !!meta.answerKey.trim(),
+      body: <RichTextBlock text={meta.answerKey} />,
+    },
+    {
+      key: 'solutions',
+      title: 'Step-by-step Solutions / Explanations',
+      icon: BookOpen,
+      stripe: 'border-sky-500',
+      iconWrap: 'bg-sky-100 text-sky-800',
+      hasContent: !!meta.solutions.trim(),
+      body: <RichTextBlock text={meta.solutions} />,
+    },
+    {
+      key: 'remedial',
+      title: 'Remedial Revision Suggestions',
+      icon: ListChecks,
+      stripe: 'border-orange-500',
+      iconWrap: 'bg-orange-100 text-orange-800',
+      hasContent: meta.remedial.length > 0,
+      body: <BulletList items={meta.remedial} />,
+    },
+    {
+      key: 'outcomes',
+      title: 'Expected Learning Outcomes',
+      icon: Sparkles,
+      stripe: 'border-teal-500',
+      iconWrap: 'bg-teal-100 text-teal-800',
+      hasContent: meta.outcomes.length > 0,
+      body: <BulletList items={meta.outcomes} />,
+    },
+    {
+      key: 'realLife',
+      title: 'Real-life Application',
+      icon: Lightbulb,
+      stripe: 'border-lime-600',
+      iconWrap: 'bg-lime-100 text-lime-900',
+      hasContent: !!meta.realLife.trim(),
+      body: <RichTextBlock text={meta.realLife} />,
+    },
+    {
+      key: 'reflection',
+      title: 'Reflection / Exit Ticket',
+      icon: MessageCircle,
+      stripe: 'border-slate-600',
+      iconWrap: 'bg-slate-100 text-slate-800',
+      hasContent: !!meta.reflection.trim(),
+      body: <RichTextBlock text={meta.reflection} />,
+    },
   ];
+
+  const bodySections = bodyDefs
+    .filter((d) => d.hasContent)
+    .map((d, i) => (
+      <MockSectionCard
+        key={d.key}
+        sectionNum={`Section ${i + 2}`}
+        title={d.title}
+        icon={d.icon}
+        stripe={d.stripe}
+        iconWrap={d.iconWrap}
+        className={d.className}
+      >
+        {d.body}
+      </MockSectionCard>
+    ));
+
+  const visibleCount = 1 + bodySections.length;
 
   return (
     <div className={cn('w-full space-y-2', className)}>
@@ -441,7 +448,7 @@ export function MockTestViewer({ content, rawContent, className }: MockTestViewe
 
       <AiToolV2InsightTail
         rawContent={payload.rawContent}
-        startNum={12}
+        startNum={visibleCount + 1}
         includeOverview
         overviewStats={[
           { label: 'Questions', value: String(totalQuestions) },

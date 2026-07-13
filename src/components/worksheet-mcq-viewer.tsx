@@ -192,7 +192,9 @@ function buildTimelineBlocks(worksheet: NormalizedWorksheet): TimelineBlock[] {
     });
   }
 
-  const sortedSections = [...worksheet.sections].sort((a, b) => a.order - b.order);
+  const sortedSections = [...worksheet.sections]
+    .sort((a, b) => a.order - b.order)
+    .filter((sec) => sec.questions.length > 0);
   for (const sec of sortedSections) {
     blocks.push({
       phaseId: 'practice',
@@ -200,36 +202,28 @@ function buildTimelineBlocks(worksheet: NormalizedWorksheet): TimelineBlock[] {
       title: sec.label,
       icon: FileQuestion,
       content: (
-        sec.questions.length > 0 ? (
-          <div className="space-y-3">
-            {sec.questions.map((q, i) => (
-              <QuestionCard key={`${sec.id}-q-${i}`} q={q} index={i} />
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-slate-500 italic rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2">
-            Not included in this generation.
-          </p>
-        )
+        <div className="space-y-3">
+          {sec.questions.map((q, i) => (
+            <QuestionCard key={`${sec.id}-q-${i}`} q={q} index={i} />
+          ))}
+        </div>
       ),
     });
   }
 
-  blocks.push({
-    phaseId: 'scoring',
-    stepNum: 9,
-    title: 'Answer key',
-    icon: CheckCircle2,
-    content: worksheet.answerKey ? (
-      <pre className="whitespace-pre-wrap font-sans text-sm text-slate-800 leading-relaxed">
-        {worksheet.answerKey}
-      </pre>
-    ) : (
-      <p className="text-sm text-slate-500 italic rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2">
-        Not included in this generation.
-      </p>
-    ),
-  });
+  if (worksheet.answerKey) {
+    blocks.push({
+      phaseId: 'scoring',
+      stepNum: 9,
+      title: 'Answer key',
+      icon: CheckCircle2,
+      content: (
+        <pre className="whitespace-pre-wrap font-sans text-sm text-slate-800 leading-relaxed">
+          {worksheet.answerKey}
+        </pre>
+      ),
+    });
+  }
 
   const tags = [worksheet.bloomLevel, worksheet.difficultyTag].filter(Boolean).join(' — ');
   if (tags) {
@@ -267,6 +261,7 @@ function TeacherWorksheetCard({
   const totalBlocks = 10;
   const progressPct = Math.round((filledBlocks / totalBlocks) * 100);
   const timelineBlocks = buildTimelineBlocks(worksheet);
+  let visibleStep = 0;
 
   return (
     <div className="space-y-5">
@@ -297,7 +292,7 @@ function TeacherWorksheetCard({
               />
             </div>
             <p className="text-[11px] text-slate-500 mt-1 text-right">
-              {filledBlocks}/{totalBlocks} blocks
+              {filledBlocks} block{filledBlocks === 1 ? '' : 's'}
             </p>
           </div>
         </div>
@@ -324,18 +319,21 @@ function TeacherWorksheetCard({
               </div>
             </div>
             <div className="flex flex-col gap-4">
-              {phaseBlocks.map((block, idx) => (
-                <WorksheetTimelineStep
-                  key={`${phase.id}-${block.stepNum}`}
-                  stepNum={block.stepNum}
-                  title={block.title}
-                  icon={block.icon}
-                  dotClass={phase.dotClass}
-                  isLast={idx === phaseBlocks.length - 1}
-                >
-                  {block.content}
-                </WorksheetTimelineStep>
-              ))}
+              {phaseBlocks.map((block, idx) => {
+                visibleStep += 1;
+                return (
+                  <WorksheetTimelineStep
+                    key={`${phase.id}-${block.stepNum}`}
+                    stepNum={visibleStep}
+                    title={block.title}
+                    icon={block.icon}
+                    dotClass={phase.dotClass}
+                    isLast={idx === phaseBlocks.length - 1}
+                  >
+                    {block.content}
+                  </WorksheetTimelineStep>
+                );
+              })}
             </div>
           </section>
         );
@@ -343,7 +341,7 @@ function TeacherWorksheetCard({
 
       <AiToolV2InsightTail
         rawContent={rawContent}
-        startNum={11}
+        startNum={timelineBlocks.length + 1}
         includeOverview
         overviewStats={[
           { label: 'Questions', value: String(totalQuestions) },

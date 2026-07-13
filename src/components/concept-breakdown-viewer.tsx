@@ -54,16 +54,8 @@ function SectionCard({
   );
 }
 
-function EmptyHint() {
-  return (
-    <p className="rounded-md border border-dashed border-violet-200 bg-violet-50/50 px-2 py-1 text-xs italic text-slate-400">
-      Not included for this concept.
-    </p>
-  );
-}
-
 function RichTextBlock({ text }: { text: string }) {
-  if (!text.trim()) return <EmptyHint />;
+  if (!text.trim()) return null;
   const hasMarkdown =
     text.includes('|') ||
     /^\s*#{1,6}\s/m.test(text) ||
@@ -81,7 +73,7 @@ function RichTextBlock({ text }: { text: string }) {
 }
 
 function BulletList({ items, accent = 'text-violet-500' }: { items: string[]; accent?: string }) {
-  if (!items.length) return <EmptyHint />;
+  if (!items.length) return null;
   return (
     <ul className="space-y-1.5">
       {items.map((line, i) => (
@@ -99,89 +91,37 @@ function buildSections(concept: ConceptBreakdownContent): {
   compact: ReactNode[];
   trailing: ReactNode[];
 } {
-  const compact = [
-    <SectionCard
-      key="4"
-      sectionNum="Section 4"
-      title="Real-life and Indian Context Examples"
-      icon={Lightbulb}
-      stripe="border-emerald-500"
-      iconWrap="bg-emerald-100 text-emerald-800"
-    >
-      <BulletList items={concept.realLifeExamples} accent="text-emerald-600" />
-    </SectionCard>,
-    <SectionCard
-      key="5"
-      sectionNum="Section 5"
-      title="Important Terms and Keywords"
-      icon={Tag}
-      stripe="border-amber-500"
-      iconWrap="bg-amber-100 text-amber-900"
-    >
-      {concept.importantTerms.length > 0 ? (
-        <div className="grid gap-1.5 sm:grid-cols-2">
-          {concept.importantTerms.map((t, i) => (
-            <div
-              key={`${t.term}-${i}`}
-              className="rounded-lg border border-amber-100 bg-amber-50/50 px-2.5 py-1.5"
-            >
-              <p className="text-sm font-semibold text-amber-900">{t.term}</p>
-              {t.definition ? (
-                <p className="mt-0.5 text-sm text-slate-700">{t.definition}</p>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <EmptyHint />
-      )}
-    </SectionCard>,
-    <SectionCard
-      key="6"
-      sectionNum="Section 6"
-      title="Concept Check Questions"
-      icon={HelpCircle}
-      stripe="border-cyan-500"
-      iconWrap="bg-cyan-100 text-cyan-800"
-    >
-      {concept.conceptCheckQuestions.length > 0 ? (
-        <ul className="space-y-1">
-          {concept.conceptCheckQuestions.map((q, i) => (
-            <li
-              key={i}
-              className="rounded-lg border border-cyan-100 bg-cyan-50/40 px-2.5 py-1.5 text-sm text-slate-800"
-            >
-              <span className="mr-2 font-semibold text-cyan-700">Q{i + 1}.</span>
-              {q}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <EmptyHint />
-      )}
-    </SectionCard>,
-  ];
+  type Slot = {
+    key: string;
+    group: 'leading' | 'compact' | 'trailing';
+    title: string;
+    icon: LucideIcon;
+    stripe?: string;
+    iconWrap?: string;
+    hasContent: boolean;
+    body: ReactNode;
+  };
 
-  const leading = [
-    <SectionCard
-      key="2"
-      sectionNum="Section 2"
-      title="Simple Definition"
-      icon={Brain}
-      stripe="border-blue-500"
-      iconWrap="bg-blue-100 text-blue-800"
-    >
-      <RichTextBlock text={concept.simpleDefinition} />
-    </SectionCard>,
-    <SectionCard
-      key="3"
-      sectionNum="Section 3"
-      title="Step-by-step Concept Breakdown"
-      icon={ListOrdered}
-      stripe="border-indigo-500"
-      iconWrap="bg-indigo-100 text-indigo-800"
-    >
-      {concept.breakdownSteps.length > 0 ? (
+  const slots: Slot[] = [
+    {
+      key: 'def',
+      group: 'leading',
+      title: 'Simple Definition',
+      icon: Brain,
+      stripe: 'border-blue-500',
+      iconWrap: 'bg-blue-100 text-blue-800',
+      hasContent: !!concept.simpleDefinition.trim(),
+      body: <RichTextBlock text={concept.simpleDefinition} />,
+    },
+    {
+      key: 'steps',
+      group: 'leading',
+      title: 'Step-by-step Concept Breakdown',
+      icon: ListOrdered,
+      stripe: 'border-indigo-500',
+      iconWrap: 'bg-indigo-100 text-indigo-800',
+      hasContent: concept.breakdownSteps.length > 0,
+      body: (
         <ol className="space-y-1">
           {concept.breakdownSteps.map((step, i) => (
             <li
@@ -195,52 +135,131 @@ function buildSections(concept: ConceptBreakdownContent): {
             </li>
           ))}
         </ol>
-      ) : (
-        <EmptyHint />
-      )}
-    </SectionCard>,
+      ),
+    },
+    {
+      key: 'real',
+      group: 'compact',
+      title: 'Real-life and Indian Context Examples',
+      icon: Lightbulb,
+      stripe: 'border-emerald-500',
+      iconWrap: 'bg-emerald-100 text-emerald-800',
+      hasContent: concept.realLifeExamples.length > 0,
+      body: <BulletList items={concept.realLifeExamples} accent="text-emerald-600" />,
+    },
+    {
+      key: 'terms',
+      group: 'compact',
+      title: 'Important Terms and Keywords',
+      icon: Tag,
+      stripe: 'border-amber-500',
+      iconWrap: 'bg-amber-100 text-amber-900',
+      hasContent: concept.importantTerms.length > 0,
+      body: (
+        <div className="grid gap-1.5 sm:grid-cols-2">
+          {concept.importantTerms.map((term, i) => (
+            <div
+              key={`${term.term}-${i}`}
+              className="rounded-lg border border-amber-100 bg-amber-50/50 px-2.5 py-1.5"
+            >
+              <p className="text-sm font-semibold text-amber-900">{term.term}</p>
+              {term.definition ? (
+                <p className="mt-0.5 text-sm text-slate-700">{term.definition}</p>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ),
+    },
+    {
+      key: 'check',
+      group: 'compact',
+      title: 'Concept Check Questions',
+      icon: HelpCircle,
+      stripe: 'border-cyan-500',
+      iconWrap: 'bg-cyan-100 text-cyan-800',
+      hasContent: concept.conceptCheckQuestions.length > 0,
+      body: (
+        <ul className="space-y-1">
+          {concept.conceptCheckQuestions.map((q, i) => (
+            <li
+              key={i}
+              className="rounded-lg border border-cyan-100 bg-cyan-50/40 px-2.5 py-1.5 text-sm text-slate-800"
+            >
+              <span className="mr-2 font-semibold text-cyan-700">Q{i + 1}.</span>
+              {q}
+            </li>
+          ))}
+        </ul>
+      ),
+    },
+    {
+      key: 'app',
+      group: 'trailing',
+      title: 'Application-based Thinking Question',
+      icon: MessageCircleQuestion,
+      stripe: 'border-orange-500',
+      iconWrap: 'bg-orange-100 text-orange-800',
+      hasContent: !!concept.applicationThinkingQuestion.trim(),
+      body: (
+        <div className="rounded-lg border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50/80 px-2.5 py-2">
+          <RichTextBlock text={concept.applicationThinkingQuestion} />
+        </div>
+      ),
+    },
+    {
+      key: 'hots',
+      group: 'trailing',
+      title: 'Higher-order Thinking Prompt',
+      icon: Zap,
+      stripe: 'border-fuchsia-500',
+      iconWrap: 'bg-fuchsia-100 text-fuchsia-800',
+      hasContent: !!concept.higherOrderThinkingPrompt.trim(),
+      body: (
+        <div className="rounded-lg border border-fuchsia-200 bg-gradient-to-br from-fuchsia-50 to-violet-50/80 px-2.5 py-2">
+          <RichTextBlock text={concept.higherOrderThinkingPrompt} />
+        </div>
+      ),
+    },
+    {
+      key: 'revision',
+      group: 'trailing',
+      title: 'Quick Revision Summary',
+      icon: Sparkles,
+      stripe: 'border-violet-600',
+      iconWrap: 'bg-violet-100 text-violet-900',
+      hasContent: !!concept.quickRevisionSummary.trim(),
+      body: (
+        <div className="rounded-lg border border-violet-200 bg-violet-50/60 px-2.5 py-2">
+          <RichTextBlock text={concept.quickRevisionSummary} />
+        </div>
+      ),
+    },
   ];
 
-  const trailing = [
-    <SectionCard
-      key="7"
-      sectionNum="Section 7"
-      title="Application-based Thinking Question"
-      icon={MessageCircleQuestion}
-      stripe="border-orange-500"
-      iconWrap="bg-orange-100 text-orange-800"
-    >
-      <div className="rounded-lg border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50/80 px-2.5 py-2">
-        <RichTextBlock text={concept.applicationThinkingQuestion} />
-      </div>
-    </SectionCard>,
-    <SectionCard
-      key="8"
-      sectionNum="Section 8"
-      title="Higher-order Thinking Prompt"
-      icon={Zap}
-      stripe="border-fuchsia-500"
-      iconWrap="bg-fuchsia-100 text-fuchsia-800"
-    >
-      <div className="rounded-lg border border-fuchsia-200 bg-gradient-to-br from-fuchsia-50 to-violet-50/80 px-2.5 py-2">
-        <RichTextBlock text={concept.higherOrderThinkingPrompt} />
-      </div>
-    </SectionCard>,
-    <SectionCard
-      key="9"
-      sectionNum="Section 9"
-      title="Quick Revision Summary"
-      icon={Sparkles}
-      stripe="border-violet-600"
-      iconWrap="bg-violet-100 text-violet-900"
-    >
-      <div className="rounded-lg border border-violet-200 bg-violet-50/60 px-2.5 py-2">
-        <RichTextBlock text={concept.quickRevisionSummary} />
-      </div>
-    </SectionCard>,
-  ];
+  let n = 1; // title is section 1
+  const renderSlot = (slot: Slot) => {
+    n += 1;
+    return (
+      <SectionCard
+        key={slot.key}
+        sectionNum={`Section ${n}`}
+        title={slot.title}
+        icon={slot.icon}
+        stripe={slot.stripe}
+        iconWrap={slot.iconWrap}
+      >
+        {slot.body}
+      </SectionCard>
+    );
+  };
 
-  return { leading, compact, trailing };
+  const visible = slots.filter((s) => s.hasContent);
+  return {
+    leading: visible.filter((s) => s.group === 'leading').map(renderSlot),
+    compact: visible.filter((s) => s.group === 'compact').map(renderSlot),
+    trailing: visible.filter((s) => s.group === 'trailing').map(renderSlot),
+  };
 }
 
 function ConceptBreakdownPanel({

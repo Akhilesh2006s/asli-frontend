@@ -468,7 +468,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
                 <span className="truncate text-slate-900">✔ {guide.title || 'Study Guide'}</span>
                 <span>·</span>
                 <span>
-                  ✔ {sectionsDone}/11 sections
+                  ✔ {sectionsDone} section{sectionsDone === 1 ? "" : "s"}
                 </span>
                 <span>·</span>
                 <span className="inline-flex items-center gap-1">
@@ -509,9 +509,14 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
             show: { transition: { staggerChildren: 0.06 } },
           }}
         >
-          {/* Section 01 Title */}
+          {(() => {
+            let n = 0;
+            const nextNum = () => String(++n).padStart(2, '0');
+            return (
+              <>
+          {/* Section Title */}
           <SectionShell
-            num="01"
+            num={nextNum()}
             title="Study Guide Title"
             illustration="books"
             accent="bg-gradient-to-br from-[#6C63FF] to-[#8B5CF6]"
@@ -537,7 +542,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
 
           {guide.chapterOverview.trim() ? (
             <SectionShell
-              num="02"
+              num={nextNum()}
               title="Chapter & Subtopic Overview"
               illustration="notebook"
               accent="bg-gradient-to-br from-sky-500 to-blue-600"
@@ -556,7 +561,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
 
           {guide.learningObjectives.length > 0 ? (
             <SectionShell
-              num="03"
+              num={nextNum()}
               title="Learning Objectives"
               illustration="target"
               accent="bg-gradient-to-br from-violet-500 to-purple-600"
@@ -592,7 +597,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
 
           {guide.priorKnowledge.length > 0 ? (
             <SectionShell
-              num="04"
+              num={nextNum()}
               title="Prior Knowledge Required"
               illustration="graduation"
               accent="bg-gradient-to-br from-teal-500 to-cyan-600"
@@ -615,7 +620,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
 
           {conceptCount > 0 ? (
             <SectionShell
-              num="05"
+              num={nextNum()}
               title="Key Concepts Explained"
               illustration="brain"
               accent="bg-gradient-to-br from-emerald-500 to-green-600"
@@ -651,7 +656,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
 
           {guide.definitions.length > 0 || guide.formulae.length > 0 ? (
             <SectionShell
-              num="06"
+              num={nextNum()}
               title="Definitions & Formulae"
               illustration="formula"
               accent="bg-gradient-to-br from-amber-500 to-orange-500"
@@ -685,7 +690,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
 
           {guide.conceptFlow.trim() ? (
             <SectionShell
-              num="07"
+              num={nextNum()}
               title="Concept Flow / Mind Map"
               illustration="mindMap"
               accent="bg-gradient-to-br from-teal-500 to-emerald-600"
@@ -697,7 +702,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
 
           {guide.realLifeExamples.length > 0 ? (
             <SectionShell
-              num="08"
+              num={nextNum()}
               title="Real-life Examples"
               illustration="globe"
               accent="bg-gradient-to-br from-lime-500 to-green-600"
@@ -719,7 +724,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
 
           {guide.quickRevisionNotes.length > 0 ? (
             <SectionShell
-              num="09"
+              num={nextNum()}
               title="Quick Revision Notes"
               illustration="magic"
               accent="bg-gradient-to-br from-orange-500 to-amber-500"
@@ -746,7 +751,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
 
           {practiceCount > 0 ? (
             <SectionShell
-              num="10"
+              num={nextNum()}
               title="Practice Questions"
               illustration="quiz"
               accent="bg-gradient-to-br from-pink-500 to-rose-500"
@@ -764,7 +769,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
 
           {guide.improvementTips.length > 0 ? (
             <SectionShell
-              num="11"
+              num={nextNum()}
               title="Tips for Further Improvement"
               illustration="rocket"
               accent="bg-gradient-to-br from-fuchsia-500 to-purple-600"
@@ -783,18 +788,21 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
               </div>
             </SectionShell>
           ) : null}
+              </>
+            );
+          })()}
         </motion.div>
 
         <div data-ai-insight-tail data-ai-focus-hide>
         <AiToolV2InsightTail
           rawContent={payload.rawContent}
-          startNum={12}
+          startNum={sectionsDone + 1}
           includeOverview
           overviewStats={[
             { label: 'Concepts', value: conceptCount > 0 ? String(conceptCount) : '' },
             { label: 'Practice Qs', value: practiceCount > 0 ? String(practiceCount) : '' },
             { label: 'MCQs', value: mcqCount > 0 ? String(mcqCount) : '' },
-            { label: 'Sections', value: `${sectionsDone}/11` },
+            { label: 'Sections', value: String(sectionsDone) },
             { label: 'Read time', value: `${readMins} min` },
           ].filter((s) => s.value)}
           bloomFromObjectives={guide.learningObjectives}

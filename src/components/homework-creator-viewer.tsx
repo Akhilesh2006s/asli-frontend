@@ -241,7 +241,8 @@ export function HomeworkCreatorViewer({ content, rawContent, className }: Homewo
     return <StructuredContentRequired className={className} toolLabel="Homework Creator" />;
   }
 
-  const filled = HOMEWORK_SECTIONS.filter((s) => s.hasContent(homework)).length;
+  const visibleSections = HOMEWORK_SECTIONS.filter((s) => s.hasContent(homework));
+  const filled = visibleSections.length;
 
   return (
     <div className={cn('space-y-5', className)}>
@@ -261,7 +262,7 @@ export function HomeworkCreatorViewer({ content, rawContent, className }: Homewo
               {stripAiGeneratorLeakage(stripMarkdownSyntax(homework.title))}
             </h3>
             <p className="mt-2 text-sm text-slate-600">
-              {filled}/{HOMEWORK_SECTIONS.length} sections ready · {homework.practiceQuestions.length} practice
+              {filled} section{filled === 1 ? '' : 's'} ready · {homework.practiceQuestions.length} practice
               questions
             </p>
           </div>
@@ -272,26 +273,22 @@ export function HomeworkCreatorViewer({ content, rawContent, className }: Homewo
         <div className="mt-4 h-2 overflow-hidden rounded-full bg-orange-100">
           <div
             className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400 transition-all"
-            style={{ width: `${Math.round((filled / HOMEWORK_SECTIONS.length) * 100)}%` }}
+            style={{ width: `${Math.round((filled / Math.max(HOMEWORK_SECTIONS.length, 1)) * 100)}%` }}
           />
         </div>
       </motion.section>
 
       <div className="space-y-3">
-        {HOMEWORK_SECTIONS.map((sec) => (
+        {visibleSections.map((sec, i) => (
           <div key={sec.num}>
             <SectionCard
-              sectionNum={`${sec.num}`}
+              sectionNum={`${i + 1}`}
               label={sec.label}
               icon={sec.icon}
               stripe={sec.stripe}
               iconWrap={sec.iconWrap}
             >
-              {sec.hasContent(homework) ? (
-                sec.render(homework)
-              ) : (
-                <p className="text-sm text-stone-400 italic">Not included in this generation.</p>
-              )}
+              {sec.render(homework)}
             </SectionCard>
           </div>
         ))}

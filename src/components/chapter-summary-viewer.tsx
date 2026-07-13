@@ -54,16 +54,8 @@ function SectionCard({
   );
 }
 
-function EmptyHint({ label = 'Not included in this chapter summary.' }: { label?: string }) {
-  return (
-    <p className="rounded-md border border-dashed border-blue-200 bg-blue-50/40 px-2 py-1 text-xs italic text-slate-400">
-      {label}
-    </p>
-  );
-}
-
 function RichTextBlock({ text }: { text: string }) {
-  if (!text.trim()) return <EmptyHint />;
+  if (!text.trim()) return null;
   const hasMarkdown =
     text.includes('|') ||
     /^\s*#{1,6}\s/m.test(text) ||
@@ -81,7 +73,7 @@ function RichTextBlock({ text }: { text: string }) {
 }
 
 function BulletList({ items, accent = 'text-blue-500' }: { items: string[]; accent?: string }) {
-  if (!items.length) return <EmptyHint />;
+  if (!items.length) return null;
   return (
     <ul className="space-y-1.5">
       {items.map((line, i) => (
@@ -95,36 +87,41 @@ function BulletList({ items, accent = 'text-blue-500' }: { items: string[]; acce
 }
 
 function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
-  return [
-    <SectionCard
-      key="2"
-      sectionNum="Section 2"
-      title="Overview of the Chapter"
-      icon={BookOpen}
-      stripe="border-sky-500"
-      iconWrap="bg-sky-100 text-sky-800"
-    >
-      <RichTextBlock text={summary.chapterOverview} />
-    </SectionCard>,
-    <SectionCard
-      key="3"
-      sectionNum="Section 3"
-      title="Learning Objectives"
-      icon={Target}
-      stripe="border-indigo-500"
-      iconWrap="bg-indigo-100 text-indigo-800"
-    >
-      <BulletList items={summary.learningObjectives} accent="text-indigo-500" />
-    </SectionCard>,
-    <SectionCard
-      key="4"
-      sectionNum="Section 4"
-      title="Important Concepts and Explanations"
-      icon={Sparkles}
-      stripe="border-violet-500"
-      iconWrap="bg-violet-100 text-violet-800"
-    >
-      {summary.importantConcepts.length > 0 ? (
+  const defs: Array<{
+    key: string;
+    title: string;
+    icon: LucideIcon;
+    stripe?: string;
+    iconWrap?: string;
+    hasContent: boolean;
+    body: ReactNode;
+  }> = [
+    {
+      key: 'overview',
+      title: 'Overview of the Chapter',
+      icon: BookOpen,
+      stripe: 'border-sky-500',
+      iconWrap: 'bg-sky-100 text-sky-800',
+      hasContent: !!summary.chapterOverview.trim(),
+      body: <RichTextBlock text={summary.chapterOverview} />,
+    },
+    {
+      key: 'objectives',
+      title: 'Learning Objectives',
+      icon: Target,
+      stripe: 'border-indigo-500',
+      iconWrap: 'bg-indigo-100 text-indigo-800',
+      hasContent: summary.learningObjectives.length > 0,
+      body: <BulletList items={summary.learningObjectives} accent="text-indigo-500" />,
+    },
+    {
+      key: 'concepts',
+      title: 'Important Concepts and Explanations',
+      icon: Sparkles,
+      stripe: 'border-violet-500',
+      iconWrap: 'bg-violet-100 text-violet-800',
+      hasContent: summary.importantConcepts.length > 0,
+      body: (
         <div className="grid gap-1.5 sm:grid-cols-2">
           {summary.importantConcepts.map((c, i) => (
             <div
@@ -138,19 +135,16 @@ function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
             </div>
           ))}
         </div>
-      ) : (
-        <EmptyHint label="Regenerate to populate important concepts for this chapter." />
-      )}
-    </SectionCard>,
-    <SectionCard
-      key="5"
-      sectionNum="Section 5"
-      title="Key Definitions and Terms"
-      icon={ListChecks}
-      stripe="border-purple-500"
-      iconWrap="bg-purple-100 text-purple-800"
-    >
-      {summary.definitions.length > 0 ? (
+      ),
+    },
+    {
+      key: 'definitions',
+      title: 'Key Definitions and Terms',
+      icon: ListChecks,
+      stripe: 'border-purple-500',
+      iconWrap: 'bg-purple-100 text-purple-800',
+      hasContent: summary.definitions.length > 0,
+      body: (
         <div className="space-y-2">
           {summary.definitions.map((d, i) => (
             <div key={`def-${i}`} className="rounded-md border border-purple-100 bg-purple-50/50 px-3 py-2">
@@ -159,19 +153,16 @@ function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
             </div>
           ))}
         </div>
-      ) : (
-        <EmptyHint />
-      )}
-    </SectionCard>,
-    <SectionCard
-      key="6"
-      sectionNum="Section 6"
-      title="Formulae / Rules / Important Facts"
-      icon={Sigma}
-      stripe="border-fuchsia-500"
-      iconWrap="bg-fuchsia-100 text-fuchsia-800"
-    >
-      {summary.formulae.length > 0 ? (
+      ),
+    },
+    {
+      key: 'formulae',
+      title: 'Formulae / Rules / Important Facts',
+      icon: Sigma,
+      stripe: 'border-fuchsia-500',
+      iconWrap: 'bg-fuchsia-100 text-fuchsia-800',
+      hasContent: summary.formulae.length > 0,
+      body: (
         <div className="space-y-2">
           {summary.formulae.map((f, i) => (
             <div
@@ -184,39 +175,34 @@ function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
             </div>
           ))}
         </div>
-      ) : (
-        <EmptyHint label="Regenerate to add formulae, rules, or must-know facts for this chapter." />
-      )}
-    </SectionCard>,
-    <SectionCard
-      key="7"
-      sectionNum="Section 7"
-      title="Concept Connections"
-      icon={GitBranch}
-      stripe="border-cyan-500"
-      iconWrap="bg-cyan-100 text-cyan-800"
-    >
-      <RichTextBlock text={summary.conceptConnections} />
-    </SectionCard>,
-    <SectionCard
-      key="8"
-      sectionNum="Section 8"
-      title="Real-life Applications"
-      icon={Lightbulb}
-      stripe="border-emerald-500"
-      iconWrap="bg-emerald-100 text-emerald-800"
-    >
-      <BulletList items={summary.realLifeApplications} accent="text-emerald-500" />
-    </SectionCard>,
-    <SectionCard
-      key="9"
-      sectionNum="Section 9"
-      title="Quick Revision Notes"
-      icon={BookText}
-      stripe="border-amber-500"
-      iconWrap="bg-amber-100 text-amber-900"
-    >
-      {summary.quickRevisionNotes.length > 0 ? (
+      ),
+    },
+    {
+      key: 'connections',
+      title: 'Concept Connections',
+      icon: GitBranch,
+      stripe: 'border-cyan-500',
+      iconWrap: 'bg-cyan-100 text-cyan-800',
+      hasContent: !!summary.conceptConnections.trim(),
+      body: <RichTextBlock text={summary.conceptConnections} />,
+    },
+    {
+      key: 'realLife',
+      title: 'Real-life Applications',
+      icon: Lightbulb,
+      stripe: 'border-emerald-500',
+      iconWrap: 'bg-emerald-100 text-emerald-800',
+      hasContent: summary.realLifeApplications.length > 0,
+      body: <BulletList items={summary.realLifeApplications} accent="text-emerald-500" />,
+    },
+    {
+      key: 'revision',
+      title: 'Quick Revision Notes',
+      icon: BookText,
+      stripe: 'border-amber-500',
+      iconWrap: 'bg-amber-100 text-amber-900',
+      hasContent: summary.quickRevisionNotes.length > 0,
+      body: (
         <ul className="space-y-1.5">
           {summary.quickRevisionNotes.map((note, i) => (
             <li
@@ -228,19 +214,16 @@ function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
             </li>
           ))}
         </ul>
-      ) : (
-        <EmptyHint />
-      )}
-    </SectionCard>,
-    <SectionCard
-      key="10"
-      sectionNum="Section 10"
-      title="Practice Recall Questions"
-      icon={FileQuestion}
-      stripe="border-blue-600"
-      iconWrap="bg-blue-100 text-blue-900"
-    >
-      {summary.practiceRecallQuestions.length > 0 ? (
+      ),
+    },
+    {
+      key: 'practice',
+      title: 'Practice Recall Questions',
+      icon: FileQuestion,
+      stripe: 'border-blue-600',
+      iconWrap: 'bg-blue-100 text-blue-900',
+      hasContent: summary.practiceRecallQuestions.length > 0,
+      body: (
         <ol className="space-y-2">
           {summary.practiceRecallQuestions.map((q, i) => (
             <li
@@ -252,11 +235,24 @@ function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
             </li>
           ))}
         </ol>
-      ) : (
-        <EmptyHint label="Regenerate to add practice recall questions." />
-      )}
-    </SectionCard>,
+      ),
+    },
   ];
+
+  return defs
+    .filter((d) => d.hasContent)
+    .map((d, i) => (
+      <SectionCard
+        key={d.key}
+        sectionNum={`Section ${i + 2}`}
+        title={d.title}
+        icon={d.icon}
+        stripe={d.stripe}
+        iconWrap={d.iconWrap}
+      >
+        {d.body}
+      </SectionCard>
+    ));
 }
 
 export function ChapterSummaryViewer({ content, rawContent, className }: ChapterSummaryViewerProps) {
@@ -318,10 +314,7 @@ export function ChapterSummaryViewer({ content, rawContent, className }: Chapter
               <h3 className="truncate text-lg font-bold">{summary.title}</h3>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
                 <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-[10px]">
-                  10 sections
-                </Badge>
-                <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-[10px]">
-                  {filledSections} filled
+                  {filledSections + 1} section{filledSections + 1 === 1 ? '' : 's'}
                 </Badge>
                 {summary.importantConcepts.length > 0 ? (
                   <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-[10px]">

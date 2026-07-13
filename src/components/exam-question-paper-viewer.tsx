@@ -4,7 +4,6 @@ import {
   Brain,
   CheckCircle2,
   ClipboardList,
-  Clock,
   FileQuestion,
   GraduationCap,
   ListChecks,
@@ -18,7 +17,6 @@ import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import { AiToolMockTestSectionLayout } from '@/lib/ai-tool-section-layout';
 import {
-  AiToolV2BestPractices,
   AiToolV2BloomDistribution,
   AiToolV2CompetencyFocus,
   AiToolV2NepAlignment,
@@ -100,16 +98,8 @@ function extractMockTestMeta(rawContent?: unknown): MockTestMeta | null {
   return null;
 }
 
-function EmptyHint({ message = 'Not included in this paper.' }: { message?: string }) {
-  return (
-    <p className="rounded-md border border-dashed border-slate-200 bg-slate-50/80 px-2.5 py-1.5 text-xs italic text-slate-400">
-      {message}
-    </p>
-  );
-}
-
 function RichTextBlock({ text, className }: { text: string; className?: string }) {
-  if (!text.trim()) return <EmptyHint />;
+  if (!text.trim()) return null;
   const hasMarkdown =
     text.includes('|') ||
     /^\s*#{1,6}\s/m.test(text) ||
@@ -214,33 +204,6 @@ function QuestionCard({
   );
 }
 
-function MissingExamSectionBlock({
-  sectionId,
-  title,
-  expectedCount,
-}: {
-  sectionId: string;
-  title: string;
-  expectedCount: number;
-}) {
-  return (
-    <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50/60 p-3">
-      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <h5 className="text-sm font-bold text-amber-900">
-          Section {sectionId.toUpperCase()} — {title.replace(/^Section\s*[A-E]\s*[-–:]\s*/i, '')}
-        </h5>
-        <Badge variant="outline" className="border-amber-300 text-amber-800">
-          0 / {expectedCount} Q
-        </Badge>
-      </div>
-      <p className="text-xs text-amber-800">
-        Blueprint expects {expectedCount} question{expectedCount === 1 ? '' : 's'} here but none were
-        generated. Regenerate this record to complete the full A–E paper.
-      </p>
-    </div>
-  );
-}
-
 function ExamSectionBlock({
   section,
   showAnswers,
@@ -284,7 +247,7 @@ function ExamSectionBlock({
 }
 
 function BlueprintTable({ rows }: { rows: ReturnType<typeof buildExamBlueprintRows> }) {
-  if (!rows.length) return <EmptyHint message="Blueprint details will appear when sections are generated." />;
+  if (!rows.length) return null;
   return (
     <div className="overflow-x-auto rounded-lg border border-cyan-100">
       <table className="w-full min-w-[420px] border-collapse text-left text-xs">
@@ -438,46 +401,87 @@ export function ExamQuestionPaperViewer({
           </div>
         </header>
         <AiToolMockTestSectionLayout>
-          <ExamSectionCard sectionNum="2" title="Test Purpose and Subtopic Link" icon={Target}>
-            <RichTextBlock text={mockMeta.testPurposeSubtopicLink} />
-          </ExamSectionCard>
-          <ExamSectionCard sectionNum="3" title="Learning Objectives – Bloom's" icon={Brain}>
-            {mockMeta.learningObjectives.length ? (
-              <ul className="space-y-1 text-sm text-slate-800">
-                {mockMeta.learningObjectives.map((line, i) => (
-                  <li key={i} className="flex gap-2">
-                    <span className="text-rose-500">•</span>
-                    <span>{line}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <EmptyHint />
-            )}
-          </ExamSectionCard>
-          <ExamSectionCard sectionNum="4" title="NCF Competency / Learning Outcome" icon={GraduationCap}>
-            <RichTextBlock text={mockMeta.ncfCompetencyAlignment} />
-          </ExamSectionCard>
-          <ExamSectionCard sectionNum="5" title="Instructions for Students" icon={ClipboardList}>
-            <RichTextBlock text={paper.instructions} />
-          </ExamSectionCard>
-          <ExamSectionCard sectionNum="6" title="Question Paper" icon={FileQuestion}>
-            {activeSections.length > 0 ? (
-              <div className="space-y-3">
-                {activeSections.map((sec) => (
-                  <ExamSectionBlock key={sec.id} section={sec} showAnswers={false} />
-                ))}
-              </div>
-            ) : (
-              <EmptyHint message="No questions generated yet." />
-            )}
-          </ExamSectionCard>
-          <ExamSectionCard sectionNum="7" title="Answer Key" icon={CheckCircle2}>
-            <AnswerKeySnapshotTable rows={answerKeyRows} fallbackText={paper.answerKey} />
-          </ExamSectionCard>
-          <ExamSectionCard sectionNum="8" title="Step-by-step Solutions / Explanations" icon={BookOpen}>
-            <RichTextBlock text={mockMeta.stepByStepSolutionsExplanations} />
-          </ExamSectionCard>
+          {(() => {
+            const defs: Array<{
+              key: string;
+              title: string;
+              icon: typeof Target;
+              hasContent: boolean;
+              body: ReactNode;
+            }> = [
+              {
+                key: 'purpose',
+                title: 'Test Purpose and Subtopic Link',
+                icon: Target,
+                hasContent: !!mockMeta.testPurposeSubtopicLink?.trim(),
+                body: <RichTextBlock text={mockMeta.testPurposeSubtopicLink} />,
+              },
+              {
+                key: 'objectives',
+                title: "Learning Objectives – Bloom's",
+                icon: Brain,
+                hasContent: mockMeta.learningObjectives.length > 0,
+                body: (
+                  <ul className="space-y-1 text-sm text-slate-800">
+                    {mockMeta.learningObjectives.map((line, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="text-rose-500">•</span>
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ),
+              },
+              {
+                key: 'ncf',
+                title: 'NCF Competency / Learning Outcome',
+                icon: GraduationCap,
+                hasContent: !!mockMeta.ncfCompetencyAlignment?.trim(),
+                body: <RichTextBlock text={mockMeta.ncfCompetencyAlignment} />,
+              },
+              {
+                key: 'instructions',
+                title: 'Instructions for Students',
+                icon: ClipboardList,
+                hasContent: !!paper.instructions?.trim(),
+                body: <RichTextBlock text={paper.instructions} />,
+              },
+              {
+                key: 'paper',
+                title: 'Question Paper',
+                icon: FileQuestion,
+                hasContent: activeSections.length > 0,
+                body: (
+                  <div className="space-y-3">
+                    {activeSections.map((sec) => (
+                      <ExamSectionBlock key={sec.id} section={sec} showAnswers={false} />
+                    ))}
+                  </div>
+                ),
+              },
+              {
+                key: 'answerKey',
+                title: 'Answer Key',
+                icon: CheckCircle2,
+                hasContent: answerKeyRows.length > 0 || !!paper.answerKey?.trim(),
+                body: <AnswerKeySnapshotTable rows={answerKeyRows} fallbackText={paper.answerKey} />,
+              },
+              {
+                key: 'solutions',
+                title: 'Step-by-step Solutions / Explanations',
+                icon: BookOpen,
+                hasContent: !!mockMeta.stepByStepSolutionsExplanations?.trim(),
+                body: <RichTextBlock text={mockMeta.stepByStepSolutionsExplanations} />,
+              },
+            ];
+            return defs
+              .filter((d) => d.hasContent)
+              .map((d, i) => (
+                <ExamSectionCard key={d.key} sectionNum={String(i + 2)} title={d.title} icon={d.icon}>
+                  {d.body}
+                </ExamSectionCard>
+              ));
+          })()}
         </AiToolMockTestSectionLayout>
       </div>
     );
@@ -518,7 +522,7 @@ export function ExamQuestionPaperViewer({
               paper.sections.find((s) => s.id === meta.id) ||
               null;
             const questionCount = section?.questions.length ?? 0;
-            if (expected <= 0 && questionCount <= 0) return null;
+            if (questionCount <= 0) return null;
             const sectionMarks = section?.questions.reduce(
               (sum, q) => sum + (q.marks != null ? q.marks : 0),
               0,
@@ -534,16 +538,7 @@ export function ExamQuestionPaperViewer({
               key: meta.id,
               title,
               description: marksLabel,
-              body:
-                section && questionCount > 0 ? (
-                  <ExamSectionBlock section={section} showAnswers={false} />
-                ) : (
-                  <MissingExamSectionBlock
-                    sectionId={meta.id}
-                    title={meta.title}
-                    expectedCount={expected}
-                  />
-                ),
+              body: <ExamSectionBlock section={section!} showAnswers={false} />,
             };
           }).filter(Boolean) as Array<{
             key: string;
@@ -592,7 +587,10 @@ export function ExamQuestionPaperViewer({
                 </div>
               ),
             },
-            {
+          ];
+
+          if (paper.blueprint?.trim() || blueprintRows.length > 0) {
+            blocks.push({
               key: 'blueprint',
               title: 'Blueprint / Question Distribution',
               description: 'Section-wise marks and weightage',
@@ -606,16 +604,22 @@ export function ExamQuestionPaperViewer({
                   <BlueprintTable rows={blueprintRows} />
                 </div>
               ),
-            },
-            ...examSectionCards.map((card, i) => ({
+            });
+          }
+
+          examSectionCards.forEach((card, i) => {
+            blocks.push({
               key: card.key,
               title: card.title,
               description: card.description,
               icon: FileQuestion,
               accent: sectionAccents[(i + 2) % sectionAccents.length],
               body: card.body,
-            })),
-            {
+            });
+          });
+
+          if (bloomRows.some((r) => r.marks > 0 || r.percent > 0)) {
+            blocks.push({
               key: 'bloom',
               title: "Bloom's Distribution (by Marks)",
               description: 'Cognitive level spread across the paper',
@@ -631,16 +635,22 @@ export function ExamQuestionPaperViewer({
                   <AiToolV2BloomDistribution rows={bloomRows} totalMarks={totalMarks} />
                 </div>
               ),
-            },
-            {
+            });
+          }
+
+          if (competencyItems.length > 0) {
+            blocks.push({
               key: 'competency',
               title: 'Competency Focus',
               description: 'Skills and competencies assessed',
               icon: GraduationCap,
               accent: 'emerald',
               body: <AiToolV2CompetencyFocus items={competencyItems} />,
-            },
-            {
+            });
+          }
+
+          if (answerKeyRows.length > 0 || paper.answerKey?.trim()) {
+            blocks.push({
               key: 'answer-key',
               title: 'Answer Key Snapshot',
               description: 'Quick reference for all sections',
@@ -649,24 +659,19 @@ export function ExamQuestionPaperViewer({
               body: (
                 <AnswerKeySnapshotTable rows={answerKeyRows} fallbackText={paper.answerKey} />
               ),
-            },
-            {
+            });
+          }
+
+          if (context.nepNcfFocus?.trim()) {
+            blocks.push({
               key: 'nep',
               title: 'NEP / NCF Alignment',
               description: 'Curriculum framework alignment',
               icon: GraduationCap,
               accent: 'cyan',
               body: <AiToolV2NepAlignment focusText={context.nepNcfFocus} />,
-            },
-            {
-              key: 'best-practices',
-              title: 'Best Practices',
-              description: 'How to use this paper in class',
-              icon: Clock,
-              accent: 'amber',
-              body: <AiToolV2BestPractices />,
-            },
-          ];
+            });
+          }
 
           if (paper.internalChoices) {
             blocks.push({

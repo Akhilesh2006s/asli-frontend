@@ -269,14 +269,6 @@ function DeckSectionCard({
   );
 }
 
-function EmptyDeckHint() {
-  return (
-    <p className="text-xs text-stone-400 italic rounded-md border border-dashed border-stone-200 bg-stone-50 px-2 py-1">
-      Not included in this study deck.
-    </p>
-  );
-}
-
 function BulletList({ items }: { items: string[] }) {
   return (
     <ul className="space-y-1">
@@ -302,7 +294,7 @@ function PerCardList({
   const rows = cards
     .map((c, i) => ({ i, text: pick(c, i).trim() }))
     .filter((r) => r.text.length > 0);
-  if (!rows.length) return <EmptyDeckHint />;
+  if (!rows.length) return null;
   return (
     <ul className="space-y-1">
       {rows.map(({ i, text }) => (
@@ -328,13 +320,14 @@ type DeckSectionDef = {
   title: string;
   iconName: AiTool3dIconName;
   body: ReactElement;
+  hasContent: boolean;
 };
 
-function renderDeckSection(sec: DeckSectionDef) {
+function renderDeckSection(sec: DeckSectionDef, displayNum: number) {
   return (
     <DeckSectionCard
       key={sec.num}
-      sectionNum={String(sec.num)}
+      sectionNum={String(displayNum)}
       title={sec.title}
       iconName={sec.iconName}
     >
@@ -402,37 +395,30 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
       num: 2,
       title: 'Subtopic Link and Prior Knowledge Required',
       iconName: 'openBook',
-      body: meta.subtopicLinkPriorKnowledge ? (
+      hasContent: !!meta.subtopicLinkPriorKnowledge,
+      body: (
         <p className="text-sm whitespace-pre-wrap text-slate-800">{meta.subtopicLinkPriorKnowledge}</p>
-      ) : (
-        <EmptyDeckHint />
       ),
     },
     {
       num: 3,
       title: "Learning Objectives - Bloom's Taxonomy Aligned",
       iconName: 'target',
-      body:
-        meta.learningObjectives.length > 0 ? (
-          <BulletList items={meta.learningObjectives} />
-        ) : (
-          <EmptyDeckHint />
-        ),
+      hasContent: meta.learningObjectives.length > 0,
+      body: <BulletList items={meta.learningObjectives} />,
     },
     {
       num: 4,
       title: 'NCF Competency / Learning Outcome Alignment',
       iconName: 'graduation',
-      body: meta.ncfAlignment ? (
-        <p className="text-sm whitespace-pre-wrap text-slate-800">{meta.ncfAlignment}</p>
-      ) : (
-        <EmptyDeckHint />
-      ),
+      hasContent: !!meta.ncfAlignment,
+      body: <p className="text-sm whitespace-pre-wrap text-slate-800">{meta.ncfAlignment}</p>,
     },
     {
       num: 5,
       title: 'Flashcard Set',
       iconName: 'rocket',
+      hasContent: true,
       body: (
         <div className="mx-auto w-full max-w-lg">
           <FlashcardViewer
@@ -448,34 +434,33 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
       num: 6,
       title: 'Difficulty Tag for Each Card',
       iconName: 'chart',
-      body: hasDifficulty ? (
+      hasContent: hasDifficulty,
+      body: (
         <PerCardList
           cards={cards}
           pick={(c) => c.difficultyTag || c.skillFocus || ''}
           label={(i) => `Card ${i + 1}`}
         />
-      ) : (
-        <EmptyDeckHint />
       ),
     },
     {
       num: 7,
       title: 'Memory Hook / Quick Tip',
       iconName: 'lightbulb',
-      body: hasMemory ? (
+      hasContent: hasMemory,
+      body: (
         <PerCardList
           cards={cards}
           pick={(c) => c.memoryHookQuickTip || c.memoryCue || ''}
           label={(i) => `Card ${i + 1}`}
         />
-      ) : (
-        <EmptyDeckHint />
       ),
     },
     {
       num: 8,
       title: 'Self-Check Round',
       iconName: 'checklist',
+      hasContent: !!meta.selfCheckRound || hasSelfCheck,
       body: (
         <>
           {meta.selfCheckRound ? (
@@ -487,8 +472,6 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
               pick={(c) => c.selfCheckRound || c.peerPrompt || c.reflection || ''}
               label={(i) => `Card ${i + 1}`}
             />
-          ) : !meta.selfCheckRound ? (
-            <EmptyDeckHint />
           ) : null}
         </>
       ),
@@ -497,45 +480,37 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
       num: 9,
       title: 'Common Mistakes to Avoid',
       iconName: 'shield',
-      body:
-        meta.commonMistakesToAvoid.length > 0 ? (
-          <BulletList items={meta.commonMistakesToAvoid} />
-        ) : (
-          <EmptyDeckHint />
-        ),
+      hasContent: meta.commonMistakesToAvoid.length > 0,
+      body: <BulletList items={meta.commonMistakesToAvoid} />,
     },
     {
       num: 10,
       title: 'Expected Learning Outcomes',
       iconName: 'diploma',
-      body:
-        meta.expectedLearningOutcomes.length > 0 ? (
-          <BulletList items={meta.expectedLearningOutcomes} />
-        ) : (
-          <EmptyDeckHint />
-        ),
+      hasContent: meta.expectedLearningOutcomes.length > 0,
+      body: <BulletList items={meta.expectedLearningOutcomes} />,
     },
     {
       num: 11,
       title: 'Real-life Application',
       iconName: 'globe',
-      body: meta.realLifeApplication ? (
+      hasContent: !!meta.realLifeApplication,
+      body: (
         <p className="text-sm whitespace-pre-wrap text-slate-800">{meta.realLifeApplication}</p>
-      ) : (
-        <EmptyDeckHint />
       ),
     },
     {
       num: 12,
       title: 'Reflection / Exit Ticket',
       iconName: 'memo',
-      body: meta.reflectionExitTicket ? (
+      hasContent: !!meta.reflectionExitTicket,
+      body: (
         <p className="text-sm whitespace-pre-wrap text-slate-800">{meta.reflectionExitTicket}</p>
-      ) : (
-        <EmptyDeckHint />
       ),
     },
   ];
+
+  const visibleSections = orderedSections.filter((sec) => sec.hasContent);
 
   return (
     <div className={cn('w-full space-y-2', className)}>
@@ -570,7 +545,7 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
               </Badge>
               <h4 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug">{meta.title}</h4>
             </AiToolStackedSection>
-            {orderedSections.map(renderDeckSection)}
+            {visibleSections.map((sec, i) => renderDeckSection(sec, i + 2))}
           </AiToolStackedList>
         </div>
       </div>

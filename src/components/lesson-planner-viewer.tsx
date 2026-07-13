@@ -43,26 +43,6 @@ interface LessonPlannerViewerProps {
 
 /* ——— Shared lesson sections ——— */
 
-function EmptySectionHint({
-  audience = 'student',
-  variant = 'default',
-}: {
-  audience?: 'student' | 'teacher';
-  variant?: 'default' | 'student' | 'teacher';
-}) {
-  const studentCopy =
-    variant === 'student'
-      ? 'Not included in this study schedule.'
-      : 'Not included in this lesson plan.';
-  return (
-    <p className="text-sm text-stone-400 italic rounded-lg border border-dashed border-stone-200 bg-stone-50 px-2.5 py-1.5">
-      {audience === 'teacher'
-        ? 'Not included in this generation — try regenerating with more detail if you need this section.'
-        : studentCopy}
-    </p>
-  );
-}
-
 function BulletList({ items, icon: Icon, iconClass }: { items: string[]; icon: LucideIcon; iconClass: string }) {
   return (
     <ul className="space-y-2">
@@ -479,8 +459,7 @@ function TeacherLessonCard({
   rawContent?: unknown;
 }) {
   const filled = countFilledLessonSections(lesson, TEACHER_LESSON_SECTIONS);
-  const total = TEACHER_LESSON_SECTIONS.length;
-  const progressPct = Math.round((filled / total) * 100);
+  const progressPct = Math.round((filled / Math.max(TEACHER_LESSON_SECTIONS.length, 1)) * 100);
 
   return (
     <div className="space-y-5">
@@ -518,62 +497,65 @@ function TeacherLessonCard({
               />
             </div>
             <p className="text-[11px] text-slate-500 mt-1 text-right">
-              {filled}/{total} blocks
+              {filled} block{filled === 1 ? '' : 's'}
             </p>
           </div>
         </div>
       </div>
 
-      {LESSON_FLOW_PHASES.map((phase) => {
-        const phaseSections = TEACHER_LESSON_SECTIONS.filter(
-          (sec) => TEACHER_SECTION_PHASE[sec.num] === phase.id,
-        );
+      {(() => {
+        let sectionIndex = 0;
+        return LESSON_FLOW_PHASES.map((phase) => {
+          const phaseSections = TEACHER_LESSON_SECTIONS.filter(
+            (sec) => TEACHER_SECTION_PHASE[sec.num] === phase.id && sec.hasContent(lesson),
+          );
+          if (!phaseSections.length) return null;
 
-        return (
-          <section key={phase.id} aria-label={phase.label}>
-            <div
-              className={cn(
-                'mb-3 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2',
-                phase.badgeClass,
-              )}
-            >
-              <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', phase.dotClass.split(' ')[0])} />
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide">{phase.label}</p>
-                <p className="text-[11px] opacity-80">{phase.hint}</p>
+          return (
+            <section key={phase.id} aria-label={phase.label}>
+              <div
+                className={cn(
+                  'mb-3 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2',
+                  phase.badgeClass,
+                )}
+              >
+                <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', phase.dotClass.split(' ')[0])} />
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide">{phase.label}</p>
+                  <p className="text-[11px] opacity-80">{phase.hint}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex flex-col gap-4">
-              {phaseSections.map((sec, idx) => (
-                <PlannerTimelineStep
-                  key={sec.num}
-                  sectionNum={sec.num}
-                  title={sec.title}
-                  icon={sec.icon}
-                  dotClass={phase.dotClass}
-                  isLast={idx === phaseSections.length - 1}
-                >
-                  {sec.hasContent(lesson) ? (
-                    sec.render(lesson)
-                  ) : (
-                    <EmptySectionHint audience="teacher" />
-                  )}
-                </PlannerTimelineStep>
-              ))}
-            </div>
-          </section>
-        );
-      })}
+              <div className="flex flex-col gap-4">
+                {phaseSections.map((sec, idx) => {
+                  sectionIndex += 1;
+                  return (
+                    <PlannerTimelineStep
+                      key={sec.num}
+                      sectionNum={sectionIndex}
+                      title={sec.title}
+                      icon={sec.icon}
+                      dotClass={phase.dotClass}
+                      isLast={idx === phaseSections.length - 1}
+                    >
+                      {sec.render(lesson)}
+                    </PlannerTimelineStep>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        });
+      })()}
 
       <AiToolV2InsightTail
         rawContent={rawContent}
-        startNum={15}
+        startNum={filled + 1}
         includeOverview
         overviewStats={[
           { label: 'Lesson', value: lesson.lessonName },
           { label: 'Period', value: lesson.sl ? `Lesson ${lesson.sl}` : '' },
           { label: 'Duration', value: lesson.durationLabel || '' },
-          { label: 'Flow blocks', value: `${filled}/${total}` },
+          { label: 'Flow blocks', value: String(filled) },
         ].filter((s) => s.value)}
         bloomFromObjectives={lesson.learningObjectives}
         competencyItems={
@@ -689,16 +671,16 @@ function StudentLessonCard({ lesson }: { lesson: NormalizedLesson }) {
       </div>
 
       <AiToolMasonrySections>
-        {STUDY_SCHEDULE_SECTIONS.map((sec) => (
+        {STUDY_SCHEDULE_SECTIONS.filter((sec) => sec.hasContent(lesson)).map((sec, i) => (
           <div key={sec.num} className="mb-2 break-inside-avoid">
             <PlanSectionCard
-              sectionNum={`Section ${sec.num}`}
+              sectionNum={`Section ${i + 2}`}
               title={sec.title}
               icon={sec.icon}
               stripe={sec.stripe}
               iconWrap={sec.iconWrap}
             >
-              {sec.hasContent(lesson) ? sec.render(lesson) : <EmptySectionHint audience="student" variant="student" />}
+              {sec.render(lesson)}
             </PlanSectionCard>
           </div>
         ))}

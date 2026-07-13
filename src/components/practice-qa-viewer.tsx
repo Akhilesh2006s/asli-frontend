@@ -119,16 +119,8 @@ function SectionCard({
   );
 }
 
-function EmptyHint({ label = 'No items in this section.' }: { label?: string }) {
-  return (
-    <p className="rounded-md border border-dashed border-emerald-200 bg-emerald-50/40 px-2 py-1 text-xs italic text-slate-400">
-      {label}
-    </p>
-  );
-}
-
 function RichTextBlock({ text }: { text: string }) {
-  if (!text.trim()) return <EmptyHint />;
+  if (!text.trim()) return null;
   const hasMarkdown =
     text.includes('|') ||
     /^\s*#{1,6}\s/m.test(text) ||
@@ -218,28 +210,18 @@ function QuestionCard({ q, index }: { q: PracticeQaQuestion; index: number }) {
   );
 }
 
-function SectionQuestionsBlock({ sec }: { sec: PracticeQaSection }) {
+function SectionQuestionsBlock({
+  sec,
+  sectionNum,
+}: {
+  sec: PracticeQaSection;
+  sectionNum: string;
+}) {
   const visual = SECTION_VISUAL[sec.label] || SECTION_VISUAL['Section A: MCQs'];
   const Icon = visual.icon;
   const shortTitle = sec.label.replace(/^Section [A-G]:\s*/i, '');
 
-  const sectionNum = sec.displayLabel.match(/^(\d+)\./)?.[1]
-    ? `Section ${sec.displayLabel.match(/^(\d+)\./)?.[1]}`
-    : 'Section';
-
-  if (!sec.questions.length) {
-    return (
-      <SectionCard
-        sectionNum={sectionNum}
-        title={shortTitle}
-        icon={Icon}
-        stripe={visual.stripe}
-        iconWrap={visual.iconWrap}
-      >
-        <EmptyHint label="No Match-the-Following question was generated for this set. Click Generate again — the tool now requires at least one question in Section C." />
-      </SectionCard>
-    );
-  }
+  if (!sec.questions.length) return null;
 
   return (
     <SectionCard
@@ -266,11 +248,14 @@ function PracticeQaBody({
   practice: NormalizedPracticeQa;
   rawContent?: unknown;
 }) {
-  const setupSections = [
-    practice.learningObjectives.length > 0 ? (
+  let nextNum = 2;
+  const setupSections: ReactNode[] = [];
+  if (practice.learningObjectives.length > 0) {
+    const n = nextNum++;
+    setupSections.push(
       <SectionCard
         key="lo"
-        sectionNum="Section 2"
+        sectionNum={`Section ${n}`}
         title="Learning Objectives"
         icon={Target}
         stripe="border-teal-500"
@@ -284,30 +269,36 @@ function PracticeQaBody({
             </li>
           ))}
         </ul>
-      </SectionCard>
-    ) : null,
-    practice.instructions ? (
+      </SectionCard>,
+    );
+  }
+  if (practice.instructions) {
+    const n = nextNum++;
+    setupSections.push(
       <SectionCard
         key="inst"
-        sectionNum="Section 3"
+        sectionNum={`Section ${n}`}
         title="Instructions to Students"
         icon={BookOpen}
         stripe="border-green-500"
         iconWrap="bg-green-100 text-green-800"
       >
         <RichTextBlock text={practice.instructions} />
-      </SectionCard>
-    ) : null,
-  ].filter(Boolean) as ReactNode[];
+      </SectionCard>,
+    );
+  }
 
-  const questionSections = practice.sections.map((sec) => (
-    <SectionQuestionsBlock key={sec.id} sec={sec} />
-  ));
+  const questionSections = practice.sections
+    .filter((sec) => sec.questions.length > 0)
+    .map((sec) => {
+      const n = nextNum++;
+      return <SectionQuestionsBlock key={sec.id} sec={sec} sectionNum={`Section ${n}`} />;
+    });
 
   const realLifeBlock =
     practice.realLifeQuestions.length > 0 ? (
       <SectionCard
-        sectionNum="Real-life"
+        sectionNum={`Section ${nextNum++}`}
         title="Problem-solving Questions"
         icon={Sparkles}
         stripe="border-green-600"
@@ -338,7 +329,7 @@ function PracticeQaBody({
       {realLifeBlock}
       {practice.answerKey ? (
         <SectionCard
-          sectionNum="Section 11"
+          sectionNum={`Section ${nextNum++}`}
           title="Answer Key with Explanations"
           icon={KeyRound}
           stripe="border-emerald-600"
@@ -353,7 +344,7 @@ function PracticeQaBody({
 
       <AiToolV2InsightTail
         rawContent={rawContent}
-        startNum={12}
+        startNum={nextNum}
         includeOverview
         overviewStats={[
           { label: 'Questions', value: String(allQuestions.length) },

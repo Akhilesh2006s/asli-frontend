@@ -44,9 +44,7 @@ function SectionCard({
 }
 
 function BulletList({ items }: { items: string[] }) {
-  if (!items.length) {
-    return <p className="text-sm italic text-slate-400">Not included in this extraction.</p>;
-  }
+  if (!items.length) return null;
   return (
     <ul className="space-y-2">
       {items.map((line, i) => (
@@ -61,10 +59,12 @@ function BulletList({ items }: { items: string[] }) {
 
 function buildSections(kp: KeyPointsContent) {
   const sections: ReactNode[] = [];
+  let n = 0;
+  const next = () => String(++n);
 
   if (kp.importantConcepts.length) {
     sections.push(
-      <SectionCard key="concepts" sectionNum="2" title="Most Important Concepts" icon={Brain}>
+      <SectionCard key="concepts" sectionNum={next()} title="Most Important Concepts" icon={Brain}>
         <div className="grid gap-2 sm:grid-cols-2">
           {kp.importantConcepts.map((c, i) => (
             <div key={i} className="rounded-xl border border-amber-100 bg-amber-50/50 p-3">
@@ -79,7 +79,7 @@ function buildSections(kp: KeyPointsContent) {
 
   if (kp.essentialDefinitions.length) {
     sections.push(
-      <SectionCard key="defs" sectionNum="3" title="Essential Definitions" icon={BookMarked}>
+      <SectionCard key="defs" sectionNum={next()} title="Essential Definitions" icon={BookMarked}>
         <div className="space-y-2">
           {kp.essentialDefinitions.map((d, i) => (
             <div key={i} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
@@ -94,7 +94,7 @@ function buildSections(kp: KeyPointsContent) {
 
   if (kp.formulae.length) {
     sections.push(
-      <SectionCard key="formulae" sectionNum="4" title="Important Formulae / Rules" icon={Sigma}>
+      <SectionCard key="formulae" sectionNum={next()} title="Important Formulae / Rules" icon={Sigma}>
         <div className="space-y-2">
           {kp.formulae.map((f, i) => (
             <div key={i} className="rounded-xl border border-violet-100 bg-violet-50/40 px-3 py-2.5">
@@ -110,7 +110,7 @@ function buildSections(kp: KeyPointsContent) {
 
   if (kp.keywords.length) {
     sections.push(
-      <SectionCard key="keywords" sectionNum="5" title="Keywords & Terminologies" icon={KeyRound}>
+      <SectionCard key="keywords" sectionNum={next()} title="Keywords & Terminologies" icon={KeyRound}>
         <div className="flex flex-wrap gap-2">
           {kp.keywords.map((k, i) => (
             <span
@@ -128,7 +128,7 @@ function buildSections(kp: KeyPointsContent) {
 
   if (kp.mustRememberFacts.length) {
     sections.push(
-      <SectionCard key="facts" sectionNum="6" title="Must-remember Facts" icon={ListChecks}>
+      <SectionCard key="facts" sectionNum={next()} title="Must-remember Facts" icon={ListChecks}>
         <BulletList items={kp.mustRememberFacts} />
       </SectionCard>,
     );
@@ -136,7 +136,7 @@ function buildSections(kp: KeyPointsContent) {
 
   if (kp.realLifeConnections.length) {
     sections.push(
-      <SectionCard key="real" sectionNum="7" title="Real-life Connections" icon={Lightbulb}>
+      <SectionCard key="real" sectionNum={next()} title="Real-life Connections" icon={Lightbulb}>
         <BulletList items={kp.realLifeConnections} />
       </SectionCard>,
     );
@@ -144,7 +144,7 @@ function buildSections(kp: KeyPointsContent) {
 
   if (kp.examPoints.length) {
     sections.push(
-      <SectionCard key="exam" sectionNum="8" title="Frequently Asked Exam Points" icon={Target}>
+      <SectionCard key="exam" sectionNum={next()} title="Frequently Asked Exam Points" icon={Target}>
         <BulletList items={kp.examPoints} />
       </SectionCard>,
     );
@@ -152,7 +152,7 @@ function buildSections(kp: KeyPointsContent) {
 
   if (kp.mnemonics.length) {
     sections.push(
-      <SectionCard key="mnemonic" sectionNum="9" title="Mnemonics / Memory Tricks" icon={Zap}>
+      <SectionCard key="mnemonic" sectionNum={next()} title="Mnemonics / Memory Tricks" icon={Zap}>
         <BulletList items={kp.mnemonics} />
       </SectionCard>,
     );
@@ -160,7 +160,7 @@ function buildSections(kp: KeyPointsContent) {
 
   if (kp.revisionSummary) {
     sections.push(
-      <SectionCard key="summary" sectionNum="10" title="One-minute Revision Summary" icon={Sparkles}>
+      <SectionCard key="summary" sectionNum={next()} title="One-minute Revision Summary" icon={Sparkles}>
         <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">{kp.revisionSummary}</p>
       </SectionCard>,
     );

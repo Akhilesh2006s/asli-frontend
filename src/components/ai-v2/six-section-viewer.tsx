@@ -292,6 +292,7 @@ function RevealAnswerKey({
   items: { n: string; answer: string; work?: string }[];
 }) {
   const [revealed, setRevealed] = useState(false);
+  if (!items.length) return null;
   return (
     <div className="space-y-3">
       <button

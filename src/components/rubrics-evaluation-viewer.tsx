@@ -54,14 +54,6 @@ function inferredGradingCriteriaText(r: NormalizedRubric): string {
   return '4-level grading scale used: Excellent, Good, Satisfactory, Needs Improvement.';
 }
 
-function EmptyHint() {
-  return (
-    <p className="text-sm text-stone-400 italic rounded-lg border border-dashed border-stone-200 bg-stone-50 px-2.5 py-1.5">
-      Not included in this generation.
-    </p>
-  );
-}
-
 function SectionCard({
   sectionNum,
   label,
@@ -83,7 +75,7 @@ function SectionCard({
 }
 
 function CriteriaTable({ rows }: { rows: RubricCriterionRow[] }) {
-  if (!rows.length) return <EmptyHint />;
+  if (!rows.length) return null;
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200">
       <table className="min-w-[760px] w-full text-xs sm:text-sm">
@@ -257,9 +249,10 @@ export function RubricsEvaluationViewer({ content, rawContent, className }: Rubr
   }
 
   const r = resolved.rubric;
-  const filled = RUBRIC_SECTIONS.filter((s) => s.hasContent(r)).length;
+  const visibleSections = RUBRIC_SECTIONS.filter((s) => s.hasContent(r));
+  const filled = visibleSections.length;
   const totalCriteria = r.criteriaRows.length;
-  const fillPercent = Math.max(0, Math.min(100, Math.round((filled / RUBRIC_SECTIONS.length) * 100)));
+  const fillPercent = Math.max(0, Math.min(100, Math.round((filled / Math.max(RUBRIC_SECTIONS.length, 1)) * 100)));
 
   return (
     <div className={cn('space-y-4', className)}>
@@ -274,7 +267,7 @@ export function RubricsEvaluationViewer({ content, rawContent, className }: Rubr
 
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
           <span className="rounded-xl bg-white/10 px-3 py-2 text-xs font-medium text-white ring-1 ring-white/15">
-            {filled}/{RUBRIC_SECTIONS.length} sections filled
+            {filled} section{filled === 1 ? '' : 's'} visible
           </span>
           <span className="rounded-xl bg-white/10 px-3 py-2 text-xs font-medium text-white ring-1 ring-white/15">
             {totalCriteria} rubric criteria
@@ -301,14 +294,14 @@ export function RubricsEvaluationViewer({ content, rawContent, className }: Rubr
       </div>
 
       <div className="flex w-full flex-col gap-4">
-        {RUBRIC_SECTIONS.map((sec) => (
+        {visibleSections.map((sec, i) => (
           <SectionCard
             key={sec.num}
-            sectionNum={String(sec.num)}
+            sectionNum={String(i + 1)}
             label={sec.label}
             icon={sec.icon}
           >
-            {sec.hasContent(r) ? sec.render(r) : <EmptyHint />}
+            {sec.render(r)}
           </SectionCard>
         ))}
       </div>

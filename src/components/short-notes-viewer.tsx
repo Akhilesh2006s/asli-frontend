@@ -33,7 +33,7 @@ function SectionCard({ section, index }: { section: ShortNoteSection; index: num
   const icon = SECTION_ICONS[index % SECTION_ICONS.length];
   return (
     <AiToolStackedSection
-      num={String(section.num || index + 1)}
+      num={String(index + 1)}
       title={section.label}
       iconName={icon}
     >
@@ -83,9 +83,11 @@ function TemplateNoteBody({ item }: { item: ShortNoteItem }) {
         </div>
       ) : null}
       <div className="flex w-full flex-col gap-4">
-        {item.sections.map((section, index) => (
-          <SectionCard key={`${section.num}-${section.label}`} section={section} index={index} />
-        ))}
+        {item.sections
+          .filter((section) => String(section.body || '').trim().length > 0)
+          .map((section, index) => (
+            <SectionCard key={`${section.num}-${section.label}`} section={section} index={index} />
+          ))}
       </div>
     </div>
   );

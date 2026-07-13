@@ -662,6 +662,7 @@ export function FlashcardViewer({
       Boolean(meta?.realLifeConnection) ||
       Boolean(meta?.differentiationSupport) ||
       Boolean(meta?.reflectionExitTicket);
+    const hasCards = cards.length > 0;
 
     const contextChips = [
       topicLabel ? { label: 'Topic', value: topicLabel } : null,
@@ -672,16 +673,29 @@ export function FlashcardViewer({
     ].filter(Boolean) as { label: string; value: string }[];
 
     const cardExtras = [
-      currentCard.difficultyTag
+      currentCard?.difficultyTag
         ? { label: 'Difficulty', value: currentCard.difficultyTag }
         : null,
-      currentCard.memoryHookQuickTip || currentCard.memoryCue
+      currentCard?.memoryHookQuickTip || currentCard?.memoryCue
         ? {
             label: 'Memory Hook',
             value: currentCard.memoryHookQuickTip || currentCard.memoryCue || '',
           }
         : null,
     ].filter(Boolean) as { label: string; value: string }[];
+
+    // Only number / show sections that actually have content.
+    const trail: string[] = ['Context'];
+    if (hasFoundations) trail.push('Foundations');
+    if (hasCards) trail.push('HOTS');
+    if (hasStudyAids) trail.push('Study Aids');
+    if (hasWrapUp) trail.push('Wrap-Up');
+    let sectionNum = 1;
+    const contextNum = sectionNum++;
+    const foundationsNum = hasFoundations ? sectionNum++ : 0;
+    const cardsNum = hasCards ? sectionNum++ : 0;
+    const studyAidsNum = hasStudyAids ? sectionNum++ : 0;
+    const wrapUpNum = hasWrapUp ? sectionNum++ : 0;
 
     const blockClass =
       'rounded-2xl border border-indigo-100/90 bg-white shadow-sm overflow-hidden';
@@ -691,22 +705,25 @@ export function FlashcardViewer({
 
     return (
       <div className="w-full max-w-4xl mx-auto space-y-4">
-        <div className="flex items-center gap-2 text-indigo-600 text-xs font-semibold uppercase tracking-wide">
-          <span className="h-2 w-2 rounded-full bg-indigo-500" />
-          Context
-          <span className="h-px flex-1 bg-indigo-100" />
-          Foundations
-          <span className="h-px flex-1 bg-indigo-100" />
-          HOTS
-          <span className="h-px flex-1 bg-indigo-100" />
-          Study Aids
-          <span className="h-px flex-1 bg-indigo-100" />
-          Wrap-Up
-        </div>
+        {trail.length > 1 ? (
+          <div className="flex flex-wrap items-center gap-2 text-indigo-600 text-xs font-semibold uppercase tracking-wide">
+            {trail.map((label, i) => (
+              <span key={label} className="inline-flex items-center gap-2">
+                {i > 0 ? <span className="h-px w-4 sm:w-8 bg-indigo-100" /> : null}
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-indigo-500" />
+                  {label}
+                </span>
+              </span>
+            ))}
+          </div>
+        ) : null}
 
         <section className={blockClass}>
           <div className={blockHead}>
-            <p className={blockTitle}>1 · Context &amp; Alignment</p>
+            <p className={blockTitle}>
+              {contextNum} · Context &amp; Alignment
+            </p>
           </div>
           <div className="p-4 sm:p-5 space-y-3">
             <h3 className="text-lg font-semibold text-slate-900">{displayTitle}</h3>
@@ -727,46 +744,45 @@ export function FlashcardViewer({
           </div>
         </section>
 
-        <section className={blockClass}>
-          <div className={blockHead}>
-            <p className={blockTitle}>2 · Foundations</p>
-          </div>
-          <div className="p-4 sm:p-5 space-y-3 text-sm text-slate-800">
-            {!hasFoundations ? (
-              <FlashcardSectionEmpty label="Foundations" />
-            ) : (
-              <>
-            {meta?.priorKnowledgeRequired ? (
-              <div>
-                <p className="text-[11px] font-semibold uppercase text-slate-500">Prior Knowledge</p>
-                <p className="mt-1 leading-relaxed">{meta.priorKnowledgeRequired}</p>
-              </div>
-            ) : null}
-            {meta?.learningObjectives?.length ? (
-              <div>
-                <p className="text-[11px] font-semibold uppercase text-slate-500">Learning Objectives</p>
-                <ul className="mt-1 list-disc pl-5 space-y-1">
-                  {meta.learningObjectives.map((o) => (
-                    <li key={o}>{o}</li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-            {meta?.ncfCompetencyAlignment ? (
-              <div>
-                <p className="text-[11px] font-semibold uppercase text-slate-500">NCF Competency</p>
-                <p className="mt-1 leading-relaxed">{meta.ncfCompetencyAlignment}</p>
-              </div>
-            ) : null}
-              </>
-            )}
-          </div>
-        </section>
+        {hasFoundations ? (
+          <section className={blockClass}>
+            <div className={blockHead}>
+              <p className={blockTitle}>{foundationsNum} · Foundations</p>
+            </div>
+            <div className="p-4 sm:p-5 space-y-3 text-sm text-slate-800">
+              {meta?.priorKnowledgeRequired ? (
+                <div>
+                  <p className="text-[11px] font-semibold uppercase text-slate-500">Prior Knowledge</p>
+                  <p className="mt-1 leading-relaxed">{meta.priorKnowledgeRequired}</p>
+                </div>
+              ) : null}
+              {meta?.learningObjectives?.length ? (
+                <div>
+                  <p className="text-[11px] font-semibold uppercase text-slate-500">Learning Objectives</p>
+                  <ul className="mt-1 list-disc pl-5 space-y-1">
+                    {meta.learningObjectives.map((o) => (
+                      <li key={o}>{o}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              {meta?.ncfCompetencyAlignment ? (
+                <div>
+                  <p className="text-[11px] font-semibold uppercase text-slate-500">NCF Competency</p>
+                  <p className="mt-1 leading-relaxed">{meta.ncfCompetencyAlignment}</p>
+                </div>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
 
+        {hasCards && currentCard ? (
         <section className="overflow-hidden rounded-2xl border border-violet-200/70 bg-gradient-to-br from-white via-violet-50/20 to-indigo-50/30 shadow-lg">
           <div className="border-b border-violet-100 bg-white/80 px-4 py-3 sm:px-5 flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className={blockTitle}>3 · The Card Set: Application &amp; HOTS</p>
+              <p className={blockTitle}>
+                {cardsNum} · The Card Set: Application &amp; HOTS
+              </p>
               <p className="text-sm text-slate-600 mt-0.5">
                 {allCards.length} task{allCards.length === 1 ? '' : 's'}
               </p>
@@ -845,82 +861,73 @@ export function FlashcardViewer({
             </div>
           </div>
         </section>
+        ) : null}
 
-        <section className={blockClass}>
-          <div className={blockHead}>
-            <p className={blockTitle}>4 · Study Aids</p>
-          </div>
-          <div className="p-4 sm:p-5 space-y-3 text-sm text-slate-800">
-            {!hasStudyAids ? (
-              <FlashcardSectionEmpty label="Study Aids" />
-            ) : (
-              <>
-            {meta?.deckMemoryHook ? (
-              <div className="flex gap-3 rounded-lg border border-amber-100 bg-amber-50/60 p-3">
-                <Lightbulb className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" aria-hidden />
-                <div>
-                  <p className="text-[11px] font-semibold uppercase text-amber-800">Memory Hook</p>
-                  <p className="mt-1">{meta.deckMemoryHook}</p>
+        {hasStudyAids ? (
+          <section className={blockClass}>
+            <div className={blockHead}>
+              <p className={blockTitle}>{studyAidsNum} · Study Aids</p>
+            </div>
+            <div className="p-4 sm:p-5 space-y-3 text-sm text-slate-800">
+              {meta?.deckMemoryHook ? (
+                <div className="flex gap-3 rounded-lg border border-amber-100 bg-amber-50/60 p-3">
+                  <Lightbulb className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" aria-hidden />
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase text-amber-800">Memory Hook</p>
+                    <p className="mt-1">{meta.deckMemoryHook}</p>
+                  </div>
                 </div>
-              </div>
-            ) : null}
-            {meta?.commonMistakesToAvoid?.length ? (
-              <div>
-                <p className="text-[11px] font-semibold uppercase text-slate-500">Common Mistakes</p>
-                <ul className="mt-1 list-disc pl-5 space-y-1">
-                  {meta.commonMistakesToAvoid.map((m) => (
-                    <li key={m}>{m}</li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-            {meta?.selfCheckRapidRecallRound ? (
-              <div className="flex gap-3 rounded-lg border border-teal-100 bg-teal-50/60 p-3">
-                <Zap className="h-5 w-5 shrink-0 text-teal-600 mt-0.5" aria-hidden />
+              ) : null}
+              {meta?.commonMistakesToAvoid?.length ? (
                 <div>
-                  <p className="text-[11px] font-semibold uppercase text-teal-800">Rapid Recall</p>
-                  <p className="mt-1">{meta.selfCheckRapidRecallRound}</p>
+                  <p className="text-[11px] font-semibold uppercase text-slate-500">Common Mistakes</p>
+                  <ul className="mt-1 list-disc pl-5 space-y-1">
+                    {meta.commonMistakesToAvoid.map((m) => (
+                      <li key={m}>{m}</li>
+                    ))}
+                  </ul>
                 </div>
-              </div>
-            ) : null}
-              </>
-            )}
-          </div>
-        </section>
+              ) : null}
+              {meta?.selfCheckRapidRecallRound ? (
+                <div className="flex gap-3 rounded-lg border border-teal-100 bg-teal-50/60 p-3">
+                  <Zap className="h-5 w-5 shrink-0 text-teal-600 mt-0.5" aria-hidden />
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase text-teal-800">Rapid Recall</p>
+                    <p className="mt-1">{meta.selfCheckRapidRecallRound}</p>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
 
-        <section className={blockClass}>
-          <div className={blockHead}>
-            <p className={blockTitle}>5 · Wrap-Up</p>
-          </div>
-          <div className="p-4 sm:p-5 grid gap-3 sm:grid-cols-3 text-sm text-slate-800">
-            {!hasWrapUp ? (
-              <div className="sm:col-span-3">
-                <FlashcardSectionEmpty label="Wrap-Up" />
-              </div>
-            ) : (
-              <>
-            {meta?.realLifeConnection ? (
-              <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
-                <p className="text-[11px] font-semibold uppercase text-slate-500">Real-life</p>
-                <p className="mt-1 leading-relaxed">{meta.realLifeConnection}</p>
-              </div>
-            ) : null}
-            {meta?.differentiationSupport ? (
-              <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
-                <p className="text-[11px] font-semibold uppercase text-slate-500">Differentiation</p>
-                <p className="mt-1 leading-relaxed">{meta.differentiationSupport}</p>
-              </div>
-            ) : null}
-            {meta?.reflectionExitTicket ? (
-              <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
-                <p className="text-[11px] font-semibold uppercase text-slate-500">Exit Ticket</p>
-                <p className="mt-1 leading-relaxed">{meta.reflectionExitTicket}</p>
-              </div>
-            ) : null}
-              </>
-            )}
-          </div>
-        </section>
+        {hasWrapUp ? (
+          <section className={blockClass}>
+            <div className={blockHead}>
+              <p className={blockTitle}>{wrapUpNum} · Wrap-Up</p>
+            </div>
+            <div className="p-4 sm:p-5 grid gap-3 sm:grid-cols-3 text-sm text-slate-800">
+              {meta?.realLifeConnection ? (
+                <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
+                  <p className="text-[11px] font-semibold uppercase text-slate-500">Real-life</p>
+                  <p className="mt-1 leading-relaxed">{meta.realLifeConnection}</p>
+                </div>
+              ) : null}
+              {meta?.differentiationSupport ? (
+                <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
+                  <p className="text-[11px] font-semibold uppercase text-slate-500">Differentiation</p>
+                  <p className="mt-1 leading-relaxed">{meta.differentiationSupport}</p>
+                </div>
+              ) : null}
+              {meta?.reflectionExitTicket ? (
+                <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
+                  <p className="text-[11px] font-semibold uppercase text-slate-500">Exit Ticket</p>
+                  <p className="mt-1 leading-relaxed">{meta.reflectionExitTicket}</p>
+                </div>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
       </div>
     );
   }
@@ -1499,14 +1506,6 @@ function mergeTeacherDeckMeta(
   };
 }
 
-function FlashcardSectionEmpty({ label }: { label: string }) {
-  return (
-    <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-      {label} was not generated with topic-specific content. Regenerate this record or switch to
-      Premium tier.
-    </p>
-  );
-}
 
 function tryParseDeckTitle(content: string): string {
   const trimmed = String(content || '').trim();

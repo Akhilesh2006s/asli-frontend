@@ -246,44 +246,50 @@ export function AiToolV2InsightTail({
     );
   }
 
-  sections.push(
-    <AiToolV2Section
-      key="competency"
-      num={num++}
-      title="Competency Focus"
-      description="Skills assessed in this kit"
-      icon={CheckCircle2}
-      accent="emerald"
-    >
-      <AiToolV2CompetencyFocus items={competencyItems} />
-    </AiToolV2Section>,
-  );
+  if (competencyItems && competencyItems.length > 0) {
+    sections.push(
+      <AiToolV2Section
+        key="competency"
+        num={num++}
+        title="Competency Focus"
+        description="Skills assessed in this kit"
+        icon={CheckCircle2}
+        accent="emerald"
+      >
+        <AiToolV2CompetencyFocus items={competencyItems} />
+      </AiToolV2Section>,
+    );
+  }
 
-  sections.push(
-    <AiToolV2Section
-      key="nep"
-      num={num++}
-      title="NEP / NCF Alignment"
-      description="Curriculum framework alignment"
-      icon={GraduationCap}
-      accent="cyan"
-    >
-      <AiToolV2NepAlignment focusText={ctx.nepNcfFocus} />
-    </AiToolV2Section>,
-  );
+  if (ctx.nepNcfFocus?.trim()) {
+    sections.push(
+      <AiToolV2Section
+        key="nep"
+        num={num++}
+        title="NEP / NCF Alignment"
+        description="Curriculum framework alignment"
+        icon={GraduationCap}
+        accent="cyan"
+      >
+        <AiToolV2NepAlignment focusText={ctx.nepNcfFocus} />
+      </AiToolV2Section>,
+    );
+  }
 
-  sections.push(
-    <AiToolV2Section
-      key="practices"
-      num={num}
-      title="Best Practices"
-      description="How to use this in class"
-      icon={Clock}
-      accent="amber"
-    >
-      <AiToolV2BestPractices text={bestPracticesText} />
-    </AiToolV2Section>,
-  );
+  if (bestPracticesText?.trim()) {
+    sections.push(
+      <AiToolV2Section
+        key="practices"
+        num={num++}
+        title="Best Practices"
+        description="How to use this in class"
+        icon={Clock}
+        accent="amber"
+      >
+        <AiToolV2BestPractices text={bestPracticesText} />
+      </AiToolV2Section>,
+    );
+  }
 
   if (!sections.length) return null;
   return (

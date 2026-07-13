@@ -168,20 +168,6 @@ type TemplateSectionDef = {
   render: (a: NormalizedActivity) => ReactNode;
 };
 
-function EmptySectionHint({ audience = 'student' }: { audience?: 'student' | 'teacher' }) {
-  return (
-    <p className="text-sm text-stone-400 italic rounded-lg border border-dashed border-stone-200 bg-stone-50 px-2.5 py-1.5">
-      {audience === 'teacher'
-        ? 'Not included in this generation — try regenerating with more detail if you need this section.'
-        : 'Not included in this activity set — ask your teacher if you need this section.'}
-    </p>
-  );
-}
-
-function countFilledSections(activity: NormalizedActivity, sections: TemplateSectionDef[]): number {
-  return sections.filter((s) => s.hasContent(activity)).length;
-}
-
 const TEACHER_TEMPLATE_SECTIONS: TemplateSectionDef[] = [
   {
     num: 2,
@@ -629,17 +615,17 @@ function StudentActivityCard({
       </div>
 
       <AiToolMasonrySections desktopColumns={3}>
-        {TEMPLATE_SECTIONS.map((sec) => (
+        {TEMPLATE_SECTIONS.filter((sec) => sec.hasContent(activity)).map((sec, i) => (
           <div key={sec.id} className="mb-2 break-inside-avoid">
             <JournalBlock
               id={`${prefix}-${sec.id}`}
-              sectionNum={String(sec.num)}
+              sectionNum={String(i + 2)}
               title={sec.title}
               icon={sec.icon}
               stripe={sec.stripe}
               iconWrap={sec.iconWrap}
             >
-              {sec.hasContent(activity) ? sec.render(activity) : <EmptySectionHint audience="student" />}
+              {sec.render(activity)}
             </JournalBlock>
           </div>
         ))}
@@ -655,9 +641,9 @@ function TeacherActivityCard({
   activity: NormalizedActivity;
   prefix: string;
 }) {
-  const filled = countFilledSections(activity, TEACHER_TEMPLATE_SECTIONS);
-  const total = TEACHER_TEMPLATE_SECTIONS.length;
-  const progressPct = Math.round((filled / total) * 100);
+  const visibleSections = TEACHER_TEMPLATE_SECTIONS.filter((s) => s.hasContent(activity));
+  const filled = visibleSections.length;
+  const progressPct = Math.round((filled / Math.max(TEACHER_TEMPLATE_SECTIONS.length, 1)) * 100);
 
   return (
     <div className="space-y-3">
@@ -673,7 +659,7 @@ function TeacherActivityCard({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <Badge variant="outline" className="rounded-md border-indigo-200 text-indigo-700 text-[10px]">
-                {filled}/{total} sections
+                {filled} section{filled === 1 ? '' : 's'}
               </Badge>
             </div>
             <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 mb-1">
@@ -698,17 +684,17 @@ function TeacherActivityCard({
         </div>
       </div>
 
-      {TEACHER_TEMPLATE_SECTIONS.map((sec) => (
+      {visibleSections.map((sec, i) => (
         <JournalBlock
           key={sec.id}
           id={`${prefix}-${sec.id}`}
-          sectionNum={String(sec.num)}
+          sectionNum={String(i + 2)}
           title={sec.title}
           icon={sec.icon}
           stripe={sec.stripe}
           iconWrap={sec.iconWrap}
         >
-          {sec.hasContent(activity) ? sec.render(activity) : <EmptySectionHint audience="teacher" />}
+          {sec.render(activity)}
         </JournalBlock>
       ))}
     </div>

@@ -119,24 +119,29 @@ function TeacherStoryReading({
         <h2 className="text-lg font-bold text-gray-900">{story.title}</h2>
       </div>
       <AiToolMasonrySections className="gap-3">
-        {TEACHER_STORY_PASSAGE_SECTIONS.filter((sec) => sec.num > 1).map((sec) => (
-          <div key={sec.num} className="mb-3 break-inside-avoid">
-            <StorySectionCard
-              sectionNum={`Section ${sec.num}`}
-              title={sec.title}
-              icon={sec.icon}
-              stripe={sec.stripe}
-              iconWrap={sec.iconWrap}
-            >
-              {sec.hasContent(story) ? sec.render(story) : <EmptySectionHint />}
-            </StorySectionCard>
-          </div>
-        ))}
+        {TEACHER_STORY_PASSAGE_SECTIONS.filter((sec) => sec.num > 1 && sec.hasContent(story)).map(
+          (sec, i) => (
+            <div key={sec.num} className="mb-3 break-inside-avoid">
+              <StorySectionCard
+                sectionNum={`Section ${i + 2}`}
+                title={sec.title}
+                icon={sec.icon}
+                stripe={sec.stripe}
+                iconWrap={sec.iconWrap}
+              >
+                {sec.render(story)}
+              </StorySectionCard>
+            </div>
+          ),
+        )}
       </AiToolMasonrySections>
 
       <AiToolV2InsightTail
         rawContent={rawData}
-        startNum={20}
+        startNum={
+          2 +
+          TEACHER_STORY_PASSAGE_SECTIONS.filter((sec) => sec.num > 1 && sec.hasContent(story)).length
+        }
         includeOverview
         overviewStats={[
           { label: 'Story', value: story.title },
@@ -152,14 +157,6 @@ function TeacherStoryReading({
         bestPracticesText="Run vocabulary warm-up and pre-reading prompts before the passage. Alternate choral and silent reading, then tackle comprehension in pairs before revealing suggested responses."
       />
     </div>
-  );
-}
-
-function EmptySectionHint() {
-  return (
-    <p className="text-sm text-stone-400 italic rounded-lg border border-dashed border-stone-200 bg-stone-50 px-2.5 py-1.5">
-      Not included in this story set.
-    </p>
   );
 }
 
@@ -647,16 +644,16 @@ function StudentStoryReading({ story }: { story: ParsedStory }) {
       </div>
 
       <AiToolMasonrySections>
-        {READING_PRACTICE_SECTIONS.map((sec) => (
+        {READING_PRACTICE_SECTIONS.filter((sec) => sec.hasContent(story)).map((sec, i) => (
           <div key={sec.num} className="mb-2 break-inside-avoid">
             <StorySectionCard
-              sectionNum={`Section ${sec.num}`}
+              sectionNum={`Section ${i + 1}`}
               title={sec.title}
               icon={sec.icon}
               stripe={sec.stripe}
               iconWrap={sec.iconWrap}
             >
-              {sec.hasContent(story) ? sec.render(story) : <EmptySectionHint />}
+              {sec.render(story)}
             </StorySectionCard>
           </div>
         ))}
