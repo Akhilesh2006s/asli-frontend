@@ -141,6 +141,7 @@ export function GeneratorRecordsPanel({
       if (recordsBoardFilter && recordsBoardFilter !== "__all__") {
         qs.set("board", recordsBoardFilter);
       }
+      qs.set("limit", "400");
       const res = await fetch(`${API_BASE_URL}${apiPrefix}/records?${qs.toString()}`, {
         headers: authHeaders(),
       });

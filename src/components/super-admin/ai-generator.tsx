@@ -325,6 +325,8 @@ export default function SuperAdminAiGenerator() {
   } | null>(null);
   const [recordsTree, setRecordsTree] = useState<GroupedTool[]>([]);
   const [recordsTotal, setRecordsTotal] = useState(0);
+  const [recordsLoadedCount, setRecordsLoadedCount] = useState(0);
+  const [recordsTruncated, setRecordsTruncated] = useState(false);
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
@@ -436,16 +438,23 @@ export default function SuperAdminAiGenerator() {
       if (boardFilter && boardFilter !== "__all__") {
         qs.set("board", boardFilter);
       }
+      qs.set("limit", "400");
       const res = await fetch(`${API_BASE_URL}/api/ai-generator/records?${qs.toString()}`, {
         headers: { ...authHeaders() },
       });
       const json = await res.json();
       if (!res.ok || !json?.success) throw new Error(json?.message || "Failed to load records");
-      setRecordsTree(Array.isArray(json?.data?.grouped) ? json.data.grouped : []);
+      const grouped = Array.isArray(json?.data?.grouped) ? json.data.grouped : [];
+      setRecordsTree(grouped);
       setRecordsTotal(Number(json?.data?.total || 0));
+      const loaded = Number(json?.data?.loadedCount);
+      setRecordsLoadedCount(Number.isFinite(loaded) && loaded > 0 ? loaded : 0);
+      setRecordsTruncated(Boolean(json?.data?.truncated));
     } catch (error: any) {
       setRecordsTree([]);
       setRecordsTotal(0);
+      setRecordsLoadedCount(0);
+      setRecordsTruncated(false);
       toast({
         title: "Records load failed",
         description: error?.message || "Could not load records.",
@@ -1342,7 +1351,19 @@ export default function SuperAdminAiGenerator() {
       <Card>
         <CardHeader className="space-y-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <CardTitle className="mb-0">Records</CardTitle>
+            <CardTitle className="mb-0">
+              Records
+              {recordsTotal > 0 ? (
+                <span className="text-base font-normal text-slate-500 ml-1">
+                  ({recordsTotal.toLocaleString()})
+                </span>
+              ) : null}
+              {recordsTruncated && recordsLoadedCount > 0 ? (
+                <span className="text-sm font-normal text-amber-700 ml-2">
+                  — showing {recordsLoadedCount.toLocaleString()} newest
+                </span>
+              ) : null}
+            </CardTitle>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
               <div className="flex flex-col gap-1.5 sm:w-64">
                 <Label className="text-xs text-slate-600">Filter by board</Label>
