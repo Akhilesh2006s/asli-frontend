@@ -9,7 +9,7 @@ const STORY_LANGUAGE_TOOL_IDS = new Set([STORY_PASSAGE_TOOL_ID, READING_PRACTICE
 
 /** Tools that must not be used with English, Hindi, or Telugu subjects. */
 export const LANGUAGE_EXCLUDED_TOOL_IDS = [
-  'worksheet-mcq-generator',
+  // worksheet-mcq-generator removed — language teachers want worksheets too.
   'short-notes-summaries-maker',
   'concept-mastery-helper',
   'daily-class-plan-maker',
