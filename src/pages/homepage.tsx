@@ -1,568 +1,502 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "wouter";
-import { 
-  Sparkles, Brain, BookOpen, Target, TrendingUp, Users, Zap, 
-  GraduationCap, UserPlus, Video, FileText, Trophy, Star, CheckCircle, Crown
+import {
+  ArrowRight,
+  BookOpen,
+  Brain,
+  CheckCircle2,
+  ChevronDown,
+  GraduationCap,
+  School,
+  Sparkles,
+  Users,
+  Zap,
 } from "lucide-react";
+import { useState } from "react";
 
-const Navbar = () => {
+const NAV_LINKS = [
+  { href: "#features", label: "Features" },
+  { href: "#platform", label: "Platform" },
+  { href: "#pricing", label: "Pricing" },
+  { href: "#faq", label: "FAQ" },
+];
+
+const FEATURES = [
+  {
+    icon: Brain,
+    title: "Vidya AI Tutor",
+    body: "Personal AI that explains concepts like a top teacher. Get instant doubt clearing, adaptive practice, and board-aligned answers.",
+  },
+  {
+    icon: Sparkles,
+    title: "Teacher AI Studio",
+    body: "Generate lesson plans, worksheets, flashcards, and question papers in minutes with premium structured output.",
+  },
+  {
+    icon: BookOpen,
+    title: "EduOTT Classroom",
+    body: "Curated video learning mapped to CBSE and IIT/NEET pathways. Watch, practice, and track mastery in one flow.",
+  },
+  {
+    icon: GraduationCap,
+    title: "Exams & Rank Boost",
+    body: "Mock tests, IQ Rank Boost activities, and analytics that help schools and students measure real progress.",
+  },
+];
+
+const AUDIENCES = [
+  {
+    icon: School,
+    title: "Schools",
+    body: "Enterprise console for boards, content, exams, live EduOTT, and AI tooling. Built for demos and institutional rollout.",
+  },
+  {
+    icon: Users,
+    title: "Teachers",
+    body: "Plan, generate, and assign in one workspace. Less paperwork, more teaching. Every tool is Zoom-readable.",
+  },
+  {
+    icon: GraduationCap,
+    title: "Students",
+    body: "Clear learning paths, AI tutoring, practice, and flashcards that feel modern, calm, and easy to start.",
+  },
+];
+
+const FAQS = [
+  {
+    q: "Who is AsliLearn AI for?",
+    a: "Schools, teachers, and students across CBSE and IIT/NEET pathways, plus individual teachers and learners who want a personal AI study workspace.",
+  },
+  {
+    q: "Is there a free trial?",
+    a: "Yes. Teachers and students can start with a simple signup and explore AI tools during the free trial period before purchasing a subscription.",
+  },
+  {
+    q: "What boards and subjects are covered?",
+    a: "CBSE and IIT/NEET pathways with subject, topic, and sub-topic trees managed centrally. Content is aligned for classroom and competitive prep.",
+  },
+  {
+    q: "Can it be demoed on Teams or Zoom?",
+    a: "The UI is designed for screen share: large type, clear hierarchy, and high-contrast panels that stay readable on projectors and remote calls.",
+  },
+];
+
+function Navbar() {
   return (
-    <nav className="w-full bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-      <div className="w-full max-w-7xl mx-auto px-3 py-2.5 sm:px-4 sm:py-4">
-        <div className="flex flex-nowrap items-center justify-between gap-2 sm:gap-4">
-          {/* Left - Logo and Brand Name */}
-          <Link
-            href="/"
-            className="flex min-w-0 flex-1 items-center gap-2 hover:opacity-80 transition-opacity sm:gap-3 sm:flex-none"
-          >
-            <img 
-              src="/logo.jpg" 
-              alt="AsliLearn AI company logo" 
-              className="h-8 w-8 shrink-0 object-contain sm:h-12 sm:w-12"
-            />
-            <span className="truncate text-sm font-extrabold text-blue-600 animate-blue-glow sm:text-2xl md:text-3xl">
-              ASLILEARN AI
-            </span>
-          </Link>
+    <nav className="sticky top-0 z-50 border-b border-white/40 bg-ink/80 backdrop-blur-xl">
+      <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
+        <Link href="/" className="flex min-w-0 items-center gap-3">
+          <img
+            src="/logo.jpg"
+            alt="AsliLearn AI"
+            className="h-11 w-11 rounded-xl object-contain shadow-glow ring-2 ring-teal-green-400/40"
+          />
+          <span className="font-display text-xl font-bold tracking-tight text-white sm:text-2xl">
+            ASLILEARN<span className="text-teal-green-300"> AI</span>
+          </span>
+        </Link>
 
-          {/* Right - Login/Signup Buttons */}
-          <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
-            <Link href="/auth/login">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 border-2 border-blue-600 bg-white px-2.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-700 sm:h-10 sm:px-4 sm:text-sm"
-              >
-                Login
-              </Button>
-            </Link>
-            <Link href="/auth/register">
-              <Button
-                size="sm"
-                className="h-8 bg-gradient-to-r from-sky-500 to-teal-500 px-2.5 text-xs font-semibold text-white shadow-lg hover:from-sky-600 hover:to-teal-600 sm:h-10 sm:px-4 sm:text-sm"
-              >
-                Get Started
-              </Button>
-            </Link>
-          </div>
+        <div className="hidden items-center gap-8 lg:flex">
+          {NAV_LINKS.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              className="text-base font-medium text-white/80 transition hover:text-white"
+            >
+              {link.label}
+            </a>
+          ))}
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <Link href="/auth/login">
+            <Button
+              variant="outline"
+              className="h-11 border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
+            >
+              Login
+            </Button>
+          </Link>
+          <Link href="/auth/register">
+            <Button className="h-11 shadow-glow">Get Started</Button>
+          </Link>
         </div>
       </div>
     </nav>
   );
-};
+}
 
-const Index = () => {
-  const scrollToFeatures = () => {
-    document.getElementById("features")?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const renderAnimatedHeading = (text: string, delayOffset = 0) => (
-    <>
-      {text.split("").map((char, index) => (
-        <span
-          key={`${char}-${delayOffset}-${index}`}
-          className="animate-color-change inline-block"
-          style={{
-            animationDelay: `${(delayOffset + index) * 0.1}s`,
-            animationDuration: "4s",
-          }}
-        >
-          {char === " " ? "\u00A0" : char}
-        </span>
-      ))}
-    </>
-  );
-
-  const renderHeroHeading = () => {
-    const line1 = "Learn Smarter";
-    const line2 = "Achieve Faster!";
-    return (
-      <>
-        <span className="block">{renderAnimatedHeading(line1, 0)}</span>
-        <span className="block">{renderAnimatedHeading(line2, line1.length)}</span>
-      </>
-    );
-  };
-
+function FaqItem({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-sky-100 via-blue-50 to-cyan-50 relative overflow-hidden">
+    <button
+      type="button"
+      onClick={() => setOpen((v) => !v)}
+      className="w-full rounded-2xl border border-ink/10 bg-white/80 px-6 py-5 text-left shadow-sm transition hover:border-primary/30"
+    >
+      <div className="flex items-start justify-between gap-4">
+        <span className="font-display text-lg font-semibold text-ink sm:text-xl">{q}</span>
+        <ChevronDown
+          className={`mt-1 h-6 w-6 shrink-0 text-primary transition ${open ? "rotate-180" : ""}`}
+        />
+      </div>
+      {open ? <p className="mt-3 text-base leading-relaxed text-muted-foreground sm:text-lg">{a}</p> : null}
+    </button>
+  );
+}
+
+export default function Homepage() {
+  return (
+    <div className="min-h-screen overflow-x-hidden bg-ink text-white">
       <Navbar />
-      
-      {/* Hero Section - Split Layout */}
-      <section className="relative flex items-center overflow-hidden pt-8 pb-12">
-        <div className="w-full max-w-7xl mx-auto px-4 py-4 sm:py-6 lg:py-8 lg:py-12">
-          <div className="grid lg:grid-cols-2 gap-4 sm:p-6 lg:p-8 lg:gap-12 items-center">
-            {/* Left Side - Content */}
-            <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-            {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-200">
-                <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
-                <span className="text-xs sm:text-sm font-medium text-blue-700">AI-Powered Learning Platform</span>
-            </div>
 
-            {/* Main Heading */}
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-                {renderHeroHeading()}
-            </h1>
+      {/* Hero: brand first, full-bleed, Zoom-readable */}
+      <section className="relative min-h-[88vh] overflow-hidden">
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 90% 70% at 70% 20%, rgba(20,184,166,0.35), transparent 55%), radial-gradient(ellipse 60% 50% at 10% 80%, rgba(2,132,199,0.25), transparent 50%), linear-gradient(160deg, #062433 0%, #0b3a45 45%, #0f766e 140%)",
+          }}
+        />
+        <div
+          className="absolute inset-0 opacity-30"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)",
+            backgroundSize: "56px 56px",
+            maskImage: "radial-gradient(ellipse 80% 70% at 50% 40%, black, transparent)",
+          }}
+        />
 
-            {/* Description */}
-              <p className="text-sm sm:text-base md:text-lg text-gray-700 leading-relaxed max-w-xl">
-                Master CBSE, ICSE, State Boards, NEET, JEE & more with personalized AI tutoring, 
-                interactive videos, and gamified learning. Join 100,000+ students transforming their education!
-              </p>
-            
-            {/* CTA Buttons — equal width on mobile only */}
-              <div className="flex w-full max-w-sm flex-col gap-3 pt-2 sm:max-w-none sm:flex-row sm:gap-4">
-              <Link href="/auth/login" className="w-full sm:w-auto">
-                <Button 
-                  size="lg" 
-                    className="group flex h-11 w-full items-center justify-center bg-gradient-to-r from-purple-600 to-purple-500 text-sm text-white shadow-lg transition-all hover:from-purple-700 hover:to-purple-600 sm:h-auto sm:w-auto sm:px-6 sm:py-4 lg:px-8 lg:py-6 sm:text-base"
-                >
-                    <Zap className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
-                    Start Learning Free
-                </Button>
-              </Link>
-              <Button 
-                size="lg" 
-                variant="outline"
-                onClick={scrollToFeatures}
-                  className="flex h-11 w-full items-center justify-center border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 sm:h-auto sm:w-auto sm:px-6 sm:py-4 lg:px-8 lg:py-6 sm:text-base"
-              >
-                  <Trophy className="mr-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
-                  View Demo
+        <div className="relative mx-auto flex min-h-[88vh] max-w-7xl flex-col justify-center px-5 py-16 sm:px-8 lg:py-24">
+          <p className="animate-fade-rise mb-5 font-display text-lg font-semibold uppercase tracking-[0.2em] text-teal-green-300">
+            AsliLearn AI
+          </p>
+          <h1 className="animate-fade-rise max-w-4xl font-display text-5xl font-extrabold leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl">
+            The AI education platform schools demo with confidence.
+          </h1>
+          <p className="animate-fade-rise mt-6 max-w-2xl text-xl leading-relaxed text-white/80 sm:text-2xl">
+            Premium AI tools for teachers, guided learning for students, and an enterprise console for schools.
+            readable on Zoom, Teams, and classroom screens.
+          </p>
+          <div className="animate-fade-rise mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
+            <Link href="/auth/register">
+              <Button size="lg" className="h-14 w-full px-8 text-lg shadow-glow-lg sm:w-auto">
+                Start free trial
+                <ArrowRight className="h-6 w-6" />
               </Button>
-            </div>
-            
-              {/* Statistics — single row on mobile only */}
-              <div className="grid grid-cols-3 gap-1 pt-5 sm:grid-cols-2 sm:gap-4 sm:pt-6 lg:grid-cols-3">
-                <div className="text-center sm:text-left">
-                  <div className="text-base font-bold leading-none text-purple-600 sm:text-2xl md:text-3xl">10K+</div>
-                  <div className="mt-1 text-[10px] leading-tight text-gray-600 sm:text-xs md:text-sm">Active Students</div>
-                </div>
-                <div className="text-center sm:text-left">
-                  <div className="text-base font-bold leading-none text-orange-500 sm:text-2xl md:text-3xl">500+</div>
-                  <div className="mt-1 text-[10px] leading-tight text-gray-600 sm:text-xs md:text-sm">Video Lectures</div>
-                </div>
-                <div className="text-center sm:text-left">
-                  <div className="text-base font-bold leading-none text-green-600 sm:text-2xl md:text-3xl">95%</div>
-                  <div className="mt-1 text-[10px] leading-tight text-gray-600 sm:text-xs md:text-sm">Success Rate</div>
-                </div>
-              </div>
-              </div>
+            </Link>
+            <a href="#platform">
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-14 w-full border-white/35 bg-white/5 px-8 text-lg text-white hover:bg-white/15 hover:text-white sm:w-auto"
+              >
+                See the platform
+              </Button>
+            </a>
+          </div>
+        </div>
+      </section>
 
-            {/* Right Side - Hero Image */}
-            <div className="hidden lg:block relative">
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-                <img 
-                  src="/1765111492896.png" 
-                  alt="Students learning with AsliLearn AI on digital devices" 
-                  className="w-full h-auto object-cover rounded-2xl"
-                />
+      {/* AI Demo strip */}
+      <section id="demo" className="relative border-y border-white/10 bg-ink-soft py-20 sm:py-24">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <div>
+              <p className="text-base font-semibold uppercase tracking-[0.16em] text-teal-green-300">
+                AI in action
+              </p>
+              <h2 className="mt-3 font-display text-4xl font-bold text-white lg:text-[2.5rem]">
+                Generate classroom-ready content in one click.
+              </h2>
+              <p className="mt-4 text-xl leading-relaxed text-white/70">
+                Lesson plans, worksheets, flashcards, and mock tests, structured for teaching instead of dumped as plain text.
+              </p>
+              <ul className="mt-8 space-y-4">
+                {["Board-aligned topics", "Premium structured output", "Teacher & student dashboards"].map((item) => (
+                  <li key={item} className="flex items-center gap-3 text-lg text-white/90">
+                    <CheckCircle2 className="h-6 w-6 shrink-0 text-teal-green-300" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="asli-ai-glow relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-br from-teal-green-700/40 to-indigo-blue-800/50 p-8 backdrop-blur-md">
+              <div className="mb-6 flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-green-400/20 text-teal-green-200">
+                  <Zap className="h-7 w-7" />
+                </div>
+                <div>
+                  <p className="font-display text-xl font-semibold text-white">Worksheet Builder</p>
+                  <p className="text-base text-white/60">CBSE · Class 10 · Physics</p>
+                </div>
               </div>
-              <div className="mt-8 text-center">
-                <h2 className="text-2xl sm:text-3xl lg:text-4xl md:text-5xl font-extrabold leading-tight text-gray-900">
-                  {renderAnimatedHeading("ASLILEARN AI")}
+              <div className="space-y-3 rounded-2xl bg-ink/50 p-5 text-base leading-relaxed text-white/85">
+                <p className="font-semibold text-teal-green-200">Section 1: Warm-up</p>
+                <p>Define centripetal force and give one real-world example from road travel.</p>
+                <p className="font-semibold text-teal-green-200 pt-2">Section 2: Practice</p>
+                <p>A 2 kg mass moves in a circle of radius 0.5 m at 4 m/s. Find the centripetal force.</p>
+              </div>
+              <p className="mt-5 text-center text-base text-white/50">Live preview style. Actual tools open after login.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      <section id="features" className="asli-app-bg py-20 sm:py-28">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-base font-semibold uppercase tracking-[0.16em] text-primary">Features</p>
+            <h2 className="mt-3 font-display text-4xl font-bold text-ink lg:text-[2.5rem]">
+              Why schools choose AsliLearn
+            </h2>
+            <p className="mt-4 text-xl text-muted-foreground">
+              One AI-first platform spanning teaching, learning, content, and institutional control.
+            </p>
+          </div>
+          <div className="mt-14 grid gap-7 sm:grid-cols-2">
+            {FEATURES.map((f) => {
+              const Icon = f.icon;
+              return (
+                <article key={f.title} className="asli-card-premium p-8">
+                  <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                    <Icon className="h-7 w-7" />
+                  </div>
+                  <h3 className="font-display text-2xl font-semibold text-ink">{f.title}</h3>
+                  <p className="mt-3 text-lg leading-relaxed text-muted-foreground">{f.body}</p>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Platform overview / audiences */}
+      <section id="platform" className="border-t border-ink/5 bg-white/60 py-20 sm:py-28">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
+          <div className="max-w-3xl">
+            <p className="text-base font-semibold uppercase tracking-[0.16em] text-primary">Platform</p>
+            <h2 className="mt-3 font-display text-4xl font-bold text-ink lg:text-[2.5rem]">
+              Built for schools, teachers, and students.
+            </h2>
+          </div>
+          <div className="mt-12 grid gap-7 lg:grid-cols-3">
+            {AUDIENCES.map((a) => {
+              const Icon = a.icon;
+              return (
+                <article key={a.title} className="rounded-3xl border border-ink/10 bg-mist p-8 shadow-elevated">
+                  <Icon className="mb-5 h-10 w-10 text-primary" />
+                  <h3 className="font-display text-2xl font-semibold text-ink">{a.title}</h3>
+                  <p className="mt-3 text-lg leading-relaxed text-muted-foreground">{a.body}</p>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="asli-app-bg py-20 sm:py-24">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
+          <div className="grid items-stretch gap-8 lg:grid-cols-[0.85fr_1.15fr]">
+            <div className="relative min-h-[360px] overflow-hidden rounded-3xl shadow-elevated">
+              <img
+                src="/1765111492896.png"
+                alt="Students learning together on a school campus"
+                className="absolute inset-0 h-full w-full object-cover"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#062433]/90 via-[#062433]/25 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-7 sm:p-9">
+                <p className="text-[0.9375rem] font-bold uppercase tracking-[0.16em] text-teal-green-200">
+                  Designed for real classrooms
+                </p>
+                <h2 className="mt-2 font-display text-3xl font-bold leading-tight text-white sm:text-4xl">
+                  Clear in a classroom. Impressive in a demo.
                 </h2>
               </div>
             </div>
+
+            <div>
+              <h2 className="font-display text-4xl font-bold text-[#0b1f2a]">
+                Trusted in classroom demos
+              </h2>
+              <p className="mt-3 text-lg leading-relaxed text-[#4b6470]">
+                Feedback themes we consistently design around for schools and teachers.
+              </p>
+              <div className="mt-7 grid gap-5">
+                {[
+                  {
+                    quote:
+                      "On Zoom the old UI looked tiny. AsliLearn’s hierarchy finally lets principals see AI tools clearly in a walkthrough.",
+                    name: "School Academic Head",
+                    initials: "AH",
+                  },
+                  {
+                    quote:
+                      "Teachers generate worksheets that look like premium reports, not a wall of text. Students actually engage.",
+                    name: "Senior Science Teacher",
+                    initials: "ST",
+                  },
+                ].map((t, index) => (
+                  <blockquote
+                    key={t.name}
+                    className="rounded-3xl border border-[#d5e8ec] bg-white p-7 shadow-elevated"
+                  >
+                    <p className="text-xl font-medium leading-relaxed text-[#0b1f2a]">
+                      “{t.quote}”
+                    </p>
+                    <footer className="mt-6 flex items-center gap-3">
+                      <span
+                        className={`flex h-11 w-11 items-center justify-center rounded-full text-base font-bold text-white ${
+                          index === 0
+                            ? "bg-gradient-to-br from-teal-green-500 to-indigo-blue-600"
+                            : "bg-gradient-to-br from-amber-400 to-orange-500"
+                        }`}
+                      >
+                        {t.initials}
+                      </span>
+                      <span className="text-base font-bold text-[#0f766e]">{t.name}</span>
+                    </footer>
+                  </blockquote>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-24 relative z-10 bg-gray-50">
-        <div className="w-full max-w-7xl mx-auto px-4">
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-50 border border-orange-200 mb-4">
-              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600" />
-              <span className="text-xs sm:text-sm font-medium text-orange-700">Powerful Features</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl md:text-5xl font-bold">
-              <span className="text-gray-900">Everything You Need to </span>
-              <span className="text-orange-500">Excel</span>
-            </h2>
-            <p className="text-lg sm:text-xl text-gray-700">
-              Comprehensive tools designed to make learning engaging, effective, and fun for students of all levels.
+      {/* Pricing */}
+      <section id="pricing" className="border-t border-ink/5 bg-ink py-20 text-white sm:py-28">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
+          <div className="max-w-2xl">
+            <p className="text-base font-semibold uppercase tracking-[0.16em] text-teal-green-300">Pricing</p>
+            <h2 className="mt-3 font-display text-4xl font-bold">Simple plans. Serious AI.</h2>
+            <p className="mt-4 text-xl text-white/70">
+              Start with a free trial. Upgrade when your school or individual workspace is ready.
             </p>
           </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
+          <div className="mt-12 grid gap-7 lg:grid-cols-3">
             {[
               {
-                icon: Brain,
-                iconBg: "bg-purple-500",
-                title: "AI Tutor 24/7",
-                description: "Get instant answers, step-by-step explanations, and personalized guidance from our intelligent AI assistant.",
+                name: "Free Trial",
+                price: "7 days",
+                points: ["AI tools preview", "Student study basics", "No card required to explore"],
               },
               {
-                icon: Video,
-                iconBg: "bg-blue-500",
-                title: "Interactive Videos",
-                description: "Engaging lectures with animations, quizzes, and real-world examples in multiple languages.",
+                name: "Teacher",
+                price: "Subscription",
+                points: ["Full AI studio", "Lesson & worksheet suite", "Downloads & usage insights"],
+                featured: true,
               },
               {
-                icon: FileText,
-                iconBg: "bg-orange-500",
-                title: "Smart Notes & Maps",
-                description: "Auto-generated summaries, visual mind maps, and voice-enabled Q&A for efficient revision.",
-                highlighted: true,
+                name: "Institution",
+                price: "Custom",
+                points: ["School admin console", "EduOTT & exams", "Board rollout support"],
               },
-              {
-                icon: Target,
-                iconBg: "bg-green-500",
-                title: "Adaptive Tests",
-                description: "Board-aligned exams with instant AI grading, detailed feedback, and difficulty adjustment.",
-              },
-              {
-                icon: Users,
-                iconBg: "bg-blue-500",
-                title: "Teacher Connect",
-                description: "Real-time doubt resolution, live classes, and interactive whiteboards with expert teachers.",
-              },
-              {
-                icon: Zap,
-                iconBg: "bg-orange-500",
-                title: "Gamification",
-                description: "Earn badges, climb leaderboards, maintain streaks, and unlock rewards as you progress!",
-              },
-            ].map((feature, index) => (
-              <Card
-                key={index}
-                className={`group p-3 sm:p-4 lg:p-6 bg-white border-2 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${
-                  feature.highlighted ? 'border-blue-200 shadow-md' : 'border-gray-200'
+            ].map((plan) => (
+              <article
+                key={plan.name}
+                className={`rounded-3xl border p-8 ${
+                  plan.featured
+                    ? "border-teal-green-400/50 bg-teal-green-500/15 shadow-glow"
+                    : "border-white/15 bg-white/5"
                 }`}
               >
-                <div className={`mb-4 inline-flex p-4 rounded-xl ${feature.iconBg} text-white shadow-lg`}>
-                  <feature.icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
-                </div>
-                <h3 className="text-lg sm:text-xl font-bold mb-2 text-gray-900">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">
-                  {feature.description}
-                </p>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="py-24 relative overflow-hidden z-10 bg-white">
-        <div className="w-full max-w-7xl mx-auto px-4">
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl md:text-5xl font-bold">
-              <span className="text-gray-900">How </span>
-              <span className="text-blue-600">It Works</span>
-            </h2>
-            <p className="text-lg sm:text-xl text-gray-700">
-              Get started in minutes and begin your journey to academic success with our simple, intuitive process.
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
-            {[
-              {
-                icon: UserPlus,
-                number: "01",
-                title: "Create Your Account",
-                description: "Sign up as a student, teacher, or admin and get instant access to your personalized dashboard.",
-              },
-              {
-                icon: BookOpen,
-                number: "02",
-                title: "Choose Your Path",
-                description: "Select your board, class, and subjects. Our AI creates a customized learning path tailored to your goals.",
-              },
-              {
-                icon: Target,
-                number: "03",
-                title: "Learn & Practice",
-                description: "Access interactive video lectures, practice with smart assessments, and get instant feedback from our AI tutor.",
-              },
-              {
-                icon: TrendingUp,
-                number: "04",
-                title: "Track Progress",
-                description: "Monitor your performance with detailed analytics, identify areas for improvement, and achieve academic excellence.",
-              },
-            ].map((step, index) => (
-              <div
-                key={index}
-                className="relative group text-center"
-              >
-                {/* Connector Line */}
-                {index < 3 && (
-                  <div className="hidden lg:block absolute top-16 left-full w-full h-0.5 bg-gradient-to-r from-blue-300 to-blue-400 -translate-x-1/2" />
-                )}
-                
-                <div className="relative space-y-4">
-                  {/* Step Number */}
-                  <div className="text-3xl sm:text-5xl lg:text-6xl font-bold text-blue-100 group-hover:text-blue-200 transition-colors">
-                    {step.number}
-                  </div>
-                  
-                  {/* Icon */}
-                  <div className="flex justify-center -mt-12 mb-4">
-                    <div className="p-4 rounded-2xl bg-blue-100 border border-blue-200 group-hover:scale-110 transition-transform">
-                      <step.icon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-blue-600" />
-                    </div>
-                  </div>
-                  
-                  {/* Content */}
-                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                    {step.title}
-                  </h3>
-                  <p className="text-gray-600 text-xs sm:text-sm leading-relaxed">
-                    {step.description}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-16 relative overflow-hidden z-10 bg-gradient-to-br from-blue-50 to-cyan-50">
-        <div className="w-full max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
-            {[
-              { value: "10,000+", label: "Active Students" },
-              { value: "500+", label: "Expert Teachers" },
-              { value: "50+", label: "Partner Schools" },
-              { value: "95%", label: "Success Rate" },
-            ].map((stat, index) => (
-              <div
-                key={index}
-                className="text-center space-y-2"
-              >
-                <div className="text-2xl sm:text-3xl lg:text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                  {stat.value}
-                </div>
-                <div className="text-xs sm:text-sm md:text-base text-gray-700 font-medium">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Student Success Stories */}
-      <section className="py-24 relative z-10 bg-white">
-        <div className="w-full max-w-7xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-3 sm:px-4 lg:px-6 py-3 rounded-full bg-orange-50 border-2 border-orange-200 mb-6">
-              <span className="text-xl sm:text-2xl">"</span>
-              <span className="text-xs sm:text-sm font-semibold text-orange-700">Student Success Stories</span>
-              <span className="text-xl sm:text-2xl">"</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl md:text-5xl font-bold">
-              <span className="text-gray-900">Loved by </span>
-              <span className="text-teal-500">10,000+</span>
-              <span className="text-gray-900"> </span>
-              <span className="text-purple-600">Students</span>
-            </h2>
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing Plans Section */}
-      <section className="py-24 relative z-10 bg-white">
-        <div className="w-full max-w-7xl mx-auto px-4">
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-50 border border-orange-200 mb-4">
-              <Crown className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600" />
-              <span className="text-xs sm:text-sm font-medium text-orange-700">Flexible Pricing</span>
-            </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl md:text-5xl font-bold">
-              <span className="text-gray-900">Choose Your </span>
-              <span className="text-purple-600">Learning Plan</span>
-            </h2>
-            <p className="text-lg sm:text-xl text-gray-700">
-              Start with our free plan or unlock unlimited potential with premium features. No hidden charges, cancel anytime.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
-            {/* Free Explorer */}
-            <Card className="border-2 border-gray-200 hover:shadow-xl transition-all duration-300">
-              <CardHeader className="text-center pb-4">
-                <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900">Free Explorer</CardTitle>
-                <p className="text-gray-600 text-xs sm:text-sm mt-2">Perfect for trying out the platform</p>
-                <div className="mt-6">
-                  <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">₹0</div>
-                  <div className="text-gray-600 text-xs sm:text-sm">forever</div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-xs sm:text-sm text-gray-700">Access to basic video lectures</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-xs sm:text-sm text-gray-700">Limited AI tutor queries (10/day)</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-xs sm:text-sm text-gray-700">Basic practice tests</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-xs sm:text-sm text-gray-700">Community forum access</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-xs sm:text-sm text-gray-700">With ads and watermarks</span>
-                  </div>
-                </div>
-                <Link href="/auth/login">
-                  <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white mt-6">
-                    Start Free
+                <h3 className="font-display text-2xl font-semibold">{plan.name}</h3>
+                <p className="mt-2 text-3xl font-bold text-teal-green-200">{plan.price}</p>
+                <ul className="mt-6 space-y-3">
+                  {plan.points.map((p) => (
+                    <li key={p} className="flex gap-2 text-lg text-white/80">
+                      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-teal-green-300" />
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/auth/register" className="mt-8 block">
+                  <Button
+                    className={`h-12 w-full ${plan.featured ? "" : "bg-white/10 text-white hover:bg-white/20"}`}
+                    variant={plan.featured ? "default" : "outline"}
+                  >
+                    Get started
                   </Button>
                 </Link>
-              </CardContent>
-            </Card>
-
-            {/* Premium Plan - ₹249 */}
-            <Card className="border-2 border-teal-200 shadow-xl relative hover:shadow-2xl transition-all duration-300">
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                <div className="bg-orange-500 text-white px-4 py-1 rounded-full text-xs font-semibold">
-                  Most Popular
-                </div>
-              </div>
-              <CardHeader className="text-center pb-4 pt-6">
-                <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900">Premium Plan</CardTitle>
-                <p className="text-gray-600 text-xs sm:text-sm mt-2">Most popular for serious learners</p>
-                <div className="mt-6">
-                  <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">₹249</div>
-                  <div className="text-gray-600 text-xs sm:text-sm">/month</div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-xs sm:text-sm text-gray-700">Unlimited AI tutor access</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-xs sm:text-sm text-gray-700">All video lectures & animations</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-xs sm:text-sm text-gray-700">Adaptive tests with AI grading</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-xs sm:text-sm text-gray-700">Smart notes & mind maps</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-xs sm:text-sm text-gray-700">Progress analytics</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-xs sm:text-sm text-gray-700">Download offline content</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-xs sm:text-sm text-gray-700">Priority support</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-xs sm:text-sm text-gray-700">No ads or watermarks</span>
-                  </div>
-                </div>
-                <Link href="/auth/login">
-                  <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white mt-6">
-                    Start 7-Day Free Trial
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* School Discount Message */}
-          <div className="text-center mt-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-200">
-              <GraduationCap className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
-              <span className="text-xs sm:text-sm text-blue-700">
-                Special discounts available for schools and institutions. Contact us for bulk pricing.
-              </span>
-            </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Ready to Transform Section */}
-      <section className="py-24 relative z-10 bg-gradient-to-br from-blue-50 via-white to-cyan-50">
-        <div className="w-full max-w-7xl mx-auto px-4">
-          <div className="text-center max-w-3xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900">
-              Ready to Transform Your Learning Journey?
-            </h2>
-            <p className="text-lg sm:text-xl md:text-2xl text-gray-700">
-              Join thousands of students achieving their academic dreams with AI-powered education
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <Link href="/auth/login">
-                <Button 
-                  size="lg" 
-                  className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg transition-all px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-6 text-sm sm:text-base"
-                >
-                  Start Free Trial Today
-                </Button>
-              </Link>
-              <Button 
-                size="lg" 
-                variant="outline"
-                onClick={scrollToFeatures}
-                className="border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-6 text-sm sm:text-base"
-              >
-                Explore Demo
+      {/* FAQ */}
+      <section id="faq" className="asli-app-bg py-20 sm:py-28">
+        <div className="mx-auto max-w-3xl px-5 sm:px-8">
+          <h2 className="text-center font-display text-4xl font-bold text-ink">FAQ</h2>
+          <div className="mt-10 space-y-4">
+            {FAQS.map((item) => (
+              <FaqItem key={item.q} q={item.q} a={item.a} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-teal-green-700 to-indigo-blue-800 py-20 sm:py-24">
+        <div className="relative mx-auto max-w-4xl px-5 text-center sm:px-8">
+          <h2 className="font-display text-4xl font-bold text-white lg:text-5xl">
+            Ready to show AI education that wows the room?
+          </h2>
+          <p className="mt-4 text-xl text-white/80">
+            Join AsliLearn AI. Built for Indian classrooms, investor demos, and everyday teaching.
+          </p>
+          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <Link href="/auth/register">
+              <Button size="lg" className="h-14 bg-white px-8 text-lg text-ink hover:bg-mist">
+                Create account
               </Button>
-            </div>
+            </Link>
+            <Link href="/auth/login">
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-14 border-white/40 bg-transparent px-8 text-lg text-white hover:bg-white/10 hover:text-white"
+              >
+                Login
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gradient-to-br from-purple-900 to-purple-800 text-white py-12">
-        <div className="w-full max-w-7xl mx-auto px-4">
-          <div className="text-center space-y-3 sm:space-y-4 lg:space-y-6">
-            <h3 className="text-xl sm:text-2xl font-bold">AsliLearn</h3>
-            <p className="text-purple-200 text-base sm:text-lg">
-              Empowering Indian students with world-class AI-driven education
+      <footer className="border-t border-white/10 bg-ink py-14 text-white/70">
+        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 sm:px-8 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="font-display text-2xl font-bold text-white">ASLILEARN AI</p>
+            <p className="mt-2 max-w-sm text-base leading-relaxed">
+              India’s AI-first learning platform for schools, teachers, and students.
             </p>
-            <div className="flex flex-wrap justify-center gap-3 sm:p-4 lg:p-6 text-xs sm:text-sm text-purple-200">
-              <Link href="/privacy" className="hover:text-white transition-colors">
-                Privacy Policy
-              </Link>
-              <span className="text-purple-400">|</span>
-              <Link href="/terms" className="hover:text-white transition-colors">
-                Terms of Service
-              </Link>
-              <span className="text-purple-400">|</span>
-              <Link href="/contact" className="hover:text-white transition-colors">
-                Contact Us
-              </Link>
-            </div>
-            <div className="pt-6 border-t border-purple-700">
-              <p className="text-xs sm:text-sm text-purple-300">
-                © 2025 AsliLearn. All rights reserved.
-              </p>
-            </div>
+          </div>
+          <div className="flex flex-wrap gap-8 text-base">
+            <Link href="/privacy" className="hover:text-white">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:text-white">
+              Terms
+            </Link>
+            <Link href="/contact" className="hover:text-white">
+              Contact
+            </Link>
+            <Link href="/auth/login" className="hover:text-white">
+              Login
+            </Link>
           </div>
         </div>
+        <p className="mx-auto mt-10 max-w-7xl px-5 text-sm text-white/40 sm:px-8">
+          © {new Date().getFullYear()} AsliLearn AI. All rights reserved.
+        </p>
       </footer>
-
     </div>
   );
-};
-
-export default Index;
+}

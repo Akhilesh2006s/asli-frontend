@@ -29,49 +29,47 @@ export function AiToolGeneratePageChrome({
   className,
 }: AiToolGeneratePageChromeProps) {
   return (
-    <div
-      className={cn(
-        'min-h-screen bg-[radial-gradient(ellipse_at_top,_rgba(14,165,233,0.12),_transparent_50%),linear-gradient(to_bottom_right,#f0f9ff,#f8fafc,#ecfdf5)] p-3 sm:p-5 lg:p-8',
-        className,
-      )}
-    >
-      <div className="mx-auto max-w-6xl space-y-5 sm:space-y-6">
+    <div className={cn('asli-app-bg min-h-screen p-5 sm:p-7 lg:p-10', className)}>
+      <div className="mx-auto max-w-6xl space-y-7 sm:space-y-8">
         <motion.header
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.28 }}
-          className="flex flex-col gap-4 sm:flex-row sm:items-center"
+          className="asli-card-premium asli-ai-glow overflow-hidden p-0"
         >
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onBack}
-            className="shrink-0 border-slate-200/90 bg-white/90 text-slate-700 shadow-sm backdrop-blur hover:bg-white hover:text-slate-900"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" aria-hidden />
-            {backLabel}
-          </Button>
-          <div className="flex min-w-0 items-center gap-3.5">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-teal-600 shadow-lg shadow-sky-500/25">
-              <Icon className="h-6 w-6 text-white" aria-hidden />
-            </div>
-            <div className="min-w-0 space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="font-[family-name:var(--font-outfit)] text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                  {title}
-                </h1>
-                {badge ? (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-800">
-                    <Sparkles className="h-3 w-3" />
-                    {badge}
-                  </span>
+          <div className="h-1.5 w-full bg-gradient-to-r from-teal-green-500 to-indigo-blue-500" />
+          <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:p-8">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onBack}
+              className="shrink-0"
+            >
+              <ArrowLeft className="h-5 w-5" aria-hidden />
+              {backLabel}
+            </Button>
+            <div className="flex min-w-0 items-center gap-4">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-green-600 to-indigo-blue-600 shadow-glow">
+                <Icon className="h-8 w-8 text-white" aria-hidden />
+              </div>
+              <div className="min-w-0 space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h1 className="font-display text-3xl font-bold tracking-tight text-ink lg:text-4xl">
+                    {title}
+                  </h1>
+                  {badge ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[0.9375rem] font-semibold text-primary">
+                      <Sparkles className="h-4 w-4" />
+                      {badge}
+                    </span>
+                  ) : null}
+                </div>
+                {description ? (
+                  <p className="max-w-2xl text-lg leading-relaxed text-muted-foreground">
+                    {description}
+                  </p>
                 ) : null}
               </div>
-              {description ? (
-                <p className="max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-[0.95rem]">
-                  {description}
-                </p>
-              ) : null}
             </div>
           </div>
         </motion.header>

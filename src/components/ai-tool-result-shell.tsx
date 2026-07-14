@@ -269,33 +269,33 @@ export function AiToolResultShell({
     >
       <div className={cn('h-1.5 w-full bg-gradient-to-r', theme.accentBar)} />
       <div className="bg-white/95">
-        <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-5">
-          <div className="flex min-w-0 items-start gap-3">
+        <div className="flex flex-col gap-4 border-b border-slate-100 p-6 sm:flex-row sm:items-start sm:justify-between sm:p-8">
+          <div className="flex min-w-0 items-start gap-4">
             <div
               className={cn(
-                'flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border shadow-sm sm:h-16 sm:w-16',
+                'flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border shadow-sm sm:h-20 sm:w-20',
                 theme.iconBg,
               )}
             >
-              <RealisticIcon name={heroIcon} alt="" className="h-10 w-10 sm:h-12 sm:w-12" />
+              <RealisticIcon name={heroIcon} alt="" className="h-12 w-12 sm:h-14 sm:w-14" />
             </div>
-            <div className="min-w-0 space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-lg font-bold leading-tight tracking-tight text-slate-900 sm:text-xl">
+            <div className="min-w-0 space-y-2">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h2 className="font-display text-2xl font-bold leading-tight tracking-tight text-ink lg:text-3xl">
                   {toolName}
                 </h2>
                 <span
                   className={cn(
-                    'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                    'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[0.9375rem] font-semibold',
                     theme.badge,
                   )}
                 >
-                  <Sparkles className="h-3 w-3" />
+                  <Sparkles className="h-4 w-4" />
                   Interactive
                 </span>
               </div>
               {toolDescription ? (
-                <p className="text-xs leading-relaxed text-slate-500 sm:text-sm">{toolDescription}</p>
+                <p className="text-lg leading-relaxed text-muted-foreground">{toolDescription}</p>
               ) : null}
               {citations}
             </div>

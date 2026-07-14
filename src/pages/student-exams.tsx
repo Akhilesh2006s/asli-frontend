@@ -1023,9 +1023,9 @@ export default function StudentExams() {
                 const status = getExamStatus(exam);
                 // Randomly assign one of the three dashboard colors
                 const colorSchemes = [
-                  { bg: 'from-orange-300 to-orange-400', text: 'text-white', badge: 'bg-orange-500/20 text-orange-100' },
-                  { bg: 'from-sky-300 to-sky-400', text: 'text-white', badge: 'bg-sky-500/20 text-sky-100' },
-                  { bg: 'from-teal-400 to-teal-500', text: 'text-white', badge: 'bg-teal-500/20 text-teal-100' }
+                  { bg: 'from-orange-300 to-orange-400', text: 'text-[#3b2108]', badge: 'bg-white/75 text-orange-900' },
+                  { bg: 'from-sky-300 to-sky-400', text: 'text-[#082f49]', badge: 'bg-white/75 text-sky-900' },
+                  { bg: 'from-teal-300 to-teal-400', text: 'text-[#073b37]', badge: 'bg-white/75 text-teal-900' }
                 ];
                 const colorScheme = colorSchemes[index % 3];
                 const classLabels = getExamClassLabelsForStudent(exam, user?.classNumber);
@@ -1042,7 +1042,7 @@ export default function StudentExams() {
                         <div className="flex-1">
                           <CardTitle className="text-base sm:text-lg mb-2 text-gray-900">{exam.title}</CardTitle>
                           {exam.description && (
-                            <p className={`text-xs sm:text-sm ${colorScheme.text}/90 mb-3 line-clamp-2`}>{exam.description}</p>
+                            <p className={`mb-3 line-clamp-2 text-base font-medium ${colorScheme.text}`}>{exam.description}</p>
                           )}
                           <div className="flex flex-wrap gap-2 mt-2">
                             <Badge className={`${colorScheme.badge} border-0`}>
@@ -1068,7 +1068,7 @@ export default function StudentExams() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className={`space-y-2 text-xs sm:text-sm ${colorScheme.text} mb-4`}>
+                      <div className={`mb-5 space-y-2.5 text-base font-medium ${colorScheme.text}`}>
                         <div className="flex items-center">
                           <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
                           <span>{exam.duration} minutes</span>
@@ -1095,7 +1095,7 @@ export default function StudentExams() {
                       {/* Action Button */}
                       <Button 
                         onClick={() => handleStartExam(exam)}
-                        className="w-full bg-white/90 text-gray-900 border-white/30 hover:bg-white hover:text-gray-900 shadow-lg"
+                        className="h-12 w-full border border-white !bg-white text-base font-bold !text-[#0b1f2a] shadow-lg hover:!bg-teal-green-50 hover:!text-teal-green-900 disabled:!bg-white/70 disabled:!text-[#475569]"
                         disabled={status.status === 'ended' || startingExamId === exam._id}
                       >
                         <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
@@ -1138,9 +1138,9 @@ export default function StudentExams() {
                 const exam = catalogExam || buildFallbackExamFromResult(examIdStr, result);
 
                 const colorSchemes = [
-                  { bg: 'from-orange-300 to-orange-400', text: 'text-white', badge: 'bg-orange-500/20 text-orange-100' },
-                  { bg: 'from-sky-300 to-sky-400', text: 'text-white', badge: 'bg-sky-500/20 text-sky-100' },
-                  { bg: 'from-teal-400 to-teal-500', text: 'text-white', badge: 'bg-teal-500/20 text-teal-100' }
+                  { bg: 'from-orange-300 to-orange-400', text: 'text-[#3b2108]', badge: 'bg-white/75 text-orange-900' },
+                  { bg: 'from-sky-300 to-sky-400', text: 'text-[#082f49]', badge: 'bg-white/75 text-sky-900' },
+                  { bg: 'from-teal-300 to-teal-400', text: 'text-[#073b37]', badge: 'bg-white/75 text-teal-900' }
                 ];
                 const colorScheme = colorSchemes[index % 3];
                 const classLabelsAttempted = getExamClassLabelsForStudent(exam, user?.classNumber);
@@ -1271,7 +1271,7 @@ export default function StudentExams() {
                         {/* View Details Button */}
                         <Button 
                           variant="outline" 
-                          className="w-full bg-white/90 text-gray-900 border-white/30 hover:bg-white hover:text-gray-900"
+                          className="h-12 w-full border border-white !bg-white text-base font-bold !text-[#0b1f2a] shadow-lg hover:!bg-teal-green-50 hover:!text-teal-green-900 disabled:!bg-white/70 disabled:!text-[#475569]"
                           onClick={async () => {
                             console.log('📋 Viewing details for exam:', exam.title);
                             console.log('📋 Exam result:', displayResult);
@@ -1398,9 +1398,9 @@ export default function StudentExams() {
               {subjectFilteredExams.filter((exam: Exam) => getExamStatus(exam).status === 'upcoming').map((exam: Exam, index: number) => {
                 // Randomly assign one of the three dashboard colors
                 const colorSchemes = [
-                  { bg: 'from-orange-300 to-orange-400', text: 'text-white', badge: 'bg-orange-500/20 text-orange-100' },
-                  { bg: 'from-sky-300 to-sky-400', text: 'text-white', badge: 'bg-sky-500/20 text-sky-100' },
-                  { bg: 'from-teal-400 to-teal-500', text: 'text-white', badge: 'bg-teal-500/20 text-teal-100' }
+                  { bg: 'from-orange-300 to-orange-400', text: 'text-[#3b2108]', badge: 'bg-white/75 text-orange-900' },
+                  { bg: 'from-sky-300 to-sky-400', text: 'text-[#082f49]', badge: 'bg-white/75 text-sky-900' },
+                  { bg: 'from-teal-300 to-teal-400', text: 'text-[#073b37]', badge: 'bg-white/75 text-teal-900' }
                 ];
                 const colorScheme = colorSchemes[index % 3];
                 const classLabelsUpcoming = getExamClassLabelsForStudent(exam, user?.classNumber);
@@ -1466,7 +1466,7 @@ export default function StudentExams() {
 
                       <Button 
                         variant="outline" 
-                        className="w-full bg-white/90 text-gray-900 border-white/30 hover:bg-white hover:text-gray-900"
+                        className="h-12 w-full border border-white !bg-white text-base font-bold !text-[#0b1f2a] shadow-lg hover:!bg-teal-green-50 hover:!text-teal-green-900 disabled:!bg-white/70 disabled:!text-[#475569]"
                         disabled
                       >
                         <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />

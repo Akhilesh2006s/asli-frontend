@@ -1881,9 +1881,10 @@ export default function Dashboard() {
   return (
     <>
       <Navigation />
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-responsive pb-responsive bg-sky-50 min-h-screen relative">
+      <div className="asli-app-bg min-h-screen w-full px-4 pb-responsive pt-responsive sm:px-6 lg:px-8">
+        <div className="relative mx-auto max-w-7xl">
         {/* Interactive Background */}
-        <div className="fixed inset-0 z-0 bg-sky-50">
+        <div className="fixed inset-0 -z-10 bg-[#f4f6f5]">
           {/* Interactive Background - Disabled for better performance */}
           {/* <InteractiveBackground />
           <FloatingParticles /> */}
@@ -1900,16 +1901,16 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-        <div className="bg-gradient-to-r from-blue-500 via-blue-400 to-teal-400 rounded-2xl p-4 sm:p-6 lg:p-8 text-white relative overflow-hidden shadow-xl">
-        <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-ink via-ink-soft to-teal-green-700 p-5 text-white shadow-elevated sm:p-7 lg:p-9">
+        <div className="absolute -right-14 -top-24 h-64 w-64 rounded-full bg-teal-green-300/25 blur-3xl"></div>
             <div className="relative z-10 flex flex-row items-center justify-between gap-3 sm:gap-4">
               {/* Left side - Text content */}
               <div className="flex-1 min-w-0">
                 <SchoolBrandRow user={user} variant="onPrimary" className="mb-3" />
-                <h1 className="text-base sm:text-xl lg:text-3xl font-bold mb-1 sm:mb-2 leading-tight">
+                <h1 className="mb-2 font-display text-2xl font-bold leading-tight !text-white sm:text-3xl lg:text-4xl">
                   Welcome back, {getStudentDisplayName(user)}!
                 </h1>
-                <p className="text-white/90 mb-2 sm:mb-4 text-[11px] sm:text-sm leading-snug line-clamp-3 sm:line-clamp-none">
+                <p className="mb-4 max-w-3xl text-base font-medium leading-relaxed text-white sm:text-lg">
                   {vidyaEnabled
                     ? `Ready to continue your ${user?.educationStream || 'JEE'} preparation journey? Your Vidya AI has personalized recommendations waiting.`
                     : `Ready to continue your ${user?.educationStream || 'JEE'} preparation journey? Pick up where you left off.`}
@@ -1917,7 +1918,7 @@ export default function Dashboard() {
                 
                 <div className="flex flex-row flex-wrap gap-2 sm:gap-3">
                   <Button 
-                    className="bg-white text-orange-600 hover:bg-orange-50 hover:text-orange-700 font-semibold text-[11px] sm:text-sm py-1.5 sm:py-2 px-2.5 sm:px-4 h-auto whitespace-nowrap"
+                    className="h-12 whitespace-nowrap !bg-white px-5 text-base font-semibold !text-[#0b1f2a] shadow-md hover:!bg-teal-green-50 hover:!text-teal-green-800"
                     onClick={() => setLocation('/learning-paths')}
                   >
                     Continue Learning
@@ -1925,7 +1926,7 @@ export default function Dashboard() {
                   {vidyaEnabled ? (
                   <Button 
                     variant="outline" 
-                    className="border-white/30 bg-white/10 text-white hover:bg-white/20 text-[11px] sm:text-sm py-1.5 sm:py-2 px-2.5 sm:px-4 h-auto whitespace-nowrap"
+                    className="h-12 whitespace-nowrap border-white/40 !bg-white/10 px-5 text-base font-semibold !text-white backdrop-blur-md hover:!bg-white/20"
                     onClick={() => setLocation('/ai-tutor')}
                   >
                     Ask Vidya AI
@@ -2759,6 +2760,7 @@ export default function Dashboard() {
         </div>
 
 
+      </div>
       </div>
 
       {/* Content Preview Modal */}

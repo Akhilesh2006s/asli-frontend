@@ -35,20 +35,18 @@ export function EduOTTGlobalFilterBar({
     clearSubject,
   } = useEduOTTFilters();
 
-  const hasActive =
-    selectedClass != null ||
-    selectedSubject != null;
+  const hasActive = selectedClass != null || selectedSubject != null;
 
   return (
-    <div className="space-y-3 rounded-xl border border-sky-200/80 bg-white/90 p-3 sm:p-4 shadow-sm">
-      <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:flex-wrap lg:items-end">
-        <div className="space-y-1.5 w-full lg:w-auto lg:min-w-[180px]">
-          <Label className="text-xs text-gray-500">Select class</Label>
+    <div className="space-y-4 rounded-2xl border border-ink/10 bg-mist/80 p-4 sm:p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end">
+        <div className="w-full space-y-2 lg:w-auto lg:min-w-[180px]">
+          <Label className="text-base text-muted-foreground">Select class</Label>
           <Select
             value={eduottClassToSelectValue(selectedClass)}
             onValueChange={(v) => setSelectedClass(eduottSelectValueToClass(v))}
           >
-            <SelectTrigger className="w-full lg:w-[200px] bg-white border-2 border-sky-200 hover:border-sky-300 focus:border-sky-400 focus:ring-sky-200 shadow-sm">
+            <SelectTrigger className="h-12 w-full border-ink/10 bg-white text-base lg:w-[200px]">
               <SelectValue placeholder="All classes" />
             </SelectTrigger>
             <SelectContent>
@@ -61,16 +59,14 @@ export function EduOTTGlobalFilterBar({
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1.5 w-full lg:w-auto lg:min-w-[200px]">
-          <Label className="text-xs text-gray-500">Select subject</Label>
+        <div className="w-full space-y-2 lg:w-auto lg:min-w-[200px]">
+          <Label className="text-base text-muted-foreground">Select subject</Label>
           <Select
             value={selectedSubject ?? SUBJECT_ALL}
-            onValueChange={(v) =>
-              setSelectedSubject(v === SUBJECT_ALL ? null : v)
-            }
+            onValueChange={(v) => setSelectedSubject(v === SUBJECT_ALL ? null : v)}
           >
-            <SelectTrigger className="w-full lg:w-[220px] bg-white border-2 border-sky-200 hover:border-sky-300 focus:border-sky-400 focus:ring-sky-200 shadow-sm">
-              <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2 shrink-0 text-gray-500" />
+            <SelectTrigger className="h-12 w-full border-ink/10 bg-white text-base lg:w-[220px]">
+              <Filter className="mr-2 h-5 w-5 shrink-0 text-teal-green-600" />
               <SelectValue placeholder="All subjects" />
             </SelectTrigger>
             <SelectContent>
@@ -87,8 +83,7 @@ export function EduOTTGlobalFilterBar({
           <Button
             type="button"
             variant="outline"
-            size="sm"
-            className="shrink-0"
+            className="h-12"
             disabled={!hasActive}
             onClick={clearFilters}
           >
@@ -97,26 +92,26 @@ export function EduOTTGlobalFilterBar({
         </div>
       </div>
 
-      <div className={`flex min-h-[28px] flex-wrap items-center gap-2 ${hasActive ? '' : 'invisible'}`}>
-        <span className="text-xs font-medium text-gray-500">Active:</span>
+      <div className={`flex min-h-[32px] flex-wrap items-center gap-2 ${hasActive ? '' : 'invisible'}`}>
+        <span className="text-base font-medium text-muted-foreground">Active:</span>
         {selectedClass != null ? (
           <button
             type="button"
-            className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-900 hover:bg-sky-100"
+            className="inline-flex items-center gap-1.5 rounded-full bg-teal-green-50 px-3 py-1.5 text-[0.9375rem] font-semibold text-teal-green-800 ring-1 ring-teal-green-200"
             onClick={clearClass}
           >
             Class: {selectedClass}
-            <X className="h-3.5 w-3.5" aria-hidden />
+            <X className="h-4 w-4" aria-hidden />
           </button>
         ) : null}
         {selectedSubject != null ? (
           <button
             type="button"
-            className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-900 hover:bg-violet-100"
+            className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-[0.9375rem] font-semibold text-amber-900 ring-1 ring-amber-200"
             onClick={clearSubject}
           >
             Subject: {selectedSubject}
-            <X className="h-3.5 w-3.5" aria-hidden />
+            <X className="h-4 w-4" aria-hidden />
           </button>
         ) : null}
       </div>

@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BookOpen, CircleHelp, ClipboardCheck, Image as ImageIcon, Loader2, Mic, Send } from "lucide-react";
+import { ArrowRight, BookOpen, CircleHelp, ClipboardCheck, Image as ImageIcon, Loader2, Mic, Send, Sparkles } from "lucide-react";
 import { useState } from "react";
 import type { UseVidyaChatResult } from "./types";
 
@@ -26,25 +26,25 @@ const MODE_UI: Record<
   lesson: {
     title: "Lesson Planner AI",
     subtitle: "Design structured class flow, outcomes, and activities.",
-    header: "bg-gradient-to-r from-sky-100 to-blue-100",
-    activeTab: "bg-sky-600 text-white",
+    header: "bg-gradient-to-r from-teal-green-50 to-cyan-50",
+    activeTab: "bg-gradient-to-r from-teal-green-600 to-indigo-blue-600 text-white shadow-glow",
     quickA: {
       label: "Plan Lesson",
       prompt: "Create a 45-minute lesson plan with learning outcomes and activities.",
-      className: "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100",
+      className: "border-teal-green-200 bg-teal-green-50 text-teal-green-800 hover:bg-teal-green-100",
     },
     quickB: {
       label: "Explain Topic",
       prompt: "Explain this topic with examples and misconceptions to avoid.",
-      className: "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100",
+      className: "border-indigo-blue-200 bg-indigo-blue-50 text-indigo-blue-800 hover:bg-indigo-blue-100",
     },
     Icon: BookOpen,
   },
   quiz: {
     title: "Assessment Builder AI",
     subtitle: "Generate quizzes, MCQs, and rubric-ready assessment sets.",
-    header: "bg-gradient-to-r from-emerald-100 to-teal-100",
-    activeTab: "bg-emerald-600 text-white",
+    header: "bg-gradient-to-r from-amber-50 to-orange-50",
+    activeTab: "bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg",
     quickA: {
       label: "Create Quiz",
       prompt: "Generate 10 MCQs with answers, bloom level, and difficulty tags.",
@@ -60,8 +60,8 @@ const MODE_UI: Record<
   help: {
     title: "Classroom Mentor AI",
     subtitle: "Get support for classroom management and teaching decisions.",
-    header: "bg-gradient-to-r from-orange-100 to-amber-100",
-    activeTab: "bg-orange-600 text-white",
+    header: "bg-gradient-to-r from-rose-50 to-amber-50",
+    activeTab: "bg-gradient-to-r from-rose-500 to-orange-500 text-white shadow-lg",
     quickA: {
       label: "Classroom Help",
       prompt: "Suggest practical strategies to improve classroom engagement.",
@@ -84,91 +84,104 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
   if (model.isLoading) {
     return (
       <div className={`${className ?? ""} flex h-full min-h-[320px] items-center justify-center bg-white`}>
-        <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 animate-spin text-blue-500" />
+        <Loader2 className="h-7 w-7 animate-spin text-teal-green-600" />
       </div>
     );
   }
 
   return (
-    <div className={`${className ?? ""} mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col rounded-2xl border border-slate-200 bg-white shadow-sm`}>
-      <div className={`border-b border-slate-200 px-4 py-3 ${modeUi.header}`}>
-        <div className="flex items-center gap-2">
-          <ModeIcon className="h-3 w-3 sm:h-4 sm:w-4 text-slate-700" />
-          <h3 className="text-sm sm:text-base font-semibold text-slate-900">{modeUi.title}</h3>
+    <div className={`${className ?? ""} mx-auto flex h-full min-h-0 w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-ink/10 bg-white shadow-elevated`}>
+      <div className={`border-b border-ink/10 px-5 py-5 sm:px-7 ${modeUi.header}`}>
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-sm">
+            <ModeIcon className="h-6 w-6 text-teal-green-700" />
+          </div>
+          <div>
+            <p className="mb-0.5 flex items-center gap-1 text-[0.8125rem] font-bold uppercase tracking-[0.14em] text-teal-green-700">
+              <Sparkles className="h-3.5 w-3.5" />
+              Interactive AI
+            </p>
+            <h3 className="font-display text-xl font-bold text-ink sm:text-2xl">{modeUi.title}</h3>
+          </div>
         </div>
-        <p className="text-xs text-slate-600">{modeUi.subtitle}</p>
+        <p className="mt-2 text-base text-muted-foreground">{modeUi.subtitle}</p>
       </div>
 
-      <div className="px-4 pt-3">
-        <div className="flex flex-wrap gap-2">
+      <div className="px-5 pt-5 sm:px-7">
+        <div className="grid grid-cols-3 gap-2 rounded-2xl bg-mist p-1.5">
           <button
+            type="button"
             onClick={() => setTeachingTab("lesson")}
-            className={`rounded-lg px-3 py-1.5 text-xs sm:text-sm transition ${
-              teachingTab === "lesson" ? modeUi.activeTab : "bg-slate-100 text-slate-700"
+            className={`rounded-xl px-3 py-3 text-base font-semibold transition-all hover:-translate-y-0.5 active:scale-[0.98] ${
+              teachingTab === "lesson" ? modeUi.activeTab : "text-ink/65 hover:bg-white"
             }`}
           >
             Lesson
           </button>
           <button
+            type="button"
             onClick={() => setTeachingTab("quiz")}
-            className={`rounded-lg px-3 py-1.5 text-xs sm:text-sm transition ${
-              teachingTab === "quiz" ? modeUi.activeTab : "bg-slate-100 text-slate-700"
+            className={`rounded-xl px-3 py-3 text-base font-semibold transition-all hover:-translate-y-0.5 active:scale-[0.98] ${
+              teachingTab === "quiz" ? modeUi.activeTab : "text-ink/65 hover:bg-white"
             }`}
           >
             Quiz
           </button>
           <button
+            type="button"
             onClick={() => setTeachingTab("help")}
-            className={`rounded-lg px-3 py-1.5 text-xs sm:text-sm transition ${
-              teachingTab === "help" ? modeUi.activeTab : "bg-slate-100 text-slate-700"
+            className={`rounded-xl px-3 py-3 text-base font-semibold transition-all hover:-translate-y-0.5 active:scale-[0.98] ${
+              teachingTab === "help" ? modeUi.activeTab : "text-ink/65 hover:bg-white"
             }`}
           >
             Help
           </button>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-          <Badge className="border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-50">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink/10 bg-mist/70 px-4 py-3">
+          <Badge className="border border-teal-green-200 bg-teal-green-50 px-3 py-1.5 text-[0.9375rem] text-teal-green-800 hover:bg-teal-green-50">
             {model.currentSubject || "Biology"} - Grade 7
           </Badge>
           <div className="flex flex-wrap gap-2">
-            <Badge
-              variant="outline"
-              className={`cursor-pointer ${modeUi.quickA.className}`}
+            <button
+              type="button"
+              className={`rounded-xl border px-3 py-2 text-[0.9375rem] font-semibold transition-all hover:-translate-y-0.5 active:scale-[0.98] ${modeUi.quickA.className}`}
               onClick={() => model.onPromptClick(modeUi.quickA.prompt)}
             >
               {modeUi.quickA.label}
-            </Badge>
-            <Badge
-              variant="outline"
-              className={`cursor-pointer ${modeUi.quickB.className}`}
+            </button>
+            <button
+              type="button"
+              className={`rounded-xl border px-3 py-2 text-[0.9375rem] font-semibold transition-all hover:-translate-y-0.5 active:scale-[0.98] ${modeUi.quickB.className}`}
               onClick={() => model.onPromptClick(modeUi.quickB.prompt)}
             >
               {modeUi.quickB.label}
-            </Badge>
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-7">
         {model.displayMessages.length === 0 ? (
-          <div className="mx-auto max-w-2xl py-10 text-center">
-            <h4 className="text-base sm:text-lg font-semibold text-slate-900">Start with a teaching prompt</h4>
-            <p className="mt-1 text-xs sm:text-sm text-slate-600">Choose a prompt to generate your next classroom resource.</p>
+          <div className="mx-auto max-w-2xl py-9 text-center">
+            <h4 className="font-display text-xl font-bold text-ink sm:text-2xl">What would you like to create?</h4>
+            <p className="mt-2 text-base text-muted-foreground">Tap any idea below — Vidya will begin immediately.</p>
             <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
               {model.quickQuestions.map((question, index) => (
                 <button
+                  type="button"
                   key={question}
                   onClick={() => model.onPromptClick(question)}
-                  className={`rounded-xl border px-4 py-3 text-left text-xs sm:text-sm font-medium text-slate-700 transition ${
+                  className={`group flex min-h-20 items-center justify-between gap-3 rounded-2xl border px-5 py-4 text-left text-base font-semibold text-ink transition-all hover:-translate-y-1 hover:shadow-elevated active:scale-[0.99] ${
                     index % 3 === 0
-                      ? "border-blue-100 bg-blue-50 hover:bg-blue-100"
+                      ? "border-teal-green-100 bg-teal-green-50 hover:border-teal-green-300"
                       : index % 3 === 1
-                        ? "border-violet-100 bg-violet-50 hover:bg-violet-100"
-                        : "border-teal-100 bg-teal-50 hover:bg-teal-100"
+                        ? "border-amber-100 bg-amber-50 hover:border-amber-300"
+                        : "border-rose-100 bg-rose-50 hover:border-rose-300"
                   }`}
                 >
-                  {question}
+                  <span>{question}</span>
+                  <ArrowRight className="h-5 w-5 shrink-0 text-ink/35 transition-transform group-hover:translate-x-1 group-hover:text-primary" />
                 </button>
               ))}
             </div>
@@ -189,8 +202,8 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
                 </div>
                 <div className={msg.role === "user" ? "text-right" : ""}>
                   <div
-                    className={`inline-block rounded-2xl px-4 py-3 text-xs sm:text-sm shadow-sm ${
-                      msg.role === "user" ? "bg-blue-600 text-white" : "bg-slate-50 text-slate-800"
+                    className={`inline-block rounded-2xl px-4 py-3 text-base leading-relaxed shadow-sm ${
+                      msg.role === "user" ? "bg-gradient-to-r from-teal-green-600 to-indigo-blue-600 text-white" : "bg-mist text-ink"
                     }`}
                   >
                     <p className="whitespace-pre-wrap break-words text-left">
@@ -205,12 +218,12 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
         )}
       </div>
 
-      <div className="border-t border-slate-200 bg-white px-4 py-3">
-        <div className="mx-auto flex max-w-2xl items-end gap-2 rounded-xl border border-slate-200 bg-white px-2 py-2 shadow-sm">
+      <div className="border-t border-ink/10 bg-mist/60 px-5 py-4 sm:px-7">
+        <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-2xl border-2 border-ink/10 bg-white px-2.5 py-2.5 shadow-sm transition focus-within:border-teal-green-400 focus-within:shadow-glow">
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8"
+            className="h-11 w-11"
             onClick={() => model.fileInputRef.current?.click()}
             disabled={model.isPending}
           >
@@ -219,7 +232,7 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8"
+            className="h-11 w-11"
             onClick={model.handleVoiceInput}
             disabled={model.isPending || model.isListening}
           >
@@ -242,11 +255,11 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
               }
             }}
             placeholder={model.inputPlaceholder}
-            className="min-h-[40px] max-h-28 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-xs sm:text-sm outline-none"
+            className="min-h-[44px] max-h-32 flex-1 resize-none border-0 bg-transparent px-2 py-2.5 text-base text-ink outline-none placeholder:text-muted-foreground"
           />
           <Button
             size="icon"
-            className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 bg-blue-600 text-white hover:bg-blue-700"
+            className="h-11 w-11 bg-gradient-to-br from-teal-green-600 to-indigo-blue-600 text-white hover:shadow-glow"
             onClick={model.handleSendMessage}
             disabled={model.isPending || !model.message.trim()}
           >

@@ -2,143 +2,158 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════════
+   ASLILEARN DESIGN SYSTEM — Zoom / Teams / projector friendly
+   Direction: deep teal-ink + soft mist depth (not flat white)
+   ═══════════════════════════════════════════════════════════ */
+
 :root {
-  /* Light theme color tokens for clean, modern design */
-  --background: #ffffff; /* Pure white background */
-  --foreground: #1f2937; /* Dark gray for text and highlights */
-  --card: #ffffff; /* White card backgrounds */
-  --card-foreground: #1f2937; /* Dark text on cards */
-  --popover: #ffffff; /* White popover backgrounds */
-  --popover-foreground: #1f2937; /* Dark text in popovers */
-  --primary: #3b82f6; /* Blue accent for highlights */
-  --primary-foreground: #ffffff; /* White text on blue */
-  --secondary: #f3f4f6; /* Light gray for secondary elements */
-  --secondary-foreground: #374151; /* Dark gray text on secondary */
-  --muted: #f9fafb; /* Very light gray for muted elements */
-  --muted-foreground: #6b7280; /* Gray text for muted */
-  --accent: #3b82f6; /* Blue for interactive elements */
-  --accent-foreground: #ffffff; /* White text on accent */
-  --destructive: #ef4444; /* Red for destructive actions */
-  --destructive-foreground: #ffffff; /* White text for destructive */
-  --border: #e5e7eb; /* Light gray borders for contrast */
-  --input: #ffffff; /* White inputs */
-  --ring: #3b82f6; /* Blue for focus rings */
-  --chart-1: #3b82f6;
-  --chart-2: #10b981;
-  --chart-3: #f59e0b;
-  --chart-4: #ef4444;
-  --chart-5: #8b5cf6;
-  --radius: 0.5rem; /* Softer rounded corners */
-  --sidebar: #f8fafc; /* Light sidebar */
-  --sidebar-foreground: #1f2937; /* Dark sidebar text */
-  --sidebar-primary: #3b82f6; /* Blue for primary sidebar */
-  --sidebar-primary-foreground: #ffffff; /* White text on sidebar primary */
-  --sidebar-accent: #f1f5f9; /* Light gray for sidebar accent */
-  --sidebar-accent-foreground: #1f2937; /* Dark text on sidebar accent */
-  --sidebar-border: #e2e8f0; /* Light gray sidebar borders */
-  --sidebar-ring: #3b82f6; /* Blue for sidebar focus */
-  --hero-gradient-start: 340 100% 97%;
-  --hero-gradient-end: 350 100% 92%;
-  --font-instrument-serif: "Instrument Serif", serif; /* Instrument Serif font family configuration */
-  /* Outfit font - premium modern design font for best UI experience */
-  --font-outfit: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Core surfaces */
+  --background: #eef5f7;
+  --foreground: #0b1f2a;
+  --card: rgba(255, 255, 255, 0.82);
+  --card-foreground: #0b1f2a;
+  --popover: #ffffff;
+  --popover-foreground: #0b1f2a;
 
-  /* ── Fluid Typography Scale ── */
-  --text-xs:   clamp(0.65rem,  1.2vw, 0.75rem);
-  --text-sm:   clamp(0.75rem,  1.4vw, 0.875rem);
-  --text-base: clamp(0.875rem, 1.6vw, 1rem);
-  --text-lg:   clamp(1rem,     1.8vw, 1.125rem);
-  --text-xl:   clamp(1.1rem,   2vw,   1.25rem);
-  --text-2xl:  clamp(1.25rem,  2.5vw, 1.5rem);
-  --text-3xl:  clamp(1.5rem,   3vw,   1.875rem);
-  --text-4xl:  clamp(1.75rem,  4vw,   2.25rem);
+  /* Brand — deep teal-ink (enterprise EdTech, not purple SaaS) */
+  --primary: #0f766e;
+  --primary-foreground: #ffffff;
+  --secondary: #dcecee;
+  --secondary-foreground: #0b1f2a;
+  --muted: #e4eef1;
+  --muted-foreground: #4b6470;
+  --accent: #0ea5a4;
+  --accent-foreground: #ffffff;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: rgba(15, 55, 70, 0.12);
+  --input: #ffffff;
+  --ring: #0f766e;
 
-  /* ── Fluid Spacing Scale ── */
-  --space-1:  clamp(0.2rem,  0.5vw, 0.25rem);
-  --space-2:  clamp(0.4rem,  0.8vw, 0.5rem);
-  --space-3:  clamp(0.6rem,  1vw,   0.75rem);
-  --space-4:  clamp(0.75rem, 1.2vw, 1rem);
-  --space-6:  clamp(1rem,    1.8vw, 1.5rem);
-  --space-8:  clamp(1.25rem, 2.5vw, 2rem);
-  --space-10: clamp(1.5rem,  3vw,   2.5rem);
-  --space-12: clamp(1.75rem, 3.5vw, 3rem);
+  --chart-1: #0f766e;
+  --chart-2: #0284c7;
+  --chart-3: #d97706;
+  --chart-4: #dc2626;
+  --chart-5: #0ea5a4;
 
-  /* ── Sidebar width ── */
+  --radius: 1rem;
+
+  /* Sidebar — ink panel */
+  --sidebar: #0b2a32;
+  --sidebar-background: #0b2a32;
+  --sidebar-foreground: #e8f4f6;
+  --sidebar-primary: #14b8a6;
+  --sidebar-primary-foreground: #042f2e;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #2dd4bf;
+
+  /* Brand extras */
+  --ink: #062433;
+  --ink-soft: #0b3a45;
+  --mist: #eef5f7;
+  --mist-deep: #d5e8ec;
+  --glow: rgba(20, 184, 166, 0.35);
+  --ai-glow: 0 0 40px rgba(14, 165, 164, 0.25);
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.55);
+  --elevated-shadow: 0 4px 6px -1px rgba(6, 36, 51, 0.06), 0 16px 40px -12px rgba(6, 36, 51, 0.18);
+
+  --hero-gradient-start: 186 40% 96%;
+  --hero-gradient-end: 168 45% 92%;
+
+  --font-display: "Sora", "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-outfit: "Outfit", "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-instrument-serif: "Sora", sans-serif;
+
+  /* Zoom-friendly type floors (never tiny on share screens) */
+  --text-xs:   clamp(0.9375rem, 0.9rem + 0.2vw, 1rem);      /* ≥15px */
+  --text-sm:   clamp(1rem, 0.95rem + 0.25vw, 1.0625rem);     /* ≥16px */
+  --text-base: clamp(1.125rem, 1.05rem + 0.35vw, 1.1875rem); /* ≥18px */
+  --text-lg:   clamp(1.25rem, 1.15rem + 0.45vw, 1.375rem);   /* ≥20px */
+  --text-xl:   clamp(1.375rem, 1.25rem + 0.6vw, 1.5rem);     /* ≥22px */
+  --text-2xl:  clamp(1.5rem, 1.35rem + 0.8vw, 1.75rem);      /* card titles ~24px */
+  --text-3xl:  clamp(1.75rem, 1.5rem + 1.2vw, 2rem);         /* section ~28–32px */
+  --text-4xl:  clamp(2.125rem, 1.75rem + 1.8vw, 2.625rem);   /* dashboard 34–42px */
+  --text-5xl:  clamp(2.5rem, 2rem + 2.5vw, 3.5rem);
+  --text-6xl:  clamp(3rem, 2.4rem + 3vw, 4.5rem);
+
+  /* Breathing room */
+  --space-1:  clamp(0.25rem, 0.2rem + 0.3vw, 0.35rem);
+  --space-2:  clamp(0.5rem, 0.4rem + 0.4vw, 0.65rem);
+  --space-3:  clamp(0.75rem, 0.65rem + 0.5vw, 1rem);
+  --space-4:  clamp(1rem, 0.85rem + 0.6vw, 1.25rem);
+  --space-6:  clamp(1.5rem, 1.25rem + 0.8vw, 2rem);
+  --space-8:  clamp(2rem, 1.6rem + 1vw, 2.75rem);
+  --space-10: clamp(2.5rem, 2rem + 1.2vw, 3.5rem);
+  --space-12: clamp(3rem, 2.4rem + 1.5vw, 4.5rem);
+
   --sidebar-width-mobile:  0px;
-  --sidebar-width-tablet:  200px;
-  --sidebar-width-desktop: 256px;
+  --sidebar-width-tablet:  240px;
+  --sidebar-width-desktop: 300px;
 
-  /* ── Button sizing ── */
-  --btn-height-sm: clamp(1.75rem, 3.5vw, 2rem);
-  --btn-height-md: clamp(2rem,    4vw,   2.5rem);
-  --btn-height-lg: clamp(2.25rem, 4.5vw, 3rem);
-  --btn-px-sm:     clamp(0.6rem,  1.5vw, 0.75rem);
-  --btn-px-md:     clamp(0.75rem, 2vw,   1rem);
-  --btn-px-lg:     clamp(1rem,    2.5vw, 1.5rem);
+  --btn-height-sm: clamp(2.25rem, 2rem + 0.8vw, 2.5rem);
+  --btn-height-md: clamp(2.75rem, 2.4rem + 1vw, 3.25rem);
+  --btn-height-lg: clamp(3.25rem, 2.8rem + 1.2vw, 3.75rem);
+  --btn-px-sm:     clamp(0.9rem, 0.8rem + 0.5vw, 1.1rem);
+  --btn-px-md:     clamp(1.25rem, 1rem + 0.8vw, 1.75rem);
+  --btn-px-lg:     clamp(1.75rem, 1.4rem + 1vw, 2.25rem);
+
+  --icon-sm: 1.25rem;
+  --icon-md: 1.5rem;
+  --icon-lg: 1.625rem;
 }
 
 .dark {
-  /* Dark mode maintains the same dramatic black background theme */
-  --background: #000000;
-  --foreground: #ffffff;
-  --card: rgba(255, 255, 255, 0.05);
-  --card-foreground: #ffffff;
-  --popover: rgba(0, 0, 0, 0.9);
-  --popover-foreground: #ffffff;
-  --primary: #a855f7;
-  --primary-foreground: #000000;
-  --secondary: rgba(255, 255, 255, 0.1);
-  --secondary-foreground: #ffffff;
-  --muted: rgba(255, 255, 255, 0.2);
-  --muted-foreground: rgba(255, 255, 255, 0.6);
-  --accent: #a855f7;
-  --accent-foreground: #000000;
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.05);
-  --ring: #a855f7;
-  --chart-1: #3b82f6;
-  --chart-2: #10b981;
-  --chart-3: #f59e0b;
-  --chart-4: #ef4444;
-  --chart-5: #8b5cf6;
-  --sidebar: #000000;
-  --sidebar-foreground: #ffffff;
-  --sidebar-primary: #a855f7;
-  --sidebar-primary-foreground: #000000;
-  --sidebar-accent: rgba(255, 255, 255, 0.1);
+  --background: #04161c;
+  --foreground: #e8f4f6;
+  --card: rgba(12, 40, 48, 0.88);
+  --card-foreground: #e8f4f6;
+  --popover: #0b2a32;
+  --popover-foreground: #e8f4f6;
+  --primary: #2dd4bf;
+  --primary-foreground: #042f2e;
+  --secondary: rgba(255, 255, 255, 0.08);
+  --secondary-foreground: #e8f4f6;
+  --muted: rgba(255, 255, 255, 0.1);
+  --muted-foreground: rgba(232, 244, 246, 0.65);
+  --accent: #14b8a6;
+  --accent-foreground: #042f2e;
+  --destructive: #f87171;
+  --destructive-foreground: #450a0a;
+  --border: rgba(255, 255, 255, 0.12);
+  --input: rgba(255, 255, 255, 0.06);
+  --ring: #2dd4bf;
+  --sidebar: #031018;
+  --sidebar-background: #031018;
+  --sidebar-foreground: #e8f4f6;
+  --sidebar-primary: #2dd4bf;
+  --sidebar-primary-foreground: #042f2e;
+  --sidebar-accent: rgba(255, 255, 255, 0.08);
   --sidebar-accent-foreground: #ffffff;
   --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #a855f7;
-  --hero-gradient-start: 340 30% 15%;
-  --hero-gradient-end: 350 30% 20%;
-  --font-instrument-serif: "Instrument Serif", serif; /* Instrument Serif font family configuration */
-  /* Outfit font - premium modern design font for best UI experience */
-  --font-outfit: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --sidebar-ring: #2dd4bf;
+  --ink: #e8f4f6;
+  --mist: #04161c;
+  --glass: rgba(12, 40, 48, 0.75);
+  --elevated-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
 }
 
-
 @layer components {
-  /* Inputs with a left icon sibling — avoid placeholder/text under the icon */
   .relative > svg ~ input,
   .relative > .absolute ~ input:not([type='checkbox']):not([type='radio']) {
-    padding-left: 2.5rem;
+    padding-left: 2.75rem;
   }
   @media (min-width: 640px) {
     .relative > svg ~ input,
     .relative > .absolute ~ input:not([type='checkbox']):not([type='radio']) {
-      padding-left: 2.75rem;
+      padding-left: 3rem;
     }
   }
-  /* Wider left inset when icon uses left-4 */
   .relative > .absolute.left-4 ~ input {
-    padding-left: 3rem;
-  }
-  @media (min-width: 640px) {
-    .relative > .absolute.left-4 ~ input {
-      padding-left: 3.25rem;
-    }
+    padding-left: 3.25rem;
   }
 }
 
@@ -146,11 +161,22 @@
   * {
     @apply border-border;
   }
+
+  html {
+    background: var(--mist);
+    overflow-x: hidden;
+    overflow-y: auto;
+    font-size: 100%;
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
-    @apply bg-white text-foreground;
-    /* Set Outfit as the default font family - premium modern design font */
+    background-color: var(--background);
+    color: var(--foreground);
     font-family: var(--font-outfit);
-    font-feature-settings: "kern" 1;
+    font-size: var(--text-base);
+    line-height: 1.6;
+    font-feature-settings: "kern" 1, "ss01" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -158,320 +184,260 @@
     overflow-y: auto;
     min-height: 100vh;
   }
-  
-  html {
-    @apply bg-white;
-    overflow-x: hidden;
-    overflow-y: auto;
-  }
 
   #root {
     min-height: 100%;
   }
 
-  img,
-  video,
-  canvas,
-  svg {
+  h1, h2, h3, h4, .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: var(--ink);
+  }
+
+  h1 { font-size: var(--text-4xl); font-weight: 700; }
+  h2 { font-size: var(--text-3xl); font-weight: 700; }
+  h3 { font-size: var(--text-2xl); font-weight: 600; }
+
+  img, video, canvas, svg {
     max-width: 100%;
     height: auto;
   }
 
-  /* Improve checkbox visibility across the platform (native + custom forms). */
   input[type='checkbox'] {
-    accent-color: #2563eb;
+    accent-color: var(--primary);
     border: 1px solid #94a3b8;
     border-radius: 0.25rem;
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+
+  :focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--ring) 55%, transparent);
+    outline-offset: 2px;
   }
 }
 
-.instrument {
-  font-family: var(--font-instrument-serif);
+.instrument,
+.font-display {
+  font-family: var(--font-display);
 }
 
-/* Dashboard custom styles */
+/* ── Layered app surface ── */
+.asli-app-bg {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(20, 184, 166, 0.18), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 90% 0%, rgba(2, 132, 199, 0.12), transparent 50%),
+    radial-gradient(ellipse 50% 60% at 50% 100%, rgba(13, 148, 136, 0.08), transparent 55%),
+    linear-gradient(180deg, #f4fafb 0%, #e8f2f5 45%, #eef5f7 100%);
+  min-height: 100%;
+}
+
+.asli-app-bg::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.4;
+  background-image:
+    linear-gradient(rgba(11, 42, 50, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(11, 42, 50, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black, transparent);
+}
+
+.asli-app-bg > * {
+  position: relative;
+  z-index: 1;
+}
+
+.asli-glass {
+  background: var(--glass);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--elevated-shadow);
+}
+
+.asli-card-premium {
+  @apply rounded-2xl transition-all duration-300;
+  background: var(--glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: var(--elevated-shadow);
+}
+
+.asli-card-premium:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px -12px rgba(6, 36, 51, 0.22), 0 0 0 1px rgba(20, 184, 166, 0.12);
+}
+
+.asli-ai-glow {
+  box-shadow: var(--elevated-shadow), var(--ai-glow);
+}
+
 .gradient-primary {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #0f766e 0%, #0e7490 100%);
 }
 
 .gradient-accent {
-  background: linear-gradient(135deg, #0d9488 0%, #047857 100%);
+  background: linear-gradient(135deg, #14b8a6 0%, #0284c7 100%);
 }
 
 .stats-card {
-  @apply bg-white border border-gray-200 rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm hover:shadow-md transition-shadow duration-200;
+  @apply asli-card-premium p-6 lg:p-8;
 }
 
 .subject-progress-card {
-  @apply bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow duration-200;
+  @apply asli-card-premium p-5 lg:p-6;
 }
 
 .video-thumbnail {
-  @apply relative rounded-lg overflow-hidden cursor-pointer;
-  position: relative;
+  @apply relative rounded-2xl overflow-hidden cursor-pointer;
 }
 
 .video-overlay {
-  @apply absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center;
+  @apply absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center;
+  background-color: rgba(6, 36, 51, 0.45);
 }
 
 .play-button {
-  @apply w-12 h-12 bg-white/90 rounded-full flex items-center justify-center text-primary hover:bg-white transition-colors duration-200;
+  @apply w-14 h-14 bg-white/95 rounded-full flex items-center justify-center text-primary hover:bg-white transition-colors duration-200 shadow-lg;
 }
 
-/* Responsive utilities */
 @layer utilities {
   .container-responsive {
-    @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    @apply w-full max-w-7xl mx-auto px-5 sm:px-8 lg:px-10;
   }
-  
-  .text-responsive-xs {
-    @apply text-xs sm:text-sm;
-  }
-  
-  .text-responsive-sm {
-    @apply text-sm sm:text-base;
-  }
-  
-  .text-responsive-base {
-    @apply text-base sm:text-lg;
-  }
-  
-  .text-responsive-lg {
-    @apply text-lg sm:text-xl md:text-2xl;
-  }
-  
-  .text-responsive-xl {
-    @apply text-xl sm:text-2xl md:text-3xl lg:text-4xl;
-  }
-  
-  .text-responsive-2xl {
-    @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl;
-  }
-  
-  .text-responsive-3xl {
-    @apply text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl;
-  }
-  
-  .grid-responsive-1 {
-    @apply grid grid-cols-1;
-  }
-  
-  .grid-responsive-2 {
-    @apply grid grid-cols-1 sm:grid-cols-2;
-  }
-  
-  .grid-responsive-3 {
-    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
-  }
-  
-  .grid-responsive-4 {
-    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
-  }
-  
-  .flex-responsive-col {
-    @apply flex flex-col sm:flex-row;
-  }
-  
-  .flex-responsive-row {
-    @apply flex flex-row flex-wrap sm:flex-nowrap;
-  }
-  
-  .gap-responsive {
-    @apply gap-4 sm:gap-6 lg:gap-8;
-  }
-  
-  .p-responsive {
-    @apply p-4 sm:p-6 lg:p-8;
-  }
-  
-  .px-responsive {
-    @apply px-4 sm:px-6 lg:px-8;
-  }
-  
-  .py-responsive {
-    @apply py-4 sm:py-6 lg:py-8;
-  }
-  
-  .pt-responsive {
-    @apply pt-16 sm:pt-20 lg:pt-24;
-  }
-  
-  .pb-responsive {
-    @apply pb-16 sm:pb-20 lg:pb-24;
-  }
-  
-  .mb-responsive {
-    @apply mb-4 sm:mb-6 lg:mb-8;
-  }
-  
-  .mt-responsive {
-    @apply mt-4 sm:mt-6 lg:mt-8;
-  }
-  
-  .space-responsive {
-    @apply space-y-4 sm:space-y-6 lg:space-y-8;
-  }
-  
-  .space-x-responsive {
-    @apply space-x-4 sm:space-x-6 lg:space-x-8;
-  }
-  
-  .w-responsive-full {
-    @apply w-full sm:w-auto;
-  }
-  
-  .h-responsive-screen {
-    @apply h-screen sm:h-auto;
-  }
-  
-  .min-h-responsive-screen {
-    @apply min-h-screen sm:min-h-0;
-  }
-  
-  .rounded-responsive {
-    @apply rounded-lg sm:rounded-xl lg:rounded-2xl;
-  }
-  
-  .shadow-responsive {
-    @apply shadow-sm sm:shadow-md lg:shadow-lg;
-  }
-  
-  .border-responsive {
-    @apply border sm:border-2;
-  }
-  
-  .text-center-responsive {
-    @apply text-center sm:text-left;
-  }
-  
-  .items-center-responsive {
-    @apply items-center sm:items-start;
-  }
-  
-  .justify-center-responsive {
-    @apply justify-center sm:justify-start;
-  }
-  
-  .hidden-mobile {
-    @apply hidden sm:block;
-  }
-  
-  .hidden-desktop {
-    @apply block sm:hidden;
-  }
-  
-  .visible-mobile {
-    @apply block sm:hidden;
-  }
-  
-  .visible-desktop {
-    @apply hidden sm:block;
-  }
+
+  .text-responsive-xs { font-size: var(--text-xs); }
+  .text-responsive-sm { font-size: var(--text-sm); }
+  .text-responsive-base { font-size: var(--text-base); }
+  .text-responsive-lg { font-size: var(--text-lg); }
+  .text-responsive-xl { font-size: var(--text-xl); }
+  .text-responsive-2xl { font-size: var(--text-2xl); }
+  .text-responsive-3xl { font-size: var(--text-3xl); }
+
+  .grid-responsive-1 { @apply grid grid-cols-1; }
+  .grid-responsive-2 { @apply grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8; }
+  .grid-responsive-3 { @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8; }
+  .grid-responsive-4 { @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8; }
+
+  .flex-responsive-col { @apply flex flex-col sm:flex-row; }
+  .flex-responsive-row { @apply flex flex-row flex-wrap sm:flex-nowrap; }
+  .gap-responsive { @apply gap-5 sm:gap-7 lg:gap-10; }
+  .p-responsive { @apply p-5 sm:p-7 lg:p-10; }
+  .px-responsive { @apply px-5 sm:px-8 lg:px-10; }
+  .py-responsive { @apply py-6 sm:py-8 lg:py-12; }
+  .pt-responsive { @apply pt-20 sm:pt-24 lg:pt-28; }
+  .pb-responsive { @apply pb-20 sm:pb-24 lg:pb-28; }
+  .mb-responsive { @apply mb-6 sm:mb-8 lg:mb-12; }
+  .mt-responsive { @apply mt-6 sm:mt-8 lg:mt-12; }
+  .space-responsive { @apply space-y-6 sm:space-y-8 lg:space-y-12; }
+  .space-x-responsive { @apply space-x-5 sm:space-x-7 lg:space-x-10; }
+  .w-responsive-full { @apply w-full sm:w-auto; }
+  .h-responsive-screen { @apply h-screen sm:h-auto; }
+  .min-h-responsive-screen { @apply min-h-screen sm:min-h-0; }
+  .rounded-responsive { @apply rounded-xl sm:rounded-2xl; }
+  .shadow-responsive { box-shadow: var(--elevated-shadow); }
+  .border-responsive { @apply border; }
+  .text-center-responsive { @apply text-center sm:text-left; }
+  .items-center-responsive { @apply items-center sm:items-start; }
+  .justify-center-responsive { @apply justify-center sm:justify-start; }
+  .hidden-mobile { @apply hidden sm:block; }
+  .hidden-desktop { @apply block sm:hidden; }
+  .visible-mobile { @apply block sm:hidden; }
+  .visible-desktop { @apply hidden sm:block; }
 }
 
-/* Color-changing animation for text */
+@keyframes fadeRise {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes softPulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(20, 184, 166, 0.35); }
+  50% { box-shadow: 0 0 28px 4px rgba(20, 184, 166, 0.25); }
+}
+
+.animate-fade-rise {
+  animation: fadeRise 0.65s ease-out both;
+}
+
+.animate-ai-pulse {
+  animation: softPulseGlow 3.2s ease-in-out infinite;
+}
+
+/* Legacy class kept for existing markup — now a calm teal shift, not rainbow */
 @keyframes colorChange {
-  0% {
-    color: #ec4899; /* pink-500 */
-  }
-  16.66% {
-    color: #a855f7; /* purple-500 */
-  }
-  33.33% {
-    color: #3b82f6; /* blue-500 */
-  }
-  50% {
-    color: #06b6d4; /* cyan-500 */
-  }
-  66.66% {
-    color: #10b981; /* emerald-500 */
-  }
-  83.33% {
-    color: #f59e0b; /* amber-500 */
-  }
-  100% {
-    color: #ec4899; /* pink-500 */
-  }
+  0%, 100% { color: #0f766e; }
+  50% { color: #0284c7; }
 }
 
 .animate-color-change {
-  animation: colorChange 4s ease-in-out infinite;
+  animation: colorChange 5s ease-in-out infinite;
 }
 
-/* Blue-only color animation (navbar logo) */
 @keyframes blueGlow {
-  0% {
-    color: #0ea5e9; /* sky-500 */
-  }
-  25% {
-    color: #2563eb; /* blue-600 */
-  }
-  50% {
-    color: #38bdf8; /* sky-400 */
-  }
-  75% {
-    color: #1d4ed8; /* blue-700 */
-  }
-  100% {
-    color: #0ea5e9;
-  }
+  0%, 100% { color: #0f766e; }
+  50% { color: #0e7490; }
 }
 
 .animate-blue-glow {
-  animation: blueGlow 3.5s ease-in-out infinite;
+  animation: blueGlow 4s ease-in-out infinite;
 }
 
-/* Custom scrollbar for question navigator */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #e4eef1;
   border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #0f766e, #0284c7);
   border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  background: linear-gradient(135deg, #0d9488, #0369a1);
 }
 
-/* Hide scrollbar for Super Admin sidebar but keep scrolling */
 .super-admin-sidebar {
   height: 100vh;
   overflow-y: auto;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge Legacy */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .super-admin-sidebar::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Edge */
+  display: none;
 }
 
-/* Hide scrollbar while preserving scroll behavior */
 .hide-scrollbar {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge Legacy */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .hide-scrollbar::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Edge */
+  display: none;
 }
 
-/* Teacher dashboard — visible horizontal nav scrollbar (mobile bottom bar + desktop tabs) */
 .teacher-dashboard-nav-scroll {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.95) rgba(255, 255, 255, 0.25);
 }
 
 .teacher-dashboard-nav-scroll::-webkit-scrollbar {
-  height: 7px;
+  height: 8px;
 }
 
 .teacher-dashboard-nav-scroll::-webkit-scrollbar-track {
@@ -483,34 +449,72 @@
 .teacher-dashboard-nav-scroll::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.95);
   border-radius: 9999px;
-  border: 1px solid rgba(234, 88, 12, 0.35);
 }
 
-.teacher-dashboard-nav-scroll::-webkit-scrollbar-thumb:hover {
-  background: #ffffff;
-}
-
-/* Hide root page scrollbar for full-screen dashboard layouts */
 html.dashboard-no-scrollbar,
 body.dashboard-no-scrollbar {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge Legacy */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 html.dashboard-no-scrollbar::-webkit-scrollbar,
 body.dashboard-no-scrollbar::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Edge */
+  display: none;
 }
 
-/* Cross-page mobile and tablet safeguards */
 @media (max-width: 1023px) {
   .responsive-table-wrapper {
     width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+}
 
-  .responsive-table-wrapper table {
-    min-width: 640px;
+/* Teacher workspace: playful, tactile feedback without distracting motion. */
+.teacher-playful-dashboard button:not(:disabled),
+.teacher-playful-dashboard [role='button'] {
+  transform-origin: center;
+  transition:
+    transform 180ms ease,
+    box-shadow 220ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .teacher-playful-dashboard button:not(:disabled):hover {
+    transform: translateY(-2px);
+  }
+
+  .teacher-playful-dashboard [role='button']:hover {
+    filter: saturate(1.06);
+  }
+
+  .teacher-playful-dashboard button:not(:disabled):hover svg {
+    transform: scale(1.08);
+  }
+}
+
+.teacher-playful-dashboard button:not(:disabled):active,
+.teacher-playful-dashboard [role='button']:active {
+  transform: scale(0.98);
+}
+
+.teacher-playful-dashboard button svg {
+  transition: transform 180ms ease;
+}
+
+.teacher-playful-dashboard [role='button']:focus-visible {
+  outline: 3px solid rgba(20, 184, 166, 0.42);
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .teacher-playful-dashboard button,
+  .teacher-playful-dashboard [role='button'],
+  .teacher-playful-dashboard button svg {
+    transition: none !important;
+    transform: none !important;
   }
 }

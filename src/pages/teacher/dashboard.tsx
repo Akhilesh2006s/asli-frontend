@@ -69,8 +69,9 @@ import type { EduOTTVideoCardItem } from '@/components/eduott/EduOTTVideoCard';
 import { EduOTTVideoPlayerDialog } from '@/components/eduott/EduOTTVideoPlayerDialog';
 import { EduOTTLiveSessionDialog } from '@/components/eduott/EduOTTLiveSessionDialog';
 import { EduOTTJoinSessionButton } from '@/components/eduott/EduOTTJoinSessionButton';
-import { EduOTTTabsList } from '@/components/eduott/EduOTTTabsList';
-import { resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
+import { EduOTTTabsList, eduOttTabTriggerClass } from '@/components/eduott/EduOTTTabsList';
+import { EduOTTFeaturedHero, EduOTTStage } from '@/components/eduott/EduOTTStage';
+import { getEduOTTThumbnailUrl, resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
@@ -294,80 +295,70 @@ const TeacherDashboard = () => {
     [teacherSubjects],
   );
 
+  const tabBtn = (active: boolean) =>
+    cn(
+      'shrink-0 snap-center justify-center whitespace-nowrap lg:flex-1',
+      'h-12 rounded-2xl px-4 text-base font-semibold transition-all duration-200',
+      'border-0 shadow-none',
+      active
+        ? 'bg-white text-teal-green-700 shadow-[0_8px_24px_-8px_rgba(6,36,51,0.35)] ring-2 ring-white/90'
+        : 'bg-white/10 text-white hover:bg-white/20 hover:text-white'
+    );
+
   const dashboardSubTabNav = (
     <div
-      className="inline-flex items-center gap-2 flex-nowrap shrink-0 pr-2 lg:pr-0 lg:flex lg:w-full lg:shrink"
+      className="inline-flex shrink-0 flex-nowrap items-center gap-2 pr-2 lg:w-full lg:shrink lg:pr-0"
       role="tablist"
       aria-label="Dashboard sections"
     >
       <Button
-        variant={dashboardSubTab === 'ai-classes' ? 'default' : 'outline'}
-        className={cn(
-          dashboardSubTab === 'ai-classes'
-            ? 'bg-white text-orange-600 shadow-lg border-white'
-            : 'bg-transparent text-white border-white/30 hover:bg-white/10',
-          'shrink-0 snap-center justify-center whitespace-nowrap lg:flex-1 h-9 sm:h-10 px-2.5 sm:px-3 text-xs sm:text-sm'
-        )}
+        type="button"
+        variant="ghost"
+        className={tabBtn(dashboardSubTab === 'ai-classes')}
         onClick={() => selectDashboardSubTab('ai-classes')}
         aria-current={dashboardSubTab === 'ai-classes' ? 'page' : undefined}
       >
-        <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 shrink-0" />
+        <Sparkles className="mr-2 h-5 w-5 shrink-0" />
         Dashboard
       </Button>
       <Button
-        variant={dashboardSubTab === 'students' ? 'default' : 'outline'}
-        className={cn(
-          dashboardSubTab === 'students'
-            ? 'bg-white text-orange-600 shadow-lg border-white'
-            : 'bg-transparent text-white border-white/30 hover:bg-white/10',
-          'shrink-0 snap-center justify-center whitespace-nowrap lg:flex-1 h-9 sm:h-10 px-2.5 sm:px-3 text-xs sm:text-sm'
-        )}
+        type="button"
+        variant="ghost"
+        className={tabBtn(dashboardSubTab === 'students')}
         onClick={() => selectDashboardSubTab('students')}
         aria-current={dashboardSubTab === 'students' ? 'page' : undefined}
       >
-        <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 shrink-0" />
+        <Users className="mr-2 h-5 w-5 shrink-0" />
         My Students
       </Button>
       <Button
-        variant={dashboardSubTab === 'eduott' ? 'default' : 'outline'}
-        className={cn(
-          dashboardSubTab === 'eduott'
-            ? 'bg-white text-orange-600 shadow-lg border-white'
-            : 'bg-transparent text-white border-white/30 hover:bg-white/10',
-          'shrink-0 snap-center justify-center whitespace-nowrap lg:flex-1 h-9 sm:h-10 px-2.5 sm:px-3 text-xs sm:text-sm'
-        )}
+        type="button"
+        variant="ghost"
+        className={tabBtn(dashboardSubTab === 'eduott')}
         onClick={() => selectDashboardSubTab('eduott')}
         aria-current={dashboardSubTab === 'eduott' ? 'page' : undefined}
       >
-        <VideoIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 shrink-0" />
+        <VideoIcon className="mr-2 h-5 w-5 shrink-0" />
         EduOTT
       </Button>
       <Button
-        variant={dashboardSubTab === 'learning-paths' ? 'default' : 'outline'}
-        className={cn(
-          dashboardSubTab === 'learning-paths'
-            ? 'bg-white text-orange-600 shadow-lg border-white'
-            : 'bg-transparent text-white border-white/30 hover:bg-white/10',
-          'shrink-0 snap-center justify-center whitespace-nowrap lg:flex-1 h-9 sm:h-10 px-2.5 sm:px-3 text-xs sm:text-sm'
-        )}
+        type="button"
+        variant="ghost"
+        className={tabBtn(dashboardSubTab === 'learning-paths')}
         onClick={() => selectDashboardSubTab('learning-paths')}
         aria-current={dashboardSubTab === 'learning-paths' ? 'page' : undefined}
       >
-        <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 shrink-0" />
+        <BookOpen className="mr-2 h-5 w-5 shrink-0" />
         Learning Paths
       </Button>
       <Button
-        variant={dashboardSubTab === 'vidya-ai' ? 'default' : 'outline'}
-        className={cn(
-          dashboardSubTab === 'vidya-ai'
-            ? 'bg-white text-orange-600 shadow-lg border-white'
-            : 'bg-transparent text-white border-white/30 hover:bg-white/10',
-          'shrink-0 snap-center justify-center whitespace-nowrap lg:flex-1 h-9 sm:h-10 px-2.5 sm:px-3 text-xs sm:text-sm'
-        )}
+        type="button"
+        variant="ghost"
+        className={tabBtn(dashboardSubTab === 'vidya-ai')}
         onClick={() => selectDashboardSubTab('vidya-ai')}
         aria-current={dashboardSubTab === 'vidya-ai' ? 'page' : undefined}
       >
-        <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 shrink-0" />
+        <Sparkles className="mr-2 h-5 w-5 shrink-0" />
         Vidya AI
       </Button>
     </div>
@@ -2169,33 +2160,35 @@ const TeacherDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-sky-50 relative overflow-x-hidden">
+    <div className="teacher-playful-dashboard asli-app-bg min-h-screen relative overflow-x-hidden">
       {/* Interactive Background - Disabled for better performance */}
       {/* <div className="fixed inset-0 z-0">
         <InteractiveBackground />
         <FloatingParticles />
       </div> */}
       
-      {/* Header - Student Dashboard Theme */}
-      <div className="bg-gradient-to-r from-sky-400 via-sky-500 to-teal-500 text-white shadow-xl border-b-0 rounded-b-3xl sticky top-0 z-50 relative">
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-6">
+      {/* Premium teacher header — aligned with the teal/ink workspace below */}
+      <div className="sticky top-0 z-50 overflow-hidden rounded-b-3xl border-b border-teal-green-300/20 bg-gradient-to-r from-ink via-ink-soft to-teal-green-700 text-white shadow-elevated">
+        <div className="pointer-events-none absolute -left-16 -top-24 h-52 w-52 rounded-full bg-teal-green-400/20 blur-3xl" />
+        <div className="pointer-events-none absolute -right-10 -top-28 h-56 w-56 rounded-full bg-indigo-blue-500/25 blur-3xl" />
+        <div className="relative mx-auto w-full max-w-7xl px-4 py-3 sm:px-6 sm:py-4 lg:px-8 lg:py-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
               <SchoolBrandRow user={teacherUser} variant="onPrimary" />
               <div>
-                <p className="text-xs text-white/80 font-medium">Teacher Portal</p>
+                <p className="text-base font-medium text-teal-green-200">Teacher Portal</p>
               </div>
             </div>
             <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto space-x-3 sm:space-x-4">
               <div className="text-left sm:text-right">
-                <p className="text-xs sm:text-sm font-medium text-white">{teacherEmail || localStorage.getItem('userEmail') || 'Teacher'}</p>
-                <p className="text-xs text-white/80">Welcome back!</p>
+                <p className="text-base font-semibold text-white">{teacherEmail || localStorage.getItem('userEmail') || 'Teacher'}</p>
+                <p className="text-[0.9375rem] text-teal-green-100/75">Welcome back!</p>
               </div>
               <Button 
                 variant="ghost" 
                 size="sm"
                 onClick={handleLogout}
-                className="rounded-full border-2 border-white/80 bg-orange-500 px-4 text-white shadow-lg transition-all duration-300 hover:scale-105 hover:bg-orange-600 hover:shadow-xl w-auto font-semibold"
+                className="w-auto rounded-full border border-white/25 bg-white/10 px-5 text-white shadow-md backdrop-blur-md transition-all duration-300 hover:scale-105 hover:bg-white hover:text-ink hover:shadow-glow font-semibold"
               >
                 <LogOut className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Logout
@@ -2209,7 +2202,7 @@ const TeacherDashboard = () => {
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-28 lg:pb-8 relative z-10">
         {/* Welcome Message */}
         <div className="mb-8">
-          <h1 className="text-responsive-xl font-bold bg-gradient-to-r from-orange-500 to-teal-500 bg-clip-text text-transparent capitalize">
+          <h1 className="font-display text-responsive-xl font-bold text-ink capitalize">
             Overview
           </h1>
           <p className="text-gray-600 text-responsive-sm font-medium mt-2">Manage your classes and track student progress with style</p>
@@ -2218,7 +2211,7 @@ const TeacherDashboard = () => {
         {/* Dashboard Content */}
         <div className="space-y-4 sm:space-y-6 lg:space-y-8">
           {/* Dashboard Sub-Tabs — desktop / large tablet (in page flow) */}
-              <div className="hidden lg:block bg-gradient-to-b from-orange-400 to-orange-500 rounded-3xl p-4 shadow-xl border border-orange-300 overflow-x-auto teacher-dashboard-nav-scroll">
+              <div className="hidden lg:block rounded-3xl border border-teal-green-300/30 bg-gradient-to-r from-teal-green-600 via-teal-green-500 to-indigo-blue-600 p-3 shadow-elevated">
                 {dashboardSubTabNav}
               </div>
 
@@ -2257,7 +2250,17 @@ const TeacherDashboard = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
-                  className="group relative overflow-hidden bg-gradient-to-br from-orange-400 to-orange-500 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Open My Students"
+                  onClick={() => setDashboardSubTab('students')}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      setDashboardSubTab('students');
+                    }
+                  }}
+                  className="group relative cursor-pointer overflow-hidden bg-gradient-to-br from-orange-400 to-orange-500 rounded-responsive p-responsive shadow-responsive hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl active:scale-[0.99] transition-all duration-300"
                 >
                   <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                   <div className="relative z-10">
@@ -2279,7 +2282,25 @@ const TeacherDashboard = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="group relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Jump to My Classes"
+                  onClick={() =>
+                    document.getElementById('teacher-my-classes')?.scrollIntoView({
+                      behavior: 'smooth',
+                      block: 'start',
+                    })
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      document.getElementById('teacher-my-classes')?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start',
+                      });
+                    }
+                  }}
+                  className="group relative cursor-pointer overflow-hidden bg-gradient-to-br from-indigo-blue-500 to-indigo-blue-700 rounded-responsive p-responsive shadow-responsive hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl active:scale-[0.99] transition-all duration-300"
                 >
                   <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                   <div className="relative z-10">
@@ -2301,7 +2322,17 @@ const TeacherDashboard = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="group relative overflow-hidden bg-gradient-to-br from-teal-400 to-teal-500 rounded-responsive p-responsive shadow-responsive hover:shadow-xl transition-all duration-300"
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Open EduOTT videos"
+                  onClick={() => setDashboardSubTab('eduott')}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      setDashboardSubTab('eduott');
+                    }
+                  }}
+                  className="group relative cursor-pointer overflow-hidden bg-gradient-to-br from-teal-400 to-teal-600 rounded-responsive p-responsive shadow-responsive hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl active:scale-[0.99] transition-all duration-300"
                 >
                   <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
                   <div className="relative z-10">
@@ -2323,6 +2354,7 @@ const TeacherDashboard = () => {
 
               {/* My Classes — dedicated card grid */}
               <motion.div
+                id="teacher-my-classes"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
@@ -3970,51 +4002,63 @@ const TeacherDashboard = () => {
 
               {/* EduOTT Tab */}
               {dashboardSubTab === 'eduott' && (
-                <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-                  {/* Header */}
-                  <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg flex items-center justify-center">
-                        <VideoIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                      </div>
-                      <div>
-                        <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">EduOTT</h2>
-                        <p className="text-gray-600">Educational videos and live sessions</p>
-                      </div>
-                    </div>
-
-                    {/* Tabs */}
-                    <Tabs value={eduottActiveTab} onValueChange={(value) => setEduottActiveTab(value as 'videos' | 'live-sessions')} className="space-y-3 sm:space-y-4 lg:space-y-6">
+                <>
+                <EduOTTStage>
+                    <Tabs value={eduottActiveTab} onValueChange={(value) => setEduottActiveTab(value as 'videos' | 'live-sessions')} className="space-y-6">
                       <EduOTTTabsList>
-                        <TabsTrigger value="videos" className="w-full py-2 text-xs sm:text-sm">
+                        <TabsTrigger value="videos" className={eduOttTabTriggerClass}>
                           Videos
                         </TabsTrigger>
-                        <TabsTrigger value="live-sessions" className="w-full py-2 text-xs sm:text-sm">
+                        <TabsTrigger value="live-sessions" className={eduOttTabTriggerClass}>
                           Live Sessions
                         </TabsTrigger>
                       </EduOTTTabsList>
 
                       {/* Videos Tab */}
-                      <TabsContent value="videos" className="space-y-3 sm:space-y-4 lg:space-y-6">
+                      <TabsContent value="videos" className="space-y-6">
+                        {!isLoadingEduott && filteredEduottVideos.length > 0 ? (
+                          <EduOTTFeaturedHero
+                            title={filteredEduottVideos[0].title}
+                            meta={[
+                              extractPlainSubjectName(
+                                String(filteredEduottVideos[0].subjectName || filteredEduottVideos[0].subject || '')
+                              ),
+                              getSubjectClassLabel({
+                                name: String(filteredEduottVideos[0].subjectName || filteredEduottVideos[0].subject || ''),
+                                classNumber: filteredEduottVideos[0].classNumber,
+                              })
+                                ? `Class ${getSubjectClassLabel({
+                                    name: String(filteredEduottVideos[0].subjectName || filteredEduottVideos[0].subject || ''),
+                                    classNumber: filteredEduottVideos[0].classNumber,
+                                  })}`
+                                : '',
+                            ]
+                              .filter(Boolean)
+                              .join(' · ')}
+                            thumbnailUrl={getEduOTTThumbnailUrl(filteredEduottVideos[0])}
+                            onPlay={() => setSelectedEduottVideo(filteredEduottVideos[0])}
+                          />
+                        ) : null}
+
                         {/* Search and Filter */}
-                        <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end">
-                      <div className="flex-1 min-w-[200px] relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
+                        <div className="flex flex-col gap-4 rounded-2xl border border-ink/10 bg-mist/80 p-4 sm:p-5 lg:flex-row lg:flex-wrap lg:items-end">
+                      <div className="relative min-w-[200px] flex-1">
+                        <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-teal-green-600" />
                         <Input
                           type="text"
                           placeholder="Search videos by title..."
                           value={eduottSearchTerm}
                           onChange={(e) => setEduottSearchTerm(e.target.value)}
-                          className="px-0 pl-10 sm:pl-11 w-full"
+                          className="h-12 border-ink/10 bg-white pl-11 text-base text-ink placeholder:text-muted-foreground"
                         />
                       </div>
-                      <div className="space-y-1.5 w-full sm:w-auto">
-                        <Label className="text-xs text-gray-500">Class</Label>
+                      <div className="w-full space-y-2 sm:w-auto">
+                        <Label className="text-base text-muted-foreground">Class</Label>
                         <Select
                           value={eduottClassFilter}
                           onValueChange={(value) => preserveScrollOnFilterChange(setEduottClassFilter, value)}
                         >
-                          <SelectTrigger className="w-full md:w-[180px] bg-white">
+                          <SelectTrigger className="h-12 w-full border-ink/10 bg-white text-base md:w-[180px]">
                             <SelectValue placeholder="All classes" />
                           </SelectTrigger>
                           <SelectContent>
@@ -4027,14 +4071,14 @@ const TeacherDashboard = () => {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-1.5 w-full sm:w-auto">
-                        <Label className="text-xs text-gray-500">Subject</Label>
+                      <div className="w-full space-y-2 sm:w-auto">
+                        <Label className="text-base text-muted-foreground">Subject</Label>
                         <Select
                           value={eduottSubjectFilter}
                           onValueChange={(value) => preserveScrollOnFilterChange(setEduottSubjectFilter, value)}
                         >
-                          <SelectTrigger className="w-full md:w-[200px] bg-white">
-                            <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2 shrink-0" />
+                          <SelectTrigger className="h-12 w-full border-ink/10 bg-white text-base md:w-[200px]">
+                            <Filter className="mr-2 h-5 w-5 shrink-0 text-teal-green-600" />
                             <SelectValue placeholder="All subjects" />
                           </SelectTrigger>
                           <SelectContent>
@@ -4049,39 +4093,32 @@ const TeacherDashboard = () => {
                       </div>
                     </div>
 
-                    {/* Results Count */}
-                    <div className="mt-4">
-                      <p className="text-xs sm:text-sm text-gray-600">
+                    <p className="text-base text-muted-foreground">
                         Showing {filteredEduottVideos.length} of {eduottVideos.length} videos
                       </p>
-                    </div>
 
                     {/* Videos Grid */}
                     {isLoadingEduott ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6 mt-6">
+                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                         {Array.from({ length: 6 }).map((_, i) => (
-                          <Card key={i} className="overflow-hidden">
-                            <div className="w-full h-48 bg-gray-200 animate-pulse" />
-                            <CardHeader>
-                              <div className="h-6 bg-gray-200 rounded w-3/4 mb-2 animate-pulse" />
-                              <div className="h-4 bg-gray-200 rounded w-1/2 animate-pulse" />
-                            </CardHeader>
-                            <CardContent>
-                              <div className="h-4 bg-gray-200 rounded w-full mb-2 animate-pulse" />
-                              <div className="h-4 bg-gray-200 rounded w-2/3 animate-pulse" />
-                            </CardContent>
-                          </Card>
+                          <div key={i} className="overflow-hidden rounded-2xl border border-ink/10 bg-white">
+                            <div className="aspect-video animate-pulse bg-mist-deep" />
+                            <div className="space-y-3 p-5">
+                              <div className="h-6 w-3/4 animate-pulse rounded bg-white/10" />
+                              <div className="h-4 w-1/2 animate-pulse rounded bg-white/10" />
+                            </div>
+                          </div>
                         ))}
                       </div>
                     ) : (() => {
                       if (filteredEduottVideos.length === 0) {
                         return (
-                          <div className="text-center py-16 bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 mt-6">
-                            <VideoIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">
+                          <div className="rounded-3xl border border-dashed border-ink/15 bg-mist py-16 text-center">
+                            <VideoIcon className="mx-auto mb-4 h-16 w-16 text-ink/25" />
+                            <h3 className="mb-2 font-display text-xl font-semibold text-ink">
                               {eduottVideos.length === 0 ? 'No Videos Available' : 'No Videos Found'}
                             </h3>
-                            <p className="text-gray-500">
+                            <p className="text-lg text-muted-foreground">
                               {eduottVideos.length === 0 
                                 ? 'No videos have been assigned to your subjects yet.' 
                                 : 'Try adjusting your search or filter criteria.'}
@@ -4091,7 +4128,7 @@ const TeacherDashboard = () => {
                       }
 
                       return (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6 mt-6">
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                           {filteredEduottVideos.map((video) => {
                             const videoId = video._id || video.id || '';
                             return (
@@ -4099,7 +4136,6 @@ const TeacherDashboard = () => {
                                 key={videoId}
                                 video={video}
                                 onPlay={() => setSelectedEduottVideo(video)}
-                                playAccentClass="text-purple-600"
                                 subjectBadges={
                                   video.subjectName || video.subject ? (
                                     <EduOTTSubjectBadges
@@ -4124,26 +4160,25 @@ const TeacherDashboard = () => {
                       </TabsContent>
 
                       {/* Live Sessions Tab */}
-                      <TabsContent value="live-sessions" className="space-y-3 sm:space-y-4 lg:space-y-6">
-                        {/* Search and Filter */}
-                        <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end">
-                          <div className="flex-1 min-w-[200px] relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
+                      <TabsContent value="live-sessions" className="space-y-6">
+                        <div className="flex flex-col gap-4 rounded-2xl border border-ink/10 bg-mist/80 p-4 sm:p-5 lg:flex-row lg:flex-wrap lg:items-end">
+                          <div className="relative min-w-[200px] flex-1">
+                            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-teal-green-600" />
                             <Input
                               type="text"
                               placeholder="Search live sessions..."
                               value={sessionSearchTerm}
                               onChange={(e) => setSessionSearchTerm(e.target.value)}
-                              className="px-0 pl-10 sm:pl-11 w-full"
+                              className="h-12 border-ink/10 bg-white pl-11 text-base text-ink placeholder:text-muted-foreground"
                             />
                           </div>
-                          <div className="space-y-1.5 w-full sm:w-auto">
-                            <Label className="text-xs text-gray-500">Class</Label>
+                          <div className="w-full space-y-2 sm:w-auto">
+                            <Label className="text-base text-muted-foreground">Class</Label>
                             <Select
                               value={sessionClassFilter}
                               onValueChange={(value) => preserveScrollOnFilterChange(setSessionClassFilter, value)}
                             >
-                              <SelectTrigger className="w-full md:w-[180px] bg-white">
+                              <SelectTrigger className="h-12 w-full border-ink/10 bg-white text-base md:w-[180px]">
                                 <SelectValue placeholder="All classes" />
                               </SelectTrigger>
                               <SelectContent>
@@ -4156,13 +4191,13 @@ const TeacherDashboard = () => {
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="space-y-1.5 w-full sm:w-auto">
-                            <Label className="text-xs text-gray-500">Subject</Label>
+                          <div className="w-full space-y-2 sm:w-auto">
+                            <Label className="text-base text-muted-foreground">Subject</Label>
                             <Select
                               value={sessionSubjectFilter}
                               onValueChange={(value) => preserveScrollOnFilterChange(setSessionSubjectFilter, value)}
                             >
-                              <SelectTrigger className="w-full md:w-[200px] bg-white">
+                              <SelectTrigger className="h-12 w-full border-ink/10 bg-white text-base md:w-[200px]">
                                 <SelectValue placeholder="All subjects" />
                               </SelectTrigger>
                               <SelectContent>
@@ -4175,14 +4210,14 @@ const TeacherDashboard = () => {
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="space-y-1.5 w-full sm:w-auto">
-                            <Label className="text-xs text-gray-500">Status</Label>
+                          <div className="w-full space-y-2 sm:w-auto">
+                            <Label className="text-base text-muted-foreground">Status</Label>
                             <Select
                               value={filterStatus}
                               onValueChange={(value) => preserveScrollOnFilterChange(setFilterStatus, value)}
                             >
-                              <SelectTrigger className="w-full md:w-[160px] bg-white">
-                                <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2 shrink-0" />
+                              <SelectTrigger className="h-12 w-full border-ink/10 bg-white text-base md:w-[160px]">
+                                <Filter className="mr-2 h-5 w-5 shrink-0 text-teal-green-600" />
                                 <SelectValue placeholder="Filter by status" />
                               </SelectTrigger>
                               <SelectContent>
@@ -4196,24 +4231,23 @@ const TeacherDashboard = () => {
                           </div>
                         </div>
 
-                        {/* Live Sessions List */}
                         {isLoadingLiveSessions ? (
                           <div className="space-y-4">
                             {Array.from({ length: 3 }).map((_, i) => (
-                              <Card key={i} className="overflow-hidden">
-                                <Skeleton className="w-full h-32" />
-                              </Card>
+                              <div key={i} className="overflow-hidden rounded-2xl border border-ink/10 bg-white">
+                                <Skeleton className="h-32 w-full bg-white/10" />
+                              </div>
                             ))}
                           </div>
                         ) : filteredLiveSessions.length === 0 ? (
-                          <div className="text-center py-16 bg-white/60 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20">
-                            <Radio className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">
+                          <div className="rounded-3xl border border-dashed border-ink/15 bg-mist py-16 text-center">
+                            <Radio className="mx-auto mb-4 h-16 w-16 text-ink/25" />
+                            <h3 className="mb-2 font-display text-xl font-semibold text-ink">
                               {liveSessions.length === 0 ? 'No Live Sessions Available' : 'No Live Sessions Found'}
                             </h3>
-                            <p className="text-gray-500">
-                              {liveSessions.length === 0 
-                                ? 'No live sessions have been scheduled for your subjects yet.' 
+                            <p className="text-lg text-muted-foreground">
+                              {liveSessions.length === 0
+                                ? 'No live sessions have been scheduled for your subjects yet.'
                                 : 'Try adjusting your search or filter criteria.'}
                             </p>
                           </div>
@@ -4223,85 +4257,87 @@ const TeacherDashboard = () => {
                               const getStatusColor = (status: string) => {
                                 switch (status) {
                                   case 'live':
-                                    return 'bg-red-100 text-red-700';
+                                    return 'bg-red-100 text-red-700 ring-1 ring-red-200';
                                   case 'scheduled':
-                                    return 'bg-blue-100 text-blue-700';
+                                    return 'bg-teal-green-50 text-teal-green-800 ring-1 ring-teal-green-200';
                                   case 'ended':
-                                    return 'bg-gray-100 text-gray-700';
+                                    return 'bg-slate-100 text-slate-700 ring-1 ring-slate-200';
                                   case 'cancelled':
-                                    return 'bg-orange-100 text-orange-700';
+                                    return 'bg-amber-50 text-amber-800 ring-1 ring-amber-200';
                                   default:
-                                    return 'bg-gray-100 text-gray-700';
+                                    return 'bg-slate-100 text-slate-700 ring-1 ring-slate-200';
                                 }
                               };
 
                               return (
-                                <Card key={session._id || session.id} className="hover:shadow-lg transition-shadow">
-                                  <CardContent className="p-3 sm:p-4 lg:p-6">
-                                    <div className="flex items-start justify-between">
-                                      <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-2">
-                                          <h3 className="text-base sm:text-lg font-semibold text-gray-900">{session.title}</h3>
-                                          <Badge className={getStatusColor(session.status)}>
-                                            {session.status?.toUpperCase() || 'UNKNOWN'}
-                                          </Badge>
-                                        </div>
-                                        {session.description && (
-                                          <p className="text-gray-600 mb-4">{session.description}</p>
-                                        )}
-                                        <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-gray-600">
-                                          {session.streamer?.fullName || session.streamer?.email ? (
-                                            <div className="flex items-center gap-1">
-                                              <Users className="w-3 h-3 sm:w-4 sm:h-4" />
-                                              <span>{session.streamer?.fullName || session.streamer?.email}</span>
-                                            </div>
-                                          ) : null}
-                                          {session.subject?.name && (
-                                            <div className="flex items-center gap-1">
-                                              <BookOpen className="w-3 h-3 sm:w-4 sm:h-4" />
-                                              <span>{extractPlainSubjectName(session.subject.name)}</span>
-                                            </div>
-                                          )}
-                                          {getSubjectClassLabel({
-                                            name: session.subject?.name,
-                                            classNumber: session.classNumber,
-                                          }) ? (
-                                            <Badge variant="outline">
-                                              Class{' '}
-                                              {getSubjectClassLabel({
-                                                name: session.subject?.name,
-                                                classNumber: session.classNumber,
-                                              })}
-                                            </Badge>
-                                          ) : null}
-                                          <div className="flex items-center gap-1">
-                                            <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
-                                            <span>{session.viewerCount || 0} viewers</span>
-                                          </div>
-                                          {(session.scheduledTime || session.scheduledStartTime) && (
-                                            <div className="flex items-center gap-1">
-                                              <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-                                              <span>
-                                                {new Date(session.scheduledTime || session.scheduledStartTime || '').toLocaleString()}
-                                              </span>
-                                            </div>
-                                          )}
-                                        </div>
+                                <div
+                                  key={session._id || session.id}
+                                  className="rounded-2xl border border-ink/10 bg-white p-5 transition hover:border-teal-green-400/40 hover:shadow-elevated sm:p-6"
+                                >
+                                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                                    <div className="min-w-0 flex-1">
+                                      <div className="mb-2 flex flex-wrap items-center gap-3">
+                                        <h3 className="font-display text-xl font-semibold text-ink">{session.title}</h3>
+                                        <Badge className={getStatusColor(session.status)}>
+                                          {session.status?.toUpperCase() || 'UNKNOWN'}
+                                        </Badge>
                                       </div>
-                                      <EduOTTJoinSessionButton
-                                        session={session}
-                                        onJoin={setSelectedLiveSession}
-                                      />
+                                      {session.description && (
+                                        <p className="mb-4 text-base text-muted-foreground">{session.description}</p>
+                                      )}
+                                      <div className="flex flex-wrap items-center gap-4 text-base text-muted-foreground">
+                                        {session.streamer?.fullName || session.streamer?.email ? (
+                                          <div className="flex items-center gap-1.5">
+                                            <Users className="h-5 w-5" />
+                                            <span>{session.streamer?.fullName || session.streamer?.email}</span>
+                                          </div>
+                                        ) : null}
+                                        {session.subject?.name && (
+                                          <div className="flex items-center gap-1.5">
+                                            <BookOpen className="h-5 w-5" />
+                                            <span>{extractPlainSubjectName(session.subject.name)}</span>
+                                          </div>
+                                        )}
+                                        {getSubjectClassLabel({
+                                          name: session.subject?.name,
+                                          classNumber: session.classNumber,
+                                        }) ? (
+                                          <span className="rounded-full border border-ink/10 bg-mist px-3 py-1 text-[0.9375rem] text-ink">
+                                            Class{' '}
+                                            {getSubjectClassLabel({
+                                              name: session.subject?.name,
+                                              classNumber: session.classNumber,
+                                            })}
+                                          </span>
+                                        ) : null}
+                                        <div className="flex items-center gap-1.5">
+                                          <Eye className="h-5 w-5" />
+                                          <span>{session.viewerCount || 0} viewers</span>
+                                        </div>
+                                        {(session.scheduledTime || session.scheduledStartTime) && (
+                                          <div className="flex items-center gap-1.5">
+                                            <Calendar className="h-5 w-5" />
+                                            <span>
+                                              {new Date(session.scheduledTime || session.scheduledStartTime || '').toLocaleString()}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
-                                  </CardContent>
-                                </Card>
+                                    <EduOTTJoinSessionButton
+                                      session={session}
+                                      onJoin={setSelectedLiveSession}
+                                      className="h-12 shrink-0 bg-red-600 text-base text-white hover:bg-red-700"
+                                    />
+                                  </div>
+                                </div>
                               );
                             })}
                           </div>
                         )}
-                      </TabsContent>
+</TabsContent>
                     </Tabs>
-                  </div>
+                </EduOTTStage>
 
                   <EduOTTVideoPlayerDialog
                     video={selectedEduottVideo}
@@ -4317,7 +4353,7 @@ const TeacherDashboard = () => {
                       if (!open) setSelectedLiveSession(null);
                     }}
                   />
-                </div>
+                </>
               )}
             </div>
 
@@ -4696,13 +4732,13 @@ const TeacherDashboard = () => {
 
       {/* Mobile / tablet — fixed bottom tab bar (horizontal swipe scroll) */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="pointer-events-auto relative w-full min-w-0 max-w-full bg-gradient-to-b from-orange-400 to-orange-500 rounded-3xl px-2.5 pt-2.5 pb-1.5 shadow-xl border border-orange-300">
+        <div className="pointer-events-auto relative w-full min-w-0 max-w-full rounded-3xl border border-teal-green-300/30 bg-gradient-to-r from-teal-green-600 via-teal-green-500 to-indigo-blue-600 px-2.5 pb-1.5 pt-2.5 shadow-elevated">
           <div
-            className="pointer-events-none absolute inset-y-2.5 left-2.5 z-10 w-5 bg-gradient-to-r from-orange-500 to-transparent"
+            className="pointer-events-none absolute inset-y-2.5 left-2.5 z-10 w-5 bg-gradient-to-r from-teal-green-600 to-transparent"
             aria-hidden="true"
           />
           <div
-            className="pointer-events-none absolute inset-y-2.5 right-2.5 z-10 w-5 bg-gradient-to-l from-orange-500 to-transparent"
+            className="pointer-events-none absolute inset-y-2.5 right-2.5 z-10 w-5 bg-gradient-to-l from-indigo-blue-600 to-transparent"
             aria-hidden="true"
           />
           <div

@@ -36,37 +36,61 @@ interface SuperAdminSidebarProps {
   onLogout: () => void;
 }
 
+const NAV_GROUPS: { label: string; items: { id: SuperAdminView | string; label: string; icon: typeof Sparkles }[] }[] = [
+  {
+    label: "Overview",
+    items: [
+      { id: "dashboard", label: "Dashboard", icon: BarChart3Icon },
+      { id: "analytics", label: "Analytics", icon: BarChartIcon },
+    ],
+  },
+  {
+    label: "Institution",
+    items: [
+      { id: "board", label: "Board Management", icon: Users2 },
+      { id: "admins", label: "School Management", icon: Shield },
+      { id: "subjects-and-content", label: "Subject & Content", icon: LayoutList },
+      { id: "calendar", label: "School Calendar", icon: Calendar },
+      { id: "subscriptions", label: "Subscriptions", icon: CreditCardIcon },
+    ],
+  },
+  {
+    label: "Learning",
+    items: [
+      { id: "edu-ott-live", label: "Edu OTT Live", icon: Radio },
+      { id: "exams", label: "Exam Management", icon: FileTextIcon },
+      { id: "iq-rank-boost", label: "IQ / Rank Boost", icon: TrophyIcon },
+      { id: "vidya-ai", label: "Vidya AI", icon: Sparkles },
+    ],
+  },
+  {
+    label: "AI Studio",
+    items: [
+      { id: "ai-generator", label: "AI Generator", icon: Sparkles },
+      { id: "book-based-generator", label: "Book-Based Generator", icon: BookOpen },
+      { id: "book-knowledge-base", label: "Book Knowledge Base", icon: BookOpen },
+      { id: "ai-tool-topics", label: "AI Tool Topics", icon: CircleDot },
+      { id: "ai-tool-generations", label: "AI Tool Data", icon: FolderTree },
+      { id: "ai-tool-duplicates", label: "Duplicates", icon: Copy },
+    ],
+  },
+  {
+    label: "System",
+    items: [{ id: "settings", label: "Settings", icon: SettingsIcon }],
+  },
+];
+
 export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }: SuperAdminSidebarProps) {
   const useDrawerNav = useSuperAdminDrawerNav();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3Icon },
-    { id: 'board', label: 'Board Management', icon: Users2 },
-    { id: 'admins', label: 'School Management', icon: Shield },
-    { id: 'subjects-and-content', label: 'Subject & Content', icon: LayoutList },
-    { id: 'edu-ott-live', label: 'Edu OTT Live', icon: Radio },
-    { id: 'exams', label: 'Exam Management', icon: FileTextIcon },
-    { id: 'iq-rank-boost', label: 'IQ/Rank Boost Activities', icon: TrophyIcon },
-    { id: 'calendar', label: 'School Calendar', icon: Calendar },
-    { id: 'vidya-ai', label: 'Vidya AI', icon: Sparkles },
-    { id: 'ai-tool-generations', label: 'AI Tool Data', icon: FolderTree },
-    { id: 'ai-tool-duplicates', label: 'Duplicates', icon: Copy },
-    { id: 'ai-tool-topics', label: 'AI Tool Topics', icon: CircleDot },
-    { id: 'ai-generator', label: 'AI Generator', icon: Sparkles },
-    { id: 'book-knowledge-base', label: 'Book Knowledge Base', icon: BookOpen },
-    { id: 'book-based-generator', label: 'Book-Based Generator', icon: BookOpen },
-    { id: 'analytics', label: 'Analytics', icon: BarChartIcon },
-    { id: 'subscriptions', label: 'Subscriptions', icon: CreditCardIcon },
-    { id: 'settings', label: 'Settings', icon: SettingsIcon },
-  ];
+  const allItems = NAV_GROUPS.flatMap((g) => g.items);
+  const mobileNavItems = allItems.slice(0, 5);
 
-  const mobileNavItems = menuItems.slice(0, 5);
-
-  const renderNavButton = (item: (typeof menuItems)[0], compact = false) => {
+  const renderNavButton = (item: (typeof allItems)[0], compact = false) => {
     const Icon = item.icon;
     const isActive =
       currentView === item.id ||
-      (item.id === 'analytics' && currentView === 'ai-analytics');
+      (item.id === "analytics" && currentView === "ai-analytics");
 
     return (
       <button
@@ -78,19 +102,28 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
         }}
         title={compact ? item.label : undefined}
         className={cn(
-          "w-full flex items-center gap-2 lg:gap-3 rounded-lg transition-colors text-left",
-          compact ? "justify-center px-2 py-2 lg:justify-start lg:px-4 lg:py-3 mx-1 lg:mx-2" : "items-start gap-3 px-4 py-3",
-          "text-xs sm:text-sm font-medium",
+          "group w-full flex items-center rounded-xl transition-all duration-200 text-left",
+          compact
+            ? "justify-center px-2 py-3 lg:justify-start lg:gap-3 lg:px-4 lg:py-3.5 mx-1.5 lg:mx-2"
+            : "gap-3.5 px-4 py-3.5",
+          "text-base font-medium",
           isActive
-            ? "bg-white text-orange-600 shadow-md"
-            : "text-white hover:bg-orange-600/50"
+            ? "bg-teal-green-400 text-ink shadow-glow scale-[1.01]"
+            : "text-white/85 hover:bg-white/10 hover:text-white"
         )}
       >
-        <Icon className={cn("flex-shrink-0", compact ? "w-4 h-4 lg:w-5 lg:h-5" : "mt-0.5 h-4 w-4 sm:h-5 sm:w-5")} />
-        <span className={cn(
-          "min-w-0 leading-snug break-words",
-          compact ? "hidden lg:block flex-1 truncate" : "flex-1"
-        )}>
+        <Icon
+          className={cn(
+            "flex-shrink-0 transition-transform group-hover:scale-105",
+            compact ? "h-6 w-6" : "h-6 w-6"
+          )}
+        />
+        <span
+          className={cn(
+            "min-w-0 leading-snug break-words",
+            compact ? "hidden lg:block flex-1" : "flex-1"
+          )}
+        >
           {item.label}
         </span>
       </button>
@@ -98,35 +131,55 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
   };
 
   const sidebarContent = (
-    <div className="h-full flex flex-col">
-      <div className="p-3 sm:p-4 lg:p-6">
-        <div className={cn(
-          "flex items-center mb-6 lg:mb-8",
-          useDrawerNav ? "space-x-3" : "justify-center lg:justify-start lg:space-x-3"
-        )}>
-          <GraduationCapIcon className="h-5 w-5 lg:h-8 lg:w-8 text-white shrink-0" />
+    <div className="flex h-full flex-col">
+      <div className="p-5 lg:p-6">
+        <div
+          className={cn(
+            "mb-8 flex items-center",
+            useDrawerNav ? "gap-3" : "justify-center lg:justify-start lg:gap-3"
+          )}
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-green-400/20 ring-1 ring-teal-green-300/40">
+            <GraduationCapIcon className="h-7 w-7 text-teal-green-200" />
+          </div>
           <div className={cn(!useDrawerNav && "hidden lg:block")}>
-            <h2 className="text-sm sm:text-base lg:text-lg font-bold text-white">Aslilearn AI</h2>
-            <p className="text-xs text-white/90">Super Admin</p>
+            <h2 className="font-display text-xl font-bold text-white tracking-tight">AsliLearn AI</h2>
+            <p className="text-base text-teal-green-200/90">Super Admin</p>
           </div>
         </div>
 
-        <nav className="space-y-1">
-          {menuItems.map((item) => renderNavButton(item, !useDrawerNav))}
+        <nav className="space-y-6">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label}>
+              <p
+                className={cn(
+                  "mb-2 px-4 text-xs font-semibold uppercase tracking-[0.14em] text-white/40",
+                  !useDrawerNav && "hidden lg:block"
+                )}
+              >
+                {group.label}
+              </p>
+              <div className="space-y-1">
+                {group.items.map((item) => renderNavButton(item, !useDrawerNav))}
+              </div>
+            </div>
+          ))}
         </nav>
       </div>
 
-      <div className="mt-auto p-3 sm:p-4 lg:p-6 border-t border-orange-300/50 space-y-3">
-        <div className={cn(
-          "flex items-center space-x-3",
-          !useDrawerNav && "justify-center lg:justify-start"
-        )}>
-          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center shrink-0">
-            <CrownIcon className="h-4 w-4 text-white" />
+      <div className="mt-auto space-y-4 border-t border-white/10 p-5 lg:p-6">
+        <div
+          className={cn(
+            "flex items-center gap-3",
+            !useDrawerNav && "justify-center lg:justify-start"
+          )}
+        >
+          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10">
+            <CrownIcon className="h-5 w-5 text-teal-green-200" />
           </div>
           <div className={cn(!useDrawerNav && "hidden lg:block")}>
-            <p className="text-xs sm:text-sm font-medium text-white">{user?.fullName || 'Super Admin'}</p>
-            <p className="text-xs text-white/90">Super Administrator</p>
+            <p className="text-base font-semibold text-white">{user?.fullName || "Super Admin"}</p>
+            <p className="text-[0.9375rem] text-white/55">Administrator</p>
           </div>
         </div>
         <button
@@ -136,12 +189,12 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
             setMobileOpen(false);
           }}
           className={cn(
-            "w-full flex items-center rounded-lg transition-colors text-white border border-white/35 hover:bg-red-600/45 hover:border-red-200/50",
-            "px-3 py-2 lg:px-4 lg:py-3 text-xs sm:text-sm font-medium",
+            "flex w-full items-center rounded-xl border border-white/20 text-base font-medium text-white transition hover:border-red-300/40 hover:bg-red-500/20",
+            "gap-3 px-4 py-3.5",
             !useDrawerNav && "justify-center lg:justify-start"
           )}
         >
-          <LogOut className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 lg:mr-3" />
+          <LogOut className="h-6 w-6 shrink-0" />
           <span className={cn(!useDrawerNav && "hidden lg:inline")}>Logout</span>
         </button>
       </div>
@@ -151,13 +204,13 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
   if (useDrawerNav) {
     return (
       <>
-        <div className="fixed top-0 left-0 right-0 z-30 bg-gradient-to-r from-orange-400 to-orange-500 border-b border-orange-300/60 shadow-md pt-[env(safe-area-inset-top,0px)]">
-          <div className="h-14 px-4 flex items-center justify-between min-h-[3.5rem]">
-            <div className="flex items-center space-x-2 min-w-0">
-              <GraduationCapIcon className="h-5 w-5 text-white shrink-0" />
+        <div className="fixed left-0 right-0 top-0 z-30 border-b border-white/10 bg-ink pt-[env(safe-area-inset-top,0px)] shadow-elevated">
+          <div className="flex h-16 min-h-[4rem] items-center justify-between px-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <GraduationCapIcon className="h-7 w-7 shrink-0 text-teal-green-300" />
               <div className="min-w-0">
-                <h2 className="text-xs sm:text-sm font-bold text-white leading-none truncate">Aslilearn AI</h2>
-                <p className="text-[10px] text-white/90">Super Admin</p>
+                <h2 className="truncate font-display text-lg font-bold leading-none text-white">AsliLearn AI</h2>
+                <p className="text-[0.9375rem] text-white/60">Super Admin</p>
               </div>
             </div>
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -165,15 +218,15 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white hover:bg-orange-600/40 shrink-0"
+                  className="shrink-0 text-white hover:bg-white/10"
                   aria-label="Open menu"
                 >
-                  <Menu className="h-5 w-5" />
+                  <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
               <SheetContent
                 side="left"
-                className="w-[min(20rem,92vw)] sm:w-80 p-0 bg-gradient-to-b from-orange-400 to-orange-500 border-r border-orange-300 overflow-y-auto"
+                className="w-[min(22rem,92vw)] overflow-y-auto border-r border-white/10 bg-ink p-0 sm:w-80"
               >
                 {sidebarContent}
               </SheetContent>
@@ -181,7 +234,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
           </div>
         </div>
 
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t flex justify-around py-2 pb-[env(safe-area-inset-bottom,0px)]">
+        <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-around border-t border-ink/10 bg-white/95 py-2.5 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-md sm:hidden">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentView === item.id;
@@ -191,12 +244,14 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
                 type="button"
                 onClick={() => onViewChange(item.id as SuperAdminView)}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 px-2 py-1 min-w-0",
-                  isActive ? "text-orange-600" : "text-muted-foreground"
+                  "flex min-w-0 flex-col items-center gap-1 px-2 py-1",
+                  isActive ? "text-primary" : "text-muted-foreground"
                 )}
               >
-                <Icon className="w-5 h-5 shrink-0" />
-                <span className="text-[10px] truncate max-w-[4.5rem]">{item.label.split(' ')[0]}</span>
+                <Icon className="h-6 w-6 shrink-0" />
+                <span className="max-w-[4.75rem] truncate text-[0.8125rem] font-medium">
+                  {item.label.split(" ")[0]}
+                </span>
               </button>
             );
           })}
@@ -208,15 +263,12 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
   return (
     <aside
       className={cn(
-        "super-admin-sidebar hidden sm:flex flex-col transition-all duration-300",
-        "sm:w-[60px] lg:w-64 sm:min-w-[60px] lg:min-w-[16rem] lg:max-w-[16rem]",
-        "bg-gradient-to-b from-orange-400 to-orange-500 shadow-sm border-r border-orange-300",
-        "h-screen fixed top-0 left-0 overflow-y-auto z-20"
+        "super-admin-sidebar fixed left-0 top-0 z-20 hidden h-screen flex-col overflow-y-auto transition-all duration-300 sm:flex",
+        "sm:w-[72px] sm:min-w-[72px] lg:w-[300px] lg:min-w-[300px] lg:max-w-[300px]",
+        "border-r border-white/10 bg-gradient-to-b from-ink via-ink-soft to-[#0a3d48] shadow-elevated"
       )}
     >
       {sidebarContent}
     </aside>
   );
 }
-
-export default SuperAdminSidebar;

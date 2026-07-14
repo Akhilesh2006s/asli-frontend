@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import { Suspense, lazy, useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -342,7 +342,7 @@ const AdminDashboard = () => {
                   <Menu className="w-3 h-3 sm:w-4 sm:h-4" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-64 bg-gradient-to-b from-orange-400 to-orange-500">
+              <SheetContent side="left" className="w-[300px] border-r border-white/10 bg-ink p-0">
                 <div className="p-responsive">
                   <div className="flex items-center space-x-responsive mb-responsive">
                     <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
@@ -356,133 +356,133 @@ const AdminDashboard = () => {
                   <nav className="space-y-1">
                     <button
                       onClick={() => handleMobileTabChange('overview')}
-                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'overview' 
-                          ? 'bg-white text-orange-600 shadow-md' 
-                          : 'text-white hover:bg-orange-600/50'
+                          ? 'bg-teal-green-400 text-ink shadow-glow' 
+                          : 'text-white/90 hover:bg-white/10'
                       }`}
                     >
-                      <BarChart3 className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <BarChart3 className="mr-3 h-6 w-6 flex-shrink-0" />
                       <span className="truncate">Dashboard</span>
                     </button>
                     
                     <button
                       onClick={() => handleMobileTabChange('students')}
-                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'students' 
-                          ? 'bg-white text-orange-600 shadow-md' 
-                          : 'text-white hover:bg-orange-600/50'
+                          ? 'bg-teal-green-400 text-ink shadow-glow' 
+                          : 'text-white/90 hover:bg-white/10'
                       }`}
                     >
-                      <Users className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <Users className="mr-3 h-6 w-6 flex-shrink-0" />
                       <span className="truncate">Students</span>
                     </button>
                     
                     <button
                       onClick={() => handleMobileTabChange('classes')}
-                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'classes' 
-                          ? 'bg-white text-orange-600 shadow-md' 
-                          : 'text-white hover:bg-orange-600/50'
+                          ? 'bg-teal-green-400 text-ink shadow-glow' 
+                          : 'text-white/90 hover:bg-white/10'
                       }`}
                     >
-                      <GraduationCap className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <GraduationCap className="mr-3 h-6 w-6 flex-shrink-0" />
                       <span className="truncate">Classes</span>
                     </button>
                     
                     <button
                       onClick={() => handleMobileTabChange('teachers')}
-                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'teachers' 
-                          ? 'bg-white text-orange-600 shadow-md' 
-                          : 'text-white hover:bg-orange-600/50'
+                          ? 'bg-teal-green-400 text-ink shadow-glow' 
+                          : 'text-white/90 hover:bg-white/10'
                       }`}
                     >
-                      <Users className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <Users className="mr-3 h-6 w-6 flex-shrink-0" />
                       <span className="truncate">Teachers</span>
                     </button>
                     
                     <button
                       onClick={() => handleMobileTabChange('subjects')}
-                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'subjects' 
-                          ? 'bg-white text-orange-600 shadow-md' 
-                          : 'text-white hover:bg-orange-600/50'
+                          ? 'bg-teal-green-400 text-ink shadow-glow' 
+                          : 'text-white/90 hover:bg-white/10'
                       }`}
                     >
-                      <BookOpen className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <BookOpen className="mr-3 h-6 w-6 flex-shrink-0" />
                       <span className="truncate">Subjects</span>
                     </button>
                     
                     <button
                       onClick={() => handleMobileTabChange('exams')}
-                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'exams' 
-                          ? 'bg-white text-orange-600 shadow-md' 
-                          : 'text-white hover:bg-orange-600/50'
+                          ? 'bg-teal-green-400 text-ink shadow-glow' 
+                          : 'text-white/90 hover:bg-white/10'
                       }`}
                     >
-                      <FileText className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <FileText className="mr-3 h-6 w-6 flex-shrink-0" />
                       <span className="truncate">Exams</span>
                     </button>
                     
                     <button
                       onClick={() => handleMobileTabChange('learning-paths')}
-                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'learning-paths' 
-                          ? 'bg-white text-orange-600 shadow-md' 
-                          : 'text-white hover:bg-orange-600/50'
+                          ? 'bg-teal-green-400 text-ink shadow-glow' 
+                          : 'text-white/90 hover:bg-white/10'
                       }`}
                     >
-                      <Target className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <Target className="mr-3 h-6 w-6 flex-shrink-0" />
                       <span className="truncate">Learning Paths</span>
                     </button>
                     
                     <button
                       onClick={() => handleMobileTabChange('eduott')}
-                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'eduott' 
-                          ? 'bg-white text-orange-600 shadow-md' 
-                          : 'text-white hover:bg-orange-600/50'
+                          ? 'bg-teal-green-400 text-ink shadow-glow' 
+                          : 'text-white/90 hover:bg-white/10'
                       }`}
                     >
-                      <Play className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <Play className="mr-3 h-6 w-6 flex-shrink-0" />
                       <span className="truncate">EduOTT</span>
                     </button>
 
                     <button
                       onClick={() => handleMobileTabChange('timetable')}
-                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'timetable'
-                          ? 'bg-white text-orange-600 shadow-md'
-                          : 'text-white hover:bg-orange-600/50'
+                          ? 'bg-teal-green-400 text-ink shadow-glow'
+                          : 'text-white/90 hover:bg-white/10'
                       }`}
                     >
-                      <CalendarDays className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <CalendarDays className="mr-3 h-6 w-6 flex-shrink-0" />
                       <span className="truncate">Timetable</span>
                     </button>
 
                     <button
                       onClick={() => handleMobileTabChange('calendar')}
-                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'calendar' 
-                          ? 'bg-white text-orange-600 shadow-md' 
-                          : 'text-white hover:bg-orange-600/50'
+                          ? 'bg-teal-green-400 text-ink shadow-glow' 
+                          : 'text-white/90 hover:bg-white/10'
                       }`}
                     >
-                      <CalendarIcon className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <CalendarIcon className="mr-3 h-6 w-6 flex-shrink-0" />
                       <span className="truncate">Calendar</span>
                     </button>
 
                     <button
                       onClick={() => handleMobileTabChange('vidya-ai')}
-                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'vidya-ai' 
-                          ? 'bg-white text-orange-600 shadow-md' 
-                          : 'text-white hover:bg-orange-600/50'
+                          ? 'bg-teal-green-400 text-ink shadow-glow' 
+                          : 'text-white/90 hover:bg-white/10'
                       }`}
                     >
-                      <Sparkles className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <Sparkles className="mr-3 h-6 w-6 flex-shrink-0" />
                       <span className="truncate">Vidya AI</span>
                     </button>
                     
@@ -536,7 +536,7 @@ const AdminDashboard = () => {
 
       {/* Desktop Sidebar */}
       {!isMobile && (
-        <div className="hidden md:flex md:flex-col md:sticky md:top-0 md:h-screen w-64 bg-gradient-to-b from-orange-400 to-orange-500 shadow-2xl border-r border-orange-300 relative z-10">
+        <div className="hidden md:flex md:flex-col md:sticky md:top-0 md:h-screen w-[300px] bg-gradient-to-b from-ink via-ink-soft to-[#0a3d48] shadow-elevated border-r border-white/10 relative z-10">
         {/* Logo Section */}
         <div className="p-3 sm:p-4 lg:p-6 border-b border-orange-300/50">
           <div className="flex items-center space-x-3">
@@ -554,133 +554,133 @@ const AdminDashboard = () => {
         <nav className="flex-1 overflow-y-auto p-4 space-y-1 hide-scrollbar">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+            className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
               activeTab === 'overview' 
-                ? 'bg-white text-orange-600 shadow-md' 
-                : 'text-white hover:bg-orange-600/50'
+                ? 'bg-teal-green-400 text-ink shadow-glow' 
+                : 'text-white/90 hover:bg-white/10'
             }`}
           >
-            <BarChart3 className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <BarChart3 className="mr-3 h-6 w-6 flex-shrink-0" />
             <span className="truncate">Dashboard</span>
           </button>
           
           <button
             onClick={() => setActiveTab('students')}
-            className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+            className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
               activeTab === 'students' 
-                ? 'bg-white text-orange-600 shadow-md' 
-                : 'text-white hover:bg-orange-600/50'
+                ? 'bg-teal-green-400 text-ink shadow-glow' 
+                : 'text-white/90 hover:bg-white/10'
             }`}
           >
-            <Users className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <Users className="mr-3 h-6 w-6 flex-shrink-0" />
             <span className="truncate">Students</span>
           </button>
           
           <button
             onClick={() => setActiveTab('classes')}
-            className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+            className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
               activeTab === 'classes' 
-                ? 'bg-white text-orange-600 shadow-md' 
-                : 'text-white hover:bg-orange-600/50'
+                ? 'bg-teal-green-400 text-ink shadow-glow' 
+                : 'text-white/90 hover:bg-white/10'
             }`}
           >
-            <GraduationCap className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <GraduationCap className="mr-3 h-6 w-6 flex-shrink-0" />
             <span className="truncate">Classes</span>
           </button>
           
           <button
             onClick={() => setActiveTab('teachers')}
-            className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+            className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
               activeTab === 'teachers' 
-                ? 'bg-white text-orange-600 shadow-md' 
-                : 'text-white hover:bg-orange-600/50'
+                ? 'bg-teal-green-400 text-ink shadow-glow' 
+                : 'text-white/90 hover:bg-white/10'
             }`}
           >
-            <Users className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <Users className="mr-3 h-6 w-6 flex-shrink-0" />
             <span className="truncate">Teachers</span>
           </button>
           
           <button
             onClick={() => setActiveTab('subjects')}
-            className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+            className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
               activeTab === 'subjects' 
-                ? 'bg-white text-orange-600 shadow-md' 
-                : 'text-white hover:bg-orange-600/50'
+                ? 'bg-teal-green-400 text-ink shadow-glow' 
+                : 'text-white/90 hover:bg-white/10'
             }`}
           >
-            <BookOpen className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <BookOpen className="mr-3 h-6 w-6 flex-shrink-0" />
             <span className="truncate">Subjects</span>
           </button>
           
           <button
             onClick={() => setActiveTab('exams')}
-            className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+            className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
               activeTab === 'exams' 
-                ? 'bg-white text-orange-600 shadow-md' 
-                : 'text-white hover:bg-orange-600/50'
+                ? 'bg-teal-green-400 text-ink shadow-glow' 
+                : 'text-white/90 hover:bg-white/10'
             }`}
           >
-            <FileText className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <FileText className="mr-3 h-6 w-6 flex-shrink-0" />
             <span className="truncate">Exams</span>
           </button>
           
           <button
             onClick={() => setActiveTab('learning-paths')}
-            className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+            className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
               activeTab === 'learning-paths' 
-                ? 'bg-white text-orange-600 shadow-md' 
-                : 'text-white hover:bg-orange-600/50'
+                ? 'bg-teal-green-400 text-ink shadow-glow' 
+                : 'text-white/90 hover:bg-white/10'
             }`}
           >
-            <Target className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+            <Target className="mr-3 h-6 w-6 flex-shrink-0" />
             <span className="truncate">Learning Paths</span>
           </button>
           
                     <button
                       onClick={() => setActiveTab('eduott')}
-                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'eduott' 
-                          ? 'bg-white text-orange-600 shadow-md' 
-                          : 'text-white hover:bg-orange-600/50'
+                          ? 'bg-teal-green-400 text-ink shadow-glow' 
+                          : 'text-white/90 hover:bg-white/10'
                       }`}
                     >
-                      <Play className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <Play className="mr-3 h-6 w-6 flex-shrink-0" />
                       <span className="truncate">EduOTT</span>
                     </button>
                     
                     <button
                       onClick={() => setActiveTab('timetable')}
-                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'timetable'
-                          ? 'bg-white text-orange-600 shadow-md'
-                          : 'text-white hover:bg-orange-600/50'
+                          ? 'bg-teal-green-400 text-ink shadow-glow'
+                          : 'text-white/90 hover:bg-white/10'
                       }`}
                     >
-                      <CalendarDays className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <CalendarDays className="mr-3 h-6 w-6 flex-shrink-0" />
                       <span className="truncate">Timetable</span>
                     </button>
                     
                     <button
                       onClick={() => setActiveTab('calendar')}
-                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'calendar' 
-                          ? 'bg-white text-orange-600 shadow-md' 
-                          : 'text-white hover:bg-orange-600/50'
+                          ? 'bg-teal-green-400 text-ink shadow-glow' 
+                          : 'text-white/90 hover:bg-white/10'
                       }`}
                     >
-                      <CalendarIcon className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <CalendarIcon className="mr-3 h-6 w-6 flex-shrink-0" />
                       <span className="truncate">Calendar</span>
                     </button>
                     
                     <button
                       onClick={() => setActiveTab('vidya-ai')}
-                      className={`w-full flex items-center px-4 py-3 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                      className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'vidya-ai' 
-                          ? 'bg-white text-orange-600 shadow-md' 
-                          : 'text-white hover:bg-orange-600/50'
+                          ? 'bg-teal-green-400 text-ink shadow-glow' 
+                          : 'text-white/90 hover:bg-white/10'
                       }`}
                     >
-                      <Sparkles className="mr-3 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                      <Sparkles className="mr-3 h-6 w-6 flex-shrink-0" />
                       <span className="truncate">Vidya AI</span>
                     </button>
           
@@ -985,7 +985,7 @@ const AdminDashboard = () => {
                       These are the students specifically assigned to your admin account
                     </div>
                     <div className="text-white/90 text-xs font-medium mt-2 flex items-center gap-1">
-                      Click to view details →
+                      Click to view details â†’
                     </div>
                   </div>
                 </div>
@@ -1017,7 +1017,7 @@ const AdminDashboard = () => {
                       These are the teachers specifically assigned to your admin account
                     </div>
                     <div className="text-white/90 text-xs font-medium mt-2 flex items-center gap-1">
-                      Click to view details →
+                      Click to view details â†’
                     </div>
                   </div>
                 </div>

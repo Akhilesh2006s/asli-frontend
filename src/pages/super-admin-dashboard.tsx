@@ -1,6 +1,6 @@
 import { Suspense, lazy, useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import SuperAdminSidebar from "@/components/dashboard/SuperAdminSidebar";
+import { SuperAdminSidebar } from "@/components/dashboard/SuperAdminSidebar";
 import type { SuperAdminView } from "@/lib/super-admin-views";
 const AdminManagement = lazy(() => import("@/components/admin/AdminManagement"));
 const CombinedSuperAdminAnalytics = lazy(() => import("./combined-super-admin-analytics"));
@@ -1133,7 +1133,7 @@ export default function SuperAdminDashboard() {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="asli-app-bg min-h-screen">
       {/* Fixed sidebar */}
       <SuperAdminSidebar
         currentView={currentView}
@@ -1146,7 +1146,7 @@ export default function SuperAdminDashboard() {
       <div
         className={cn(
           "flex flex-col overflow-x-hidden",
-          superAdminDrawerNav ? "ml-0 min-h-screen pt-14 pb-16 sm:pb-0" : "sm:ml-[60px] lg:ml-64 min-h-screen",
+          superAdminDrawerNav ? "ml-0 min-h-screen pt-16 pb-20 sm:pb-0" : "sm:ml-[72px] lg:ml-[300px] min-h-screen",
         )}
       >
         <div
@@ -1155,8 +1155,8 @@ export default function SuperAdminDashboard() {
             currentView === "ai-tool-generations"
               ? "p-0"
               : superAdminDrawerNav
-                ? "p-3 sm:p-4"
-                : "p-3 sm:p-4 lg:p-6",
+                ? "p-5 sm:p-6"
+                : "p-5 sm:p-7 lg:p-10",
           )}
         >
           {renderContent()}

@@ -1,6 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsTrigger } from '@/components/ui/tabs';
@@ -33,7 +31,9 @@ import { resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
 import { getVideoDisplayTitle } from '@/lib/video-chapter-schedule';
 import { useEduOTTFilters } from '@/contexts/edu-ott-filter-context';
 import { EduOTTGlobalFilterBar } from '@/components/eduott/EduOTTGlobalFilterBar';
-import { EduOTTTabsList } from '@/components/eduott/EduOTTTabsList';
+import { EduOTTTabsList, eduOttTabTriggerClass } from '@/components/eduott/EduOTTTabsList';
+import { EduOTTFeaturedHero, EduOTTStage } from '@/components/eduott/EduOTTStage';
+import { getEduOTTThumbnailUrl } from '@/lib/eduott-video-utils';
 import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
 
 interface Video {
@@ -405,98 +405,93 @@ export default function EduOTT() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'live':
-        return 'bg-red-100 text-red-700';
+        return 'bg-red-100 text-red-700 ring-1 ring-red-200';
       case 'scheduled':
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-teal-green-50 text-teal-green-800 ring-1 ring-teal-green-200';
       case 'ended':
-        return 'bg-gray-100 text-gray-700';
+        return 'bg-slate-100 text-slate-700 ring-1 ring-slate-200';
       case 'cancelled':
-        return 'bg-orange-100 text-orange-700';
+        return 'bg-amber-50 text-amber-800 ring-1 ring-amber-200';
       default:
-        return 'bg-gray-100 text-gray-700';
+        return 'bg-slate-100 text-slate-700 ring-1 ring-slate-200';
     }
   };
 
   return (
     <>
       <Navigation />
-      <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-[4.75rem] sm:pt-24 pb-6 sm:pb-8 bg-white min-h-screen relative overflow-x-hidden">
+      <div className="asli-app-bg relative min-h-screen w-full overflow-x-hidden px-4 pb-10 pt-[5.5rem] sm:px-6 sm:pt-28 lg:px-8">
+        <div className="mx-auto max-w-7xl">
         {!isMobile && <VidyaAIFloatingAssistant />}
 
-        <div className="mb-4 sm:mb-6">
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
-              <VideoIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-xl sm:text-3xl font-bold text-gray-900">EduOTT</h1>
-              <p className="text-sm sm:text-base text-gray-600 line-clamp-2 sm:line-clamp-none">
-                Educational videos and live sessions from all your subjects
-              </p>
-            </div>
-          </div>
-        </div>
-
+        <EduOTTStage subtitle="Educational videos and live sessions from all your subjects">
         <EduOTTGlobalFilterBar
           classOptions={globalClassOptions}
           subjectOptions={globalSubjectOptions}
         />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3 sm:space-y-4 lg:space-y-6 mt-4 sm:mt-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2 space-y-6">
           <EduOTTTabsList>
-            <TabsTrigger value="videos" className="w-full py-2 text-xs sm:text-sm">
+            <TabsTrigger value="videos" className={eduOttTabTriggerClass}>
               Videos
             </TabsTrigger>
-            <TabsTrigger value="live-sessions" className="w-full py-2 text-xs sm:text-sm">
+            <TabsTrigger value="live-sessions" className={eduOttTabTriggerClass}>
               Live Sessions
             </TabsTrigger>
           </EduOTTTabsList>
 
-          <TabsContent value="videos" className="space-y-3 sm:space-y-4 lg:space-y-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
+          <TabsContent value="videos" className="space-y-6">
+            {!loading && filteredVideos.length > 0 ? (
+              <EduOTTFeaturedHero
+                title={filteredVideos[0].title}
+                meta={[filteredVideos[0].subject || filteredVideos[0].subjectName, filteredVideos[0].class ? `Class ${filteredVideos[0].class}` : '']
+                  .filter(Boolean)
+                  .join(' · ')}
+                thumbnailUrl={getEduOTTThumbnailUrl(filteredVideos[0])}
+                onPlay={() => setSelectedVideo(filteredVideos[0])}
+              />
+            ) : null}
+
+            <div className="relative max-w-xl">
+              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-teal-green-300" />
               <Input
                 type="text"
                 placeholder="Search videos..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-0 pl-10 sm:pl-11 w-full max-w-xl"
+                className="h-12 border-ink/10 bg-white pl-11 text-base text-ink placeholder:text-muted-foreground"
               />
             </div>
 
             <div className="mb-2 flex items-center justify-between gap-3">
-              <p className="text-xs sm:text-sm text-gray-600">
+              <p className="text-base text-muted-foreground">
                 Showing {filteredVideos.length} of {videos.length} videos
               </p>
               {isRefreshingVideos ? (
-                <p className="text-xs font-medium text-sky-700">Updating list...</p>
+                <p className="text-[0.9375rem] font-medium text-teal-green-700">Updating list...</p>
               ) : null}
             </div>
 
             <div className="min-h-[240px] sm:min-h-[420px]">
             {loading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <Card key={i} className="overflow-hidden">
-                    <Skeleton className="w-full h-48" />
-                    <CardHeader>
-                      <Skeleton className="h-6 w-3/4 mb-2" />
-                      <Skeleton className="h-4 w-1/2" />
-                    </CardHeader>
-                    <CardContent>
-                      <Skeleton className="h-4 w-full mb-2" />
-                      <Skeleton className="h-4 w-2/3" />
-                    </CardContent>
-                  </Card>
+                  <div key={i} className="overflow-hidden rounded-2xl border border-ink/10 bg-white">
+                    <Skeleton className="aspect-video w-full bg-mist-deep" />
+                    <div className="space-y-3 p-5">
+                      <Skeleton className="mb-2 h-6 w-3/4 bg-mist-deep" />
+                      <Skeleton className="h-4 w-1/2 bg-mist-deep" />
+                    </div>
+                  </div>
                 ))}
               </div>
             ) : filteredVideos.length === 0 ? (
-              <div className="text-center py-16">
-                <VideoIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">
+              <div className="rounded-3xl border border-dashed border-ink/15 bg-mist py-16 text-center">
+                <VideoIcon className="mx-auto mb-4 h-16 w-16 text-ink/25" />
+                <h3 className="mb-2 font-display text-xl font-semibold text-ink">
                   {videos.length === 0 ? 'No Videos Available' : 'No Videos Found'}
                 </h3>
-                <p className="text-gray-500 max-w-md mx-auto">
+                <p className="mx-auto max-w-md text-lg text-muted-foreground">
                   {videos.length === 0
                     ? 'No videos have been assigned to your subjects yet.'
                     : hasGlobalFilters || searchTerm
@@ -505,7 +500,7 @@ export default function EduOTT() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {filteredVideos.map((video) => {
                   const videoId = video._id || video.id || '';
                   return (
@@ -538,21 +533,21 @@ export default function EduOTT() {
             </div>
           </TabsContent>
 
-          <TabsContent value="live-sessions" className="space-y-3 sm:space-y-4 lg:space-y-6">
-            <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-end">
-              <div className="flex-1 min-w-0 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
+          <TabsContent value="live-sessions" className="space-y-6">
+            <div className="flex flex-col gap-4 rounded-2xl border border-ink/10 bg-mist/80 p-4 md:flex-row md:flex-wrap md:items-end sm:p-5">
+              <div className="relative min-w-0 flex-1">
+                <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-teal-green-300" />
                 <Input
                   type="text"
                   placeholder="Search live sessions..."
                   value={sessionSearchTerm}
                   onChange={(e) => setSessionSearchTerm(e.target.value)}
-                  className="px-0 pl-10 sm:pl-11 w-full"
+                  className="h-12 border-ink/10 bg-white pl-11 text-base text-ink placeholder:text-muted-foreground"
                 />
               </div>
-              <div className="space-y-1.5 w-full sm:w-auto">
-                <Label className="text-xs text-gray-500">Status</Label>
-                <div className="flex gap-2 flex-wrap">
+              <div className="w-full space-y-2 sm:w-auto">
+                <Label className="text-base text-muted-foreground">Status</Label>
+                <div className="flex flex-wrap gap-2">
                   {['all', 'scheduled', 'live', 'ended', 'cancelled'].map((status) => {
                     const isActive = filterStatus === status;
                     const label =
@@ -564,10 +559,10 @@ export default function EduOTT() {
                         key={status}
                         type="button"
                         onClick={() => setFilterStatus(status)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                        className={`rounded-full border px-4 py-2 text-[0.9375rem] font-semibold transition-colors ${
                           isActive
-                            ? 'bg-sky-600 text-white border-sky-600'
-                            : 'bg-white text-gray-700 border-gray-200 hover:bg-sky-50 hover:border-sky-300 hover:text-sky-700'
+                            ? 'border-teal-green-500 bg-gradient-to-r from-teal-green-500 to-indigo-blue-600 text-white shadow-glow'
+                            : 'border-ink/15 bg-white text-ink/70 hover:border-teal-green-400/50 hover:bg-mist'
                         }`}
                       >
                         {label}
@@ -582,20 +577,20 @@ export default function EduOTT() {
             {loadingSessions ? (
               <div className="space-y-4">
                 {Array.from({ length: 3 }).map((_, i) => (
-                  <Card key={i} className="overflow-hidden">
-                    <Skeleton className="w-full h-32" />
-                  </Card>
+                  <div key={i} className="overflow-hidden rounded-2xl border border-ink/10 bg-white">
+                    <Skeleton className="h-32 w-full bg-mist-deep" />
+                  </div>
                 ))}
               </div>
             ) : filteredSessions.length === 0 ? (
-              <div className="text-center py-16">
-                <Radio className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">
+              <div className="rounded-3xl border border-dashed border-ink/15 bg-mist py-16 text-center">
+                <Radio className="mx-auto mb-4 h-16 w-16 text-ink/25" />
+                <h3 className="mb-2 font-display text-xl font-semibold text-ink">
                   {liveSessions.length === 0
                     ? 'No Live Sessions Available'
                     : 'No Live Sessions Found'}
                 </h3>
-                <p className="text-gray-500 max-w-md mx-auto">
+                <p className="mx-auto max-w-md text-lg text-muted-foreground">
                   {liveSessions.length === 0
                     ? 'No live sessions have been scheduled for your subjects yet.'
                     : hasGlobalFilters || sessionSearchTerm || filterStatus !== 'all'
@@ -606,42 +601,46 @@ export default function EduOTT() {
             ) : (
               <div className="space-y-4">
                 {filteredSessions.map((session) => (
-                  <Card key={session._id} className="hover:shadow-lg transition-shadow">
-                    <CardContent className="p-3 sm:p-4 lg:p-6">
-                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-base sm:text-lg font-semibold text-gray-900">{session.title}</h3>
+                  <div
+                    key={session._id}
+                    className="rounded-2xl border border-ink/10 bg-white p-5 shadow-sm transition hover:border-teal-green-400/40 hover:shadow-elevated sm:p-6"
+                  >
+                      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-2 flex flex-wrap items-center gap-3">
+                            <h3 className="font-display text-xl font-semibold text-ink">{session.title}</h3>
                             <Badge className={getStatusColor(session.status)}>
                               {session.status.toUpperCase()}
                             </Badge>
                           </div>
                           {session.description && (
-                            <p className="text-gray-600 mb-4">{session.description}</p>
+                            <p className="mb-4 text-base text-muted-foreground">{session.description}</p>
                           )}
-                          <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-gray-600">
-                            <div className="flex items-center gap-1">
-                              <Users className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <div className="flex flex-wrap items-center gap-4 text-base text-muted-foreground">
+                            <div className="flex items-center gap-1.5">
+                              <Users className="h-5 w-5" />
                               <span>
                                 {session.streamer?.fullName || session.streamer?.email || 'Unknown'}
                               </span>
                             </div>
                             {session.subject ? (
-                              <div className="flex items-center gap-1">
-                                <BookOpen className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <div className="flex items-center gap-1.5">
+                                <BookOpen className="h-5 w-5" />
                                 <span>{session.subject}</span>
                               </div>
                             ) : null}
                             {session.class ? (
-                              <Badge variant="outline">Class {session.class}</Badge>
+                              <span className="rounded-full border border-ink/10 bg-mist px-3 py-1 text-[0.9375rem] text-ink">
+                                Class {session.class}
+                              </span>
                             ) : null}
-                            <div className="flex items-center gap-1">
-                              <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                            <div className="flex items-center gap-1.5">
+                              <Eye className="h-5 w-5" />
                               <span>{session.viewerCount || 0} viewers</span>
                             </div>
                             {(session.scheduledTime || session.scheduledStartTime) && (
-                              <div className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <div className="flex items-center gap-1.5">
+                                <Calendar className="h-5 w-5" />
                                 <span>
                                   {new Date(
                                     session.scheduledTime || session.scheduledStartTime || ''
@@ -654,16 +653,18 @@ export default function EduOTT() {
                         <EduOTTJoinSessionButton
                           session={session}
                           onJoin={setSelectedLiveSession}
+                          className="h-12 shrink-0 bg-red-600 text-base text-white hover:bg-red-700"
                         />
                       </div>
-                    </CardContent>
-                  </Card>
+                  </div>
                 ))}
               </div>
             )}
             </div>
           </TabsContent>
         </Tabs>
+        </EduOTTStage>
+        </div>
       </div>
 
       <EduOTTVideoPlayerDialog

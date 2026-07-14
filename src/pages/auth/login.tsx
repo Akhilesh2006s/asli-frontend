@@ -153,13 +153,13 @@ const Login = () => {
           setLocation('/dashboard');
         }
       } else {
-        // Real API error (wrong password, DB reconnecting, etc.) — never label as network.
+        // Real API error (wrong password, DB reconnecting, etc.). Never label as network.
         setError(data.message || 'Login failed. Please check your email and password.');
       }
     } catch (err) {
       if ((err as Error)?.name === 'AbortError') {
         setError(
-          'Login timed out — the server did not respond in time. Check your connection or try again in a minute.',
+          'Login timed out. The server did not respond in time. Check your connection or try again in a minute.',
         );
       } else if (isRealNetworkFailure(err)) {
         setError('Network error. Cannot reach the server. Check your connection and try again.');
@@ -183,9 +183,9 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="asli-app-bg relative flex min-h-screen w-full items-center justify-center overflow-hidden p-4 sm:p-6 lg:p-10">
       {/* Animated Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-sky-100 via-blue-100 to-cyan-100">
+      <div className="absolute inset-0 bg-gradient-to-br from-[#e8f4f6] via-[#d5e8ec] to-[#c5dde3]">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmMWY1ZjkiIGZpbGwtb3BhY2l0eT0iMC40Ij48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyIi8+PC9nPjwvZz48L3N2Zz4=')] opacity-20"></div>
       </div>
 
@@ -278,19 +278,80 @@ const Login = () => {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.6, type: "spring" }}
-            className="relative z-10 w-full max-w-md sm:max-w-lg"
+            className="relative z-10 w-full max-w-6xl"
           >
-            {/* Glassmorphism Card with Enhanced Design */}
-            <Card className="backdrop-blur-xl bg-white/90 border-white/30 shadow-2xl relative overflow-hidden">
+            <Card className="relative grid min-h-[680px] overflow-hidden border-white/60 bg-white/95 p-0 shadow-[0_30px_90px_-30px_rgba(6,36,51,0.4)] backdrop-blur-xl lg:grid-cols-[1.05fr_0.95fr]">
               {/* Decorative gradient overlay */}
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-sky-400 via-blue-400 to-cyan-400"></div>
+              <div className="absolute left-0 right-0 top-0 z-20 h-1.5 bg-gradient-to-r from-teal-green-400 via-indigo-blue-500 to-amber-400" />
+
+              {/* Brand / visual panel */}
+              <aside className="relative hidden min-h-full overflow-hidden bg-ink p-10 text-white lg:row-span-2 lg:flex lg:flex-col lg:justify-between xl:p-14">
+                <img
+                  src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1400&q=85"
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover opacity-35"
+                />
+                <div className="absolute inset-0 bg-gradient-to-br from-[#062433]/95 via-[#0b3a45]/88 to-[#0f766e]/75" />
+                <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-teal-green-400/25 blur-3xl" />
+
+                <div className="relative z-10">
+                  <Link href="/" className="inline-flex items-center gap-3">
+                    <img
+                      src="/logo.jpg"
+                      alt="AsliLearn AI"
+                      className="h-14 w-14 rounded-2xl bg-white object-contain p-1 shadow-glow"
+                    />
+                    <span className="font-display text-2xl font-bold tracking-tight">
+                      ASLILEARN <span className="text-teal-green-300">AI</span>
+                    </span>
+                  </Link>
+                </div>
+
+                <div className="relative z-10 max-w-xl">
+                  <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-base font-semibold text-teal-green-100 backdrop-blur-md">
+                    <Sparkles className="h-5 w-5" />
+                    AI-powered education
+                  </p>
+                  <h1 className="font-display text-5xl font-bold leading-[1.08] tracking-tight text-white xl:text-6xl">
+                    Your classroom,
+                    <br />
+                    powered by AI.
+                  </h1>
+                  <p className="mt-6 max-w-lg text-xl leading-relaxed text-white/75">
+                    Teach smarter, learn faster, and bring every lesson to life with one intelligent platform.
+                  </p>
+
+                  <div className="mt-9 grid gap-3 sm:grid-cols-2">
+                    {[
+                      "Vidya AI tutor",
+                      "Teacher AI studio",
+                      "EduOTT learning",
+                      "Progress insights",
+                    ].map((feature) => (
+                      <div
+                        key={feature}
+                        className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-base font-semibold text-white/90 backdrop-blur-md"
+                      >
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-green-300 text-ink">
+                          ✓
+                        </span>
+                        {feature}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <p className="relative z-10 text-base text-white/55">
+                  Trusted learning experiences for schools, teachers, and students.
+                </p>
+              </aside>
               
-              <CardHeader className="text-center space-y-4 pb-4 sm:pb-6 pt-6 sm:pt-8 px-4 sm:px-6">
+              <CardHeader className="space-y-4 px-6 pb-4 pt-9 text-left sm:px-10 sm:pt-12 lg:col-start-2 lg:px-12 xl:px-14">
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0, rotate: -180 }}
                   animate={{ scale: 1, opacity: 1, rotate: 0 }}
                   transition={{ duration: 0.8, delay: 0.2, type: "spring" }}
-                  className="w-20 h-20 sm:w-24 sm:h-24 mx-auto relative"
+                  className="relative h-16 w-16 lg:hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-sky-300 to-blue-400 rounded-full blur-lg opacity-30"></div>
                   <img 
@@ -304,16 +365,19 @@ const Login = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
                 >
-                  <CardTitle className="text-xl sm:text-2xl sm:text-3xl font-bold bg-gradient-to-r from-sky-600 via-blue-500 to-cyan-600 bg-clip-text text-transparent">
-                    Welcome Back
+                  <p className="mb-2 text-base font-bold uppercase tracking-[0.15em] text-teal-green-700">
+                    Welcome back
+                  </p>
+                  <CardTitle className="font-display text-3xl font-bold text-[#0b1f2a] sm:text-4xl">
+                    Sign in to AsliLearn
                   </CardTitle>
-                  <p className="text-gray-600 mt-2 text-xs sm:text-sm">
-                    Sign in to continue your learning journey
+                  <p className="mt-3 text-lg leading-relaxed text-[#4b6470]">
+                    Continue to your personalized learning workspace.
                   </p>
                 </motion.div>
               </CardHeader>
               
-              <CardContent className="space-y-5 sm:space-y-6 px-4 sm:px-8 pb-6 sm:pb-8">
+              <CardContent className="space-y-6 px-6 pb-9 sm:px-10 sm:pb-12 lg:col-start-2 lg:px-12 xl:px-14">
                 {error && (
                   <motion.div
                     initial={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -326,21 +390,21 @@ const Login = () => {
                   </motion.div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-6">
                   <motion.div 
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.5 }}
                     className="space-y-2"
                   >
-                    <Label htmlFor="email" className="text-xs sm:text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <Mail className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-500" />
+                    <Label htmlFor="email" className="flex items-center gap-2 text-base font-semibold text-[#0b1f2a]">
+                      <Mail className="h-5 w-5 text-teal-green-600" />
                       Email Address
                     </Label>
                     <div className="relative group">
                       <div className="absolute inset-0 bg-gradient-to-r from-sky-300/20 to-blue-300/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <div className="relative">
-                        <Mail className="absolute left-3 sm:left-4 top-1/2 z-10 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 group-hover:text-indigo-600 transition-colors pointer-events-none" />
+                        <Mail className="pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-teal-green-600 transition-colors" />
                         <Input
                           id="email"
                           name="email"
@@ -348,7 +412,7 @@ const Login = () => {
                           value={formData.email}
                           onChange={handleChange}
                           placeholder="Enter your email"
-                          className="h-11 sm:h-12 px-0 pl-10 sm:pl-12 pr-4 text-sm sm:text-base border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                          className="h-14 border-ink/10 bg-white pl-12 pr-4 text-base transition-all duration-200 focus:border-teal-green-500 focus:ring-teal-green-200"
                           required
                         />
                       </div>
@@ -361,14 +425,14 @@ const Login = () => {
                     transition={{ delay: 0.6 }}
                     className="space-y-2"
                   >
-                    <Label htmlFor="password" className="text-xs sm:text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <Lock className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-500" />
+                    <Label htmlFor="password" className="flex items-center gap-2 text-base font-semibold text-[#0b1f2a]">
+                      <Lock className="h-5 w-5 text-teal-green-600" />
                       Password
                     </Label>
                     <div className="relative group">
                       <div className="absolute inset-0 bg-gradient-to-r from-sky-300/20 to-blue-300/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       <div className="relative">
-                        <Lock className="absolute left-3 sm:left-4 top-1/2 z-10 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 group-hover:text-indigo-600 transition-colors pointer-events-none" />
+                        <Lock className="pointer-events-none absolute left-4 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-teal-green-600 transition-colors" />
                         <Input
                           id="password"
                           name="password"
@@ -376,13 +440,13 @@ const Login = () => {
                           value={formData.password}
                           onChange={handleChange}
                           placeholder="Enter your password"
-                          className="h-11 sm:h-12 px-0 pl-10 sm:pl-12 pr-10 sm:pr-12 text-sm sm:text-base border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                          className="h-14 border-ink/10 bg-white pl-12 pr-12 text-base transition-all duration-200 focus:border-teal-green-500 focus:ring-teal-green-200"
                           required
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 sm:right-4 top-1/2 z-10 -translate-y-1/2 text-gray-400 hover:text-indigo-600 transition-colors"
+                          className="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-lg p-1 text-gray-400 transition-colors hover:bg-mist hover:text-teal-green-700"
                         >
                           {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
                         </button>
@@ -402,14 +466,14 @@ const Login = () => {
                         type="checkbox"
                         className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 focus:ring-2 cursor-pointer"
                       />
-                      <Label htmlFor="remember" className="text-xs sm:text-sm text-gray-600 cursor-pointer">
+                      <Label htmlFor="remember" className="cursor-pointer text-base text-gray-600">
                         Remember me
                       </Label>
                     </div>
                     <button
                       type="button"
                       onClick={handleForgotPassword}
-                      className="text-xs sm:text-sm font-medium text-sky-600 hover:text-sky-700 transition-colors"
+                      className="text-base font-semibold text-teal-green-700 transition-colors hover:text-teal-green-800"
                     >
                       Forgot password?
                     </button>
@@ -422,7 +486,7 @@ const Login = () => {
                   >
                     <Button
                       type="submit"
-                      className="w-full h-12 bg-gradient-to-r from-sky-500 via-blue-500 to-cyan-500 hover:from-sky-600 hover:via-blue-600 hover:to-cyan-600 text-white font-semibold text-sm sm:text-base shadow-lg hover:shadow-xl transition-all duration-300 relative overflow-hidden group"
+                      className="group relative h-14 w-full overflow-hidden bg-gradient-to-r from-teal-green-600 to-indigo-blue-600 text-lg font-semibold text-white shadow-elevated transition-all duration-300 hover:shadow-glow-lg"
                       disabled={isLoading}
                     >
                       <span className="relative z-10 flex items-center justify-center gap-2">
@@ -453,10 +517,10 @@ const Login = () => {
                   transition={{ delay: 0.9 }}
                   className="text-center pt-2"
                 >
-                  <p className="text-xs sm:text-sm text-gray-600">
+                  <p className="text-base text-gray-600">
                     Don't have an account?{' '}
-                    <Link href="/auth/register" className="text-sky-600 hover:text-sky-700 font-semibold transition-colors">
-                      Sign up here
+                    <Link href="/auth/register" className="font-semibold text-teal-green-700 transition-colors hover:text-teal-green-800">
+                      Create an account
                     </Link>
                   </p>
                 </motion.div>
@@ -467,8 +531,8 @@ const Login = () => {
                   transition={{ delay: 1 }}
                   className="text-center pt-4 border-t border-gray-200"
                 >
-                  <Link href="/" className="inline-flex items-center gap-2 text-xs sm:text-sm text-gray-600 hover:text-sky-600 transition-colors font-medium group">
-                    <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 group-hover:-translate-x-1 transition-transform" />
+                  <Link href="/" className="group inline-flex items-center gap-2 text-base font-medium text-gray-600 transition-colors hover:text-teal-green-700">
+                    <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
                     Back to Home
                   </Link>
                 </motion.div>
