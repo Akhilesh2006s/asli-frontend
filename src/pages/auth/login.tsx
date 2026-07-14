@@ -295,14 +295,26 @@ const Login = () => {
                 <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-teal-green-400/25 blur-3xl" />
 
                 <div className="relative z-10">
-                  <Link href="/" className="inline-flex items-center gap-3">
+                  <Link
+                    href="/"
+                    className="inline-flex items-center gap-3 rounded-2xl border border-white/15 bg-black/20 px-3 py-2 backdrop-blur-md"
+                  >
                     <img
                       src="/logo.jpg"
                       alt="AsliLearn AI"
                       className="h-14 w-14 rounded-2xl bg-white object-contain p-1 shadow-glow"
                     />
-                    <span className="font-display text-2xl font-bold tracking-tight">
-                      ASLILEARN <span className="text-teal-green-300">AI</span>
+                    <span
+                      className="font-display text-2xl font-extrabold tracking-tight drop-shadow-md"
+                      style={{ color: "#ffffff" }}
+                    >
+                      ASLILEARN{" "}
+                      <span
+                        className="rounded-lg bg-teal-green-300 px-2 py-0.5"
+                        style={{ color: "#062433" }}
+                      >
+                        AI
+                      </span>
                     </span>
                   </Link>
                 </div>
