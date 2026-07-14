@@ -521,11 +521,21 @@ const TeacherManagement = () => {
         classesArray = [];
       }
       
-      // Map backend _id to frontend id
+      // Map backend _id to frontend id; sort by grade number then section (not string order)
       const mappedClasses = classesArray
         .map((classItem: unknown) => mapClassFromApi(classItem))
-        .filter((c): c is Class => c != null);
-      
+        .filter((c): c is Class => c != null)
+        .sort((a, b) => {
+          const an = parseInt(String(a.classNumber ?? a.grade ?? ''), 10);
+          const bn = parseInt(String(b.classNumber ?? b.grade ?? ''), 10);
+          const aNum = Number.isFinite(an) ? an : Number.MAX_SAFE_INTEGER;
+          const bNum = Number.isFinite(bn) ? bn : Number.MAX_SAFE_INTEGER;
+          if (aNum !== bNum) return aNum - bNum;
+          return String(a.section ?? '').localeCompare(String(b.section ?? ''), undefined, {
+            sensitivity: 'base',
+          });
+        });
+
       setClasses(mappedClasses);
     } catch (error) {
       console.error('Failed to fetch classes:', error);
