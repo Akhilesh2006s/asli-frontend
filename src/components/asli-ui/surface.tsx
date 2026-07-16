@@ -56,16 +56,19 @@ export function AsliPanel({
   children,
   className,
   glow,
+  interactive,
 }: {
   children: ReactNode;
   className?: string;
   glow?: boolean;
+  interactive?: boolean;
 }) {
   return (
     <section
       className={cn(
         "asli-card-premium p-6 lg:p-8",
         glow && "asli-ai-glow",
+        interactive && "asli-card-interactive cursor-pointer hover:border-indigo-blue-200",
         className
       )}
     >

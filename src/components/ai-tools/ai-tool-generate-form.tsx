@@ -37,7 +37,7 @@ export function AiToolGeneratePageChrome({
           transition={{ duration: 0.28 }}
           className="asli-card-premium asli-ai-glow overflow-hidden p-0"
         >
-          <div className="h-1.5 w-full bg-gradient-to-r from-teal-green-500 to-indigo-blue-500" />
+          <div className="h-1.5 w-full bg-gradient-to-r from-indigo-blue-600 via-sky-500 to-orange-400" />
           <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:p-8">
             <Button
               type="button"
@@ -49,7 +49,7 @@ export function AiToolGeneratePageChrome({
               {backLabel}
             </Button>
             <div className="flex min-w-0 items-center gap-4">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-green-600 to-indigo-blue-600 shadow-glow">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-blue-600 to-sky-500 shadow-lg shadow-indigo-blue-500/20">
                 <Icon className="h-8 w-8 text-white" aria-hidden />
               </div>
               <div className="min-w-0 space-y-1.5">
@@ -115,11 +115,11 @@ export function AiToolGenerateFormCard({
         className,
       )}
     >
-      <div className="border-b border-slate-100 bg-gradient-to-r from-sky-50/80 via-white to-teal-50/50 px-4 py-4 sm:px-6">
-        <h2 className="text-base font-bold tracking-tight text-slate-900 sm:text-lg">{title}</h2>
-        {subtitle ? <p className="mt-1 text-xs leading-relaxed text-slate-500 sm:text-sm">{subtitle}</p> : null}
+      <div className="border-b border-slate-100 bg-gradient-to-r from-indigo-blue-50/80 via-white to-orange-50/50 px-5 py-5 sm:px-7">
+        <h2 className="font-display text-2xl font-bold tracking-tight text-slate-900">{title}</h2>
+        {subtitle ? <p className="mt-2 text-base leading-relaxed text-slate-600 sm:text-lg">{subtitle}</p> : null}
       </div>
-      <div className="space-y-5 p-4 sm:p-6">
+      <div className="space-y-6 p-5 sm:p-7">
         {notices}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
         <motion.div whileTap={{ scale: 0.985 }}>
@@ -127,7 +127,7 @@ export function AiToolGenerateFormCard({
             type="button"
             onClick={onGenerate}
             disabled={isGenerating || generateDisabled}
-            className="h-12 w-full rounded-xl bg-gradient-to-r from-sky-600 to-teal-600 text-base font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:from-sky-700 hover:to-teal-700 disabled:opacity-70"
+            className="h-14 w-full rounded-xl bg-indigo-blue-600 text-lg font-bold text-white shadow-lg shadow-indigo-blue-500/20 transition hover:bg-indigo-blue-700 disabled:opacity-70"
           >
             {isGenerating ? (
               <>

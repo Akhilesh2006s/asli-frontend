@@ -33,38 +33,38 @@ function ToolCard({
   const [, setLocation] = useLocation();
 
   return (
-    <Card className="group relative overflow-hidden border border-slate-200/80 bg-white/90 shadow-sm transition-all hover:-translate-y-1 hover:border-sky-400/70 hover:shadow-xl">
+    <Card className="group relative overflow-hidden border border-slate-200/80 bg-white/95 transition-all hover:-translate-y-1 hover:border-indigo-blue-300 hover:shadow-xl">
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <div
-              className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-white shadow-lg`}
+              className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} text-white shadow-lg`}
             >
-              <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+              <Icon className="h-7 w-7" />
             </div>
             {badge && (
               <Badge
                 variant="secondary"
-                className="border border-sky-200 bg-sky-50 text-[11px] font-semibold text-sky-700"
+                className="border border-indigo-blue-200 bg-indigo-blue-50 text-indigo-blue-700"
               >
                 {badge}
               </Badge>
             )}
           </div>
-          <CardTitle className="text-base sm:text-lg font-semibold tracking-tight text-slate-900">
+          <CardTitle className="text-2xl font-bold tracking-tight text-slate-900">
             {title}
           </CardTitle>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-xs sm:text-sm leading-relaxed text-slate-600">{description}</p>
+        <p className="text-base leading-relaxed text-slate-600 sm:text-lg">{description}</p>
         <Button
           size="sm"
-          className="group/button mt-2 inline-flex items-center gap-1 rounded-full bg-sky-600 px-4 text-xs font-medium text-white shadow-sm hover:bg-sky-700"
+          className="group/button mt-2 inline-flex items-center gap-2 rounded-xl px-5 text-base font-bold"
           onClick={() => setLocation(href)}
         >
           Open tool
-          <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover/button:translate-x-0.5" />
+          <ArrowRight className="h-5 w-5 transition-transform group-hover/button:translate-x-0.5" />
         </Button>
       </CardContent>
 
@@ -78,49 +78,40 @@ export default function AIToolsDashboard() {
   return (
     <>
       <Navigation />
-      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-slate-50 to-sky-100">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:p-6 lg:p-8 px-4 py-4 sm:py-6 lg:py-8 md:py-10 lg:py-12">
-          <header className="space-y-3">
-            <Badge className="rounded-full bg-sky-100 text-xs font-medium text-sky-800 ring-1 ring-sky-200">
-              Central AI Tools Hub
+      <div className="asli-app-bg min-h-screen">
+        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 pb-16 pt-28 sm:px-8 lg:pt-32">
+          <header className="max-w-4xl space-y-4">
+            <Badge className="rounded-full bg-indigo-blue-100 text-indigo-blue-800 ring-1 ring-indigo-blue-200">
+              ASLILEARN AI workspace
             </Badge>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-              All AI tools in{" "}
-              <span className="bg-gradient-to-r from-sky-600 to-cyan-600 bg-clip-text text-transparent">
-                one dashboard
+            <h1 className="font-display text-4xl font-extrabold tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
+              Start with the right{" "}
+              <span className="bg-gradient-to-r from-indigo-blue-600 to-sky-500 bg-clip-text text-transparent">
+                AI workspace
               </span>
             </h1>
-            <p className="max-w-2xl text-xs sm:text-sm text-slate-600 md:text-base">
-              Quickly access every AI experience we provide — from student AI
-              tutor to teacher analytics and super-admin risk monitoring —
-              through a single shareable page.
+            <p className="max-w-3xl text-lg font-medium leading-relaxed text-slate-600 sm:text-xl">
+              Students get guided learning, teachers create classroom-ready material, and school leaders
+              manage learning operations from one clear platform.
             </p>
           </header>
 
-          <section className="grid gap-3 sm:p-4 lg:p-6 md:grid-cols-[2fr,3fr]">
+          <section className="grid gap-6 lg:grid-cols-[0.8fr,1.2fr]">
             <div className="space-y-4">
               <Card className="border border-sky-100 bg-white/90 shadow-sm">
                 <CardHeader className="space-y-2">
-                  <CardTitle className="flex items-center gap-2 text-sm sm:text-base font-semibold text-slate-900">
-                    <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-sky-500" />
-                    What&apos;s inside this folder?
+                  <CardTitle className="flex items-center gap-3 text-2xl font-bold text-slate-900">
+                    <Sparkles className="h-6 w-6 text-orange-500" />
+                    One platform, role-aware AI
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2 text-xs sm:text-sm text-slate-600">
+                <CardContent className="space-y-4 text-base leading-relaxed text-slate-600">
                   <p>
-                    This `ai-tools-dashboard` page is self-contained on the
-                    frontend: you can{" "}
-                    <span className="font-semibold">
-                      share just this folder
-                    </span>{" "}
-                    with a colleague to show how all AI tools are wired
-                    together.
+                    Every user enters a workspace designed for the job they need to complete, with clear
+                    prompts, curriculum context, and structured AI results.
                   </p>
                   <p>
-                    It links to the existing pages like{" "}
-                    <span className="font-medium">AI Tutor</span>,{" "}
-                    <span className="font-medium">AI Analytics Dashboard</span>,
-                    and detailed analytics views.
+                    Choose your workspace to continue. Access is protected by your existing account role.
                   </p>
                 </CardContent>
               </Card>
@@ -128,28 +119,28 @@ export default function AIToolsDashboard() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <ToolCard
-                title="AI Tutor (Student)"
-                description="Student-facing AI tutor with chat assistant and smart learning tools."
+                title="Student AI"
+                description="Ask Vidya, build study guides, practise concepts, and continue your learning path."
                 badge="Student"
                 icon={Brain}
                 href="/ai-tutor"
-                gradient="from-sky-500 to-cyan-500"
+                gradient="from-indigo-blue-600 to-sky-500"
               />
               <ToolCard
-                title="AI Analytics Dashboard"
-                description="Teacher / admin analytics powered by AI for performance and insights."
-                badge="Teacher / Admin"
-                icon={BarChart3}
-                href="/ai-analytics-dashboard"
-                gradient="from-indigo-500 to-sky-500"
+                title="Teacher AI Studio"
+                description="Create lessons, worksheets, assessments, and classroom resources with guided forms."
+                badge="Teacher"
+                icon={MessageCircle}
+                href="/teacher/dashboard?tab=vidya-ai"
+                gradient="from-violet-500 to-indigo-blue-600"
               />
               <ToolCard
-                title="Detailed AI Analytics"
-                description="Deeper AI-driven insights and breakdowns of student performance."
-                badge="Advanced"
-                icon={LineChart}
-                href="/detailed-ai-analytics"
-                gradient="from-violet-500 to-fuchsia-500"
+                title="School AI Control Center"
+                description="Review learning activity, manage school operations, and open role-based insights."
+                badge="School Admin"
+                icon={Shield}
+                href="/admin/dashboard"
+                gradient="from-orange-500 to-amber-500"
               />
             </div>
           </section>
@@ -157,13 +148,13 @@ export default function AIToolsDashboard() {
           <section className="grid gap-4 md:grid-cols-3">
             <Card className="border border-slate-200/80 bg-white/90">
               <CardHeader className="space-y-1">
-                <CardTitle className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-900">
-                  <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4 text-sky-500" />
+                <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-900">
+                  <MessageCircle className="h-6 w-6 text-indigo-blue-600" />
                   Student AI experiences
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-slate-600">
+                <p className="text-base leading-relaxed text-slate-600">
                   AI chat assistant, smart study guide generator, concept
                   breakdowns, and more — all accessible through the AI Tutor
                   entry.
@@ -173,13 +164,13 @@ export default function AIToolsDashboard() {
 
             <Card className="border border-slate-200/80 bg-white/90">
               <CardHeader className="space-y-1">
-                <CardTitle className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-900">
-                  <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 text-sky-500" />
+                <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-900">
+                  <BarChart3 className="h-6 w-6 text-indigo-blue-600" />
                   Teacher & admin tooling
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-slate-600">
+                <p className="text-base leading-relaxed text-slate-600">
                   Use AI to analyze exam results, monitor class performance, and
                   get recommended actions for interventions.
                 </p>
@@ -188,13 +179,13 @@ export default function AIToolsDashboard() {
 
             <Card className="border border-slate-200/80 bg-white/90">
               <CardHeader className="space-y-1">
-                <CardTitle className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-900">
-                  <Shield className="h-3 w-3 sm:h-4 sm:w-4 text-sky-500" />
+                <CardTitle className="flex items-center gap-3 text-xl font-bold text-slate-900">
+                  <Shield className="h-6 w-6 text-indigo-blue-600" />
                   Governance & safety
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-xs text-slate-600">
+                <p className="text-base leading-relaxed text-slate-600">
                   Super-admin risk dashboards to keep AI usage safe, compliant,
                   and aligned with institutional policies.
                 </p>

@@ -3,41 +3,55 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { lazy, Suspense } from "react";
 import NotFound from "@/pages/not-found";
 import Homepage from "./pages/homepage";
-import Dashboard from "./pages/dashboard";
-import LearningPaths from "./pages/learning-paths";
-import PracticeTests from "./pages/practice-tests";
-import AITutor from "./pages/ai-tutor";
-import Profile from "./pages/profile";
-import Login from "./pages/auth/login";
-import Register from "./pages/auth/register";
-import AdminDashboard from "./pages/admin/dashboard";
-import AdminSubjectContent from "./pages/admin/subject-content";
-import SubjectManagement from "./pages/admin/subject-management";
-import TimetableManagementPage from "./pages/admin/timetable";
-import TeacherDashboard from "./pages/teacher/dashboard";
-import TeacherTimetablePage from "./pages/teacher/timetable";
-import TeacherSubjectContent from "./pages/teacher/subject-content";
-import TeacherToolPage from "./pages/teacher/tools/[toolType]";
-import StudentToolPage from "./pages/student/tools/[toolType]";
-import StudentExams from "./pages/student-exams";
-import AsliPrepContentPage from "./pages/asli-prep-content";
-import SubjectContent from "./pages/subject-content";
-import EduOTT from "./pages/edu-ott";
 import { EduOTTFilterProvider } from "@/contexts/edu-ott-filter-context";
-import IQRankBoostSubjects from "./pages/iq-rank-boost-subjects";
-import IQRankBoostQuiz from "./pages/iq-rank-boost-quiz";
-import QuizPage from "./pages/quiz";
-import SuperAdminDashboard from "./pages/super-admin-dashboard";
-import SuperAdminSchoolDetail from "./pages/super-admin-school-detail";
-import SuperAdminTest from "./pages/super-admin-test";
-import Onboarding from "./pages/onboarding";
-import AIToolsDashboard from "./pages/ai-tools-dashboard";
-import Privacy from "./pages/privacy";
-import Terms from "./pages/terms";
-import Contact from "./pages/contact";
-import SixPreview from "./pages/six-preview";
+
+const Dashboard = lazy(() => import("./pages/dashboard"));
+const LearningPaths = lazy(() => import("./pages/learning-paths"));
+const PracticeTests = lazy(() => import("./pages/practice-tests"));
+const AITutor = lazy(() => import("./pages/ai-tutor"));
+const Profile = lazy(() => import("./pages/profile"));
+const Login = lazy(() => import("./pages/auth/login"));
+const Register = lazy(() => import("./pages/auth/register"));
+const AdminDashboard = lazy(() => import("./pages/admin/dashboard"));
+const AdminSubjectContent = lazy(() => import("./pages/admin/subject-content"));
+const SubjectManagement = lazy(() => import("./pages/admin/subject-management"));
+const TimetableManagementPage = lazy(() => import("./pages/admin/timetable"));
+const TeacherDashboard = lazy(() => import("./pages/teacher/dashboard"));
+const TeacherTimetablePage = lazy(() => import("./pages/teacher/timetable"));
+const TeacherSubjectContent = lazy(() => import("./pages/teacher/subject-content"));
+const TeacherToolPage = lazy(() => import("./pages/teacher/tools/[toolType]"));
+const StudentToolPage = lazy(() => import("./pages/student/tools/[toolType]"));
+const StudentExams = lazy(() => import("./pages/student-exams"));
+const AsliPrepContentPage = lazy(() => import("./pages/asli-prep-content"));
+const SubjectContent = lazy(() => import("./pages/subject-content"));
+const EduOTT = lazy(() => import("./pages/edu-ott"));
+const IQRankBoostSubjects = lazy(() => import("./pages/iq-rank-boost-subjects"));
+const IQRankBoostQuiz = lazy(() => import("./pages/iq-rank-boost-quiz"));
+const QuizPage = lazy(() => import("./pages/quiz"));
+const SuperAdminDashboard = lazy(() => import("./pages/super-admin-dashboard"));
+const SuperAdminSchoolDetail = lazy(() => import("./pages/super-admin-school-detail"));
+const SuperAdminTest = lazy(() => import("./pages/super-admin-test"));
+const Onboarding = lazy(() => import("./pages/onboarding"));
+const AIToolsDashboard = lazy(() => import("./pages/ai-tools-dashboard"));
+const Privacy = lazy(() => import("./pages/privacy"));
+const Terms = lazy(() => import("./pages/terms"));
+const Contact = lazy(() => import("./pages/contact"));
+const SixPreview = lazy(() => import("./pages/six-preview"));
+
+function RouteLoadingState() {
+  return (
+    <div className="asli-app-bg flex min-h-screen items-center justify-center p-6" role="status">
+      <div className="asli-card-premium flex max-w-md flex-col items-center p-8 text-center">
+        <span className="mb-5 h-12 w-12 animate-spin rounded-full border-4 border-indigo-blue-100 border-t-indigo-blue-600" />
+        <p className="font-display text-2xl font-bold text-slate-900">Opening your workspace</p>
+        <p className="mt-2 text-base text-slate-600">Loading the tools you need…</p>
+      </div>
+    </div>
+  );
+}
 
 function EduOTTWithFilters() {
   return (
@@ -49,45 +63,47 @@ function EduOTTWithFilters() {
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Homepage} />
-      <Route path="/six-preview" component={SixPreview} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/learning-paths" component={LearningPaths} />
-      <Route path="/tests" component={PracticeTests} />
-      <Route path="/student-exams" component={StudentExams} />
-      <Route path="/asli-prep-content" component={AsliPrepContentPage} />
-      <Route path="/edu-ott" component={EduOTTWithFilters} />
-      <Route path="/iq-rank-boost-subjects" component={IQRankBoostSubjects} />
-      <Route path="/iq-rank-boost/quiz/:quizId" component={IQRankBoostQuiz} />
-      <Route path="/quiz/:id" component={QuizPage} />
-      <Route path="/subject/:id" component={SubjectContent} />
-      <Route path="/ai-tutor" component={AITutor} />
-      <Route path="/ai-tools" component={AIToolsDashboard} />
-      <Route path="/profile" component={Profile} />
-      <Route path="/auth/login" component={Login} />
-      <Route path="/signin" component={Login} />
-      <Route path="/auth/register" component={Register} />
-      <Route path="/admin/dashboard" component={AdminDashboard} />
-      <Route path="/admin/subject/:id" component={AdminSubjectContent} />
-      <Route path="/admin/subjects" component={SubjectManagement} />
-      <Route path="/admin/timetable" component={TimetableManagementPage} />
-      <Route path="/teacher/dashboard" component={TeacherDashboard} />
-      <Route path="/teacher/timetable" component={TeacherTimetablePage} />
-      <Route path="/teacher/subject/:id" component={TeacherSubjectContent} />
-      <Route path="/teacher/tools/:toolType" component={TeacherToolPage} />
-      <Route path="/student/tools/:toolType" component={StudentToolPage} />
-      <Route path="/super-admin/dashboard" component={SuperAdminDashboard} />
-      <Route path="/super_admin/dashboard" component={SuperAdminDashboard} />
-      <Route path="/super-admin/schools/:id" component={SuperAdminSchoolDetail} />
-      <Route path="/super_admin/schools/:id" component={SuperAdminSchoolDetail} />
-      <Route path="/super-admin/test" component={SuperAdminTest} />
-      <Route path="/onboarding" component={Onboarding} />
-      <Route path="/privacy" component={Privacy} />
-      <Route path="/terms" component={Terms} />
-      <Route path="/contact" component={Contact} />
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={<RouteLoadingState />}>
+      <Switch>
+        <Route path="/" component={Homepage} />
+        <Route path="/six-preview" component={SixPreview} />
+        <Route path="/dashboard" component={Dashboard} />
+        <Route path="/learning-paths" component={LearningPaths} />
+        <Route path="/tests" component={PracticeTests} />
+        <Route path="/student-exams" component={StudentExams} />
+        <Route path="/asli-prep-content" component={AsliPrepContentPage} />
+        <Route path="/edu-ott" component={EduOTTWithFilters} />
+        <Route path="/iq-rank-boost-subjects" component={IQRankBoostSubjects} />
+        <Route path="/iq-rank-boost/quiz/:quizId" component={IQRankBoostQuiz} />
+        <Route path="/quiz/:id" component={QuizPage} />
+        <Route path="/subject/:id" component={SubjectContent} />
+        <Route path="/ai-tutor" component={AITutor} />
+        <Route path="/ai-tools" component={AIToolsDashboard} />
+        <Route path="/profile" component={Profile} />
+        <Route path="/auth/login" component={Login} />
+        <Route path="/signin" component={Login} />
+        <Route path="/auth/register" component={Register} />
+        <Route path="/admin/dashboard" component={AdminDashboard} />
+        <Route path="/admin/subject/:id" component={AdminSubjectContent} />
+        <Route path="/admin/subjects" component={SubjectManagement} />
+        <Route path="/admin/timetable" component={TimetableManagementPage} />
+        <Route path="/teacher/dashboard" component={TeacherDashboard} />
+        <Route path="/teacher/timetable" component={TeacherTimetablePage} />
+        <Route path="/teacher/subject/:id" component={TeacherSubjectContent} />
+        <Route path="/teacher/tools/:toolType" component={TeacherToolPage} />
+        <Route path="/student/tools/:toolType" component={StudentToolPage} />
+        <Route path="/super-admin/dashboard" component={SuperAdminDashboard} />
+        <Route path="/super_admin/dashboard" component={SuperAdminDashboard} />
+        <Route path="/super-admin/schools/:id" component={SuperAdminSchoolDetail} />
+        <Route path="/super_admin/schools/:id" component={SuperAdminSchoolDetail} />
+        <Route path="/super-admin/test" component={SuperAdminTest} />
+        <Route path="/onboarding" component={Onboarding} />
+        <Route path="/privacy" component={Privacy} />
+        <Route path="/terms" component={Terms} />
+        <Route path="/contact" component={Contact} />
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 

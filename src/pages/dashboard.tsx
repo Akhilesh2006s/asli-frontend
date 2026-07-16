@@ -1884,7 +1884,7 @@ export default function Dashboard() {
       <div className="asli-app-bg min-h-screen w-full px-4 pb-responsive pt-responsive sm:px-6 lg:px-8">
         <div className="relative mx-auto max-w-7xl">
         {/* Interactive Background */}
-        <div className="fixed inset-0 -z-10 bg-[#f4f6f5]">
+        <div className="fixed inset-0 -z-10 bg-[#f4f7fb]">
           {/* Interactive Background - Disabled for better performance */}
           {/* <InteractiveBackground />
           <FloatingParticles /> */}
@@ -1901,16 +1901,16 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-ink via-ink-soft to-teal-green-700 p-5 text-white shadow-elevated sm:p-7 lg:p-9">
-        <div className="absolute -right-14 -top-24 h-64 w-64 rounded-full bg-teal-green-300/25 blur-3xl"></div>
+        <div className="relative overflow-hidden rounded-3xl border border-indigo-blue-100 bg-gradient-to-br from-indigo-blue-50 via-white to-orange-50 p-6 shadow-elevated sm:p-8 lg:p-10">
+        <div className="absolute -right-14 -top-24 h-64 w-64 rounded-full bg-indigo-blue-200/45 blur-3xl"></div>
             <div className="relative z-10 flex flex-row items-center justify-between gap-3 sm:gap-4">
               {/* Left side - Text content */}
               <div className="flex-1 min-w-0">
-                <SchoolBrandRow user={user} variant="onPrimary" className="mb-3" />
-                <h1 className="mb-2 font-display text-2xl font-bold leading-tight !text-white sm:text-3xl lg:text-4xl">
+                <SchoolBrandRow user={user} className="mb-4" />
+                <h1 className="mb-3 font-display text-3xl font-extrabold leading-tight !text-slate-900 sm:text-4xl lg:text-5xl">
                   Welcome back, {getStudentDisplayName(user)}!
                 </h1>
-                <p className="mb-4 max-w-3xl text-base font-medium leading-relaxed text-white sm:text-lg">
+                <p className="mb-6 max-w-3xl text-lg font-medium leading-relaxed text-slate-600 sm:text-xl">
                   {vidyaEnabled
                     ? `Ready to continue your ${user?.educationStream || 'JEE'} preparation journey? Your Vidya AI has personalized recommendations waiting.`
                     : `Ready to continue your ${user?.educationStream || 'JEE'} preparation journey? Pick up where you left off.`}
@@ -1918,7 +1918,7 @@ export default function Dashboard() {
                 
                 <div className="flex flex-row flex-wrap gap-2 sm:gap-3">
                   <Button 
-                    className="h-12 whitespace-nowrap !bg-white px-5 text-base font-semibold !text-[#0b1f2a] shadow-md hover:!bg-teal-green-50 hover:!text-teal-green-800"
+                    className="h-12 whitespace-nowrap px-6 text-base font-bold"
                     onClick={() => setLocation('/learning-paths')}
                   >
                     Continue Learning
@@ -1926,7 +1926,7 @@ export default function Dashboard() {
                   {vidyaEnabled ? (
                   <Button 
                     variant="outline" 
-                    className="h-12 whitespace-nowrap border-white/40 !bg-white/10 px-5 text-base font-semibold !text-white backdrop-blur-md hover:!bg-white/20"
+                    className="h-12 whitespace-nowrap border-indigo-blue-200 !bg-white px-6 text-base font-bold !text-indigo-blue-700 hover:!bg-indigo-blue-50"
                     onClick={() => setLocation('/ai-tutor')}
                   >
                     Ask Vidya AI
@@ -1939,7 +1939,7 @@ export default function Dashboard() {
               {vidyaEnabled ? (
               <div className="flex-shrink-0">
                 <div className="w-[4.5rem] h-[3.25rem] sm:w-40 sm:h-28 lg:w-44 lg:h-32 relative">
-                  <div className="absolute inset-0 bg-white/15 rounded-xl sm:rounded-2xl backdrop-blur-sm p-1 sm:p-1.5 border border-white/30 shadow-lg">
+                  <div className="absolute inset-0 rounded-xl border border-white bg-white/80 p-1 shadow-lg sm:rounded-2xl sm:p-1.5">
                     <img 
                       src="/Vidya-ai.jpg" 
                       alt="Vidya AI" 
@@ -1958,22 +1958,22 @@ export default function Dashboard() {
         <div className="mb-8 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Today's Progress */}
-            <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-lg hover:shadow-md transition-all duration-200 h-full">
+            <Card className="h-full border-orange-200 bg-orange-50">
               <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col h-full relative">
-                <div className="absolute top-3 sm:p-4 lg:p-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                  <Target className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                <div className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-xl bg-orange-100">
+                  <Target className="h-6 w-6 text-orange-600" />
                 </div>
-                <p className="text-xs sm:text-sm font-medium text-white/90 mb-4 pr-12">Today's Progress</p>
+                <p className="mb-4 pr-12 text-base font-bold text-orange-800">Today's Progress</p>
                 {(() => {
                   const { totalTodos, completedTodos } = dashboardTodoStats;
                   const percentage = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
                   return (
                     <>
-                      <p className="text-2xl sm:text-3xl font-bold text-white mb-3 leading-tight">{completedTodos}/{totalTodos}</p>
-                      <div className="w-full bg-white/20 rounded-full h-2 mb-2 overflow-hidden">
-                        <div className="bg-white h-2 rounded-full transition-all duration-500" style={{ width: `${percentage}%` }}></div>
+                      <p className="mb-3 text-3xl font-extrabold leading-tight text-slate-900">{completedTodos}/{totalTodos}</p>
+                      <div className="mb-2 h-2.5 w-full overflow-hidden rounded-full bg-orange-100">
+                        <div className="h-2.5 rounded-full bg-orange-500 transition-all duration-500" style={{ width: `${percentage}%` }}></div>
                       </div>
-                      <p className="text-xs text-white/80 mt-auto">Tasks completed {percentage}%</p>
+                      <p className="mt-auto text-base font-medium text-slate-600">Tasks completed {percentage}%</p>
                     </>
                   );
                 })()}
@@ -1981,48 +1981,48 @@ export default function Dashboard() {
             </Card>
 
             {/* Study Time */}
-            <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg rounded-lg hover:shadow-md transition-all duration-200 h-full">
+            <Card className="h-full border-blue-200 bg-blue-50">
               <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col h-full relative">
-                <div className="absolute top-3 sm:p-4 lg:p-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                <div className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100">
+                  <Clock className="h-6 w-6 text-blue-600" />
                 </div>
-                <p className="text-xs sm:text-sm font-medium text-white/90 mb-4 pr-12">Study Time</p>
-                <p className="text-2xl sm:text-3xl font-bold text-white mb-2 leading-tight transition-all duration-300">
+                <p className="mb-4 pr-12 text-base font-bold text-blue-800">Study Time</p>
+                <p className="mb-2 text-3xl font-extrabold leading-tight text-slate-900 transition-all duration-300">
                   {studyTimeToday >= 60 
                     ? `${(studyTimeToday / 60).toFixed(1)} hrs` 
                     : studyTimeToday < 1 && studyTimeToday > 0
                     ? '<1m'
                     : `${Math.round(studyTimeToday)}m`}
                 </p>
-                <p className="text-xs text-white/80 mt-auto">Logged in today</p>
+                <p className="mt-auto text-base font-medium text-slate-600">Logged in today</p>
               </CardContent>
             </Card>
 
             {/* This Week */}
-            <Card className="bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-lg hover:shadow-md transition-all duration-200 h-full">
+            <Card className="h-full border-cyan-200 bg-cyan-50">
               <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col h-full relative">
-                <div className="absolute top-3 sm:p-4 lg:p-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                <div className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-100">
+                  <Calendar className="h-6 w-6 text-cyan-700" />
                 </div>
-                <p className="text-xs sm:text-sm font-medium text-white/90 mb-4 pr-12">This Week</p>
-                <p className="text-2xl sm:text-3xl font-bold text-white mb-2 leading-tight transition-all duration-300">
+                <p className="mb-4 pr-12 text-base font-bold text-cyan-800">This Week</p>
+                <p className="mb-2 text-3xl font-extrabold leading-tight text-slate-900 transition-all duration-300">
                   {studyTimeThisWeek >= 60 
                     ? `${(studyTimeThisWeek / 60).toFixed(1)} hrs` 
                     : studyTimeThisWeek < 1 && studyTimeThisWeek > 0
                     ? '<1m'
                     : `${Math.round(studyTimeThisWeek)}m`}
                 </p>
-                <p className="text-xs text-white/80 mt-auto">Study time this week</p>
+                <p className="mt-auto text-base font-medium text-slate-600">Study time this week</p>
               </CardContent>
             </Card>
 
             {/* Efficiency */}
-            <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-lg hover:shadow-md transition-all duration-200 h-full">
+            <Card className="h-full border-violet-200 bg-violet-50">
               <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col h-full relative">
-                <div className="absolute top-3 sm:p-4 lg:p-6 right-6 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                <div className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-xl bg-violet-100">
+                  <TrendingUp className="h-6 w-6 text-violet-600" />
                 </div>
-                <p className="text-xs sm:text-sm font-medium text-white/90 mb-4 pr-12">Efficiency</p>
+                <p className="mb-4 pr-12 text-base font-bold text-violet-800">Efficiency</p>
                 {(() => {
                   const { totalTodos, completedTodos } = dashboardTodoStats;
                   const efficiency =
@@ -2041,8 +2041,8 @@ export default function Dashboard() {
                         : 'Content & quizzes';
                   return (
                     <>
-                      <p className="text-2xl sm:text-3xl font-bold text-white mb-2 leading-tight">{efficiency}%</p>
-                      <p className="text-xs text-white/80 mt-auto">{completedLabel}</p>
+                      <p className="mb-2 text-3xl font-extrabold leading-tight text-slate-900">{efficiency}%</p>
+                      <p className="mt-auto text-base font-medium text-slate-600">{completedLabel}</p>
                     </>
                   );
                 })()}

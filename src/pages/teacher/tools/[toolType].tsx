@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Sparkles, Download, Copy, Check, FileText, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { ArrowLeft, Sparkles, Download, Copy, Check, FileText, FileSpreadsheet, Loader2, RotateCcw, Share2 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import {
   isAiToolApiFailureInline,
@@ -961,6 +961,31 @@ export default function TeacherToolPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleShare = async () => {
+    const shareData = {
+      title: `${config?.name || 'AI Tool'} | ASLILEARN AI`,
+      text: displayGeneratedContent,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(displayGeneratedContent);
+        toast({ title: 'Ready to share', description: 'Content copied to your clipboard' });
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      toast({ title: 'Share unavailable', description: 'Please use Copy instead', variant: 'destructive' });
+    }
+  };
+
+  const handleDownloadText = () => {
+    const fileName = `${config?.name || 'AI-Content'}-${Date.now()}.txt`.replace(/\s+/g, '-');
+    saveAs(new Blob([displayGeneratedContent], { type: 'text/plain;charset=utf-8' }), fileName);
+    toast({ title: 'Downloaded!', description: 'Content saved as a text file' });
+  };
+
   // Helper function to clean LaTeX math for Word display
   const cleanLaTeXForWord = (latex: string): string => {
     if (!latex) return '';
@@ -1439,13 +1464,13 @@ export default function TeacherToolPage() {
             notices={
               <>
               {toolType === STORY_PASSAGE_TOOL_ID ? (
-                <p className="sm:col-span-2 lg:col-span-3 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
+                <p className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-base leading-relaxed text-sky-900 sm:col-span-2 lg:col-span-3">
                   Story &amp; Passage Creator is available for <strong>English</strong> and{' '}
                   <strong>Hindi</strong> subjects only.
                 </p>
               ) : null}
               {isLanguageExcludedTool(toolType) ? (
-                <p className="sm:col-span-2 lg:col-span-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-base leading-relaxed text-amber-900 sm:col-span-2 lg:col-span-3">
                   This tool is not available for <strong>English</strong>, <strong>Hindi</strong>, or{' '}
                   <strong>Telugu</strong> subjects.
                 </p>
@@ -1636,7 +1661,7 @@ export default function TeacherToolPage() {
             }
             footer={
               generatedContent ? (
-                <p className="text-center text-xs text-slate-500">
+                <p className="text-center text-base text-slate-500">
                   ASLILEARN AI V2 · Use download to export or regenerate to refresh incomplete sections.
                 </p>
               ) : null
@@ -1658,9 +1683,10 @@ export default function TeacherToolPage() {
             }
             actions={
               generatedContent ? (
-                <div className="flex space-x-2">
+                <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" onClick={handleCopy} className="bg-white">
                     {copied ? <Check className="w-3 h-3 sm:w-4 sm:h-4" /> : <Copy className="w-3 h-3 sm:w-4 sm:h-4" />}
+                    {copied ? 'Copied' : 'Copy'}
                   </Button>
                   {showDownloadActions ? (
                     <DropdownMenu>
@@ -1671,6 +1697,7 @@ export default function TeacherToolPage() {
                           ) : (
                             <Download className="w-3 h-3 sm:w-4 sm:h-4" />
                           )}
+                          Download
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
@@ -1684,7 +1711,20 @@ export default function TeacherToolPage() {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  ) : null}
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={handleDownloadText} className="bg-white">
+                      <Download className="h-5 w-5" />
+                      Download
+                    </Button>
+                  )}
+                  <Button size="sm" variant="outline" onClick={handleShare} className="bg-white">
+                    <Share2 className="h-5 w-5" />
+                    Share
+                  </Button>
+                  <Button size="sm" onClick={handleGenerate} disabled={isGenerating}>
+                    <RotateCcw className="h-5 w-5" />
+                    Regenerate
+                  </Button>
                 </div>
               ) : null
             }
@@ -1696,7 +1736,7 @@ export default function TeacherToolPage() {
                     fallbackEmptyMessage ? 'text-red-300' : 'text-slate-300',
                   )}
                 />
-                <p className="text-sm font-medium">
+                <p className="text-base font-medium">
                   {fallbackEmptyMessage || 'Fill in the form and click Generate to create content'}
                 </p>
               </div>

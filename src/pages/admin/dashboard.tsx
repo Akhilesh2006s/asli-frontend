@@ -316,7 +316,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-sky-50 relative overflow-hidden md:flex md:h-screen">
+    <div className="admin-light-dashboard asli-app-bg min-h-screen relative overflow-hidden md:flex md:h-screen">
       {/* Interactive Background */}
       <div className="fixed inset-0 z-0">
         {/* Interactive Background - Disabled for better performance */}
@@ -325,15 +325,15 @@ const AdminDashboard = () => {
       </div>
       {/* Mobile Header */}
       {isMobile && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 backdrop-blur-xl md:hidden pt-[env(safe-area-inset-top,0px)]">
+        <div className="fixed left-0 right-0 top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-xl md:hidden pt-[env(safe-area-inset-top,0px)]">
           <div className="flex h-14 min-h-[3.5rem] items-center justify-between px-4">
             <div className="flex min-w-0 items-center space-x-2.5">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/20">
                 <span className="text-sm font-bold text-white">AS</span>
               </div>
               <div className="min-w-0">
-                <h1 className="truncate text-sm font-bold leading-tight text-white">ASLILEARN AI</h1>
-                <p className="text-[11px] font-medium text-white/90">Admin Panel</p>
+                <h1 className="truncate text-base font-bold leading-tight text-slate-900">ASLILEARN AI</h1>
+                <p className="text-sm font-semibold text-indigo-blue-600">School Admin</p>
               </div>
             </div>
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -342,7 +342,7 @@ const AdminDashboard = () => {
                   <Menu className="w-3 h-3 sm:w-4 sm:h-4" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-[300px] border-r border-white/10 bg-ink p-0">
+              <SheetContent side="left" className="admin-sidebar w-[300px] border-r border-slate-200 bg-white p-0">
                 <div className="p-responsive">
                   <div className="flex items-center space-x-responsive mb-responsive">
                     <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
@@ -536,7 +536,7 @@ const AdminDashboard = () => {
 
       {/* Desktop Sidebar */}
       {!isMobile && (
-        <div className="hidden md:flex md:flex-col md:sticky md:top-0 md:h-screen w-[300px] bg-gradient-to-b from-ink via-ink-soft to-[#0a3d48] shadow-elevated border-r border-white/10 relative z-10">
+        <div className="admin-sidebar relative z-10 hidden w-[300px] border-r border-slate-200 bg-white shadow-elevated md:sticky md:top-0 md:flex md:h-screen md:flex-col">
         {/* Logo Section */}
         <div className="p-3 sm:p-4 lg:p-6 border-b border-orange-300/50">
           <div className="flex items-center space-x-3">
@@ -691,15 +691,15 @@ const AdminDashboard = () => {
         {/* Main Content Area */}
         <div className={`flex-1 w-full min-w-0 flex flex-col relative z-10 md:h-screen md:overflow-y-auto hide-scrollbar ${isMobile ? 'pt-[calc(3.5rem+env(safe-area-inset-top,0px))]' : ''}`}>
           {/* Top Header - Student Dashboard Theme */}
-          <div className={`bg-gradient-to-r from-sky-300 via-sky-400 to-teal-400 shadow-xl border-b-0 rounded-b-3xl px-4 sm:px-6 lg:px-8 py-4 sm:py-4 lg:py-6 relative z-10 ${isMobile ? 'rounded-t-none shadow-none' : 'rounded-b-2xl'}`}>
+          <div className={`relative z-10 rounded-b-3xl border-b border-slate-200 bg-gradient-to-r from-indigo-blue-50 via-white to-orange-50 px-5 py-6 shadow-sm sm:px-7 lg:px-10 lg:py-8 ${isMobile ? 'rounded-t-none shadow-none' : 'rounded-b-2xl'}`}>
             <div className="flex-responsive-col items-start justify-between space-y-responsive sm:space-y-0">
               <div className="w-full min-w-0 text-left">
-                <p className="mb-2 hidden text-xs uppercase tracking-[0.3em] text-gray-900 sm:block">Admin Control Center</p>
-                <h2 className="text-lg font-bold capitalize text-gray-900 sm:text-responsive-xl">{activeTab}</h2>
-                <p className="mt-0.5 text-sm font-medium text-gray-900 sm:text-responsive-sm">Manage your learning platform with style</p>
+                <p className="mb-2 hidden text-base font-bold uppercase tracking-[0.16em] text-indigo-blue-600 sm:block">School control center</p>
+                <h2 className="font-display text-3xl font-extrabold capitalize text-slate-900 sm:text-4xl lg:text-5xl">{activeTab}</h2>
+                <p className="mt-2 text-base font-medium text-slate-600 sm:text-lg">Manage people, learning, content, exams, and daily school operations.</p>
                 {userData && (
                   <div className="mt-3 space-y-1.5">
-                    <SchoolBrandRow user={userData} variant="onPrimary" />
+                    <SchoolBrandRow user={userData} />
                     <p className="text-sm font-semibold text-gray-900 sm:text-base">
                       Welcome {userData.fullName || 'Admin'}
                     </p>

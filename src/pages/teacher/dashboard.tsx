@@ -299,10 +299,10 @@ const TeacherDashboard = () => {
     cn(
       'shrink-0 snap-center justify-center whitespace-nowrap lg:flex-1',
       'h-12 rounded-2xl px-4 text-base font-semibold transition-all duration-200',
-      'border-0 shadow-none',
+      'border border-transparent shadow-none',
       active
-        ? 'bg-white text-teal-green-700 shadow-[0_8px_24px_-8px_rgba(6,36,51,0.35)] ring-2 ring-white/90'
-        : 'bg-white/10 text-white hover:bg-white/20 hover:text-white'
+        ? 'border-indigo-blue-200 bg-indigo-blue-600 text-white shadow-md shadow-indigo-blue-600/15'
+        : 'text-slate-600 hover:border-slate-200 hover:bg-white hover:text-indigo-blue-700'
     );
 
   const dashboardSubTabNav = (
@@ -2167,28 +2167,28 @@ const TeacherDashboard = () => {
         <FloatingParticles />
       </div> */}
       
-      {/* Premium teacher header — aligned with the teal/ink workspace below */}
-      <div className="sticky top-0 z-50 overflow-hidden rounded-b-3xl border-b border-teal-green-300/20 bg-gradient-to-r from-ink via-ink-soft to-teal-green-700 text-white shadow-elevated">
-        <div className="pointer-events-none absolute -left-16 -top-24 h-52 w-52 rounded-full bg-teal-green-400/20 blur-3xl" />
-        <div className="pointer-events-none absolute -right-10 -top-28 h-56 w-56 rounded-full bg-indigo-blue-500/25 blur-3xl" />
+      {/* Light classroom header, aligned with the mobile teacher portal */}
+      <div className="sticky top-0 z-50 overflow-hidden rounded-b-3xl border-b border-sky-200 bg-gradient-to-r from-sky-100 via-white to-indigo-blue-50 shadow-elevated">
+        <div className="pointer-events-none absolute -left-16 -top-24 h-52 w-52 rounded-full bg-sky-200/55 blur-3xl" />
+        <div className="pointer-events-none absolute -right-10 -top-28 h-56 w-56 rounded-full bg-indigo-blue-200/45 blur-3xl" />
         <div className="relative mx-auto w-full max-w-7xl px-4 py-3 sm:px-6 sm:py-4 lg:px-8 lg:py-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
-              <SchoolBrandRow user={teacherUser} variant="onPrimary" />
+              <SchoolBrandRow user={teacherUser} />
               <div>
-                <p className="text-base font-medium text-teal-green-200">Teacher Portal</p>
+                <p className="text-base font-bold text-indigo-blue-700">Teacher Portal</p>
               </div>
             </div>
             <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto space-x-3 sm:space-x-4">
               <div className="text-left sm:text-right">
-                <p className="text-base font-semibold text-white">{teacherEmail || localStorage.getItem('userEmail') || 'Teacher'}</p>
-                <p className="text-[0.9375rem] text-teal-green-100/75">Welcome back!</p>
+                <p className="text-base font-semibold text-slate-800">{teacherEmail || localStorage.getItem('userEmail') || 'Teacher'}</p>
+                <p className="text-base text-slate-500">Welcome back!</p>
               </div>
               <Button 
                 variant="ghost" 
                 size="sm"
                 onClick={handleLogout}
-                className="w-auto rounded-full border border-white/25 bg-white/10 px-5 text-white shadow-md backdrop-blur-md transition-all duration-300 hover:scale-105 hover:bg-white hover:text-ink hover:shadow-glow font-semibold"
+                className="w-auto rounded-full border border-red-200 bg-white px-5 font-semibold text-red-600 shadow-sm hover:bg-red-50 hover:text-red-700"
               >
                 <LogOut className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Logout
@@ -2202,16 +2202,17 @@ const TeacherDashboard = () => {
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-28 lg:pb-8 relative z-10">
         {/* Welcome Message */}
         <div className="mb-8">
-          <h1 className="font-display text-responsive-xl font-bold text-ink capitalize">
+          <p className="mb-2 text-base font-bold uppercase tracking-[0.14em] text-indigo-blue-600">Teacher workspace</p>
+          <h1 className="font-display text-4xl font-extrabold capitalize text-ink lg:text-5xl">
             Overview
           </h1>
-          <p className="text-gray-600 text-responsive-sm font-medium mt-2">Manage your classes and track student progress with style</p>
+          <p className="mt-3 max-w-3xl text-lg font-medium leading-relaxed text-slate-600">Manage classes, create AI-powered learning material, and track student progress from one workspace.</p>
         </div>
 
         {/* Dashboard Content */}
         <div className="space-y-4 sm:space-y-6 lg:space-y-8">
           {/* Dashboard Sub-Tabs — desktop / large tablet (in page flow) */}
-              <div className="hidden lg:block rounded-3xl border border-teal-green-300/30 bg-gradient-to-r from-teal-green-600 via-teal-green-500 to-indigo-blue-600 p-3 shadow-elevated">
+              <div className="hidden rounded-3xl border border-slate-200 bg-slate-100/90 p-3 shadow-sm lg:block">
                 {dashboardSubTabNav}
               </div>
 
@@ -4732,9 +4733,9 @@ const TeacherDashboard = () => {
 
       {/* Mobile / tablet — fixed bottom tab bar (horizontal swipe scroll) */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="pointer-events-auto relative w-full min-w-0 max-w-full rounded-3xl border border-teal-green-300/30 bg-gradient-to-r from-teal-green-600 via-teal-green-500 to-indigo-blue-600 px-2.5 pb-1.5 pt-2.5 shadow-elevated">
+        <div className="pointer-events-auto relative w-full min-w-0 max-w-full rounded-3xl border border-slate-200 bg-white/95 px-2.5 pb-1.5 pt-2.5 shadow-elevated backdrop-blur-xl">
           <div
-            className="pointer-events-none absolute inset-y-2.5 left-2.5 z-10 w-5 bg-gradient-to-r from-teal-green-600 to-transparent"
+            className="pointer-events-none absolute inset-y-2.5 left-2.5 z-10 w-5 bg-gradient-to-r from-white to-transparent"
             aria-hidden="true"
           />
           <div

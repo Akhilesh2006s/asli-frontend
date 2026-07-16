@@ -172,10 +172,11 @@ export default function Navigation() {
               onMouseEnter={() => prefetchStudentRoute(item.path)}
               onFocus={() => prefetchStudentRoute(item.path)}
               variant="ghost"
-              className={`w-full justify-start rounded-xl transition-all duration-300 group ${
+              aria-current={isActive ? "page" : undefined}
+              className={`group w-full justify-start rounded-xl transition-all duration-200 ${
                 isActive 
-                  ? "bg-gradient-to-r from-sky-300 to-teal-400 text-white shadow-lg scale-105" 
-                  : "text-gray-700 hover:bg-gradient-to-r hover:from-sky-50 hover:to-teal-50 hover:text-sky-700 hover:scale-105"
+                  ? "bg-indigo-blue-600 text-white shadow-md"
+                  : "text-slate-700 hover:bg-indigo-blue-50 hover:text-indigo-blue-700"
               }`}
             >
               <Icon className={`mr-3 h-5 w-5 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
@@ -214,7 +215,7 @@ export default function Navigation() {
             
             {/* Navigation Links - Modern Design */}
             {!isMobile && (
-              <div className="hidden items-center gap-1 rounded-full border border-ink/10 bg-mist/80 p-1.5 shadow-sm backdrop-blur-md md:flex">
+              <div className="hidden items-center gap-1 rounded-full border border-slate-200 bg-slate-100/90 p-1.5 shadow-sm backdrop-blur-md md:flex">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location === item.path;
@@ -224,10 +225,11 @@ export default function Navigation() {
                       <button
                         onMouseEnter={() => prefetchStudentRoute(item.path)}
                         onFocus={() => prefetchStudentRoute(item.path)}
-                        className={`relative flex items-center gap-2 rounded-full px-4 py-2.5 text-base font-semibold transition-all duration-300 lg:px-5 lg:py-3 ${
+                        aria-current={isActive ? "page" : undefined}
+                        className={`relative flex items-center gap-2 rounded-full px-4 py-2.5 text-base font-semibold transition-all duration-200 lg:px-5 lg:py-3 ${
                         isActive 
-                          ? "bg-gradient-to-r from-teal-green-600 to-indigo-blue-600 text-white shadow-glow" 
-                          : "text-ink/80 hover:bg-white hover:text-primary"
+                          ? "bg-indigo-blue-600 text-white shadow-md shadow-indigo-blue-600/15"
+                          : "text-slate-700 hover:bg-white hover:text-indigo-blue-700"
                       }`}>
                         <Icon className={`h-5 w-5 transition-transform ${isActive ? 'scale-110' : 'group-hover:scale-110'}`} />
                         <span>{getCompactLabel(item.label)}</span>
@@ -246,7 +248,8 @@ export default function Navigation() {
                     <Button 
                       variant="ghost" 
                       size="icon"
-                      className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 hover:from-blue-200 hover:to-cyan-200 backdrop-blur-sm border border-blue-200/50 shadow-md hover:shadow-lg transition-all duration-300 hover:scale-110"
+                      aria-label="Open navigation menu"
+                      className="h-11 w-11 rounded-full border border-indigo-blue-200 bg-indigo-blue-50 text-indigo-blue-700 shadow-sm hover:bg-indigo-blue-100"
                     >
                       <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-blue-700" />
                     </Button>
@@ -290,7 +293,7 @@ export default function Navigation() {
                 </Sheet>
               ) : (
                 <div className="flex items-center space-x-2 lg:space-x-3">
-                  <Link href="/profile">
+                  <Link href="/profile" aria-label="Open your profile">
                     <div className="w-10 h-10 lg:w-11 lg:h-11 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-full flex items-center justify-center cursor-pointer shadow-lg backdrop-blur-sm border-2 border-white hover:scale-110 transition-transform duration-300 hover:shadow-xl group">
                       {userInitials ? (
                         <span className="text-xs lg:text-sm font-semibold text-white group-hover:scale-110 transition-transform">

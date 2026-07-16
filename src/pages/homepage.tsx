@@ -83,7 +83,7 @@ const FAQS = [
 
 function Navbar() {
   return (
-    <nav className="sticky top-0 z-50 border-b border-white/40 bg-ink/80 backdrop-blur-xl">
+    <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur-xl">
       <div className="mx-auto flex h-[4.5rem] max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
         <Link href="/" className="flex min-w-0 items-center gap-3">
           <img
@@ -91,8 +91,8 @@ function Navbar() {
             alt="AsliLearn AI"
             className="h-11 w-11 rounded-xl object-contain shadow-glow ring-2 ring-teal-green-400/40"
           />
-          <span className="font-display text-xl font-bold tracking-tight text-white sm:text-2xl">
-            ASLILEARN<span className="text-teal-green-300"> AI</span>
+          <span className="font-display text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+            ASLILEARN<span className="text-indigo-blue-600"> AI</span>
           </span>
         </Link>
 
@@ -101,7 +101,7 @@ function Navbar() {
             <a
               key={link.href}
               href={link.href}
-              className="text-base font-medium text-white/80 transition hover:text-white"
+              className="text-base font-semibold text-slate-600 transition hover:text-indigo-blue-700"
             >
               {link.label}
             </a>
@@ -112,7 +112,7 @@ function Navbar() {
           <Link href="/auth/login">
             <Button
               variant="outline"
-              className="h-11 border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white"
+              className="h-11 border-slate-300 bg-white text-slate-700 hover:bg-indigo-blue-50 hover:text-indigo-blue-700"
             >
               Login
             </Button>
@@ -132,6 +132,8 @@ function FaqItem({ q, a }: { q: string; a: string }) {
     <button
       type="button"
       onClick={() => setOpen((v) => !v)}
+      aria-expanded={open}
+      aria-controls={`faq-${q.replace(/\W+/g, "-").toLowerCase()}`}
       className="w-full rounded-2xl border border-ink/10 bg-white/80 px-6 py-5 text-left shadow-sm transition hover:border-primary/30"
     >
       <div className="flex items-start justify-between gap-4">
@@ -140,14 +142,14 @@ function FaqItem({ q, a }: { q: string; a: string }) {
           className={`mt-1 h-6 w-6 shrink-0 text-primary transition ${open ? "rotate-180" : ""}`}
         />
       </div>
-      {open ? <p className="mt-3 text-base leading-relaxed text-muted-foreground sm:text-lg">{a}</p> : null}
+      {open ? <p id={`faq-${q.replace(/\W+/g, "-").toLowerCase()}`} className="mt-3 text-base leading-relaxed text-muted-foreground sm:text-lg">{a}</p> : null}
     </button>
   );
 }
 
 export default function Homepage() {
   return (
-    <div className="min-h-screen overflow-x-hidden bg-ink text-white">
+    <div className="min-h-screen overflow-x-hidden bg-[#f4f7fb] text-slate-900">
       <Navbar />
 
       {/* Hero: brand first, full-bleed, Zoom-readable */}
@@ -156,29 +158,29 @@ export default function Homepage() {
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse 90% 70% at 70% 20%, rgba(20,184,166,0.35), transparent 55%), radial-gradient(ellipse 60% 50% at 10% 80%, rgba(2,132,199,0.25), transparent 50%), linear-gradient(160deg, #062433 0%, #0b3a45 45%, #0f766e 140%)",
+              "radial-gradient(ellipse 90% 70% at 78% 12%, rgba(99,102,241,0.20), transparent 58%), radial-gradient(ellipse 60% 50% at 8% 82%, rgba(249,115,22,0.12), transparent 54%), linear-gradient(160deg, #f8faff 0%, #eef2ff 50%, #fff7ed 140%)",
           }}
         />
         <div
           className="absolute inset-0 opacity-30"
           style={{
             backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)",
+              "linear-gradient(rgba(71,85,105,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(71,85,105,0.05) 1px, transparent 1px)",
             backgroundSize: "56px 56px",
             maskImage: "radial-gradient(ellipse 80% 70% at 50% 40%, black, transparent)",
           }}
         />
 
         <div className="relative mx-auto flex min-h-[88vh] max-w-7xl flex-col justify-center px-5 py-16 sm:px-8 lg:py-24">
-          <p className="animate-fade-rise mb-5 font-display text-lg font-semibold uppercase tracking-[0.2em] text-teal-green-300">
-            AsliLearn AI
+          <p className="animate-fade-rise mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-indigo-blue-200 bg-white/80 px-4 py-2 font-display text-base font-bold uppercase tracking-[0.16em] text-indigo-blue-700 shadow-sm">
+            <Sparkles className="h-5 w-5" /> AsliLearn AI
           </p>
-          <h1 className="animate-fade-rise max-w-4xl font-display text-5xl font-extrabold leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl">
-            The AI education platform schools demo with confidence.
+          <h1 className="animate-fade-rise max-w-5xl font-display text-5xl font-extrabold leading-[1.05] tracking-tight text-slate-950 sm:text-6xl lg:text-7xl">
+            Teach smarter. Learn faster. Run your school with AI.
           </h1>
-          <p className="animate-fade-rise mt-6 max-w-2xl text-xl leading-relaxed text-white/80 sm:text-2xl">
-            Premium AI tools for teachers, guided learning for students, and an enterprise console for schools.
-            readable on Zoom, Teams, and classroom screens.
+          <p className="animate-fade-rise mt-6 max-w-3xl text-xl font-medium leading-relaxed text-slate-600 sm:text-2xl">
+            One clear platform for school leaders, teachers, and students, with classroom-ready AI tools,
+            guided learning, exams, analytics, and EduOTT.
           </p>
           <div className="animate-fade-rise mt-10 flex flex-col gap-4 sm:flex-row sm:items-center">
             <Link href="/auth/register">
@@ -191,7 +193,7 @@ export default function Homepage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="h-14 w-full border-white/35 bg-white/5 px-8 text-lg text-white hover:bg-white/15 hover:text-white sm:w-auto"
+                className="h-14 w-full border-indigo-blue-200 bg-white px-8 text-lg text-indigo-blue-700 hover:bg-indigo-blue-50 hover:text-indigo-blue-800 sm:w-auto"
               >
                 See the platform
               </Button>
@@ -201,45 +203,45 @@ export default function Homepage() {
       </section>
 
       {/* AI Demo strip */}
-      <section id="demo" className="relative border-y border-white/10 bg-ink-soft py-20 sm:py-24">
+      <section id="demo" className="relative border-y border-indigo-blue-100 bg-gradient-to-br from-indigo-blue-50 via-white to-sky-50 py-20 sm:py-24">
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
-              <p className="text-base font-semibold uppercase tracking-[0.16em] text-teal-green-300">
+              <p className="text-base font-bold uppercase tracking-[0.16em] text-indigo-blue-600">
                 AI in action
               </p>
-              <h2 className="mt-3 font-display text-4xl font-bold text-white lg:text-[2.5rem]">
+              <h2 className="mt-3 font-display text-4xl font-bold text-slate-900 lg:text-[2.5rem]">
                 Generate classroom-ready content in one click.
               </h2>
-              <p className="mt-4 text-xl leading-relaxed text-white/70">
+              <p className="mt-4 text-xl leading-relaxed text-slate-600">
                 Lesson plans, worksheets, flashcards, and mock tests, structured for teaching instead of dumped as plain text.
               </p>
               <ul className="mt-8 space-y-4">
                 {["Board-aligned topics", "Premium structured output", "Teacher & student dashboards"].map((item) => (
-                  <li key={item} className="flex items-center gap-3 text-lg text-white/90">
-                    <CheckCircle2 className="h-6 w-6 shrink-0 text-teal-green-300" />
+                  <li key={item} className="flex items-center gap-3 text-lg font-medium text-slate-700">
+                    <CheckCircle2 className="h-6 w-6 shrink-0 text-indigo-blue-600" />
                     {item}
                   </li>
                 ))}
               </ul>
             </div>
-            <div className="asli-ai-glow relative overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-br from-teal-green-700/40 to-indigo-blue-800/50 p-8 backdrop-blur-md">
+            <div className="asli-ai-glow relative overflow-hidden rounded-3xl border border-indigo-blue-100 bg-white p-8">
               <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-green-400/20 text-teal-green-200">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-blue-100 text-indigo-blue-600">
                   <Zap className="h-7 w-7" />
                 </div>
                 <div>
-                  <p className="font-display text-xl font-semibold text-white">Worksheet Builder</p>
-                  <p className="text-base text-white/60">CBSE · Class 10 · Physics</p>
+                  <p className="font-display text-xl font-semibold text-slate-900">Worksheet Builder</p>
+                  <p className="text-base text-slate-500">CBSE · Class 10 · Physics</p>
                 </div>
               </div>
-              <div className="space-y-3 rounded-2xl bg-ink/50 p-5 text-base leading-relaxed text-white/85">
-                <p className="font-semibold text-teal-green-200">Section 1: Warm-up</p>
+              <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-base leading-relaxed text-slate-700">
+                <p className="font-bold text-indigo-blue-700">Section 1: Warm-up</p>
                 <p>Define centripetal force and give one real-world example from road travel.</p>
-                <p className="font-semibold text-teal-green-200 pt-2">Section 2: Practice</p>
+                <p className="pt-2 font-bold text-indigo-blue-700">Section 2: Practice</p>
                 <p>A 2 kg mass moves in a circle of radius 0.5 m at 4 m/s. Find the centripetal force.</p>
               </div>
-              <p className="mt-5 text-center text-base text-white/50">Live preview style. Actual tools open after login.</p>
+              <p className="mt-5 text-center text-base text-slate-500">Live preview style. Actual tools open after login.</p>
             </div>
           </div>
         </div>
@@ -370,12 +372,12 @@ export default function Homepage() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="border-t border-ink/5 bg-ink py-20 text-white sm:py-28">
+      <section id="pricing" className="border-t border-slate-200 bg-gradient-to-br from-slate-100 via-white to-indigo-blue-50 py-20 text-slate-900 sm:py-28">
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
           <div className="max-w-2xl">
-            <p className="text-base font-semibold uppercase tracking-[0.16em] text-teal-green-300">Pricing</p>
+            <p className="text-base font-bold uppercase tracking-[0.16em] text-indigo-blue-600">Pricing</p>
             <h2 className="mt-3 font-display text-4xl font-bold">Simple plans. Serious AI.</h2>
-            <p className="mt-4 text-xl text-white/70">
+            <p className="mt-4 text-xl text-slate-600">
               Start with a free trial. Upgrade when your school or individual workspace is ready.
             </p>
           </div>
@@ -402,23 +404,23 @@ export default function Homepage() {
                 key={plan.name}
                 className={`rounded-3xl border p-8 ${
                   plan.featured
-                    ? "border-teal-green-400/50 bg-teal-green-500/15 shadow-glow"
-                    : "border-white/15 bg-white/5"
+                    ? "border-indigo-blue-300 bg-indigo-blue-50 shadow-elevated"
+                    : "border-slate-200 bg-white"
                 }`}
               >
                 <h3 className="font-display text-2xl font-semibold">{plan.name}</h3>
-                <p className="mt-2 text-3xl font-bold text-teal-green-200">{plan.price}</p>
+                <p className="mt-2 text-3xl font-bold text-indigo-blue-700">{plan.price}</p>
                 <ul className="mt-6 space-y-3">
                   {plan.points.map((p) => (
-                    <li key={p} className="flex gap-2 text-lg text-white/80">
-                      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-teal-green-300" />
+                    <li key={p} className="flex gap-2 text-lg text-slate-700">
+                      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-indigo-blue-600" />
                       {p}
                     </li>
                   ))}
                 </ul>
                 <Link href="/auth/register" className="mt-8 block">
                   <Button
-                    className={`h-12 w-full ${plan.featured ? "" : "bg-white/10 text-white hover:bg-white/20"}`}
+                    className={`h-12 w-full ${plan.featured ? "" : "bg-white text-slate-800 hover:bg-indigo-blue-50"}`}
                     variant={plan.featured ? "default" : "outline"}
                   >
                     Get started
@@ -443,17 +445,17 @@ export default function Homepage() {
       </section>
 
       {/* Final CTA */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-teal-green-700 to-indigo-blue-800 py-20 sm:py-24">
+      <section className="relative overflow-hidden border-y border-indigo-blue-100 bg-gradient-to-br from-indigo-blue-50 via-white to-orange-50 py-20 sm:py-24">
         <div className="relative mx-auto max-w-4xl px-5 text-center sm:px-8">
-          <h2 className="font-display text-4xl font-bold text-white lg:text-5xl">
+          <h2 className="font-display text-4xl font-bold text-slate-950 lg:text-5xl">
             Ready to show AI education that wows the room?
           </h2>
-          <p className="mt-4 text-xl text-white/80">
+          <p className="mt-4 text-xl text-slate-600">
             Join AsliLearn AI. Built for Indian classrooms, investor demos, and everyday teaching.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link href="/auth/register">
-              <Button size="lg" className="h-14 bg-white px-8 text-lg text-ink hover:bg-mist">
+              <Button size="lg" className="h-14 px-8 text-lg">
                 Create account
               </Button>
             </Link>
@@ -461,7 +463,7 @@ export default function Homepage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="h-14 border-white/40 bg-transparent px-8 text-lg text-white hover:bg-white/10 hover:text-white"
+                className="h-14 border-indigo-blue-200 bg-white px-8 text-lg text-indigo-blue-700 hover:bg-indigo-blue-50 hover:text-indigo-blue-800"
               >
                 Login
               </Button>
@@ -470,30 +472,30 @@ export default function Homepage() {
         </div>
       </section>
 
-      <footer className="border-t border-white/10 bg-ink py-14 text-white/70">
+      <footer className="border-t border-slate-200 bg-white py-14 text-slate-600">
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 sm:px-8 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="font-display text-2xl font-bold text-white">ASLILEARN AI</p>
+            <p className="font-display text-2xl font-bold text-slate-900">ASLILEARN AI</p>
             <p className="mt-2 max-w-sm text-base leading-relaxed">
               India’s AI-first learning platform for schools, teachers, and students.
             </p>
           </div>
           <div className="flex flex-wrap gap-8 text-base">
-            <Link href="/privacy" className="hover:text-white">
+            <Link href="/privacy" className="hover:text-indigo-blue-700">
               Privacy
             </Link>
-            <Link href="/terms" className="hover:text-white">
+            <Link href="/terms" className="hover:text-indigo-blue-700">
               Terms
             </Link>
-            <Link href="/contact" className="hover:text-white">
+            <Link href="/contact" className="hover:text-indigo-blue-700">
               Contact
             </Link>
-            <Link href="/auth/login" className="hover:text-white">
+            <Link href="/auth/login" className="hover:text-indigo-blue-700">
               Login
             </Link>
           </div>
         </div>
-        <p className="mx-auto mt-10 max-w-7xl px-5 text-sm text-white/40 sm:px-8">
+        <p className="mx-auto mt-10 max-w-7xl px-5 text-base text-slate-400 sm:px-8">
           © {new Date().getFullYear()} AsliLearn AI. All rights reserved.
         </p>
       </footer>

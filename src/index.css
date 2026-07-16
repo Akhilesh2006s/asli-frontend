@@ -4,65 +4,65 @@
 
 /* ═══════════════════════════════════════════════════════════
    ASLILEARN DESIGN SYSTEM — Zoom / Teams / projector friendly
-   Direction: deep teal-ink + soft mist depth (not flat white)
+   Direction: light classroom surfaces + indigo AI + warm orange
    ═══════════════════════════════════════════════════════════ */
 
 :root {
   /* Core surfaces */
-  --background: #eef5f7;
-  --foreground: #0b1f2a;
-  --card: rgba(255, 255, 255, 0.82);
-  --card-foreground: #0b1f2a;
+  --background: #f4f7fb;
+  --foreground: #0f172a;
+  --card: rgba(255, 255, 255, 0.94);
+  --card-foreground: #0f172a;
   --popover: #ffffff;
-  --popover-foreground: #0b1f2a;
+  --popover-foreground: #0f172a;
 
-  /* Brand — deep teal-ink (enterprise EdTech, not purple SaaS) */
-  --primary: #0f766e;
+  /* Brand — calm education blue with a warm action accent */
+  --primary: #4f46e5;
   --primary-foreground: #ffffff;
-  --secondary: #dcecee;
-  --secondary-foreground: #0b1f2a;
-  --muted: #e4eef1;
-  --muted-foreground: #4b6470;
-  --accent: #0ea5a4;
+  --secondary: #e8eef9;
+  --secondary-foreground: #1e293b;
+  --muted: #edf2f8;
+  --muted-foreground: #526174;
+  --accent: #f97316;
   --accent-foreground: #ffffff;
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
-  --border: rgba(15, 55, 70, 0.12);
+  --border: rgba(71, 85, 105, 0.16);
   --input: #ffffff;
-  --ring: #0f766e;
+  --ring: #4f46e5;
 
-  --chart-1: #0f766e;
+  --chart-1: #4f46e5;
   --chart-2: #0284c7;
-  --chart-3: #d97706;
-  --chart-4: #dc2626;
-  --chart-5: #0ea5a4;
+  --chart-3: #f97316;
+  --chart-4: #059669;
+  --chart-5: #8b5cf6;
 
   --radius: 1rem;
 
-  /* Sidebar — ink panel */
-  --sidebar: #0b2a32;
-  --sidebar-background: #0b2a32;
-  --sidebar-foreground: #e8f4f6;
-  --sidebar-primary: #14b8a6;
-  --sidebar-primary-foreground: #042f2e;
-  --sidebar-accent: rgba(255, 255, 255, 0.08);
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #2dd4bf;
+  /* Sidebar — light, readable, and consistent with the mobile portal */
+  --sidebar: #ffffff;
+  --sidebar-background: #ffffff;
+  --sidebar-foreground: #1e293b;
+  --sidebar-primary: #4f46e5;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eef2ff;
+  --sidebar-accent-foreground: #3730a3;
+  --sidebar-border: rgba(71, 85, 105, 0.14);
+  --sidebar-ring: #6366f1;
 
   /* Brand extras */
-  --ink: #062433;
-  --ink-soft: #0b3a45;
-  --mist: #eef5f7;
-  --mist-deep: #d5e8ec;
-  --glow: rgba(20, 184, 166, 0.35);
-  --ai-glow: 0 0 40px rgba(14, 165, 164, 0.25);
-  --glass: rgba(255, 255, 255, 0.72);
-  --glass-border: rgba(255, 255, 255, 0.55);
-  --elevated-shadow: 0 4px 6px -1px rgba(6, 36, 51, 0.06), 0 16px 40px -12px rgba(6, 36, 51, 0.18);
+  --ink: #0f172a;
+  --ink-soft: #334155;
+  --mist: #f4f7fb;
+  --mist-deep: #e5ebf4;
+  --glow: rgba(79, 70, 229, 0.24);
+  --ai-glow: 0 18px 48px -28px rgba(79, 70, 229, 0.5);
+  --glass: rgba(255, 255, 255, 0.88);
+  --glass-border: rgba(255, 255, 255, 0.9);
+  --elevated-shadow: 0 2px 6px rgba(15, 23, 42, 0.05), 0 18px 46px -28px rgba(51, 65, 85, 0.32);
 
-  --hero-gradient-start: 186 40% 96%;
-  --hero-gradient-end: 168 45% 92%;
+  --hero-gradient-start: 220 60% 97%;
+  --hero-gradient-end: 32 90% 96%;
 
   --font-display: "Sora", "Outfit", ui-sans-serif, system-ui, sans-serif;
   --font-outfit: "Outfit", "Sora", ui-sans-serif, system-ui, sans-serif;
@@ -229,10 +229,10 @@
   position: relative;
   isolation: isolate;
   background:
-    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(20, 184, 166, 0.18), transparent 55%),
-    radial-gradient(ellipse 60% 40% at 90% 0%, rgba(2, 132, 199, 0.12), transparent 50%),
-    radial-gradient(ellipse 50% 60% at 50% 100%, rgba(13, 148, 136, 0.08), transparent 55%),
-    linear-gradient(180deg, #f4fafb 0%, #e8f2f5 45%, #eef5f7 100%);
+    radial-gradient(ellipse 80% 50% at 5% -10%, rgba(99, 102, 241, 0.14), transparent 58%),
+    radial-gradient(ellipse 65% 45% at 95% 0%, rgba(14, 165, 233, 0.12), transparent 54%),
+    radial-gradient(ellipse 55% 45% at 75% 100%, rgba(249, 115, 22, 0.08), transparent 58%),
+    linear-gradient(180deg, #f8faff 0%, #f1f5fb 48%, #f7f8fc 100%);
   min-height: 100%;
 }
 
@@ -244,8 +244,8 @@
   z-index: -1;
   opacity: 0.4;
   background-image:
-    linear-gradient(rgba(11, 42, 50, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(11, 42, 50, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(71, 85, 105, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(71, 85, 105, 0.025) 1px, transparent 1px);
   background-size: 48px 48px;
   mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black, transparent);
 }
@@ -267,9 +267,9 @@
   box-shadow: var(--elevated-shadow);
 }
 
-.asli-card-premium:hover {
+.asli-card-premium.asli-card-interactive:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 40px -12px rgba(6, 36, 51, 0.22), 0 0 0 1px rgba(20, 184, 166, 0.12);
+  box-shadow: 0 18px 48px -30px rgba(51, 65, 85, 0.38), 0 0 0 1px rgba(99, 102, 241, 0.1);
 }
 
 .asli-ai-glow {
@@ -277,11 +277,11 @@
 }
 
 .gradient-primary {
-  background: linear-gradient(135deg, #0f766e 0%, #0e7490 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
 }
 
 .gradient-accent {
-  background: linear-gradient(135deg, #14b8a6 0%, #0284c7 100%);
+  background: linear-gradient(135deg, #f97316 0%, #f59e0b 100%);
 }
 
 .stats-card {
@@ -298,11 +298,37 @@
 
 .video-overlay {
   @apply absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center;
-  background-color: rgba(6, 36, 51, 0.45);
+  background-color: rgba(15, 23, 42, 0.48);
 }
 
 .play-button {
   @apply w-14 h-14 bg-white/95 rounded-full flex items-center justify-center text-primary hover:bg-white transition-colors duration-200 shadow-lg;
+}
+
+/* School Admin shell — light mobile-inspired navigation */
+.admin-light-dashboard .admin-sidebar {
+  color: #334155;
+}
+
+.admin-light-dashboard .admin-sidebar h1,
+.admin-light-dashboard .admin-sidebar p,
+.admin-light-dashboard .admin-sidebar span {
+  color: inherit;
+}
+
+.admin-light-dashboard .admin-sidebar button {
+  color: #475569 !important;
+}
+
+.admin-light-dashboard .admin-sidebar button:hover {
+  background: #eef2ff !important;
+  color: #4338ca !important;
+}
+
+.admin-light-dashboard .admin-sidebar button[class*="bg-teal-green-400"] {
+  background: #4f46e5 !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 22px -14px rgba(79, 70, 229, 0.65) !important;
 }
 
 @layer utilities {

@@ -426,10 +426,23 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     } else {
       const failures = data.failures as string[] | undefined;
       const failedCount = Number(data.failedCount) || 0;
+      const allBusy =
+        Array.isArray(failures) &&
+        failures.length > 0 &&
+        failures.every((line) => /temporarily busy|503|429|UNAVAILABLE/i.test(line));
+      const allSpendCap =
+        Array.isArray(failures) &&
+        failures.length > 0 &&
+        failures.every((line) => /spending cap|monthly spend|Billing\/Spend/i.test(line));
+      const retryHint = allSpendCap
+        ? " Raise the Gemini project spending cap in Google AI Studio (Billing/Spend), then retry."
+        : allBusy
+          ? " Gemini may be rate-limited. Wait 1–2 minutes, try Balanced or Fast, or generate fewer records (3–5)."
+          : "";
       const failNote =
         failures?.length && failedCount > 0
-          ? `${failedCount} slot(s) failed. ${failures[0]}${failures.length > 1 ? ` (+${failures.length - 1} more)` : ''}`
-          : json.message || "No records were saved.";
+          ? `${failedCount} slot(s) failed. ${failures[0]}${failures.length > 1 ? ` (+${failures.length - 1} more)` : ""}${retryHint}`
+          : `${json.message || "No records were saved."}${retryHint}`;
       toast({
         title: "Batch failed",
         description: failNote,
@@ -633,7 +646,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
         </p>
         <p>
           <strong>Content generation</strong> (this page): choose how many records to generate per batch ({GENERATION_RECORD_COUNT_MIN}–{BOOK_GENERATOR_MAX_BATCH_SIZE}) with Gemini.
-          <strong> Premium</strong> uses Gemini 3.1 Flash-Lite only; <strong>Balanced</strong> uses 2.5 Flash; <strong>Fast</strong> uses 3.1 Flash-Lite.
+          <strong> Premium</strong> uses Gemini 3.1 Pro Preview; <strong>Balanced</strong> and <strong>Fast</strong> use Gemini 3.1 Flash-Lite.
           Token count and estimated ₹ cost appear below after each run.
         </p>
       </div>
@@ -970,6 +983,15 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
               {lastBatchSummary.failures && lastBatchSummary.failures.length > 0 ? (
                 <div className="rounded-md border border-red-200 bg-red-50/80 px-2.5 py-2 text-red-900">
                   <p className="font-semibold">Failed slots</p>
+                  {lastBatchSummary.failures.every((line) => /spending cap|monthly spend|Billing\/Spend/i.test(line)) ? (
+                    <p className="mt-1 text-[11px] leading-relaxed">
+                      Gemini monthly spending cap is reached. Open Google AI Studio → Billing/Spend, raise the project cap (or add billing), then retry. Switching to Fast/Balanced will not help until the cap is raised.
+                    </p>
+                  ) : lastBatchSummary.failures.every((line) => /temporarily busy|503|429|UNAVAILABLE/i.test(line)) ? (
+                    <p className="mt-1 text-[11px] leading-relaxed">
+                      Gemini looks busy or rate-limited. Wait a minute, switch to Balanced/Fast, or generate fewer records at once.
+                    </p>
+                  ) : null}
                   <ul className="mt-1 list-disc space-y-0.5 pl-4">
                     {lastBatchSummary.failures.map((line) => (
                       <li key={line}>{line}</li>

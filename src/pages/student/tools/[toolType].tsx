@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Sparkles, Download, Copy, Check, BookMarked, Brain, Calendar, HelpCircle, FileText, Key, ClipboardList, CheckCircle2, Layout, Target, FileSpreadsheet, FileDown, Loader2 } from 'lucide-react';
+import { ArrowLeft, Sparkles, Download, Copy, Check, BookMarked, Brain, Calendar, HelpCircle, FileText, Key, ClipboardList, CheckCircle2, Layout, Target, FileSpreadsheet, FileDown, Loader2, RotateCcw, Share2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1225,6 +1225,25 @@ export default function StudentToolPage() {
     });
   };
 
+  const handleShare = async () => {
+    const shareData = {
+      title: `${config?.name || 'Study Tool'} | ASLILEARN AI`,
+      text: displayGeneratedContent,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(displayGeneratedContent);
+        toast({ title: 'Ready to share', description: 'Content copied to your clipboard' });
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      toast({ title: 'Share unavailable', description: 'Please use Copy instead', variant: 'destructive' });
+    }
+  };
+
   // Helper function to clean LaTeX math for Word display
   const cleanLaTeXForWord = (latex: string): string => {
     if (!latex) return '';
@@ -1979,7 +1998,7 @@ export default function StudentToolPage() {
             }
             footer={
               generatedContent ? (
-                <p className="text-center text-xs text-slate-500">
+                <p className="text-center text-base text-slate-500">
                   ASLILEARN AI V2 · Regenerate to refresh sections or copy to save your work.
                 </p>
               ) : null
@@ -2001,20 +2020,35 @@ export default function StudentToolPage() {
             }
             actions={
               generatedContent ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopy}
-                  className="border-slate-300 bg-white hover:bg-slate-50"
-                >
-                  {copied ? <Check className="w-3 h-3 sm:w-4 sm:h-4" /> : <Copy className="w-3 h-3 sm:w-4 sm:h-4" />}
-                  <span className="ml-1.5 text-xs">{copied ? 'Copied' : 'Copy'}</span>
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={handleCopy} className="bg-white">
+                    {copied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
+                    {copied ? 'Copied' : 'Copy'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadWord}
+                    disabled={isDownloading}
+                    className="bg-white"
+                  >
+                    {isDownloading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
+                    Download
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleShare} className="bg-white">
+                    <Share2 className="h-5 w-5" />
+                    Share
+                  </Button>
+                  <Button size="sm" onClick={handleGenerate} disabled={isGenerating}>
+                    <RotateCcw className="h-5 w-5" />
+                    Regenerate
+                  </Button>
+                </div>
               ) : null
             }
             empty={
               <div className={cn('text-center py-10', fallbackEmptyMessage ? 'text-red-700' : 'text-slate-500')}>
-                <p className="text-sm font-medium">
+                <p className="text-base font-medium">
                   {fallbackEmptyMessage || 'Fill in the form and generate to see your result'}
                 </p>
               </div>

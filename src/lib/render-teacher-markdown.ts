@@ -1,5 +1,6 @@
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import DOMPurify from 'dompurify';
 
 import { stripMarkdownSyntax } from '@/lib/strip-markdown-syntax';
 
@@ -73,7 +74,11 @@ function gfmPipeTableToHtml(rows: string[]): string {
     html += '</tr>';
   }
   html += '</tbody></table></div>';
-  return html;
+  return DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true },
+    FORBID_TAGS: ['form', 'input', 'button', 'iframe', 'object', 'embed'],
+    FORBID_ATTR: ['onerror', 'onload', 'onclick'],
+  });
 }
 
 /** Replace | pipe | tables | with HTML before the line-by-line pass. */
