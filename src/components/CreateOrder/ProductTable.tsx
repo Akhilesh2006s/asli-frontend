@@ -56,11 +56,11 @@ function ProductMobileCard({
 
       <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-gray-100 pt-3 text-sm">
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Qty</p>
+          <p className="text-mini font-medium uppercase tracking-wide text-muted-foreground">Qty</p>
           <p className="mt-0.5 font-medium tabular-nums">{product.qty}</p>
         </div>
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Comp</p>
+          <p className="text-mini font-medium uppercase tracking-wide text-muted-foreground">Comp</p>
           {editableComp && onCompChange ? (
             <Input
               type="number"
@@ -75,7 +75,7 @@ function ProductMobileCard({
         </div>
         {showDiscount && (
           <div className="col-span-2">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="text-mini font-medium uppercase tracking-wide text-muted-foreground">
               Discount
             </p>
             <p className="mt-0.5 text-muted-foreground">—</p>

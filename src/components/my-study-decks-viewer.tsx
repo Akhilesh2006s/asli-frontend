@@ -299,7 +299,7 @@ function PerCardList({
     <ul className="space-y-1">
       {rows.map(({ i, text }) => (
         <li key={i} className="rounded-md border border-violet-100 bg-violet-50/40 px-2 py-1 text-sm text-slate-800 leading-snug">
-          <span className="text-[9px] font-bold uppercase tracking-wide text-violet-700">
+          <span className="text-micro font-bold uppercase tracking-wide text-violet-700">
             {label(i)}
           </span>
           <p className="mt-0 whitespace-pre-wrap">{text}</p>

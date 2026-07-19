@@ -97,7 +97,7 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
             <ModeIcon className="h-6 w-6 text-teal-green-700" />
           </div>
           <div>
-            <p className="mb-0.5 flex items-center gap-1 text-[0.8125rem] font-bold uppercase tracking-[0.14em] text-teal-green-700">
+            <p className="mb-0.5 flex items-center gap-1 text-mini font-bold uppercase tracking-[0.14em] text-teal-green-700">
               <Sparkles className="h-3.5 w-3.5" />
               Interactive AI
             </p>

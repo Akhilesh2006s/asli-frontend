@@ -460,9 +460,11 @@ const Login = () => {
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                          aria-pressed={showPassword}
                           className="absolute right-4 top-1/2 z-10 -translate-y-1/2 rounded-lg p-1 text-gray-400 transition-colors hover:bg-mist hover:text-teal-green-700"
                         >
-                          {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
+                          {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />}
                         </button>
                       </div>
                     </div>
@@ -500,6 +502,7 @@ const Login = () => {
                   >
                     <Button
                       type="submit"
+                      aria-label={isLoading ? 'Signing in' : 'Sign in'}
                       className="group relative h-14 w-full overflow-hidden bg-gradient-to-r from-teal-green-600 to-indigo-blue-600 text-lg font-semibold text-white shadow-elevated transition-all duration-300 hover:shadow-glow-lg"
                       disabled={isLoading}
                     >

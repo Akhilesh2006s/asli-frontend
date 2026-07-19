@@ -634,13 +634,13 @@ export default function AiToolDuplicatesPanel() {
                             >
                               {isPrimary ? "Primary (keep)" : "Set as primary"}
                             </button>
-                            <Badge variant="outline" className="text-[10px]">
+                            <Badge variant="outline" className="text-micro">
                               {member.sourceType}
                             </Badge>
-                            <span className="text-[11px] text-slate-500">
+                            <span className="text-mini text-slate-500">
                               {formatDate(member.createdAt)}
                             </span>
-                            <span className="text-[11px] text-slate-400 font-mono">
+                            <span className="text-mini text-slate-400 font-mono">
                               …{member._id.slice(-8)}
                             </span>
                           </div>
@@ -712,7 +712,7 @@ export default function AiToolDuplicatesPanel() {
               >
                 <div className="px-3 py-2 border-b bg-slate-50 text-sm font-medium text-slate-800 truncate">
                   {rec.title}
-                  <span className="ml-2 text-[11px] font-mono text-slate-400">…{rec.id.slice(-8)}</span>
+                  <span className="ml-2 text-mini font-mono text-slate-400">…{rec.id.slice(-8)}</span>
                 </div>
                 <div className="p-3 flex-1 overflow-y-auto max-h-[70vh]">
                   {rec.loading ? (

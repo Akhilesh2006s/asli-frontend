@@ -65,7 +65,7 @@ export default function Onboarding() {
 		<div className="min-h-screen flex items-center justify-center bg-white p-3 sm:p-4">
 			<div className="w-[92vw] max-w-[360px] h-[82vh] max-h-[720px] border rounded-[28px] shadow-2xl overflow-hidden relative bg-white">
 				{/* Status bar mock */}
-				<div className="h-10 flex items-center justify-between px-4 text-[10px] text-gray-500">
+				<div className="h-10 flex items-center justify-between px-4 text-micro text-gray-500">
 					<span>9:43</span>
 					<div className="flex gap-2">
 						<span>4G</span>
@@ -90,7 +90,7 @@ export default function Onboarding() {
 						{slide.description.map((t, i) => (
 							<div key={i} className="bg-[#f5f2ff] border border-[#e8e4ff] text-[12px] rounded-xl px-4 py-3 shadow-sm">
 								<div className="font-semibold text-[#2a2438] flex items-center gap-2">
-									<span className="inline-block w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#6c63ff] text-white text-[11px] flex items-center justify-center">{i + 1}</span>
+									<span className="inline-block w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#6c63ff] text-white text-mini flex items-center justify-center">{i + 1}</span>
 									<span>{t.split(' ')[0]} {t.slice(t.indexOf(' ') + 1)}</span>
 								</div>
 							</div>
@@ -101,7 +101,7 @@ export default function Onboarding() {
 					<motion.div key={index} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.4 }} className="mt-4 relative">
 						<div className="w-full rounded-2xl border shadow-md bg-white">
 							<div className="px-4 pt-3">
-								<span className="inline-block text-[10px] bg-[#ff6b6b] text-white px-2 py-1 rounded-full">#Physics Homework</span>
+								<span className="inline-block text-micro bg-[#ff6b6b] text-white px-2 py-1 rounded-full">#Physics Homework</span>
 							</div>
 							<div className="px-4 py-3 text-[12px]">
 								<div className="text-[#8a8a9e] mb-2">Q:</div>
@@ -123,7 +123,7 @@ export default function Onboarding() {
 						{/* Floating hint */}
 						{slide.card.showHint && (
 							<motion.div initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="absolute right-10 bottom-16">
-								<div className="bg-white border text-[11px] rounded-xl shadow-lg px-4 py-2">
+								<div className="bg-white border text-mini rounded-xl shadow-lg px-4 py-2">
 									Try this formula by keeping velocity constant!
 								</div>
 								<div className="mt-2 w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 rounded-full bg-[#6c63ff] text-white flex items-center justify-center shadow">

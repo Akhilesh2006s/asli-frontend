@@ -151,7 +151,7 @@ export function AiToolContentVisuals({
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className={cn('text-[10px] font-bold uppercase tracking-wider', theme.accentText)}>
+          <p className={cn('text-micro font-bold uppercase tracking-wider', theme.accentText)}>
             {formatAiToolText(`${theme.label} Focus`)}
           </p>
           <p className="mt-0.5 line-clamp-2 text-sm font-semibold text-slate-900 sm:text-base">
@@ -160,7 +160,7 @@ export function AiToolContentVisuals({
         </div>
       </div>
 
-      <div className="mt-2 grid grid-cols-4 gap-1.5 sm:gap-2">
+      <div className="mt-2 grid grid-cols-2 gap-1.5 xs:grid-cols-4 sm:gap-2">
         {FOCUS_LABELS.map((label, i) => {
           const icon = theme.icons[i] || theme.icons[0];
           return (
@@ -170,7 +170,7 @@ export function AiToolContentVisuals({
               className="flex flex-col items-center gap-1 rounded-xl border border-white/80 bg-white/90 px-1 py-2 text-center shadow-sm"
             >
               <RealisticIcon name={icon} alt="" className="h-8 w-8" />
-              <span className="text-[9px] font-semibold text-slate-600 sm:text-[10px]">{label}</span>
+              <span className="text-micro font-semibold text-slate-600 sm:text-micro">{label}</span>
             </motion.div>
           );
         })}

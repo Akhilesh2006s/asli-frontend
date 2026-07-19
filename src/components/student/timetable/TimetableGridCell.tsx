@@ -97,7 +97,7 @@ export function TimetableGridCell({
             <p
               className={cn(
                 'font-bold leading-tight pr-2',
-                compact ? 'text-[10px] sm:text-[11px]' : 'text-[11px] sm:text-xs',
+                compact ? 'text-micro sm:text-mini' : 'text-mini sm:text-xs',
                 isTeacher
                   ? 'text-[#6C5CE7] uppercase tracking-wide'
                   : cn('uppercase tracking-wide', theme.text)
@@ -108,17 +108,17 @@ export function TimetableGridCell({
 
             {!compact && !isTeacher && (
               <>
-                <p className="text-[10px] sm:text-[11px] text-gray-600 mt-1 flex items-center gap-1 truncate">
+                <p className="text-micro sm:text-mini text-gray-600 mt-1 flex items-center gap-1 truncate">
                   <User className="w-3 h-3 shrink-0 text-gray-400" />
                   <span className="truncate">{refName(entry.teacherId) || '—'}</span>
                 </p>
                 {entry.room && (
-                  <p className="text-[10px] sm:text-[11px] text-gray-600 flex items-center gap-1 truncate">
+                  <p className="text-micro sm:text-mini text-gray-600 flex items-center gap-1 truncate">
                     <MapPin className="w-3 h-3 shrink-0 text-gray-400" />
                     <span className="truncate">{entry.room}</span>
                   </p>
                 )}
-                <p className="text-[10px] text-gray-500 mt-1 flex items-center gap-1">
+                <p className="text-micro text-gray-500 mt-1 flex items-center gap-1">
                   <Clock className="w-3 h-3 shrink-0" />
                   {entry.startTime} – {entry.endTime}
                 </p>
@@ -129,7 +129,7 @@ export function TimetableGridCell({
               <p
                 className={cn(
                   'text-[#6C5CE7]/85 font-medium',
-                  compact ? 'mt-0.5 text-[9px]' : 'mt-1 text-[10px]'
+                  compact ? 'mt-0.5 text-micro' : 'mt-1 text-micro'
                 )}
               >
                 {entry.sessionType}
@@ -138,7 +138,7 @@ export function TimetableGridCell({
               <Badge
                 className={cn(
                   'font-semibold border-0',
-                  compact ? 'mt-0.5 text-[8px] px-1 py-0 h-4' : 'mt-1.5 text-[9px] sm:text-[10px] px-1.5 py-0 h-5',
+                  compact ? 'mt-0.5 text-[8px] px-1 py-0 h-4' : 'mt-1.5 text-micro sm:text-micro px-1.5 py-0 h-5',
                   isLab ? 'bg-purple-100 text-purple-700' : theme.badge
                 )}
               >

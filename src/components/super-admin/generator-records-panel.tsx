@@ -578,7 +578,7 @@ export function GeneratorRecordsPanel({
                                                                   {showBookBadge && row.metadata?.bookTitle ? (
                                                                     <Badge
                                                                       variant="outline"
-                                                                      className={cn("text-[10px] h-5", accentBorder, accentBg)}
+                                                                      className={cn("text-micro h-5", accentBorder, accentBg)}
                                                                     >
                                                                       {row.metadata.bookTitle}
                                                                     </Badge>
@@ -586,14 +586,14 @@ export function GeneratorRecordsPanel({
                                                                   {row.generationVariant || recordGenerationVariant(row) ? (
                                                                     <Badge
                                                                       variant="outline"
-                                                                      className={cn("text-[10px] h-5", accentBorder, accentBg)}
+                                                                      className={cn("text-micro h-5", accentBorder, accentBg)}
                                                                     >
                                                                       Variant {row.generationVariant || recordGenerationVariant(row)}
                                                                     </Badge>
                                                                   ) : null}
                                                                   {(row.variantAngle || recordVariantAngle(row)) ? (
                                                                     <span
-                                                                      className="text-[10px] text-slate-500 max-w-[220px] truncate"
+                                                                      className="text-micro text-slate-500 max-w-[220px] truncate"
                                                                       title={row.variantAngle || recordVariantAngle(row)}
                                                                     >
                                                                       {row.variantAngle || recordVariantAngle(row)}

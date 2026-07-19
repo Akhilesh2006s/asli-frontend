@@ -2220,7 +2220,7 @@ export default function ExamManagement() {
                   <p className="text-xs text-gray-500 mt-1">Multiple subjects are saved under a single exam.</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {formData.subjects.map((s) => (
-                      <Badge key={s} variant="outline" className="text-[10px] bg-gray-50">
+                      <Badge key={s} variant="outline" className="text-micro bg-gray-50">
                         {EXAM_SUBJECTS.find((x) => x.value === s)?.label || normalizeDisplayText(s)}
                       </Badge>
                     ))}
@@ -2349,7 +2349,7 @@ export default function ExamManagement() {
                       <FileQuestion className="h-3.5 w-3.5" />
                       <span className="truncate">{exam.title}</span>
                       {exam.questions && exam.questions.length > 0 && (
-                        <Badge variant="outline" className="ml-1 text-[10px]">
+                        <Badge variant="outline" className="ml-1 text-micro">
                           {exam.questions.length} Q
                         </Badge>
                       )}
@@ -2449,15 +2449,15 @@ export default function ExamManagement() {
                               <div className="space-y-2">
                                 <CardTitle className="text-sm sm:text-base font-bold text-gray-900 leading-tight line-clamp-2">{exam.title}</CardTitle>
                                 <div className="flex flex-wrap gap-1.5">
-                                  <Badge className={`${getExamTypeBadgeColor(exam.examType)} border text-[11px]`}>
+                                  <Badge className={`${getExamTypeBadgeColor(exam.examType)} border text-mini`}>
                                     {EXAM_TYPES.find(t => t.value === exam.examType)?.label}
                                   </Badge>
                                   {exam.isActive ? (
-                                    <Badge className="bg-green-100 text-green-700 border border-green-200 text-[11px]">Active</Badge>
+                                    <Badge className="bg-green-100 text-green-700 border border-green-200 text-mini">Active</Badge>
                                   ) : (
-                                    <Badge className="bg-gray-100 text-gray-600 border border-gray-200 text-[11px]">Inactive</Badge>
+                                    <Badge className="bg-gray-100 text-gray-600 border border-gray-200 text-mini">Inactive</Badge>
                                   )}
-                                  <Badge className="bg-gray-100 text-gray-700 border border-gray-200 text-[11px]">Asli Exclusive Schools</Badge>
+                                  <Badge className="bg-gray-100 text-gray-700 border border-gray-200 text-mini">Asli Exclusive Schools</Badge>
                                 </div>
                               </div>
                             </CardHeader>
@@ -2488,18 +2488,18 @@ export default function ExamManagement() {
                                 </div>
                                 <div className="flex flex-wrap gap-1">
                                   {examSubjects.map((subj) => (
-                                    <Badge key={`${exam._id}-subject-${subj}`} variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200">
+                                    <Badge key={`${exam._id}-subject-${subj}`} variant="outline" className="text-micro bg-blue-50 text-blue-700 border-blue-200">
                                       {EXAM_SUBJECTS.find((x) => x.value === subj)?.label || normalizeDisplayText(subj)}
                                     </Badge>
                                   ))}
                                   {examClassLabels.length > 0 ? (
                                     examClassLabels.map((cls: string, idx: number) => (
-                                      <Badge key={`${exam._id}-class-${idx}`} variant="outline" className="text-[10px] bg-gray-50">
+                                      <Badge key={`${exam._id}-class-${idx}`} variant="outline" className="text-micro bg-gray-50">
                                         {`Class ${cls}`}
                                       </Badge>
                                     ))
                                   ) : (
-                                    <Badge variant="outline" className="text-[10px] bg-gray-50">No Class Assigned</Badge>
+                                    <Badge variant="outline" className="text-micro bg-gray-50">No Class Assigned</Badge>
                                   )}
                                 </div>
                               </div>
@@ -3190,7 +3190,7 @@ export default function ExamManagement() {
                     }
                     placeholder="0"
                   />
-                  <p className="text-[11px] text-gray-500 mt-1">
+                  <p className="text-mini text-gray-500 mt-1">
                     Enter positive value only. System applies it as deduction.
                   </p>
                 </div>

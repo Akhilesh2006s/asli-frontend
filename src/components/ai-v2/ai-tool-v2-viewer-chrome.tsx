@@ -151,7 +151,7 @@ export function AiToolV2ViewerChrome({ exportRootId }: { exportRootId: string })
                 type="button"
                 onClick={() => jumpTo(sec.id)}
                 className={cn(
-                  'rounded-full border px-2.5 py-1 text-left text-[11px] font-medium transition-colors',
+                  'rounded-full border px-2.5 py-1 text-left text-mini font-medium transition-colors',
                   activeSectionId === sec.id
                     ? 'border-indigo-300 bg-indigo-600 text-white shadow-sm'
                     : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-indigo-200 hover:bg-indigo-50',
@@ -210,7 +210,7 @@ function ChromeActions({
         <span className="hidden sm:inline">{focusMode ? 'Exit focus' : 'Focus'}</span>
       </Button>
       {audience === 'student' ? (
-        <span className="hidden lg:inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-800 border border-emerald-100">
+        <span className="hidden lg:inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-micro font-semibold text-emerald-800 border border-emerald-100">
           <BookOpen className="h-3 w-3" />
           Study view
         </span>

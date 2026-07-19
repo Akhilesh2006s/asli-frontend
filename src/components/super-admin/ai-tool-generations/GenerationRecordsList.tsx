@@ -309,14 +309,14 @@ export function GenerationRecordsList({
                     {row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"}
                   </span>
                   {row.board ? (
-                    <Badge variant="outline" className="text-[10px] h-5">
+                    <Badge variant="outline" className="text-micro h-5">
                       {row.board}
                     </Badge>
                   ) : null}
                   {isBookGroundedRow(row) ? (
                     <Badge
                       variant="outline"
-                      className="text-[10px] h-5 border-violet-200 text-violet-800 bg-violet-50"
+                      className="text-micro h-5 border-violet-200 text-violet-800 bg-violet-50"
                     >
                       Book-based
                       {typeof row.metadata?.bookTitle === "string" && row.metadata.bookTitle
@@ -327,14 +327,14 @@ export function GenerationRecordsList({
                   {generationVariant ? (
                     <Badge
                       variant="outline"
-                      className="text-[10px] h-5 border-orange-200 text-orange-800 bg-orange-50"
+                      className="text-micro h-5 border-orange-200 text-orange-800 bg-orange-50"
                     >
                       Variant {generationVariant}
                     </Badge>
                   ) : null}
                   {variantAngle ? (
                     <span
-                      className="text-[10px] text-slate-500 max-w-[220px] truncate"
+                      className="text-micro text-slate-500 max-w-[220px] truncate"
                       title={variantAngle}
                     >
                       {variantAngle}

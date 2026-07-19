@@ -492,7 +492,7 @@ export default function AdminLearningPaths() {
                                   <p className="text-xs text-gray-800 font-medium truncate">
                                     {content.title || 'Untitled'}
                                   </p>
-                                  <p className="text-[11px] text-gray-500 truncate">
+                                  <p className="text-mini text-gray-500 truncate">
                                     {content.type || 'Content'}
                                   </p>
                                 </div>

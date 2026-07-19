@@ -145,30 +145,30 @@ function QuestionCard({ q, index }: { q: PracticeQaQuestion; index: number }) {
   return (
     <article className="rounded-lg border border-emerald-100 bg-gradient-to-br from-white to-emerald-50/30 p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-md bg-emerald-600 px-1.5 text-[10px] font-bold text-white">
+        <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-md bg-emerald-600 px-1.5 text-micro font-bold text-white">
           Q{num}
         </span>
         {q.type ? (
-          <Badge variant="outline" className="border-0 text-[10px] font-semibold bg-slate-100 text-slate-700">
+          <Badge variant="outline" className="border-0 text-micro font-semibold bg-slate-100 text-slate-700">
             {q.type}
           </Badge>
         ) : isMcq ? (
-          <Badge className={cn('border-0 text-[10px] font-semibold', visual?.badge || 'bg-emerald-100 text-emerald-800')}>
+          <Badge className={cn('border-0 text-micro font-semibold', visual?.badge || 'bg-emerald-100 text-emerald-800')}>
             MCQ
           </Badge>
         ) : null}
         {q.marks != null ? (
-          <Badge className="border-0 bg-amber-100 text-amber-900 text-[10px] hover:bg-amber-100">
+          <Badge className="border-0 bg-amber-100 text-amber-900 text-micro hover:bg-amber-100">
             {q.marks} mark{q.marks === 1 ? '' : 's'}
           </Badge>
         ) : null}
         {q.bloomLevel ? (
-          <Badge variant="outline" className="text-[10px] border-violet-200 text-violet-700">
+          <Badge variant="outline" className="text-micro border-violet-200 text-violet-700">
             {q.bloomLevel}
           </Badge>
         ) : null}
         {q.difficultyTag ? (
-          <Badge variant="outline" className="text-[10px] border-slate-200 text-slate-600">
+          <Badge variant="outline" className="text-micro border-slate-200 text-slate-600">
             {q.difficultyTag}
           </Badge>
         ) : null}
@@ -414,16 +414,16 @@ export function PracticeQaViewer({ content, rawContent, className }: PracticeQaV
                 {practice.title}
               </h3>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
-                <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-[10px]">
+                <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
                   {totalQs} question{totalQs !== 1 ? 's' : ''}
                 </Badge>
                 {mcqCount > 0 ? (
-                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-[10px]">
+                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
                     {mcqCount} MCQs
                   </Badge>
                 ) : null}
                 {practice.sections.filter((s) => s.questions.length > 0).length > 0 ? (
-                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-[10px]">
+                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
                     {practice.sections.filter((s) => s.questions.length > 0).length} sections
                   </Badge>
                 ) : null}
@@ -436,7 +436,7 @@ export function PracticeQaViewer({ content, rawContent, className }: PracticeQaV
           <div className="relative overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-sm">
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/40" />
             <div className="relative p-3 sm:p-4">
-              <p className="mb-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-700">
+              <p className="mb-0.5 text-micro font-bold uppercase tracking-wider text-emerald-700">
                 Section 1
               </p>
               <Badge className="mb-1 border-0 bg-emerald-100 text-emerald-900 hover:bg-emerald-100 text-xs">

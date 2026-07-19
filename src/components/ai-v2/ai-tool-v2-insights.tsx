@@ -52,7 +52,7 @@ export function AiToolV2BloomDistribution({
               <span className={cn('text-xs font-bold', style.text)}>{row.level}</span>
             </div>
             <p className={cn('text-lg font-bold', style.text)}>{row.percent}%</p>
-            <p className="text-[11px] text-slate-600">
+            <p className="text-mini text-slate-600">
               {row.marks} mark{row.marks === 1 ? '' : 's'}
               {totalMarks > 0 ? ` of ${totalMarks}` : ''}
             </p>

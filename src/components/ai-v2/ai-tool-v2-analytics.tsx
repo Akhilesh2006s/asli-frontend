@@ -52,7 +52,7 @@ export function AiToolV2DistributionDonut({
       >
         <div className="absolute inset-3 flex flex-col items-center justify-center rounded-full bg-white text-center">
           <span className="text-lg font-bold text-slate-900">{total}</span>
-          <span className="text-[10px] font-medium uppercase text-slate-500">{formatAiToolText(totalLabel)}</span>
+          <span className="text-micro font-medium uppercase text-slate-500">{formatAiToolText(totalLabel)}</span>
         </div>
       </div>
       <div className="min-w-0 flex-1 space-y-2">

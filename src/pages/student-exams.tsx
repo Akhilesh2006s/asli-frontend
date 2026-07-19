@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import Navigation from '@/components/navigation';
+import StudentShell from "@/components/layout/StudentShell";
 import { 
   Clock, 
   BookOpen, 
@@ -934,17 +934,49 @@ export default function StudentExams() {
   }
 
   return (
-    <div className="min-h-screen bg-sky-50">
-      <Navigation />
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-8 relative">
+    <StudentShell>
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8  pb-8 relative">
         
         {!isMobile && <VidyaAIFloatingAssistant />}
         
-        {/* Header */}
+        {/* Hero */}
+        <div className="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-amber-100 via-orange-50 to-rose-100 p-6 sm:p-8 lg:p-10">
+          <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-white/50 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-orange-200/40 blur-3xl" />
+          <div className="relative z-[1] max-w-2xl">
+            <p className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-sm font-bold uppercase tracking-[0.12em] text-orange-700">
+              <Trophy className="h-4 w-4" aria-hidden="true" />
+              Exams
+            </p>
+            <h1 className="mt-4 font-display text-3xl font-extrabold leading-tight tracking-tight text-ink sm:text-4xl lg:text-[2.75rem]">
+              Test yourself.
+              <br />
+              <span className="text-orange-600">Track every step.</span>
+            </h1>
+            <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
+              Take practice exams, review your attempts and see where you rank.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              {[
+                { value: availableActiveExams.length, label: availableActiveExams.length === 1 ? 'Available exam' : 'Available exams', Icon: Target },
+                { value: attemptedResultRows.length, label: 'Attempted', Icon: CheckCircle },
+              ].map(({ value, label, Icon }) => (
+                <div key={label} className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white/85 px-4 py-3 shadow-sm backdrop-blur">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
+                    <Icon className="h-[1.15rem] w-[1.15rem]" aria-hidden="true" />
+                  </span>
+                  <span className="leading-tight">
+                    <span className="block font-display text-xl font-bold text-ink">{value}</span>
+                    <span className="block text-sm text-muted-foreground">{label}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         <div className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent mb-2">Exams</h1>
-          <p className="text-gray-600">Take practice exams and track your progress</p>
-          <div className="flex flex-wrap items-center gap-2 mt-4">
+          <div className="flex flex-wrap items-center gap-2">
             {studentClassNumber ? (
               <div className="flex items-center gap-2">
                 <span className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Class</span>
@@ -1023,9 +1055,9 @@ export default function StudentExams() {
                 const status = getExamStatus(exam);
                 // Randomly assign one of the three dashboard colors
                 const colorSchemes = [
-                  { bg: 'from-orange-300 to-orange-400', text: 'text-[#3b2108]', badge: 'bg-white/75 text-orange-900' },
-                  { bg: 'from-sky-300 to-sky-400', text: 'text-[#082f49]', badge: 'bg-white/75 text-sky-900' },
-                  { bg: 'from-teal-300 to-teal-400', text: 'text-[#073b37]', badge: 'bg-white/75 text-teal-900' }
+                  { bg: 'bg-card', text: 'text-ink-soft', badge: 'bg-amber-50 text-amber-700', accent: 'bg-gradient-to-r from-amber-400 to-orange-500' },
+                  { bg: 'bg-card', text: 'text-ink-soft', badge: 'bg-sky-50 text-sky-700', accent: 'bg-gradient-to-r from-sky-400 to-blue-500' },
+                  { bg: 'bg-card', text: 'text-ink-soft', badge: 'bg-teal-50 text-teal-700', accent: 'bg-gradient-to-r from-teal-400 to-emerald-500' }
                 ];
                 const colorScheme = colorSchemes[index % 3];
                 const classLabels = getExamClassLabelsForStudent(exam, user?.classNumber);
@@ -1035,8 +1067,9 @@ export default function StudentExams() {
                   <Card
                     key={exam._id}
                     id={`adaptive-exam-${exam._id}`}
-                    className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300`}
+                    className={`relative overflow-hidden ${colorScheme.bg} border border-border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated`}
                   >
+                    <span className={`absolute inset-x-0 top-0 h-1.5 ${colorScheme.accent}`} aria-hidden="true" />
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -1095,7 +1128,7 @@ export default function StudentExams() {
                       {/* Action Button */}
                       <Button 
                         onClick={() => handleStartExam(exam)}
-                        className="h-12 w-full border border-white !bg-white text-base font-bold !text-[#0b1f2a] shadow-lg hover:!bg-teal-green-50 hover:!text-teal-green-900 disabled:!bg-white/70 disabled:!text-[#475569]"
+                        className="h-12 w-full !bg-primary text-base font-bold !text-primary-foreground shadow-sm transition-colors hover:!bg-indigo-blue-700 disabled:!bg-muted disabled:!text-muted-foreground"
                         disabled={status.status === 'ended' || startingExamId === exam._id}
                       >
                         <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
@@ -1138,9 +1171,9 @@ export default function StudentExams() {
                 const exam = catalogExam || buildFallbackExamFromResult(examIdStr, result);
 
                 const colorSchemes = [
-                  { bg: 'from-orange-300 to-orange-400', text: 'text-[#3b2108]', badge: 'bg-white/75 text-orange-900' },
-                  { bg: 'from-sky-300 to-sky-400', text: 'text-[#082f49]', badge: 'bg-white/75 text-sky-900' },
-                  { bg: 'from-teal-300 to-teal-400', text: 'text-[#073b37]', badge: 'bg-white/75 text-teal-900' }
+                  { bg: 'bg-card', text: 'text-ink-soft', badge: 'bg-amber-50 text-amber-700', accent: 'bg-gradient-to-r from-amber-400 to-orange-500' },
+                  { bg: 'bg-card', text: 'text-ink-soft', badge: 'bg-sky-50 text-sky-700', accent: 'bg-gradient-to-r from-sky-400 to-blue-500' },
+                  { bg: 'bg-card', text: 'text-ink-soft', badge: 'bg-teal-50 text-teal-700', accent: 'bg-gradient-to-r from-teal-400 to-emerald-500' }
                 ];
                 const colorScheme = colorSchemes[index % 3];
                 const classLabelsAttempted = getExamClassLabelsForStudent(exam, user?.classNumber);
@@ -1162,7 +1195,7 @@ export default function StudentExams() {
                   <Card
                     key={examIdStr}
                     id={`calendar-exam-${examIdStr}`}
-                    className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300 ${
+                    className={`relative overflow-hidden ${colorScheme.bg} border border-border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated ${
                       calendarFocusExam?.examId === examIdStr && calendarFocusExam.mode === 'ended'
                         ? 'ring-4 ring-slate-400 ring-offset-2'
                         : ''
@@ -1271,7 +1304,7 @@ export default function StudentExams() {
                         {/* View Details Button */}
                         <Button 
                           variant="outline" 
-                          className="h-12 w-full border border-white !bg-white text-base font-bold !text-[#0b1f2a] shadow-lg hover:!bg-teal-green-50 hover:!text-teal-green-900 disabled:!bg-white/70 disabled:!text-[#475569]"
+                          className="h-12 w-full !bg-primary text-base font-bold !text-primary-foreground shadow-sm transition-colors hover:!bg-indigo-blue-700 disabled:!bg-muted disabled:!text-muted-foreground"
                           onClick={async () => {
                             console.log('📋 Viewing details for exam:', exam.title);
                             console.log('📋 Exam result:', displayResult);
@@ -1398,9 +1431,9 @@ export default function StudentExams() {
               {subjectFilteredExams.filter((exam: Exam) => getExamStatus(exam).status === 'upcoming').map((exam: Exam, index: number) => {
                 // Randomly assign one of the three dashboard colors
                 const colorSchemes = [
-                  { bg: 'from-orange-300 to-orange-400', text: 'text-[#3b2108]', badge: 'bg-white/75 text-orange-900' },
-                  { bg: 'from-sky-300 to-sky-400', text: 'text-[#082f49]', badge: 'bg-white/75 text-sky-900' },
-                  { bg: 'from-teal-300 to-teal-400', text: 'text-[#073b37]', badge: 'bg-white/75 text-teal-900' }
+                  { bg: 'bg-card', text: 'text-ink-soft', badge: 'bg-amber-50 text-amber-700', accent: 'bg-gradient-to-r from-amber-400 to-orange-500' },
+                  { bg: 'bg-card', text: 'text-ink-soft', badge: 'bg-sky-50 text-sky-700', accent: 'bg-gradient-to-r from-sky-400 to-blue-500' },
+                  { bg: 'bg-card', text: 'text-ink-soft', badge: 'bg-teal-50 text-teal-700', accent: 'bg-gradient-to-r from-teal-400 to-emerald-500' }
                 ];
                 const colorScheme = colorSchemes[index % 3];
                 const classLabelsUpcoming = getExamClassLabelsForStudent(exam, user?.classNumber);
@@ -1410,7 +1443,7 @@ export default function StudentExams() {
                 return (
                   <Card
                     id={`calendar-exam-${exam._id}`}
-                    className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300 ${
+                    className={`relative overflow-hidden ${colorScheme.bg} border border-border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated ${
                       isCalendarFocus ? 'ring-4 ring-amber-400 ring-offset-2' : ''
                     }`}
                   >
@@ -1466,7 +1499,7 @@ export default function StudentExams() {
 
                       <Button 
                         variant="outline" 
-                        className="h-12 w-full border border-white !bg-white text-base font-bold !text-[#0b1f2a] shadow-lg hover:!bg-teal-green-50 hover:!text-teal-green-900 disabled:!bg-white/70 disabled:!text-[#475569]"
+                        className="h-12 w-full !bg-primary text-base font-bold !text-primary-foreground shadow-sm transition-colors hover:!bg-indigo-blue-700 disabled:!bg-muted disabled:!text-muted-foreground"
                         disabled
                       >
                         <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
@@ -1488,6 +1521,6 @@ export default function StudentExams() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </StudentShell>
   );
 }

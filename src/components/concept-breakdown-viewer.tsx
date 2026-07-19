@@ -283,7 +283,7 @@ function ConceptBreakdownPanel({
       <div className="relative overflow-hidden rounded-xl border border-violet-200 bg-white shadow-sm">
         <div className="absolute inset-0 bg-gradient-to-br from-violet-50/90 via-white to-purple-50/40" />
         <div className="relative p-2.5 sm:p-3">
-          <p className="mb-0.5 text-[9px] font-bold uppercase tracking-wider text-violet-700">
+          <p className="mb-0.5 text-micro font-bold uppercase tracking-wider text-violet-700">
             Section 1
           </p>
           <Badge className="mb-1 border-0 bg-violet-100 text-violet-900 hover:bg-violet-100 text-xs">
@@ -360,16 +360,16 @@ export function ConceptBreakdownViewer({ content, rawContent, className }: Conce
               </p>
               <h3 className="truncate text-lg font-bold">{primary?.conceptTitle || 'Concept'}</h3>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
-                <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-[10px]">
+                <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
                   {concepts.length} concept{concepts.length !== 1 ? 's' : ''}
                 </Badge>
                 {stepCount > 0 ? (
-                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-[10px]">
+                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
                     {stepCount} steps
                   </Badge>
                 ) : null}
                 {termCount > 0 ? (
-                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-[10px]">
+                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
                     {termCount} terms
                   </Badge>
                 ) : null}

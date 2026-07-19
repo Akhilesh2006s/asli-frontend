@@ -231,7 +231,7 @@ const TEACHER_TEMPLATE_SECTIONS: TemplateSectionDef[] = [
             key={i}
             className="flex items-center gap-2 rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2"
           >
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber-200/80 text-[11px] font-bold text-amber-900">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber-200/80 text-mini font-bold text-amber-900">
               {i + 1}
             </span>
             {m}
@@ -423,7 +423,7 @@ const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
             key={i}
             className="flex items-center gap-2 rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2"
           >
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber-200/80 text-[11px] font-bold text-amber-900">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber-200/80 text-mini font-bold text-amber-900">
               {i + 1}
             </span>
             {m}
@@ -604,7 +604,7 @@ function StudentActivityCard({
             <FlaskConical className="h-7 w-7" aria-hidden />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-orange-600 mb-1">
+            <p className="text-micro font-bold uppercase tracking-wider text-orange-600 mb-1">
               1. Project / Activity Title
             </p>
             <h4 className="text-xl sm:text-2xl font-bold text-stone-900 leading-snug tracking-tight">
@@ -658,18 +658,18 @@ function TeacherActivityCard({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2 mb-2">
-              <Badge variant="outline" className="rounded-md border-indigo-200 text-indigo-700 text-[10px]">
+              <Badge variant="outline" className="rounded-md border-indigo-200 text-indigo-700 text-micro">
                 {filled} section{filled === 1 ? '' : 's'}
               </Badge>
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 mb-1">
+            <p className="text-micro font-bold uppercase tracking-wider text-indigo-600 mb-1">
               1. Title of activity / project
             </p>
             <h4 className="text-xl sm:text-2xl font-bold text-stone-900 leading-snug tracking-tight">
               {activity.title}
             </h4>
             <div className="mt-4">
-              <div className="flex items-center justify-between text-[11px] font-medium text-stone-500 mb-1">
+              <div className="flex items-center justify-between text-mini font-medium text-stone-500 mb-1">
                 <span>Content completeness</span>
                 <span>{progressPct}%</span>
               </div>

@@ -180,13 +180,13 @@ function InteractiveFlashcards({
         )}
         aria-label={flipped ? 'Show front' : 'Flip card'}
       >
-        <div className={cn('mb-3 text-[0.68rem] font-black uppercase tracking-widest', accent.text)}>
+        <div className={cn('mb-3 text-micro font-black uppercase tracking-widest', accent.text)}>
           {flipped ? 'Back · Answer' : 'Front · Prompt'} · Card {idx + 1}/{cards.length}
         </div>
         <p className="text-[1.02rem] font-semibold leading-relaxed text-slate-900 whitespace-pre-wrap">
           {flipped ? card.back : card.front}
         </p>
-        <span className="mt-4 inline-flex items-center gap-1.5 text-[0.72rem] font-semibold text-slate-400 group-hover:text-slate-600">
+        <span className="mt-4 inline-flex items-center gap-1.5 text-micro font-semibold text-slate-400 group-hover:text-slate-600">
           <RotateCcw className="h-3.5 w-3.5" /> Tap to flip
         </span>
       </button>
@@ -232,7 +232,7 @@ function InteractiveMcq({ questions, accent }: { questions: McqQuestion[]; accen
               <span className={cn('font-extrabold', accent.text)}>{q.n}.</span>
               <span className="flex-1">{q.stem}</span>
               {q.marks && (
-                <span className="ml-auto shrink-0 whitespace-nowrap rounded-full bg-white px-2 py-0.5 text-[0.68rem] font-bold text-slate-400 ring-1 ring-slate-200">
+                <span className="ml-auto shrink-0 whitespace-nowrap rounded-full bg-white px-2 py-0.5 text-micro font-bold text-slate-400 ring-1 ring-slate-200">
                   {q.marks}
                 </span>
               )}
@@ -250,7 +250,7 @@ function InteractiveMcq({ questions, accent }: { questions: McqQuestion[]; accen
                     key={k}
                     onClick={() => setPicked((p) => ({ ...p, [key]: o.label }))}
                     className={cn(
-                      'flex items-center gap-2.5 rounded-xl border px-3 py-2 text-left text-[0.86rem] transition-all',
+                      'flex items-center gap-2.5 rounded-xl border px-3 py-2 text-left text-mini transition-all',
                       rightShow
                         ? 'border-emerald-400 bg-emerald-50 ring-1 ring-emerald-300'
                         : wrongPick
@@ -262,7 +262,7 @@ function InteractiveMcq({ questions, accent }: { questions: McqQuestion[]; accen
                   >
                     <span
                       className={cn(
-                        'grid h-6 w-6 shrink-0 place-items-center rounded-full text-[0.72rem] font-extrabold',
+                        'grid h-6 w-6 shrink-0 place-items-center rounded-full text-micro font-extrabold',
                         rightShow
                           ? 'bg-emerald-500 text-white'
                           : wrongPick
@@ -311,13 +311,13 @@ function RevealAnswerKey({
               key={j}
               className="grid grid-cols-[auto_1fr] gap-3 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-teal-50/40 p-3.5"
             >
-              <span className="grid h-7 min-w-7 place-items-center self-start rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 px-1.5 text-[0.72rem] font-extrabold tabular-nums text-white shadow-sm">
+              <span className="grid h-7 min-w-7 place-items-center self-start rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 px-1.5 text-micro font-extrabold tabular-nums text-white shadow-sm">
                 {a.n}
               </span>
               <div className="text-[0.9rem]">
                 <span className="font-semibold text-slate-900">{a.answer}</span>
                 {a.work ? (
-                  <div className="mt-1 text-[0.84rem] leading-relaxed text-slate-500">{a.work}</div>
+                  <div className="mt-1 text-mini leading-relaxed text-slate-500">{a.work}</div>
                 ) : null}
               </div>
             </div>
@@ -335,7 +335,7 @@ function CheckableSteps({ items, accent }: { items: string[]; accent: Accent }) 
   const doneCount = Object.values(done).filter(Boolean).length;
   return (
     <div className="space-y-3">
-      <p className="text-[0.72rem] font-semibold uppercase tracking-wide text-slate-400">
+      <p className="text-micro font-semibold uppercase tracking-wide text-slate-400">
         Progress {doneCount}/{items.length}
       </p>
       <ol className="relative space-y-3 before:absolute before:left-[15px] before:top-4 before:bottom-4 before:w-px before:bg-slate-200">
@@ -355,7 +355,7 @@ function CheckableSteps({ items, accent }: { items: string[]; accent: Accent }) 
               >
                 <span
                   className={cn(
-                    'relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full text-[0.8rem] font-extrabold text-white shadow-md ring-4 ring-white',
+                    'relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full text-mini font-extrabold text-white shadow-md ring-4 ring-white',
                     checked ? 'bg-emerald-500' : cn(accent.badge, accent.glow),
                   )}
                 >
@@ -431,10 +431,10 @@ function Blocks({ blocks, accent }: { blocks: ContentBlock[]; accent: Accent }) 
                       )}
                     >
                       <div className={cn('absolute inset-x-0 top-0 h-1 bg-gradient-to-r', tone.bar)} />
-                      <div className={cn('text-[0.7rem] font-black uppercase tracking-widest', tone.text)}>
+                      <div className={cn('text-micro font-black uppercase tracking-widest', tone.text)}>
                         {r.label}
                       </div>
-                      <div className="mt-1.5 text-[0.86rem] leading-relaxed text-slate-700 dark:text-slate-300">
+                      <div className="mt-1.5 text-mini leading-relaxed text-slate-700 dark:text-slate-300">
                         {r.value}
                       </div>
                     </div>
@@ -455,7 +455,7 @@ function Blocks({ blocks, accent }: { blocks: ContentBlock[]; accent: Accent }) 
                     <span className={cn('font-extrabold', accent.text)}>{q.n}.</span>
                     <span className="flex-1 font-medium">{q.stem}</span>
                     {q.marks && (
-                      <span className="ml-auto shrink-0 whitespace-nowrap rounded-full bg-slate-50 px-2 py-0.5 text-[0.68rem] font-bold text-slate-400 ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700">
+                      <span className="ml-auto shrink-0 whitespace-nowrap rounded-full bg-slate-50 px-2 py-0.5 text-micro font-bold text-slate-400 ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700">
                         {q.marks}
                       </span>
                     )}
@@ -481,14 +481,14 @@ function Blocks({ blocks, accent }: { blocks: ContentBlock[]; accent: Accent }) 
             }
             return (
               <div key={i} className={cn('overflow-x-auto rounded-2xl border', accent.ring)}>
-                <table className="w-full min-w-[340px] text-[0.86rem]">
+                <table className="w-full min-w-[340px] text-mini">
                   <thead>
                     <tr className={cn(accent.soft)}>
                       {b.head.map((h, j) => (
                         <th
                           key={j}
                           className={cn(
-                            'whitespace-nowrap px-3.5 py-3 text-left text-[0.72rem] font-black uppercase tracking-wider',
+                            'whitespace-nowrap px-3.5 py-3 text-left text-micro font-black uppercase tracking-wider',
                             accent.text,
                           )}
                         >
@@ -541,7 +541,7 @@ function Blocks({ blocks, accent }: { blocks: ContentBlock[]; accent: Accent }) 
                       <div className={cn('mt-1 text-[0.92rem] font-black leading-tight tracking-tight', tone.text)}>
                         {c.level}
                       </div>
-                      <div className="mt-1 text-[0.76rem] leading-snug text-slate-500 dark:text-slate-400">
+                      <div className="mt-1 text-mini leading-snug text-slate-500 dark:text-slate-400">
                         {c.desc}
                       </div>
                     </div>
@@ -630,7 +630,7 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
               key={c.k}
               className="min-w-0 rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
             >
-              <div className="text-[0.6rem] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              <div className="text-micro font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 {formatAiToolText(c.k)}
               </div>
               <div className="mt-0.5 break-words text-sm font-bold leading-snug text-slate-800 dark:text-slate-200">
@@ -662,12 +662,12 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
       {/* AI Teaching Summary hero — what students will learn + quick stats */}
       {summary && ((summary.learn && summary.learn.length > 0) || (summary.stats && summary.stats.length > 0)) && (
         <div className="overflow-hidden rounded-[1.75rem] border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-blue-50/40 p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] dark:border-indigo-900/50 dark:from-indigo-950/40 dark:via-slate-900 dark:to-blue-950/20">
-          <div className="flex items-center gap-2 text-[0.72rem] font-black uppercase tracking-[0.18em] text-indigo-500 dark:text-indigo-300">
+          <div className="flex items-center gap-2 text-micro font-black uppercase tracking-[0.18em] text-indigo-500 dark:text-indigo-300">
             <Sparkles className="h-4 w-4" /> AI Teaching Summary
           </div>
           {summary.learn && summary.learn.length > 0 && (
             <>
-              <p className="mt-2.5 text-[0.78rem] font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              <p className="mt-2.5 text-mini font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
                 Students will learn to
               </p>
               <ul className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -689,7 +689,7 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
                   key={i}
                   className="rounded-2xl border border-slate-200/80 bg-white px-3.5 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-900"
                 >
-                  <div className="text-[0.6rem] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
+                  <div className="text-micro font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
                     {formatAiToolText(s.label)}
                   </div>
                   <div className="mt-0.5 text-[0.92rem] font-bold text-slate-800 dark:text-slate-200">
@@ -709,7 +709,7 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
             type="button"
             onClick={() => setActiveTab('all')}
             className={cn(
-              'flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-[0.82rem] font-bold transition-colors',
+              'flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-mini font-bold transition-colors',
               activeTab === 'all'
                 ? 'bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900'
                 : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800',
@@ -726,7 +726,7 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
                 type="button"
                 onClick={() => setActiveTab(s.id)}
                 className={cn(
-                  'flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-[0.82rem] font-bold transition-colors',
+                  'flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-mini font-bold transition-colors',
                   on
                     ? cn('text-white shadow-sm', ACCENTS[s.accent].badge)
                     : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800',
@@ -797,14 +797,14 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
                   </h4>
                 </div>
                 {isPrimary && (
-                  <span className="hidden shrink-0 rounded-full bg-white/70 px-2.5 py-0.5 text-[0.6rem] font-black uppercase tracking-widest text-slate-500 ring-1 ring-slate-200 sm:inline-block dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">
+                  <span className="hidden shrink-0 rounded-full bg-white/70 px-2.5 py-0.5 text-micro font-black uppercase tracking-widest text-slate-500 ring-1 ring-slate-200 sm:inline-block dark:bg-slate-800 dark:text-slate-300 dark:ring-slate-700">
                     Main
                   </span>
                 )}
                 {s.tag && (
                   <span
                     className={cn(
-                      'shrink-0 rounded-full px-2.5 py-0.5 text-[0.7rem] font-bold ring-1 ring-inset',
+                      'shrink-0 rounded-full px-2.5 py-0.5 text-micro font-bold ring-1 ring-inset',
                       accent.soft,
                       accent.text,
                       accent.ring,

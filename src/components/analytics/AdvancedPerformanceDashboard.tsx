@@ -346,7 +346,7 @@ export default function AdvancedPerformanceDashboard({ examId }: Props) {
                           <span key="v" className="font-semibold">
                             {value}
                             {extra ? (
-                              <span className="block text-[10px] font-normal text-muted-foreground">{extra}</span>
+                              <span className="block text-micro font-normal text-muted-foreground">{extra}</span>
                             ) : null}
                           </span>,
                           questionTypeChartConfig[name as keyof typeof questionTypeChartConfig]?.label || name,

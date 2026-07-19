@@ -13,8 +13,10 @@ import {
   Users,
   Calendar,
 } from 'lucide-react';
-import Navigation from '@/components/navigation';
+import StudentShell from "@/components/layout/StudentShell";
+import TeacherShell from "@/components/layout/TeacherShell";
 import { API_BASE_URL } from '@/lib/api-config';
+import { getUser } from '@/lib/auth-utils';
 import { EduOTTVideoCard, EduOTTSubjectBadges } from '@/components/eduott/EduOTTVideoCard';
 import type { EduOTTVideoCardItem } from '@/components/eduott/EduOTTVideoCard';
 import { EduOTTVideoPlayerDialog } from '@/components/eduott/EduOTTVideoPlayerDialog';
@@ -32,8 +34,7 @@ import { getVideoDisplayTitle } from '@/lib/video-chapter-schedule';
 import { useEduOTTFilters } from '@/contexts/edu-ott-filter-context';
 import { EduOTTGlobalFilterBar } from '@/components/eduott/EduOTTGlobalFilterBar';
 import { EduOTTTabsList, eduOttTabTriggerClass } from '@/components/eduott/EduOTTTabsList';
-import { EduOTTFeaturedHero, EduOTTStage } from '@/components/eduott/EduOTTStage';
-import { getEduOTTThumbnailUrl } from '@/lib/eduott-video-utils';
+import { EduOTTStage } from '@/components/eduott/EduOTTStage';
 import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
 
 interface Video {
@@ -162,6 +163,16 @@ function mapStreamToSession(s: any): LiveSession {
   };
 }
 
+function isTeacherPortalUser(): boolean {
+  const user = getUser();
+  const role = String(user?.role || localStorage.getItem('userRole') || '').toLowerCase();
+  return role.includes('teacher');
+}
+
+function apiRoot(): '/api/teacher' | '/api/student' {
+  return isTeacherPortalUser() ? '/api/teacher' : '/api/student';
+}
+
 function buildVideosUrl(
   selectedClass: string | null,
   selectedSubject: string | null
@@ -169,7 +180,7 @@ function buildVideosUrl(
   const params = new URLSearchParams({ type: 'Video' });
   if (selectedClass) params.set('class', selectedClass);
   if (selectedSubject) params.set('subject', selectedSubject);
-  return `${API_BASE_URL}/api/student/asli-prep-content?${params.toString()}`;
+  return `${API_BASE_URL}${apiRoot()}/asli-prep-content?${params.toString()}`;
 }
 
 function buildStreamsUrl(
@@ -180,11 +191,13 @@ function buildStreamsUrl(
   if (selectedClass) params.set('class', selectedClass);
   if (selectedSubject) params.set('subject', selectedSubject);
   const q = params.toString();
-  return `${API_BASE_URL}/api/student/streams${q ? `?${q}` : ''}`;
+  return `${API_BASE_URL}${apiRoot()}/streams${q ? `?${q}` : ''}`;
 }
 
 export default function EduOTT() {
   const isMobile = useIsMobile();
+  const isTeacher = isTeacherPortalUser();
+  const Shell = isTeacher ? TeacherShell : StudentShell;
   const {
     selectedClass,
     selectedSubject,
@@ -217,10 +230,10 @@ export default function EduOTT() {
 
       try {
         const [vRes, sRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/student/asli-prep-content?type=Video`, {
+          fetch(`${API_BASE_URL}${apiRoot()}/asli-prep-content?type=Video`, {
             headers: authHeaders(),
           }),
-          fetch(`${API_BASE_URL}/api/student/streams`, { headers: authHeaders() }),
+          fetch(`${API_BASE_URL}${apiRoot()}/streams`, { headers: authHeaders() }),
         ]);
 
         if (cancelled) return;
@@ -418,13 +431,26 @@ export default function EduOTT() {
   };
 
   return (
-    <>
-      <Navigation />
-      <div className="asli-app-bg relative min-h-screen w-full overflow-x-hidden px-4 pb-10 pt-[5.5rem] sm:px-6 sm:pt-28 lg:px-8">
+    <Shell>
+      <div className="asli-app-bg relative min-h-screen w-full overflow-x-hidden px-4 pb-10 sm:px-6  lg:px-8">
         <div className="mx-auto max-w-7xl">
-        {!isMobile && <VidyaAIFloatingAssistant />}
+        {!isMobile && !isTeacher && <VidyaAIFloatingAssistant />}
 
-        <EduOTTStage subtitle="Educational videos and live sessions from all your subjects">
+        <EduOTTStage
+          subtitle="Access high-quality educational videos and join live classes to make learning interactive and impactful."
+          stats={[
+            {
+              value: globalSubjectOptions.length,
+              label: globalSubjectOptions.length === 1 ? 'Subject' : 'Subjects',
+              icon: <BookOpen className="h-[1.15rem] w-[1.15rem]" aria-hidden="true" />,
+            },
+            {
+              value: videos.length,
+              label: videos.length === 1 ? 'Video' : 'Videos',
+              icon: <VideoIcon className="h-[1.15rem] w-[1.15rem]" aria-hidden="true" />,
+            },
+          ]}
+        >
         <EduOTTGlobalFilterBar
           classOptions={globalClassOptions}
           subjectOptions={globalSubjectOptions}
@@ -441,17 +467,6 @@ export default function EduOTT() {
           </EduOTTTabsList>
 
           <TabsContent value="videos" className="space-y-6">
-            {!loading && filteredVideos.length > 0 ? (
-              <EduOTTFeaturedHero
-                title={filteredVideos[0].title}
-                meta={[filteredVideos[0].subject || filteredVideos[0].subjectName, filteredVideos[0].class ? `Class ${filteredVideos[0].class}` : '']
-                  .filter(Boolean)
-                  .join(' · ')}
-                thumbnailUrl={getEduOTTThumbnailUrl(filteredVideos[0])}
-                onPlay={() => setSelectedVideo(filteredVideos[0])}
-              />
-            ) : null}
-
             <div className="relative max-w-xl">
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-teal-green-300" />
               <Input
@@ -681,6 +696,5 @@ export default function EduOTT() {
           if (!open) setSelectedLiveSession(null);
         }}
       />
-    </>
-  );
+    </Shell>  );
 }

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import Navigation from "@/components/navigation";
+import StudentShell from "@/components/layout/StudentShell";
 import { 
   User, 
   Settings, 
@@ -270,9 +270,8 @@ export default function Profile() {
 
   if (isLoading) {
     return (
-      <>
-        <Navigation />
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
+      <StudentShell>
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8  pb-8">
           <div className="space-y-4 sm:space-y-6 lg:space-y-8">
             <Skeleton className="h-32 w-full" />
             <div className="space-y-3 sm:space-y-4 lg:space-y-6 sm:p-6 lg:p-8">
@@ -281,15 +280,13 @@ export default function Profile() {
             </div>
           </div>
         </div>
-      </>
-    );
+      </StudentShell>    );
   }
 
   if (!user) {
     return (
-      <>
-        <Navigation />
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
+      <StudentShell>
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8  pb-8">
           <Card>
             <CardContent className="p-12 text-center">
               <User className="w-16 h-16 mx-auto text-gray-400 mb-4" />
@@ -298,8 +295,7 @@ export default function Profile() {
             </CardContent>
           </Card>
         </div>
-      </>
-    );
+      </StudentShell>    );
   }
 
   const profileClassNumber =
@@ -433,9 +429,8 @@ export default function Profile() {
   );
 
   return (
-    <>
-      <Navigation />
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
+    <StudentShell>
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8  pb-8">
         
         {/* Profile Header */}
         <Card className="mb-8 overflow-visible min-w-0">
@@ -628,7 +623,7 @@ export default function Profile() {
                           <p className="text-xs sm:text-sm text-gray-600">
                             Total: {weeklyHoursTotal} hours this week
                           </p>
-                          <p className="text-[10px] text-gray-500 mt-1">
+                          <p className="text-micro text-gray-500 mt-1">
                             From exam time and content study sessions
                           </p>
                         </div>
@@ -638,8 +633,7 @@ export default function Profile() {
                 </Card>
         </div>
       </div>
-    </>
-  );
+    </StudentShell>  );
 }
 
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'wouter';
-import Navigation from '@/components/navigation';
+import StudentShell from "@/components/layout/StudentShell";
 import AsliPrepContent from '@/components/student/asli-prep-content';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -10,9 +10,8 @@ export default function AsliPrepContentPage() {
   const isMobile = useIsMobile();
 
   return (
-    <>
-      <Navigation />
-      <div className="min-h-screen bg-sky-50 pt-20 pb-12 px-2 sm:px-4 lg:px-6 relative">
+    <StudentShell>
+      <div className="min-h-screen bg-sky-50  pb-12 px-2 sm:px-4 lg:px-6 relative">
         <div className="w-full">
           
           {!isMobile && <VidyaAIFloatingAssistant />}
@@ -30,7 +29,7 @@ export default function AsliPrepContentPage() {
           <AsliPrepContent />
         </div>
       </div>
-    </>
+    </StudentShell>
   );
 }
 

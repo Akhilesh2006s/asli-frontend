@@ -915,7 +915,7 @@ export default function AiToolTopicsManagement() {
                     ))}
                 </SelectContent>
               </Select>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-mini text-slate-500">
                 Category track (Alpha / Beta / …). Subjects and topics sit inside this track.
               </p>
             </div>

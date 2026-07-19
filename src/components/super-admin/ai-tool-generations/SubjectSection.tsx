@@ -50,7 +50,7 @@ function SubjectRow({
         <span className="flex items-center gap-2 min-w-0">
           <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-indigo-500" />
           <span className="font-medium text-slate-800 truncate">{label}</span>
-          <Badge variant="outline" className="text-[10px] font-normal text-slate-500 border-slate-200">
+          <Badge variant="outline" className="text-micro font-normal text-slate-500 border-slate-200">
             Subject
           </Badge>
         </span>
@@ -119,7 +119,7 @@ export function SubjectSection({
     >
       <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left hover:bg-orange-50/50 transition-colors">
         <span className="flex flex-wrap items-center gap-2 min-w-0">
-          <Badge className="rounded-md bg-slate-800 hover:bg-slate-800 text-[10px] font-semibold uppercase tracking-wide">
+          <Badge className="rounded-md bg-slate-800 hover:bg-slate-800 text-micro font-semibold uppercase tracking-wide">
             Class
           </Badge>
           <span className="font-semibold text-slate-900 truncate">{classTitle}</span>

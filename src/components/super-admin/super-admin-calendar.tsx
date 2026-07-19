@@ -632,7 +632,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                 <div className="min-w-[700px]">
                   <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
                     {dayNames.map((day) => (
-                      <div key={day} className="text-center text-[11px] sm:text-sm font-semibold text-gray-600 py-1.5 sm:py-2">
+                      <div key={day} className="text-center text-mini sm:text-sm font-semibold text-gray-600 py-1.5 sm:py-2">
                         <span className="sm:hidden">{day.slice(0, 2)}</span>
                         <span className="hidden sm:inline">{day}</span>
                       </div>
@@ -693,7 +693,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                                     <button
                                       type="button"
                                       onClick={() => handleViewEvent(ev)}
-                                      className={`w-full text-left text-[10px] sm:text-[11px] leading-tight px-1.5 py-0.5 rounded text-white truncate ${st.bar}`}
+                                      className={`w-full text-left text-micro sm:text-mini leading-tight px-1.5 py-0.5 rounded text-white truncate ${st.bar}`}
                                     >
                                       <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1 align-middle ${st.dot}`} />
                                       {ev.title}
@@ -706,7 +706,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                               );
                             })}
                             {dayEvents.length > 4 && (
-                              <div className="text-[10px] sm:text-xs text-gray-500 font-medium px-0.5">
+                              <div className="text-micro sm:text-xs text-gray-500 font-medium px-0.5">
                                 +{dayEvents.length - 4} more
                               </div>
                             )}

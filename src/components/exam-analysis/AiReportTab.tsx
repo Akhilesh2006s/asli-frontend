@@ -423,15 +423,15 @@ export default function AiReportTab({
             <div className="grid grid-cols-3 gap-2 sm:gap-2.5 w-full max-w-md mx-auto">
               <div className="rounded-[14px] py-3 px-1.5 text-center border border-emerald-200 bg-emerald-50">
                 <div className="text-xl font-extrabold text-emerald-600">{animatedCorrect}</div>
-                <div className="text-[11px] text-slate-500 font-medium">Correct</div>
+                <div className="text-mini text-slate-500 font-medium">Correct</div>
               </div>
               <div className="rounded-[14px] py-3 px-1.5 text-center border border-red-200 bg-red-50">
                 <div className="text-xl font-extrabold text-red-500">{animatedWrong}</div>
-                <div className="text-[11px] text-slate-500 font-medium">Wrong</div>
+                <div className="text-mini text-slate-500 font-medium">Wrong</div>
               </div>
               <div className="rounded-[14px] py-3 px-1.5 text-center border border-slate-200 bg-slate-50">
                 <div className="text-xl font-extrabold text-slate-500">{animatedSkipped}</div>
-                <div className="text-[11px] text-slate-500 font-medium">Skipped</div>
+                <div className="text-mini text-slate-500 font-medium">Skipped</div>
               </div>
             </div>
           </div>
@@ -581,7 +581,7 @@ export default function AiReportTab({
                 <span className="font-semibold text-slate-800 text-[13.5px]">{row.subject}</span>
                 <div className="h-[22px] bg-slate-100 rounded-lg overflow-hidden">
                   <div
-                    className={`h-full rounded-lg flex items-center justify-end pr-2 text-white text-[11px] font-bold ${
+                    className={`h-full rounded-lg flex items-center justify-end pr-2 text-white text-mini font-bold ${
                       row.pct >= 99 ? 'bg-green-600' : 'bg-gradient-to-r from-[#9333ea] to-pink-500'
                     }`}
                     style={{ width: `${Math.max(8, row.pct)}%` }}
@@ -642,15 +642,15 @@ export default function AiReportTab({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
           <div className="bg-slate-50 border border-slate-200 rounded-[14px] py-3.5 text-center">
             <div className="text-[22px] font-extrabold text-slate-800">{formatTime(result.timeTaken)}</div>
-            <div className="text-[11px] text-slate-500 font-semibold mt-1">Total time</div>
+            <div className="text-mini text-slate-500 font-semibold mt-1">Total time</div>
           </div>
           <div className="bg-slate-50 border border-slate-200 rounded-[14px] py-3.5 text-center">
             <div className="text-[22px] font-extrabold text-slate-800">{avgTimePerQuestion}s</div>
-            <div className="text-[11px] text-slate-500 font-semibold mt-1">Per question (avg)</div>
+            <div className="text-mini text-slate-500 font-semibold mt-1">Per question (avg)</div>
           </div>
           <div className="bg-slate-50 border border-slate-200 rounded-[14px] py-3.5 text-center">
             <div className="text-[22px] font-extrabold text-slate-800">~{Math.round(idealPerQuestion)}s</div>
-            <div className="text-[11px] text-slate-500 font-semibold mt-1">Ideal / question</div>
+            <div className="text-mini text-slate-500 font-semibold mt-1">Ideal / question</div>
           </div>
         </div>
         {showTimeIntegrity && (

@@ -69,12 +69,12 @@ export function SectionGapFlagPanel({
         {compact && (missing.length > 0 || optional.length > 0) ? (
           <div className="flex flex-wrap gap-1">
             {missing.map((section) => (
-              <Badge key={section} variant="destructive" className="font-normal text-[10px]">
+              <Badge key={section} variant="destructive" className="font-normal text-micro">
                 {section}
               </Badge>
             ))}
             {optional.map((section) => (
-              <Badge key={`opt-${section}`} variant="secondary" className="font-normal text-[10px]">
+              <Badge key={`opt-${section}`} variant="secondary" className="font-normal text-micro">
                 Optional: {section}
               </Badge>
             ))}
@@ -96,7 +96,7 @@ export function SectionGapFlagPanel({
           {(missing.length > 0 || optional.length > 0) && (
             <div className="flex flex-wrap gap-1 pt-0.5">
               {missing.map((section) => (
-                <Badge key={section} variant="destructive" className="font-normal text-[10px]">
+                <Badge key={section} variant="destructive" className="font-normal text-micro">
                   Missing: {section}
                 </Badge>
               ))}
@@ -104,7 +104,7 @@ export function SectionGapFlagPanel({
                 <Badge
                   key={`opt-${section}`}
                   variant="secondary"
-                  className="font-normal text-[10px]"
+                  className="font-normal text-micro"
                 >
                   Optional: {section}
                 </Badge>

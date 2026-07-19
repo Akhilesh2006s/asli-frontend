@@ -383,7 +383,7 @@ export default function Step2_ProductSelect() {
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-medium text-sm text-gray-900 leading-snug">{product.name}</p>
                         {product.isCustom && (
-                          <Badge variant="outline" className="text-[10px] border-orange-200 text-orange-600">
+                          <Badge variant="outline" className="text-micro border-orange-200 text-orange-600">
                             Custom
                           </Badge>
                         )}

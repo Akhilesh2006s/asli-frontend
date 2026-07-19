@@ -126,7 +126,7 @@ export function WeeklyTimetableGrid({
               )}
             >
               <Clock className="w-3.5 h-3.5 text-white/90 shrink-0" />
-              <span className="text-[10px] font-bold uppercase tracking-wider text-white/95">Time</span>
+              <span className="text-micro font-bold uppercase tracking-wider text-white/95">Time</span>
             </div>
             {timeSlots.map((hour, i) => (
               <div
@@ -145,7 +145,7 @@ export function WeeklyTimetableGrid({
                 <div className="flex flex-col items-center gap-0.5">
                   <span className={cn('w-2 h-2 rounded-full ring-2 ring-white/40 shrink-0', t.timelineDot)} />
                   <span className="text-xs sm:text-sm font-bold leading-none">{formatHourLabel(hour)}</span>
-                  <span className="text-[9px] font-medium text-white/80 tabular-nums">{formatSlotRange(hour)}</span>
+                  <span className="text-micro font-medium text-white/80 tabular-nums">{formatSlotRange(hour)}</span>
                 </div>
               </div>
             ))}
@@ -181,7 +181,7 @@ export function WeeklyTimetableGrid({
                   )}
                   <p
                     className={cn(
-                      'text-[10px] sm:text-xs font-bold uppercase tracking-wide text-center leading-tight whitespace-nowrap',
+                      'text-micro sm:text-xs font-bold uppercase tracking-wide text-center leading-tight whitespace-nowrap',
                       isToday ? t.todayText : 'text-gray-800'
                     )}
                   >
@@ -237,7 +237,7 @@ export function WeeklyTimetableGrid({
         </div>
       </div>
 
-      <div className="px-3 py-2 border-t border-gray-100/80 bg-white/60 flex flex-wrap gap-3 text-[10px] text-gray-500">
+      <div className="px-3 py-2 border-t border-gray-100/80 bg-white/60 flex flex-wrap gap-3 text-micro text-gray-500">
         <span className="flex items-center gap-1">
           <span className={cn('w-2 h-2 rounded-full', t.timelineDot)} />
           Monday – Saturday · same weekly pattern

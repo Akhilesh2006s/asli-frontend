@@ -313,11 +313,11 @@ export function ChapterSummaryViewer({ content, rawContent, className }: Chapter
               </p>
               <h3 className="truncate text-lg font-bold">{summary.title}</h3>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
-                <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-[10px]">
+                <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
                   {filledSections + 1} section{filledSections + 1 === 1 ? '' : 's'}
                 </Badge>
                 {summary.importantConcepts.length > 0 ? (
-                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-[10px]">
+                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
                     {summary.importantConcepts.length} concepts
                   </Badge>
                 ) : null}
@@ -330,7 +330,7 @@ export function ChapterSummaryViewer({ content, rawContent, className }: Chapter
           <div className="relative overflow-hidden rounded-xl border border-blue-200 bg-white shadow-sm">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-50/90 via-white to-sky-50/40" />
             <div className="relative p-2.5 sm:p-3">
-              <p className="mb-0.5 text-[9px] font-bold uppercase tracking-wider text-blue-700">
+              <p className="mb-0.5 text-micro font-bold uppercase tracking-wider text-blue-700">
                 Section 1
               </p>
               <Badge className="mb-1 border-0 bg-blue-100 text-blue-900 hover:bg-blue-100 text-xs">

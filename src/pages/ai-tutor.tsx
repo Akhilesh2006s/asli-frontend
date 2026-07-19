@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import Navigation from "@/components/navigation";
+import StudentShell from "@/components/layout/StudentShell";
 import AIChat from "@/components/ai-chat";
 import { 
   MessageCircle, 
@@ -27,6 +27,7 @@ import { useLocation, useSearch } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { API_BASE_URL } from "@/lib/api-config";
 import { collectVidyaSubjectLabels } from "@/lib/vidya-subjects";
+import { getStudentDisplayName } from "@/lib/auth-utils";
 import { isAiToolVisibleForSubjects } from "@/lib/ai-tool-subject-rules";
 import { isVidyaEnabledForUser } from "@/lib/vidya-access";
 
@@ -90,20 +91,8 @@ export default function AITutor() {
       color: 'from-blue-500 to-blue-600',
       description: 'Create concise summaries of chapters and topics'
     },
-    {
-      id: 'key-points-formula-extractor',
-      name: 'Key Points Extractor',
-      icon: Key,
-      color: 'from-teal-400 to-teal-500',
-      description: 'Extract key points from any topic'
-    },
-    {
-      id: 'quick-assignment-builder',
-      name: 'Quick Assignment Builder',
-      icon: ClipboardList,
-      color: 'from-orange-400 to-orange-500',
-      description: 'Build structured assignments quickly and efficiently'
-    },
+    // Key Points Extractor and Quick Assignment Builder are retired — kept out
+    // of the grid so students can't generate into a discontinued tool.
     {
       id: 'my-study-decks',
       name: 'My Study Decks',
@@ -291,6 +280,11 @@ export default function AITutor() {
 
   const vidyaChatEnabled = isVidyaEnabledForUser(user);
 
+  // `?tool=chat` (used by the sidebar's "Ask Vidya AI") opens the chat directly.
+  useEffect(() => {
+    if (openChatFromUrl && vidyaChatEnabled) setSelectedTool('ai-chat');
+  }, [openChatFromUrl, vidyaChatEnabled]);
+
   const visibleStudentTools = useMemo(() => {
     return studentTools.filter((tool) => {
       if (tool.id === 'ai-chat' && !vidyaChatEnabled) return false;
@@ -386,8 +380,7 @@ export default function AITutor() {
 
   if (isLoadingUser) {
     return (
-      <>
-        <Navigation />
+      <StudentShell>
         <div className="min-h-screen bg-sky-50 flex items-center justify-center">
           <div className="text-center">
             <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
@@ -397,12 +390,12 @@ export default function AITutor() {
             <p className="text-gray-600">Preparing Vidya AI...</p>
           </div>
         </div>
-      </>
-    );
+      </StudentShell>    );
   }
 
   // Handle tool click
   const handleToolClick = (toolId: string) => {
+
     if (toolId === 'ai-chat') {
       if (!vidyaChatEnabled) return;
       setSelectedTool('ai-chat');
@@ -434,19 +427,30 @@ export default function AITutor() {
   // If chat tool is selected, show chat interface
   if (selectedTool === 'ai-chat') {
     return (
-      <>
-        <Navigation />
-        <div className="h-[100dvh] max-h-[100dvh] overflow-hidden bg-gradient-to-br from-teal-100 via-teal-50 to-teal-100">
-          <div className="container mx-auto flex h-full min-h-0 max-h-full flex-col px-4 pb-3 pt-20 sm:pb-4 sm:pt-24 lg:pb-6">
-            <Button
-              variant="outline"
-              onClick={() => setSelectedTool(null)}
-              className="mb-3 shrink-0 sm:mb-4"
-            >
-              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 mr-2 rotate-180" />
-              Back to Tools
-            </Button>
-            <div className="flex min-h-0 max-h-full flex-1 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-md">
+      <StudentShell>
+        {/* Height is viewport minus the shell topbar + page padding, so the
+            composer stays pinned without the page itself scrolling. */}
+        <div className="mx-auto flex h-[calc(100dvh-9.5rem)] w-full max-w-5xl flex-col">
+            <div className="mb-4 flex shrink-0 items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setSelectedTool(null)}
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-ink-soft transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label="Back to tools"
+              >
+                <ArrowRight className="h-4 w-4 rotate-180" aria-hidden="true" />
+              </button>
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-blue-500 to-violet-600 shadow-sm">
+                <Sparkles className="h-[1.35rem] w-[1.35rem] text-white" aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <h1 className="truncate font-display text-xl font-bold text-ink">Ask Vidya AI</h1>
+                <p className="truncate text-sm text-muted-foreground">
+                  Your study assistant · ask anything, learn faster
+                </p>
+              </div>
+            </div>
+            <div className="flex min-h-0 max-h-full flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-elevated">
               <AIChat 
                 userId={userId}
                 className="flex h-full min-h-0 max-h-full w-full flex-1 flex-col overflow-hidden"
@@ -460,33 +464,53 @@ export default function AITutor() {
                 }}
               />
             </div>
-          </div>
         </div>
-      </>
+      </StudentShell>
     );
   }
 
   return (
-    <>
-      <Navigation />
-      <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-teal-50">
-        <div className="container mx-auto px-4 pt-24 sm:pt-28 lg:pt-32 pb-4 sm:pb-6 lg:pb-8">
-          {/* Header */}
-          <div className="mb-8 rounded-2xl border border-sky-100 bg-white/90 backdrop-blur-sm shadow-sm p-5 sm:p-7">
-            <div className="flex flex-col gap-4">
-              <div>
-                <p className="inline-flex items-center rounded-full bg-sky-100 px-3 py-1 text-[11px] sm:text-xs font-semibold tracking-wide text-sky-700 mb-3">
-                  ASLILEARN AI ASSISTANTS
-                </p>
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 via-sky-600 to-teal-600 bg-clip-text text-transparent mb-2">
-                  Smart AI tools for every study moment
-                </h1>
-                <p className="text-gray-600 text-sm sm:text-base max-w-xl">
-                  Search, filter and launch the right AI helper for doubts, practice, revision and exams – all in one place.
-                </p>
+    <StudentShell>
+      <div>
+        <div className="mx-auto w-full max-w-7xl">
+          {/* Hero */}
+          <div className="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-blue-100 via-violet-50 to-sky-100 p-6 sm:p-8 lg:p-10">
+            <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-white/55 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-violet-200/45 blur-3xl" />
+
+            <div className="relative z-[1]">
+              <p className="inline-flex items-center gap-2 rounded-full bg-white/75 px-3 py-1 text-sm font-bold text-indigo-blue-700">
+                <Sparkles className="h-4 w-4" aria-hidden="true" />
+                Hello {getStudentDisplayName(user) || 'there'}!
+              </p>
+              <h1 className="mt-4 font-display text-4xl font-extrabold leading-none tracking-tight text-ink sm:text-5xl lg:text-6xl">
+                Vidya <span className="text-violet-600">AI</span>
+              </h1>
+              <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
+                Smart revision, practice and study support — all in one place.
+              </p>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-3 lg:max-w-3xl">
+                {[
+                  { Icon: Clock, title: 'Save Time', copy: 'Automate revision & notes' },
+                  { Icon: Brain, title: 'Practice Smarter', copy: 'Questions built for you' },
+                  { Icon: TrendingUp, title: 'Better Outcomes', copy: 'Track progress & improve' },
+                ].map(({ Icon, title, copy }) => (
+                  <div
+                    key={title}
+                    className="flex items-start gap-3 rounded-2xl border border-white/80 bg-white/85 px-4 py-3 shadow-sm backdrop-blur"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-blue-50 text-indigo-blue-600">
+                      <Icon className="h-[1.15rem] w-[1.15rem]" aria-hidden="true" />
+                    </span>
+                    <span className="leading-tight">
+                      <span className="block text-sm font-bold text-ink">{title}</span>
+                      <span className="block text-sm text-muted-foreground">{copy}</span>
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
-
           </div>
 
           {/* Tools Grid */}
@@ -506,11 +530,11 @@ export default function AITutor() {
                         <Icon className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-[11px] font-medium text-sky-700">
+                        <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-mini font-medium text-sky-700">
                           AI Powered
                         </span>
                         {(tool as any).category && (
-                          <span className="rounded-full bg-slate-50 px-2.5 py-0.5 text-[10px] font-medium text-slate-600">
+                          <span className="rounded-full bg-slate-50 px-2.5 py-0.5 text-micro font-medium text-slate-600">
                             {(tool as any).category}
                           </span>
                         )}
@@ -533,6 +557,5 @@ export default function AITutor() {
           </div>
         </div>
       </div>
-    </>
-  );
+    </StudentShell>  );
 }

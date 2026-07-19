@@ -20,6 +20,8 @@ export default {
     },
     extend: {
       fontSize: {
+        'micro':      'var(--text-micro)',
+        'mini':       'var(--text-mini)',
         'fluid-xs':   'var(--text-xs)',
         'fluid-sm':   'var(--text-sm)',
         'fluid-base': 'var(--text-base)',
@@ -43,6 +45,11 @@ export default {
         sm: "calc(var(--radius) - 8px)",
         "2xl": "1.25rem",
         "3xl": "1.75rem",
+        shell: "var(--shell-radius)",
+      },
+      spacing: {
+        rail: "var(--shell-rail-w)",
+        "rail-collapsed": "var(--shell-rail-w-collapsed)",
       },
       boxShadow: {
         elevated: "var(--elevated-shadow)",
@@ -98,7 +105,13 @@ export default {
           "4": "var(--chart-4)",
           "5": "var(--chart-5)",
         },
+        shell: {
+          backdrop: "var(--shell-backdrop)",
+          surface: "var(--shell-surface)",
+          topbar: "var(--shell-topbar)",
+        },
         sidebar: {
+          heading: "var(--sidebar-heading)",
           DEFAULT: "var(--sidebar-background)",
           foreground: "var(--sidebar-foreground)",
           primary: "var(--sidebar-primary)",

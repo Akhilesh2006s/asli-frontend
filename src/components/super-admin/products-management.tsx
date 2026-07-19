@@ -243,14 +243,14 @@ export default function ProductsManagement() {
                       <p className="font-medium text-slate-900">
                         {cat.label || formatIitCategoryLabel(cat.code)}
                       </p>
-                      <p className="mt-0.5 font-mono text-[10px] uppercase tracking-wide text-slate-500">
+                      <p className="mt-0.5 font-mono text-micro uppercase tracking-wide text-slate-500">
                         {cat.code}
                       </p>
                     </div>
                     <Badge
                       variant="secondary"
                       className={cn(
-                        'text-[10px] uppercase tracking-wide',
+                        'text-micro uppercase tracking-wide',
                         cat.isBuiltIn && 'bg-orange-100 text-orange-900',
                       )}
                     >
@@ -311,7 +311,7 @@ export default function ProductsManagement() {
                     className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
                   >
                     <span className="text-slate-600">
-                      {cat.label} <span className="font-mono text-[10px]">({cat.code})</span>
+                      {cat.label} <span className="font-mono text-micro">({cat.code})</span>
                     </span>
                     <Button
                       type="button"
@@ -379,7 +379,7 @@ export default function ProductsManagement() {
                 placeholder="DELTA"
                 className="font-mono uppercase"
               />
-              <p className="text-[11px] text-slate-500">Cannot change after create.</p>
+              <p className="text-mini text-slate-500">Cannot change after create.</p>
             </div>
             <div className="space-y-1.5">
               <Label>Description</Label>

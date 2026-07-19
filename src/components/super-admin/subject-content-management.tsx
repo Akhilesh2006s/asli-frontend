@@ -2325,19 +2325,19 @@ export default function SubjectContentManagement() {
                           </div>
                           <div className="mt-1 flex flex-wrap gap-1">
                             {syllabusLabel(subj.board) ? (
-                              <Badge variant="outline" className="text-[10px] font-normal">
+                              <Badge variant="outline" className="text-micro font-normal">
                                 {syllabusLabel(subj.board)}
                               </Badge>
                             ) : null}
                             {subj.board === 'STATE' && subj.stateName && (
-                              <Badge variant="secondary" className="text-[10px] font-normal">
+                              <Badge variant="secondary" className="text-micro font-normal">
                                 {subj.stateName}
                               </Badge>
                             )}
                             {normalizeIitCategory(subj.productCategory) ? (
                               <Badge
                                 variant="outline"
-                                className="border-sky-200 bg-sky-50 text-[10px] font-normal text-sky-900"
+                                className="border-sky-200 bg-sky-50 text-micro font-normal text-sky-900"
                               >
                                 IIT {formatIitCategoryLabel(subj.productCategory, iitLabelMap)}
                               </Badge>
@@ -2549,12 +2549,12 @@ export default function SubjectContentManagement() {
                                   </Badge>
                                 )}
                                 {syllabusLabel(content.board) ? (
-                                  <Badge variant="outline" className="text-[10px] font-normal">
+                                  <Badge variant="outline" className="text-micro font-normal">
                                     {syllabusLabel(content.board)}
                                   </Badge>
                                 ) : null}
                                 {content.board === 'STATE' && content.stateName && (
-                                  <Badge variant="secondary" className="text-[10px] font-normal">
+                                  <Badge variant="secondary" className="text-micro font-normal">
                                     {content.stateName}
                                   </Badge>
                                 )}
@@ -2567,7 +2567,7 @@ export default function SubjectContentManagement() {
                                 {content.isActive === false && (
                                   <Badge
                                     variant="secondary"
-                                    className="text-[10px] font-normal border-amber-200 bg-amber-50 text-amber-800"
+                                    className="text-micro font-normal border-amber-200 bg-amber-50 text-amber-800"
                                   >
                                     Inactive
                                   </Badge>

@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Homepage from "./pages/homepage";
 import { EduOTTFilterProvider } from "@/contexts/edu-ott-filter-context";
 import { IndividualTrialGate } from "@/components/IndividualTrialGate";
+import { TrialLoginQuizPrompt } from "@/components/TrialLoginQuizPrompt";
 
 const Dashboard = lazy(() => import("./pages/dashboard"));
 const LearningPaths = lazy(() => import("./pages/learning-paths"));
@@ -22,6 +23,7 @@ const AdminSubjectContent = lazy(() => import("./pages/admin/subject-content"));
 const SubjectManagement = lazy(() => import("./pages/admin/subject-management"));
 const TimetableManagementPage = lazy(() => import("./pages/admin/timetable"));
 const TeacherDashboard = lazy(() => import("./pages/teacher/dashboard"));
+const TeacherShellPreview = lazy(() => import("./pages/teacher/shell-preview"));
 const TeacherTimetablePage = lazy(() => import("./pages/teacher/timetable"));
 const TeacherSubjectContent = lazy(() => import("./pages/teacher/subject-content"));
 const TeacherToolPage = lazy(() => import("./pages/teacher/tools/[toolType]"));
@@ -98,6 +100,7 @@ function Router() {
         <Route path="/admin/subjects" component={SubjectManagement} />
         <Route path="/admin/timetable" component={TimetableManagementPage} />
         <Route path="/teacher/dashboard" component={TeacherDashboard} />
+        <Route path="/teacher/shell-preview" component={TeacherShellPreview} />
         <Route path="/teacher/timetable" component={TeacherTimetablePage} />
         <Route path="/teacher/subject/:id" component={TeacherSubjectContent} />
         <Route path="/teacher/tools/:toolType" component={TeacherToolPage} />
@@ -123,6 +126,7 @@ function App() {
       <TooltipProvider>
         <Toaster />
         <IndividualTrialGate>
+          <TrialLoginQuizPrompt />
           <Router />
         </IndividualTrialGate>
       </TooltipProvider>

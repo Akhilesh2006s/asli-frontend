@@ -86,8 +86,8 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
           compact ? "justify-center px-2 py-2 lg:justify-start lg:px-4 lg:py-3 mx-1 lg:mx-2" : "items-start gap-3 px-4 py-3",
           "text-xs sm:text-sm font-medium",
           isActive
-            ? "bg-white text-orange-600 shadow-md"
-            : "text-white hover:bg-orange-600/50"
+            ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-glow"
+            : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         )}
       >
         <Icon className={cn("flex-shrink-0", compact ? "w-4 h-4 lg:w-5 lg:h-5" : "mt-0.5 h-4 w-4 sm:h-5 sm:w-5")} />
@@ -111,7 +111,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
           <GraduationCapIcon className="h-5 w-5 lg:h-8 lg:w-8 text-white shrink-0" />
           <div className={cn(!useDrawerNav && "hidden lg:block")}>
             <h2 className="text-sm sm:text-base lg:text-lg font-bold text-white">Aslilearn AI</h2>
-            <p className="text-xs text-white/90">Super Admin</p>
+            <p className="text-xs text-sidebar-foreground">Super Admin</p>
           </div>
         </div>
 
@@ -120,7 +120,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
         </nav>
       </div>
 
-      <div className="mt-auto p-3 sm:p-4 lg:p-6 border-t border-orange-300/50 space-y-3">
+      <div className="mt-auto p-3 sm:p-4 lg:p-6 border-t border-sidebar-border space-y-3">
         <div className={cn(
           "flex items-center space-x-3",
           !useDrawerNav && "justify-center lg:justify-start"
@@ -130,7 +130,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
           </div>
           <div className={cn(!useDrawerNav && "hidden lg:block")}>
             <p className="text-xs sm:text-sm font-medium text-white">{user?.fullName || 'Super Admin'}</p>
-            <p className="text-xs text-white/90">Super Administrator</p>
+            <p className="text-xs text-sidebar-foreground">Super Administrator</p>
           </div>
         </div>
         <button
@@ -155,13 +155,13 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
   if (useDrawerNav) {
     return (
       <>
-        <div className="fixed top-0 left-0 right-0 z-30 bg-gradient-to-r from-orange-400 to-orange-500 border-b border-orange-300/60 shadow-md pt-[env(safe-area-inset-top,0px)]">
+        <div className="fixed top-0 left-0 right-0 z-30 bg-sidebar border-b border-sidebar-border shadow-md pt-[env(safe-area-inset-top,0px)]">
           <div className="h-14 px-4 flex items-center justify-between min-h-[3.5rem]">
             <div className="flex items-center space-x-2 min-w-0">
               <GraduationCapIcon className="h-5 w-5 text-white shrink-0" />
               <div className="min-w-0">
                 <h2 className="text-xs sm:text-sm font-bold text-white leading-none truncate">Aslilearn AI</h2>
-                <p className="text-[10px] text-white/90">Super Admin</p>
+                <p className="text-micro text-sidebar-foreground">Super Admin</p>
               </div>
             </div>
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
@@ -169,7 +169,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white hover:bg-orange-600/40 shrink-0"
+                  className="text-white hover:bg-sidebar-accent shrink-0"
                   aria-label="Open menu"
                 >
                   <Menu className="h-5 w-5" />
@@ -177,7 +177,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
               </SheetTrigger>
               <SheetContent
                 side="left"
-                className="w-[min(20rem,92vw)] sm:w-80 p-0 bg-gradient-to-b from-orange-400 to-orange-500 border-r border-orange-300 overflow-y-auto"
+                className="w-[min(20rem,92vw)] sm:w-80 p-0 bg-sidebar border-r border-sidebar-border overflow-y-auto"
               >
                 {sidebarContent}
               </SheetContent>
@@ -196,11 +196,11 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
                 onClick={() => onViewChange(item.id as SuperAdminView)}
                 className={cn(
                   "flex flex-col items-center gap-0.5 px-2 py-1 min-w-0",
-                  isActive ? "text-orange-600" : "text-muted-foreground"
+                  isActive ? "text-primary" : "text-muted-foreground"
                 )}
               >
                 <Icon className="w-5 h-5 shrink-0" />
-                <span className="text-[10px] truncate max-w-[4.5rem]">{item.label.split(' ')[0]}</span>
+                <span className="text-micro truncate max-w-[4.5rem]">{item.label.split(' ')[0]}</span>
               </button>
             );
           })}
@@ -214,7 +214,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
       className={cn(
         "super-admin-sidebar hidden sm:flex flex-col transition-all duration-300",
         "sm:w-[60px] lg:w-64 sm:min-w-[60px] lg:min-w-[16rem] lg:max-w-[16rem]",
-        "bg-gradient-to-b from-orange-400 to-orange-500 shadow-sm border-r border-orange-300",
+        "bg-sidebar shadow-sm border-r border-sidebar-border",
         "h-screen fixed top-0 left-0 overflow-y-auto z-20"
       )}
     >

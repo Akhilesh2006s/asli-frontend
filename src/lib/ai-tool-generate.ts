@@ -79,6 +79,33 @@ export function resolveAiToolApiInlineMessage(
   return 'No complete content is available for this class, subject, topic, and sub-topic.';
 }
 
+/** Backend copy aimed at admins ("ask Super Admin", "AI Tool Generations"). */
+const ADMIN_FACING_COPY = /super\s*admin|ai tool generations|ai tool data|mapping/i;
+
+/**
+ * A missing subtopic is a normal gap in coverage, not a failure the student
+ * caused — and they can't act on "ask Super Admin to add this mapping".
+ * Rewrites those into something a student can actually use.
+ */
+export function resolveAiToolStudentEmptyMessage(
+  data: { message?: string; code?: string },
+  toolName?: string,
+): { message: string; isContentGap: boolean } {
+  const raw = resolveAiToolApiInlineMessage(data, toolName);
+  const isContentGap =
+    data.code === 'AI_TOOL_DATA_NOT_FOUND' ||
+    data.code === 'AI_TOOL_CONTENT_INCOMPLETE' ||
+    data.code === 'AI_TOOL_WRONG_TYPE' ||
+    ADMIN_FACING_COPY.test(raw);
+
+  if (!isContentGap) return { message: raw, isContentGap: false };
+
+  return {
+    message: `No ${toolName || 'content'} is ready for this sub-topic yet. Try another sub-topic or chapter — more is being added.`,
+    isContentGap: true,
+  };
+}
+
 export function isAiToolInlineOnlyError(code?: string): boolean {
   return (
     code === 'AI_TOOL_CONTENT_INCOMPLETE' ||

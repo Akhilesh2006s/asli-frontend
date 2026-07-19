@@ -126,7 +126,7 @@ function OverviewStat({ label, value }: { label: string; value: string }) {
   if (!value.trim()) return null;
   return (
     <div className="rounded-lg border border-indigo-100 bg-white/80 px-3 py-2">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-indigo-500">{label}</p>
+      <p className="text-micro font-semibold uppercase tracking-wide text-indigo-500">{label}</p>
       <p className="mt-0.5 text-sm font-medium text-slate-900">{value}</p>
     </div>
   );
@@ -157,7 +157,7 @@ function QuestionCard({
     <article className="rounded-lg border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/20 p-3 shadow-sm">
       <div className="mb-1.5 flex items-start justify-between gap-2">
         <p className="text-sm font-semibold text-slate-900">
-          <span className="mr-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded bg-indigo-700 px-1 text-[10px] font-bold text-white">
+          <span className="mr-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded bg-indigo-700 px-1 text-micro font-bold text-white">
             {qNo}
           </span>
           {questionText}
@@ -196,7 +196,7 @@ function QuestionCard({
       ) : null}
 
       {question.internalChoiceGroup ? (
-        <p className="mt-1.5 text-[11px] text-violet-700">
+        <p className="mt-1.5 text-mini text-violet-700">
           <span className="font-semibold">OR / Choice:</span> {question.internalChoiceGroup}
         </p>
       ) : null}
@@ -392,7 +392,7 @@ export function ExamQuestionPaperViewer({
     return (
       <div className={cn('space-y-4', className)}>
         <header className="overflow-hidden rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-900 via-rose-800 to-orange-900 p-5 text-white shadow-lg">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-rose-200">Mock Test Builder</p>
+          <p className="text-mini uppercase tracking-[0.18em] text-rose-200">Mock Test Builder</p>
           <h2 className="mt-1 text-xl font-bold">{paperTitle}</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             <Badge className="bg-white/15 text-white hover:bg-white/15">{totalQuestions} Questions</Badge>
@@ -490,7 +490,7 @@ export function ExamQuestionPaperViewer({
   return (
     <div className={cn('space-y-4', className)} data-ai-tool-export>
       <header className="overflow-hidden rounded-2xl border border-indigo-200 bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-800 p-5 text-white shadow-lg print:hidden">
-        <p className="text-[11px] uppercase tracking-[0.18em] text-indigo-200">
+        <p className="text-mini uppercase tracking-[0.18em] text-indigo-200">
           Exam Question Paper Generator
         </p>
         <h2 className="mt-1 text-xl font-bold">{paperTitle}</h2>
@@ -578,7 +578,7 @@ export function ExamQuestionPaperViewer({
                   </div>
                   {paper.instructions ? (
                     <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-3">
-                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                      <p className="text-micro font-semibold uppercase tracking-wide text-slate-500">
                         General Instructions
                       </p>
                       <RichTextBlock text={paper.instructions} />

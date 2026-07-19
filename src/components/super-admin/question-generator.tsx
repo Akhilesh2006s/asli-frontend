@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -30,7 +31,9 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
     difficulty: 'medium',
     subject: '',
     topic: '',
-    subtopic: ''
+    subtopic: '',
+    trialOnly: false,
+    promptOnLogin: false,
   });
 
   const [topics, setTopics] = useState<string[]>([]);
@@ -171,7 +174,9 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
           difficulty: formData.difficulty,
           subjectId: formData.subject,
           topic: formData.topic || undefined,
-          subtopic: formData.subtopic || undefined
+          subtopic: formData.subtopic || undefined,
+          trialOnly: formData.trialOnly,
+          promptOnLogin: formData.trialOnly && formData.promptOnLogin,
         })
       });
 
@@ -191,7 +196,9 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
             difficulty: 'medium',
             subject: formData.subject,
             topic: formData.topic,
-            subtopic: formData.subtopic
+            subtopic: formData.subtopic,
+            trialOnly: formData.trialOnly,
+            promptOnLogin: formData.promptOnLogin,
           });
         } else {
           throw new Error(data.message || 'Failed to generate questions');
@@ -375,6 +382,35 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
                 </Select>
               </div>
             </div>
+          </div>
+
+          <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/60 p-3">
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <Checkbox
+                checked={formData.trialOnly}
+                onCheckedChange={(v) =>
+                  setFormData({
+                    ...formData,
+                    trialOnly: v === true,
+                    promptOnLogin: v === true ? formData.promptOnLogin : false,
+                  })
+                }
+              />
+              Trial users only
+            </label>
+            <p className="text-xs text-gray-600">
+              Created quiz will only appear for individual trial logins, not school students.
+            </p>
+            <label className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={formData.promptOnLogin}
+                disabled={!formData.trialOnly}
+                onCheckedChange={(v) =>
+                  setFormData({ ...formData, promptOnLogin: v === true })
+                }
+              />
+              Prompt on login
+            </label>
           </div>
 
           {/* Generate Button */}

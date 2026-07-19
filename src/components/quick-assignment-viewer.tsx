@@ -110,7 +110,7 @@ function QuestionCard({ q, index }: { q: AssignmentQuestion; index: number }) {
         </p>
       ) : null}
       {q.marks != null ? (
-        <p className="text-[11px] font-medium text-slate-500">Marks: {q.marks}</p>
+        <p className="text-mini font-medium text-slate-500">Marks: {q.marks}</p>
       ) : null}
     </div>
   );
@@ -323,11 +323,11 @@ export function QuickAssignmentViewer({ content, rawContent, className }: QuickA
               </p>
               <h3 className="truncate text-lg font-bold">{assignment.title}</h3>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
-                <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-[10px]">
+                <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
                   {filledSections + 1} section{filledSections + 1 === 1 ? '' : 's'}
                 </Badge>
                 {assignment.conceptQuestions.length > 0 ? (
-                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-[10px]">
+                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
                     {assignment.conceptQuestions.length} questions
                   </Badge>
                 ) : null}
@@ -340,7 +340,7 @@ export function QuickAssignmentViewer({ content, rawContent, className }: QuickA
           <div className="relative overflow-hidden rounded-xl border border-rose-200 bg-white shadow-sm">
             <div className="absolute inset-0 bg-gradient-to-br from-rose-50/90 via-white to-orange-50/40" />
             <div className="relative p-2.5 sm:p-3">
-              <p className="mb-0.5 text-[9px] font-bold uppercase tracking-wider text-rose-700">
+              <p className="mb-0.5 text-micro font-bold uppercase tracking-wider text-rose-700">
                 Section 1
               </p>
               <Badge className="mb-1 border-0 bg-rose-100 text-rose-900 hover:bg-rose-100 text-xs">

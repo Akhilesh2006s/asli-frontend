@@ -163,19 +163,19 @@ function PracticeQuestionCard({
         <span className="inline-flex h-8 min-w-[2rem] items-center justify-center rounded-xl bg-gradient-to-br from-[#6C63FF] to-[#8B5CF6] px-2 text-xs font-bold text-white shadow">
           Q{index + 1}
         </span>
-        <Badge className={cn('border-0 text-[10px] font-semibold', difficultyClass)}>
+        <Badge className={cn('border-0 text-micro font-semibold', difficultyClass)}>
           {difficulty}
         </Badge>
         <Badge
           variant="outline"
           className={cn(
-            'border-0 text-[10px] font-semibold',
+            'border-0 text-micro font-semibold',
             isMcq ? 'bg-pink-100 text-pink-800' : 'bg-orange-100 text-orange-800',
           )}
         >
           {isMcq ? 'MCQ' : 'Practice'}
         </Badge>
-        <span className="ml-auto text-[11px] font-semibold text-[#6C63FF]">⭐ +{xp} XP</span>
+        <span className="ml-auto text-mini font-semibold text-[#6C63FF]">⭐ +{xp} XP</span>
       </div>
 
       <p className="text-sm font-semibold leading-snug text-slate-900 sm:text-base">{q.question}</p>
@@ -417,7 +417,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
             </div>
 
             <div className="text-center lg:text-left">
-              <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-[#6C63FF]/20 bg-[#6C63FF]/8 px-3 py-1 text-[11px] font-semibold text-[#6C63FF]">
+              <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-[#6C63FF]/20 bg-[#6C63FF]/8 px-3 py-1 text-mini font-semibold text-[#6C63FF]">
                 <Sparkles className="h-3.5 w-3.5" />
                 AI-POWERED
               </div>
@@ -645,7 +645,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
                       </div>
                       <p className="text-sm font-bold text-emerald-950">{c.name}</p>
                       <p className="mt-1.5 text-sm leading-relaxed text-slate-700">{c.explanation}</p>
-                      <p className="mt-3 rounded-xl bg-white/80 px-2.5 py-1.5 text-[11px] font-medium text-emerald-800">
+                      <p className="mt-3 rounded-xl bg-white/80 px-2.5 py-1.5 text-mini font-medium text-emerald-800">
                         💡 Student tip: explain this idea in one sentence to a friend.
                       </p>
                     </motion.div>

@@ -60,7 +60,7 @@ export function ToolSection({
               <span className="font-semibold text-slate-900 truncate">{title}</span>
               <Badge
                 variant="secondary"
-                className="rounded-md font-mono text-[10px] font-normal text-slate-600 bg-slate-100/90 border-slate-200/80 max-w-[200px] truncate"
+                className="rounded-md font-mono text-micro font-normal text-slate-600 bg-slate-100/90 border-slate-200/80 max-w-[200px] truncate"
                 title={tool.value}
               >
                 {tool.value}

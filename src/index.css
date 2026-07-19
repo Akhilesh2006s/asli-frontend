@@ -39,16 +39,25 @@
 
   --radius: 1rem;
 
-  /* Sidebar — light, readable, and consistent with the mobile portal */
+  /* Sidebar — white rail, slate labels, solid indigo active pill */
   --sidebar: #ffffff;
   --sidebar-background: #ffffff;
-  --sidebar-foreground: #1e293b;
+  --sidebar-foreground: #64748b;
   --sidebar-primary: #4f46e5;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #eef2ff;
-  --sidebar-accent-foreground: #3730a3;
-  --sidebar-border: rgba(71, 85, 105, 0.14);
+  --sidebar-accent: #f1f5f9;
+  --sidebar-accent-foreground: #1e293b;
+  --sidebar-border: #e8ecf4;
   --sidebar-ring: #6366f1;
+  --sidebar-heading: #0f172a;
+
+  /* App shell — light throughout; content sits on a soft grey field */
+  --shell-backdrop: #ffffff;
+  --shell-surface: #f7f8fc;
+  --shell-radius: 1.5rem;
+  --shell-topbar: #ffffff;
+  --shell-rail-w: 16rem;
+  --shell-rail-w-collapsed: 5rem;
 
   /* Brand extras */
   --ink: #0f172a;
@@ -67,6 +76,12 @@
   --font-display: "Sora", "Outfit", ui-sans-serif, system-ui, sans-serif;
   --font-outfit: "Outfit", "Sora", ui-sans-serif, system-ui, sans-serif;
   --font-instrument-serif: "Sora", sans-serif;
+
+  /* Dense-data floors — timetable cells, chips, badges.
+     Smaller than --text-xs but never below 12px, so grids stay compact
+     while remaining legible on a projector. */
+  --text-micro: clamp(0.75rem, 0.72rem + 0.12vw, 0.8125rem);  /* 12–13px */
+  --text-mini:  clamp(0.8125rem, 0.78rem + 0.15vw, 0.875rem); /* 13–14px */
 
   /* Zoom-friendly type floors (never tiny on share screens) */
   --text-xs:   clamp(0.9375rem, 0.9rem + 0.2vw, 1rem);      /* ≥15px */
@@ -139,6 +154,10 @@
   --mist: #04161c;
   --glass: rgba(12, 40, 48, 0.75);
   --elevated-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+
+  --shell-backdrop: #010c11;
+  --shell-surface: #04161c;
+  --shell-topbar: rgba(4, 22, 28, 0.92);
 }
 
 @layer components {
@@ -164,8 +183,9 @@
 
   html {
     background: var(--mist);
-    overflow-x: hidden;
-    overflow-y: auto;
+    /* `clip` not `hidden`: hidden makes html/body a scroll container, which
+       silently breaks `position: sticky` for the app shell's topbar. */
+    overflow-x: clip;
     font-size: 100%;
     -webkit-text-size-adjust: 100%;
   }
@@ -180,8 +200,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow-x: clip;
     min-height: 100vh;
   }
 
@@ -216,7 +235,9 @@
     font-family: var(--font-display);
     letter-spacing: -0.02em;
     line-height: 1.15;
-    color: var(--ink);
+    /* No `color` here on purpose. Setting it made every heading dark even
+       inside a `text-white` hero, because a direct rule beats inheritance.
+       Headings now inherit — body already resolves to the same ink colour. */
   }
 
   h1 { font-size: var(--text-4xl); font-weight: 700; }

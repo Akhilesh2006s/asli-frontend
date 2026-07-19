@@ -517,7 +517,7 @@ export default function AdminCalendar() {
               <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
                 {/* Day Headers */}
                 {dayNames.map((day) => (
-                  <div key={day} className="text-center text-[11px] sm:text-sm font-semibold text-gray-600 py-1.5 sm:py-2">
+                  <div key={day} className="text-center text-mini sm:text-sm font-semibold text-gray-600 py-1.5 sm:py-2">
                     <span className="sm:hidden">{day.slice(0, 2)}</span>
                     <span className="hidden sm:inline">{day}</span>
                   </div>
@@ -560,7 +560,7 @@ export default function AdminCalendar() {
                             <div
                               key={eventId}
                               className={`
-                                text-[10px] sm:text-xs px-1.5 py-1 rounded truncate text-white cursor-pointer
+                                text-micro sm:text-xs px-1.5 py-1 rounded truncate text-white cursor-pointer
                                 ${getEventColor(event, eventIndex)}
                                 hover:opacity-80
                               `}
@@ -575,12 +575,12 @@ export default function AdminCalendar() {
                           );
                         })}
                         {dayEvents.length > 3 && (
-                          <div className="text-[10px] sm:text-xs text-gray-500 font-medium">
+                          <div className="text-micro sm:text-xs text-gray-500 font-medium">
                             +{dayEvents.length - 3} more
                           </div>
                         )}
                         {dayEvents.length === 0 && (
-                          <div className="text-[10px] sm:text-xs text-gray-400 text-center py-1">
+                          <div className="text-micro sm:text-xs text-gray-400 text-center py-1">
                             Tap to add
                           </div>
                         )}

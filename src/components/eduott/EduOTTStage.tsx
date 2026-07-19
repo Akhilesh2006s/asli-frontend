@@ -3,55 +3,73 @@ import type { ReactNode } from 'react';
 import { Sparkles, Video } from 'lucide-react';
 
 /** Bright premium EduOTT shell — inviting, Zoom-readable, buyable. */
+export interface EduOTTStat {
+  value: string | number;
+  label: string;
+  icon?: ReactNode;
+}
+
 export function EduOTTStage({
   children,
   className,
   title = 'EduOTT',
   subtitle = 'Watch curated lessons and join live classroom sessions',
   actions,
+  stats,
 }: {
   children: ReactNode;
   className?: string;
   title?: string;
   subtitle?: string;
   actions?: ReactNode;
+  /** Headline figures shown as pills under the hero copy. */
+  stats?: EduOTTStat[];
 }) {
   return (
-    <div
-      className={cn(
-        'relative overflow-hidden rounded-[1.75rem] border border-white/80 bg-white/90 shadow-elevated backdrop-blur-md',
-        className
-      )}
-    >
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(ellipse 70% 45% at 0% 0%, rgba(20,184,166,0.16), transparent 55%), radial-gradient(ellipse 50% 40% at 100% 0%, rgba(251,191,36,0.14), transparent 50%), linear-gradient(180deg, #f8fcfd 0%, #ffffff 40%, #f3fafb 100%)',
-        }}
-      />
+    <div className={cn('space-y-6', className)}>
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky-100 via-indigo-blue-50 to-violet-100 p-6 sm:p-8 lg:p-10">
+        <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-white/50 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-violet-200/40 blur-3xl" />
 
-      <div className="relative z-[1] space-y-7 p-5 sm:p-7 lg:p-9">
-        <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex items-start gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-gradient-to-br from-teal-green-500 to-indigo-blue-600 shadow-glow">
-              <Video className="h-8 w-8 text-white" />
+        <div className="relative z-[1] max-w-2xl">
+          <p className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-sm font-bold uppercase tracking-[0.12em] text-indigo-blue-700">
+            <Video className="h-4 w-4" aria-hidden="true" />
+            {title}
+          </p>
+          <h2 className="mt-4 font-display text-3xl font-extrabold leading-tight tracking-tight text-ink sm:text-4xl lg:text-[2.75rem]">
+            Stream. Learn.
+            <br />
+            <span className="text-violet-600">Grow every day.</span>
+          </h2>
+          <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">{subtitle}</p>
+
+          {stats && stats.length > 0 && (
+            <div className="mt-6 flex flex-wrap gap-3">
+              {stats.map((s) => (
+                <div
+                  key={s.label}
+                  className="flex items-center gap-3 rounded-2xl border border-white/80 bg-white/85 px-4 py-3 shadow-sm backdrop-blur"
+                >
+                  {s.icon && (
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-blue-50 text-indigo-blue-600">
+                      {s.icon}
+                    </span>
+                  )}
+                  <span className="leading-tight">
+                    <span className="block font-display text-xl font-bold text-ink">{s.value}</span>
+                    <span className="block text-sm text-muted-foreground">{s.label}</span>
+                  </span>
+                </div>
+              ))}
             </div>
-            <div>
-              <p className="inline-flex items-center gap-1.5 text-[0.9375rem] font-semibold uppercase tracking-[0.14em] text-teal-green-700">
-                <Sparkles className="h-4 w-4" />
-                Watch & learn
-              </p>
-              <h2 className="mt-1 font-display text-3xl font-bold tracking-tight text-ink lg:text-4xl">
-                {title}
-              </h2>
-              <p className="mt-2 max-w-2xl text-lg text-muted-foreground">{subtitle}</p>
-            </div>
-          </div>
-          {actions ? <div className="flex flex-wrap gap-3">{actions}</div> : null}
-        </header>
-        {children}
+          )}
+
+          {actions ? <div className="mt-6 flex flex-wrap gap-3">{actions}</div> : null}
+        </div>
       </div>
+
+      {children}
     </div>
   );
 }

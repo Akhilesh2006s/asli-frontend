@@ -100,6 +100,8 @@ import { buildTimetableCalendarEntries } from '@/lib/timetable-calendar-entries'
 import { useTimetableEntries } from '@/hooks/useTimetable';
 import { format, startOfMonth, endOfMonth, startOfWeek, addDays, parseISO } from 'date-fns';
 import { getUser as getStoredUser, getStudentDisplayName } from '@/lib/auth-utils';
+import StudentShell from '@/components/layout/StudentShell';
+import StatCard from '@/components/dashboard/StatCard';
 import { fetchAuthUser, peekCachedAuthUser } from '@/lib/auth-session';
 import { fetchDashboardBootstrap } from '@/lib/dashboard-bootstrap';
 import {
@@ -1879,19 +1881,12 @@ export default function Dashboard() {
   const recommendedVideos = [];
 
   return (
-    <>
-      <Navigation />
-      <div className="asli-app-bg min-h-screen w-full px-4 pb-responsive pt-responsive sm:px-6 lg:px-8">
+    <StudentShell>
+      <div>
         <div className="relative mx-auto max-w-7xl">
-        {/* Interactive Background */}
-        <div className="fixed inset-0 -z-10 bg-[#f4f7fb]">
-          {/* Interactive Background - Disabled for better performance */}
-          {/* <InteractiveBackground />
-          <FloatingParticles /> */}
-        </div>
-        
+
         {/* Welcome Section */}
-        <div className="mt-6 sm:mt-8 mb-6 relative z-10">
+        <div className="relative z-10 mb-6">
         {studyStreak && studyStreak.count > 0 && (
           <div className="mb-4 flex items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 py-2.5">
             <Flame className="h-5 w-5 shrink-0 text-orange-500" aria-hidden />
@@ -1901,32 +1896,33 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-        <div className="relative overflow-hidden rounded-3xl border border-indigo-blue-100 bg-gradient-to-br from-indigo-blue-50 via-white to-orange-50 p-6 shadow-elevated sm:p-8 lg:p-10">
-        <div className="absolute -right-14 -top-24 h-64 w-64 rounded-full bg-indigo-blue-200/45 blur-3xl"></div>
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-blue-700 via-indigo-blue-600 to-violet-600 p-6 shadow-glow-lg sm:p-8 lg:p-10">
+        <div className="pointer-events-none absolute -right-16 -top-28 h-72 w-72 rounded-full bg-white/15 blur-3xl"></div>
+        <div className="pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-sky-300/20 blur-3xl"></div>
             <div className="relative z-10 flex flex-row items-center justify-between gap-3 sm:gap-4">
               {/* Left side - Text content */}
               <div className="flex-1 min-w-0">
                 <SchoolBrandRow user={user} className="mb-4" />
-                <h1 className="mb-3 font-display text-3xl font-extrabold leading-tight !text-slate-900 sm:text-4xl lg:text-5xl">
+                <h1 className="mb-3 font-display text-3xl font-extrabold leading-tight !text-white sm:text-4xl lg:text-5xl">
                   Welcome back, {getStudentDisplayName(user)}!
                 </h1>
-                <p className="mb-6 max-w-3xl text-lg font-medium leading-relaxed text-slate-600 sm:text-xl">
+                <p className="mb-6 max-w-3xl text-lg font-medium leading-relaxed text-white/80 sm:text-xl">
                   {vidyaEnabled
                     ? `Ready to continue your ${user?.educationStream || 'JEE'} preparation journey? Your Vidya AI has personalized recommendations waiting.`
                     : `Ready to continue your ${user?.educationStream || 'JEE'} preparation journey? Pick up where you left off.`}
                 </p>
-                
+
                 <div className="flex flex-row flex-wrap gap-2 sm:gap-3">
-                  <Button 
-                    className="h-12 whitespace-nowrap px-6 text-base font-bold"
+                  <Button
+                    className="h-12 whitespace-nowrap !bg-white px-6 text-base font-bold !text-indigo-blue-700 shadow-lg hover:!bg-white/90"
                     onClick={() => setLocation('/learning-paths')}
                   >
                     Continue Learning
                   </Button>
                   {vidyaEnabled ? (
-                  <Button 
-                    variant="outline" 
-                    className="h-12 whitespace-nowrap border-indigo-blue-200 !bg-white px-6 text-base font-bold !text-indigo-blue-700 hover:!bg-indigo-blue-50"
+                  <Button
+                    variant="outline"
+                    className="h-12 whitespace-nowrap border-white/40 !bg-white/10 px-6 text-base font-bold !text-white backdrop-blur hover:!bg-white/20"
                     onClick={() => setLocation('/ai-tutor')}
                   >
                     Ask Vidya AI
@@ -1957,97 +1953,78 @@ export default function Dashboard() {
         {/* Summary Statistics Cards */}
         <div className="mb-8 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Today's Progress */}
-            <Card className="h-full border-orange-200 bg-orange-50">
-              <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col h-full relative">
-                <div className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-xl bg-orange-100">
-                  <Target className="h-6 w-6 text-orange-600" />
-                </div>
-                <p className="mb-4 pr-12 text-base font-bold text-orange-800">Today's Progress</p>
-                {(() => {
-                  const { totalTodos, completedTodos } = dashboardTodoStats;
-                  const percentage = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
-                  return (
-                    <>
-                      <p className="mb-3 text-3xl font-extrabold leading-tight text-slate-900">{completedTodos}/{totalTodos}</p>
-                      <div className="mb-2 h-2.5 w-full overflow-hidden rounded-full bg-orange-100">
-                        <div className="h-2.5 rounded-full bg-orange-500 transition-all duration-500" style={{ width: `${percentage}%` }}></div>
-                      </div>
-                      <p className="mt-auto text-base font-medium text-slate-600">Tasks completed {percentage}%</p>
-                    </>
-                  );
-                })()}
-              </CardContent>
-            </Card>
+            {(() => {
+              const { totalTodos, completedTodos } = dashboardTodoStats;
+              const percentage = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
+              return (
+                <StatCard
+                  label="Today's Progress"
+                  value={`${completedTodos}/${totalTodos}`}
+                  caption={`Tasks completed ${percentage}%`}
+                  icon={Target}
+                  tone="amber"
+                  progress={percentage}
+                />
+              );
+            })()}
 
-            {/* Study Time */}
-            <Card className="h-full border-blue-200 bg-blue-50">
-              <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col h-full relative">
-                <div className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100">
-                  <Clock className="h-6 w-6 text-blue-600" />
-                </div>
-                <p className="mb-4 pr-12 text-base font-bold text-blue-800">Study Time</p>
-                <p className="mb-2 text-3xl font-extrabold leading-tight text-slate-900 transition-all duration-300">
-                  {studyTimeToday >= 60 
-                    ? `${(studyTimeToday / 60).toFixed(1)} hrs` 
-                    : studyTimeToday < 1 && studyTimeToday > 0
+            <StatCard
+              label="Study Time"
+              value={
+                studyTimeToday >= 60
+                  ? `${(studyTimeToday / 60).toFixed(1)} hrs`
+                  : studyTimeToday < 1 && studyTimeToday > 0
                     ? '<1m'
-                    : `${Math.round(studyTimeToday)}m`}
-                </p>
-                <p className="mt-auto text-base font-medium text-slate-600">Logged in today</p>
-              </CardContent>
-            </Card>
+                    : `${Math.round(studyTimeToday)}m`
+              }
+              caption="Logged in today"
+              icon={Clock}
+              tone="blue"
+              motif="wave"
+            />
 
-            {/* This Week */}
-            <Card className="h-full border-cyan-200 bg-cyan-50">
-              <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col h-full relative">
-                <div className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-100">
-                  <Calendar className="h-6 w-6 text-cyan-700" />
-                </div>
-                <p className="mb-4 pr-12 text-base font-bold text-cyan-800">This Week</p>
-                <p className="mb-2 text-3xl font-extrabold leading-tight text-slate-900 transition-all duration-300">
-                  {studyTimeThisWeek >= 60 
-                    ? `${(studyTimeThisWeek / 60).toFixed(1)} hrs` 
-                    : studyTimeThisWeek < 1 && studyTimeThisWeek > 0
+            <StatCard
+              label="This Week"
+              value={
+                studyTimeThisWeek >= 60
+                  ? `${(studyTimeThisWeek / 60).toFixed(1)} hrs`
+                  : studyTimeThisWeek < 1 && studyTimeThisWeek > 0
                     ? '<1m'
-                    : `${Math.round(studyTimeThisWeek)}m`}
-                </p>
-                <p className="mt-auto text-base font-medium text-slate-600">Study time this week</p>
-              </CardContent>
-            </Card>
+                    : `${Math.round(studyTimeThisWeek)}m`
+              }
+              caption="Study time this week"
+              icon={Calendar}
+              tone="teal"
+              motif="bars"
+            />
 
-            {/* Efficiency */}
-            <Card className="h-full border-violet-200 bg-violet-50">
-              <CardContent className="p-3 sm:p-4 lg:p-6 flex flex-col h-full relative">
-                <div className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-xl bg-violet-100">
-                  <TrendingUp className="h-6 w-6 text-violet-600" />
-                </div>
-                <p className="mb-4 pr-12 text-base font-bold text-violet-800">Efficiency</p>
-                {(() => {
-                  const { totalTodos, completedTodos } = dashboardTodoStats;
-                  const efficiency =
-                    totalTodos > 0
-                      ? Math.round((completedTodos / totalTodos) * 100)
-                      : scheduleCompletionStats.total > 0
-                        ? scheduleCompletionStats.completionPercent
-                        : overallProgress > 0
-                          ? Math.round(overallProgress)
-                          : 0;
-                  const completedLabel =
-                    totalTodos > 0
-                      ? `${completedTodos}/${totalTodos} tasks done`
-                      : scheduleCompletionStats.total > 0
-                        ? `${scheduleCompletionStats.completed}/${scheduleCompletionStats.total} items done`
-                        : 'Content & quizzes';
-                  return (
-                    <>
-                      <p className="mb-2 text-3xl font-extrabold leading-tight text-slate-900">{efficiency}%</p>
-                      <p className="mt-auto text-base font-medium text-slate-600">{completedLabel}</p>
-                    </>
-                  );
-                })()}
-              </CardContent>
-            </Card>
+            {(() => {
+              const { totalTodos, completedTodos } = dashboardTodoStats;
+              const efficiency =
+                totalTodos > 0
+                  ? Math.round((completedTodos / totalTodos) * 100)
+                  : scheduleCompletionStats.total > 0
+                    ? scheduleCompletionStats.completionPercent
+                    : overallProgress > 0
+                      ? Math.round(overallProgress)
+                      : 0;
+              const completedLabel =
+                totalTodos > 0
+                  ? `${completedTodos}/${totalTodos} tasks done`
+                  : scheduleCompletionStats.total > 0
+                    ? `${scheduleCompletionStats.completed}/${scheduleCompletionStats.total} items done`
+                    : 'Content & quizzes';
+              return (
+                <StatCard
+                  label="Efficiency"
+                  value={`${efficiency}%`}
+                  caption={completedLabel}
+                  icon={TrendingUp}
+                  tone="violet"
+                  motif="ring"
+                />
+              );
+            })()}
           </div>
         </div>
 
@@ -2137,7 +2114,7 @@ export default function Dashboard() {
                         {day.getDate()}
                         {itemCount > 0 && (
                           <span
-                            className={`absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full ${
+                            className={`absolute bottom-1 right-1 text-micro px-1.5 py-0.5 rounded-full ${
                               isSelected ? 'bg-white text-indigo-700' : 'bg-orange-100 text-orange-700'
                             }`}
                           >
@@ -2215,7 +2192,7 @@ export default function Dashboard() {
                       >
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-xs sm:text-sm font-semibold text-gray-900 line-clamp-1">{entry.title}</p>
-                          <Badge className={`${badgeClass} text-[10px]`}>{badgeLabel}</Badge>
+                          <Badge className={`${badgeClass} text-micro`}>{badgeLabel}</Badge>
                         </div>
                         <p className="text-xs text-gray-600 mt-1">{entry.subject}</p>
                         {entry.type === 'timetable' && entry.teacher && (
@@ -3135,6 +3112,6 @@ export default function Dashboard() {
         onClose={handleCloseVideoModal}
         video={selectedVideo}
       />
-    </>
+    </StudentShell>
   );
 }

@@ -94,7 +94,7 @@ export function ClassCard({
             <span className="truncate">{subject}</span>
           </p>
         </div>
-        <Badge className="shrink-0 rounded-full border-0 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 ring-1 ring-emerald-100">
+        <Badge className="shrink-0 rounded-full border-0 bg-emerald-50 px-2 py-0.5 text-micro font-semibold text-emerald-700 ring-1 ring-emerald-100">
           Active
         </Badge>
       </div>

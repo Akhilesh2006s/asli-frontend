@@ -167,12 +167,12 @@ function PracticeQuestionList({ questions }: { questions: HomeworkPracticeQuesti
             {(q.type || q.marks != null) ? (
               <div className="pl-8 flex flex-wrap gap-2">
                 {q.type ? (
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-900">
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-mini font-medium text-amber-900">
                     {q.type}
                   </span>
                 ) : null}
                 {q.marks != null ? (
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700">
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-mini font-medium text-slate-700">
                     {q.marks} marks
                   </span>
                 ) : null}
@@ -254,7 +254,7 @@ export function HomeworkCreatorViewer({ content, rawContent, className }: Homewo
       >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-[11px] font-semibold text-orange-800">
+            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-mini font-semibold text-orange-800">
               <Sparkles className="h-3.5 w-3.5" />
               Homework Creator · AI V2
             </div>

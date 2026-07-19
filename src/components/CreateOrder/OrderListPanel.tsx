@@ -240,7 +240,7 @@ export default function OrderListPanel({
                 {f.label}
                 <span
                   className={cn(
-                    'rounded-full px-1.5 py-0.5 text-[10px] tabular-nums',
+                    'rounded-full px-1.5 py-0.5 text-micro tabular-nums',
                     statusFilter === f.id ? 'bg-white/20' : 'bg-slate-100',
                   )}
                 >
@@ -326,7 +326,7 @@ export default function OrderListPanel({
                     <p className="text-xs text-slate-400">{order.brand}</p>
                     <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
                       <div>
-                        <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                        <p className="text-mini font-medium uppercase tracking-wide text-slate-400">
                           Total
                         </p>
                         <p className="font-semibold tabular-nums text-slate-900">

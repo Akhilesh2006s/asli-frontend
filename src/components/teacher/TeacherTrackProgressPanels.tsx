@@ -516,7 +516,7 @@ export function TeacherTrackProgressPanels({
                         <AlertCircle className="w-3.5 h-3.5 text-orange-600 shrink-0" />
                       )}
                       {remark.subject?.name && (
-                        <Badge variant="outline" className="text-[10px]">
+                        <Badge variant="outline" className="text-micro">
                           {remark.subject.name}
                         </Badge>
                       )}
@@ -524,7 +524,7 @@ export function TeacherTrackProgressPanels({
                         <span className="text-xs text-gray-600">{remark.teacherId.fullName}</span>
                       )}
                     </div>
-                    <span className="text-[10px] text-gray-500 shrink-0">
+                    <span className="text-micro text-gray-500 shrink-0">
                       {new Date(remark.createdAt).toLocaleDateString()}
                     </span>
                   </div>

@@ -93,7 +93,7 @@ function SchoolsCell({ names }: { names: string[] }) {
             {preview}
             {extra > 0 ? ` +${extra} more` : ''}
           </p>
-          <p className="mt-0.5 text-[11px] font-medium text-sky-600">View all</p>
+          <p className="mt-0.5 text-mini font-medium text-sky-600">View all</p>
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-80 p-0">

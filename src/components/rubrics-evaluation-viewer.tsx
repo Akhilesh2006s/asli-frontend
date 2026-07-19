@@ -257,7 +257,7 @@ export function RubricsEvaluationViewer({ content, rawContent, className }: Rubr
   return (
     <div className={cn('space-y-4', className)}>
       <div className="rounded-3xl border border-indigo-200/80 bg-gradient-to-br from-slate-950 via-indigo-950 to-indigo-900 px-5 py-5 text-white shadow-2xl shadow-indigo-200/40">
-        <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-indigo-200 mb-1">
+        <p className="text-micro font-bold uppercase tracking-[0.22em] text-indigo-200 mb-1">
           Performance Evaluation Studio
         </p>
         <h3 className="text-2xl font-bold leading-tight">{r.title}</h3>
@@ -280,7 +280,7 @@ export function RubricsEvaluationViewer({ content, rawContent, className }: Rubr
         </div>
 
         <div className="mt-4">
-          <div className="mb-1 flex items-center justify-between text-[11px]">
+          <div className="mb-1 flex items-center justify-between text-mini">
             <span className="text-indigo-200">Rubric completeness</span>
             <span className="font-semibold text-white">{fillPercent}%</span>
           </div>

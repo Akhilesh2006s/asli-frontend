@@ -1,4 +1,4 @@
-import Navigation from "@/components/navigation";
+import StudentShell from "@/components/layout/StudentShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -76,10 +76,9 @@ function ToolCard({
 
 export default function AIToolsDashboard() {
   return (
-    <>
-      <Navigation />
+    <StudentShell>
       <div className="asli-app-bg min-h-screen">
-        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 pb-16 pt-28 sm:px-8 lg:pt-32">
+        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 pb-16 sm:px-8 ">
           <header className="max-w-4xl space-y-4">
             <Badge className="rounded-full bg-indigo-blue-100 text-indigo-blue-800 ring-1 ring-indigo-blue-200">
               ASLILEARN AI workspace
@@ -194,7 +193,6 @@ export default function AIToolsDashboard() {
           </section>
         </div>
       </div>
-    </>
-  );
+    </StudentShell>  );
 }
 

@@ -306,7 +306,7 @@ export default function Homepage() {
           <div className="grid items-stretch gap-8 lg:grid-cols-[0.85fr_1.15fr]">
             <div className="relative min-h-[360px] overflow-hidden rounded-3xl shadow-elevated">
               <img
-                src="/1765111492896.png"
+                src="/campus-learning.jpg"
                 alt="Students learning together on a school campus"
                 className="absolute inset-0 h-full w-full object-cover"
                 loading="lazy"
@@ -495,7 +495,7 @@ export default function Homepage() {
             </Link>
           </div>
         </div>
-        <p className="mx-auto mt-10 max-w-7xl px-5 text-base text-slate-400 sm:px-8">
+        <p className="mx-auto mt-10 max-w-7xl px-5 text-base text-slate-gray-600 sm:px-8">
           © {new Date().getFullYear()} AsliLearn AI. All rights reserved.
         </p>
       </footer>

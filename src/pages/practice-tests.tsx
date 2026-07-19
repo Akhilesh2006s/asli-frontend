@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import Navigation from "@/components/navigation";
+import StudentShell from "@/components/layout/StudentShell";
 import TestAnalysis from "@/components/test-analysis";
 import { 
   FileText, 
@@ -265,9 +265,8 @@ export default function PracticeTests() {
   // Test Results
   if (testResult) {
     return (
-      <>
-        <Navigation />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 py-4 sm:py-6 lg:py-8">
+      <StudentShell>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8  py-4 sm:py-6 lg:py-8">
           <div className="mb-6">
             <Button 
               variant="outline" 
@@ -283,14 +282,13 @@ export default function PracticeTests() {
             aiAnalysis={testResult.aiAnalysis}
           />
         </div>
-      </>
+      </StudentShell>
     );
   }
 
   return (
-    <>
-      <Navigation />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 py-4 sm:py-6 lg:py-8">
+    <StudentShell>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8  py-4 sm:py-6 lg:py-8">
         
         {/* Header */}
         <div className="mb-8">
@@ -503,6 +501,6 @@ export default function PracticeTests() {
           </div>
         </div>
       </div>
-    </>
+    </StudentShell>
   );
 }

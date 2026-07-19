@@ -126,7 +126,7 @@ function ProgressRing({ current, total }: { current: number; total: number }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
         <span className="text-lg font-bold leading-none">{current}</span>
-        <span className="text-[10px] text-white/60">of {total}</span>
+        <span className="text-micro text-white/60">of {total}</span>
       </div>
     </div>
   );
@@ -476,7 +476,7 @@ export function FlashcardViewer({
           <Badge variant="secondary" className="bg-violet-100 text-violet-900 hover:bg-violet-100 text-xs">
             Card {currentIndex + 1} of {cards.length}
           </Badge>
-          <span className="text-[11px] text-slate-500">Tap or Space to flip</span>
+          <span className="text-mini text-slate-500">Tap or Space to flip</span>
         </div>
 
         <div className="relative w-full" style={{ perspective: '900px' }}>
@@ -500,7 +500,7 @@ export function FlashcardViewer({
                 }}
               >
                 <div className="border-b border-violet-100 bg-violet-50 px-3 py-2 text-center">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-violet-700">
+                  <span className="text-micro font-bold uppercase tracking-wider text-violet-700">
                     Question
                   </span>
                 </div>
@@ -535,7 +535,7 @@ export function FlashcardViewer({
                 }}
               >
                 <div className="border-b border-indigo-100 bg-indigo-50 px-3 py-2 text-center">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700">
+                  <span className="text-micro font-bold uppercase tracking-wider text-indigo-700">
                     Answer
                   </span>
                 </div>
@@ -551,7 +551,7 @@ export function FlashcardViewer({
                       {embeddedExtras.map((chip) => (
                         <span
                           key={chip.label}
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${chip.className}`}
+                          className={`rounded-full px-2 py-0.5 text-micro font-semibold ${chip.className}`}
                           title={chip.value}
                         >
                           {chip.label}
@@ -752,13 +752,13 @@ export function FlashcardViewer({
             <div className="p-4 sm:p-5 space-y-3 text-sm text-slate-800">
               {meta?.priorKnowledgeRequired ? (
                 <div>
-                  <p className="text-[11px] font-semibold uppercase text-slate-500">Prior Knowledge</p>
+                  <p className="text-mini font-semibold uppercase text-slate-500">Prior Knowledge</p>
                   <p className="mt-1 leading-relaxed">{meta.priorKnowledgeRequired}</p>
                 </div>
               ) : null}
               {meta?.learningObjectives?.length ? (
                 <div>
-                  <p className="text-[11px] font-semibold uppercase text-slate-500">Learning Objectives</p>
+                  <p className="text-mini font-semibold uppercase text-slate-500">Learning Objectives</p>
                   <ul className="mt-1 list-disc pl-5 space-y-1">
                     {meta.learningObjectives.map((o) => (
                       <li key={o}>{o}</li>
@@ -768,7 +768,7 @@ export function FlashcardViewer({
               ) : null}
               {meta?.ncfCompetencyAlignment ? (
                 <div>
-                  <p className="text-[11px] font-semibold uppercase text-slate-500">NCF Competency</p>
+                  <p className="text-mini font-semibold uppercase text-slate-500">NCF Competency</p>
                   <p className="mt-1 leading-relaxed">{meta.ncfCompetencyAlignment}</p>
                 </div>
               ) : null}
@@ -794,7 +794,7 @@ export function FlashcardViewer({
           <div className="p-4 sm:p-5 space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-white p-4 min-h-[140px] flex flex-col">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-violet-700 mb-2">
+                <p className="text-micro font-bold uppercase tracking-wider text-violet-700 mb-2">
                   Task
                 </p>
                 <p className="text-sm sm:text-base font-medium text-slate-900 leading-relaxed flex-1">
@@ -802,7 +802,7 @@ export function FlashcardViewer({
                 </p>
               </div>
               <div className="rounded-xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-4 min-h-[140px] flex flex-col">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 mb-2">
+                <p className="text-micro font-bold uppercase tracking-wider text-indigo-700 mb-2">
                   Solution
                 </p>
                 <p className="text-sm sm:text-base text-slate-800 leading-relaxed flex-1">
@@ -873,14 +873,14 @@ export function FlashcardViewer({
                 <div className="flex gap-3 rounded-lg border border-amber-100 bg-amber-50/60 p-3">
                   <Lightbulb className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" aria-hidden />
                   <div>
-                    <p className="text-[11px] font-semibold uppercase text-amber-800">Memory Hook</p>
+                    <p className="text-mini font-semibold uppercase text-amber-800">Memory Hook</p>
                     <p className="mt-1">{meta.deckMemoryHook}</p>
                   </div>
                 </div>
               ) : null}
               {meta?.commonMistakesToAvoid?.length ? (
                 <div>
-                  <p className="text-[11px] font-semibold uppercase text-slate-500">Common Mistakes</p>
+                  <p className="text-mini font-semibold uppercase text-slate-500">Common Mistakes</p>
                   <ul className="mt-1 list-disc pl-5 space-y-1">
                     {meta.commonMistakesToAvoid.map((m) => (
                       <li key={m}>{m}</li>
@@ -892,7 +892,7 @@ export function FlashcardViewer({
                 <div className="flex gap-3 rounded-lg border border-teal-100 bg-teal-50/60 p-3">
                   <Zap className="h-5 w-5 shrink-0 text-teal-600 mt-0.5" aria-hidden />
                   <div>
-                    <p className="text-[11px] font-semibold uppercase text-teal-800">Rapid Recall</p>
+                    <p className="text-mini font-semibold uppercase text-teal-800">Rapid Recall</p>
                     <p className="mt-1">{meta.selfCheckRapidRecallRound}</p>
                   </div>
                 </div>
@@ -909,19 +909,19 @@ export function FlashcardViewer({
             <div className="p-4 sm:p-5 grid gap-3 sm:grid-cols-3 text-sm text-slate-800">
               {meta?.realLifeConnection ? (
                 <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
-                  <p className="text-[11px] font-semibold uppercase text-slate-500">Real-life</p>
+                  <p className="text-mini font-semibold uppercase text-slate-500">Real-life</p>
                   <p className="mt-1 leading-relaxed">{meta.realLifeConnection}</p>
                 </div>
               ) : null}
               {meta?.differentiationSupport ? (
                 <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
-                  <p className="text-[11px] font-semibold uppercase text-slate-500">Differentiation</p>
+                  <p className="text-mini font-semibold uppercase text-slate-500">Differentiation</p>
                   <p className="mt-1 leading-relaxed">{meta.differentiationSupport}</p>
                 </div>
               ) : null}
               {meta?.reflectionExitTicket ? (
                 <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
-                  <p className="text-[11px] font-semibold uppercase text-slate-500">Exit Ticket</p>
+                  <p className="text-mini font-semibold uppercase text-slate-500">Exit Ticket</p>
                   <p className="mt-1 leading-relaxed">{meta.reflectionExitTicket}</p>
                 </div>
               ) : null}
@@ -1009,15 +1009,15 @@ export function FlashcardViewer({
       </div>
       ) : null}
 
-      <p className="text-center text-[11px] sm:text-xs text-slate-500">
-        <kbd className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] shadow-sm">
+      <p className="text-center text-mini sm:text-xs text-slate-500">
+        <kbd className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-micro shadow-sm">
           Space
         </kbd>{' '}
         flip ·{' '}
-        <kbd className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] shadow-sm">
+        <kbd className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-micro shadow-sm">
           ←
         </kbd>{' '}
-        <kbd className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] shadow-sm">
+        <kbd className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-micro shadow-sm">
           →
         </kbd>{' '}
         navigate
@@ -1051,7 +1051,7 @@ export function FlashcardViewer({
               <div className="text-center space-y-4 w-full flex flex-col flex-1 min-h-0 justify-between relative">
                 <div className="flex items-center justify-center shrink-0">
                   <span
-                    className={`inline-flex items-center rounded-full border border-violet-200/80 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest ${cardStyles.label} shadow-sm`}
+                    className={`inline-flex items-center rounded-full border border-violet-200/80 bg-white/80 px-3 py-1 text-mini font-semibold uppercase tracking-widest ${cardStyles.label} shadow-sm`}
                   >
                   {cardStyles.labelText}
                   </span>
@@ -1102,7 +1102,7 @@ export function FlashcardViewer({
                 >
                   <div className="flex items-center justify-center shrink-0 mb-3">
                     <span
-                      className={`inline-flex items-center rounded-full border border-indigo-200/80 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest ${cardStyles.label} shadow-sm`}
+                      className={`inline-flex items-center rounded-full border border-indigo-200/80 bg-white/80 px-3 py-1 text-mini font-semibold uppercase tracking-widest ${cardStyles.label} shadow-sm`}
                     >
                       Back
                     </span>
@@ -1220,7 +1220,7 @@ export function FlashcardViewer({
         >
           <div className="flex items-center gap-2">
             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-violet-200 to-transparent" />
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-violet-600/90 shrink-0">
+            <p className="text-mini font-semibold uppercase tracking-wider text-violet-600/90 shrink-0">
               Study boosters
             </p>
             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-violet-200 to-transparent" />

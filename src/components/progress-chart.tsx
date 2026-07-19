@@ -68,14 +68,14 @@ export default function ProgressChart({ subjects, overallProgress, className }: 
             <div key={subject.id || subject.name || `subject-${index}`} className="rounded-lg border border-gray-200 bg-white p-3">
               <div className="flex items-center gap-2.5">
                 <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${subject.color}`}>
-                  <span className="text-[10px] font-medium">
+                  <span className="text-micro font-medium">
                     {subject.name.substring(0, 2).toUpperCase()}
                   </span>
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex items-center justify-between gap-2">
                     <h3 className="truncate text-sm font-medium text-gray-900">{subject.name}</h3>
-                    <Badge className={`shrink-0 text-[10px] ${getTrendColor(subject.trend)}`}>
+                    <Badge className={`shrink-0 text-micro ${getTrendColor(subject.trend)}`}>
                       {getTrendIcon(subject.trend)}
                       {subject.progress}%
                     </Badge>

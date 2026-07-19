@@ -91,24 +91,26 @@ export default function VidyaAIFloatingAssistant({
         type="button"
         onClick={handleClick}
         className={cn(
-          "fixed bottom-4 right-4 z-40 flex max-w-[min(18rem,calc(100vw-1.5rem))] flex-row items-end justify-end gap-2 text-left transition-transform hover:scale-[1.02] active:scale-[0.98] sm:bottom-6 sm:right-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2",
+          // Only the avatar occupies space; the prompt is revealed on hover/focus
+          // so it never sits on top of page content.
+          "group fixed bottom-4 right-4 z-40 text-left transition-transform hover:scale-[1.02] active:scale-[0.98] sm:bottom-6 sm:right-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-2",
           className
         )}
         aria-label="Open Vidya AI tools"
       >
-        <div className="relative mb-1 max-w-[200px] animate-fade-in pointer-events-none">
-          <div className="rounded-lg border border-orange-200 bg-white p-2.5 shadow-lg">
+        <div className="pointer-events-none absolute bottom-1/2 right-full mr-3 w-max max-w-[200px] translate-y-1/2 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+          <div className="relative rounded-lg border border-orange-200 bg-white p-2.5 shadow-lg">
             <p className="text-xs font-medium leading-snug text-gray-800">
               {messages[currentMessage]}
             </p>
-          </div>
-          <div className="absolute -right-1 bottom-3 translate-x-full">
-            <div className="h-0 w-0 border-y-[6px] border-l-[6px] border-y-transparent border-l-orange-200" />
-            <div className="absolute left-0 top-0 -ml-px h-0 w-0 border-y-[6px] border-l-[6px] border-y-transparent border-l-white" />
+            <div className="absolute -right-1 bottom-3 translate-x-full">
+              <div className="h-0 w-0 border-y-[6px] border-l-[6px] border-y-transparent border-l-orange-200" />
+              <div className="absolute left-0 top-0 -ml-px h-0 w-0 border-y-[6px] border-l-[6px] border-y-transparent border-l-white" />
+            </div>
           </div>
         </div>
 
-        <span className="h-12 w-12 shrink-0 rounded-full border-2 border-orange-300 bg-white p-0.5 shadow-lg sm:h-14 sm:w-14">
+        <span className="block h-12 w-12 shrink-0 rounded-full border-2 border-orange-300 bg-white p-0.5 shadow-lg sm:h-14 sm:w-14">
           <img
             src="/Vidya-ai.jpg"
             alt=""
@@ -124,12 +126,14 @@ export default function VidyaAIFloatingAssistant({
     <button
       type="button"
       onClick={handleClick}
-      className="fixed bottom-4 right-3 z-30 flex max-w-[min(16rem,calc(100vw-1.25rem))] flex-col items-end gap-1.5 text-left transition-transform hover:scale-[1.02] active:scale-[0.98] sm:bottom-3 sm:m-4 lg:m-6 sm:right-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2"
+      className="group fixed bottom-4 right-4 z-30 text-left transition-transform hover:scale-[1.02] active:scale-[0.98] sm:bottom-6 sm:right-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2"
       aria-label="Open Vidya AI tools"
     >
-      <div className="animate-fade-in pointer-events-none">
+      {/* Revealed on hover/focus only — a permanently visible bubble covered
+          cards on every page it appears. */}
+      <div className="pointer-events-none absolute bottom-full right-0 mb-2 w-max max-w-[14rem] opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
         <div className="relative rounded-lg border border-sky-200 bg-white/95 p-2.5 shadow-md backdrop-blur-sm">
-          <p className="max-w-[14rem] text-xs font-medium leading-snug text-gray-800 sm:text-sm">
+          <p className="text-xs font-medium leading-snug text-gray-800 sm:text-sm">
             {messages[currentMessage]}
           </p>
           <div className="absolute bottom-0 right-6 translate-y-full">
@@ -142,7 +146,7 @@ export default function VidyaAIFloatingAssistant({
         </div>
       </div>
 
-      <span className="rounded-full p-0.5 shadow-lg ring-2 ring-white">
+      <span className="block rounded-full p-0.5 shadow-lg ring-2 ring-white">
         <img
           src="/Vidya-ai.jpg"
           alt=""

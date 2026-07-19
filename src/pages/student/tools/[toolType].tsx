@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation, useRoute } from 'wouter';
+import StudentShell from '@/components/layout/StudentShell';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Sparkles, Download, Copy, Check, BookMarked, Brain, Calendar, HelpCircle, FileText, Key, ClipboardList, CheckCircle2, Layout, Target, FileSpreadsheet, FileDown, Loader2, RotateCcw, Share2 } from 'lucide-react';
+import { AlertCircle, ArrowLeft, BookOpen, Sparkles, Download, Copy, Check, BookMarked, Brain, Calendar, HelpCircle, FileText, Key, ClipboardList, CheckCircle2, Layout, Target, FileSpreadsheet, FileDown, Loader2, RotateCcw, Share2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +19,7 @@ import {
   isAiToolApiFailureInline,
   isAiToolClientValidationError,
   isAiToolInlineOnlyError,
-  resolveAiToolApiInlineMessage,
+  resolveAiToolStudentEmptyMessage,
   validateAiToolForm,
 } from '@/lib/ai-tool-generate';
 import {
@@ -644,6 +645,8 @@ export default function StudentToolPage() {
   const [rawGeneratedContent, setRawGeneratedContent] = useState<any>(null);
   const [responseMeta, setResponseMeta] = useState<any>(null);
   const [fallbackEmptyMessage, setFallbackEmptyMessage] = useState<string>('');
+  /** True when the message is "no content for this selection yet" rather than a real failure. */
+  const [emptyIsContentGap, setEmptyIsContentGap] = useState(false);
   const { displayText: displayGeneratedContent, rawContent: effectiveRawContent } = useMemo(
     () => resolveAiToolDisplayState(generatedContent, rawGeneratedContent),
     [generatedContent, rawGeneratedContent],
@@ -976,11 +979,12 @@ export default function StudentToolPage() {
 
   const fieldUsesCurriculumSelect = (field: ToolConfig['fields'][0]) => field.type === 'select';
 
-  const showInlineOutputMessage = useCallback((message: string) => {
+  const showInlineOutputMessage = useCallback((message: string, isContentGap = false) => {
     setGeneratedContent('');
     setRawGeneratedContent(null);
     setResponseMeta(null);
     setFallbackEmptyMessage(message);
+    setEmptyIsContentGap(isContentGap);
   }, []);
 
   const handleGenerate = async () => {
@@ -1096,11 +1100,17 @@ export default function StudentToolPage() {
 
         if (!response.ok) {
           if (isAiToolApiFailureInline(response, data?.code)) {
-            showInlineOutputMessage(resolveAiToolApiInlineMessage(data, config?.name));
+            {
+              const empty = resolveAiToolStudentEmptyMessage(data, config?.name);
+              showInlineOutputMessage(empty.message, empty.isContentGap);
+            }
             return;
           }
           if (response.status === 503 && data?.code === 'AI_UNAVAILABLE_NO_FALLBACK') {
-            showInlineOutputMessage(resolveAiToolApiInlineMessage(data, config?.name));
+            {
+              const empty = resolveAiToolStudentEmptyMessage(data, config?.name);
+              showInlineOutputMessage(empty.message, empty.isContentGap);
+            }
             return;
           }
           const errorMessage =
@@ -1155,11 +1165,17 @@ export default function StudentToolPage() {
 
         if (!response.ok) {
           if (isAiToolApiFailureInline(response, data?.code)) {
-            showInlineOutputMessage(resolveAiToolApiInlineMessage(data, config?.name));
+            {
+              const empty = resolveAiToolStudentEmptyMessage(data, config?.name);
+              showInlineOutputMessage(empty.message, empty.isContentGap);
+            }
             return;
           }
           if (response.status === 503 && data?.code === 'AI_UNAVAILABLE_NO_FALLBACK') {
-            showInlineOutputMessage(resolveAiToolApiInlineMessage(data, config?.name));
+            {
+              const empty = resolveAiToolStudentEmptyMessage(data, config?.name);
+              showInlineOutputMessage(empty.message, empty.isContentGap);
+            }
             return;
           }
           const errorMessage =
@@ -1811,7 +1827,8 @@ export default function StudentToolPage() {
   const parameterHeaderTitle = isSmartStudyGuide ? 'Customize your study guide' : 'Choose what to generate';
 
   return (
-    <AiToolGeneratePageChrome
+    <StudentShell>
+      <AiToolGeneratePageChrome
       title={config.name}
       description={config.description}
       icon={Icon}
@@ -1836,7 +1853,7 @@ export default function StudentToolPage() {
                     value={selectedBoard}
                     onValueChange={(value) => handleInputChange('board', value)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="board" aria-label="Board">
                       <SelectValue placeholder="Select board" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1920,9 +1937,12 @@ export default function StudentToolPage() {
                         field.name === 'chapter' ||
                         field.name === 'projectTopic')
                     ) {
+                      // `|| cascade.loadingTopics` used to sit on the second
+                      // branch, so the field flashed "Select Subject first"
+                      // mid-fetch (and made "Loading topics..." unreachable).
                       placeholderText = !formParams.gradeLevel
                         ? 'Select Class first'
-                        : !formParams.subject || cascade.loadingTopics
+                        : !formParams.subject
                           ? 'Select Subject first'
                           : cascade.loadingTopics
                             ? 'Loading topics...'
@@ -1984,7 +2004,7 @@ export default function StudentToolPage() {
                           }}
                           disabled={isDisabled}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger aria-label={field.label}>
                             <SelectValue placeholder={placeholderText} />
                           </SelectTrigger>
                           <SelectContent>
@@ -2063,10 +2083,10 @@ export default function StudentToolPage() {
             citations={
               generatedContent && Array.isArray(responseMeta?.citations) && responseMeta.citations.length > 0 ? (
                 <div className="mt-2 rounded-lg border border-sky-100 bg-sky-50/50 p-2 max-h-28 overflow-y-auto">
-                  <p className="text-[11px] font-semibold text-sky-700 mb-1">Top Citations</p>
+                  <p className="text-mini font-semibold text-sky-700 mb-1">Top Citations</p>
                   <div className="space-y-1">
                     {responseMeta.citations.slice(0, 3).map((c: CitationItem) => (
-                      <p key={String(c.index) + '-' + String(c.chapter)} className="text-[11px] text-gray-600">
+                      <p key={String(c.index) + '-' + String(c.chapter)} className="text-mini text-gray-600">
                         [{c.index}] {c.subject} / {c.chapter} ({c.score})
                       </p>
                     ))}
@@ -2103,10 +2123,36 @@ export default function StudentToolPage() {
               ) : null
             }
             empty={
-              <div className={cn('text-center py-10', fallbackEmptyMessage ? 'text-red-700' : 'text-slate-500')}>
-                <p className="text-base font-medium">
+              <div className="flex flex-col items-center px-6 py-12 text-center">
+                <span
+                  className={cn(
+                    'mb-4 flex h-14 w-14 items-center justify-center rounded-2xl',
+                    !fallbackEmptyMessage || emptyIsContentGap
+                      ? 'bg-indigo-blue-50 text-indigo-blue-600'
+                      : 'bg-red-50 text-red-600',
+                  )}
+                >
+                  {!fallbackEmptyMessage ? (
+                    <Sparkles className="h-7 w-7" aria-hidden="true" />
+                  ) : emptyIsContentGap ? (
+                    <BookOpen className="h-7 w-7" aria-hidden="true" />
+                  ) : (
+                    <AlertCircle className="h-7 w-7" aria-hidden="true" />
+                  )}
+                </span>
+                <p
+                  className={cn(
+                    'max-w-md text-base font-semibold',
+                    !fallbackEmptyMessage || emptyIsContentGap ? 'text-ink' : 'text-red-700',
+                  )}
+                >
                   {fallbackEmptyMessage || 'Fill in the form and generate to see your result'}
                 </p>
+                {emptyIsContentGap && (
+                  <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                    Pick a different sub-topic above and generate again.
+                  </p>
+                )}
               </div>
             }
           >
@@ -2115,7 +2161,8 @@ export default function StudentToolPage() {
             ) : null}
           </AiToolResultShell>
         </div>
-    </AiToolGeneratePageChrome>
+      </AiToolGeneratePageChrome>
+    </StudentShell>
   );
 }
 

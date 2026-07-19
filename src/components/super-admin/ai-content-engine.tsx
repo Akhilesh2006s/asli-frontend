@@ -4411,7 +4411,7 @@ export default function AIContentEngine() {
                 </p>
               ) : null}
               {lastTokenUsage?.calls && lastTokenUsage.calls.length > 0 ? (
-                <ul className="mt-1 list-disc pl-5 text-[11px] text-emerald-900/80 space-y-0.5">
+                <ul className="mt-1 list-disc pl-5 text-mini text-emerald-900/80 space-y-0.5">
                   {lastTokenUsage.calls.slice(0, 8).map((call, idx) => (
                     <li key={`token-call-${idx}`}>
                       {call.label}: {formatTokenCount(call.totalTokens)} tokens
@@ -4707,7 +4707,7 @@ export default function AIContentEngine() {
                                                                   {pdfGenerationBadge(record, idx)}
                                                                 </Badge>
                                                                 {record.pdfCode ? (
-                                                                  <span className="text-[0.65rem] text-slate-400 font-mono">
+                                                                  <span className="text-micro text-slate-400 font-mono">
                                                                     {record.pdfCode}
                                                                   </span>
                                                                 ) : null}
@@ -4771,7 +4771,7 @@ export default function AIContentEngine() {
                                                               </div>
                                                             </div>
                                                           </div>
-                                                          <p className="border-l-2 border-blue-100 pl-3 text-xs leading-relaxed text-slate-500 max-lg:text-[0.8125rem]">
+                                                          <p className="border-l-2 border-blue-100 pl-3 text-xs leading-relaxed text-slate-500 max-lg:text-mini">
                                                             {pdfRecordViewHint(record)}
                                                           </p>
                                                         </div>

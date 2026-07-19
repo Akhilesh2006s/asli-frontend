@@ -2,6 +2,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { API_BASE_URL } from '@/lib/api-config';
 import SchoolBrandRow from '@/components/ui/school-brand-row';
+import TeacherShell from '@/components/layout/TeacherShell';
+import StatCard from '@/components/dashboard/StatCard';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,6 +42,7 @@ import {
   ChevronRight,
   ChevronUp,
   ArrowRight,
+  RefreshCw,
   FileText,
   Zap,
   MessageCircle,
@@ -226,7 +229,15 @@ interface Assessment {
 
 const TeacherDashboard = () => {
   const [dashboardSubTab, setDashboardSubTab] = useState<
-    'ai-classes' | 'students' | 'eduott' | 'vidya-ai' | 'learning-paths'
+    | 'ai-classes'
+    | 'classes'
+    | 'students'
+    | 'eduott'
+    | 'vidya-ai'
+    | 'learning-paths'
+    | 'calendar'
+    | 'reports'
+    | 'settings'
   >('ai-classes');
   const [stats, setStats] = useState<TeacherStats>({
     totalStudents: 0,
@@ -266,19 +277,48 @@ const TeacherDashboard = () => {
   const search = useSearch();
   const isMobile = useIsMobile();
 
-  type DashboardSubTab = 'ai-classes' | 'students' | 'eduott' | 'vidya-ai' | 'learning-paths';
+  type DashboardSubTab =
+    | 'ai-classes'
+    | 'classes'
+    | 'students'
+    | 'eduott'
+    | 'vidya-ai'
+    | 'learning-paths'
+    | 'calendar'
+    | 'reports'
+    | 'settings';
 
   const mobileNavScrollRef = useRef<HTMLDivElement>(null);
 
+  const tabToUrl = (tab: DashboardSubTab): string => {
+    switch (tab) {
+      case 'ai-classes':
+        return 'overview';
+      case 'eduott':
+        return 'edu-ott';
+      default:
+        return tab;
+    }
+  };
+
   const selectDashboardSubTab = useCallback((tab: DashboardSubTab) => {
+    if (tab === 'eduott') {
+      setLocation('/edu-ott');
+      return;
+    }
+    if (tab === 'learning-paths') {
+      setLocation('/learning-paths');
+      return;
+    }
     setDashboardSubTab(tab);
     if (tab === 'vidya-ai') {
       localStorage.removeItem('teacherDashboardTab');
     }
+    setLocation(`/teacher/dashboard?tab=${tabToUrl(tab)}`);
     if (typeof window !== 'undefined' && window.innerWidth < 1024) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, []);
+  }, [setLocation]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || window.innerWidth >= 1024) return;
@@ -318,50 +358,70 @@ const TeacherDashboard = () => {
 
   const dashboardSubTabNav = (
     <div
-      className="inline-flex shrink-0 flex-nowrap items-center gap-2 pr-2 lg:w-full lg:shrink lg:pr-0"
+      className="inline-flex shrink-0 flex-nowrap items-center gap-2 pr-2"
       role="tablist"
-      aria-label="Dashboard sections"
+      aria-label="Teacher sections"
     >
-      {!isIndividualTeacher ? <Button
-        type="button"
-        variant="ghost"
-        className={tabBtn(dashboardSubTab === 'ai-classes')}
-        onClick={() => selectDashboardSubTab('ai-classes')}
-        aria-current={dashboardSubTab === 'ai-classes' ? 'page' : undefined}
-      >
-        <Sparkles className="mr-2 h-5 w-5 shrink-0" />
-        Dashboard
-      </Button> : null}
-      {!isIndividualTeacher ? <Button
-        type="button"
-        variant="ghost"
-        className={tabBtn(dashboardSubTab === 'students')}
-        onClick={() => selectDashboardSubTab('students')}
-        aria-current={dashboardSubTab === 'students' ? 'page' : undefined}
-      >
-        <Users className="mr-2 h-5 w-5 shrink-0" />
-        My Students
-      </Button> : null}
-      {!isIndividualTeacher ? <Button
-        type="button"
-        variant="ghost"
-        className={tabBtn(dashboardSubTab === 'eduott')}
-        onClick={() => selectDashboardSubTab('eduott')}
-        aria-current={dashboardSubTab === 'eduott' ? 'page' : undefined}
-      >
-        <VideoIcon className="mr-2 h-5 w-5 shrink-0" />
-        EduOTT
-      </Button> : null}
-      {!isIndividualTeacher ? <Button
-        type="button"
-        variant="ghost"
-        className={tabBtn(dashboardSubTab === 'learning-paths')}
-        onClick={() => selectDashboardSubTab('learning-paths')}
-        aria-current={dashboardSubTab === 'learning-paths' ? 'page' : undefined}
-      >
-        <BookOpen className="mr-2 h-5 w-5 shrink-0" />
-        Learning Paths
-      </Button> : null}
+      {!isIndividualTeacher ? (
+        <Button
+          type="button"
+          variant="ghost"
+          className={tabBtn(dashboardSubTab === 'ai-classes')}
+          onClick={() => selectDashboardSubTab('ai-classes')}
+          aria-current={dashboardSubTab === 'ai-classes' ? 'page' : undefined}
+        >
+          <Sparkles className="mr-2 h-5 w-5 shrink-0" />
+          Overview
+        </Button>
+      ) : null}
+      {!isIndividualTeacher ? (
+        <Button
+          type="button"
+          variant="ghost"
+          className={tabBtn(dashboardSubTab === 'classes')}
+          onClick={() => selectDashboardSubTab('classes')}
+          aria-current={dashboardSubTab === 'classes' ? 'page' : undefined}
+        >
+          <GraduationCap className="mr-2 h-5 w-5 shrink-0" />
+          Classes
+        </Button>
+      ) : null}
+      {!isIndividualTeacher ? (
+        <Button
+          type="button"
+          variant="ghost"
+          className={tabBtn(dashboardSubTab === 'students')}
+          onClick={() => selectDashboardSubTab('students')}
+          aria-current={dashboardSubTab === 'students' ? 'page' : undefined}
+        >
+          <Users className="mr-2 h-5 w-5 shrink-0" />
+          Students
+        </Button>
+      ) : null}
+      {!isIndividualTeacher ? (
+        <Button
+          type="button"
+          variant="ghost"
+          className={tabBtn(dashboardSubTab === 'eduott')}
+          onClick={() => selectDashboardSubTab('eduott')}
+          aria-current={dashboardSubTab === 'eduott' ? 'page' : undefined}
+        >
+          <VideoIcon className="mr-2 h-5 w-5 shrink-0" />
+          EduOTT
+        </Button>
+      ) : null}
+      {!isIndividualTeacher ? (
+        <Button
+          type="button"
+          variant="ghost"
+          className={tabBtn(dashboardSubTab === 'learning-paths')}
+          onClick={() => selectDashboardSubTab('learning-paths')}
+          aria-current={dashboardSubTab === 'learning-paths' ? 'page' : undefined}
+        >
+          <BookOpen className="mr-2 h-5 w-5 shrink-0" />
+          Paths
+        </Button>
+      ) : null}
       <Button
         type="button"
         variant="ghost"
@@ -372,6 +432,18 @@ const TeacherDashboard = () => {
         <Sparkles className="mr-2 h-5 w-5 shrink-0" />
         {isIndividualTeacher ? 'AI Studio' : 'Vidya AI'}
       </Button>
+      {!isIndividualTeacher ? (
+        <Button
+          type="button"
+          variant="ghost"
+          className={tabBtn(dashboardSubTab === 'calendar')}
+          onClick={() => selectDashboardSubTab('calendar')}
+          aria-current={dashboardSubTab === 'calendar' ? 'page' : undefined}
+        >
+          <Calendar className="mr-2 h-5 w-5 shrink-0" />
+          Calendar
+        </Button>
+      ) : null}
     </div>
   );
 
@@ -379,17 +451,37 @@ const TeacherDashboard = () => {
     const raw = search || '';
     const q = raw.startsWith('?') ? raw.slice(1) : raw;
     const tab = new URLSearchParams(q).get('tab');
-    if (
-      tab === 'learning-paths' ||
-      tab === 'timetable' ||
-      tab === 'students' ||
-      tab === 'eduott' ||
-      tab === 'vidya-ai' ||
-      tab === 'ai-classes'
-    ) {
-      setDashboardSubTab(tab === 'timetable' ? 'ai-classes' : tab);
+    if (!tab) return;
+    if (tab === 'overview' || tab === 'ai-classes') {
+      setDashboardSubTab('ai-classes');
+      return;
     }
-  }, [search]);
+    if (tab === 'classes') {
+      setDashboardSubTab('classes');
+      return;
+    }
+    if (tab === 'edu-ott' || tab === 'eduott') {
+      setLocation('/edu-ott');
+      return;
+    }
+    if (tab === 'learning-paths') {
+      setLocation('/learning-paths');
+      return;
+    }
+    if (tab === 'calendar' || tab === 'timetable') {
+      setDashboardSubTab('calendar');
+      return;
+    }
+    if (
+      tab === 'students' ||
+      tab === 'vidya-ai' ||
+      tab === 'reports' ||
+      tab === 'settings'
+    ) {
+      setDashboardSubTab(tab);
+    }
+  }, [search, setLocation]);
+
   const [subjectsWithContent, setSubjectsWithContent] = useState<any[]>([]);
   const [isAsliPrepExclusive, setIsAsliPrepExclusive] = useState(false);
   
@@ -517,14 +609,19 @@ const TeacherDashboard = () => {
   useEffect(() => {
     // Check for saved tab preference from tool pages first
     const savedTab = localStorage.getItem('teacherDashboardTab');
-    if (
-      savedTab &&
-      ['ai-classes', 'students', 'eduott', 'vidya-ai', 'learning-paths'].includes(savedTab)
-    ) {
-      setDashboardSubTab(
-        savedTab as 'ai-classes' | 'students' | 'eduott' | 'vidya-ai' | 'learning-paths'
-      );
-      // Clear it after using so it doesn't persist on refresh
+    const allowed = [
+      'ai-classes',
+      'classes',
+      'students',
+      'eduott',
+      'vidya-ai',
+      'learning-paths',
+      'calendar',
+      'reports',
+      'settings',
+    ];
+    if (savedTab && allowed.includes(savedTab)) {
+      setDashboardSubTab(savedTab as typeof dashboardSubTab);
       localStorage.removeItem('teacherDashboardTab');
     }
     
@@ -2158,228 +2255,181 @@ const TeacherDashboard = () => {
   // Memoize helper functions
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-sky-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-pink-600 to-pink-700 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl">
-            <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+      <TeacherShell contentClassName="teacher-playful-dashboard">
+        <div className="mx-auto flex min-h-[50vh] w-full max-w-7xl items-center justify-center px-4 py-16">
+          <div className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-blue-600 text-white">
+              <RefreshCw className="h-5 w-5 animate-spin" aria-hidden="true" />
+            </div>
+            <h2 className="font-display text-xl font-bold text-slate-900">Loading workspace</h2>
+            <p className="mt-1 text-sm text-slate-600">Fetching your classes and students…</p>
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-pink-600 to-pink-700 bg-clip-text text-transparent mb-2">Loading...</h2>
-          <p className="text-gray-600">Preparing your teacher dashboard</p>
         </div>
-      </div>
+      </TeacherShell>
     );
   }
 
   return (
-    <div className="teacher-playful-dashboard asli-app-bg min-h-screen relative overflow-x-hidden">
-      {/* Interactive Background - Disabled for better performance */}
-      {/* <div className="fixed inset-0 z-0">
-        <InteractiveBackground />
-        <FloatingParticles />
-      </div> */}
-      
-      {/* Light classroom header, aligned with the mobile teacher portal */}
-      <div className="sticky top-0 z-50 overflow-hidden rounded-b-3xl border-b border-sky-200 bg-gradient-to-r from-sky-100 via-white to-indigo-blue-50 shadow-elevated">
-        <div className="pointer-events-none absolute -left-16 -top-24 h-52 w-52 rounded-full bg-sky-200/55 blur-3xl" />
-        <div className="pointer-events-none absolute -right-10 -top-28 h-56 w-56 rounded-full bg-indigo-blue-200/45 blur-3xl" />
-        <div className="relative mx-auto w-full max-w-7xl px-4 py-3 sm:px-6 sm:py-4 lg:px-8 lg:py-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center space-x-3">
-              <SchoolBrandRow user={teacherUser} />
-              <div>
-                <p className="text-base font-bold text-indigo-blue-700">Teacher Portal</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto space-x-3 sm:space-x-4">
-              <div className="text-left sm:text-right">
-                <p className="text-base font-semibold text-slate-800">{teacherEmail || localStorage.getItem('userEmail') || 'Teacher'}</p>
-                <p className="text-base text-slate-500">Welcome back!</p>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={handleLogout}
-                className="w-auto rounded-full border border-red-200 bg-white px-5 font-semibold text-red-600 shadow-sm hover:bg-red-50 hover:text-red-700"
-              >
-                <LogOut className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <TeacherShell contentClassName="teacher-playful-dashboard">
       {/* Main Content */}
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-28 lg:pb-8 relative z-10">
-        {/* Welcome Message */}
-        <div className="mb-8">
-          <p className="mb-2 text-base font-bold uppercase tracking-[0.14em] text-indigo-blue-600">Teacher workspace</p>
-          <h1 className="font-display text-4xl font-extrabold capitalize text-ink lg:text-5xl">
-            Overview
-          </h1>
-          <p className="mt-3 max-w-3xl text-lg font-medium leading-relaxed text-slate-600">Manage classes, create AI-powered learning material, and track student progress from one workspace.</p>
-        </div>
-
-        {/* Dashboard Content */}
-        <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-          {/* Dashboard Sub-Tabs — desktop / large tablet (in page flow) */}
-              <div className="hidden rounded-3xl border border-slate-200 bg-slate-100/90 p-3 shadow-sm lg:block">
-                {dashboardSubTabNav}
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 py-4 pb-28 sm:px-6 sm:py-6 lg:px-8 lg:py-8 lg:pb-8">
+        {(() => {
+          const pageMeta: Record<string, { title: string; subtitle: string }> = {
+            'ai-classes': {
+              title: 'Overview',
+              subtitle: 'Your classes, students, and teaching pulse at a glance.',
+            },
+            classes: {
+              title: 'My Classes',
+              subtitle: 'Open a class to see students and jump into progress tracking.',
+            },
+            students: {
+              title: 'Students',
+              subtitle: 'Roster, progress, homework submissions, and daily diary.',
+            },
+            eduott: {
+              title: 'EduOTT',
+              subtitle: 'Subject videos and live sessions for your assigned classes.',
+            },
+            'learning-paths': {
+              title: 'Learning Paths',
+              subtitle: 'Curriculum paths and prep content for your subjects.',
+            },
+            'vidya-ai': {
+              title: isIndividualTeacher ? 'AI Studio' : 'Vidya AI',
+              subtitle: 'Generate lesson materials, worksheets, and teaching aids.',
+            },
+            calendar: {
+              title: 'Calendar',
+              subtitle: 'Weekly timetable and day-by-day class schedule.',
+            },
+            reports: {
+              title: 'Reports',
+              subtitle: 'Class performance summaries will appear here.',
+            },
+            settings: {
+              title: 'Settings',
+              subtitle: 'Account and notification preferences for your portal.',
+            },
+          };
+          const meta = pageMeta[dashboardSubTab] || pageMeta['ai-classes'];
+          const showRefresh =
+            dashboardSubTab === 'ai-classes' ||
+            dashboardSubTab === 'classes' ||
+            dashboardSubTab === 'students';
+          return (
+            <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-indigo-blue-600">
+                  Teacher Portal
+                </p>
+                <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                  {meta.title}
+                </h1>
+                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
+                  {meta.subtitle}
+                </p>
               </div>
-
-              {/* Refresh Button - Mobile Friendly */}
-              <div className="flex justify-end mb-4">
+              {showRefresh ? (
                 <Button
                   onClick={() => {
-                    setIsLoading(true);
                     fetchTeacherData();
                   }}
                   variant="outline"
                   size="sm"
-                  className="bg-white/90 hover:bg-white text-orange-600 border-orange-300"
+                  className="shrink-0 border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                   disabled={isLoading}
                 >
-                  {isLoading ? (
-                    <>
-                      <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-orange-600 border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                      Refresh Data
-                    </>
-                  )}
+                  <RefreshCw className={'mr-2 h-4 w-4' + (isLoading ? ' animate-spin' : '')} />
+                  Refresh
                 </Button>
-              </div>
+              ) : null}
+            </div>
+          );
+        })()}
 
-              {/* Dashboard tab: summary stats, My Classes, Timetable, Schedule */}
+        {/* Dashboard Content — sidebar drives sections; mobile uses bottom bar only */}
+        <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+              {/* Overview — stats + shortcuts only (no duplicate section nav) */}
               {dashboardSubTab === 'ai-classes' && (
                 <>
-              {/* Stats Cards — Dashboard only (hidden on My Students, EduOTT, Vidya AI) */}
-              <div className="grid-responsive-3 gap-responsive mb-8">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                  role="button"
-                  tabIndex={0}
-                  aria-label="Open My Students"
-                  onClick={() => setDashboardSubTab('students')}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      setDashboardSubTab('students');
-                    }
-                  }}
-                  className="group relative cursor-pointer overflow-hidden bg-gradient-to-br from-orange-400 to-orange-500 rounded-responsive p-responsive shadow-responsive hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl active:scale-[0.99] transition-all duration-300"
-                >
-                  <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-                  <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                        <Users className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
-                      </div>
-                      <div className="text-right">
-                        <p className="text-white/90 text-responsive-xs font-medium">Total Students</p>
-                        <p className="text-responsive-xl font-bold text-white">
-                          {stats.totalStudents}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  role="button"
-                  tabIndex={0}
-                  aria-label="Jump to My Classes"
-                  onClick={() =>
-                    document.getElementById('teacher-my-classes')?.scrollIntoView({
-                      behavior: 'smooth',
-                      block: 'start',
-                    })
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      document.getElementById('teacher-my-classes')?.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start',
-                      });
-                    }
-                  }}
-                  className="group relative cursor-pointer overflow-hidden bg-gradient-to-br from-indigo-blue-500 to-indigo-blue-700 rounded-responsive p-responsive shadow-responsive hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl active:scale-[0.99] transition-all duration-300"
-                >
-                  <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-                  <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                        <GraduationCap className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
-                      </div>
-                      <div className="text-right">
-                        <p className="text-white/90 text-responsive-xs font-medium">Active Classes</p>
-                        <p className="text-responsive-xl font-bold text-white">
-                          {stats.totalClasses}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  role="button"
-                  tabIndex={0}
-                  aria-label="Open EduOTT videos"
-                  onClick={() => setDashboardSubTab('eduott')}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      setDashboardSubTab('eduott');
-                    }
-                  }}
-                  className="group relative cursor-pointer overflow-hidden bg-gradient-to-br from-teal-400 to-teal-600 rounded-responsive p-responsive shadow-responsive hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl active:scale-[0.99] transition-all duration-300"
-                >
-                  <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-                  <div className="relative z-10">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                        <Play className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
-                      </div>
-                      <div className="text-right">
-                        <p className="text-white/90 text-responsive-xs font-medium">Videos</p>
-                        <p className="text-responsive-xl font-bold text-white">
-                          {stats.totalVideos}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <StatCard
+                  label="Total Students"
+                  value={String(stats.totalStudents)}
+                  caption="Across all your classes"
+                  icon={Users}
+                  tone="amber"
+                  motif="wave"
+                  onClick={() => selectDashboardSubTab('students')}
+                />
+                <StatCard
+                  label="Active Classes"
+                  value={String(stats.totalClasses)}
+                  caption="Currently running"
+                  icon={GraduationCap}
+                  tone="violet"
+                  motif="bars"
+                  onClick={() => selectDashboardSubTab('classes')}
+                />
+                <StatCard
+                  label="Videos"
+                  value={String(stats.totalVideos)}
+                  caption="Content available"
+                  icon={Play}
+                  tone="teal"
+                  motif="play"
+                  onClick={() => selectDashboardSubTab('eduott')}
+                />
               </div>
 
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  { tab: 'classes', label: 'My Classes', hint: 'Class roster cards', Icon: GraduationCap },
+                  { tab: 'students', label: 'Students', hint: 'Progress & submissions', Icon: Users },
+                  { tab: 'calendar', label: 'Calendar', hint: 'Timetable & schedule', Icon: Calendar },
+                  { tab: 'vidya-ai', label: 'Vidya AI', hint: 'Generate teaching aids', Icon: Sparkles },
+                ].map(({ tab, label, hint, Icon }) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() => selectDashboardSubTab(tab)}
+                    className="rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-indigo-blue-200 hover:bg-indigo-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-blue-500"
+                  >
+                    <Icon className="mb-3 h-5 w-5 text-indigo-blue-600" aria-hidden="true" />
+                    <p className="text-sm font-semibold text-slate-900">{label}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">{hint}</p>
+                  </button>
+                ))}
+              </div>
+                </>
+              )}
+
+              {/* My Classes page */}
+              {dashboardSubTab === 'classes' && (
+                <>
               {/* My Classes — dedicated card grid */}
               <motion.div
                 id="teacher-my-classes"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
-                className="font-inter mb-6 rounded-2xl border border-gray-200/80 bg-[#F9FAFB] p-4 sm:p-5 lg:p-6 shadow-[0_4px_24px_rgba(15,23,42,0.06)]"
+                className="font-inter rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 lg:p-6"
               >
                 <div className="mb-5 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 shadow-sm ring-4 ring-indigo-600/10">
-                      <Users className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-blue-600 text-white shadow-sm">
+                      <GraduationCap className="h-5 w-5" />
                     </div>
-                    <h3 className="text-lg sm:text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">
-                      My Classes
-                    </h3>
+                    <div>
+                      <h3 className="text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
+                        Assigned classes
+                      </h3>
+                      <p className="text-sm text-slate-500">
+                        {assignedClasses.length} active
+                        {assignedClasses.length === 1 ? ' class' : ' classes'}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -2406,7 +2456,7 @@ const TeacherDashboard = () => {
                             });
                           }}
                           onViewStudentAnalysis={(studentId) => {
-                            setDashboardSubTab('students');
+                            selectDashboardSubTab('students');
                             setStudentsSubTab('track-progress');
                             if (classItem.classNumber != null && classItem.classNumber !== '') {
                               setFilterByClass(String(classItem.classNumber));
@@ -2442,6 +2492,12 @@ const TeacherDashboard = () => {
                 </div>
               </motion.div>
 
+                </>
+              )}
+
+              {/* Calendar page */}
+              {dashboardSubTab === 'calendar' && (
+                <>
               {/* Weekly timetable — Mon–Sat grid from admin Timetable Management */}
               <motion.div
                 id="teacher-weekly-timetable"
@@ -2483,181 +2539,75 @@ const TeacherDashboard = () => {
                 </>
               )}
 
-              {/* Learning Paths tab */}
-              {dashboardSubTab === 'learning-paths' && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
-                >
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-r from-violet-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
-                        <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                      </div>
-                      <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">
-                        Learning Paths
-                      </h3>
-                    </div>
+              {/* Reports placeholder */}
+              {dashboardSubTab === 'reports' && (
+                <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center sm:p-12">
+                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-blue-50 text-indigo-blue-600">
+                    <BarChart3 className="h-7 w-7" />
                   </div>
-
-                  {isLoadingSubjects ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
-                      {Array.from({ length: 3 }).map((_, i) => (
-                        <div key={i} className="bg-gray-100 rounded-xl p-3 sm:p-4 lg:p-6 animate-pulse">
-                          <div className="h-32 bg-gray-200 rounded-lg mb-4"></div>
-                          <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                          <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : subjectsWithContent.length === 0 ? (
-                    <div className="text-center py-12">
-                      <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">
-                        No Subjects Available
-                      </h3>
-                      <p className="text-gray-500">No subjects have been assigned to you yet.</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
-                      {subjectsWithContent.map((subject: any) => {
-                        const stats = countLearningPathDisplayStats(subject.asliPrepContent);
-                        const itemCount = learningPathStatsTotal(stats);
-                        const getSubjectIcon = (subjectName: string) => {
-                          if (subjectName.toLowerCase().includes('math')) return Target;
-                          if (
-                            subjectName.toLowerCase().includes('science') ||
-                            subjectName.toLowerCase().includes('physics') ||
-                            subjectName.toLowerCase().includes('chemistry')
-                          )
-                            return Zap;
-                          if (subjectName.toLowerCase().includes('english')) return BookOpen;
-                          return BookOpen;
-                        };
-
-                        const Icon = getSubjectIcon(subject.name);
-
-                        return (
-                          <div
-                            key={subjectCatalogGroupKey(subject.name || '') || subject.mergedSubjectIds?.join(':') || subject._id || subject.id}
-                            className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-200 hover:scale-105 h-full flex flex-col"
-                          >
-                            <div className="flex items-center justify-between mb-4">
-                              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                                <Icon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                              </div>
-                              <Badge variant="secondary" className="text-xs">
-                                {itemCount} items
-                              </Badge>
-                            </div>
-                            <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-2 break-words leading-tight">
-                              {subject.name}
-                            </h4>
-                            <p className="text-gray-600 text-xs sm:text-sm mb-4 min-h-[40px] line-clamp-2">
-                              {subject.description || `Content for ${subject.name}`}
-                            </p>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-center mb-4">
-                              <div className="bg-green-50 rounded-lg p-2">
-                                <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 mx-auto mb-1" />
-                                <p className="text-xs font-medium text-green-800">
-                                  {stats.textbooks}
-                                </p>
-                                <p className="text-xs text-green-600">Textbooks</p>
-                              </div>
-                              <div className="bg-orange-50 rounded-lg p-2">
-                                <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600 mx-auto mb-1" />
-                                <p className="text-xs font-medium text-orange-800">
-                                  {stats.materials}
-                                </p>
-                                <p className="text-xs text-orange-600">Materials</p>
-                              </div>
-                              <div className="bg-blue-50 rounded-lg p-2">
-                                <Play className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 mx-auto mb-1" />
-                                <p className="text-xs font-medium text-blue-800">
-                                  {stats.videos}
-                                </p>
-                                <p className="text-xs text-blue-600">Videos</p>
-                              </div>
-                            </div>
-
-                            <div className="mb-4 min-h-[98px]">
-                              <p className="text-xs font-semibold text-gray-700 mb-2">Recent Content:</p>
-                              {(subject.asliPrepContent || []).length > 0 ? (
-                                <div className="space-y-1">
-                                  {(subject.asliPrepContent || []).slice(0, 2).map((item: any, idx: number) => (
-                                    <div
-                                      key={item._id || idx}
-                                      className="bg-gray-50 rounded-lg p-2 text-xs"
-                                    >
-                                      <p className="text-gray-900 font-medium truncate">
-                                        {item.title || 'Untitled'}
-                                      </p>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="bg-gray-50 rounded-lg p-2 text-xs text-gray-500">
-                                  No recent content
-                                </div>
-                              )}
-                            </div>
-
-                            <Button
-                              className="w-full mt-auto bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
-                              onClick={() =>
-                                setLocation(`/teacher/subject/${subject._id || subject.id}`)
-                              }
-                            >
-                              View Content
-                              <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2" />
-                            </Button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </motion.div>
+                  <h2 className="font-display text-xl font-bold text-slate-900">Reports coming soon</h2>
+                  <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">
+                    Class averages, attendance trends, and exportable summaries will live here. Use Track Progress under Students for now.
+                  </p>
+                  <Button
+                    className="mt-6 bg-indigo-blue-600 text-white hover:bg-indigo-blue-700"
+                    onClick={() => {
+                      selectDashboardSubTab('students');
+                      setStudentsSubTab('track-progress');
+                    }}
+                  >
+                    Open Track Progress
+                  </Button>
+                </div>
               )}
+
+              {/* Settings placeholder */}
+              {dashboardSubTab === 'settings' && (
+                <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center sm:p-12">
+                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
+                    <Wrench className="h-7 w-7" />
+                  </div>
+                  <h2 className="font-display text-xl font-bold text-slate-900">Settings</h2>
+                  <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">
+                    Profile and notification controls are managed from your account menu in the top bar. Dedicated portal settings will expand here.
+                  </p>
+                </div>
+              )}
+
+              {/* Learning Paths opens /learning-paths (same UI as student) */}
 
               {/* Vidya AI Tab */}
               {dashboardSubTab === 'vidya-ai' && (
                 <>
-              {/* Vidya AI */}
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="asli-card-premium overflow-hidden p-5 sm:p-7 lg:p-10"
+                className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
               >
-                <div className="mb-8 flex flex-col gap-5 border-b border-slate-200 pb-7 sm:flex-row sm:items-center">
-                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl shadow-glow ring-4 ring-indigo-blue-50">
-                    <img 
-                      src="/Vidya-ai.jpg" 
-                      alt="Vidya AI" 
-                      className="w-full h-full object-cover"
+                <div className="mb-6 flex flex-col gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-center">
+                  <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl ring-2 ring-indigo-blue-50">
+                    <img
+                      src="/Vidya-ai.jpg"
+                      alt=""
+                      className="h-full w-full object-cover"
                     />
                   </div>
                   <div>
-                    <p className="mb-1 text-base font-bold uppercase tracking-[0.14em] text-indigo-blue-600">
-                      {isIndividualTeacher ? 'Your Individual Workspace' : 'Teacher Intelligence Workspace'}
-                    </p>
-                    <h3 className="font-display text-3xl font-bold text-slate-900 sm:text-4xl">
-                      {isIndividualTeacher ? 'AI Studio For Teachers' : 'Vidya AI'}
+                    <h3 className="font-display text-xl font-bold text-slate-900 sm:text-2xl">
+                      {isIndividualTeacher ? 'AI Studio tools' : 'Teaching tools'}
                     </h3>
-                    <p className="mt-2 max-w-3xl text-lg leading-relaxed text-slate-600">
-                      Create polished, curriculum-ready teaching material and get practical AI support in one place.
+                    <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600">
+                      Create curriculum-ready material and get practical classroom support.
                     </p>
                   </div>
                 </div>
 
                 {/* Tabs for Teacher Tools and Chat */}
-                <div className="mb-8">
-                  <div className="inline-flex min-h-14 w-full gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-slate-100/90 p-1.5 sm:w-auto">
+                <div className="mb-6">
+                  <div className="inline-flex min-h-12 w-full gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-1 sm:w-auto">
                     <button
                       onClick={() => setVidyaAiTab('teacher-tools')}
-                      className={`min-h-11 flex-1 whitespace-nowrap rounded-xl px-5 py-2 text-lg font-semibold transition-all ${
+                      className={`min-h-10 flex-1 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
                         vidyaAiTab === 'teacher-tools'
                           ? 'bg-white text-indigo-blue-700 shadow-md'
                           : 'text-slate-600 hover:bg-white/70 hover:text-indigo-blue-700'
@@ -2669,7 +2619,7 @@ const TeacherDashboard = () => {
                     {vidyaChatEnabled ? (
                     <button
                       onClick={() => setVidyaAiTab('chat')}
-                      className={`min-h-11 flex-1 whitespace-nowrap rounded-xl px-5 py-2 text-lg font-semibold transition-all ${
+                      className={`min-h-10 flex-1 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
                         vidyaAiTab === 'chat'
                           ? 'bg-white text-indigo-blue-700 shadow-md'
                           : 'text-slate-600 hover:bg-white/70 hover:text-indigo-blue-700'
@@ -2864,43 +2814,57 @@ const TeacherDashboard = () => {
               {/* My Students Tab */}
               {dashboardSubTab === 'students' && (
                 <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-                  {/* Students Sub-Tabs */}
-                  <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-4 shadow-xl border border-white/20">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                      <div className="flex flex-wrap items-center gap-2">
+                  {/* Students Sub-Tabs — section filters only (not a second site nav) */}
+                  <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <Button
-                        variant={studentsSubTab === 'list' ? 'default' : 'outline'}
-                        className={studentsSubTab === 'list' ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50'}
+                        variant={studentsSubTab === 'list' ? 'default' : 'ghost'}
+                        className={
+                          studentsSubTab === 'list'
+                            ? 'bg-indigo-blue-600 text-white hover:bg-indigo-blue-700'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }
                         onClick={() => setStudentsSubTab('list')}
                       >
-                        <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                        <Users className="mr-2 h-4 w-4" />
                         Student List
                       </Button>
                       <Button
-                        variant={studentsSubTab === 'track-progress' ? 'default' : 'outline'}
-                        className={studentsSubTab === 'track-progress' ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50'}
+                        variant={studentsSubTab === 'track-progress' ? 'default' : 'ghost'}
+                        className={
+                          studentsSubTab === 'track-progress'
+                            ? 'bg-indigo-blue-600 text-white hover:bg-indigo-blue-700'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }
                         onClick={() => setStudentsSubTab('track-progress')}
                       >
-                        <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                        <BarChart3 className="mr-2 h-4 w-4" />
                         Track Progress
                       </Button>
                       <Button
-                        variant={studentsSubTab === 'submissions' ? 'default' : 'outline'}
-                        className={studentsSubTab === 'submissions' ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50'}
+                        variant={studentsSubTab === 'submissions' ? 'default' : 'ghost'}
+                        className={
+                          studentsSubTab === 'submissions'
+                            ? 'bg-indigo-blue-600 text-white hover:bg-indigo-blue-700'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }
                         onClick={() => setStudentsSubTab('submissions')}
                       >
-                        <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                        <FileText className="mr-2 h-4 w-4" />
                         H.W Submissions
                       </Button>
                       <Button
-                        variant={studentsSubTab === 'daily' ? 'default' : 'outline'}
-                        className={studentsSubTab === 'daily' ? 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white shadow-lg' : 'border-emerald-200 text-emerald-800 hover:bg-emerald-50'}
+                        variant={studentsSubTab === 'daily' ? 'default' : 'ghost'}
+                        className={
+                          studentsSubTab === 'daily'
+                            ? 'bg-indigo-blue-600 text-white hover:bg-indigo-blue-700'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                        }
                         onClick={() => setStudentsSubTab('daily')}
                       >
-                        <BookMarked className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                        <BookMarked className="mr-2 h-4 w-4" />
                         Diary
                       </Button>
-                    </div>
                     </div>
                   </div>
 
@@ -2908,19 +2872,19 @@ const TeacherDashboard = () => {
                   {studentsSubTab === 'list' && (
                     <>
                       {/* Search Bar */}
-                      <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
+                      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-3 h-3 sm:w-4 sm:h-4" />
+                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                           <Input
                             placeholder="Search students by name, email, or phone..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="px-0 pl-10 sm:pl-11 w-full rounded-xl bg-white/70 border-gray-200 text-gray-900 backdrop-blur-sm"
+                            className="w-full rounded-xl border-slate-200 bg-white pl-10 text-slate-900"
                           />
                         </div>
                       </div>
 
-                  <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead>
@@ -4044,361 +4008,7 @@ const TeacherDashboard = () => {
                 </div>
               )}
 
-              {/* EduOTT Tab */}
-              {dashboardSubTab === 'eduott' && (
-                <>
-                <EduOTTStage>
-                    <Tabs value={eduottActiveTab} onValueChange={(value) => setEduottActiveTab(value as 'videos' | 'live-sessions')} className="space-y-6">
-                      <EduOTTTabsList>
-                        <TabsTrigger value="videos" className={eduOttTabTriggerClass}>
-                          Videos
-                        </TabsTrigger>
-                        <TabsTrigger value="live-sessions" className={eduOttTabTriggerClass}>
-                          Live Sessions
-                        </TabsTrigger>
-                      </EduOTTTabsList>
-
-                      {/* Videos Tab */}
-                      <TabsContent value="videos" className="space-y-6">
-                        {!isLoadingEduott && filteredEduottVideos.length > 0 ? (
-                          <EduOTTFeaturedHero
-                            title={filteredEduottVideos[0].title}
-                            meta={[
-                              extractPlainSubjectName(
-                                String(filteredEduottVideos[0].subjectName || filteredEduottVideos[0].subject || '')
-                              ),
-                              getSubjectClassLabel({
-                                name: String(filteredEduottVideos[0].subjectName || filteredEduottVideos[0].subject || ''),
-                                classNumber: filteredEduottVideos[0].classNumber,
-                              })
-                                ? `Class ${getSubjectClassLabel({
-                                    name: String(filteredEduottVideos[0].subjectName || filteredEduottVideos[0].subject || ''),
-                                    classNumber: filteredEduottVideos[0].classNumber,
-                                  })}`
-                                : '',
-                            ]
-                              .filter(Boolean)
-                              .join(' · ')}
-                            thumbnailUrl={getEduOTTThumbnailUrl(filteredEduottVideos[0])}
-                            onPlay={() => setSelectedEduottVideo(filteredEduottVideos[0])}
-                          />
-                        ) : null}
-
-                        {/* Search and Filter */}
-                        <div className="flex flex-col gap-4 rounded-2xl border border-ink/10 bg-mist/80 p-4 sm:p-5 lg:flex-row lg:flex-wrap lg:items-end">
-                      <div className="relative min-w-[200px] flex-1">
-                        <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-teal-green-600" />
-                        <Input
-                          type="text"
-                          placeholder="Search videos by title..."
-                          value={eduottSearchTerm}
-                          onChange={(e) => setEduottSearchTerm(e.target.value)}
-                          className="h-12 border-ink/10 bg-white pl-11 text-base text-ink placeholder:text-muted-foreground"
-                        />
-                      </div>
-                      <div className="w-full space-y-2 sm:w-auto">
-                        <Label className="text-base text-muted-foreground">Class</Label>
-                        <Select
-                          value={eduottClassFilter}
-                          onValueChange={(value) => preserveScrollOnFilterChange(setEduottClassFilter, value)}
-                        >
-                          <SelectTrigger className="h-12 w-full border-ink/10 bg-white text-base md:w-[180px]">
-                            <SelectValue placeholder="All classes" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All classes</SelectItem>
-                            {eduottClassOptions.map((c) => (
-                              <SelectItem key={c} value={c}>
-                                Class {c}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="w-full space-y-2 sm:w-auto">
-                        <Label className="text-base text-muted-foreground">Subject</Label>
-                        <Select
-                          value={eduottSubjectFilter}
-                          onValueChange={(value) => preserveScrollOnFilterChange(setEduottSubjectFilter, value)}
-                        >
-                          <SelectTrigger className="h-12 w-full border-ink/10 bg-white text-base md:w-[200px]">
-                            <Filter className="mr-2 h-5 w-5 shrink-0 text-teal-green-600" />
-                            <SelectValue placeholder="All subjects" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All subjects</SelectItem>
-                            {eduottSubjectOptions.map((name) => (
-                              <SelectItem key={name} value={name}>
-                                {name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <p className="text-base text-muted-foreground">
-                        Showing {filteredEduottVideos.length} of {eduottVideos.length} videos
-                      </p>
-
-                    {/* Videos Grid */}
-                    {isLoadingEduott ? (
-                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {Array.from({ length: 6 }).map((_, i) => (
-                          <div key={i} className="overflow-hidden rounded-2xl border border-ink/10 bg-white">
-                            <div className="aspect-video animate-pulse bg-mist-deep" />
-                            <div className="space-y-3 p-5">
-                              <div className="h-6 w-3/4 animate-pulse rounded bg-white/10" />
-                              <div className="h-4 w-1/2 animate-pulse rounded bg-white/10" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (() => {
-                      if (filteredEduottVideos.length === 0) {
-                        return (
-                          <div className="rounded-3xl border border-dashed border-ink/15 bg-mist py-16 text-center">
-                            <VideoIcon className="mx-auto mb-4 h-16 w-16 text-ink/25" />
-                            <h3 className="mb-2 font-display text-xl font-semibold text-ink">
-                              {eduottVideos.length === 0 ? 'No Videos Available' : 'No Videos Found'}
-                            </h3>
-                            <p className="text-lg text-muted-foreground">
-                              {eduottVideos.length === 0 
-                                ? 'No videos have been assigned to your subjects yet.' 
-                                : 'Try adjusting your search or filter criteria.'}
-                            </p>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                          {filteredEduottVideos.map((video) => {
-                            const videoId = video._id || video.id || '';
-                            return (
-                              <EduOTTVideoCard
-                                key={videoId}
-                                video={video}
-                                onPlay={() => setSelectedEduottVideo(video)}
-                                subjectBadges={
-                                  video.subjectName || video.subject ? (
-                                    <EduOTTSubjectBadges
-                                      subjectLabel={extractPlainSubjectName(
-                                        String(video.subjectName || video.subject)
-                                      )}
-                                      classLabel={
-                                        getSubjectClassLabel({
-                                          name: String(video.subjectName || video.subject),
-                                          classNumber: video.classNumber,
-                                        }) || undefined
-                                      }
-                                    />
-                                  ) : undefined
-                                }
-                              />
-                            );
-                          })}
-                        </div>
-                      );
-                    })()}
-                      </TabsContent>
-
-                      {/* Live Sessions Tab */}
-                      <TabsContent value="live-sessions" className="space-y-6">
-                        <div className="flex flex-col gap-4 rounded-2xl border border-ink/10 bg-mist/80 p-4 sm:p-5 lg:flex-row lg:flex-wrap lg:items-end">
-                          <div className="relative min-w-[200px] flex-1">
-                            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-teal-green-600" />
-                            <Input
-                              type="text"
-                              placeholder="Search live sessions..."
-                              value={sessionSearchTerm}
-                              onChange={(e) => setSessionSearchTerm(e.target.value)}
-                              className="h-12 border-ink/10 bg-white pl-11 text-base text-ink placeholder:text-muted-foreground"
-                            />
-                          </div>
-                          <div className="w-full space-y-2 sm:w-auto">
-                            <Label className="text-base text-muted-foreground">Class</Label>
-                            <Select
-                              value={sessionClassFilter}
-                              onValueChange={(value) => preserveScrollOnFilterChange(setSessionClassFilter, value)}
-                            >
-                              <SelectTrigger className="h-12 w-full border-ink/10 bg-white text-base md:w-[180px]">
-                                <SelectValue placeholder="All classes" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="all">All classes</SelectItem>
-                                {liveSessionClassOptions.map((c) => (
-                                  <SelectItem key={c} value={c}>
-                                    Class {c}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="w-full space-y-2 sm:w-auto">
-                            <Label className="text-base text-muted-foreground">Subject</Label>
-                            <Select
-                              value={sessionSubjectFilter}
-                              onValueChange={(value) => preserveScrollOnFilterChange(setSessionSubjectFilter, value)}
-                            >
-                              <SelectTrigger className="h-12 w-full border-ink/10 bg-white text-base md:w-[200px]">
-                                <SelectValue placeholder="All subjects" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="all">All subjects</SelectItem>
-                                {liveSessionSubjectOptions.map((name) => (
-                                  <SelectItem key={name} value={name}>
-                                    {name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="w-full space-y-2 sm:w-auto">
-                            <Label className="text-base text-muted-foreground">Status</Label>
-                            <Select
-                              value={filterStatus}
-                              onValueChange={(value) => preserveScrollOnFilterChange(setFilterStatus, value)}
-                            >
-                              <SelectTrigger className="h-12 w-full border-ink/10 bg-white text-base md:w-[160px]">
-                                <Filter className="mr-2 h-5 w-5 shrink-0 text-teal-green-600" />
-                                <SelectValue placeholder="Filter by status" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="all">All Status</SelectItem>
-                                <SelectItem value="scheduled">Scheduled</SelectItem>
-                                <SelectItem value="live">Live</SelectItem>
-                                <SelectItem value="ended">Ended</SelectItem>
-                                <SelectItem value="cancelled">Cancelled</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-
-                        {isLoadingLiveSessions ? (
-                          <div className="space-y-4">
-                            {Array.from({ length: 3 }).map((_, i) => (
-                              <div key={i} className="overflow-hidden rounded-2xl border border-ink/10 bg-white">
-                                <Skeleton className="h-32 w-full bg-white/10" />
-                              </div>
-                            ))}
-                          </div>
-                        ) : filteredLiveSessions.length === 0 ? (
-                          <div className="rounded-3xl border border-dashed border-ink/15 bg-mist py-16 text-center">
-                            <Radio className="mx-auto mb-4 h-16 w-16 text-ink/25" />
-                            <h3 className="mb-2 font-display text-xl font-semibold text-ink">
-                              {liveSessions.length === 0 ? 'No Live Sessions Available' : 'No Live Sessions Found'}
-                            </h3>
-                            <p className="text-lg text-muted-foreground">
-                              {liveSessions.length === 0
-                                ? 'No live sessions have been scheduled for your subjects yet.'
-                                : 'Try adjusting your search or filter criteria.'}
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            {filteredLiveSessions.map((session) => {
-                              const getStatusColor = (status: string) => {
-                                switch (status) {
-                                  case 'live':
-                                    return 'bg-red-100 text-red-700 ring-1 ring-red-200';
-                                  case 'scheduled':
-                                    return 'bg-teal-green-50 text-teal-green-800 ring-1 ring-teal-green-200';
-                                  case 'ended':
-                                    return 'bg-slate-100 text-slate-700 ring-1 ring-slate-200';
-                                  case 'cancelled':
-                                    return 'bg-amber-50 text-amber-800 ring-1 ring-amber-200';
-                                  default:
-                                    return 'bg-slate-100 text-slate-700 ring-1 ring-slate-200';
-                                }
-                              };
-
-                              return (
-                                <div
-                                  key={session._id || session.id}
-                                  className="rounded-2xl border border-ink/10 bg-white p-5 transition hover:border-teal-green-400/40 hover:shadow-elevated sm:p-6"
-                                >
-                                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                                    <div className="min-w-0 flex-1">
-                                      <div className="mb-2 flex flex-wrap items-center gap-3">
-                                        <h3 className="font-display text-xl font-semibold text-ink">{session.title}</h3>
-                                        <Badge className={getStatusColor(session.status)}>
-                                          {session.status?.toUpperCase() || 'UNKNOWN'}
-                                        </Badge>
-                                      </div>
-                                      {session.description && (
-                                        <p className="mb-4 text-base text-muted-foreground">{session.description}</p>
-                                      )}
-                                      <div className="flex flex-wrap items-center gap-4 text-base text-muted-foreground">
-                                        {session.streamer?.fullName || session.streamer?.email ? (
-                                          <div className="flex items-center gap-1.5">
-                                            <Users className="h-5 w-5" />
-                                            <span>{session.streamer?.fullName || session.streamer?.email}</span>
-                                          </div>
-                                        ) : null}
-                                        {session.subject?.name && (
-                                          <div className="flex items-center gap-1.5">
-                                            <BookOpen className="h-5 w-5" />
-                                            <span>{extractPlainSubjectName(session.subject.name)}</span>
-                                          </div>
-                                        )}
-                                        {getSubjectClassLabel({
-                                          name: session.subject?.name,
-                                          classNumber: session.classNumber,
-                                        }) ? (
-                                          <span className="rounded-full border border-ink/10 bg-mist px-3 py-1 text-[0.9375rem] text-ink">
-                                            Class{' '}
-                                            {getSubjectClassLabel({
-                                              name: session.subject?.name,
-                                              classNumber: session.classNumber,
-                                            })}
-                                          </span>
-                                        ) : null}
-                                        <div className="flex items-center gap-1.5">
-                                          <Eye className="h-5 w-5" />
-                                          <span>{session.viewerCount || 0} viewers</span>
-                                        </div>
-                                        {(session.scheduledTime || session.scheduledStartTime) && (
-                                          <div className="flex items-center gap-1.5">
-                                            <Calendar className="h-5 w-5" />
-                                            <span>
-                                              {new Date(session.scheduledTime || session.scheduledStartTime || '').toLocaleString()}
-                                            </span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <EduOTTJoinSessionButton
-                                      session={session}
-                                      onJoin={setSelectedLiveSession}
-                                      className="h-12 shrink-0 bg-red-600 text-base text-white hover:bg-red-700"
-                                    />
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-</TabsContent>
-                    </Tabs>
-                </EduOTTStage>
-
-                  <EduOTTVideoPlayerDialog
-                    video={selectedEduottVideo}
-                    open={!!selectedEduottVideo}
-                    onOpenChange={(open) => {
-                      if (!open) setSelectedEduottVideo(null);
-                    }}
-                  />
-                  <EduOTTLiveSessionDialog
-                    session={selectedLiveSession}
-                    open={!!selectedLiveSession}
-                    onOpenChange={(open) => {
-                      if (!open) setSelectedLiveSession(null);
-                    }}
-                  />
-                </>
-              )}
+              {/* EduOTT opens /edu-ott (same UI as student) */}
             </div>
 
         {/* Add Video Modal */}
@@ -4795,7 +4405,7 @@ const TeacherDashboard = () => {
       </div>
 
       </div>
-    </div>
+    </TeacherShell>
   );
 };
 

@@ -703,7 +703,7 @@ const UserManagement = () => {
             <p className="text-sky-700 text-xs truncate">{student.email || 'No email'}</p>
           </div>
         </div>
-        <Badge className="bg-sky-100 text-sky-700 border border-sky-200 text-[10px] shrink-0 whitespace-nowrap">
+        <Badge className="bg-sky-100 text-sky-700 border border-sky-200 text-micro shrink-0 whitespace-nowrap">
           {student.classNumber || 'N/A'}
         </Badge>
       </div>

@@ -467,7 +467,7 @@ function TeacherLessonCard({
       <div className="rounded-xl border-2 border-dashed border-amber-300/70 bg-gradient-to-br from-amber-50/90 via-white to-sky-50/40 px-4 py-4 sm:px-5 sm:py-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-800/80 mb-1">
+            <p className="text-micro font-bold uppercase tracking-[0.2em] text-amber-800/80 mb-1">
               Lesson · Period plan
             </p>
             <h4 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight font-serif">
@@ -489,14 +489,14 @@ function TeacherLessonCard({
             </div>
           </div>
           <div className="shrink-0 w-full sm:w-36">
-            <p className="text-[10px] font-semibold uppercase text-slate-500 mb-1">Flow ready</p>
+            <p className="text-micro font-semibold uppercase text-slate-500 mb-1">Flow ready</p>
             <div className="h-2.5 rounded-full bg-slate-200 overflow-hidden">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-sky-500 via-teal-500 to-amber-500"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
-            <p className="text-[11px] text-slate-500 mt-1 text-right">
+            <p className="text-mini text-slate-500 mt-1 text-right">
               {filled} block{filled === 1 ? '' : 's'}
             </p>
           </div>
@@ -522,7 +522,7 @@ function TeacherLessonCard({
                 <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', phase.dotClass.split(' ')[0])} />
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wide">{phase.label}</p>
-                  <p className="text-[11px] opacity-80">{phase.hint}</p>
+                  <p className="text-mini opacity-80">{phase.hint}</p>
                 </div>
               </div>
               <div className="flex flex-col gap-4">
@@ -599,7 +599,7 @@ function TeacherLessonShell({
                 <Calendar className="h-6 w-6" aria-hidden />
               </div>
               <div className="text-white">
-                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-amber-200/90">
+                <p className="text-micro font-bold uppercase tracking-[0.25em] text-amber-200/90">
                   Lesson Planner
                 </p>
                 <h3 className="text-lg font-bold sm:text-xl font-serif">Classroom day flow</h3>
@@ -647,7 +647,7 @@ function StudentLessonCard({ lesson }: { lesson: NormalizedLesson }) {
       <div className="relative overflow-hidden rounded-2xl bg-white border border-cyan-200 shadow-md">
         <div className="absolute inset-0 bg-gradient-to-br from-cyan-50/90 via-white to-sky-50/50" />
         <div className="relative p-3 sm:p-4">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-700 mb-1">
+          <p className="text-micro font-bold uppercase tracking-wider text-cyan-700 mb-1">
             1. Study Schedule Title
           </p>
           <Badge className="mb-1.5 border-0 bg-cyan-100 text-cyan-900 hover:bg-cyan-100">

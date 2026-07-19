@@ -56,6 +56,10 @@ type TrialMember = {
   trialAllowedContentTypes: string[];
   trialAllowedAiTools: string[];
   trialAdminNotes: string;
+  trialPaymentAmount?: number | null;
+  trialPaidAt?: string | null;
+  trialPaymentMethod?: string;
+  trialPaymentReference?: string;
   isActive: boolean;
   createdAt?: string | null;
 };
@@ -124,12 +128,22 @@ export default function TrialMembersManagement() {
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<TrialMember | null>(null);
   const [saving, setSaving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [applyingDefaults, setApplyingDefaults] = useState(false);
+  const [batchDefaults, setBatchDefaults] = useState({
+    trialAllowedContentTypes: [] as string[],
+    trialAllowedAiTools: [] as string[],
+  });
   const [editForm, setEditForm] = useState({
     trialDays: '7',
     subscriptionStatus: 'trial',
     trialAllowedContentTypes: [] as string[],
     trialAllowedAiTools: [] as string[],
     trialAdminNotes: '',
+    trialPaymentAmount: '',
+    trialPaidAt: '',
+    trialPaymentMethod: 'manual',
+    trialPaymentReference: '',
     isActive: true,
   });
 
@@ -165,14 +179,36 @@ export default function TrialMembersManagement() {
 
   const openEdit = (m: TrialMember) => {
     setEditing(m);
+    const paidAtLocal = m.trialPaidAt
+      ? new Date(m.trialPaidAt).toISOString().slice(0, 16)
+      : '';
     setEditForm({
       trialDays: String(Math.max(1, m.trialDaysLeft || 7)),
       subscriptionStatus: m.subscriptionStatus || 'trial',
       trialAllowedContentTypes: [...(m.trialAllowedContentTypes || [])],
       trialAllowedAiTools: [...(m.trialAllowedAiTools || [])],
       trialAdminNotes: m.trialAdminNotes || '',
+      trialPaymentAmount:
+        m.trialPaymentAmount != null && Number.isFinite(m.trialPaymentAmount)
+          ? String(m.trialPaymentAmount)
+          : '',
+      trialPaidAt: paidAtLocal,
+      trialPaymentMethod: m.trialPaymentMethod || 'manual',
+      trialPaymentReference: m.trialPaymentReference || '',
       isActive: m.isActive !== false,
     });
+  };
+
+  const paymentPayload = () => {
+    const amountRaw = editForm.trialPaymentAmount.trim();
+    return {
+      trialPaymentAmount: amountRaw === '' ? null : Number(amountRaw),
+      trialPaymentMethod: editForm.trialPaymentMethod || '',
+      trialPaymentReference: editForm.trialPaymentReference.trim(),
+      trialPaidAt: editForm.trialPaidAt
+        ? new Date(editForm.trialPaidAt).toISOString()
+        : null,
+    };
   };
 
   const saveMember = async (extra: Record<string, unknown> = {}) => {
@@ -189,13 +225,14 @@ export default function TrialMembersManagement() {
           trialAllowedAiTools: editForm.trialAllowedAiTools,
           trialAdminNotes: editForm.trialAdminNotes,
           isActive: editForm.isActive,
+          ...paymentPayload(),
           ...extra,
         }),
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message || 'Update failed');
       toast({ title: 'Trial member updated', description: json.message });
-      setEditing(json.data || null);
+      if (json.data) openEdit(json.data);
       await load();
     } catch (e) {
       toast({
@@ -205,6 +242,61 @@ export default function TrialMembersManagement() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const memberKey = (m: TrialMember) => `${m.role}:${m.id}`;
+
+  const toggleSelected = (m: TrialMember) => {
+    const key = memberKey(m);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const applyDefaultsToSelected = async () => {
+    if (selectedIds.size === 0) {
+      toast({
+        title: 'Select members first',
+        description: 'Check one or more members, then apply content/AI defaults.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setApplyingDefaults(true);
+    try {
+      const memberIds = [...selectedIds].map((key) => {
+        const [role, id] = key.split(':');
+        return { id, role };
+      });
+      const res = await fetch(`${API_BASE_URL}/api/super-admin/trial-members/apply-defaults`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          memberIds,
+          trialAllowedContentTypes: batchDefaults.trialAllowedContentTypes,
+          trialAllowedAiTools: batchDefaults.trialAllowedAiTools,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message || 'Apply failed');
+      toast({
+        title: 'Defaults applied',
+        description: json.message,
+      });
+      setSelectedIds(new Set());
+      await load();
+    } catch (e) {
+      toast({
+        title: 'Could not apply defaults',
+        description: e instanceof Error ? e.message : 'Unknown error',
+        variant: 'destructive',
+      });
+    } finally {
+      setApplyingDefaults(false);
     }
   };
 
@@ -237,8 +329,8 @@ export default function TrialMembersManagement() {
         <div>
           <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">Trial members</h2>
           <p className="mt-1 max-w-2xl text-sm text-slate-600">
-            Individual teacher and student signups. Manage trial length, mark trials exceeded, and
-            restrict which content / AI tools they can use.
+            Individual teacher and student signups. Manage trial length, record payments, mark trials
+            exceeded, and restrict which content / AI tools they can use.
           </p>
         </div>
         <Button variant="outline" onClick={() => void load()} disabled={loading}>
@@ -319,6 +411,70 @@ export default function TrialMembersManagement() {
             </Select>
           </div>
 
+          <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-900">
+                  Apply content / AI defaults to selected
+                </p>
+                <p className="text-xs text-slate-500">
+                  Empty lists mean all content types / all AI tools (no extra restriction). Select
+                  members below, set defaults here, then apply.
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                disabled={applyingDefaults || selectedIds.size === 0}
+                onClick={() => void applyDefaultsToSelected()}
+              >
+                {applyingDefaults ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Apply to {selectedIds.size || 0} selected
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {(contentTypeOptions.length
+                ? contentTypeOptions
+                : ['Video', 'Audio', 'TextBook', 'Workbook', 'Material', 'Homework']
+              ).map((type) => (
+                <label key={`batch-ct-${type}`} className="flex items-center gap-2 text-xs">
+                  <Checkbox
+                    checked={batchDefaults.trialAllowedContentTypes.includes(type)}
+                    onCheckedChange={() =>
+                      setBatchDefaults((prev) => ({
+                        ...prev,
+                        trialAllowedContentTypes: prev.trialAllowedContentTypes.includes(type)
+                          ? prev.trialAllowedContentTypes.filter((t) => t !== type)
+                          : [...prev.trialAllowedContentTypes, type],
+                      }))
+                    }
+                  />
+                  {type}
+                </label>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-3 border-t border-slate-200 pt-3">
+              {COMMON_AI_TOOLS.map((tool) => (
+                <label key={`batch-ai-${tool.id}`} className="flex items-center gap-2 text-xs">
+                  <Checkbox
+                    checked={batchDefaults.trialAllowedAiTools.includes(tool.id)}
+                    onCheckedChange={() =>
+                      setBatchDefaults((prev) => ({
+                        ...prev,
+                        trialAllowedAiTools: prev.trialAllowedAiTools.includes(tool.id)
+                          ? prev.trialAllowedAiTools.filter((t) => t !== tool.id)
+                          : [...prev.trialAllowedAiTools, tool.id],
+                      }))
+                    }
+                  />
+                  {tool.label}
+                </label>
+              ))}
+            </div>
+          </div>
+
           {loading ? (
             <div className="flex justify-center py-12 text-slate-500">
               <Loader2 className="h-6 w-6 animate-spin" />
@@ -337,7 +493,14 @@ export default function TrialMembersManagement() {
                     m.trialExceeded && 'bg-red-50/40',
                   )}
                 >
-                  <div className="min-w-0 space-y-1">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <Checkbox
+                      className="mt-1"
+                      checked={selectedIds.has(memberKey(m))}
+                      onCheckedChange={() => toggleSelected(m)}
+                      aria-label={`Select ${m.fullName}`}
+                    />
+                    <div className="min-w-0 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       {m.role === 'teacher' ? (
                         <GraduationCap className="h-4 w-4 text-sky-600" />
@@ -355,9 +518,19 @@ export default function TrialMembersManagement() {
                       {m.email} · {m.phone || 'no phone'} · {m.schoolName || 'no school'}
                       {m.classNumber ? ` · ${m.classNumber}` : ''}
                     </p>
+                    {(m.trialPaymentAmount != null || m.trialPaidAt) && (
+                      <p className="text-xs text-emerald-800">
+                        Paid
+                        {m.trialPaymentAmount != null ? ` ₹${m.trialPaymentAmount}` : ''}
+                        {m.trialPaidAt
+                          ? ` · ${new Date(m.trialPaidAt).toLocaleDateString()}`
+                          : ''}
+                        {m.trialPaymentMethod ? ` · ${m.trialPaymentMethod}` : ''}
+                      </p>
+                    )}
                     <div className="flex flex-wrap gap-1 pt-1">
                       {(m.interestedCourses || []).slice(0, 4).map((c) => (
-                        <Badge key={c} variant="secondary" className="text-[10px]">
+                        <Badge key={c} variant="secondary" className="text-micro">
                           {c}
                         </Badge>
                       ))}
@@ -365,23 +538,24 @@ export default function TrialMembersManagement() {
                         <Badge
                           key={c}
                           variant="outline"
-                          className="border-sky-200 bg-sky-50 text-[10px] text-sky-900"
+                          className="border-sky-200 bg-sky-50 text-micro text-sky-900"
                         >
                           IIT {formatIitCategoryLabel(c)}
                         </Badge>
                       ))}
                       {(m.interestedSubjects || []).slice(0, 5).map((s) => (
-                        <Badge key={s} variant="outline" className="text-[10px]">
+                        <Badge key={s} variant="outline" className="text-micro">
                           {s}
                         </Badge>
                       ))}
                     </div>
                     {m.trialEndsAt && (
-                      <p className="flex items-center gap-1 text-[11px] text-slate-500">
+                      <p className="flex items-center gap-1 text-mini text-slate-500">
                         <Clock className="h-3 w-3" />
                         Trial ends {new Date(m.trialEndsAt).toLocaleString()}
                       </p>
                     )}
+                    </div>
                   </div>
                   <Button size="sm" variant="outline" onClick={() => openEdit(m)}>
                     Manage trial
@@ -468,11 +642,73 @@ export default function TrialMembersManagement() {
                 </div>
               </div>
 
+              <div className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50/50 p-3">
+                <Label className="font-medium text-emerald-950">Payment (manual)</Label>
+                <p className="text-xs text-emerald-900/80">
+                  Record amount and reference when unlocking. Marking paid sets status to active and
+                  unlocks the gate.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Amount (₹)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="1"
+                      value={editForm.trialPaymentAmount}
+                      onChange={(e) =>
+                        setEditForm((p) => ({ ...p, trialPaymentAmount: e.target.value }))
+                      }
+                      placeholder="e.g. 499"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Method</Label>
+                    <Select
+                      value={editForm.trialPaymentMethod || 'manual'}
+                      onValueChange={(v) =>
+                        setEditForm((p) => ({ ...p, trialPaymentMethod: v }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="manual">Manual</SelectItem>
+                        <SelectItem value="upi">UPI</SelectItem>
+                        <SelectItem value="bank">Bank</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Paid at</Label>
+                    <Input
+                      type="datetime-local"
+                      value={editForm.trialPaidAt}
+                      onChange={(e) =>
+                        setEditForm((p) => ({ ...p, trialPaidAt: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Reference</Label>
+                    <Input
+                      value={editForm.trialPaymentReference}
+                      onChange={(e) =>
+                        setEditForm((p) => ({ ...p, trialPaymentReference: e.target.value }))
+                      }
+                      placeholder="UPI txn / receipt #"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-2 rounded-lg border border-slate-200 p-3">
                 <Label className="font-medium">Content allowed on trial</Label>
                 <p className="text-xs text-slate-500">
-                  Leave all unchecked = no extra restriction (normal program rules). Check types to
-                  lock the trial to only those.
+                  Empty = all content types (no extra restriction). Check types to allow only those
+                  during trial.
                 </p>
                 <div className="mt-2 flex flex-wrap gap-3">
                   {(contentTypeOptions.length
@@ -506,7 +742,7 @@ export default function TrialMembersManagement() {
               <div className="space-y-2 rounded-lg border border-slate-200 p-3">
                 <Label className="font-medium">AI tools allowed on trial</Label>
                 <p className="text-xs text-slate-500">
-                  Leave all unchecked = all tools. Check tools to allow only those during trial.
+                  Empty = all AI tools. Check tools to allow only those during trial.
                 </p>
                 <div className="mt-2 flex flex-wrap gap-3">
                   {COMMON_AI_TOOLS.map((tool) => (
@@ -569,7 +805,15 @@ export default function TrialMembersManagement() {
               type="button"
               variant="outline"
               disabled={saving}
-              onClick={() => void saveMember({ subscriptionStatus: 'active' })}
+              onClick={() =>
+                void saveMember({
+                  subscriptionStatus: 'active',
+                  ...paymentPayload(),
+                  trialPaidAt: editForm.trialPaidAt
+                    ? new Date(editForm.trialPaidAt).toISOString()
+                    : new Date().toISOString(),
+                })
+              }
             >
               Unlock as paid
             </Button>

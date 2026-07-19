@@ -131,7 +131,7 @@ function QuestionCard({
     <article className="rounded-lg border border-rose-100 bg-gradient-to-br from-white to-rose-50/30 p-3">
       <div className="mb-1.5 flex items-start justify-between gap-2">
         <p className="text-sm font-semibold text-slate-900">
-          <span className="mr-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded bg-rose-600 px-1 text-[10px] font-bold text-white">
+          <span className="mr-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded bg-rose-600 px-1 text-micro font-bold text-white">
             {qNo}
           </span>
           {questionText}
@@ -167,7 +167,7 @@ function QuestionCard({
         </p>
       ) : null}
       {question.internalChoiceGroup ? (
-        <p className="mt-1.5 text-[11px] text-indigo-700">
+        <p className="mt-1.5 text-mini text-indigo-700">
           <span className="font-semibold">OR / Choice:</span> {question.internalChoiceGroup}
         </p>
       ) : null}
@@ -412,15 +412,15 @@ export function MockTestViewer({ content, rawContent, className }: MockTestViewe
               </p>
               <h3 className="truncate text-lg font-bold">{meta.title}</h3>
               <div className="mt-1.5 flex flex-wrap gap-1.5">
-                <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-[10px]">
+                <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
                   {totalQuestions} questions
                 </Badge>
                 {totalMarks > 0 ? (
-                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-[10px]">
+                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
                     {totalMarks} marks
                   </Badge>
                 ) : null}
-                <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-[10px]">
+                <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
                   {activeSections.length} sections
                 </Badge>
               </div>
@@ -432,7 +432,7 @@ export function MockTestViewer({ content, rawContent, className }: MockTestViewe
           <div className="relative overflow-hidden rounded-xl border border-rose-200 bg-white shadow-sm">
             <div className="absolute inset-0 bg-gradient-to-br from-rose-50/90 via-white to-red-50/40" />
             <div className="relative p-2.5 sm:p-3">
-              <p className="mb-0.5 text-[9px] font-bold uppercase tracking-wider text-rose-700">
+              <p className="mb-0.5 text-micro font-bold uppercase tracking-wider text-rose-700">
                 Section 1
               </p>
               <Badge className="mb-1 border-0 bg-rose-100 text-rose-900 hover:bg-rose-100 text-xs">

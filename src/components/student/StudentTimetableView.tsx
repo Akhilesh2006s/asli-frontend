@@ -65,7 +65,7 @@ export default function StudentTimetableView({
               </motion.div>
               <div>
                 {schoolLabel ? (
-                  <p className="text-[10px] sm:text-xs font-semibold text-indigo-600 tracking-wide truncate max-w-[220px] sm:max-w-md">
+                  <p className="text-micro sm:text-xs font-semibold text-indigo-600 tracking-wide truncate max-w-[220px] sm:max-w-md">
                     {schoolLabel}
                   </p>
                 ) : null}

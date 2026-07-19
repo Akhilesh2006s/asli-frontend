@@ -132,7 +132,7 @@ function PeriodTimeline({ slots }: { slots: DailyPlanTimeSlot[] }) {
               <div className="flex flex-wrap items-center gap-2 mb-2">
                 <span className="text-sm font-bold text-indigo-900">{slot.time || `Period ${i + 1}`}</span>
                 {slot.type ? (
-                  <Badge variant="outline" className={cn('text-[10px] font-semibold', slotTypeClass(slot.type))}>
+                  <Badge variant="outline" className={cn('text-micro font-semibold', slotTypeClass(slot.type))}>
                     {slot.type}
                   </Badge>
                 ) : null}
@@ -153,7 +153,7 @@ function DayPlanBoard({ plan }: { plan: NormalizedDailyPlan }) {
     <div className="space-y-5">
       {plan.dayPeriodBreakup ? (
         <div className="rounded-2xl border border-violet-200/70 bg-gradient-to-br from-violet-50 via-white to-sky-50 p-5 shadow-sm">
-          <p className="text-[11px] font-bold uppercase tracking-widest text-violet-600 mb-2">
+          <p className="text-mini font-bold uppercase tracking-widest text-violet-600 mb-2">
             Day overview
           </p>
           <p className="text-base sm:text-lg font-semibold text-slate-900 leading-snug whitespace-pre-wrap">
@@ -301,7 +301,7 @@ function DayBoardShell({
               <CalendarDays className="h-6 w-6" aria-hidden />
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-violet-200">
+              <p className="text-micro font-bold uppercase tracking-[0.2em] text-violet-200">
                 Day board
               </p>
               <h3 className="text-xl font-bold tracking-tight">Daily Class Plan</h3>

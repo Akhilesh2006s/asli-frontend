@@ -119,7 +119,7 @@ export function AiToolV2BloomBadges({ objectives }: { objectives: string[] }) {
           <span
             key={level}
             className={cn(
-              'rounded-full border px-2.5 py-0.5 text-[11px] font-semibold',
+              'rounded-full border px-2.5 py-0.5 text-mini font-semibold',
               style.bg,
               style.border,
               style.text,

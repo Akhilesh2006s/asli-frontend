@@ -40,7 +40,7 @@ export function EduOTTVideoPlayerDialog({
               <PlayCircle className="h-8 w-8 text-white" />
             </div>
             <div className="min-w-0">
-              <DialogDescription className="mb-1 text-[0.8125rem] font-bold uppercase tracking-[0.18em] text-teal-green-300 sm:text-[0.9375rem]">
+              <DialogDescription className="mb-1 text-mini font-bold uppercase tracking-[0.18em] text-teal-green-300 sm:text-[0.9375rem]">
                 Now playing
               </DialogDescription>
               <DialogTitle className="font-display text-xl font-bold leading-snug text-white sm:text-2xl lg:text-3xl">

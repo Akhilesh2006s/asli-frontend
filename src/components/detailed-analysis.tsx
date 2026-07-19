@@ -1898,10 +1898,10 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
         : 'text-xs sm:text-sm text-gray-700 leading-relaxed';
 
     const statusBadgeClass = isCorrect
-      ? 'uppercase text-[10px] border-emerald-400 bg-emerald-100 text-emerald-800'
+      ? 'uppercase text-micro border-emerald-400 bg-emerald-100 text-emerald-800'
       : isWrong
-        ? 'uppercase text-[10px] border-red-400 bg-red-100 text-red-800'
-        : 'uppercase text-[10px]';
+        ? 'uppercase text-micro border-red-400 bg-red-100 text-red-800'
+        : 'uppercase text-micro';
 
     return (
       <div className={shellClass}>
@@ -1924,7 +1924,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                 <Badge variant="outline" className={statusBadgeClass}>
                   {status}
                 </Badge>
-                <Badge variant="outline" className="uppercase text-[10px]">
+                <Badge variant="outline" className="uppercase text-micro">
                   {String(item.priority || 'medium')}
                 </Badge>
               </div>
@@ -2088,12 +2088,12 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                         <span className="text-xs sm:text-sm text-gray-800 line-clamp-2 flex-1">{normalizeExamText(question.questionText, question.subject)}</span>
                       </div>
                       <div className="flex flex-wrap gap-1 mt-2">
-                        <Badge variant="outline" className="text-[10px] capitalize">{question.subject}</Badge>
-                        <Badge variant="secondary" className="text-[10px] uppercase">{getQuestionDifficulty(question)}</Badge>
-                        {err === 'careless' && <Badge className="text-[10px] bg-amber-100 text-amber-800">⚡ CARELESS{t != null ? ` · ${t}s` : ''}</Badge>}
-                        {err === 'conceptual' && <Badge className="text-[10px] bg-purple-100 text-purple-800">💎 CONCEPTUAL</Badge>}
-                        {err === 'time-pressure' && <Badge className="text-[10px] bg-blue-100 text-blue-800">⏱ TIME-PRESSURE</Badge>}
-                        {err === 'reading' && <Badge className="text-[10px] bg-indigo-100 text-indigo-800">👁 READING</Badge>}
+                        <Badge variant="outline" className="text-micro capitalize">{question.subject}</Badge>
+                        <Badge variant="secondary" className="text-micro uppercase">{getQuestionDifficulty(question)}</Badge>
+                        {err === 'careless' && <Badge className="text-micro bg-amber-100 text-amber-800">⚡ CARELESS{t != null ? ` · ${t}s` : ''}</Badge>}
+                        {err === 'conceptual' && <Badge className="text-micro bg-purple-100 text-purple-800">💎 CONCEPTUAL</Badge>}
+                        {err === 'time-pressure' && <Badge className="text-micro bg-blue-100 text-blue-800">⏱ TIME-PRESSURE</Badge>}
+                        {err === 'reading' && <Badge className="text-micro bg-indigo-100 text-indigo-800">👁 READING</Badge>}
                       </div>
                     </button>
                   );
@@ -2299,7 +2299,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                                       {optionText}
                                     </span>
                                     {isCorrectSelection && (
-                                      <span className="text-[10px] font-semibold uppercase tracking-wide text-purple-700 bg-purple-100 px-2 py-0.5 rounded">
+                                      <span className="text-micro font-semibold uppercase tracking-wide text-purple-700 bg-purple-100 px-2 py-0.5 rounded">
                                         Your answer
                                       </span>
                                     )}
@@ -2584,7 +2584,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                       className={`rounded-xl p-4 min-w-[160px] max-w-[220px] border text-left transition-shadow ${isSelected ? 'bg-white border-[#7C3AED] shadow-md ring-2 ring-[#7C3AED]/30' : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'}`}
                     >
                       {isSelected && (
-                        <span className="text-[10px] font-bold text-[#7C3AED]">ACTIVE</span>
+                        <span className="text-micro font-bold text-[#7C3AED]">ACTIVE</span>
                       )}
                       <p className={`font-bold mt-1 line-clamp-2 ${isSelected ? 'text-gray-900' : 'text-gray-800'}`}>
                         {topic.title}
@@ -2647,7 +2647,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {planVideoCards.map((v, i) => (
                   <div key={`${v.subj}-${v.title}-${i}`} className={`rounded-xl p-4 ${v.bg} border relative min-h-[140px]`}>
-                    <p className="text-[10px] font-bold text-gray-500">{v.subj} · {v.min} MIN</p>
+                    <p className="text-micro font-bold text-gray-500">{v.subj} · {v.min} MIN</p>
                     <Play className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-gray-400 mx-auto my-4" />
                     <p className="text-xs sm:text-sm font-semibold text-center">{v.title}</p>
                     <p className="text-xs text-center text-gray-600 mt-2">Your mastery: {Math.round(v.mastery)}%</p>

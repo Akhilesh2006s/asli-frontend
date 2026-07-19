@@ -1603,7 +1603,7 @@ export default function AdminManagement() {
                     <div className="space-y-5">
                       {SCHOOL_PORTAL_MODULE_GROUPS.map((group) => (
                         <div key={group.category}>
-                          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                          <p className="mb-2 text-mini font-semibold uppercase tracking-wide text-slate-500">
                             {group.category}
                           </p>
                           <div className="grid gap-2 grid-cols-1 lg:grid-cols-2">
@@ -2289,7 +2289,7 @@ export default function AdminManagement() {
                     <div className="space-y-5">
                       {SCHOOL_PORTAL_MODULE_GROUPS.map((group) => (
                         <div key={group.category}>
-                          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                          <p className="mb-2 text-mini font-semibold uppercase tracking-wide text-slate-500">
                             {group.category}
                           </p>
                           <div className="grid gap-2 grid-cols-1 lg:grid-cols-2">

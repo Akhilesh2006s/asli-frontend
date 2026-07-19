@@ -110,7 +110,7 @@ export function LessonRecordPreviewTable({
                     ))}
                   </ul>
                   {row.items.length > 6 ? (
-                    <p className="mt-1 text-[10px] text-slate-500">+{row.items.length - 6} more…</p>
+                    <p className="mt-1 text-micro text-slate-500">+{row.items.length - 6} more…</p>
                   ) : null}
                 </td>
               </tr>

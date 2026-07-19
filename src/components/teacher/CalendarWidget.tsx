@@ -80,7 +80,7 @@ export function CalendarWidget({
             nav_button_next: 'absolute right-1',
             table: 'w-full border-collapse',
             head_row: 'flex w-full',
-            head_cell: 'w-9 text-[0.7rem] font-medium uppercase text-gray-400',
+            head_cell: 'w-9 text-micro font-medium uppercase text-gray-400',
             row: 'mt-2 flex w-full',
             cell: 'relative p-0 text-center text-xs sm:text-sm focus-within:relative focus-within:z-20',
             day: cn(

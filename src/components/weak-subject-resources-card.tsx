@@ -164,7 +164,7 @@ export function WeakSubjectResourcesCard({
                                     </div>
                                   )}
                                   {youtube && (
-                                    <Badge className="absolute right-2 top-2 gap-1 bg-red-600 hover:bg-red-600 text-[10px]">
+                                    <Badge className="absolute right-2 top-2 gap-1 bg-red-600 hover:bg-red-600 text-micro">
                                       <Youtube className="h-3 w-3" aria-hidden />
                                       YouTube
                                     </Badge>

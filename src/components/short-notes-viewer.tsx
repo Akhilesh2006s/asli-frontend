@@ -116,7 +116,7 @@ function LegacyNoteBody({ note }: { note: LegacyShortNote }) {
         <div className="space-y-3 lg:col-span-4">
           {note.importance ? (
             <section className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50/85 to-white p-5 shadow-sm">
-              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-700">
+              <p className="mb-1 text-micro font-bold uppercase tracking-[0.16em] text-amber-700">
                 Why it matters
               </p>
               <div
@@ -127,13 +127,13 @@ function LegacyNoteBody({ note }: { note: LegacyShortNote }) {
           ) : null}
           {note.quick_facts && note.quick_facts.length > 0 ? (
             <section className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/70 to-white p-5 shadow-sm">
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-700">
+              <p className="mb-2 text-micro font-bold uppercase tracking-[0.16em] text-emerald-700">
                 Quick facts
               </p>
               <ul className="space-y-2">
                 {note.quick_facts.map((fact, idx) => (
                   <li key={`${fact}-${idx}`} className="flex items-start gap-2 text-sm text-slate-700">
-                    <span className="mt-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-100 text-[11px] font-bold text-emerald-700">
+                    <span className="mt-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-100 text-mini font-bold text-emerald-700">
                       {idx + 1}
                     </span>
                     <span>{fact}</span>
@@ -384,13 +384,13 @@ export function ShortNotesViewer({ content, rawContent }: ShortNotesViewerProps)
         <div className="relative space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-violet-200">
+              <p className="mb-1 text-micro font-bold uppercase tracking-[0.22em] text-violet-200">
                 Revision Studio
               </p>
               <h2 className="text-2xl font-bold leading-tight sm:text-3xl">Short Notes & Summaries</h2>
             </div>
             <div className="rounded-2xl border border-white/20 bg-white/10 px-3 py-2 text-right backdrop-blur-md">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-violet-200">Progress</p>
+              <p className="text-micro uppercase tracking-[0.18em] text-violet-200">Progress</p>
               <p className="text-sm font-semibold text-violet-50">
                 {currentIndex + 1} / {pages.length}
               </p>
@@ -412,7 +412,7 @@ export function ShortNotesViewer({ content, rawContent }: ShortNotesViewerProps)
 
       {pages.length > 1 ? (
         <section className="rounded-2xl border border-slate-200 bg-white/85 p-3 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.35)] backdrop-blur-sm">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+          <p className="mb-2 text-micro font-bold uppercase tracking-[0.18em] text-slate-500">
             Concept navigator
           </p>
           <div className="flex flex-wrap gap-2">
@@ -451,7 +451,7 @@ export function ShortNotesViewer({ content, rawContent }: ShortNotesViewerProps)
         >
           <div className="overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-[0_24px_48px_-30px_rgba(30,41,59,0.6)]">
             <div className="border-b border-slate-100 bg-gradient-to-r from-indigo-50 via-white to-fuchsia-50/50 px-5 py-4">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-indigo-500">
+              <p className="text-micro font-bold uppercase tracking-[0.16em] text-indigo-500">
                 Current concept
               </p>
               <h3 className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl">{title}</h3>

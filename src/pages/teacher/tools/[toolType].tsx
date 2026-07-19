@@ -1691,7 +1691,7 @@ export default function TeacherToolPage() {
                                       : field.isNCERT && field.name === 'topic'
                                         ? !formParams.gradeLevel
                                           ? 'Select Class first'
-                                          : !subjectField || cascade.loadingTopics
+                                          : !subjectField
                                             ? 'Select Subject first'
                                             : cascade.loadingTopics
                                               ? 'Loading topics...'
@@ -1783,10 +1783,10 @@ export default function TeacherToolPage() {
             citations={
               generatedContent && Array.isArray(responseMeta?.citations) && responseMeta.citations.length > 0 ? (
                 <div className="mt-2 rounded-lg border border-blue-100 bg-blue-50/50 p-2 max-h-28 overflow-y-auto">
-                  <p className="text-[11px] font-semibold text-blue-700 mb-1">Top Citations</p>
+                  <p className="text-mini font-semibold text-blue-700 mb-1">Top Citations</p>
                   <div className="space-y-1">
                     {responseMeta.citations.slice(0, 3).map((c: CitationItem) => (
-                      <p key={String(c.index) + '-' + String(c.chapter)} className="text-[11px] text-gray-600">
+                      <p key={String(c.index) + '-' + String(c.chapter)} className="text-mini text-gray-600">
                         [{c.index}] {c.subject} / {c.chapter} ({c.score})
                       </p>
                     ))}

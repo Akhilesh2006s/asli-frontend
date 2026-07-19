@@ -32,7 +32,7 @@ export function StudentChatUI({ model, className }: StudentChatUIProps) {
           </div>
           <div className="min-w-0">
             <h3 className="truncate text-sm font-semibold text-slate-900">Your AI Study Buddy</h3>
-            <p className="truncate text-[11px] text-slate-600">Ask anything, learn faster 🌟</p>
+            <p className="truncate text-mini text-slate-600">Ask anything, learn faster 🌟</p>
           </div>
         </div>
       </div>
@@ -42,20 +42,20 @@ export function StudentChatUI({ model, className }: StudentChatUIProps) {
           <div className="grid grid-cols-1 gap-1.5">
             {model.todayFocusAction && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5">
-                <p className="text-[10px] uppercase tracking-wide text-amber-700">Today Focus</p>
+                <p className="text-micro uppercase tracking-wide text-amber-700">Today Focus</p>
                 <p className="text-xs font-semibold text-amber-900">{model.todayFocusAction}</p>
-                {model.todayFocusReason ? <p className="text-[11px] text-amber-800">{model.todayFocusReason}</p> : null}
+                {model.todayFocusReason ? <p className="text-mini text-amber-800">{model.todayFocusReason}</p> : null}
               </div>
             )}
             {model.studyStreakMessage && (
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5">
-                <p className="text-[11px] font-medium text-emerald-800">{model.studyStreakMessage}</p>
+                <p className="text-mini font-medium text-emerald-800">{model.studyStreakMessage}</p>
               </div>
             )}
             {model.proactivePrompt && (
               <button
                 onClick={() => model.onPromptClick(model.proactivePrompt || "")}
-                className="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-left text-[11px] leading-snug text-indigo-800 hover:bg-indigo-100"
+                className="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-left text-mini leading-snug text-indigo-800 hover:bg-indigo-100"
               >
                 {model.proactivePrompt}
               </button>
@@ -97,7 +97,7 @@ export function StudentChatUI({ model, className }: StudentChatUIProps) {
                 className={`flex items-start gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
               >
                 {msg.role === "user" ? (
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-semibold text-white">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-micro font-semibold text-white">
                     {model.userInitial}
                   </div>
                 ) : (

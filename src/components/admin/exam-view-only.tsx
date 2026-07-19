@@ -610,7 +610,7 @@ export default function ExamViewOnly() {
                             <p className="font-semibold text-slate-900">{result.userId.fullName}</p>
                             <p className="text-xs text-slate-500 mt-0.5">{result.userId.email}</p>
                             {subjects.length > 0 ? (
-                              <p className="text-[11px] text-slate-500 mt-1.5 leading-snug">
+                              <p className="text-mini text-slate-500 mt-1.5 leading-snug">
                                 {subjects
                                   .map(
                                     (s) =>
@@ -644,7 +644,7 @@ export default function ExamViewOnly() {
                                 ○ {result.unattempted ?? 0}
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-500 mt-1">
+                            <p className="text-mini text-slate-500 mt-1">
                               {totalQ} questions · {getAttemptedCount(result)} attempted
                             </p>
                           </td>
@@ -653,14 +653,14 @@ export default function ExamViewOnly() {
                               {result.obtainedMarks}
                               <span className="text-slate-400 font-medium"> / {result.totalMarks}</span>
                             </p>
-                            <p className="text-[11px] text-slate-500">marks obtained</p>
+                            <p className="text-mini text-slate-500">marks obtained</p>
                           </td>
                           <td className="py-3 px-3">
                             <div className="space-y-1">
                               <Badge className={`border ${marksBadgeClass(marksPct)}`}>
                                 {marksPct}% marks
                               </Badge>
-                              <p className="text-[11px] text-slate-500">
+                              <p className="text-mini text-slate-500">
                                 {questionAcc}% on attempted ({result.correctAnswers ?? 0}/
                                 {getAttemptedCount(result) || '—'})
                               </p>

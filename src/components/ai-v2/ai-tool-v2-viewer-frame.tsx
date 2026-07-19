@@ -46,7 +46,7 @@ function AiToolV2ViewerFrameInner({
               <p className="text-xs font-semibold text-slate-900 sm:text-sm">
                 {audience === 'student' ? 'Your study material' : 'Your generated lesson content'}
               </p>
-              <p className="text-[11px] text-slate-500 truncate">
+              <p className="text-mini text-slate-500 truncate">
                 {audience === 'student'
                   ? 'Use Focus mode to read without distractions'
                   : 'Jump sections, print, or export below'}

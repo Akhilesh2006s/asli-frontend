@@ -165,7 +165,7 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
       <ol className="space-y-2 list-none pl-0">
         {c.conceptCheckQuestions.map((q, i) => (
           <li key={i} className="flex gap-2.5 text-sm text-slate-800">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-rose-600 text-[11px] font-bold text-white">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-rose-600 text-mini font-bold text-white">
               {i + 1}
             </span>
             <ConceptInline text={q} className="pt-0.5" />
@@ -330,7 +330,7 @@ function TeacherConceptCard({ concept }: { concept: NormalizedConcept }) {
       <div className="rounded-xl border-2 border-dashed border-fuchsia-300/70 bg-gradient-to-br from-fuchsia-50/90 via-white to-violet-50/40 px-4 py-4 sm:px-5 sm:py-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-fuchsia-800/80 mb-1">
+            <p className="text-micro font-bold uppercase tracking-[0.2em] text-fuchsia-800/80 mb-1">
               Concept · Teaching reference
             </p>
             <h4 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight font-serif">
@@ -343,7 +343,7 @@ function TeacherConceptCard({ concept }: { concept: NormalizedConcept }) {
               {concept.difficulty ? (
                 <span
                   className={cn(
-                    'rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide',
+                    'rounded-full px-2.5 py-0.5 text-micro font-bold uppercase tracking-wide',
                     difficultyStyles(concept.difficulty),
                   )}
                 >
@@ -353,14 +353,14 @@ function TeacherConceptCard({ concept }: { concept: NormalizedConcept }) {
             </div>
           </div>
           <div className="shrink-0 w-full sm:w-36">
-            <p className="text-[10px] font-semibold uppercase text-slate-500 mb-1">Sections ready</p>
+            <p className="text-micro font-semibold uppercase text-slate-500 mb-1">Sections ready</p>
             <div className="h-2.5 rounded-full bg-slate-200 overflow-hidden">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-indigo-500"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
-            <p className="text-[11px] text-slate-500 mt-1 text-right">
+            <p className="text-mini text-slate-500 mt-1 text-right">
               {filled} block{filled === 1 ? '' : 's'}
             </p>
           </div>
@@ -386,7 +386,7 @@ function TeacherConceptCard({ concept }: { concept: NormalizedConcept }) {
                 <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', phase.dotClass.split(' ')[0])} />
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wide">{phase.label}</p>
-                  <p className="text-[11px] opacity-80">{phase.hint}</p>
+                  <p className="text-mini opacity-80">{phase.hint}</p>
                 </div>
               </div>
               <div className="flex flex-col gap-4">
@@ -443,7 +443,7 @@ function TeacherConceptShell({ conceptCount, children }: { conceptCount: number;
                 <Brain className="h-6 w-6" aria-hidden />
               </div>
               <div className="text-white">
-                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-fuchsia-200/90">
+                <p className="text-micro font-bold uppercase tracking-[0.25em] text-fuchsia-200/90">
                   Concept Mastery Helper
                 </p>
                 <h3 className="text-lg font-bold sm:text-xl font-serif">Concept teaching flow</h3>
@@ -503,8 +503,8 @@ function FlipCardConceptView({ concepts }: { concepts: NormalizedConcept[] }) {
   return (
     <div className="flex flex-col items-center w-full max-w-4xl mx-auto py-4 space-y-4">
       <p className="text-xs text-slate-500 text-center">
-        Use <kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-[10px] font-mono">←</kbd>{' '}
-        <kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-[10px] font-mono">→</kbd> to browse concepts
+        Use <kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-micro font-mono">←</kbd>{' '}
+        <kbd className="px-1.5 py-0.5 bg-slate-100 rounded text-micro font-mono">→</kbd> to browse concepts
       </p>
 
       <div className="w-full" style={{ perspective: '1200px' }}>
@@ -523,7 +523,7 @@ function FlipCardConceptView({ concepts }: { concepts: NormalizedConcept[] }) {
               {current.difficulty ? (
                 <span
                   className={cn(
-                    'rounded-full px-2 py-0.5 text-[10px] font-bold uppercase',
+                    'rounded-full px-2 py-0.5 text-micro font-bold uppercase',
                     difficultyStyles(current.difficulty),
                   )}
                 >

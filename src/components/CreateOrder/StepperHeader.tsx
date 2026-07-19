@@ -73,7 +73,7 @@ export default function StepperHeader({ variant = 'default' }: StepperHeaderProp
                 </span>
                 <span
                   className={cn(
-                    'text-[10px] font-medium leading-tight text-center sm:text-xs',
+                    'text-micro font-medium leading-tight text-center sm:text-xs',
                     isActive &&
                       (isLight ? 'text-white font-semibold' : 'text-orange-600 font-semibold'),
                     isCompleted && !isActive && (isLight ? 'text-white/90' : 'text-orange-600'),

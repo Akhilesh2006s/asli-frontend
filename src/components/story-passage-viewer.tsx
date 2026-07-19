@@ -115,7 +115,7 @@ function TeacherStoryReading({
   return (
     <div className="max-h-[80vh] overflow-y-auto space-y-3 p-1">
       <div className="rounded-xl border border-indigo-200 bg-indigo-50/80 p-4">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Section 1</p>
+        <p className="text-micro font-bold uppercase tracking-wider text-indigo-600">Section 1</p>
         <h2 className="text-lg font-bold text-gray-900">{story.title}</h2>
       </div>
       <AiToolMasonrySections className="gap-3">
@@ -633,7 +633,7 @@ function StudentStoryReading({ story }: { story: ParsedStory }) {
       <div className="relative overflow-hidden rounded-2xl bg-white border border-indigo-100 shadow-md">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/80 via-white to-violet-50/40" />
         <div className="relative p-3 sm:p-4">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 mb-1">
+          <p className="text-micro font-bold uppercase tracking-wider text-indigo-600 mb-1">
             Title of passage / story
           </p>
           <Badge className="mb-1.5 border-0 bg-indigo-100 text-indigo-800 hover:bg-indigo-100">
@@ -725,7 +725,7 @@ function StudentPassagesBundle({ bundle }: { bundle: ParsedPassagesBundle }) {
           transition={{ duration: 0.2 }}
         >
           <article className="rounded-2xl border border-amber-200/80 bg-[#fffdf8] px-5 py-6 sm:px-8 sm:py-8 shadow-inner">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-amber-800/70 mb-3">
+            <p className="text-micro font-bold uppercase tracking-widest text-amber-800/70 mb-3">
               Passage {current.passageNumber}
             </p>
             <p className="font-serif text-base sm:text-lg leading-[1.85] text-slate-800">{current.paragraph}</p>

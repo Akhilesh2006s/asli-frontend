@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, BookOpen, Brain, Trophy, Target, Award, Zap } from 'lucide-react';
-import Navigation from '@/components/navigation';
+import StudentShell from "@/components/layout/StudentShell";
 import { Link } from 'wouter';
 import { API_BASE_URL } from '@/lib/api-config';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -184,9 +184,8 @@ export default function IQRankBoostSubjects() {
   };
 
   return (
-    <>
-      <Navigation />
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-20 bg-gray-50 min-h-screen">
+    <StudentShell>
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8  pb-20 bg-gray-50 min-h-screen">
           {/* Header */}
           <div className="mb-8">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-4">
@@ -315,7 +314,7 @@ export default function IQRankBoostSubjects() {
             </div>
           )}
       </div>
-    </>
+    </StudentShell>
   );
 }
 

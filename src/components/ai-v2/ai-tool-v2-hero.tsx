@@ -51,7 +51,7 @@ export function AiToolV2Hero({
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-indigo-200/80 bg-white/70 px-3 py-1 text-[11px] font-semibold text-indigo-800">
+          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-indigo-200/80 bg-white/70 px-3 py-1 text-mini font-semibold text-indigo-800">
             <Sparkles className="h-3.5 w-3.5" aria-hidden />
             {displayToolLabel} · AI V2
           </div>
@@ -66,7 +66,7 @@ export function AiToolV2Hero({
               {chips.map((chip) => (
                 <span
                   key={`${chip.label}-${chip.value}`}
-                  className="inline-flex items-center gap-1 rounded-full border border-white/80 bg-white/80 px-2.5 py-1 text-[11px] font-medium text-slate-700 shadow-sm"
+                  className="inline-flex items-center gap-1 rounded-full border border-white/80 bg-white/80 px-2.5 py-1 text-mini font-medium text-slate-700 shadow-sm"
                 >
                   <span className="font-semibold text-slate-500">{formatAiToolText(chip.label)}</span>
                   {formatAiToolText(chip.value)}
@@ -86,7 +86,7 @@ export function AiToolV2Hero({
       </div>
       {pct != null ? (
         <div className="mt-4">
-          <div className="mb-1 flex items-center justify-between text-[11px] font-medium text-slate-500">
+          <div className="mb-1 flex items-center justify-between text-mini font-medium text-slate-500">
             <span>{formatAiToolText('Content Ready')}</span>
             <span>{pct}%</span>
           </div>

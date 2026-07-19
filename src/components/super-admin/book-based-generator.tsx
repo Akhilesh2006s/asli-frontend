@@ -647,7 +647,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
         </p>
         <p>
           <strong>Book upload / indexing</strong> (Book Knowledge Base): PDF text extraction is free. Embeddings use{" "}
-          <code className="text-[11px] bg-white/80 px-1 rounded">EMBEDDING_PROVIDER=local</code> by default (₹0).
+          <code className="text-mini bg-white/80 px-1 rounded">EMBEDDING_PROVIDER=local</code> by default (₹0).
           Scanned PDF OCR may use a small Gemini charge.
         </p>
         <p>
@@ -990,11 +990,11 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                 <div className="rounded-md border border-red-200 bg-red-50/80 px-2.5 py-2 text-red-900">
                   <p className="font-semibold">Failed slots</p>
                   {lastBatchSummary.failures.every((line) => /spending cap|monthly spend|Billing\/Spend/i.test(line)) ? (
-                    <p className="mt-1 text-[11px] leading-relaxed">
+                    <p className="mt-1 text-mini leading-relaxed">
                       Gemini monthly spending cap is reached. Open Google AI Studio → Billing/Spend, raise the project cap (or add billing), then retry. Switching to Fast/Balanced will not help until the cap is raised.
                     </p>
                   ) : lastBatchSummary.failures.every((line) => /temporarily busy|503|429|UNAVAILABLE/i.test(line)) ? (
-                    <p className="mt-1 text-[11px] leading-relaxed">
+                    <p className="mt-1 text-mini leading-relaxed">
                       Gemini looks busy or rate-limited. Wait a minute, switch to Balanced/Fast, or generate fewer records at once.
                     </p>
                   ) : null}
@@ -1017,7 +1017,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                 <span className="font-semibold text-emerald-900">{formatInr(lastBatchSummary.cost.inr)}</span>
                 {" "}(~${lastBatchSummary.cost.usd.toFixed(4)} USD at ₹{lastBatchSummary.cost.exchangeRateInr}/$)
               </p>
-              <p className="text-[11px] text-slate-500">{lastBatchSummary.cost.pricingNote}</p>
+              <p className="text-mini text-slate-500">{lastBatchSummary.cost.pricingNote}</p>
             </div>
           ) : null}
         </div>

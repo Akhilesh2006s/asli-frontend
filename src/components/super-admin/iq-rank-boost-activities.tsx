@@ -25,6 +25,7 @@ import {
   CheckCircle2,
   XCircle
 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -46,6 +47,8 @@ interface IQActivity {
   classNumber?: string;
   questions: number;
   isActive: boolean;
+  trialOnly?: boolean;
+  promptOnLogin?: boolean;
   createdAt: string;
   updatedAt: string;
   participants?: number;
@@ -78,7 +81,9 @@ export default function IQRankBoostActivities() {
     board: '',
     classNumber: '',
     questions: 10,
-    isActive: true
+    isActive: true,
+    trialOnly: false,
+    promptOnLogin: false,
   });
 
   useEffect(() => {
@@ -301,7 +306,9 @@ export default function IQRankBoostActivities() {
       board: '',
       classNumber: '',
       questions: 10,
-      isActive: true
+      isActive: true,
+      trialOnly: false,
+      promptOnLogin: false,
     });
   };
 
@@ -318,7 +325,9 @@ export default function IQRankBoostActivities() {
       board: activity.board || '',
       classNumber: activity.classNumber || '',
       questions: activity.questions,
-      isActive: activity.isActive
+      isActive: activity.isActive,
+      trialOnly: Boolean(activity.trialOnly),
+      promptOnLogin: Boolean(activity.promptOnLogin),
     });
     setIsEditModalOpen(true);
   };
@@ -374,17 +383,27 @@ export default function IQRankBoostActivities() {
   return (
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">IQ/Rank Boost Activities</h2>
           <p className="text-gray-600 mt-1">Manage IQ tests and rank boost activities by class</p>
         </div>
+        <Button
+          onClick={() => {
+            resetForm();
+            setIsCreateModalOpen(true);
+          }}
+          className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Create activity
+        </Button>
       </div>
 
       {/* Class Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((classNum) => {
-          const classActivities = activities.filter(a => a.classNumber === classNum.toString());
+          const classActivities = activities.filter(a => a.classNumber === classNum.toString() && !a.trialOnly);
           const activeCount = classActivities.filter(a => a.isActive).length;
           const totalQuestions = classActivities.reduce((sum, a) => sum + (a.questions || 0), 0);
           const totalParticipants = classActivities.reduce((sum, a) => sum + (a.participants || 0), 0);
@@ -443,6 +462,82 @@ export default function IQRankBoostActivities() {
            );
         })}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">All quizzes</CardTitle>
+          <CardDescription>
+            Edit trial-only flags, prompt-on-login, or delete activities. Trial quizzes appear only to
+            individual trial logins (not school students).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-24 w-full" />
+          ) : filteredActivities.length === 0 ? (
+            <p className="py-6 text-center text-sm text-slate-500">No activities yet.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Class</TableHead>
+                    <TableHead>Audience</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredActivities.map((activity) => (
+                    <TableRow key={activity._id}>
+                      <TableCell className="font-medium">{activity.title}</TableCell>
+                      <TableCell>{activity.classNumber || '—'}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {activity.trialOnly ? (
+                            <Badge className="bg-amber-100 text-amber-950 hover:bg-amber-100">
+                              Trial only
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">School</Badge>
+                          )}
+                          {activity.promptOnLogin && (
+                            <Badge className="bg-sky-100 text-sky-900 hover:bg-sky-100">
+                              Prompt on login
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {activity.isActive ? (
+                          <Badge className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
+                            Active
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">Inactive</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Button size="sm" variant="outline" onClick={() => openEditModal(activity)}>
+                          <Edit className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void handleDelete(activity._id)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Create Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
@@ -580,6 +675,35 @@ export default function IQRankBoostActivities() {
                 onChange={(e) => setFormData({ ...formData, classNumber: e.target.value })}
                 placeholder="e.g., 10, 11, 12"
               />
+            </div>
+            <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/60 p-3">
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <Checkbox
+                  checked={formData.trialOnly}
+                  onCheckedChange={(v) =>
+                    setFormData({
+                      ...formData,
+                      trialOnly: v === true,
+                      promptOnLogin: v === true ? formData.promptOnLogin : false,
+                    })
+                  }
+                />
+                Trial users only
+              </label>
+              <p className="text-xs text-slate-600">
+                When enabled, only individual trial accounts see this quiz — not school students.
+                Paid individuals stop receiving it.
+              </p>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={formData.promptOnLogin}
+                  disabled={!formData.trialOnly}
+                  onCheckedChange={(v) =>
+                    setFormData({ ...formData, promptOnLogin: v === true })
+                  }
+                />
+                Prompt on login
+              </label>
             </div>
           </div>
           <DialogFooter>
@@ -726,6 +850,35 @@ export default function IQRankBoostActivities() {
                 onChange={(e) => setFormData({ ...formData, classNumber: e.target.value })}
                 placeholder="e.g., 10, 11, 12"
               />
+            </div>
+            <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/60 p-3">
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <Checkbox
+                  checked={formData.trialOnly}
+                  onCheckedChange={(v) =>
+                    setFormData({
+                      ...formData,
+                      trialOnly: v === true,
+                      promptOnLogin: v === true ? formData.promptOnLogin : false,
+                    })
+                  }
+                />
+                Trial users only
+              </label>
+              <p className="text-xs text-slate-600">
+                When enabled, only individual trial accounts see this quiz — not school students.
+                Paid individuals stop receiving it.
+              </p>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={formData.promptOnLogin}
+                  disabled={!formData.trialOnly}
+                  onCheckedChange={(v) =>
+                    setFormData({ ...formData, promptOnLogin: v === true })
+                  }
+                />
+                Prompt on login
+              </label>
             </div>
           </div>
           <DialogFooter>

@@ -82,12 +82,12 @@ function QuestionCard({
         </div>
         <div className="flex flex-wrap gap-1.5 shrink-0">
           {q.type ? (
-            <Badge variant="outline" className="text-[10px] border-slate-200 text-slate-600">
+            <Badge variant="outline" className="text-micro border-slate-200 text-slate-600">
               {q.type}
             </Badge>
           ) : null}
           {q.marks != null ? (
-            <Badge className="text-[10px] bg-amber-100 text-amber-900 border-0 hover:bg-amber-100">
+            <Badge className="text-micro bg-amber-100 text-amber-900 border-0 hover:bg-amber-100">
               {q.marks} mark{q.marks === 1 ? '' : 's'}
             </Badge>
           ) : null}
@@ -100,7 +100,7 @@ function QuestionCard({
               key={i}
               className="flex items-start gap-2 rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2 text-sm text-slate-800"
             >
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-400 text-[10px] font-bold text-slate-600">
+              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-400 text-micro font-bold text-slate-600">
                 {String.fromCharCode(65 + i)}
               </span>
               <span className="leading-snug">{opt.replace(/^[A-D][\).]\s*/i, '')}</span>
@@ -267,30 +267,30 @@ function TeacherWorksheetCard({
       <div className="rounded-lg border border-emerald-200 bg-gradient-to-r from-emerald-50/80 to-teal-50/50 px-3 py-3 sm:px-4">
         <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-800/90 mb-0.5">
+            <p className="text-micro font-bold uppercase tracking-[0.18em] text-emerald-800/90 mb-0.5">
               Worksheet · Ready To Print
             </p>
             <h4 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
               {formatAiToolText(worksheet.title)}
             </h4>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-              <Badge className="rounded border-emerald-200 bg-emerald-100/80 text-emerald-950 hover:bg-emerald-100/80 font-medium text-[10px]">
+              <Badge className="rounded border-emerald-200 bg-emerald-100/80 text-emerald-950 hover:bg-emerald-100/80 font-medium text-micro">
                 {totalQuestions} Question{totalQuestions === 1 ? '' : 's'}
               </Badge>
-              <Badge variant="outline" className="rounded border-teal-200 text-teal-800 text-[10px]">
+              <Badge variant="outline" className="rounded border-teal-200 text-teal-800 text-micro">
                 10-Section Template
               </Badge>
             </div>
           </div>
           <div className="shrink-0 w-full sm:w-32">
-            <p className="text-[10px] font-semibold uppercase text-slate-500 mb-1">Pack Ready</p>
+            <p className="text-micro font-semibold uppercase text-slate-500 mb-1">Pack Ready</p>
             <div className="h-2.5 rounded-full bg-slate-200 overflow-hidden">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500"
                 style={{ width: `${progressPct}%` }}
               />
             </div>
-            <p className="text-[11px] text-slate-500 mt-1 text-right">
+            <p className="text-mini text-slate-500 mt-1 text-right">
               {filledBlocks} block{filledBlocks === 1 ? '' : 's'}
             </p>
           </div>
@@ -314,7 +314,7 @@ function TeacherWorksheetCard({
               <span className={cn('h-2 w-2 rounded-full shrink-0', phase.dotClass.split(' ')[0])} />
               <div>
                 <p className="text-xs font-bold uppercase tracking-wide">{phase.label}</p>
-                <p className="text-[11px] opacity-80">{phase.hint}</p>
+                <p className="text-mini opacity-80">{phase.hint}</p>
               </div>
             </div>
             <div className="flex flex-col gap-2.5">
@@ -384,16 +384,16 @@ function TeacherWorksheetShell({ title, children }: { title: string; children: R
                 <ClipboardList className="h-5 w-5" aria-hidden />
               </div>
               <div className="min-w-0 text-white">
-                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-emerald-200">
+                <p className="text-micro font-bold uppercase tracking-[0.22em] text-emerald-200">
                   Worksheet &amp; MCQ Generator
                 </p>
                 <h3 className="text-base sm:text-lg font-bold text-white leading-snug truncate">
                   {displayTitle}
                 </h3>
-                <p className="text-[11px] text-emerald-100/90 mt-0.5">Sections A–E, Answer Key &amp; Tags</p>
+                <p className="text-mini text-emerald-100/90 mt-0.5">Sections A–E, Answer Key &amp; Tags</p>
               </div>
             </div>
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-400/20 px-2.5 py-1 text-[11px] font-semibold text-emerald-50 ring-1 ring-emerald-300/30 shrink-0">
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-400/20 px-2.5 py-1 text-mini font-semibold text-emerald-50 ring-1 ring-emerald-300/30 shrink-0">
               <ListChecks className="h-3.5 w-3.5" aria-hidden />
               Teacher View
             </span>

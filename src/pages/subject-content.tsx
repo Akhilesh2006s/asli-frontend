@@ -25,7 +25,7 @@ import {
   Filter,
   X,
 } from 'lucide-react';
-import Navigation from '@/components/navigation';
+import StudentShell from "@/components/layout/StudentShell";
 import StudentPageLoader from '@/components/student/StudentPageLoader';
 import VideoModal from '@/components/video-modal';
 import CalendarView from '@/components/student/calendar-view';
@@ -390,8 +390,7 @@ export default function SubjectContent() {
 
   if (!subject) {
     return (
-      <>
-        <Navigation />
+      <StudentShell>
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           <div className="text-center">
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">Subject not found</h1>
@@ -406,16 +405,15 @@ export default function SubjectContent() {
             </Link>
           </div>
         </div>
-      </>
+      </StudentShell>
     );
   }
 
   const Icon = getIcon(subject.icon);
 
   return (
-    <>
-      <Navigation />
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 pb-8 relative">
+    <StudentShell>
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8  pb-8 relative">
         
         {!isMobile && <VidyaAIFloatingAssistant />}
         
@@ -631,6 +629,6 @@ export default function SubjectContent() {
           isYouTubeVideo: selectedVideo.isYouTubeVideo || false
         } : null}
       />
-    </>
+    </StudentShell>
   );
 }

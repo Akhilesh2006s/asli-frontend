@@ -58,6 +58,11 @@ export function clearInMemoryClientCaches() {
 export function prepareClientForNewLogin() {
   clearInMemoryClientCaches();
   clearSuperAdminSessionState();
+  try {
+    sessionStorage.removeItem('trialLoginQuizDismissed');
+  } catch {
+    /* ignore */
+  }
 }
 
 /** Full client cleanup on logout. */

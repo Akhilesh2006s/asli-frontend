@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { School } from "lucide-react";
 import { getSchoolBranding } from "@/lib/school-branding";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,10 @@ export default function SchoolBrandRow({
   compact = false,
   className,
 }: Props) {
+  // A 404 on the school logo used to render the browser's broken-image glyph;
+  // fall back to the School icon instead.
+  const [logoFailed, setLogoFailed] = useState(false);
+
   const branding =
     schoolName || schoolLogo
       ? {
@@ -45,10 +50,11 @@ export default function SchoolBrandRow({
             : "border-orange-200 bg-orange-50"
         )}
       >
-        {branding.schoolLogo ? (
+        {branding.schoolLogo && !logoFailed ? (
           <img
             src={branding.schoolLogo}
             alt={`${branding.schoolName} logo`}
+            onError={() => setLogoFailed(true)}
             className="h-[85%] w-[85%] object-contain"
           />
         ) : (

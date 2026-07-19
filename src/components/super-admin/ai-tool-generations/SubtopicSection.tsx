@@ -41,7 +41,7 @@ function SubtopicLeafRow({
           </span>
         </span>
         <span className="flex items-center gap-2 shrink-0">
-          <Badge variant="secondary" className="rounded-full text-[10px] tabular-nums">
+          <Badge variant="secondary" className="rounded-full text-micro tabular-nums">
             {s.count}
           </Badge>
           <ChevronDown
@@ -114,7 +114,7 @@ export function SubtopicSection({
           <span className="flex items-center gap-2 min-w-0">
             <BookMarked className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-teal-600" />
             <span className="font-medium text-slate-800 truncate">{topicLabel}</span>
-            <Badge variant="outline" className="text-[10px] font-normal text-slate-500 border-slate-200">
+            <Badge variant="outline" className="text-micro font-normal text-slate-500 border-slate-200">
               Topic
             </Badge>
           </span>

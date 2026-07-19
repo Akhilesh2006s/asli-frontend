@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import Navigation from '@/components/navigation';
+import StudentShell from "@/components/layout/StudentShell";
 import { 
   Clock, 
   CheckCircle, 
@@ -211,19 +211,17 @@ export default function QuizPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-sky-50">
-        <Navigation />
+      <StudentShell>
         <div className="container mx-auto px-4 py-4 sm:py-6 lg:py-8 max-w-4xl">
           <Skeleton className="h-64 w-full" />
         </div>
-      </div>
+      </StudentShell>
     );
   }
 
   if (!quiz) {
     return (
-      <div className="min-h-screen bg-sky-50">
-        <Navigation />
+      <StudentShell>
         <div className="container mx-auto px-4 py-4 sm:py-6 lg:py-8 max-w-4xl">
           <Card>
             <CardContent className="p-4 sm:p-6 lg:p-8 text-center">
@@ -234,7 +232,7 @@ export default function QuizPage() {
             </CardContent>
           </Card>
         </div>
-      </div>
+      </StudentShell>
     );
   }
 
@@ -243,8 +241,7 @@ export default function QuizPage() {
   const progress = ((currentQuestionIndex + 1) / quiz.questions.length) * 100;
 
   return (
-    <div className="min-h-screen bg-sky-50">
-      <Navigation />
+    <StudentShell>
       <div className="container mx-auto px-4 py-4 sm:py-6 lg:py-8 max-w-4xl">
         {/* Quiz Header */}
         <Card className="mb-6">
@@ -400,7 +397,7 @@ export default function QuizPage() {
           </div>
         )}
       </div>
-    </div>
+    </StudentShell>
   );
 }
 

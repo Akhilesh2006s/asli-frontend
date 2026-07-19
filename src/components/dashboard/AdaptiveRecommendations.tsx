@@ -298,7 +298,7 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
                 : 'Attempt exams so we can infer weak chapters and topics, then map them to notes, videos, quizzes, and papers in your class library.'}
             </p>
             {!reasonMessage && (analyzed > 0 || libraryItems > 0) ? (
-              <p className="text-[11px] text-gray-400 mt-2">
+              <p className="text-mini text-gray-400 mt-2">
                 Analyzed {analyzed} exam attempt{analyzed === 1 ? '' : 's'} · {libraryItems} library
                 item{libraryItems === 1 ? '' : 's'} loaded
               </p>
@@ -337,7 +337,7 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
                       <span>Weak topics: {rec.weakTopicCount}</span>
                       <Badge
                         variant="outline"
-                        className={`text-[10px] uppercase tracking-wide ${priorityBadgeClass(rec.priority)}`}
+                        className={`text-micro uppercase tracking-wide ${priorityBadgeClass(rec.priority)}`}
                       >
                         Priority: {rec.priority}
                       </Badge>
@@ -376,17 +376,17 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
                               <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                                 <span className="truncate w-full text-left">{item.title}</span>
                                 {item.topicHint && item.topicHint !== 'From your library' ? (
-                                  <span className="text-[11px] text-gray-500 truncate w-full text-left">
+                                  <span className="text-mini text-gray-500 truncate w-full text-left">
                                     Focus: {item.topicHint}
                                   </span>
                                 ) : null}
                               </div>
                               <Badge
-                                className={`shrink-0 text-[10px] font-semibold ${typeBadgeClass(item.displayType)}`}
+                                className={`shrink-0 text-micro font-semibold ${typeBadgeClass(item.displayType)}`}
                               >
                                 {item.displayType}
                               </Badge>
-                              <span className="shrink-0 text-[10px] font-medium text-purple-700">
+                              <span className="shrink-0 text-micro font-medium text-purple-700">
                                 {actionLabel}
                               </span>
                               {item.navigatePath || item.fileUrl ? (
@@ -402,7 +402,7 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
 
                 {rec.gapsWithoutContent?.length > 0 ? (
                   <div className="mt-4 rounded-lg border border-amber-100 bg-amber-50/80 px-3 py-2 text-xs text-amber-950 space-y-1">
-                    <p className="font-semibold uppercase tracking-wide text-[10px] text-amber-900/90">
+                    <p className="font-semibold uppercase tracking-wide text-micro text-amber-900/90">
                       No matching library items
                     </p>
                     {rec.gapsWithoutContent.slice(0, 6).map((topic) => (

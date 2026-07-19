@@ -1199,7 +1199,7 @@ export default function SuperAdminAiGenerator() {
                 })}
               </div>
               {extraSubTopics.length > 0 && (
-                <p className="mt-1 text-[11px] text-slate-400">
+                <p className="mt-1 text-mini text-slate-400">
                   One combined paper covering {extraSubTopics.length + 1} subtopics.
                 </p>
               )}
@@ -1403,13 +1403,13 @@ export default function SuperAdminAiGenerator() {
                     </>
                   ) : null}
                 </p>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-mini text-slate-500">
                   Model: {lastBatchSummary.cost.model}
                   {lastBatchSummary.boardUsed ? ` · Board: ${lastBatchSummary.boardUsed}` : ""}
                   {lastBatchSummary.cost.pricingNote ? ` · ${lastBatchSummary.cost.pricingNote}` : ""}
                 </p>
                 {lastBatchSummary.cost.model.includes("mixed") ? (
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-mini text-slate-500">
                     Pricing model: {lastBatchSummary.cost.model}
                   </p>
                 ) : null}
@@ -1636,17 +1636,17 @@ export default function SuperAdminAiGenerator() {
                                                                   {row.createdAt ? new Date(row.createdAt).toLocaleString() : "-"}
                                                                 </p>
                                                                 {row.generationVariant ? (
-                                                                  <Badge variant="outline" className="text-[10px] h-5 border-orange-200 text-orange-800 bg-orange-50">
+                                                                  <Badge variant="outline" className="text-micro h-5 border-orange-200 text-orange-800 bg-orange-50">
                                                                     Variant {row.generationVariant}
                                                                   </Badge>
                                                                 ) : null}
                                                                 {row.variantAngle ? (
-                                                                  <span className="text-[10px] text-slate-500 max-w-[220px] truncate" title={row.variantAngle}>
+                                                                  <span className="text-micro text-slate-500 max-w-[220px] truncate" title={row.variantAngle}>
                                                                     {row.variantAngle}
                                                                   </span>
                                                                 ) : null}
                                                                 {row.metadata?.cost?.inr != null && Number(row.metadata.cost.inr) > 0 ? (
-                                                                  <Badge variant="outline" className="text-[10px] h-5 border-emerald-200 text-emerald-800 bg-emerald-50">
+                                                                  <Badge variant="outline" className="text-micro h-5 border-emerald-200 text-emerald-800 bg-emerald-50">
                                                                     {formatCostInr(Number(row.metadata.cost.inr))}
                                                                   </Badge>
                                                                 ) : null}
