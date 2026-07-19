@@ -29,7 +29,7 @@ import {
   resolveIsAsliPrepExclusive,
   resolveSchoolIitCategories,
 } from '@/lib/school-program';
-import { IIT_CATEGORIES, formatIitCategoryLabel, normalizeIitCategory } from '@/lib/products';
+import { formatIitCategoryLabel, normalizeIitCategory } from '@/lib/products';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatAiToolText } from '@/lib/title-case';
@@ -360,6 +360,7 @@ export default function TeacherToolPage() {
     formParams.subject || formParams.subjects,
     formParams.topic,
     selectedBoard,
+    formParams.productCategory === 'NONE' ? '' : formParams.productCategory || undefined,
   );
 
   const availableSubjects = (() => {
@@ -903,7 +904,7 @@ export default function TeacherToolPage() {
         duration: formParams.duration ? parseInt(formParams.duration) : undefined,
         ...formParams,
         subTopic: selectedSubTopic,
-        productCategory: productCategory || undefined,
+        productCategory: productCategory || '',
         questionComposition,
         board: selectedBoard,
         gradeLevel: selectedClass,
@@ -1651,8 +1652,15 @@ export default function TeacherToolPage() {
                         onValueChange={(value) => {
                           if (field.isCascadeSubtopic && value === WHOLE_CHAPTER_VALUE) {
                             handleInputChange(field.name, '');
-                          } else if (field.name === 'productCategory' && value === 'NONE') {
-                            handleInputChange(field.name, '');
+                          } else if (field.name === 'productCategory') {
+                            const next = value === 'NONE' ? '' : value;
+                            handleInputChange(field.name, next);
+                            // Reset class → subject → topic cascade when track changes
+                            handleInputChange('gradeLevel', '');
+                            handleInputChange('subject', '');
+                            handleInputChange('subjects', '');
+                            handleInputChange('topic', '');
+                            handleInputChange('subTopic', '');
                           } else {
                             handleInputChange(field.name, value);
                           }
@@ -1709,8 +1717,7 @@ export default function TeacherToolPage() {
                                   ? 'Whole chapter'
                                   : option === 'NONE'
                                     ? 'General'
-                                    : field.name === 'productCategory' &&
-                                        (IIT_CATEGORIES as readonly string[]).includes(option)
+                                    : field.name === 'productCategory'
                                       ? `IIT ${formatIitCategoryLabel(option)}`
                                       : option}
                               </SelectItem>

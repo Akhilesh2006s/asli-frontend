@@ -27,7 +27,8 @@ import { API_BASE_URL } from "@/lib/api-config";
 import { useToast } from "@/hooks/use-toast";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
 import { cn } from "@/lib/utils";
-import { IIT_CATEGORIES, formatIitCategoryLabel, normalizeIitCategory } from "@/lib/products";
+import { formatIitCategoryLabel, normalizeIitCategory } from "@/lib/products";
+import { useProductCategories } from "@/hooks/use-product-categories";
 
 type BookRow = {
   _id: string;
@@ -65,6 +66,7 @@ type ImportableContentRow = {
 
 export default function BookKnowledgeBase() {
   const { toast } = useToast();
+  const { codes: iitCategoryCodes, labelMap: iitLabelMap } = useProductCategories();
   const [books, setBooks] = useState<BookRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -101,7 +103,13 @@ export default function BookKnowledgeBase() {
     loadingSubjects,
     loadingTopics,
     loadingSubtopics,
-  } = useCurriculumCascade(classLabel || undefined, subject || undefined, topic || undefined, board || undefined);
+  } = useCurriculumCascade(
+    classLabel || undefined,
+    subject || undefined,
+    topic || undefined,
+    board || undefined,
+    productCategory,
+  );
 
   const authHeaders = (): Record<string, string> => {
     const token =
@@ -635,9 +643,9 @@ export default function BookKnowledgeBase() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="NONE">General (no IIT track)</SelectItem>
-                {IIT_CATEGORIES.map((c) => (
+                {iitCategoryCodes.map((c) => (
                   <SelectItem key={c} value={c}>
-                    IIT {formatIitCategoryLabel(c)}
+                    IIT {formatIitCategoryLabel(c, iitLabelMap)}
                   </SelectItem>
                 ))}
               </SelectContent>

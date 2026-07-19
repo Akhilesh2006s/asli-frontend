@@ -10,14 +10,18 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from '@/hooks/use-toast';
 import { Edit, Plus, Search, Trash2, X } from 'lucide-react';
 import { notifyCurriculumTaxonomyChanged } from '@/lib/curriculum-taxonomy-refresh';
+import { formatIitCategoryLabel } from '@/lib/products';
 
 const NATURAL_COLLATOR = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
+const GENERAL_CATEGORY = '';
 
 type Board = { code: string; name: string };
+type ProductCategoryOption = { code: string; label: string };
 type TopicHierarchyTree = Record<string, Record<string, Record<string, string[]>>>;
 type TopicRow = {
   _id: string;
   board: string;
+  productCategory?: string;
   classLabel: string;
   subject: string;
   label: string;
@@ -28,6 +32,7 @@ type TopicRow = {
 
 const defaultForm = {
   board: '',
+  productCategory: GENERAL_CATEGORY,
   classLabel: '',
   subject: '',
   label: '',
@@ -87,6 +92,8 @@ export default function AiToolTopicsManagement() {
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
   const [selectedBoard, setSelectedBoard] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [categoryOptions, setCategoryOptions] = useState<ProductCategoryOption[]>([]);
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedTopic, setSelectedTopic] = useState('');
@@ -112,11 +119,12 @@ export default function AiToolTopicsManagement() {
   const [dialogSubjectOptions, setDialogSubjectOptions] = useState<string[]>([]);
 
   const reloadData = async () => {
-    await Promise.all([fetchRows(), loadBoards(), loadBoardHierarchy(selectedBoard)]);
+    await Promise.all([fetchRows(), loadBoards(), loadBoardHierarchy(selectedBoard, selectedCategory)]);
   };
 
   const prefillFromSelection = () => ({
     board: selectedBoard || '',
+    productCategory: selectedCategory ?? GENERAL_CATEGORY,
     classLabel: selectedClass || '',
     subject: selectedSubject || '',
     label: '',
@@ -182,6 +190,7 @@ export default function AiToolTopicsManagement() {
       const params = new URLSearchParams({ page: '1', limit: '200' });
       if (search.trim()) params.set('search', search.trim());
       if (selectedBoard) params.set('board', selectedBoard);
+      if (selectedCategory !== null) params.set('productCategory', selectedCategory);
       if (selectedClass) params.set('classLabel', selectedClass);
       if (selectedSubject) params.set('subject', selectedSubject);
       if (selectedTopic) params.set('topicName', selectedTopic);
@@ -219,14 +228,19 @@ export default function AiToolTopicsManagement() {
     }
   };
 
-  const loadBoardHierarchy = async (board: string) => {
+  const loadBoardHierarchy = async (board: string, productCategory: string | null) => {
     if (!board) {
       setHierarchyTree(null);
+      setCategoryOptions([]);
       return;
     }
     try {
+      const params = new URLSearchParams({ board });
+      if (productCategory !== null) {
+        params.set('productCategory', productCategory);
+      }
       const response = await fetch(
-        `${API_BASE_URL}/api/super-admin/ai-tool-topics/hierarchy?${new URLSearchParams({ board }).toString()}`,
+        `${API_BASE_URL}/api/super-admin/ai-tool-topics/hierarchy?${params.toString()}`,
         { headers: authHeaders() },
       );
       if (!response.ok) {
@@ -234,7 +248,14 @@ export default function AiToolTopicsManagement() {
         return;
       }
       const json = await response.json();
-      setHierarchyTree(json?.data?.tree || {});
+      const cats: ProductCategoryOption[] = Array.isArray(json?.data?.productCategories)
+        ? json.data.productCategories.map((c: any) => ({
+            code: String(c.code ?? ''),
+            label: String(c.label || formatIitCategoryLabel(c.code) || 'General'),
+          }))
+        : [{ code: '', label: 'General' }];
+      setCategoryOptions(cats.length ? cats : [{ code: '', label: 'General' }]);
+      setHierarchyTree(productCategory !== null ? json?.data?.tree || {} : null);
     } catch {
       setHierarchyTree(null);
     }
@@ -260,23 +281,31 @@ export default function AiToolTopicsManagement() {
     return hierarchyTree[selectedClass]?.[selectedSubject]?.[selectedTopic] || [];
   }, [hierarchyTree, selectedClass, selectedSubject, selectedTopic]);
 
-  const fetchDialogOptions = async (boardValue: string, classLabelValue: string) => {
+  const fetchDialogOptions = async (
+    boardValue: string,
+    productCategoryValue: string,
+    classLabelValue: string,
+  ) => {
     try {
       const baseUrl = `${API_BASE_URL}/api/super-admin/ai-tool-topics/options`;
-      const classesQuery = boardValue
-        ? `?${new URLSearchParams({ board: boardValue }).toString()}`
-        : '';
-      const subjectsQuery =
-        boardValue && classLabelValue
-          ? `?${new URLSearchParams({ board: boardValue, classLabel: classLabelValue }).toString()}`
-          : '';
+      const classesParams = new URLSearchParams();
+      if (boardValue) {
+        classesParams.set('board', boardValue);
+        classesParams.set('productCategory', productCategoryValue || '');
+      }
+      const subjectsParams = new URLSearchParams(classesParams);
+      if (classLabelValue) subjectsParams.set('classLabel', classLabelValue);
 
       const [classesRes, subjectsRes] = await Promise.all([
-        fetch(`${baseUrl}${classesQuery}`, { headers: authHeaders() }),
-        subjectsQuery ? fetch(`${baseUrl}${subjectsQuery}`, { headers: authHeaders() }) : Promise.resolve(null),
+        boardValue
+          ? fetch(`${baseUrl}?${classesParams.toString()}`, { headers: authHeaders() })
+          : Promise.resolve(null),
+        boardValue && classLabelValue
+          ? fetch(`${baseUrl}?${subjectsParams.toString()}`, { headers: authHeaders() })
+          : Promise.resolve(null),
       ]);
 
-      if (classesRes.ok) {
+      if (classesRes?.ok) {
         const classesJson = await classesRes.json();
         setDialogClassOptions(sortNatural(classesJson?.data?.classes || []));
       } else {
@@ -301,14 +330,14 @@ export default function AiToolTopicsManagement() {
 
   useEffect(() => {
     if (!isDialogOpen) return;
-    void fetchDialogOptions(form.board, form.classLabel);
+    void fetchDialogOptions(form.board, form.productCategory || '', form.classLabel);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDialogOpen, form.board, form.classLabel]);
+  }, [isDialogOpen, form.board, form.productCategory, form.classLabel]);
 
   useEffect(() => {
     fetchRows();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, selectedBoard, selectedClass, selectedSubject, selectedTopic, selectedSubTopic]);
+  }, [search, selectedBoard, selectedCategory, selectedClass, selectedSubject, selectedTopic, selectedSubTopic]);
 
   useEffect(() => {
     void loadBoards();
@@ -316,14 +345,19 @@ export default function AiToolTopicsManagement() {
   }, []);
 
   useEffect(() => {
-    void loadBoardHierarchy(selectedBoard);
+    void loadBoardHierarchy(selectedBoard, selectedCategory);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedBoard]);
+  }, [selectedBoard, selectedCategory]);
 
   useEffect(() => {
     if (selectedBoard || availableBoards.length === 0) return;
     setSelectedBoard(availableBoards[0]);
   }, [availableBoards, selectedBoard]);
+
+  useEffect(() => {
+    if (!selectedBoard || selectedCategory !== null) return;
+    setSelectedCategory(GENERAL_CATEGORY);
+  }, [selectedBoard, selectedCategory]);
 
   const boardTabs = useMemo(() => availableBoards, [availableBoards]);
 
@@ -381,6 +415,7 @@ export default function AiToolTopicsManagement() {
     setLockTopicFields(false);
     setForm({
       board: row.board,
+      productCategory: String(row.productCategory || ''),
       classLabel: normalizedClass || row.classLabel,
       subject: row.subject,
       label: splitTopic.label,
@@ -424,6 +459,7 @@ export default function AiToolTopicsManagement() {
       const method = editingId ? 'PUT' : 'POST';
       const basePayload = {
         board: form.board,
+        productCategory: form.productCategory || '',
         classLabel: normalizeClassLabel(form.classLabel),
         subject: form.subject,
         label: form.label,
@@ -523,6 +559,7 @@ export default function AiToolTopicsManagement() {
     setBulkDeleting(scope);
     try {
       const payload: Record<string, string> = { board: selectedBoard };
+      if (selectedCategory !== null) payload.productCategory = selectedCategory;
       if (selectedClass) payload.classLabel = selectedClass;
       if (scope === 'subject' && selectedSubject) payload.subject = selectedSubject;
       const response = await fetch(`${API_BASE_URL}/api/super-admin/ai-tool-topics/bulk-delete`, {
@@ -555,7 +592,7 @@ export default function AiToolTopicsManagement() {
         <CardHeader>
           <CardTitle>AI Tool Topics Management</CardTitle>
           <CardDescription>
-            Manage Board → Class → Subject → Topic → Sub Topic hierarchy for AI tools.
+            Manage Board → Product category → Class → Subject → Topic → Sub Topic hierarchy for AI tools.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -603,6 +640,7 @@ export default function AiToolTopicsManagement() {
                     onClick={() => {
                       if (selectedBoard === board) return;
                       setSelectedBoard(board);
+                      setSelectedCategory(GENERAL_CATEGORY);
                       setSelectedClass('');
                       setSelectedSubject('');
                       setSelectedTopic('');
@@ -615,9 +653,52 @@ export default function AiToolTopicsManagement() {
               })}
             </div>
 
+            {selectedBoard ? (
+              <div className="mb-4">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Product category
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {(categoryOptions.length
+                    ? categoryOptions
+                    : [{ code: '', label: 'General' }]
+                  ).map((cat) => {
+                    const isActive = selectedCategory === cat.code;
+                    return (
+                      <Button
+                        key={cat.code || '__general__'}
+                        type="button"
+                        variant="outline"
+                        className={`rounded-full border px-4 py-1.5 text-xs sm:text-sm font-medium transition-all ${
+                          isActive
+                            ? 'border-orange-500 bg-orange-50 text-orange-800 shadow-sm'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-orange-300 hover:bg-orange-50/40'
+                        }`}
+                        onClick={() => {
+                          if (selectedCategory === cat.code) return;
+                          setSelectedCategory(cat.code);
+                          setSelectedClass('');
+                          setSelectedSubject('');
+                          setSelectedTopic('');
+                          setSelectedSubTopic('');
+                        }}
+                      >
+                        {cat.label || formatIitCategoryLabel(cat.code) || 'General'}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
               {[
-                { title: 'Classes', items: hierarchyClasses, selected: selectedClass, disabled: !selectedBoard },
+                {
+                  title: 'Classes',
+                  items: hierarchyClasses,
+                  selected: selectedClass,
+                  disabled: !selectedBoard || selectedCategory === null,
+                },
                 { title: 'Subjects', items: hierarchySubjects, selected: selectedSubject, disabled: !selectedClass },
                 { title: 'Topics', items: hierarchyTopics, selected: selectedTopic, disabled: !selectedSubject },
                 { title: 'Sub Topics', items: hierarchySubTopics, selected: selectedSubTopic, disabled: !selectedTopic },
@@ -717,6 +798,7 @@ export default function AiToolTopicsManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Board</TableHead>
+                  <TableHead>Category</TableHead>
                   <TableHead>Class</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Topic Name</TableHead>
@@ -727,13 +809,13 @@ export default function AiToolTopicsManagement() {
               <TableBody>
                 {!selectedTopic && !search.trim() ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground">
                       Select a topic above to view its sub topics below.
                     </TableCell>
                   </TableRow>
                 ) : visibleRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground">
                       No AI tool topics found.
                     </TableCell>
                   </TableRow>
@@ -741,6 +823,11 @@ export default function AiToolTopicsManagement() {
                   visibleRows.map((row) => (
                     <TableRow key={row._id}>
                       <TableCell>{row.board}</TableCell>
+                      <TableCell>
+                        {row.productCategory
+                          ? formatIitCategoryLabel(row.productCategory)
+                          : 'General'}
+                      </TableCell>
                       <TableCell>{row.classLabel}</TableCell>
                       <TableCell>{row.subject}</TableCell>
                       <TableCell>{buildDisplayTopicName(row.label, row.topicName)}</TableCell>
@@ -793,13 +880,45 @@ export default function AiToolTopicsManagement() {
                   ? 'Add sub-topics one at a time under the selected topic.'
                   : dialogMode === 'edit'
                     ? 'Update this topic mapping.'
-                    : 'Create a topic and add sub-topics one at a time.'}
+                    : 'Pick product category (track), then board / class / subject. Categories hold subjects — not the other way around.'}
               </DialogDescription>
             </DialogHeader>
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2 md:col-span-2">
+              <Label>Product category *</Label>
+              <Select
+                value={form.productCategory || '__general__'}
+                disabled={lockTopicFields}
+                onValueChange={(v) =>
+                  setForm((p) => ({
+                    ...p,
+                    productCategory: v === '__general__' ? '' : v,
+                    classLabel: '',
+                    subject: '',
+                  }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="General" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__general__">General</SelectItem>
+                  {categoryOptions
+                    .filter((c) => c.code)
+                    .map((c) => (
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.label || formatIitCategoryLabel(c.code)}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-slate-500">
+                Category track (Alpha / Beta / …). Subjects and topics sit inside this track.
+              </p>
+            </div>
             <div className="space-y-2">
               <Label>Board</Label>
               <Select

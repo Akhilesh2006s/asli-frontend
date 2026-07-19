@@ -13,7 +13,8 @@ import { UsersIcon, UserPlusIcon, EditIcon, TrashIcon, CrownIcon, GraduationCapI
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
 import { cn } from "@/lib/utils";
-import { IIT_CATEGORIES, formatIitCategoryLabel, normalizeIitCategories } from "@/lib/products";
+import { formatIitCategoryLabel, normalizeIitCategories } from "@/lib/products";
+import { useProductCategories } from "@/hooks/use-product-categories";
 
 /** Visible borders/background on white dialogs (muted/40 was nearly invisible). */
 const SCHOOL_FORM_FIELD_CLASS =
@@ -240,6 +241,7 @@ function curriculumDisplayLabel(code?: string): string {
 
 export default function AdminManagement() {
   const [, setLocation] = useLocation();
+  const { codes: iitCategoryCodes, labelMap: iitLabelMap } = useProductCategories();
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingAdmin, setIsAddingAdmin] = useState(false);
@@ -1352,10 +1354,10 @@ export default function AdminManagement() {
                       <div className="mt-4 border-t border-slate-200 pt-4">
                         <p className="text-xs sm:text-sm font-medium text-gray-800">IIT product tracks</p>
                         <p className="mt-1 text-xs text-gray-600">
-                          Assign which IIT categories this school can access (Alpha, Beta, Gamma). Leave none for curriculum-only Asli Prep content.
+                          Assign which IIT categories this school can access. Leave none for curriculum-only Asli Prep content.
                         </p>
                         <div className="mt-3 flex flex-wrap gap-4">
-                          {IIT_CATEGORIES.map((cat) => {
+                          {iitCategoryCodes.map((cat) => {
                             const checked = newAdmin.iitCategories.includes(cat);
                             return (
                               <label key={cat} className="flex items-center gap-2 text-sm text-slate-800">
@@ -1371,7 +1373,7 @@ export default function AdminManagement() {
                                     }));
                                   }}
                                 />
-                                {formatIitCategoryLabel(cat)}
+                                {formatIitCategoryLabel(cat, iitLabelMap)}
                               </label>
                             );
                           })}
@@ -2041,10 +2043,10 @@ export default function AdminManagement() {
                       <div className="mt-4 border-t border-slate-200 pt-4">
                         <p className="text-xs sm:text-sm font-medium text-gray-800">IIT product tracks</p>
                         <p className="mt-1 text-xs text-gray-600">
-                          Assign which IIT categories this school can access (Alpha, Beta, Gamma).
+                          Assign which IIT categories this school can access.
                         </p>
                         <div className="mt-3 flex flex-wrap gap-4">
-                          {IIT_CATEGORIES.map((cat) => {
+                          {iitCategoryCodes.map((cat) => {
                             const checked = editAdmin.iitCategories.includes(cat);
                             return (
                               <label key={cat} className="flex items-center gap-2 text-sm text-slate-800">
@@ -2060,7 +2062,7 @@ export default function AdminManagement() {
                                     }));
                                   }}
                                 />
-                                {formatIitCategoryLabel(cat)}
+                                {formatIitCategoryLabel(cat, iitLabelMap)}
                               </label>
                             );
                           })}
@@ -2546,7 +2548,7 @@ export default function AdminManagement() {
                           variant="outline"
                           className="border-sky-200 bg-sky-50 text-xs text-sky-950"
                         >
-                          IIT {formatIitCategoryLabel(cat)}
+                          IIT {formatIitCategoryLabel(cat, iitLabelMap)}
                         </Badge>
                       ))}
                       {admin?.state && (

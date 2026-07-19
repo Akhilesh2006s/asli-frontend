@@ -26,10 +26,10 @@ import { getVideoDisplayTitle } from '@/lib/video-chapter-schedule';
 import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 import { useToast } from '@/hooks/use-toast';
 import {
-  IIT_CATEGORIES,
   formatIitCategoryLabel,
   normalizeIitCategory,
 } from '@/lib/products';
+import { useProductCategories } from '@/hooks/use-product-categories';
 import {
   boardsMatch,
   formatClassBoardLabel,
@@ -88,11 +88,13 @@ interface ContentItem {
   type: ContentType;
   board: string;
   stateName?: string;
+  productCategory?: string;
   isActive?: boolean;
   subject: {
     _id: string;
     name: string;
     classNumber?: string;
+    productCategory?: string;
     missingFromCatalog?: boolean;
   };
   classNumber?: string;
@@ -252,9 +254,33 @@ function isCatalogSubjectId(id: string | null, catalog: SubjectItem[]): boolean 
   return catalog.some((s) => String(s._id) === String(id));
 }
 
-/** One sidebar row per subject title + class + board track. */
-function subjectSidebarKey(name: string, classNum: string, board = ''): string {
-  return `${normalizeSubjectDisplayKey(name)}|${classNum}|${normalizeBoardKey(board)}`;
+/** One sidebar row per subject title + class + board + product category track. */
+function subjectSidebarKey(
+  name: string,
+  classNum: string,
+  board = '',
+  productCategory = '',
+): string {
+  const cat = normalizeIitCategory(productCategory) || 'GENERAL';
+  return `${normalizeSubjectDisplayKey(name)}|${classNum}|${normalizeBoardKey(board)}|${cat}`;
+}
+
+function resolveSubjectProductCategory(subj?: { productCategory?: string } | null): string {
+  return normalizeIitCategory(subj?.productCategory) || '';
+}
+
+function resolveContentProductCategory(
+  item: ContentItem,
+  catalog: SubjectItem[],
+): string {
+  const fromItem = normalizeIitCategory(item.productCategory);
+  if (fromItem) return fromItem;
+  const fromNested = normalizeIitCategory(item.subject?.productCategory);
+  if (fromNested) return fromNested;
+  const sid = getContentSubjectId(item);
+  if (!sid) return '';
+  const linked = catalog.find((s) => String(s._id) === String(sid));
+  return resolveSubjectProductCategory(linked);
 }
 
 function contentMatchesClassBoard(
@@ -279,7 +305,12 @@ function catalogSubjectsForSidebarRow(
 ): SubjectItem[] {
   const normClass = normalizeClassNumber(classNum);
   const normBoard = normalizeBoardKey(board);
-  const key = subjectSidebarKey(row.name, normClass, normBoard);
+  const key = subjectSidebarKey(
+    row.name,
+    normClass,
+    normBoard,
+    resolveSubjectProductCategory(row),
+  );
   return catalog.filter((subj) => {
     if (!isActiveCatalogSubject(subj)) return false;
     const subjClass = subj.classNumber
@@ -289,7 +320,14 @@ function catalogSubjectsForSidebarRow(
     if (normBoard && normalizeBoardKey(subj.board || '') && !boardsMatch(subj.board, normBoard)) {
       return false;
     }
-    return subjectSidebarKey(subj.name, normClass, normBoard) === key;
+    return (
+      subjectSidebarKey(
+        subj.name,
+        normClass,
+        normBoard,
+        resolveSubjectProductCategory(subj),
+      ) === key
+    );
   });
 }
 
@@ -703,6 +741,7 @@ function getStreamingEmbedSrc(url: string): string | null {
 
 export default function SubjectContentManagement() {
   const { toast } = useToast();
+  const { codes: iitCategoryCodes, labelMap: iitLabelMap } = useProductCategories();
 
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
@@ -806,6 +845,8 @@ export default function SubjectContentManagement() {
   }, [subjects, contents]);
 
   const [selectedClassLabel, setSelectedClassLabel] = useState<string | null>(null);
+  /** Product category track (General / Alpha / Beta / …) — subjects live inside a category. */
+  const [selectedProductCategory, setSelectedProductCategory] = useState('');
   /** Classes added manually before any subject exists (unblocks first subject). */
   const [manualClassLabels, setManualClassLabels] = useState<string[]>([]);
 
@@ -846,10 +887,12 @@ export default function SubjectContentManagement() {
     if (!selectedClassNumber) return [];
     const normClass = normalizeClassNumber(selectedClassNumber);
     const normBoard = normalizeBoardKey(selectedBoard);
+    const selectedCat = normalizeIitCategory(selectedProductCategory) || '';
     const map = new Map<string, SubjectItem>();
 
     subjects.forEach((subj) => {
       if (!isActiveCatalogSubject(subj)) return;
+      if ((resolveSubjectProductCategory(subj) || '') !== selectedCat) return;
 
       const subjClass = subj.classNumber
         ? normalizeClassNumber(subj.classNumber)
@@ -858,12 +901,18 @@ export default function SubjectContentManagement() {
       if (normBoard && subjBoard && !boardsMatch(subjBoard, normBoard)) return;
       const linkedViaContent = contents.some((item) => {
         if (!contentMatchesClassBoard(item, subjects, normClass, normBoard)) return false;
+        if ((resolveContentProductCategory(item, subjects) || '') !== selectedCat) return false;
         const sid = getContentSubjectId(item);
         return sid != null && String(sid) === String(subj._id);
       });
       if (subjClass === normClass || linkedViaContent) {
         const rowClass = subjClass || normClass;
-        const groupKey = subjectSidebarKey(subj.name, rowClass, normBoard || subjBoard);
+        const groupKey = subjectSidebarKey(
+          subj.name,
+          rowClass,
+          normBoard || subjBoard,
+          resolveSubjectProductCategory(subj),
+        );
         const existing = map.get(groupKey);
         const preferThis =
           !existing ||
@@ -874,6 +923,7 @@ export default function SubjectContentManagement() {
             name: displaySubjectName(subj.name),
             classNumber: rowClass || subj.classNumber,
             board: normBoard || subjBoard || subj.board,
+            productCategory: resolveSubjectProductCategory(subj),
           });
         }
       }
@@ -881,6 +931,7 @@ export default function SubjectContentManagement() {
 
     contents.forEach((item) => {
       if (!contentMatchesClassBoard(item, subjects, normClass, normBoard)) return;
+      if ((resolveContentProductCategory(item, subjects) || '') !== selectedCat) return;
       const sid = getContentSubjectId(item);
       if (sid) {
         const linked = subjects.find((s) => String(s._id) === String(sid));
@@ -890,7 +941,8 @@ export default function SubjectContentManagement() {
         ? displaySubjectName(item.subject.name)
         : inferSubjectLabelFromContent(item);
       const board = item.board || BOARD_CODE;
-      const groupKey = subjectSidebarKey(label, normClass, normBoard || board);
+      const itemCat = resolveContentProductCategory(item, subjects);
+      const groupKey = subjectSidebarKey(label, normClass, normBoard || board, itemCat);
       const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       const idKey =
         sid && isMongoObjectId(sid) && !isInferredSubjectId(sid) ? String(sid) : `inferred-${slug}`;
@@ -904,6 +956,7 @@ export default function SubjectContentManagement() {
           name: label,
           board: normBoard || board,
           classNumber: normClass,
+          productCategory: itemCat,
           isActive: item.isActive,
         });
       } else if (
@@ -919,7 +972,7 @@ export default function SubjectContentManagement() {
     return Array.from(map.values()).sort((a, b) =>
       extractPlainSubjectName(a.name).localeCompare(extractPlainSubjectName(b.name))
     );
-  }, [subjects, selectedClassNumber, selectedBoard, contents]);
+  }, [subjects, selectedClassNumber, selectedBoard, selectedProductCategory, contents]);
 
   // Keep subject selection in sync with the selected class (skip while editing content).
   useEffect(() => {
@@ -958,9 +1011,13 @@ export default function SubjectContentManagement() {
     const selectedPlain = selectedRow
       ? extractPlainSubjectName(selectedRow.name).toLowerCase()
       : '';
+    const selectedCat = normalizeIitCategory(selectedProductCategory) || '';
 
     return (item: ContentItem) => {
       if (!contentMatchesClassBoard(item, subjects, selectedClassNumber, selectedBoard)) {
+        return false;
+      }
+      if ((resolveContentProductCategory(item, subjects) || '') !== selectedCat) {
         return false;
       }
 
@@ -975,14 +1032,25 @@ export default function SubjectContentManagement() {
       ).toLowerCase();
       return selectedPlain !== '' && itemPlain === selectedPlain;
     };
-  }, [contents, selectedSubjectId, selectedClassNumber, selectedBoard, subjects, subjectsForClass]);
+  }, [
+    contents,
+    selectedSubjectId,
+    selectedClassNumber,
+    selectedBoard,
+    selectedProductCategory,
+    subjects,
+    subjectsForClass,
+  ]);
 
   const contentCountForClass = useMemo(() => {
     if (!selectedClassNumber) return 0;
-    return contents.filter((item) =>
-      contentMatchesClassBoard(item, subjects, selectedClassNumber, selectedBoard)
+    const selectedCat = normalizeIitCategory(selectedProductCategory) || '';
+    return contents.filter(
+      (item) =>
+        contentMatchesClassBoard(item, subjects, selectedClassNumber, selectedBoard) &&
+        (resolveContentProductCategory(item, subjects) || '') === selectedCat,
     ).length;
-  }, [contents, selectedClassNumber, selectedBoard, subjects]);
+  }, [contents, selectedClassNumber, selectedBoard, selectedProductCategory, subjects]);
 
   const filteredContents = useMemo(() => {
     if (!selectedSubjectId || !selectedClassNumber) return [];
@@ -1343,7 +1411,7 @@ export default function SubjectContentManagement() {
     setNewSubjectName('');
     setNewSubjectSyllabus('CBSE');
     setNewSubjectStateName('');
-    setNewSubjectProductCategory('');
+    setNewSubjectProductCategory(selectedProductCategory || '');
     setIsAddSubjectOpen(true);
   };
 
@@ -1378,8 +1446,8 @@ export default function SubjectContentManagement() {
       if (newSubjectSyllabus === 'STATE') {
         body.stateName = newSubjectStateName.trim();
       }
-      const cat = normalizeIitCategory(newSubjectProductCategory);
-      if (cat) body.productCategory = cat;
+      const cat = normalizeIitCategory(newSubjectProductCategory) || '';
+      body.productCategory = cat;
 
       const response = await fetch(`${API_BASE_URL}/api/super-admin/subjects`, {
         method: 'POST',
@@ -1810,6 +1878,10 @@ export default function SubjectContentManagement() {
         description: contentForm.description?.trim() || undefined,
         fileUrl: normalizedFileUrl,
         classNumber: classForPayload,
+        productCategory:
+          resolveSubjectProductCategory(subj) ||
+          normalizeIitCategory(selectedProductCategory) ||
+          '',
       };
       if (contentForm.thumbnailUrl?.trim()) {
         body.thumbnailUrl = contentForm.thumbnailUrl.trim();
@@ -2042,9 +2114,58 @@ export default function SubjectContentManagement() {
             Subject &amp; Content Management
           </h2>
           <p className="text-gray-600 mt-1">
-            Manage subjects and learning content by class in one place.
+            Product categories (Alpha / Beta / …) hold subjects. Pick a category, then class →
+            subject → content. Same tracks apply to AI tools.
           </p>
         </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+          Product category
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className={`rounded-full border px-4 py-1.5 text-xs sm:text-sm font-medium transition-all ${
+              selectedProductCategory === ''
+                ? 'border-orange-500 bg-orange-50 text-orange-800 shadow-sm'
+                : 'border-slate-200 bg-white text-slate-700 hover:border-orange-300 hover:bg-orange-50/40'
+            }`}
+            onClick={() => {
+              setSelectedProductCategory('');
+              setSelectedSubjectId(null);
+            }}
+          >
+            General
+          </Button>
+          {iitCategoryCodes.map((code) => {
+            const isActive = selectedProductCategory === code;
+            return (
+              <Button
+                key={code}
+                type="button"
+                variant="outline"
+                className={`rounded-full border px-4 py-1.5 text-xs sm:text-sm font-medium transition-all ${
+                  isActive
+                    ? 'border-orange-500 bg-orange-50 text-orange-800 shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-700 hover:border-orange-300 hover:bg-orange-50/40'
+                }`}
+                onClick={() => {
+                  setSelectedProductCategory(code);
+                  setSelectedSubjectId(null);
+                }}
+              >
+                {formatIitCategoryLabel(code, iitLabelMap)}
+              </Button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-xs text-slate-500">
+          Categories are not subjects — they group subjects (e.g. Maths under Beta). Add more
+          under <strong>Products</strong>.
+        </p>
       </div>
 
       <div className="space-y-3 sm:space-y-4 lg:space-y-6">
@@ -2132,7 +2253,11 @@ export default function SubjectContentManagement() {
               <CardTitle>Subjects under Class</CardTitle>
               <p className="text-xs sm:text-sm text-gray-500">
                 {selectedClassLabel
-                  ? `Showing subjects for ${selectedClassLabel}`
+                  ? `Showing subjects for ${selectedClassLabel} · ${
+                      selectedProductCategory
+                        ? `IIT ${formatIitCategoryLabel(selectedProductCategory, iitLabelMap)}`
+                        : 'General'
+                    }`
                   : 'Select a class to see subjects.'}
               </p>
             </div>
@@ -2214,7 +2339,7 @@ export default function SubjectContentManagement() {
                                 variant="outline"
                                 className="border-sky-200 bg-sky-50 text-[10px] font-normal text-sky-900"
                               >
-                                IIT {formatIitCategoryLabel(subj.productCategory)}
+                                IIT {formatIitCategoryLabel(subj.productCategory, iitLabelMap)}
                               </Badge>
                             ) : null}
                           </div>
@@ -2584,8 +2709,8 @@ export default function SubjectContentManagement() {
           <DialogHeader>
             <DialogTitle>Add Subject</DialogTitle>
             <DialogDescription>
-              Create a new subject under the selected class. The class is auto
-              selected.
+              Create a subject inside the selected product category. Categories (Alpha / Beta / …)
+              are tracks — subjects like Maths / Physics live under them.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -2636,7 +2761,7 @@ export default function SubjectContentManagement() {
               </div>
             )}
             <div>
-              <Label>IIT product category (optional)</Label>
+              <Label>Product category</Label>
               <Select
                 value={newSubjectProductCategory || 'NONE'}
                 onValueChange={(v) =>
@@ -2644,19 +2769,20 @@ export default function SubjectContentManagement() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="General (no IIT track)" />
+                  <SelectValue placeholder="General" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="NONE">General (no IIT track)</SelectItem>
-                  {IIT_CATEGORIES.map((c) => (
+                  <SelectItem value="NONE">General</SelectItem>
+                  {iitCategoryCodes.map((c) => (
                     <SelectItem key={c} value={c}>
-                      IIT {formatIitCategoryLabel(c)}
+                      IIT {formatIitCategoryLabel(c, iitLabelMap)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="mt-1 text-xs text-muted-foreground">
-                Use Alpha / Beta / Gamma so Maths can exist once per track without colliding.
+                Same subject name can exist once per category (e.g. Maths in Beta and Maths in
+                Alpha).
               </p>
             </div>
             <div>

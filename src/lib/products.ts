@@ -1,41 +1,49 @@
-/** Mirrors backend/constants/products.js for Super Admin + teacher UI. */
+/** Client helpers for IIT / product categories (built-in + Super Admin custom). */
+
 export const PRODUCT_IIT = 'IIT';
 
+/** Built-in defaults when API has not loaded yet. */
 export const IIT_CATEGORIES = ['ALPHA', 'BETA', 'GAMMA'] as const;
 
-export type IitCategory = (typeof IIT_CATEGORIES)[number];
-
-export const IIT_FUTURE_CATEGORY_SLOT = {
-  id: 'FUTURE',
-  label: 'Future curriculum',
-  enabled: false,
-} as const;
+export type IitCategory = string;
 
 export const PRODUCT_CATEGORY_NONE = '';
 
-export function normalizeIitCategory(value?: string | null): string {
-  if (!value) return PRODUCT_CATEGORY_NONE;
-  const u = String(value).toUpperCase().trim();
-  return (IIT_CATEGORIES as readonly string[]).includes(u) ? u : PRODUCT_CATEGORY_NONE;
+export function normalizeCategoryCode(raw?: string | null): string {
+  return String(raw || '')
+    .toUpperCase()
+    .trim()
+    .replace(/[^A-Z0-9_]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 32);
 }
 
-export function normalizeIitCategories(list?: unknown): IitCategory[] {
+export function normalizeIitCategory(value?: string | null): string {
+  if (!value) return PRODUCT_CATEGORY_NONE;
+  return normalizeCategoryCode(value);
+}
+
+export function normalizeIitCategories(list?: unknown): string[] {
   if (!Array.isArray(list)) return [];
-  const out: IitCategory[] = [];
+  const out: string[] = [];
   const seen = new Set<string>();
   for (const item of list) {
     const c = normalizeIitCategory(String(item ?? ''));
     if (!c || seen.has(c)) continue;
     seen.add(c);
-    out.push(c as IitCategory);
+    out.push(c);
   }
   return out;
 }
 
-export function formatIitCategoryLabel(value?: string | null): string {
+export function formatIitCategoryLabel(value?: string | null, labelMap?: Record<string, string>): string {
   const c = normalizeIitCategory(value);
   if (!c) return 'General';
-  return c.charAt(0) + c.slice(1).toLowerCase();
+  if (labelMap?.[c]) return labelMap[c];
+  return c
+    .split('_')
+    .map((p) => p.charAt(0) + p.slice(1).toLowerCase())
+    .join(' ');
 }
 
 export function schoolCanAccessProductCategory(
@@ -44,18 +52,16 @@ export function schoolCanAccessProductCategory(
 ): boolean {
   const cat = normalizeIitCategory(productCategory);
   if (!cat) return true;
-  return normalizeIitCategories(schoolIitCategories).includes(cat as IitCategory);
+  return normalizeIitCategories(schoolIitCategories).includes(cat);
 }
 
-export function filterByProductCategory<T extends {
-  productCategory?: string | null;
-  subject?: { productCategory?: string | null } | null;
-}>(rows: T[], schoolIitCategories?: string[]): T[] {
-  if (!Array.isArray(rows)) return [];
-  return rows.filter((row) =>
-    schoolCanAccessProductCategory(
-      schoolIitCategories,
-      row.productCategory || row.subject?.productCategory || '',
-    ),
-  );
-}
+export type ProductCategoryRow = {
+  id?: string;
+  code: string;
+  label: string;
+  product?: string;
+  description?: string;
+  isActive?: boolean;
+  isBuiltIn?: boolean;
+  sortOrder?: number;
+};

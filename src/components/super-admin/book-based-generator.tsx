@@ -179,7 +179,13 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     loadingSubjects,
     loadingTopics,
     loadingSubtopics,
-  } = useCurriculumCascade(classNumber || undefined, subject || undefined, topic || undefined, board || undefined);
+  } = useCurriculumCascade(
+    classNumber || undefined,
+    subject || undefined,
+    topic || undefined,
+    board || undefined,
+    undefined,
+  );
 
   const currentTool = useMemo(() => BOOK_BASED_TOOLS.find((t) => t.id === selectedTool), [selectedTool]);
   const subjectsForTool = useMemo(

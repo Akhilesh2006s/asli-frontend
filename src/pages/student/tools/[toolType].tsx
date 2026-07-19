@@ -33,12 +33,14 @@ import {
   parseAiToolClassNumber,
   resolveCurriculumBoardForAiTools,
   resolveIsAsliPrepExclusive,
+  resolveSchoolIitCategories,
   resolveStudentCurriculumGradeLevel,
 } from '@/lib/school-program';
 import {
   useCurriculumCascade,
   normalizeGradeForCurriculum,
 } from '@/hooks/use-curriculum-cascade';
+import { formatIitCategoryLabel } from '@/lib/products';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatAiToolText } from '@/lib/title-case';
@@ -653,6 +655,7 @@ export default function StudentToolPage() {
   const [availableNCERTTopics, setAvailableNCERTTopics] = useState<string[]>([]);
   const [schoolBoardName, setSchoolBoardName] = useState('CBSE');
   const [isAsliPrepExclusive, setIsAsliPrepExclusive] = useState(false);
+  const [schoolIitCategories, setSchoolIitCategories] = useState<string[]>([]);
   const boardOptions = getAiToolBoardOptions(isAsliPrepExclusive, schoolBoardName);
   const selectedBoard = formParams.board || getDefaultAiToolBoard(isAsliPrepExclusive, schoolBoardName);
   const assignedGradeLevel = useMemo(
@@ -672,6 +675,9 @@ export default function StudentToolPage() {
       topic: String(formParams.topic || formParams.chapter || base.topic || ''),
       subtopic: String(formParams.subTopic || base.subtopic || ''),
       board: String(selectedBoard || base.board || ''),
+      productCategory: String(
+        formParams.productCategory === 'NONE' ? '' : formParams.productCategory || base.productCategory || '',
+      ),
     };
   }, [effectiveRawContent, formParams, selectedBoard]);
 
@@ -682,6 +688,7 @@ export default function StudentToolPage() {
     formParams.subject,
     cascadeTopic,
     selectedBoard,
+    formParams.productCategory === 'NONE' ? '' : formParams.productCategory || undefined,
   );
 
   const classSelectOptions = useMemo(() => {
@@ -741,6 +748,28 @@ export default function StudentToolPage() {
     (isStudySchedule ? TOOL_CONFIGS['study-schedule-maker'] : undefined) ||
     (isReadingPractice ? TOOL_CONFIGS['reading-practice-room'] : undefined);
 
+  const effectiveConfig = useMemo(() => {
+    if (!config) return config;
+    if (!schoolIitCategories.length) return config;
+    const hasCategory = config.fields.some((f) => f.name === 'productCategory');
+    if (hasCategory) return config;
+    return {
+      ...config,
+      fields: [
+        ...config.fields.slice(0, 2),
+        {
+          name: 'productCategory',
+          label: 'IIT track (optional)',
+          type: 'select' as const,
+          required: false,
+          options: ['NONE', ...schoolIitCategories],
+          placeholder: 'General',
+        },
+        ...config.fields.slice(2),
+      ],
+    };
+  }, [config, schoolIitCategories]);
+
   // Fetch user data to get assigned class
   useEffect(() => {
     const fetchUser = async () => {
@@ -763,6 +792,7 @@ export default function StudentToolPage() {
           setUser(userData.user);
           const exclusive = resolveIsAsliPrepExclusive(userData.user);
           setIsAsliPrepExclusive(exclusive);
+          setSchoolIitCategories(resolveSchoolIitCategories(userData.user));
           const curriculumBoard = resolveCurriculumBoardForAiTools(userData.user);
           const defaultBoard = getDefaultAiToolBoard(exclusive, curriculumBoard);
           setSchoolBoardName(curriculumBoard);
@@ -1093,6 +1123,8 @@ export default function StudentToolPage() {
           gradeLevel: mapGradeLevelForIitBoard(selectedBoard, formParams.gradeLevel),
           subject: formParams.subject || formParams.subjects,
           topic: mappedTopic,
+          productCategory:
+            formParams.productCategory === 'NONE' ? '' : formParams.productCategory || '',
         };
 
         const response = await fetch(`${API_BASE_URL}/api/student/ai/tool`, {
@@ -1828,7 +1860,7 @@ export default function StudentToolPage() {
                     <strong>Telugu</strong> subjects.
                   </p>
                 ) : null}
-                {config.fields.map((field) => {
+                {(effectiveConfig || config).fields.map((field) => {
                   let fieldOptions = getFieldOptions(field);
                   let isDisabled = !!(field.dependsOn && !formParams[field.dependsOn]);
                   let loadingDropdown = false;
@@ -1837,6 +1869,9 @@ export default function StudentToolPage() {
                     fieldOptions = classSelectOptions;
                     isDisabled = cascade.loadingClasses && classSelectOptions.length === 0;
                     loadingDropdown = cascade.loadingClasses;
+                  } else if (field.name === 'productCategory') {
+                    fieldOptions = field.options || [];
+                    isDisabled = false;
                   } else if (field.name === 'subject' && field.dependsOn === 'gradeLevel') {
                     fieldOptions = subjectsForTool;
                     loadingDropdown = cascade.loadingSubjects;
@@ -1929,8 +1964,24 @@ export default function StudentToolPage() {
                         </div>
                       ) : fieldUsesCurriculumSelect(field) ? (
                         <Select
-                          value={formParams[field.name] || ''}
-                          onValueChange={(value) => handleInputChange(field.name, value)}
+                          value={
+                            field.name === 'productCategory'
+                              ? formParams[field.name] || 'NONE'
+                              : formParams[field.name] || ''
+                          }
+                          onValueChange={(value) => {
+                            if (field.name === 'productCategory') {
+                              handleInputChange(field.name, value === 'NONE' ? '' : value);
+                              handleInputChange('gradeLevel', assignedGradeLevel || '');
+                              handleInputChange('subject', '');
+                              handleInputChange('topic', '');
+                              handleInputChange('chapter', '');
+                              handleInputChange('concept', '');
+                              handleInputChange('subTopic', '');
+                              return;
+                            }
+                            handleInputChange(field.name, value);
+                          }}
                           disabled={isDisabled}
                         >
                           <SelectTrigger>
@@ -1940,7 +1991,11 @@ export default function StudentToolPage() {
                             {optionsForSelect.length > 0 ? (
                               optionsForSelect.map((option) => (
                                 <SelectItem key={option} value={option}>
-                                  {option.charAt(0).toUpperCase() + option.slice(1)}
+                                  {field.name === 'productCategory'
+                                    ? option === 'NONE'
+                                      ? 'General'
+                                      : `IIT ${formatIitCategoryLabel(option)}`
+                                    : option.charAt(0).toUpperCase() + option.slice(1)}
                                 </SelectItem>
                               ))
                             ) : (

@@ -26,6 +26,7 @@ import { networkErrorUserMessage, resilientFetch } from "@/lib/resilient-fetch";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
+import { formatIitCategoryLabel } from "@/lib/products";
 import { GeneratedRecordBody } from "@/components/super-admin/generated-record-body";
 import { AiToolRecordPreviewBody } from "@/components/super-admin/ai-tool-record-preview-body";
 import {
@@ -289,6 +290,10 @@ export default function SuperAdminAiGenerator() {
   /** Records list is filtered only by board; independent of the generate form. */
   const [recordsBoardFilter, setRecordsBoardFilter] = useState("CBSE");
   const [boardOptions, setBoardOptions] = useState<string[]>([]);
+  const [productCategory, setProductCategory] = useState("");
+  const [categoryOptions, setCategoryOptions] = useState<Array<{ code: string; label: string }>>([
+    { code: "", label: "General" },
+  ]);
   const [selectedTool, setSelectedTool] = useState<ToolId | "">("");
   const [classNumber, setClassNumber] = useState("");
   const [subject, setSubject] = useState("");
@@ -345,7 +350,13 @@ export default function SuperAdminAiGenerator() {
     loadingSubjects,
     loadingTopics,
     loadingSubtopics,
-  } = useCurriculumCascade(classNumber || undefined, subject || undefined, topic || undefined, board || undefined);
+  } = useCurriculumCascade(
+    classNumber || undefined,
+    subject || undefined,
+    topic || undefined,
+    board || undefined,
+    productCategory,
+  );
 
   const subjectsForTool = useMemo(
     () => filterSubjectsForAiTool(selectedTool || "", subjects),
@@ -411,6 +422,7 @@ export default function SuperAdminAiGenerator() {
 
   const buildExtraParams = () => {
     const payload: Record<string, any> = {};
+    if (productCategory) payload.productCategory = productCategory;
     if (selectedTool === "worksheet-mcq-generator") {
       payload.questionType = questionType;
       payload.questionCount = Number(questionCount) || 10;
@@ -466,6 +478,36 @@ export default function SuperAdminAiGenerator() {
   };
 
   useEffect(() => {
+    let cancelled = false;
+    const loadCategories = async () => {
+      if (!board) {
+        setCategoryOptions([{ code: "", label: "General" }]);
+        return;
+      }
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/api/super-admin/ai-tool-topics/options?${new URLSearchParams({ board }).toString()}`,
+          { headers: { ...authHeaders() }, credentials: "include" },
+        );
+        const json = await res.json();
+        if (!res.ok || cancelled) return;
+        const rows = Array.isArray(json?.data?.productCategories) ? json.data.productCategories : [];
+        const mapped = rows.map((c: any) => ({
+          code: String(c.code ?? ""),
+          label: String(c.label || formatIitCategoryLabel(c.code) || "General"),
+        }));
+        setCategoryOptions(mapped.length ? mapped : [{ code: "", label: "General" }]);
+      } catch {
+        if (!cancelled) setCategoryOptions([{ code: "", label: "General" }]);
+      }
+    };
+    void loadCategories();
+    return () => {
+      cancelled = true;
+    };
+  }, [board]);
+
+  useEffect(() => {
     void loadRecords();
   }, [recordsBoardFilter]);
 
@@ -478,6 +520,15 @@ export default function SuperAdminAiGenerator() {
 
   const handleBoardChange = (value: string) => {
     setBoard(value);
+    setProductCategory("");
+    setClassNumber("");
+    setSubject("");
+    setTopic("");
+    setSubTopic("");
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setProductCategory(value === "__general__" ? "" : value);
     setClassNumber("");
     setSubject("");
     setTopic("");
@@ -537,6 +588,7 @@ export default function SuperAdminAiGenerator() {
     toolSlug: selectedTool,
     toolName: currentTool?.name || selectedTool,
     board,
+    productCategory,
     className: classNumber,
     subjectName: subject,
     topicName: topic,
@@ -1043,6 +1095,25 @@ export default function SuperAdminAiGenerator() {
               <SelectTrigger><SelectValue placeholder="Select board" /></SelectTrigger>
               <SelectContent>
                 {boardOptions.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Product category</Label>
+            <Select
+              value={productCategory || "__general__"}
+              onValueChange={handleCategoryChange}
+              disabled={!board}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={!board ? "Select board first" : "General"} />
+              </SelectTrigger>
+              <SelectContent>
+                {categoryOptions.map((c) => (
+                  <SelectItem key={c.code || "__general__"} value={c.code || "__general__"}>
+                    {c.label || "General"}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

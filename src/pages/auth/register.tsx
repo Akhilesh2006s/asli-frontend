@@ -21,7 +21,8 @@ import {
   School,
 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
-import { IIT_CATEGORIES, formatIitCategoryLabel } from '@/lib/products';
+import { formatIitCategoryLabel } from '@/lib/products';
+import { useProductCategories } from '@/hooks/use-product-categories';
 import {
   CURRICULUM_BOARD_OPTIONS,
   INDIVIDUAL_CLASS_OPTIONS,
@@ -35,6 +36,7 @@ type RoleType = 'student' | 'teacher';
 
 const Register = () => {
   const [, setLocation] = useLocation();
+  const { codes: iitCategoryCodes, labelMap: iitLabelMap } = useProductCategories();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -363,11 +365,10 @@ const Register = () => {
                   IIT product tracks (optional)
                 </Label>
                 <p className="text-xs text-slate-500">
-                  Alpha / Beta / Gamma — pick the tracks you want access to. Leave empty for general
-                  curriculum only.
+                  Pick the product tracks you want access to. Leave empty for general curriculum only.
                 </p>
                 <div className="mt-2 flex flex-wrap gap-3">
-                  {IIT_CATEGORIES.map((cat) => {
+                  {iitCategoryCodes.map((cat) => {
                     const checked = formData.iitCategories.includes(cat);
                     return (
                       <label
@@ -383,7 +384,7 @@ const Register = () => {
                           checked={checked}
                           onCheckedChange={() => toggleInList('iitCategories', cat)}
                         />
-                        IIT {formatIitCategoryLabel(cat)}
+                        IIT {formatIitCategoryLabel(cat, iitLabelMap)}
                       </label>
                     );
                   })}
