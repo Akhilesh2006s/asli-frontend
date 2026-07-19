@@ -1,4 +1,4 @@
-/** Book-Based AI Generation — all student & teacher curriculum tools (21). */
+/** Book-Based AI Generation — registered curriculum tools (19; retired tools omitted). */
 
 export type BookToolAudience = 'student' | 'teacher';
 
@@ -14,8 +14,6 @@ export const BOOK_BASED_STUDENT_TOOL_IDS = [
   'smart-qa-practice-generator',
   'concept-breakdown-explainer',
   'chapter-summary-creator',
-  'key-points-formula-extractor',
-  'quick-assignment-builder',
   'my-study-decks',
   'mock-test-builder',
   'project-idea-lab',
@@ -41,8 +39,6 @@ export const BOOK_BASED_TOOLS: BookBasedTool[] = [
   { id: 'smart-qa-practice-generator', name: 'Smart Q&A Practice Generator', description: 'Practice Q&A sets using book definitions and examples.', audience: 'student' },
   { id: 'concept-breakdown-explainer', name: 'Concept Breakdown Explainer', description: 'Step-by-step concept breakdown from book passages.', audience: 'student' },
   { id: 'chapter-summary-creator', name: 'Chapter Summary Creator', description: 'Chapter summaries with concepts and recall questions from textbook chunks.', audience: 'student' },
-  { id: 'key-points-formula-extractor', name: 'Key Points Extractor', description: 'Formulae, facts, and keywords from textbook chunks.', audience: 'student' },
-  { id: 'quick-assignment-builder', name: 'Quick Assignment Builder', description: 'Assignments with concept questions grounded in book material.', audience: 'student' },
   { id: 'my-study-decks', name: 'My Study Decks', description: 'Flashcard decks grounded in textbook content.', audience: 'student' },
   { id: 'mock-test-builder', name: 'Mock Test Builder', description: 'Exam-style mock tests from uploaded books.', audience: 'student' },
   { id: 'project-idea-lab', name: 'Project Idea Lab', description: 'Student projects inspired by textbook topics and examples.', audience: 'student' },

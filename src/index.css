@@ -121,44 +121,7 @@
   --icon-lg: 1.625rem;
 }
 
-.dark {
-  --background: #04161c;
-  --foreground: #e8f4f6;
-  --card: rgba(12, 40, 48, 0.88);
-  --card-foreground: #e8f4f6;
-  --popover: #0b2a32;
-  --popover-foreground: #e8f4f6;
-  --primary: #2dd4bf;
-  --primary-foreground: #042f2e;
-  --secondary: rgba(255, 255, 255, 0.08);
-  --secondary-foreground: #e8f4f6;
-  --muted: rgba(255, 255, 255, 0.1);
-  --muted-foreground: rgba(232, 244, 246, 0.65);
-  --accent: #14b8a6;
-  --accent-foreground: #042f2e;
-  --destructive: #f87171;
-  --destructive-foreground: #450a0a;
-  --border: rgba(255, 255, 255, 0.12);
-  --input: rgba(255, 255, 255, 0.06);
-  --ring: #2dd4bf;
-  --sidebar: #031018;
-  --sidebar-background: #031018;
-  --sidebar-foreground: #e8f4f6;
-  --sidebar-primary: #2dd4bf;
-  --sidebar-primary-foreground: #042f2e;
-  --sidebar-accent: rgba(255, 255, 255, 0.08);
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #2dd4bf;
-  --ink: #e8f4f6;
-  --mist: #04161c;
-  --glass: rgba(12, 40, 48, 0.75);
-  --elevated-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
-
-  --shell-backdrop: #010c11;
-  --shell-surface: #04161c;
-  --shell-topbar: rgba(4, 22, 28, 0.92);
-}
+/* Dark-mode tokens removed (P3.35) — product is light-only until a real theme toggle ships. */
 
 @layer components {
   .relative > svg ~ input,

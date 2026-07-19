@@ -93,7 +93,6 @@ import YouTubePlayer from '@/components/youtube-player';
 import DriveViewer from '@/components/drive-viewer';
 import VideoModal from '@/components/video-modal';
 import { API_BASE_URL, apiFetch, isPdfPreviewContent } from '@/lib/api-config';
-import SchoolBrandRow from '@/components/ui/school-brand-row';
 import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 import { buildExamCalendarEntries, buildSchoolEventCalendarEntries } from '@/lib/exam-calendar-entries';
 import { buildTimetableCalendarEntries } from '@/lib/timetable-calendar-entries';
@@ -1896,13 +1895,12 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-blue-700 via-indigo-blue-600 to-violet-600 p-6 shadow-glow-lg sm:p-8 lg:p-10">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-700 via-sky-600 to-cyan-600 p-6 shadow-glow-lg sm:p-8 lg:p-10">
         <div className="pointer-events-none absolute -right-16 -top-28 h-72 w-72 rounded-full bg-white/15 blur-3xl"></div>
-        <div className="pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-sky-300/20 blur-3xl"></div>
+        <div className="pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-amber-200/25 blur-3xl"></div>
             <div className="relative z-10 flex flex-row items-center justify-between gap-3 sm:gap-4">
               {/* Left side - Text content */}
               <div className="flex-1 min-w-0">
-                <SchoolBrandRow user={user} className="mb-4" />
                 <h1 className="mb-3 font-display text-3xl font-extrabold leading-tight !text-white sm:text-4xl lg:text-5xl">
                   Welcome, {getStudentDisplayName(user)}!
                 </h1>
@@ -1914,7 +1912,7 @@ export default function Dashboard() {
 
                 <div className="flex flex-row flex-wrap gap-2 sm:gap-3">
                   <Button
-                    className="h-12 whitespace-nowrap !bg-white px-6 text-base font-bold !text-indigo-blue-700 shadow-lg hover:!bg-white/90"
+                    className="h-12 whitespace-nowrap !bg-white px-6 text-base font-bold !text-teal-800 shadow-lg hover:!bg-white/90"
                     onClick={() => setLocation('/learning-paths')}
                   >
                     Continue Learning
@@ -1934,13 +1932,13 @@ export default function Dashboard() {
               {/* Right side - Vidya image (same row as desktop) */}
               {vidyaEnabled ? (
               <div className="flex-shrink-0">
-                <div className="w-[4.5rem] h-[3.25rem] sm:w-40 sm:h-28 lg:w-44 lg:h-32 relative">
-                  <div className="absolute inset-0 rounded-xl border border-white bg-white/80 p-1 shadow-lg sm:rounded-2xl sm:p-1.5">
+                <div className="relative h-[3.25rem] w-[4.5rem] sm:h-28 sm:w-40 lg:h-32 lg:w-44">
+                  <div className="absolute inset-0 rounded-xl border border-white bg-white/90 p-1 shadow-lg sm:rounded-2xl sm:p-1.5">
                     <img 
-                      src="/Vidya-ai.jpg" 
-                      alt="Vidya AI" 
+                      src="/ROBOT.gif" 
+                      alt="Vidya AI robot buddy" 
                       draggable={false}
-                      className="w-full h-full object-cover object-center rounded-lg sm:rounded-xl"
+                      className="h-full w-full rounded-lg object-contain sm:rounded-xl"
                     />
                   </div>
                 </div>

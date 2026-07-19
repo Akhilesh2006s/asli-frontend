@@ -138,11 +138,8 @@ export default function AITutor() {
       try {
         const token = localStorage.getItem('authToken');
         if (!token) {
-          console.log('No auth token found, using mock data');
-          setUser({ 
-            fullName: "Student", 
-            email: "student@example.com"
-          });
+          console.log('No auth token found');
+          setUser(null);
           setIsLoadingUser(false);
           return;
         }
@@ -480,14 +477,14 @@ export default function AITutor() {
             <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-white/55 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-violet-200/45 blur-3xl" />
 
-            <div className="relative z-[1] grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(200px,280px)]">
-              <div className="min-w-0">
+            <div className="relative z-[1] grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(200px,280px)]">
+              <div className="min-w-0 order-2 lg:order-1">
                 <p className="inline-flex items-center gap-2 rounded-full bg-white/75 px-3 py-1 text-sm font-bold text-indigo-blue-700">
                   <Sparkles className="h-4 w-4" aria-hidden="true" />
                   Hello {getStudentDisplayName(user) || 'there'}!
                 </p>
                 <h1 className="mt-4 font-display text-4xl font-extrabold leading-none tracking-tight text-ink sm:text-5xl lg:text-6xl">
-                  Vidya <span className="text-violet-600">AI</span>
+                  Vidya <span className="text-sky-600">AI</span>
                 </h1>
                 <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
                   Smart revision, practice and study support — all in one place.
@@ -515,13 +512,16 @@ export default function AITutor() {
                 </div>
               </div>
 
-              <div className="flex justify-center lg:justify-end">
+              <div className="order-1 flex justify-center lg:order-2 lg:justify-end lg:pt-1">
                 <div className="relative">
-                  <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-br from-violet-300/40 to-sky-300/40 blur-2xl" aria-hidden="true" />
+                  <div
+                    className="absolute inset-0 rounded-[2rem] bg-gradient-to-br from-sky-300/50 to-amber-200/40 blur-2xl"
+                    aria-hidden="true"
+                  />
                   <img
-                    src="/Vidya-ai.jpg"
-                    alt="Vidya AI assistant"
-                    className="relative h-44 w-44 rounded-[2rem] border-4 border-white object-cover shadow-lg sm:h-52 sm:w-52 lg:h-56 lg:w-56"
+                    src="/ROBOT.gif"
+                    alt="Vidya AI robot buddy"
+                    className="relative h-40 w-40 rounded-[2rem] border-4 border-white bg-gradient-to-br from-sky-50 to-indigo-blue-50 object-contain p-2 shadow-lg sm:h-48 sm:w-48 lg:h-56 lg:w-56"
                   />
                 </div>
               </div>

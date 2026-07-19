@@ -3,6 +3,7 @@ import 'katex/dist/katex.min.css';
 import DOMPurify from 'dompurify';
 
 import { stripMarkdownSyntax } from '@/lib/strip-markdown-syntax';
+import { sanitizeAiHtml } from '@/lib/sanitize-ai-html';
 
 /** Inline Markdown for table cells and line renderer (math only — no bold/italic markers). */
 export function formatInlineMarkdown(t: string): string {
@@ -255,5 +256,5 @@ export function renderMarkdown(text: string): string {
     }
   }
 
-  return html;
+  return sanitizeAiHtml(html);
 }

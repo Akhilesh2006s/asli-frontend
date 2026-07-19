@@ -190,17 +190,25 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     ? endpoint
     : `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : "/" + endpoint}`;
 
-  const token = localStorage.getItem("authToken");
+  // Prefer canonical authToken; fall back to legacy keys once during migration (P2.28).
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("authToken") ||
+        localStorage.getItem("superAdminToken") ||
+        localStorage.getItem("token") ||
+        ""
+      : "";
 
   const headers = {
     "Content-Type": "application/json",
     ...(token && { Authorization: `Bearer ${token}` }),
-    ...(options.headers || {})
+    ...(options.headers || {}),
   };
 
   return fetch(url, {
     ...options,
-    headers
+    headers,
+    credentials: options.credentials ?? "include",
   });
 };
 

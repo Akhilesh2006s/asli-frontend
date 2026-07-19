@@ -208,8 +208,7 @@ const TOOLS: Array<{ id: ToolId; name: string; description: string }> = [
   { id: "concept-breakdown-explainer", name: "Concept Breakdown Explainer", description: "9-section concept breakdown with Indian-context examples and thinking prompts." },
   { id: "smart-qa-practice-generator", name: "Smart Q&A Practice Generator", description: "11-section practice sets with MCQs, sections A–G, and answer key with explanations." },
   { id: "chapter-summary-creator", name: "Chapter Summary Creator", description: "10-section chapter summaries with concepts, revision notes, and recall questions." },
-  { id: "key-points-formula-extractor", name: "Key Points Extractor", description: "10-section key points: concepts, definitions, formulae, keywords, exam points, mnemonics, and one-minute summary." },
-  { id: "quick-assignment-builder", name: "Quick Assignment Builder", description: "11-section assignment: objectives, concept questions, application tasks, rubric, and learning outcomes." },
+  // Retired (not in prompts/registry): key-points-formula-extractor, quick-assignment-builder
 ];
 
 const STUDENT_TOOL_IDS: ToolId[] = [
@@ -217,8 +216,6 @@ const STUDENT_TOOL_IDS: ToolId[] = [
   "smart-qa-practice-generator",
   "concept-breakdown-explainer",
   "chapter-summary-creator",
-  "key-points-formula-extractor",
-  "quick-assignment-builder",
   "my-study-decks",
   "mock-test-builder",
   "project-idea-lab",

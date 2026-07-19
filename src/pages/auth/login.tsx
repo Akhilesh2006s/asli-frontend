@@ -181,7 +181,7 @@ const Login = () => {
   };
 
   const handleForgotPassword = () => {
-    setError('Please contact admin to reset your password.');
+    window.location.href = 'mailto:support@aslilearn.ai?subject=Password%20reset%20request';
   };
 
   return (
@@ -489,6 +489,7 @@ const Login = () => {
                     <button
                       type="button"
                       onClick={handleForgotPassword}
+                      aria-label="Email support to request a password reset"
                       className="text-base font-semibold text-teal-green-700 transition-colors hover:text-teal-green-800"
                     >
                       Forgot password?

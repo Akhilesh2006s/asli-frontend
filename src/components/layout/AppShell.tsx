@@ -233,8 +233,9 @@ export function AppShell({
     });
   }, []);
 
-  // ⌘K / Ctrl+K focuses search
+  // ⌘K / Ctrl+K focuses search when present
   useEffect(() => {
+    if (!onSearch) return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
@@ -243,7 +244,7 @@ export function AppShell({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [onSearch]);
 
   const initials = user.name
     .split(" ")
@@ -342,7 +343,8 @@ export function AppShell({
               </div>
             </div>
 
-            {/* Search — hidden on small screens so the identity block keeps room */}
+            {/* Search — only when a handler is provided */}
+            {onSearch ? (
             <div className="relative ml-4 hidden min-w-0 max-w-md flex-1 xl:block">
               <Search
                 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
@@ -356,13 +358,14 @@ export function AppShell({
                 ref={searchRef}
                 type="search"
                 placeholder="Search anything..."
-                onChange={(e) => onSearch?.(e.target.value)}
+                onChange={(e) => onSearch(e.target.value)}
                 className="w-full rounded-xl border border-border bg-card py-2 pl-9 pr-14 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/30"
               />
               <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 rounded-md border border-border bg-muted px-1.5 py-0.5 text-mini font-medium text-muted-foreground sm:block">
                 ⌘K
               </kbd>
             </div>
+            ) : null}
 
             <div className="ml-auto flex items-center gap-1 sm:gap-2">
               <DropdownMenu>

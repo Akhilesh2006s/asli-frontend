@@ -1,6 +1,7 @@
 import {
   BookOpen,
   CalendarDays,
+  ClipboardList,
   FileText,
   GraduationCap,
   LayoutDashboard,
@@ -8,6 +9,7 @@ import {
   Settings,
   Sparkles,
   User,
+  Users,
   Users2,
   type LucideIcon,
 } from "lucide-react";
@@ -59,27 +61,47 @@ export const studentNav: NavItem[] = [
   { id: "profile", label: "Profile", icon: User, href: "/profile" },
 ];
 
+/**
+ * School admin portal navigation — `?tab=` values match `pages/admin/dashboard.tsx`.
+ */
+export const adminNav: NavItem[] = [
+  { id: "overview", label: "Overview", icon: LayoutDashboard, href: "/admin/dashboard?tab=overview" },
+  { id: "students", label: "Students", icon: Users2, href: "/admin/dashboard?tab=students" },
+  { id: "classes", label: "Classes", icon: GraduationCap, href: "/admin/dashboard?tab=classes" },
+  { id: "teachers", label: "Teachers", icon: Users, href: "/admin/dashboard?tab=teachers" },
+  { id: "subjects", label: "Subjects", icon: BookOpen, href: "/admin/dashboard?tab=subjects" },
+  { id: "exams", label: "Exams", icon: FileText, href: "/admin/dashboard?tab=exams" },
+  { id: "learning-paths", label: "Learning Paths", icon: ClipboardList, href: "/admin/dashboard?tab=learning-paths" },
+  { id: "eduott", label: "EduOTT", icon: MonitorPlay, href: "/admin/dashboard?tab=eduott" },
+  { id: "timetable", label: "Timetable", icon: CalendarDays, href: "/admin/dashboard?tab=timetable" },
+  { id: "calendar", label: "Calendar", icon: CalendarDays, href: "/admin/dashboard?tab=calendar" },
+  { id: "vidya-ai", label: "Vidya AI", icon: Sparkles, href: "/admin/dashboard?tab=vidya-ai" },
+];
+
 /** Maps legacy / internal dashboard tab values onto sidebar nav ids. */
-const TEACHER_TAB_ALIASES: Record<string, string> = {
+const TAB_ALIASES: Record<string, string> = {
   overview: "overview",
   "ai-classes": "overview",
   classes: "classes",
   students: "students",
   "edu-ott": "edu-ott",
-  eduott: "edu-ott",
+  eduott: "eduott",
   "learning-paths": "learning-paths",
   "vidya-ai": "vidya-ai",
   calendar: "calendar",
-  timetable: "calendar",
+  timetable: "timetable",
   settings: "settings",
+  teachers: "teachers",
+  subjects: "subjects",
+  exams: "exams",
 };
 
 /** Resolves the active nav id from a wouter location + search string. */
 export function resolveActiveNavId(pathname: string, search: string, items: NavItem[]): string {
   const tab = new URLSearchParams(search).get("tab");
   if (tab) {
-    const normalized = TEACHER_TAB_ALIASES[tab] || tab;
-    const byTab = items.find((i) => i.id === normalized);
+    const normalized = TAB_ALIASES[tab] || tab;
+    const byTab = items.find((i) => i.id === normalized || i.id === tab);
     if (byTab) return byTab.id;
   }
   // Longest matching base wins, so /student/tools/mock-test-builder beats a
@@ -91,5 +113,9 @@ export function resolveActiveNavId(pathname: string, search: string, items: NavI
     .sort((a, b) => b.base.length - a.base.length)[0];
 
   if (byPath) return byPath.id;
+  // Admin/teacher dashboard base path with no tab → first item
+  if (pathname.includes("/admin/dashboard") || pathname.includes("/teacher/dashboard")) {
+    return items[0]?.id ?? "";
+  }
   return items[0]?.id ?? "";
 }

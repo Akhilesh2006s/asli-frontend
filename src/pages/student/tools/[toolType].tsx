@@ -67,6 +67,7 @@ import {
   isStoryPassageLanguageSubject,
   READING_PRACTICE_TOOL_ID,
 } from '@/lib/ai-tool-subject-rules';
+import { sanitizeAiHtml } from '@/lib/sanitize-ai-html';
 
 /** Radix Select shows a blank label when `value` is not listed in items (e.g. URL-preset or taxonomy drift). */
 function mergeSelectedIntoOptions(options: string[], selected: unknown): string[] {
@@ -333,10 +334,10 @@ const renderMarkdown = (text: string, variant: RenderMarkdownVariant = 'default'
     // Italic (but not if part of bold)
     formatted = formatted.replace(/(?<!\*)\*(?!\*)([^*\n]+?)(?<!\*)\*(?!\*)/g, '<em class="italic">$1</em>');
     
-    return formatted;
+    return sanitizeAiHtml(formatted);
   }
   
-  return html;
+  return sanitizeAiHtml(html);
 };
 
 const CLASS_OPTIONS = ['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'];

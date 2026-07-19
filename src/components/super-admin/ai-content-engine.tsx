@@ -242,8 +242,6 @@ export default function AIContentEngine() {
       { value: "concept-breakdown-explainer", label: "Concept Breakdown Explainer" },
       { value: "smart-qa-practice-generator", label: "Smart Q&A Practice Generator" },
       { value: "chapter-summary-creator", label: "Chapter Summary Creator" },
-      { value: "key-points-formula-extractor", label: "Key Points Extractor" },
-      { value: "quick-assignment-builder", label: "Quick Assignment Builder" },
     ];
     return tools.sort((a, b) => a.label.localeCompare(b.label, "en", { sensitivity: "base" }));
   }, []);

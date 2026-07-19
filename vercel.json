@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "http://165.232.181.99:3001/api/:path*"
+      "destination": "https://api.aslilearn.ai/api/:path*"
     },
     {
       "source": "/(.*)",

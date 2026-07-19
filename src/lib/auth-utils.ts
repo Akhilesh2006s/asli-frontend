@@ -1,9 +1,15 @@
 /**
  * Authentication Utilities
  * Centralized functions for managing authentication state
+ *
+ * Canonical token key: `authToken`. Legacy `superAdminToken` / `token` are
+ * migrated into authToken on read and cleared on logout (P2.28).
  */
 
 import { clearClientCachesOnLogout } from './client-cache-reset';
+
+const AUTH_TOKEN_KEY = 'authToken';
+const LEGACY_TOKEN_KEYS = ['superAdminToken', 'token'] as const;
 
 /**
  * Clears all authentication-related data from localStorage
@@ -11,11 +17,9 @@ import { clearClientCachesOnLogout } from './client-cache-reset';
  */
 export const clearAuthData = () => {
   clearClientCachesOnLogout();
-  // Authentication tokens
-  localStorage.removeItem('authToken');
-  localStorage.removeItem('superAdminToken');
-  
-  // User data
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  for (const k of LEGACY_TOKEN_KEYS) localStorage.removeItem(k);
+
   localStorage.removeItem('user');
   localStorage.removeItem('userRole');
   localStorage.removeItem('userEmail');
@@ -26,20 +30,25 @@ export const clearAuthData = () => {
   } catch {
     /* ignore */
   }
-  
-  // Temporary data (teacher assignments - can be cleared on logout)
+
   localStorage.removeItem('teacherClassAssignments');
-  
-  // Note: We intentionally DON'T clear:
-  // - completed_content_* (user progress should persist across sessions)
-  // - aslilearn_skip_login_intro / aslilearn_app_build_id (browser UX + deploy recovery)
 };
 
 /**
- * Gets the authentication token from localStorage
+ * Gets the authentication token from localStorage (migrates legacy keys).
  */
 export const getAuthToken = (): string | null => {
-  return localStorage.getItem('authToken');
+  const primary = localStorage.getItem(AUTH_TOKEN_KEY);
+  if (primary) return primary;
+  for (const k of LEGACY_TOKEN_KEYS) {
+    const legacy = localStorage.getItem(k);
+    if (legacy) {
+      localStorage.setItem(AUTH_TOKEN_KEY, legacy);
+      localStorage.removeItem(k);
+      return legacy;
+    }
+  }
+  return null;
 };
 
 /**
@@ -69,17 +78,19 @@ export const getUserIdFromAuthToken = (): string | null => {
 };
 
 /**
- * Sets the authentication token in localStorage
+ * Sets the authentication token in localStorage (canonical key only).
+ * Backend also sets an httpOnly cookie for XSS-resistant session use.
  */
 export const setAuthToken = (token: string): void => {
-  localStorage.setItem('authToken', token);
+  localStorage.setItem(AUTH_TOKEN_KEY, token);
+  for (const k of LEGACY_TOKEN_KEYS) localStorage.removeItem(k);
 };
 
 /**
  * Checks if user is authenticated (has a token)
  */
 export const isAuthenticated = (): boolean => {
-  return !!localStorage.getItem('authToken');
+  return !!getAuthToken();
 };
 
 /**
@@ -122,5 +133,3 @@ export function getStudentDisplayName(user: StudentUserLike): string {
   const fromEmail = String(user?.email || '').split('@')[0]?.trim();
   return fromEmail || 'Student';
 }
-
-
