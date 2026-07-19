@@ -67,7 +67,6 @@ export function StudentShell({
       onLogout={handleLogout}
       showUpgrade
       onUpgrade={() => setLocation("/ai-tutor?tool=chat")}
-      notificationCount={3}
     >
       <div className={contentClassName}>{children}</div>
     </AppShell>

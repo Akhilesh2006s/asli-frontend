@@ -103,36 +103,62 @@ export default function StudentRanking() {
             {topThree.map((ranking, idx) => {
               const percentileBadge = getPercentileBadge(ranking.percentile);
               const Icon = idx === 0 ? Crown : idx === 1 ? Medal : Award;
-              const iconColor = idx === 0 ? 'text-amber-500' : idx === 1 ? 'text-slate-500' : 'text-orange-500';
+              const schemes = [
+                {
+                  border: 'border-2 border-amber-300',
+                  iconWrap: 'bg-amber-50 text-amber-600 border border-amber-200',
+                  rank: 'text-amber-700',
+                },
+                {
+                  border: 'border-2 border-slate-300',
+                  iconWrap: 'bg-slate-50 text-slate-600 border border-slate-200',
+                  rank: 'text-slate-700',
+                },
+                {
+                  border: 'border-2 border-orange-300',
+                  iconWrap: 'bg-orange-50 text-orange-600 border border-orange-200',
+                  rank: 'text-orange-700',
+                },
+              ] as const;
+              const scheme = schemes[idx] || schemes[2];
               const att = Number(ranking.attemptNumber) >= 1 ? Number(ranking.attemptNumber) : null;
               return (
-                <Card key={rankingRowKey(ranking, idx)} className="border-0 bg-gradient-to-br from-indigo-500 to-blue-600 text-white shadow-lg">
+                <Card
+                  key={rankingRowKey(ranking, idx)}
+                  className={`bg-white shadow-sm ${scheme.border}`}
+                >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <CardTitle className="text-sm sm:text-base font-semibold leading-snug truncate">
+                        <CardTitle className="truncate text-sm font-semibold leading-snug text-slate-900 sm:text-base">
                           {ranking.examTitle || 'Exam'}
                         </CardTitle>
-                        <p className="text-xs text-white/80 mt-1">
+                        <p className="mt-1 text-xs text-slate-500">
                           {att != null ? `Attempt ${att}` : `Result #${idx + 1}`}
                         </p>
                       </div>
-                      <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${iconColor} bg-white rounded-full p-0.5`} />
+                      <span
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${scheme.iconWrap}`}
+                      >
+                        <Icon className="h-4 w-4" aria-hidden="true" />
+                      </span>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <div className="flex items-end justify-between">
-                      <p className="text-2xl sm:text-3xl font-bold">#{ranking.rank}</p>
-                      <Badge className={`${percentileBadge.color} border-0`}>{percentileBadge.label}</Badge>
+                    <div className="flex items-end justify-between gap-2">
+                      <p className={`text-2xl font-bold sm:text-3xl ${scheme.rank}`}>#{ranking.rank}</p>
+                      <Badge className={`${percentileBadge.color} border-0 shadow-none`}>
+                        {percentileBadge.label}
+                      </Badge>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
-                      <div className="rounded-lg bg-white/15 p-2">
-                        <p className="text-white/80 text-xs">Score</p>
-                        <p className="font-semibold">{ranking.percentage.toFixed(1)}%</p>
+                    <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2 sm:text-sm">
+                      <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
+                        <p className="text-xs text-slate-500">Score</p>
+                        <p className="font-semibold text-slate-800">{ranking.percentage.toFixed(1)}%</p>
                       </div>
-                      <div className="rounded-lg bg-white/15 p-2">
-                        <p className="text-white/80 text-xs">Percentile</p>
-                        <p className="font-semibold">{ranking.percentile}</p>
+                      <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
+                        <p className="text-xs text-slate-500">Percentile</p>
+                        <p className="font-semibold text-slate-800">{ranking.percentile}</p>
                       </div>
                     </div>
                   </CardContent>

@@ -39,8 +39,6 @@ export default function TeacherShellPreview() {
       orgName="Brainfeed High School"
       orgSubtitle="Teacher Portal"
       user={{ name: "Satyaram", role: "Teacher" }}
-      notificationCount={3}
-      messageCount={2}
       showUpgrade
     >
       <div className="mx-auto max-w-[1400px] space-y-6 p-4 sm:p-6">

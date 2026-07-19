@@ -1904,7 +1904,7 @@ export default function Dashboard() {
               <div className="flex-1 min-w-0">
                 <SchoolBrandRow user={user} className="mb-4" />
                 <h1 className="mb-3 font-display text-3xl font-extrabold leading-tight !text-white sm:text-4xl lg:text-5xl">
-                  Welcome back, {getStudentDisplayName(user)}!
+                  Welcome, {getStudentDisplayName(user)}!
                 </h1>
                 <p className="mb-6 max-w-3xl text-lg font-medium leading-relaxed text-white/80 sm:text-xl">
                   {vidyaEnabled

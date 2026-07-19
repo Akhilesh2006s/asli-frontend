@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import {
-  Bell,
   ChevronDown,
   ChevronLeft,
   LogOut,
   type LucideIcon,
-  Mail,
   Menu,
   PanelLeft,
   School,
@@ -40,8 +38,6 @@ export interface AppShellProps {
   orgName: string;
   orgSubtitle?: string;
   orgLogoUrl?: string;
-  notificationCount?: number;
-  messageCount?: number;
   /** Renders the premium upsell block above the sidebar footer. */
   showUpgrade?: boolean;
   onUpgrade?: () => void;
@@ -203,8 +199,6 @@ export function AppShell({
   orgName,
   orgSubtitle,
   orgLogoUrl,
-  notificationCount = 0,
-  messageCount = 0,
   showUpgrade = false,
   onUpgrade,
   onLogout,
@@ -222,6 +216,10 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [logoFailed, setLogoFailed] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setLogoFailed(false);
+  }, [orgLogoUrl]);
 
   const toggleCollapse = useCallback(() => {
     setCollapsed((prev) => {
@@ -321,22 +319,26 @@ export function AppShell({
             </button>
 
             {/* School identity — left of the topbar, matching the design */}
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-indigo-blue-50">
+            <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden pr-2">
+              <span className="relative isolate z-0 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-indigo-blue-50 sm:h-11 sm:w-11">
                 {orgLogoUrl && !logoFailed ? (
                   <img
                     src={orgLogoUrl}
-                    alt=""
+                    alt={`${orgName} logo`}
                     onError={() => setLogoFailed(true)}
-                    className="h-full w-full object-cover"
+                    className="absolute inset-0 h-full w-full object-contain p-0.5"
                   />
                 ) : (
                   <School className="h-5 w-5 text-primary" aria-hidden="true" />
                 )}
               </span>
-              <div className="min-w-0">
-                <p className="truncate font-display text-lg font-bold leading-tight text-ink">{orgName}</p>
-                {orgSubtitle && <p className="truncate text-sm text-muted-foreground">{orgSubtitle}</p>}
+              <div className="relative z-10 min-w-0 flex-1 overflow-hidden">
+                <p className="truncate font-display text-base font-bold leading-tight text-ink sm:text-lg">
+                  {orgName}
+                </p>
+                {orgSubtitle && (
+                  <p className="truncate text-xs text-muted-foreground sm:text-sm">{orgSubtitle}</p>
+                )}
               </div>
             </div>
 
@@ -363,9 +365,6 @@ export function AppShell({
             </div>
 
             <div className="ml-auto flex items-center gap-1 sm:gap-2">
-              <IconBadgeButton label="Messages" count={messageCount} icon={Mail} />
-              <IconBadgeButton label="Notifications" count={notificationCount} icon={Bell} />
-
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
@@ -406,31 +405,6 @@ export function AppShell({
         </div>
       </div>
     </div>
-  );
-}
-
-function IconBadgeButton({
-  label,
-  count,
-  icon: Icon,
-}: {
-  label: string;
-  count: number;
-  icon: LucideIcon;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={count > 0 ? `${label}, ${count} unread` : label}
-      className="relative rounded-xl p-2 text-ink-soft transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <Icon className="h-5 w-5" aria-hidden="true" />
-      {count > 0 && (
-        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-micro font-bold tabular-nums text-destructive-foreground">
-          {count > 9 ? "9+" : count}
-        </span>
-      )}
-    </button>
   );
 }
 

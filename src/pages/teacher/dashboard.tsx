@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { API_BASE_URL } from '@/lib/api-config';
 import SchoolBrandRow from '@/components/ui/school-brand-row';
 import TeacherShell from '@/components/layout/TeacherShell';
@@ -50,7 +50,6 @@ import {
   UserCheck,
   FileText as FileTextIcon,
   X,
-  Video as VideoIcon,
   Filter,
   Radio,
   MessageSquare,
@@ -86,6 +85,7 @@ import { TeacherDashboardSchedule } from '@/components/teacher/TeacherDashboardS
 import TeacherTimetableDashboard from '@/components/teacher/TeacherTimetableDashboard';
 import { ClassCard } from '@/components/teacher/ClassCard';
 import { TeacherWorkDiaryPanel } from '@/components/teacher/TeacherWorkDiaryPanel';
+import { TeacherSettingsPanel } from '@/components/teacher/TeacherSettingsPanel';
 import { useToast } from '@/hooks/use-toast';
 import {
   extractPlainSubjectName,
@@ -236,7 +236,6 @@ const TeacherDashboard = () => {
     | 'vidya-ai'
     | 'learning-paths'
     | 'calendar'
-    | 'reports'
     | 'settings'
   >('ai-classes');
   const [stats, setStats] = useState<TeacherStats>({
@@ -285,10 +284,7 @@ const TeacherDashboard = () => {
     | 'vidya-ai'
     | 'learning-paths'
     | 'calendar'
-    | 'reports'
     | 'settings';
-
-  const mobileNavScrollRef = useRef<HTMLDivElement>(null);
 
   const tabToUrl = (tab: DashboardSubTab): string => {
     switch (tab) {
@@ -320,12 +316,6 @@ const TeacherDashboard = () => {
     }
   }, [setLocation]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined' || window.innerWidth >= 1024) return;
-    const active = mobileNavScrollRef.current?.querySelector('[aria-current="page"]');
-    active?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
-  }, [dashboardSubTab]);
-
   const vidyaChatEnabled = isVidyaEnabledForUser(teacherUser);
   const isIndividualTeacher = Boolean(teacherUser) &&
     !teacherUser?.schoolId &&
@@ -344,107 +334,6 @@ const TeacherDashboard = () => {
         .map((s: any) => String(s?.name || s?.displayName || '').trim())
         .filter(Boolean),
     [teacherSubjects],
-  );
-
-  const tabBtn = (active: boolean) =>
-    cn(
-      'shrink-0 snap-center justify-center whitespace-nowrap lg:flex-1',
-      'h-12 rounded-2xl px-4 text-base font-semibold transition-all duration-200',
-      'border border-transparent shadow-none',
-      active
-        ? 'border-indigo-blue-200 bg-indigo-blue-600 text-white shadow-md shadow-indigo-blue-600/15'
-        : 'text-slate-600 hover:border-slate-200 hover:bg-white hover:text-indigo-blue-700'
-    );
-
-  const dashboardSubTabNav = (
-    <div
-      className="inline-flex shrink-0 flex-nowrap items-center gap-2 pr-2"
-      role="tablist"
-      aria-label="Teacher sections"
-    >
-      {!isIndividualTeacher ? (
-        <Button
-          type="button"
-          variant="ghost"
-          className={tabBtn(dashboardSubTab === 'ai-classes')}
-          onClick={() => selectDashboardSubTab('ai-classes')}
-          aria-current={dashboardSubTab === 'ai-classes' ? 'page' : undefined}
-        >
-          <Sparkles className="mr-2 h-5 w-5 shrink-0" />
-          Overview
-        </Button>
-      ) : null}
-      {!isIndividualTeacher ? (
-        <Button
-          type="button"
-          variant="ghost"
-          className={tabBtn(dashboardSubTab === 'classes')}
-          onClick={() => selectDashboardSubTab('classes')}
-          aria-current={dashboardSubTab === 'classes' ? 'page' : undefined}
-        >
-          <GraduationCap className="mr-2 h-5 w-5 shrink-0" />
-          Classes
-        </Button>
-      ) : null}
-      {!isIndividualTeacher ? (
-        <Button
-          type="button"
-          variant="ghost"
-          className={tabBtn(dashboardSubTab === 'students')}
-          onClick={() => selectDashboardSubTab('students')}
-          aria-current={dashboardSubTab === 'students' ? 'page' : undefined}
-        >
-          <Users className="mr-2 h-5 w-5 shrink-0" />
-          Students
-        </Button>
-      ) : null}
-      {!isIndividualTeacher ? (
-        <Button
-          type="button"
-          variant="ghost"
-          className={tabBtn(dashboardSubTab === 'eduott')}
-          onClick={() => selectDashboardSubTab('eduott')}
-          aria-current={dashboardSubTab === 'eduott' ? 'page' : undefined}
-        >
-          <VideoIcon className="mr-2 h-5 w-5 shrink-0" />
-          EduOTT
-        </Button>
-      ) : null}
-      {!isIndividualTeacher ? (
-        <Button
-          type="button"
-          variant="ghost"
-          className={tabBtn(dashboardSubTab === 'learning-paths')}
-          onClick={() => selectDashboardSubTab('learning-paths')}
-          aria-current={dashboardSubTab === 'learning-paths' ? 'page' : undefined}
-        >
-          <BookOpen className="mr-2 h-5 w-5 shrink-0" />
-          Paths
-        </Button>
-      ) : null}
-      <Button
-        type="button"
-        variant="ghost"
-        className={tabBtn(dashboardSubTab === 'vidya-ai')}
-        onClick={() => selectDashboardSubTab('vidya-ai')}
-        aria-current={dashboardSubTab === 'vidya-ai' ? 'page' : undefined}
-      >
-        <Sparkles className="mr-2 h-5 w-5 shrink-0" />
-        {isIndividualTeacher ? 'AI Studio' : 'Vidya AI'}
-      </Button>
-      {!isIndividualTeacher ? (
-        <Button
-          type="button"
-          variant="ghost"
-          className={tabBtn(dashboardSubTab === 'calendar')}
-          onClick={() => selectDashboardSubTab('calendar')}
-          aria-current={dashboardSubTab === 'calendar' ? 'page' : undefined}
-        >
-          <Calendar className="mr-2 h-5 w-5 shrink-0" />
-          Calendar
-        </Button>
-      ) : null}
-    </div>
   );
 
   useEffect(() => {
@@ -472,10 +361,13 @@ const TeacherDashboard = () => {
       setDashboardSubTab('calendar');
       return;
     }
+    if (tab === 'reports') {
+      setLocation('/teacher/dashboard?tab=students');
+      return;
+    }
     if (
       tab === 'students' ||
       tab === 'vidya-ai' ||
-      tab === 'reports' ||
       tab === 'settings'
     ) {
       setDashboardSubTab(tab);
@@ -617,7 +509,6 @@ const TeacherDashboard = () => {
       'vidya-ai',
       'learning-paths',
       'calendar',
-      'reports',
       'settings',
     ];
     if (savedTab && allowed.includes(savedTab)) {
@@ -2272,7 +2163,7 @@ const TeacherDashboard = () => {
   return (
     <TeacherShell contentClassName="teacher-playful-dashboard">
       {/* Main Content */}
-      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 py-4 pb-28 sm:px-6 sm:py-6 lg:px-8 lg:py-8 lg:pb-8">
+      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 py-4 pb-8 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
         {(() => {
           const pageMeta: Record<string, { title: string; subtitle: string }> = {
             'ai-classes': {
@@ -2303,13 +2194,9 @@ const TeacherDashboard = () => {
               title: 'Calendar',
               subtitle: 'Weekly timetable and day-by-day class schedule.',
             },
-            reports: {
-              title: 'Reports',
-              subtitle: 'Class performance summaries will appear here.',
-            },
             settings: {
               title: 'Settings',
-              subtitle: 'Account and notification preferences for your portal.',
+              subtitle: 'Update your teacher details and reset your password.',
             },
           };
           const meta = pageMeta[dashboardSubTab] || pageMeta['ai-classes'];
@@ -2348,9 +2235,9 @@ const TeacherDashboard = () => {
           );
         })()}
 
-        {/* Dashboard Content — sidebar drives sections; mobile uses bottom bar only */}
+        {/* Dashboard Content — sidebar / hamburger drawer drives sections */}
         <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-              {/* Overview — stats + shortcuts only (no duplicate section nav) */}
+              {/* Overview — stats + shortcuts only */}
               {dashboardSubTab === 'ai-classes' && (
                 <>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -2393,10 +2280,10 @@ const TeacherDashboard = () => {
                   <button
                     key={tab}
                     type="button"
-                    onClick={() => selectDashboardSubTab(tab)}
-                    className="rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-indigo-blue-200 hover:bg-indigo-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-blue-500"
+                    onClick={() => selectDashboardSubTab(tab as DashboardSubTab)}
+                    className="min-h-[5.5rem] rounded-2xl border border-slate-200 bg-white p-4 text-left transition hover:border-indigo-blue-200 hover:bg-indigo-blue-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-blue-500"
                   >
-                    <Icon className="mb-3 h-5 w-5 text-indigo-blue-600" aria-hidden="true" />
+                    <Icon className="mb-2 h-5 w-5 shrink-0 text-indigo-blue-600" aria-hidden="true" />
                     <p className="text-sm font-semibold text-slate-900">{label}</p>
                     <p className="mt-0.5 text-xs text-slate-500">{hint}</p>
                   </button>
@@ -2539,40 +2426,8 @@ const TeacherDashboard = () => {
                 </>
               )}
 
-              {/* Reports placeholder */}
-              {dashboardSubTab === 'reports' && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center sm:p-12">
-                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-blue-50 text-indigo-blue-600">
-                    <BarChart3 className="h-7 w-7" />
-                  </div>
-                  <h2 className="font-display text-xl font-bold text-slate-900">Reports coming soon</h2>
-                  <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">
-                    Class averages, attendance trends, and exportable summaries will live here. Use Track Progress under Students for now.
-                  </p>
-                  <Button
-                    className="mt-6 bg-indigo-blue-600 text-white hover:bg-indigo-blue-700"
-                    onClick={() => {
-                      selectDashboardSubTab('students');
-                      setStudentsSubTab('track-progress');
-                    }}
-                  >
-                    Open Track Progress
-                  </Button>
-                </div>
-              )}
-
-              {/* Settings placeholder */}
-              {dashboardSubTab === 'settings' && (
-                <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center sm:p-12">
-                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
-                    <Wrench className="h-7 w-7" />
-                  </div>
-                  <h2 className="font-display text-xl font-bold text-slate-900">Settings</h2>
-                  <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">
-                    Profile and notification controls are managed from your account menu in the top bar. Dedicated portal settings will expand here.
-                  </p>
-                </div>
-              )}
+              {/* Settings — teacher details + password */}
+              {dashboardSubTab === 'settings' && <TeacherSettingsPanel />}
 
               {/* Learning Paths opens /learning-paths (same UI as student) */}
 
@@ -2813,16 +2668,34 @@ const TeacherDashboard = () => {
 
               {/* My Students Tab */}
               {dashboardSubTab === 'students' && (
-                <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+                <div className="relative overflow-hidden rounded-3xl border border-indigo-blue-100/70 bg-gradient-to-br from-sky-100 via-indigo-blue-50 to-violet-100 p-4 shadow-sm sm:p-5 lg:p-6">
+                  <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/50 blur-3xl" aria-hidden="true" />
+                  <div className="pointer-events-none absolute -bottom-20 left-1/4 h-48 w-48 rounded-full bg-violet-200/35 blur-3xl" aria-hidden="true" />
+
+                  <div className="relative z-[1] space-y-4 sm:space-y-6">
+                    <div className="max-w-2xl">
+                      <p className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-indigo-blue-700">
+                        <Users className="h-3.5 w-3.5" aria-hidden="true" />
+                        Students
+                      </p>
+                      <h2 className="mt-3 font-display text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+                        Know every learner.
+                        <span className="text-violet-600"> Guide every step.</span>
+                      </h2>
+                      <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
+                        Roster, progress, homework submissions, and daily diary for your classes.
+                      </p>
+                    </div>
+
                   {/* Students Sub-Tabs — section filters only (not a second site nav) */}
-                  <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+                  <div className="rounded-2xl border border-white/80 bg-white/90 p-2 shadow-sm backdrop-blur-sm">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <Button
                         variant={studentsSubTab === 'list' ? 'default' : 'ghost'}
                         className={
                           studentsSubTab === 'list'
                             ? 'bg-indigo-blue-600 text-white hover:bg-indigo-blue-700'
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                            : 'text-slate-600 hover:bg-white hover:text-slate-900'
                         }
                         onClick={() => setStudentsSubTab('list')}
                       >
@@ -2834,7 +2707,7 @@ const TeacherDashboard = () => {
                         className={
                           studentsSubTab === 'track-progress'
                             ? 'bg-indigo-blue-600 text-white hover:bg-indigo-blue-700'
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                            : 'text-slate-600 hover:bg-white hover:text-slate-900'
                         }
                         onClick={() => setStudentsSubTab('track-progress')}
                       >
@@ -2846,7 +2719,7 @@ const TeacherDashboard = () => {
                         className={
                           studentsSubTab === 'submissions'
                             ? 'bg-indigo-blue-600 text-white hover:bg-indigo-blue-700'
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                            : 'text-slate-600 hover:bg-white hover:text-slate-900'
                         }
                         onClick={() => setStudentsSubTab('submissions')}
                       >
@@ -2858,7 +2731,7 @@ const TeacherDashboard = () => {
                         className={
                           studentsSubTab === 'daily'
                             ? 'bg-indigo-blue-600 text-white hover:bg-indigo-blue-700'
-                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                            : 'text-slate-600 hover:bg-white hover:text-slate-900'
                         }
                         onClick={() => setStudentsSubTab('daily')}
                       >
@@ -2872,19 +2745,19 @@ const TeacherDashboard = () => {
                   {studentsSubTab === 'list' && (
                     <>
                       {/* Search Bar */}
-                      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm backdrop-blur-sm">
                         <div className="relative">
-                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-indigo-blue-500" />
                           <Input
                             placeholder="Search students by name, email, or phone..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full rounded-xl border-slate-200 bg-white pl-10 text-slate-900"
+                            className="w-full rounded-xl border-indigo-blue-100 bg-white pl-10 text-slate-900"
                           />
                         </div>
                       </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+                  <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm backdrop-blur-sm sm:p-6">
                     <div className="overflow-x-auto">
                       <table className="w-full">
                         <thead>
@@ -2981,14 +2854,10 @@ const TeacherDashboard = () => {
                                         )}
                                       </div>
                                     ) : (
-                                      <div>
-                                        <span className="text-xs sm:text-sm text-gray-400">No progress data</span>
-                                        {perf.totalExams === 0 && (
-                                          <p className="text-xs text-gray-400 mt-1">No exams taken</p>
-                                        )}
-                                        {perf.learningProgress === 0 && (
-                                          <p className="text-xs text-gray-400 mt-1">No content completed</p>
-                                        )}
+                                      <div className="max-w-[14rem] rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-violet-50/80 px-3 py-2.5">
+                                        <p className="text-xs font-semibold text-indigo-700">No progress yet</p>
+                                        <p className="mt-0.5 text-xs text-slate-500">No exams taken</p>
+                                        <p className="text-xs text-slate-500">No content completed</p>
                                       </div>
                                     )}
                                   </td>
@@ -4005,6 +3874,7 @@ const TeacherDashboard = () => {
 
                   {studentsSubTab === 'daily' && <TeacherWorkDiaryPanel />}
 
+                  </div>
                 </div>
               )}
 
@@ -4379,30 +4249,9 @@ const TeacherDashboard = () => {
       {vidyaChatEnabled ? (
       <VidyaAIFloatingAssistant
         role="teacher"
-        className="max-lg:bottom-24"
         onClick={() => selectDashboardSubTab('vidya-ai')}
       />
       ) : null}
-
-      {/* Mobile / tablet — fixed bottom tab bar (horizontal swipe scroll) */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 pointer-events-none px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="pointer-events-auto relative w-full min-w-0 max-w-full rounded-3xl border border-slate-200 bg-white/95 px-2.5 pb-1.5 pt-2.5 shadow-elevated backdrop-blur-xl">
-          <div
-            className="pointer-events-none absolute inset-y-2.5 left-2.5 z-10 w-5 bg-gradient-to-r from-white to-transparent"
-            aria-hidden="true"
-          />
-          <div
-            className="pointer-events-none absolute inset-y-2.5 right-2.5 z-10 w-5 bg-gradient-to-l from-indigo-blue-600 to-transparent"
-            aria-hidden="true"
-          />
-          <div
-            ref={mobileNavScrollRef}
-            className="teacher-dashboard-nav-scroll w-full min-w-0 overflow-x-auto overflow-y-hidden overscroll-x-contain [-webkit-overflow-scrolling:touch] scroll-smooth snap-x snap-mandatory scroll-px-2"
-          >
-            {dashboardSubTabNav}
-          </div>
-        </div>
-      </div>
 
       </div>
     </TeacherShell>

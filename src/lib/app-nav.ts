@@ -1,7 +1,6 @@
 import {
   BookOpen,
   CalendarDays,
-  BarChart3,
   FileText,
   GraduationCap,
   LayoutDashboard,
@@ -39,7 +38,6 @@ export const teacherNav: NavItem[] = [
   // NOTE: /teacher/timetable is currently a redirect back to the dashboard,
   // so Calendar points at a tab until a real calendar page exists.
   { id: "calendar", label: "Calendar", icon: CalendarDays, href: "/teacher/dashboard?tab=calendar" },
-  { id: "reports", label: "Reports", icon: BarChart3, href: "/teacher/dashboard?tab=reports" },
   { id: "settings", label: "Settings", icon: Settings, href: "/teacher/dashboard?tab=settings" },
 ];
 
@@ -73,7 +71,6 @@ const TEACHER_TAB_ALIASES: Record<string, string> = {
   "vidya-ai": "vidya-ai",
   calendar: "calendar",
   timetable: "calendar",
-  reports: "reports",
   settings: "settings",
 };
 

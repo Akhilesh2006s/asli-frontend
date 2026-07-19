@@ -342,24 +342,24 @@ const AdminDashboard = () => {
                   <Menu className="w-3 h-3 sm:w-4 sm:h-4" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="admin-sidebar w-[300px] border-r border-slate-200 bg-white p-0">
-                <div className="p-responsive">
-                  <div className="flex items-center space-x-responsive mb-responsive">
-                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                      <span className="text-white font-bold text-responsive-lg">AS</span>
+              <SheetContent side="left" className="admin-sidebar w-[min(18rem,88vw)] border-r border-slate-200 bg-white p-0">
+                <div className="flex h-full flex-col p-4">
+                  <div className="mb-5 flex items-center gap-3 border-b border-slate-100 pb-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600">
+                      <span className="text-base font-bold text-white">AS</span>
                     </div>
                     <div>
-                      <h1 className="text-responsive-lg font-bold text-white">ASLILEARN AI</h1>
-                      <p className="text-responsive-xs text-white/90 font-medium">Admin Panel</p>
+                      <h1 className="text-lg font-bold text-slate-900">ASLILEARN AI</h1>
+                      <p className="text-xs font-medium text-slate-500">Admin Panel</p>
                     </div>
                   </div>
-                  <nav className="space-y-1">
+                  <nav className="flex-1 space-y-1 overflow-y-auto">
                     <button
                       onClick={() => handleMobileTabChange('overview')}
                       className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'overview' 
-                          ? 'bg-teal-green-400 text-ink shadow-glow' 
-                          : 'text-white/90 hover:bg-white/10'
+                          ? 'bg-indigo-600 text-white shadow-md' 
+                          : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
                       }`}
                     >
                       <BarChart3 className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -370,8 +370,8 @@ const AdminDashboard = () => {
                       onClick={() => handleMobileTabChange('students')}
                       className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'students' 
-                          ? 'bg-teal-green-400 text-ink shadow-glow' 
-                          : 'text-white/90 hover:bg-white/10'
+                          ? 'bg-indigo-600 text-white shadow-md' 
+                          : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
                       }`}
                     >
                       <Users className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -382,8 +382,8 @@ const AdminDashboard = () => {
                       onClick={() => handleMobileTabChange('classes')}
                       className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'classes' 
-                          ? 'bg-teal-green-400 text-ink shadow-glow' 
-                          : 'text-white/90 hover:bg-white/10'
+                          ? 'bg-indigo-600 text-white shadow-md' 
+                          : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
                       }`}
                     >
                       <GraduationCap className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -394,8 +394,8 @@ const AdminDashboard = () => {
                       onClick={() => handleMobileTabChange('teachers')}
                       className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'teachers' 
-                          ? 'bg-teal-green-400 text-ink shadow-glow' 
-                          : 'text-white/90 hover:bg-white/10'
+                          ? 'bg-indigo-600 text-white shadow-md' 
+                          : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
                       }`}
                     >
                       <Users className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -406,8 +406,8 @@ const AdminDashboard = () => {
                       onClick={() => handleMobileTabChange('subjects')}
                       className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'subjects' 
-                          ? 'bg-teal-green-400 text-ink shadow-glow' 
-                          : 'text-white/90 hover:bg-white/10'
+                          ? 'bg-indigo-600 text-white shadow-md' 
+                          : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
                       }`}
                     >
                       <BookOpen className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -418,8 +418,8 @@ const AdminDashboard = () => {
                       onClick={() => handleMobileTabChange('exams')}
                       className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'exams' 
-                          ? 'bg-teal-green-400 text-ink shadow-glow' 
-                          : 'text-white/90 hover:bg-white/10'
+                          ? 'bg-indigo-600 text-white shadow-md' 
+                          : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
                       }`}
                     >
                       <FileText className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -430,8 +430,8 @@ const AdminDashboard = () => {
                       onClick={() => handleMobileTabChange('learning-paths')}
                       className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'learning-paths' 
-                          ? 'bg-teal-green-400 text-ink shadow-glow' 
-                          : 'text-white/90 hover:bg-white/10'
+                          ? 'bg-indigo-600 text-white shadow-md' 
+                          : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
                       }`}
                     >
                       <Target className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -442,8 +442,8 @@ const AdminDashboard = () => {
                       onClick={() => handleMobileTabChange('eduott')}
                       className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'eduott' 
-                          ? 'bg-teal-green-400 text-ink shadow-glow' 
-                          : 'text-white/90 hover:bg-white/10'
+                          ? 'bg-indigo-600 text-white shadow-md' 
+                          : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
                       }`}
                     >
                       <Play className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -454,8 +454,8 @@ const AdminDashboard = () => {
                       onClick={() => handleMobileTabChange('timetable')}
                       className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'timetable'
-                          ? 'bg-teal-green-400 text-ink shadow-glow'
-                          : 'text-white/90 hover:bg-white/10'
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
                       }`}
                     >
                       <CalendarDays className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -466,8 +466,8 @@ const AdminDashboard = () => {
                       onClick={() => handleMobileTabChange('calendar')}
                       className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'calendar' 
-                          ? 'bg-teal-green-400 text-ink shadow-glow' 
-                          : 'text-white/90 hover:bg-white/10'
+                          ? 'bg-indigo-600 text-white shadow-md' 
+                          : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
                       }`}
                     >
                       <CalendarIcon className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -478,8 +478,8 @@ const AdminDashboard = () => {
                       onClick={() => handleMobileTabChange('vidya-ai')}
                       className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'vidya-ai' 
-                          ? 'bg-teal-green-400 text-ink shadow-glow' 
-                          : 'text-white/90 hover:bg-white/10'
+                          ? 'bg-indigo-600 text-white shadow-md' 
+                          : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
                       }`}
                     >
                       <Sparkles className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -521,10 +521,10 @@ const AdminDashboard = () => {
                           window.location.href = '/signin';
                         }
                       }}
-                      className="w-full flex items-center space-x-responsive px-responsive py-responsive rounded-responsive text-left transition-all duration-200 backdrop-blur-sm text-responsive-sm text-gray-700 hover:bg-red-50 hover:text-red-900"
+                      className="mt-4 flex w-full items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-left text-sm font-semibold text-slate-700 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-700"
                     >
-                      <LogOut className="w-3 h-3 sm:w-4 sm:h-4" />
-                      <span className="font-medium">Logout</span>
+                      <LogOut className="h-5 w-5 shrink-0" />
+                      <span>Logout</span>
                     </button>
                   </nav>
                 </div>
@@ -538,14 +538,14 @@ const AdminDashboard = () => {
       {!isMobile && (
         <div className="admin-sidebar relative z-10 hidden w-[300px] border-r border-slate-200 bg-white shadow-elevated md:sticky md:top-0 md:flex md:h-screen md:flex-col">
         {/* Logo Section */}
-        <div className="p-3 sm:p-4 lg:p-6 border-b border-orange-300/50">
+        <div className="border-b border-slate-100 p-3 sm:p-4 lg:p-6">
           <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center shadow-xl">
-              <span className="text-white font-bold text-lg sm:text-xl">AS</span>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 shadow-md">
+              <span className="text-lg font-bold text-white sm:text-xl">AS</span>
             </div>
             <div>
-              <h1 className="text-lg sm:text-xl font-bold text-white">ASLILEARN AI</h1>
-              <p className="text-xs text-white/90 font-medium">Admin Panel</p>
+              <h1 className="text-lg font-bold text-slate-900 sm:text-xl">ASLILEARN AI</h1>
+              <p className="text-xs font-medium text-slate-500">Admin Panel</p>
             </div>
           </div>
         </div>
@@ -556,8 +556,8 @@ const AdminDashboard = () => {
             onClick={() => setActiveTab('overview')}
             className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
               activeTab === 'overview' 
-                ? 'bg-teal-green-400 text-ink shadow-glow' 
-                : 'text-white/90 hover:bg-white/10'
+                ? 'bg-indigo-600 text-white shadow-md' 
+                : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
             }`}
           >
             <BarChart3 className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -568,8 +568,8 @@ const AdminDashboard = () => {
             onClick={() => setActiveTab('students')}
             className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
               activeTab === 'students' 
-                ? 'bg-teal-green-400 text-ink shadow-glow' 
-                : 'text-white/90 hover:bg-white/10'
+                ? 'bg-indigo-600 text-white shadow-md' 
+                : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
             }`}
           >
             <Users className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -580,8 +580,8 @@ const AdminDashboard = () => {
             onClick={() => setActiveTab('classes')}
             className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
               activeTab === 'classes' 
-                ? 'bg-teal-green-400 text-ink shadow-glow' 
-                : 'text-white/90 hover:bg-white/10'
+                ? 'bg-indigo-600 text-white shadow-md' 
+                : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
             }`}
           >
             <GraduationCap className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -592,8 +592,8 @@ const AdminDashboard = () => {
             onClick={() => setActiveTab('teachers')}
             className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
               activeTab === 'teachers' 
-                ? 'bg-teal-green-400 text-ink shadow-glow' 
-                : 'text-white/90 hover:bg-white/10'
+                ? 'bg-indigo-600 text-white shadow-md' 
+                : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
             }`}
           >
             <Users className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -604,8 +604,8 @@ const AdminDashboard = () => {
             onClick={() => setActiveTab('subjects')}
             className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
               activeTab === 'subjects' 
-                ? 'bg-teal-green-400 text-ink shadow-glow' 
-                : 'text-white/90 hover:bg-white/10'
+                ? 'bg-indigo-600 text-white shadow-md' 
+                : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
             }`}
           >
             <BookOpen className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -616,8 +616,8 @@ const AdminDashboard = () => {
             onClick={() => setActiveTab('exams')}
             className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
               activeTab === 'exams' 
-                ? 'bg-teal-green-400 text-ink shadow-glow' 
-                : 'text-white/90 hover:bg-white/10'
+                ? 'bg-indigo-600 text-white shadow-md' 
+                : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
             }`}
           >
             <FileText className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -628,8 +628,8 @@ const AdminDashboard = () => {
             onClick={() => setActiveTab('learning-paths')}
             className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
               activeTab === 'learning-paths' 
-                ? 'bg-teal-green-400 text-ink shadow-glow' 
-                : 'text-white/90 hover:bg-white/10'
+                ? 'bg-indigo-600 text-white shadow-md' 
+                : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
             }`}
           >
             <Target className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -640,8 +640,8 @@ const AdminDashboard = () => {
                       onClick={() => setActiveTab('eduott')}
                       className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'eduott' 
-                          ? 'bg-teal-green-400 text-ink shadow-glow' 
-                          : 'text-white/90 hover:bg-white/10'
+                          ? 'bg-indigo-600 text-white shadow-md' 
+                          : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
                       }`}
                     >
                       <Play className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -652,8 +652,8 @@ const AdminDashboard = () => {
                       onClick={() => setActiveTab('timetable')}
                       className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'timetable'
-                          ? 'bg-teal-green-400 text-ink shadow-glow'
-                          : 'text-white/90 hover:bg-white/10'
+                          ? 'bg-indigo-600 text-white shadow-md'
+                          : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
                       }`}
                     >
                       <CalendarDays className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -664,8 +664,8 @@ const AdminDashboard = () => {
                       onClick={() => setActiveTab('calendar')}
                       className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'calendar' 
-                          ? 'bg-teal-green-400 text-ink shadow-glow' 
-                          : 'text-white/90 hover:bg-white/10'
+                          ? 'bg-indigo-600 text-white shadow-md' 
+                          : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
                       }`}
                     >
                       <CalendarIcon className="mr-3 h-6 w-6 flex-shrink-0" />
@@ -676,8 +676,8 @@ const AdminDashboard = () => {
                       onClick={() => setActiveTab('vidya-ai')}
                       className={`w-full flex items-center px-4 py-3 text-base font-semibold rounded-xl transition-colors whitespace-nowrap ${
                         activeTab === 'vidya-ai' 
-                          ? 'bg-teal-green-400 text-ink shadow-glow' 
-                          : 'text-white/90 hover:bg-white/10'
+                          ? 'bg-indigo-600 text-white shadow-md' 
+                          : 'text-slate-600 hover:bg-indigo-50 hover:text-indigo-700'
                       }`}
                     >
                       <Sparkles className="mr-3 h-6 w-6 flex-shrink-0" />

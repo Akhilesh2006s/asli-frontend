@@ -30,6 +30,8 @@ import { collectVidyaSubjectLabels } from "@/lib/vidya-subjects";
 import { getStudentDisplayName } from "@/lib/auth-utils";
 import { isAiToolVisibleForSubjects } from "@/lib/ai-tool-subject-rules";
 import { isVidyaEnabledForUser } from "@/lib/vidya-access";
+import { vidyaPastelTone } from "@/lib/vidya-pastel-tones";
+import { cn } from "@/lib/utils";
 
 // Mock user ID - in a real app, this would come from authentication
 const MOCK_USER_ID = "user-1";
@@ -470,85 +472,111 @@ export default function AITutor() {
   }
 
   return (
-    <StudentShell>
-      <div>
+    <StudentShell contentClassName="w-full p-0">
+      <div className="min-h-[calc(100dvh-4.5rem)] bg-gradient-to-br from-indigo-blue-100 via-violet-50 to-sky-100 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="mx-auto w-full max-w-7xl">
           {/* Hero */}
-          <div className="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-blue-100 via-violet-50 to-sky-100 p-6 sm:p-8 lg:p-10">
+          <div className="relative mb-6 overflow-hidden rounded-3xl border border-white/70 bg-white/45 p-6 shadow-sm backdrop-blur-sm sm:p-8 lg:p-10">
             <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-white/55 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-violet-200/45 blur-3xl" />
 
-            <div className="relative z-[1]">
-              <p className="inline-flex items-center gap-2 rounded-full bg-white/75 px-3 py-1 text-sm font-bold text-indigo-blue-700">
-                <Sparkles className="h-4 w-4" aria-hidden="true" />
-                Hello {getStudentDisplayName(user) || 'there'}!
-              </p>
-              <h1 className="mt-4 font-display text-4xl font-extrabold leading-none tracking-tight text-ink sm:text-5xl lg:text-6xl">
-                Vidya <span className="text-violet-600">AI</span>
-              </h1>
-              <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
-                Smart revision, practice and study support — all in one place.
-              </p>
+            <div className="relative z-[1] grid items-center gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(200px,280px)]">
+              <div className="min-w-0">
+                <p className="inline-flex items-center gap-2 rounded-full bg-white/75 px-3 py-1 text-sm font-bold text-indigo-blue-700">
+                  <Sparkles className="h-4 w-4" aria-hidden="true" />
+                  Hello {getStudentDisplayName(user) || 'there'}!
+                </p>
+                <h1 className="mt-4 font-display text-4xl font-extrabold leading-none tracking-tight text-ink sm:text-5xl lg:text-6xl">
+                  Vidya <span className="text-violet-600">AI</span>
+                </h1>
+                <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
+                  Smart revision, practice and study support — all in one place.
+                </p>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-3 lg:max-w-3xl">
-                {[
-                  { Icon: Clock, title: 'Save Time', copy: 'Automate revision & notes' },
-                  { Icon: Brain, title: 'Practice Smarter', copy: 'Questions built for you' },
-                  { Icon: TrendingUp, title: 'Better Outcomes', copy: 'Track progress & improve' },
-                ].map(({ Icon, title, copy }) => (
-                  <div
-                    key={title}
-                    className="flex items-start gap-3 rounded-2xl border border-white/80 bg-white/85 px-4 py-3 shadow-sm backdrop-blur"
-                  >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-blue-50 text-indigo-blue-600">
-                      <Icon className="h-[1.15rem] w-[1.15rem]" aria-hidden="true" />
-                    </span>
-                    <span className="leading-tight">
-                      <span className="block text-sm font-bold text-ink">{title}</span>
-                      <span className="block text-sm text-muted-foreground">{copy}</span>
-                    </span>
-                  </div>
-                ))}
+                <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                  {[
+                    { Icon: Clock, title: 'Save Time', copy: 'Automate revision & notes' },
+                    { Icon: Brain, title: 'Practice Smarter', copy: 'Questions built for you' },
+                    { Icon: TrendingUp, title: 'Better Outcomes', copy: 'Track progress & improve' },
+                  ].map(({ Icon, title, copy }) => (
+                    <div
+                      key={title}
+                      className="flex items-start gap-3 rounded-2xl border border-white/80 bg-white/85 px-4 py-3 shadow-sm backdrop-blur"
+                    >
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-blue-50 text-indigo-blue-600">
+                        <Icon className="h-[1.15rem] w-[1.15rem]" aria-hidden="true" />
+                      </span>
+                      <span className="leading-tight">
+                        <span className="block text-sm font-bold text-ink">{title}</span>
+                        <span className="block text-sm text-muted-foreground">{copy}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-center lg:justify-end">
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-br from-violet-300/40 to-sky-300/40 blur-2xl" aria-hidden="true" />
+                  <img
+                    src="/Vidya-ai.jpg"
+                    alt="Vidya AI assistant"
+                    className="relative h-44 w-44 rounded-[2rem] border-4 border-white object-cover shadow-lg sm:h-52 sm:w-52 lg:h-56 lg:w-56"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
           {/* Tools Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
-            {visibleStudentTools.map((tool) => {
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {visibleStudentTools.map((tool, index) => {
               const Icon = tool.icon;
+              const tone = vidyaPastelTone(index);
               return (
                 <button
                   key={tool.id}
                   onClick={() => handleToolClick(tool.id)}
-                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-left min-h-[210px] sm:min-h-[230px]"
+                  className={cn(
+                    'group relative min-h-[210px] overflow-hidden rounded-2xl border p-4 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated sm:min-h-[230px] sm:p-5',
+                    tone.card
+                  )}
                 >
-                  <div className="absolute top-0 right-0 h-24 w-24 rounded-full bg-gradient-to-br from-sky-100 to-teal-100 blur-2xl opacity-70 group-hover:opacity-100 transition-opacity" />
                   <div className="relative z-10">
                     <div className="mb-3 flex items-center justify-between">
-                      <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-r ${tool.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
-                        <Icon className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-white" />
+                      <div
+                        className={cn(
+                          'flex h-12 w-12 items-center justify-center rounded-xl transition-transform group-hover:scale-110 sm:h-14 sm:w-14',
+                          tone.iconBg
+                        )}
+                      >
+                        <Icon
+                          className={cn(
+                            'h-5 w-5 sm:h-6 sm:w-6 lg:h-7 lg:w-7',
+                            tone.iconColor
+                          )}
+                        />
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <span className="rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-mini font-medium text-sky-700">
+                        <span className="rounded-full border border-white/80 bg-white/80 px-2.5 py-1 text-mini font-medium text-slate-700">
                           AI Powered
                         </span>
                         {(tool as any).category && (
-                          <span className="rounded-full bg-slate-50 px-2.5 py-0.5 text-micro font-medium text-slate-600">
+                          <span className="rounded-full bg-white/70 px-2.5 py-0.5 text-micro font-medium text-slate-600">
                             {(tool as any).category}
                           </span>
                         )}
                       </div>
                     </div>
-                    <h3 className="text-sm sm:text-base lg:text-lg font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors leading-snug">
+                    <h3 className="mb-2 text-sm font-bold leading-snug text-gray-900 transition-colors group-hover:text-indigo-700 sm:text-base lg:text-lg">
                       {tool.name}
                     </h3>
-                    <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 min-h-[38px] sm:min-h-[40px]">
+                    <p className="line-clamp-2 min-h-[38px] text-xs text-gray-600 sm:min-h-[40px] sm:text-sm">
                       {tool.description || 'Click to use this AI tool'}
                     </p>
-                    <div className="mt-4 sm:mt-5 flex items-center text-blue-600 opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all">
-                      <span className="text-xs sm:text-sm font-semibold">Get Started</span>
-                      <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 ml-2" />
+                    <div className="mt-4 flex translate-y-1 items-center text-indigo-700 opacity-0 transition-all group-hover:translate-y-0 group-hover:opacity-100 sm:mt-5">
+                      <span className="text-xs font-semibold sm:text-sm">Get Started</span>
+                      <ArrowRight className="ml-2 h-3 w-3 sm:h-4 sm:w-4" />
                     </div>
                   </div>
                 </button>
@@ -557,5 +585,6 @@ export default function AITutor() {
           </div>
         </div>
       </div>
-    </StudentShell>  );
+    </StudentShell>
+  );
 }

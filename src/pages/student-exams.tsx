@@ -41,6 +41,43 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { dedupeStudentExamResults } from '@/lib/dedupe-exam-results';
 import { getUserIdFromAuthToken } from '@/lib/auth-utils';
 
+/** Accent schemes for exam cards — full colored border + tinted meta icons */
+const EXAM_CARD_SCHEMES = [
+  {
+    bg: 'bg-card',
+    text: 'text-ink-soft',
+    badge: 'bg-amber-50 text-amber-700',
+    accent: 'bg-gradient-to-r from-amber-400 to-orange-500',
+    border: 'border-2 border-amber-400',
+    iconClock: 'text-amber-500',
+    iconBook: 'text-orange-500',
+    iconCalendar: 'text-sky-500',
+    iconTarget: 'text-teal-600',
+  },
+  {
+    bg: 'bg-card',
+    text: 'text-ink-soft',
+    badge: 'bg-sky-50 text-sky-700',
+    accent: 'bg-gradient-to-r from-sky-400 to-blue-500',
+    border: 'border-2 border-sky-400',
+    iconClock: 'text-sky-500',
+    iconBook: 'text-blue-500',
+    iconCalendar: 'text-indigo-500',
+    iconTarget: 'text-violet-500',
+  },
+  {
+    bg: 'bg-card',
+    text: 'text-ink-soft',
+    badge: 'bg-teal-50 text-teal-700',
+    accent: 'bg-gradient-to-r from-teal-400 to-emerald-500',
+    border: 'border-2 border-teal-400',
+    iconClock: 'text-teal-500',
+    iconBook: 'text-emerald-500',
+    iconCalendar: 'text-cyan-500',
+    iconTarget: 'text-amber-500',
+  },
+] as const;
+
 type QuestionOption = string | { text: string; isCorrect?: boolean; _id?: string };
 
 interface Question {
@@ -1053,13 +1090,7 @@ export default function StudentExams() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
               {availableActiveExams.map((exam: Exam, index: number) => {
                 const status = getExamStatus(exam);
-                // Randomly assign one of the three dashboard colors
-                const colorSchemes = [
-                  { bg: 'bg-card', text: 'text-ink-soft', badge: 'bg-amber-50 text-amber-700', accent: 'bg-gradient-to-r from-amber-400 to-orange-500' },
-                  { bg: 'bg-card', text: 'text-ink-soft', badge: 'bg-sky-50 text-sky-700', accent: 'bg-gradient-to-r from-sky-400 to-blue-500' },
-                  { bg: 'bg-card', text: 'text-ink-soft', badge: 'bg-teal-50 text-teal-700', accent: 'bg-gradient-to-r from-teal-400 to-emerald-500' }
-                ];
-                const colorScheme = colorSchemes[index % 3];
+                const colorScheme = EXAM_CARD_SCHEMES[index % EXAM_CARD_SCHEMES.length];
                 const classLabels = getExamClassLabelsForStudent(exam, user?.classNumber);
                 const hydratedQuestionCount = Array.isArray(exam.questions) ? exam.questions.length : Number(exam.totalQuestions || 0);
                 
@@ -1067,9 +1098,8 @@ export default function StudentExams() {
                   <Card
                     key={exam._id}
                     id={`adaptive-exam-${exam._id}`}
-                    className={`relative overflow-hidden ${colorScheme.bg} border border-border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated`}
+                    className={`relative overflow-hidden ${colorScheme.bg} ${colorScheme.border} shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated`}
                   >
-                    <span className={`absolute inset-x-0 top-0 h-1.5 ${colorScheme.accent}`} aria-hidden="true" />
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -1103,21 +1133,21 @@ export default function StudentExams() {
                     <CardContent>
                       <div className={`mb-5 space-y-2.5 text-base font-medium ${colorScheme.text}`}>
                         <div className="flex items-center">
-                          <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                          <Clock className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 shrink-0 ${colorScheme.iconClock}`} />
                           <span>{exam.duration} minutes</span>
                         </div>
                         <div className="flex items-center">
-                          <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                          <BookOpen className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 shrink-0 ${colorScheme.iconBook}`} />
                           <span>{hydratedQuestionCount} questions • {exam.totalMarks} marks</span>
                         </div>
                         <div className="flex items-center">
-                          <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                          <Calendar className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 shrink-0 ${colorScheme.iconCalendar}`} />
                           <span className="text-xs">
                             {new Date(exam.startDate).toLocaleDateString()} - {new Date(exam.endDate).toLocaleDateString()}
                           </span>
                         </div>
                         <div className="flex items-center text-xs font-medium">
-                          <Target className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                          <Target className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 shrink-0 ${colorScheme.iconTarget}`} />
                           <span>
                             Attempts: {attemptCountByExamId.get(String(exam._id)) || 0} /{' '}
                             {getMaxAttemptsForExam(exam)}
@@ -1170,12 +1200,7 @@ export default function StudentExams() {
                   subjectFilteredExams.find((e) => String(e._id) === String(examIdStr));
                 const exam = catalogExam || buildFallbackExamFromResult(examIdStr, result);
 
-                const colorSchemes = [
-                  { bg: 'bg-card', text: 'text-ink-soft', badge: 'bg-amber-50 text-amber-700', accent: 'bg-gradient-to-r from-amber-400 to-orange-500' },
-                  { bg: 'bg-card', text: 'text-ink-soft', badge: 'bg-sky-50 text-sky-700', accent: 'bg-gradient-to-r from-sky-400 to-blue-500' },
-                  { bg: 'bg-card', text: 'text-ink-soft', badge: 'bg-teal-50 text-teal-700', accent: 'bg-gradient-to-r from-teal-400 to-emerald-500' }
-                ];
-                const colorScheme = colorSchemes[index % 3];
+                const colorScheme = EXAM_CARD_SCHEMES[index % EXAM_CARD_SCHEMES.length];
                 const classLabelsAttempted = getExamClassLabelsForStudent(exam, user?.classNumber);
                 const attemptHistory = attemptHistoryByExamId.get(examIdStr) || [result];
                 const totalAttempts = attemptHistory.length;
@@ -1190,14 +1215,20 @@ export default function StudentExams() {
                   Number(displayResult.attemptNumber) >= 1 ? Number(displayResult.attemptNumber) : 1;
                 const displayRowId = getExamResultRowId(displayResult);
                 const totalMarksDisplay = displayResult.totalMarks || exam.totalMarks;
+                const performanceBadge =
+                  displayPercentage >= 70
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : displayPercentage >= 50
+                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                      : 'bg-rose-50 text-rose-700 border border-rose-200';
 
                 return (
                   <Card
                     key={examIdStr}
                     id={`calendar-exam-${examIdStr}`}
-                    className={`relative overflow-hidden ${colorScheme.bg} border border-border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated ${
+                    className={`relative overflow-hidden ${colorScheme.bg} ${colorScheme.border} shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated ${
                       calendarFocusExam?.examId === examIdStr && calendarFocusExam.mode === 'ended'
-                        ? 'ring-4 ring-slate-400 ring-offset-2'
+                        ? 'ring-4 ring-slate-300 ring-offset-2'
                         : ''
                     }`}
                   >
@@ -1215,7 +1246,7 @@ export default function StudentExams() {
                             {classLabelsAttempted.map((cl) => (
                               <Badge
                                 key={cl}
-                                className="bg-white/90 text-gray-900 border-0 font-medium"
+                                className="bg-slate-50 text-slate-700 border border-slate-200 font-medium"
                               >
                                 Class {cl}
                               </Badge>
@@ -1227,8 +1258,8 @@ export default function StudentExams() {
                     <CardContent>
                       <div className="space-y-4">
                         {totalAttempts > 1 && (
-                          <div className="space-y-1.5">
-                            <Label className={`text-xs font-semibold ${colorScheme.text}`}>
+                          <div className="space-y-1.5 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+                            <Label className="text-xs font-semibold text-slate-600">
                               View attempt
                             </Label>
                             <Select
@@ -1237,7 +1268,7 @@ export default function StudentExams() {
                                 setSelectedAttemptByExam((prev) => ({ ...prev, [examIdStr]: value }))
                               }
                             >
-                              <SelectTrigger className="bg-white/95 border-white/50 text-gray-900 h-9 text-xs">
+                              <SelectTrigger className="h-9 border-slate-200 bg-white text-xs text-slate-800 shadow-none">
                                 <SelectValue placeholder="Choose attempt" />
                               </SelectTrigger>
                               <SelectContent>
@@ -1255,33 +1286,33 @@ export default function StudentExams() {
                         )}
 
                         {/* Score Display */}
-                        <div className="text-center p-4 bg-white/90 rounded-lg">
-                          <div className="text-2xl sm:text-3xl font-bold text-gray-900">
+                        <div className="rounded-xl border border-slate-100 bg-slate-50/90 p-4 text-center">
+                          <div className="text-2xl sm:text-3xl font-bold text-slate-800">
                             {displayResult.obtainedMarks || 0}
-                            <span className="text-lg sm:text-xl font-semibold text-gray-600">
+                            <span className="text-lg sm:text-xl font-semibold text-slate-500">
                               /{totalMarksDisplay}
                             </span>
                           </div>
-                          <div className="text-xs sm:text-sm text-gray-700 font-medium mt-1">marks</div>
+                          <div className="mt-1 text-xs font-medium text-slate-500 sm:text-sm">marks</div>
                         </div>
 
                         {/* Performance Breakdown */}
-                        <div className={`space-y-2 text-xs sm:text-sm ${colorScheme.text}`}>
-                          <div className="flex items-center justify-between">
+                        <div className="space-y-2 text-xs sm:text-sm">
+                          <div className="flex items-center justify-between rounded-lg bg-emerald-50/70 px-2.5 py-1.5 text-emerald-800">
                             <span>Correct Answers</span>
-                            <span className="font-medium">{displayResult.correctAnswers || 0}</span>
+                            <span className="font-semibold">{displayResult.correctAnswers || 0}</span>
                           </div>
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between rounded-lg bg-rose-50/70 px-2.5 py-1.5 text-rose-800">
                             <span>Wrong Answers</span>
-                            <span className="font-medium">{displayResult.wrongAnswers || 0}</span>
+                            <span className="font-semibold">{displayResult.wrongAnswers || 0}</span>
                           </div>
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between rounded-lg bg-slate-50 px-2.5 py-1.5 text-slate-700">
                             <span>Unattempted</span>
-                            <span className="font-medium">{displayResult.unattempted || 0}</span>
+                            <span className="font-semibold">{displayResult.unattempted || 0}</span>
                           </div>
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between rounded-lg bg-sky-50/70 px-2.5 py-1.5 text-sky-800">
                             <span>Time Taken</span>
-                            <span className="font-medium">
+                            <span className="font-semibold">
                               {displayResult.timeTaken
                                 ? `${Math.floor(displayResult.timeTaken / 60)}m ${displayResult.timeTaken % 60}s`
                                 : 'N/A'}
@@ -1289,13 +1320,9 @@ export default function StudentExams() {
                           </div>
                         </div>
 
-                        {/* Grade Badge */}
+                        {/* Grade Badge — soft tint, not solid bright pills */}
                         <div className="text-center">
-                          <Badge className={
-                            displayPercentage >= 70 ? 'bg-green-600 text-white border-2 border-white/50 shadow-lg font-semibold' :
-                            displayPercentage >= 50 ? 'bg-yellow-600 text-white border-2 border-white/50 shadow-lg font-semibold' :
-                            'bg-red-600 text-white border-2 border-white/50 shadow-lg font-semibold'
-                          }>
+                          <Badge className={`${performanceBadge} px-3 py-1 font-medium shadow-none`}>
                             {displayPercentage >= 70 ? 'Excellent' :
                              displayPercentage >= 50 ? 'Good' : 'Needs Improvement'}
                           </Badge>
@@ -1304,7 +1331,7 @@ export default function StudentExams() {
                         {/* View Details Button */}
                         <Button 
                           variant="outline" 
-                          className="h-12 w-full !bg-primary text-base font-bold !text-primary-foreground shadow-sm transition-colors hover:!bg-indigo-blue-700 disabled:!bg-muted disabled:!text-muted-foreground"
+                          className="h-11 w-full border-slate-200 bg-slate-50 text-base font-semibold text-slate-700 shadow-none hover:bg-slate-100 hover:text-slate-900"
                           onClick={async () => {
                             console.log('📋 Viewing details for exam:', exam.title);
                             console.log('📋 Exam result:', displayResult);
@@ -1399,7 +1426,7 @@ export default function StudentExams() {
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                           }}
                         >
-                          <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                          <Eye className="mr-2 h-4 w-4 text-slate-500" />
                           View Details
                         </Button>
                       </div>
@@ -1429,21 +1456,16 @@ export default function StudentExams() {
           <TabsContent value="upcoming" className="space-y-3 sm:space-y-4 lg:space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
               {subjectFilteredExams.filter((exam: Exam) => getExamStatus(exam).status === 'upcoming').map((exam: Exam, index: number) => {
-                // Randomly assign one of the three dashboard colors
-                const colorSchemes = [
-                  { bg: 'bg-card', text: 'text-ink-soft', badge: 'bg-amber-50 text-amber-700', accent: 'bg-gradient-to-r from-amber-400 to-orange-500' },
-                  { bg: 'bg-card', text: 'text-ink-soft', badge: 'bg-sky-50 text-sky-700', accent: 'bg-gradient-to-r from-sky-400 to-blue-500' },
-                  { bg: 'bg-card', text: 'text-ink-soft', badge: 'bg-teal-50 text-teal-700', accent: 'bg-gradient-to-r from-teal-400 to-emerald-500' }
-                ];
-                const colorScheme = colorSchemes[index % 3];
+                const colorScheme = EXAM_CARD_SCHEMES[index % EXAM_CARD_SCHEMES.length];
                 const classLabelsUpcoming = getExamClassLabelsForStudent(exam, user?.classNumber);
                 const isCalendarFocus =
                   calendarFocusExam?.examId === String(exam._id) && calendarFocusExam.mode === 'upcoming';
                 
                 return (
                   <Card
+                    key={exam._id}
                     id={`calendar-exam-${exam._id}`}
-                    className={`relative overflow-hidden ${colorScheme.bg} border border-border transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated ${
+                    className={`relative overflow-hidden ${colorScheme.bg} ${colorScheme.border} shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated ${
                       isCalendarFocus ? 'ring-4 ring-amber-400 ring-offset-2' : ''
                     }`}
                   >
@@ -1476,21 +1498,21 @@ export default function StudentExams() {
                     <CardContent>
                       <div className={`space-y-2 text-xs sm:text-sm ${colorScheme.text} mb-4`}>
                         <div className="flex items-center">
-                          <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                          <Clock className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 shrink-0 ${colorScheme.iconClock}`} />
                           <span>{exam.duration} minutes</span>
                         </div>
                         <div className="flex items-center">
-                          <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                          <BookOpen className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 shrink-0 ${colorScheme.iconBook}`} />
                           <span>{exam.totalQuestions} questions • {exam.totalMarks} marks</span>
                         </div>
                         <div className="flex items-center">
-                          <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                          <Calendar className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 shrink-0 ${colorScheme.iconCalendar}`} />
                           <span className="text-xs">
                             Starts: {new Date(exam.startDate).toLocaleDateString()}
                           </span>
                         </div>
                         <div className="flex items-center">
-                          <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                          <Calendar className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 shrink-0 ${colorScheme.iconCalendar}`} />
                           <span className="text-xs">
                             Ends: {new Date(exam.endDate).toLocaleDateString()}
                           </span>
