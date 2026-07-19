@@ -6,12 +6,14 @@ import { renumberSectionQuestionLists } from '@/lib/renumber-questions';
 import {
   cleanWorksheetQuestionText,
   filterWorksheetLearningObjectiveLine,
+  isInvalidWorksheetTitle,
   isValidWorksheetQuestionInput,
   isWorksheetHeadingLine,
   isWorksheetPdfChrome,
   sanitizeWorksheetDisplayTitle,
   sanitizeWorksheetOptionLine,
 } from '@/lib/worksheet-question-sanitize';
+import { extractAiToolV2Context } from '@/lib/extract-ai-tool-v2-context';
 
 export type WorksheetQuestion = {
   questionNumber?: number;
@@ -404,6 +406,13 @@ function buildSectionsFromQuestions(questions: WorksheetQuestion[]): WorksheetSe
 
 function expandRawRecord(raw: Record<string, unknown>): Record<string, unknown> {
   const r = { ...raw };
+  const core = r.core;
+  if (core && typeof core === 'object' && !Array.isArray(core)) {
+    const c = core as Record<string, unknown>;
+    r.title = r.title ?? c.title ?? c.worksheetTitle ?? c.worksheet_title;
+    r.learning_objectives = r.learning_objectives ?? c.learningObjectives ?? c.objectives;
+    r.instructions = r.instructions ?? c.instructions ?? c.student_instructions;
+  }
   r.title = r.title ?? r.worksheet_title ?? r.name;
   r.learning_objectives = r.learning_objectives ?? r.learningObjectives ?? r.objectives;
   r.instructions = r.instructions ?? r.student_instructions;
@@ -413,7 +422,21 @@ function expandRawRecord(raw: Record<string, unknown>): Record<string, unknown> 
   return r;
 }
 
-function materializeWorksheet(raw: Record<string, unknown>): NormalizedWorksheet {
+function worksheetTitleFallback(rawContent?: unknown): string {
+  const ctx = extractAiToolV2Context(rawContent);
+  const fromTopic = [ctx.subtopic, ctx.topic].filter(Boolean).join(' — ');
+  return fromTopic || ctx.subject || 'Worksheet';
+}
+
+function resolveWorksheetTitle(
+  candidate: string,
+  rawContent?: unknown,
+): string {
+  const fallback = worksheetTitleFallback(rawContent);
+  return sanitizeWorksheetDisplayTitle(String(candidate || '').trim(), fallback);
+}
+
+function materializeWorksheet(raw: Record<string, unknown>, rawContent?: unknown): NormalizedWorksheet {
   const r = expandRawRecord(raw);
   const sectionMap = new Map<string, WorksheetQuestion[]>();
 
@@ -446,7 +469,7 @@ function materializeWorksheet(raw: Record<string, unknown>): NormalizedWorksheet
       ),
     );
     return {
-      title: sanitizeWorksheetDisplayTitle(String(r.title || r.worksheet_title || 'Worksheet').trim()),
+      title: resolveWorksheetTitle(String(r.title || r.worksheet_title || 'Worksheet').trim(), rawContent),
       learningObjectives: coalesceLines(r.learning_objectives),
       instructions: coalesceText(r.instructions),
       sections,
@@ -521,7 +544,7 @@ function materializeWorksheet(raw: Record<string, unknown>): NormalizedWorksheet
   );
 
   return {
-    title: sanitizeWorksheetDisplayTitle(String(r.title || r.worksheet_title || 'Worksheet').trim()),
+    title: resolveWorksheetTitle(String(r.title || r.worksheet_title || 'Worksheet').trim(), rawContent),
     learningObjectives: coalesceLines(r.learning_objectives),
     instructions: coalesceText(r.instructions),
     sections,
@@ -771,13 +794,33 @@ function splitMarkdownIntoNamedBlocks(markdown: string): Array<{ heading: string
   return blocks;
 }
 
-function parseWorksheetFromMarkdown(text: string): NormalizedWorksheet | null {
+function extractWorksheetTitleFromMarkdown(body: string): string {
+  const titleSection = extractMarkdownSection(body, /worksheet\s+title/i);
+  if (titleSection) {
+    const firstLine = titleSection
+      .split('\n')
+      .map((line) => stripInlineMarkdown(line.trim()))
+      .find(Boolean);
+    if (firstLine && !isInvalidWorksheetTitle(firstLine)) return firstLine;
+  }
+
+  const headingMatches = [...body.matchAll(/^#{1,2}\s+(.+?)(?:\n|$)/gm)];
+  for (const match of headingMatches) {
+    const candidate = String(match[1] || '')
+      .replace(/^\d+\.\s*/, '')
+      .trim();
+    if (candidate && !isInvalidWorksheetTitle(candidate)) return candidate;
+  }
+
+  return '';
+}
+
+function parseWorksheetFromMarkdown(text: string, rawContent?: unknown): NormalizedWorksheet | null {
   const body = String(text || '').trim();
   if (!body) return null;
 
-  let title = 'Worksheet';
-  const h2 = body.match(/^##\s+(.+?)(?:\n|$)/m);
-  if (h2) title = h2[1].replace(/^\d+\.\s*/, '').trim();
+  const extractedTitle = extractWorksheetTitleFromMarkdown(body);
+  const title = resolveWorksheetTitle(extractedTitle || 'Worksheet', rawContent);
 
   const objectivesBlock = extractMarkdownSection(body, /learning\s+objectives?/i);
   const instructionsBlock = extractMarkdownSection(body, /instructions?\s+to\s+students?/i);
@@ -872,12 +915,16 @@ function mergeWorksheetWithMarkdown(
   base: NormalizedWorksheet,
   fromMd: NormalizedWorksheet,
 ): NormalizedWorksheet {
+  const pickTitle = () => {
+    const baseOk = base.title && !isInvalidWorksheetTitle(base.title);
+    const mdOk = fromMd.title && !isInvalidWorksheetTitle(fromMd.title);
+    if (baseOk) return base.title;
+    if (mdOk) return fromMd.title;
+    return base.title || fromMd.title;
+  };
+
   return finalizeNormalizedWorksheet({
-    // Prefer markdown title when base is generic.
-    title:
-      !base.title || /^worksheet$/i.test(base.title.trim())
-        ? fromMd.title || base.title
-        : base.title,
+    title: pickTitle(),
     learningObjectives: fromMd.learningObjectives.length
       ? fromMd.learningObjectives
       : base.learningObjectives,
@@ -963,9 +1010,9 @@ export function resolveWorksheetFromPayload(
 
   let worksheet: NormalizedWorksheet | null = null;
   if (rawRecords.length) {
-    worksheet = materializeWorksheet(rawRecords[0]);
+    worksheet = materializeWorksheet(rawRecords[0], rawContent);
     for (let i = 1; i < rawRecords.length; i++) {
-      const next = materializeWorksheet(rawRecords[i]);
+      const next = materializeWorksheet(rawRecords[i], rawContent);
       if (countWorksheetQuestions(next) > countWorksheetQuestions(worksheet)) {
         worksheet = next;
       }
@@ -976,7 +1023,7 @@ export function resolveWorksheetFromPayload(
     formattedText && !looksLikeJsonText(formattedText) ? formattedText : null;
 
   if (displayMarkdown) {
-    const fromMd = parseWorksheetFromMarkdown(displayMarkdown);
+    const fromMd = parseWorksheetFromMarkdown(displayMarkdown, rawContent);
     if (fromMd) {
       if (!worksheet || !worksheetHasVisibleContent(worksheet)) {
         worksheet = fromMd;
@@ -997,6 +1044,12 @@ export function resolveWorksheetFromPayload(
     if (displayMarkdown) markdownFallback = displayMarkdown;
   } else {
     worksheet = finalizeNormalizedWorksheet(worksheet);
+    if (isInvalidWorksheetTitle(worksheet.title)) {
+      worksheet = {
+        ...worksheet,
+        title: resolveWorksheetTitle('', rawContent),
+      };
+    }
   }
 
   return { worksheet, markdownFallback };

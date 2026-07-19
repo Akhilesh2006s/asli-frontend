@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { formatAiToolText } from '@/lib/title-case';
 import { AI_V2 } from '@/lib/ai-tool-design-tokens';
 
 export type AiToolV2SectionProps = {
@@ -46,6 +47,9 @@ export function AiToolV2Section({
   className,
   printSafe = true,
 }: AiToolV2SectionProps) {
+  const displayTitle = formatAiToolText(title);
+  const displayDescription = description ? formatAiToolText(description) : undefined;
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 10 }}
@@ -74,9 +78,9 @@ export function AiToolV2Section({
             ◆
           </span>
           <div className="min-w-0">
-            <h3 className={AI_V2.typography.sectionTitle}>{title}</h3>
-            {description ? (
-              <p className={cn('mt-0.5', AI_V2.typography.sectionDesc)}>{description}</p>
+            <h3 className={AI_V2.typography.sectionTitle}>{displayTitle}</h3>
+            {displayDescription ? (
+              <p className={cn('mt-0.5', AI_V2.typography.sectionDesc)}>{displayDescription}</p>
             ) : null}
           </div>
         </div>

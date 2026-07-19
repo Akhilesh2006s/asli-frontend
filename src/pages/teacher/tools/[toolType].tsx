@@ -27,9 +27,12 @@ import {
   parseAiToolClassNumber,
   resolveCurriculumBoardForAiTools,
   resolveIsAsliPrepExclusive,
+  resolveSchoolIitCategories,
 } from '@/lib/school-program';
+import { IIT_CATEGORIES, formatIitCategoryLabel, normalizeIitCategory } from '@/lib/products';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { formatAiToolText } from '@/lib/title-case';
 import { motion } from 'framer-motion';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, ExternalHyperlink, InternalHyperlink } from 'docx';
@@ -93,6 +96,21 @@ type CitationItem = {
 
 const CLASS_OPTIONS = ['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'];
 
+const WHOLE_CHAPTER_VALUE = '__WHOLE_CHAPTER__';
+
+const DEFAULT_QUESTION_COUNTS = {
+  countMcq: '5',
+  countVsaq: '3',
+  countSaq: '3',
+  countLaq: '1',
+  countFib: '2',
+};
+
+const CHAPTER_COMPOSITION_TOOLS = new Set([
+  'worksheet-mcq-generator',
+  'exam-question-paper-generator',
+]);
+
 const TOOL_CONFIGS: Record<string, ToolConfig> = {
   'activity-project-generator': {
     name: 'Activity & Project Generator',
@@ -108,14 +126,18 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
   },
   'worksheet-mcq-generator': {
     name: 'Worksheet & MCQ Generator',
-    description: 'Design custom worksheets and MCQs with various question types',
+    description: 'Design Custom Worksheets And MCQs With Various Question Types',
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
-      { name: 'questionType', label: 'Question Type', type: 'select', options: ['Single Option', 'Multiple Option', 'Integer Type', 'All Types'], placeholder: 'All Types (optional)' }
+      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
+      { name: 'countMcq', label: 'MCQs', type: 'number', required: false, placeholder: '5' },
+      { name: 'countVsaq', label: 'VSAQs', type: 'number', required: false, placeholder: '3' },
+      { name: 'countSaq', label: 'SAQs', type: 'number', required: false, placeholder: '3' },
+      { name: 'countLaq', label: 'LAQs', type: 'number', required: false, placeholder: '1' },
+      { name: 'countFib', label: 'Fill in the blanks', type: 'number', required: false, placeholder: '2' },
     ]
   },
   'concept-mastery-helper': {
@@ -207,7 +229,12 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
+      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
+      { name: 'countMcq', label: 'MCQs', type: 'number', required: false, placeholder: '5' },
+      { name: 'countVsaq', label: 'VSAQs', type: 'number', required: false, placeholder: '3' },
+      { name: 'countSaq', label: 'SAQs', type: 'number', required: false, placeholder: '3' },
+      { name: 'countLaq', label: 'LAQs', type: 'number', required: false, placeholder: '1' },
+      { name: 'countFib', label: 'Fill in the blanks', type: 'number', required: false, placeholder: '2' },
     ]
   },
 };
@@ -237,8 +264,31 @@ export default function TeacherToolPage() {
   const [assignedSubjectNames, setAssignedSubjectNames] = useState<string[]>([]);
   const [schoolBoardName, setSchoolBoardName] = useState('CBSE');
   const [isAsliPrepExclusive, setIsAsliPrepExclusive] = useState(false);
+  const [schoolIitCategories, setSchoolIitCategories] = useState<string[]>([]);
   const boardOptions = getAiToolBoardOptions(isAsliPrepExclusive, schoolBoardName);
   const selectedBoard = formParams.board || getDefaultAiToolBoard(isAsliPrepExclusive, schoolBoardName);
+
+  const effectiveConfig = useMemo(() => {
+    if (!config) return config;
+    if (!schoolIitCategories.length) return config;
+    const hasCategory = config.fields.some((f) => f.name === 'productCategory');
+    if (hasCategory) return config;
+    return {
+      ...config,
+      fields: [
+        ...config.fields.slice(0, 2),
+        {
+          name: 'productCategory',
+          label: 'IIT track (optional)',
+          type: 'select' as const,
+          required: false,
+          options: ['NONE', ...schoolIitCategories],
+          placeholder: 'General',
+        },
+        ...config.fields.slice(2),
+      ],
+    };
+  }, [config, schoolIitCategories]);
 
   const viewerContextRaw = useMemo(() => {
     const base =
@@ -353,6 +403,7 @@ export default function TeacherToolPage() {
         const data = await response.json();
         const exclusive = resolveIsAsliPrepExclusive(data?.user);
         setIsAsliPrepExclusive(exclusive);
+        setSchoolIitCategories(resolveSchoolIitCategories(data?.user));
         const curriculumBoard = resolveCurriculumBoardForAiTools(data?.user);
         const defaultBoard = getDefaultAiToolBoard(exclusive, curriculumBoard);
         setSchoolBoardName(curriculumBoard);
@@ -398,6 +449,19 @@ export default function TeacherToolPage() {
       setFormParams((prev) => ({ ...prev, board: fallback }));
     }
   }, [boardOptions, formParams.board, isAsliPrepExclusive, schoolBoardName]);
+
+  useEffect(() => {
+    if (!CHAPTER_COMPOSITION_TOOLS.has(toolType)) return;
+    setFormParams((prev) => ({
+      ...DEFAULT_QUESTION_COUNTS,
+      ...prev,
+      countMcq: prev.countMcq ?? DEFAULT_QUESTION_COUNTS.countMcq,
+      countVsaq: prev.countVsaq ?? DEFAULT_QUESTION_COUNTS.countVsaq,
+      countSaq: prev.countSaq ?? DEFAULT_QUESTION_COUNTS.countSaq,
+      countLaq: prev.countLaq ?? DEFAULT_QUESTION_COUNTS.countLaq,
+      countFib: prev.countFib ?? DEFAULT_QUESTION_COUNTS.countFib,
+    }));
+  }, [toolType]);
 
   // Keep subject aligned with tool-specific language rules
   useEffect(() => {
@@ -784,7 +848,7 @@ export default function TeacherToolPage() {
     if (!config || !toolType) return;
 
     const validationError = validateAiToolForm({
-      config,
+      config: effectiveConfig || config,
       formParams: { ...formParams, board: selectedBoard },
       toolType,
       isReadingPractice: isStoryLanguageTool(toolType),
@@ -811,8 +875,22 @@ export default function TeacherToolPage() {
       const selectedClass = mapGradeLevelForIitBoard(selectedBoard, formParams.gradeLevel);
       const selectedSubject = formParams.subject || formParams.subjects;
       const selectedTopic = formParams.topic || '';
-      const selectedSubTopic = formParams.subTopic || '';
+      const selectedSubTopic =
+        formParams.subTopic === WHOLE_CHAPTER_VALUE ? '' : formParams.subTopic || '';
       const selectedSection = formParams.section || formParams.className || '';
+      const productCategory = normalizeIitCategory(
+        formParams.productCategory === 'NONE' ? '' : formParams.productCategory,
+      );
+
+      const questionComposition = CHAPTER_COMPOSITION_TOOLS.has(toolType)
+        ? {
+            mcq: parseInt(String(formParams.countMcq || '0'), 10) || 0,
+            vsaq: parseInt(String(formParams.countVsaq || '0'), 10) || 0,
+            saq: parseInt(String(formParams.countSaq || '0'), 10) || 0,
+            laq: parseInt(String(formParams.countLaq || '0'), 10) || 0,
+            fib: parseInt(String(formParams.countFib || '0'), 10) || 0,
+          }
+        : undefined;
 
       const requestBody = {
         toolType,
@@ -824,6 +902,9 @@ export default function TeacherToolPage() {
         questionCount: formParams.questionCount ? parseInt(formParams.questionCount) : undefined,
         duration: formParams.duration ? parseInt(formParams.duration) : undefined,
         ...formParams,
+        subTopic: selectedSubTopic,
+        productCategory: productCategory || undefined,
+        questionComposition,
         board: selectedBoard,
         gradeLevel: selectedClass,
       };
@@ -1496,7 +1577,7 @@ export default function TeacherToolPage() {
                   </SelectContent>
                 </Select>
               </div>
-              {config.fields.map((field: any) => {
+              {((effectiveConfig || config).fields).map((field: any) => {
                 // Check if field should be shown based on showWhen condition
                 if (field.showWhen && !field.showWhen(formParams)) {
                   return null;
@@ -1514,6 +1595,9 @@ export default function TeacherToolPage() {
                   fieldOptions = classSelectOptions;
                   isDisabled = cascade.loadingClasses && classSelectOptions.length === 0;
                   loadingDropdown = cascade.loadingClasses;
+                } else if (field.name === 'productCategory') {
+                  fieldOptions = field.options || [];
+                  isDisabled = false;
                 } else if (field.isNCERT && field.name === 'topic') {
                   fieldOptions = availableNCERTTopics;
                   loadingDropdown = cascade.loadingTopics;
@@ -1522,7 +1606,9 @@ export default function TeacherToolPage() {
                     !subjectField ||
                     cascade.loadingTopics;
                 } else if (field.isCascadeSubtopic && field.name === 'subTopic') {
-                  fieldOptions = cascade.subtopics;
+                  fieldOptions = !field.required
+                    ? [WHOLE_CHAPTER_VALUE, ...cascade.subtopics]
+                    : cascade.subtopics;
                   loadingDropdown = cascade.loadingSubtopics;
                   isDisabled =
                     !formParams.gradeLevel || !subjectField || !formParams.topic || cascade.loadingSubtopics;
@@ -1543,19 +1629,34 @@ export default function TeacherToolPage() {
                   isDisabled = !!(field.dependsOn && !formParams[field.dependsOn]);
                 }
 
+                const selectValue =
+                  field.isCascadeSubtopic && !field.required && !formParams[field.name]
+                    ? WHOLE_CHAPTER_VALUE
+                    : field.name === 'productCategory' && !formParams[field.name]
+                      ? 'NONE'
+                      : formParams[field.name] || '';
+
                 return (
                   <div
                     key={field.name}
                     className={field.type === 'textarea' ? 'sm:col-span-2 lg:col-span-3' : ''}
                   >
                     <Label htmlFor={field.name} className="flex items-center gap-2">
-                      {field.label}
+                      {formatAiToolText(field.label)}
                       {loadingDropdown && <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-blue-600" aria-hidden />}
                     </Label>
                     {(field.type === 'select' || field.isNCERT || field.isCascadeSubtopic) ? (
                       <Select
-                        value={formParams[field.name] || ''}
-                        onValueChange={(value) => handleInputChange(field.name, value)}
+                        value={selectValue}
+                        onValueChange={(value) => {
+                          if (field.isCascadeSubtopic && value === WHOLE_CHAPTER_VALUE) {
+                            handleInputChange(field.name, '');
+                          } else if (field.name === 'productCategory' && value === 'NONE') {
+                            handleInputChange(field.name, '');
+                          } else {
+                            handleInputChange(field.name, value);
+                          }
+                        }}
                         disabled={isDisabled}
                       >
                         <SelectTrigger>
@@ -1594,9 +1695,7 @@ export default function TeacherToolPage() {
                                             ? 'Select Topic first'
                                             : cascade.loadingSubtopics
                                               ? 'Loading subtopics...'
-                                              : cascade.subtopics.length === 0
-                                                ? 'No data available'
-                                                : field.placeholder || 'Select subtopic'
+                                              : field.placeholder || 'Select subtopic'
                                           : `Select ${config.fields.find((f) => f.name === field.dependsOn)?.label || 'Class'} first`
                                 : field.placeholder || `Select ${field.label}`
                             }
@@ -1606,7 +1705,14 @@ export default function TeacherToolPage() {
                           {fieldOptions.length > 0 ? (
                             fieldOptions.map((option) => (
                               <SelectItem key={option} value={option}>
-                                {option}
+                                {option === WHOLE_CHAPTER_VALUE
+                                  ? 'Whole chapter'
+                                  : option === 'NONE'
+                                    ? 'General'
+                                    : field.name === 'productCategory' &&
+                                        (IIT_CATEGORIES as readonly string[]).includes(option)
+                                      ? `IIT ${formatIitCategoryLabel(option)}`
+                                      : option}
                               </SelectItem>
                             ))
                           ) : (

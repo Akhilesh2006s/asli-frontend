@@ -144,6 +144,8 @@ const Login = () => {
         }
         if (data.user?.role === 'super-admin') {
           setLocation('/super-admin/dashboard');
+        } else if (data.user?.paymentRequired && data.user?.isIndividualAccount) {
+          setLocation('/auth/subscribe');
         } else if (data.user?.role === 'admin') {
           setLocation('/admin/dashboard');
         } else if (data.user?.role === 'teacher') {

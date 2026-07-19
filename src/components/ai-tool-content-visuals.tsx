@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { formatAiToolText } from '@/lib/title-case';
 import {
   RealisticIcon,
   focusIconsForTool,
@@ -133,9 +134,11 @@ export function AiToolContentVisuals({
 }) {
   const theme = subjectTheme(meta.subject, meta.toolType);
   const topicLine =
-    [meta.chapter, meta.subtopic].filter(Boolean).join(' · ') ||
-    meta.title ||
-    theme.label;
+    formatAiToolText(
+      [meta.chapter, meta.subtopic].filter(Boolean).join(' · ') ||
+        meta.title ||
+        theme.label,
+    );
 
   return (
     <div
@@ -146,34 +149,18 @@ export function AiToolContentVisuals({
         className,
       )}
     >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <p className={cn('text-[10px] font-bold uppercase tracking-wider', theme.accentText)}>
-            {theme.label} focus
+            {formatAiToolText(`${theme.label} Focus`)}
           </p>
           <p className="mt-0.5 line-clamp-2 text-sm font-semibold text-slate-900 sm:text-base">
             {topicLine}
           </p>
         </div>
-
-        <div className="flex items-center gap-2">
-          {theme.icons.map((icon, i) => (
-            <motion.div
-              key={`${theme.key}-${icon}-${i}`}
-              whileHover={{ scale: 1.06 }}
-              className={cn(
-                'flex h-12 w-12 cursor-default items-center justify-center rounded-2xl border bg-white/95 shadow-sm',
-                theme.ring,
-              )}
-              title={FOCUS_LABELS[i]}
-            >
-              <RealisticIcon name={icon} alt="" className="h-9 w-9" />
-            </motion.div>
-          ))}
-        </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-4 gap-1.5 sm:gap-2">
+      <div className="mt-2 grid grid-cols-4 gap-1.5 sm:gap-2">
         {FOCUS_LABELS.map((label, i) => {
           const icon = theme.icons[i] || theme.icons[0];
           return (

@@ -27,6 +27,7 @@ import { API_BASE_URL } from "@/lib/api-config";
 import { useToast } from "@/hooks/use-toast";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
 import { cn } from "@/lib/utils";
+import { IIT_CATEGORIES, formatIitCategoryLabel, normalizeIitCategory } from "@/lib/products";
 
 type BookRow = {
   _id: string;
@@ -88,6 +89,7 @@ export default function BookKnowledgeBase() {
   const [topic, setTopic] = useState("");
   const [subTopic, setSubTopic] = useState("");
   const [source, setSource] = useState("textbook");
+  const [productCategory, setProductCategory] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
   const {
@@ -306,6 +308,8 @@ export default function BookKnowledgeBase() {
       if (topic) fd.append("topic", topic);
       if (subTopic) fd.append("subtopic", subTopic);
       fd.append("source", source);
+      const cat = normalizeIitCategory(productCategory);
+      if (cat) fd.append("productCategory", cat);
       const res = await fetch(`${API_BASE_URL}/api/book-knowledge/books/upload`, {
         method: "POST",
         headers: { ...authHeaders() },
@@ -617,6 +621,25 @@ export default function BookKnowledgeBase() {
               </SelectTrigger>
               <SelectContent>
                 {subtopics.map((st) => <SelectItem key={st} value={st}>{st}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>IIT product category (optional)</Label>
+            <Select
+              value={productCategory || "NONE"}
+              onValueChange={(v) => setProductCategory(v === "NONE" ? "" : v)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="General" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NONE">General (no IIT track)</SelectItem>
+                {IIT_CATEGORIES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    IIT {formatIitCategoryLabel(c)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

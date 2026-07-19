@@ -13,6 +13,7 @@ import { UsersIcon, UserPlusIcon, EditIcon, TrashIcon, CrownIcon, GraduationCapI
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
 import { cn } from "@/lib/utils";
+import { IIT_CATEGORIES, formatIitCategoryLabel, normalizeIitCategories } from "@/lib/products";
 
 /** Visible borders/background on white dialogs (muted/40 was nearly invisible). */
 const SCHOOL_FORM_FIELD_CLASS =
@@ -49,6 +50,8 @@ interface Admin {
   /** CBSE / STATE — curriculum (API); distinct from stored `board` for legacy rows */
   curriculumBoard?: string;
   isAsliPrepExclusive?: boolean;
+  /** Assigned IIT tracks: ALPHA | BETA | GAMMA */
+  iitCategories?: string[];
   state?: string;
   place?: string;
   schoolName?: string;
@@ -267,6 +270,7 @@ export default function AdminManagement() {
     password: '',
     board: DEFAULT_CURRICULUM_BOARD,
     isAsliPrepExclusive: false,
+    iitCategories: [] as string[],
     state: '',
     schoolName: '',
     schoolLogo: '',
@@ -301,6 +305,7 @@ export default function AdminManagement() {
     email: '',
     board: DEFAULT_CURRICULUM_BOARD,
     isAsliPrepExclusive: false,
+    iitCategories: [] as string[],
     state: '',
     schoolName: '',
     schoolLogo: '',
@@ -583,6 +588,9 @@ export default function AdminManagement() {
         password: newAdmin.password,
         board: newAdmin.board,
         isAsliPrepExclusive: newAdmin.isAsliPrepExclusive,
+        iitCategories: newAdmin.isAsliPrepExclusive
+          ? normalizeIitCategories(newAdmin.iitCategories)
+          : [],
         state: newAdmin.state,
         schoolName: newAdmin.schoolName,
         schoolLogo: newAdmin.schoolLogo,
@@ -633,6 +641,7 @@ export default function AdminManagement() {
           password: '',
           board: DEFAULT_CURRICULUM_BOARD,
           isAsliPrepExclusive: false,
+          iitCategories: [],
           state: '',
           schoolName: '',
           schoolLogo: '',
@@ -754,6 +763,7 @@ export default function AdminManagement() {
       email: admin.email || '',
       board: normalizeCurriculumBoard(rawCurriculum),
       isAsliPrepExclusive: exclusive,
+      iitCategories: exclusive ? normalizeIitCategories(admin.iitCategories) : [],
       state: normalizeStateValue(admin.state || admin.place || sd.state),
       schoolName: admin.schoolName || '',
       schoolLogo: admin.schoolLogo || '',
@@ -839,6 +849,9 @@ export default function AdminManagement() {
           email: editAdmin.email,
           board: editAdmin.board,
           isAsliPrepExclusive: editAdmin.isAsliPrepExclusive,
+          iitCategories: editAdmin.isAsliPrepExclusive
+            ? normalizeIitCategories(editAdmin.iitCategories)
+            : [],
           state: editAdmin.state,
           schoolName: editAdmin.schoolName,
           schoolLogo: editAdmin.schoolLogo,
@@ -1320,6 +1333,7 @@ export default function AdminManagement() {
                               ...prev,
                               isAsliPrepExclusive: checked,
                               board: normalizeCurriculumSelection(prev.board),
+                              iitCategories: checked ? prev.iitCategories : [],
                             }))
                           }
                           aria-label="Toggle Asli Prep school program"
@@ -1334,6 +1348,36 @@ export default function AdminManagement() {
                         </span>
                       </div>
                     </div>
+                    {newAdmin.isAsliPrepExclusive && (
+                      <div className="mt-4 border-t border-slate-200 pt-4">
+                        <p className="text-xs sm:text-sm font-medium text-gray-800">IIT product tracks</p>
+                        <p className="mt-1 text-xs text-gray-600">
+                          Assign which IIT categories this school can access (Alpha, Beta, Gamma). Leave none for curriculum-only Asli Prep content.
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-4">
+                          {IIT_CATEGORIES.map((cat) => {
+                            const checked = newAdmin.iitCategories.includes(cat);
+                            return (
+                              <label key={cat} className="flex items-center gap-2 text-sm text-slate-800">
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={(v) => {
+                                    const on = v === true;
+                                    setNewAdmin((prev) => ({
+                                      ...prev,
+                                      iitCategories: on
+                                        ? normalizeIitCategories([...prev.iitCategories, cat])
+                                        : prev.iitCategories.filter((c) => c !== cat),
+                                    }));
+                                  }}
+                                />
+                                {formatIitCategoryLabel(cat)}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-1.5">
@@ -1978,6 +2022,7 @@ export default function AdminManagement() {
                               ...prev,
                               isAsliPrepExclusive: checked,
                               board: normalizeCurriculumSelection(prev.board),
+                              iitCategories: checked ? prev.iitCategories : [],
                             }))
                           }
                           aria-label="Toggle Asli Prep school program"
@@ -1992,6 +2037,36 @@ export default function AdminManagement() {
                         </span>
                       </div>
                     </div>
+                    {editAdmin.isAsliPrepExclusive && (
+                      <div className="mt-4 border-t border-slate-200 pt-4">
+                        <p className="text-xs sm:text-sm font-medium text-gray-800">IIT product tracks</p>
+                        <p className="mt-1 text-xs text-gray-600">
+                          Assign which IIT categories this school can access (Alpha, Beta, Gamma).
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-4">
+                          {IIT_CATEGORIES.map((cat) => {
+                            const checked = editAdmin.iitCategories.includes(cat);
+                            return (
+                              <label key={cat} className="flex items-center gap-2 text-sm text-slate-800">
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={(v) => {
+                                    const on = v === true;
+                                    setEditAdmin((prev) => ({
+                                      ...prev,
+                                      iitCategories: on
+                                        ? normalizeIitCategories([...prev.iitCategories, cat])
+                                        : prev.iitCategories.filter((c) => c !== cat),
+                                    }));
+                                  }}
+                                />
+                                {formatIitCategoryLabel(cat)}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-1.5">
@@ -2465,6 +2540,15 @@ export default function AdminManagement() {
                           Asli Prep
                         </Badge>
                       )}
+                      {normalizeIitCategories(admin.iitCategories).map((cat) => (
+                        <Badge
+                          key={cat}
+                          variant="outline"
+                          className="border-sky-200 bg-sky-50 text-xs text-sky-950"
+                        >
+                          IIT {formatIitCategoryLabel(cat)}
+                        </Badge>
+                      ))}
                       {admin?.state && (
                         <Badge variant="outline" className="text-xs break-all max-w-full">
                           {admin.state}

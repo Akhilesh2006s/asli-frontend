@@ -1,5 +1,6 @@
 import { Brain, CheckCircle2, Eye, Lightbulb, MessageCircle, Sparkles, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatAiToolText } from '@/lib/title-case';
 import {
   AI_V2,
   BLOOM_LEVEL_STYLES,
@@ -81,7 +82,7 @@ export function AiToolV2CompetencyFocus({ items }: { items?: string[] }) {
         >
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
           <div>
-            <p className="text-sm font-semibold text-emerald-900">{row.label}</p>
+            <p className="text-sm font-semibold text-emerald-900">{formatAiToolText(row.label)}</p>
             <p className="text-xs text-slate-600 leading-relaxed">{row.description}</p>
           </div>
         </li>
@@ -102,7 +103,7 @@ export function AiToolV2NepAlignment({ focusText }: { focusText?: string }) {
           className="flex items-center gap-2 rounded-lg border border-cyan-100 bg-cyan-50/50 px-3 py-2"
         >
           <CheckCircle2 className="h-4 w-4 shrink-0 text-cyan-700" aria-hidden />
-          <span className="text-xs font-medium text-cyan-900">{item.label}</span>
+          <span className="text-xs font-medium text-cyan-900">{formatAiToolText(item.label)}</span>
         </div>
       ))}
     </div>

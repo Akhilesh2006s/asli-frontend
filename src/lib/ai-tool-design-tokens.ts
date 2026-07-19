@@ -16,19 +16,19 @@ export const AI_V2 = {
     shell: 'shadow-[0_18px_50px_-28px_rgba(15,23,42,0.35)]',
   },
   spacing: {
-    section: 'space-y-4',
-    cardPadding: 'p-4 sm:p-5',
-    grid: 'gap-3 sm:gap-4',
+    section: 'space-y-5 sm:space-y-6',
+    cardPadding: 'p-5 sm:p-6 lg:p-8',
+    grid: 'gap-4 sm:gap-5 lg:gap-6',
   },
   typography: {
-    sectionTitle: 'text-sm sm:text-base font-bold text-slate-900',
-    sectionDesc: 'text-xs text-slate-500 leading-relaxed',
-    body: 'text-sm text-slate-800 leading-relaxed',
-    label: 'text-[10px] font-semibold uppercase tracking-wide text-slate-500',
-    meta: 'text-xs sm:text-sm font-medium text-slate-700',
+    sectionTitle: 'text-xl sm:text-2xl font-bold text-slate-900',
+    sectionDesc: 'text-base text-slate-600 leading-relaxed',
+    body: 'text-base text-slate-800 leading-relaxed',
+    label: 'text-[0.9375rem] font-semibold uppercase tracking-wide text-slate-600',
+    meta: 'text-[0.9375rem] sm:text-base font-medium text-slate-700',
   },
   badge: {
-    ai: 'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+    ai: 'inline-flex min-h-8 items-center gap-2 rounded-full border px-3 py-1 text-[0.9375rem] font-semibold uppercase tracking-wide',
   },
 } as const;
 

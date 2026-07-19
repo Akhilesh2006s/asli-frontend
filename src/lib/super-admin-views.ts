@@ -23,7 +23,9 @@ export type SuperAdminView =
   | 'ai-generator'
   | 'book-knowledge-base'
   | 'book-based-generator'
-  | 'edu-ott-live';
+  | 'edu-ott-live'
+  | 'products'
+  | 'trial-members';
 
 export const SUPER_ADMIN_VIEWS: SuperAdminView[] = [
   'dashboard',
@@ -50,6 +52,8 @@ export const SUPER_ADMIN_VIEWS: SuperAdminView[] = [
   'book-knowledge-base',
   'book-based-generator',
   'edu-ott-live',
+  'products',
+  'trial-members',
 ];
 
 export function isSuperAdminView(value: string): value is SuperAdminView {

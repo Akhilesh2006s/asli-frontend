@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatAiToolText } from '@/lib/title-case';
 import { AI_V2 } from '@/lib/ai-tool-design-tokens';
 import { aiToolSectionDomId } from '@/lib/ai-tool-section-id';
 import {
@@ -77,12 +78,14 @@ export function AiToolStackedSection({
   const gradientClass = gradient || `bg-gradient-to-br ${theme.gradient}`;
   const LucideIcon = icon;
   const sectionDomId = aiToolSectionDomId(numLabel, title);
+  const displayTitle = formatAiToolText(title);
+  const displayDescription = description ? formatAiToolText(description) : undefined;
 
   return (
     <motion.section
       id={sectionDomId}
       data-ai-section-id={sectionDomId}
-      data-ai-section-title={title}
+      data-ai-section-title={displayTitle}
       data-ai-section-num=""
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
@@ -109,9 +112,9 @@ export function AiToolStackedSection({
             ◆
           </span>
           <div className="min-w-0">
-            <p className={AI_V2.typography.sectionTitle}>{title}</p>
-            {description ? (
-              <p className={cn('mt-0.5', AI_V2.typography.sectionDesc)}>{description}</p>
+            <p className={AI_V2.typography.sectionTitle}>{displayTitle}</p>
+            {displayDescription ? (
+              <p className={cn('mt-0.5', AI_V2.typography.sectionDesc)}>{displayDescription}</p>
             ) : null}
           </div>
         </div>

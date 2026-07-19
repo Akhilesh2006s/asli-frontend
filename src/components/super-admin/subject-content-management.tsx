@@ -26,6 +26,11 @@ import { getVideoDisplayTitle } from '@/lib/video-chapter-schedule';
 import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 import { useToast } from '@/hooks/use-toast';
 import {
+  IIT_CATEGORIES,
+  formatIitCategoryLabel,
+  normalizeIitCategory,
+} from '@/lib/products';
+import {
   boardsMatch,
   formatClassBoardLabel,
   normalizeBoardKey,
@@ -64,6 +69,7 @@ interface SubjectItem {
   board: string;
   classNumber?: string;
   stateName?: string;
+  productCategory?: string;
   isActive?: boolean;
 }
 
@@ -714,6 +720,7 @@ export default function SubjectContentManagement() {
   const [newSubjectName, setNewSubjectName] = useState('');
   const [newSubjectSyllabus, setNewSubjectSyllabus] = useState<SyllabusBoard>('CBSE');
   const [newSubjectStateName, setNewSubjectStateName] = useState('');
+  const [newSubjectProductCategory, setNewSubjectProductCategory] = useState('');
   const [editingSubject, setEditingSubject] = useState<SubjectItem | null>(null);
   const [isEditSubjectOpen, setIsEditSubjectOpen] = useState(false);
   const [editSubjectName, setEditSubjectName] = useState('');
@@ -1336,6 +1343,7 @@ export default function SubjectContentManagement() {
     setNewSubjectName('');
     setNewSubjectSyllabus('CBSE');
     setNewSubjectStateName('');
+    setNewSubjectProductCategory('');
     setIsAddSubjectOpen(true);
   };
 
@@ -1370,6 +1378,8 @@ export default function SubjectContentManagement() {
       if (newSubjectSyllabus === 'STATE') {
         body.stateName = newSubjectStateName.trim();
       }
+      const cat = normalizeIitCategory(newSubjectProductCategory);
+      if (cat) body.productCategory = cat;
 
       const response = await fetch(`${API_BASE_URL}/api/super-admin/subjects`, {
         method: 'POST',
@@ -2199,6 +2209,14 @@ export default function SubjectContentManagement() {
                                 {subj.stateName}
                               </Badge>
                             )}
+                            {normalizeIitCategory(subj.productCategory) ? (
+                              <Badge
+                                variant="outline"
+                                className="border-sky-200 bg-sky-50 text-[10px] font-normal text-sky-900"
+                              >
+                                IIT {formatIitCategoryLabel(subj.productCategory)}
+                              </Badge>
+                            ) : null}
                           </div>
                           {subj.description && (
                             <div className="text-xs text-gray-500 line-clamp-1">
@@ -2617,6 +2635,30 @@ export default function SubjectContentManagement() {
                 </Select>
               </div>
             )}
+            <div>
+              <Label>IIT product category (optional)</Label>
+              <Select
+                value={newSubjectProductCategory || 'NONE'}
+                onValueChange={(v) =>
+                  setNewSubjectProductCategory(v === 'NONE' ? '' : v)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="General (no IIT track)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">General (no IIT track)</SelectItem>
+                  {IIT_CATEGORIES.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      IIT {formatIitCategoryLabel(c)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Use Alpha / Beta / Gamma so Maths can exist once per track without colliding.
+              </p>
+            </div>
             <div>
               <Label>Subject Name</Label>
               <Input

@@ -185,6 +185,29 @@
     min-height: 100vh;
   }
 
+  /* Product-wide readability contract. Legacy pages still use Tailwind's
+     compact text helpers; keep them readable on shared screens without
+     requiring every feature page to be rewritten. */
+  body .text-xs,
+  body [class~="text-[10px]"],
+  body [class~="text-[11px]"],
+  body [class~="text-[12px]"],
+  body [class~="text-[13px]"],
+  body [class~="text-[14px]"] {
+    font-size: var(--text-xs) !important;
+    line-height: 1.45 !important;
+  }
+
+  body .text-sm {
+    font-size: var(--text-sm);
+    line-height: 1.5;
+  }
+
+  ::selection {
+    background: rgba(99, 102, 241, 0.2);
+    color: #1e1b4b;
+  }
+
   #root {
     min-height: 100%;
   }
@@ -211,6 +234,19 @@
     border-radius: 0.25rem;
     width: 1.15rem;
     height: 1.15rem;
+  }
+
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='hidden']),
+  select,
+  textarea {
+    min-height: 3.25rem;
+    font-size: var(--text-base);
+  }
+
+  table th,
+  table td {
+    font-size: var(--text-base);
+    line-height: 1.55;
   }
 
   :focus-visible {
@@ -270,6 +306,68 @@
 .asli-card-premium.asli-card-interactive:hover {
   transform: translateY(-2px);
   box-shadow: 0 18px 48px -30px rgba(51, 65, 85, 0.38), 0 0 0 1px rgba(99, 102, 241, 0.1);
+}
+
+/* Shared product states and page chrome. These classes are intentionally
+   framework-light so dashboards, portals and AI tools can adopt them. */
+.asli-page-shell {
+  @apply asli-app-bg min-h-screen px-5 py-6 sm:px-8 sm:py-8 lg:px-10 lg:py-10;
+}
+
+.asli-page-container {
+  @apply mx-auto w-full max-w-7xl space-y-8 lg:space-y-10;
+}
+
+.asli-page-hero {
+  @apply relative overflow-hidden rounded-3xl border border-indigo-blue-100 bg-white/90 p-6 shadow-elevated sm:p-8 lg:p-10;
+  background:
+    radial-gradient(circle at 92% 12%, rgba(99, 102, 241, 0.16), transparent 34%),
+    radial-gradient(circle at 4% 100%, rgba(249, 115, 22, 0.1), transparent 34%),
+    rgba(255, 255, 255, 0.9);
+}
+
+.asli-section {
+  @apply space-y-5 sm:space-y-6;
+}
+
+.asli-toolbar {
+  @apply flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between lg:p-6;
+}
+
+.asli-state {
+  @apply flex min-h-64 flex-col items-center justify-center rounded-3xl border border-dashed border-indigo-blue-200 bg-gradient-to-br from-white via-indigo-blue-50/40 to-orange-50/50 p-8 text-center shadow-sm;
+}
+
+.asli-state-icon {
+  @apply mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-blue-100 text-indigo-blue-700 shadow-sm;
+}
+
+.asli-state-title {
+  @apply font-display text-2xl font-bold text-slate-900;
+}
+
+.asli-state-description {
+  @apply mt-2 max-w-2xl text-base leading-relaxed text-slate-600;
+}
+
+.asli-form-section {
+  @apply space-y-5 rounded-2xl border border-slate-200/80 bg-white/90 p-5 shadow-sm sm:p-6 lg:p-8;
+}
+
+.asli-status-chip {
+  @apply inline-flex min-h-8 items-center gap-2 rounded-full border px-3 py-1 text-[0.9375rem] font-semibold;
+}
+
+@media (min-width: 2560px) {
+  .asli-page-container,
+  .container-responsive {
+    max-width: 1800px;
+  }
+
+  .asli-page-shell {
+    padding-inline: 4rem;
+    padding-block: 3rem;
+  }
 }
 
 .asli-ai-glow {

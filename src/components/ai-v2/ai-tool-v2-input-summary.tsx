@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { BookOpen, GraduationCap, Layers, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatAiToolText } from '@/lib/title-case';
 import { AI_V2 } from '@/lib/ai-tool-design-tokens';
 import { extractAiToolV2Context } from '@/lib/extract-ai-tool-v2-context';
 
@@ -30,7 +31,9 @@ export function AiToolV2InputSummary({
         className,
       )}
     >
-      <p className={cn(AI_V2.typography.label, 'mb-2 text-indigo-700')}>Generation context</p>
+      <p className={cn(AI_V2.typography.label, 'mb-2 text-indigo-700')}>
+        {formatAiToolText('Generation Context')}
+      </p>
       <div className="flex flex-wrap gap-2">
         {rows.map((row) => {
           const Icon = row.icon;
@@ -40,8 +43,8 @@ export function AiToolV2InputSummary({
               className="inline-flex items-center gap-1.5 rounded-full border border-white/80 bg-white/90 px-2.5 py-1 text-xs text-slate-700 shadow-sm"
             >
               <Icon className="h-3.5 w-3.5 text-indigo-500" aria-hidden />
-              <span className="font-medium text-slate-500">{row.label}:</span>
-              <span className="font-semibold text-slate-900">{row.value}</span>
+              <span className="font-medium text-slate-500">{formatAiToolText(row.label)}:</span>
+              <span className="font-semibold text-slate-900">{formatAiToolText(row.value)}</span>
             </span>
           );
         })}

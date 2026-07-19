@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatAiToolText } from '@/lib/title-case';
 
 export type AiToolV2HeroChip = { label: string; value: string };
 
@@ -28,7 +29,9 @@ export function AiToolV2Hero({
   progressPct?: number;
   chips?: AiToolV2HeroChip[];
 }) {
-  const safeTitle = title.trim() || 'Generated content';
+  const safeTitle = formatAiToolText(title.trim() || 'Generated Content');
+  const displayToolLabel = formatAiToolText(toolLabel);
+  const displaySubtitle = subtitle ? formatAiToolText(subtitle) : undefined;
   const pct =
     progressPct != null && Number.isFinite(progressPct)
       ? Math.max(0, Math.min(100, Math.round(progressPct)))
@@ -50,12 +53,14 @@ export function AiToolV2Hero({
         <div className="min-w-0 flex-1">
           <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-indigo-200/80 bg-white/70 px-3 py-1 text-[11px] font-semibold text-indigo-800">
             <Sparkles className="h-3.5 w-3.5" aria-hidden />
-            {toolLabel} · AI V2
+            {displayToolLabel} · AI V2
           </div>
           <h2 className="text-xl font-black tracking-tight text-slate-900 sm:text-2xl leading-snug">
             {safeTitle}
           </h2>
-          {subtitle ? <p className="mt-2 text-sm text-slate-600 leading-relaxed">{subtitle}</p> : null}
+          {displaySubtitle ? (
+            <p className="mt-2 text-sm text-slate-600 leading-relaxed">{displaySubtitle}</p>
+          ) : null}
           {chips.length > 0 ? (
             <div className="mt-3 flex flex-wrap gap-2">
               {chips.map((chip) => (
@@ -63,8 +68,8 @@ export function AiToolV2Hero({
                   key={`${chip.label}-${chip.value}`}
                   className="inline-flex items-center gap-1 rounded-full border border-white/80 bg-white/80 px-2.5 py-1 text-[11px] font-medium text-slate-700 shadow-sm"
                 >
-                  <span className="font-semibold text-slate-500">{chip.label}</span>
-                  {chip.value}
+                  <span className="font-semibold text-slate-500">{formatAiToolText(chip.label)}</span>
+                  {formatAiToolText(chip.value)}
                 </span>
               ))}
             </div>
@@ -82,7 +87,7 @@ export function AiToolV2Hero({
       {pct != null ? (
         <div className="mt-4">
           <div className="mb-1 flex items-center justify-between text-[11px] font-medium text-slate-500">
-            <span>Content ready</span>
+            <span>{formatAiToolText('Content Ready')}</span>
             <span>{pct}%</span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-white/70">

@@ -27,6 +27,7 @@ import {
   type WorksheetQuestion,
 } from '@/lib/parse-worksheet-mcq';
 import { displayQuestionSerial } from '@/lib/renumber-questions';
+import { formatAiToolText } from '@/lib/title-case';
 import { StructuredContentRequired } from '@/components/structured-content-required';
 
 export interface WorksheetMcqViewerProps {
@@ -39,28 +40,36 @@ export interface WorksheetMcqViewerProps {
 const WORKSHEET_FLOW_PHASES = [
   {
     id: 'setup',
-    label: 'Worksheet setup',
-    hint: 'Title, objectives & student instructions',
+    label: 'Worksheet Setup',
+    hint: 'Title, Objectives & Student Instructions',
     dotClass: 'bg-emerald-600 ring-emerald-200',
     badgeClass: 'bg-emerald-100 text-emerald-950 border-emerald-200',
   },
   {
     id: 'practice',
-    label: 'Question sections',
-    hint: 'MCQs, blanks, short answers & application',
+    label: 'Question Sections',
+    hint: 'MCQs, Blanks, Short Answers & Application',
     dotClass: 'bg-teal-600 ring-teal-200',
     badgeClass: 'bg-teal-100 text-teal-950 border-teal-200',
   },
   {
     id: 'scoring',
-    label: 'Scoring & tags',
-    hint: 'Answer key, Bloom level & difficulty',
+    label: 'Scoring & Tags',
+    hint: 'Answer Key, Bloom Level & Difficulty',
     dotClass: 'bg-sky-600 ring-sky-200',
     badgeClass: 'bg-sky-100 text-sky-950 border-sky-200',
   },
 ] as const;
 
-function QuestionCard({ q, index }: { q: WorksheetQuestion; index: number }) {
+function QuestionCard({
+  q,
+  index,
+  showAnswer = false,
+}: {
+  q: WorksheetQuestion;
+  index: number;
+  showAnswer?: boolean;
+}) {
   const num = displayQuestionSerial(index);
   return (
     <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 sm:p-4 shadow-sm space-y-3">
@@ -99,7 +108,7 @@ function QuestionCard({ q, index }: { q: WorksheetQuestion; index: number }) {
           ))}
         </ul>
       ) : null}
-      {q.answer ? (
+      {showAnswer && q.answer ? (
         <p className="text-xs text-emerald-800 flex items-start gap-1.5 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2">
           <CircleCheck className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
           <span>
@@ -153,21 +162,11 @@ function toSortableStep(stepNum: number | string): number {
 function buildTimelineBlocks(worksheet: NormalizedWorksheet): TimelineBlock[] {
   const blocks: TimelineBlock[] = [];
 
-  if (worksheet.title && !/^worksheet$/i.test(worksheet.title.trim())) {
-    blocks.push({
-      phaseId: 'setup',
-      stepNum: 1,
-      title: 'Worksheet title',
-      icon: ClipboardList,
-      content: <p className="font-medium text-slate-900">{worksheet.title}</p>,
-    });
-  }
-
   if (worksheet.learningObjectives.length > 0) {
     blocks.push({
       phaseId: 'setup',
-      stepNum: 2,
-      title: 'Learning objectives',
+      stepNum: 1,
+      title: 'Learning Objectives',
       icon: Target,
       content: (
         <ul className="space-y-2">
@@ -185,8 +184,8 @@ function buildTimelineBlocks(worksheet: NormalizedWorksheet): TimelineBlock[] {
   if (worksheet.instructions) {
     blocks.push({
       phaseId: 'setup',
-      stepNum: 3,
-      title: 'Instructions to students',
+      stepNum: 2,
+      title: 'Instructions To Students',
       icon: BookOpen,
       content: <p className="whitespace-pre-wrap">{worksheet.instructions}</p>,
     });
@@ -202,9 +201,9 @@ function buildTimelineBlocks(worksheet: NormalizedWorksheet): TimelineBlock[] {
       title: sec.label,
       icon: FileQuestion,
       content: (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {sec.questions.map((q, i) => (
-            <QuestionCard key={`${sec.id}-q-${i}`} q={q} index={i} />
+            <QuestionCard key={`${sec.id}-q-${i}`} q={q} index={i} showAnswer={false} />
           ))}
         </div>
       ),
@@ -215,7 +214,7 @@ function buildTimelineBlocks(worksheet: NormalizedWorksheet): TimelineBlock[] {
     blocks.push({
       phaseId: 'scoring',
       stepNum: 9,
-      title: 'Answer key',
+      title: 'Answer Key',
       icon: CheckCircle2,
       content: (
         <pre className="whitespace-pre-wrap font-sans text-sm text-slate-800 leading-relaxed">
@@ -230,7 +229,7 @@ function buildTimelineBlocks(worksheet: NormalizedWorksheet): TimelineBlock[] {
     blocks.push({
       phaseId: 'scoring',
       stepNum: 10,
-      title: "Bloom's level & difficulty",
+      title: "Bloom's Level & Difficulty",
       icon: GraduationCap,
       content: <p className="whitespace-pre-wrap">{tags}</p>,
     });
@@ -264,27 +263,27 @@ function TeacherWorksheetCard({
   let visibleStep = 0;
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-xl border-2 border-dashed border-emerald-300/70 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/40 px-4 py-4 sm:px-5 sm:py-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <div className="space-y-3">
+      <div className="rounded-lg border border-emerald-200 bg-gradient-to-r from-emerald-50/80 to-teal-50/50 px-3 py-3 sm:px-4">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-800/80 mb-1">
-              Worksheet · Ready to print
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-800/90 mb-0.5">
+              Worksheet · Ready To Print
             </p>
-            <h4 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight font-serif">
-              {worksheet.title}
+            <h4 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
+              {formatAiToolText(worksheet.title)}
             </h4>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <Badge className="rounded border-emerald-200 bg-emerald-100/80 text-emerald-950 hover:bg-emerald-100/80 font-medium">
-                {totalQuestions} question{totalQuestions === 1 ? '' : 's'}
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              <Badge className="rounded border-emerald-200 bg-emerald-100/80 text-emerald-950 hover:bg-emerald-100/80 font-medium text-[10px]">
+                {totalQuestions} Question{totalQuestions === 1 ? '' : 's'}
               </Badge>
               <Badge variant="outline" className="rounded border-teal-200 text-teal-800 text-[10px]">
-                10-section template
+                10-Section Template
               </Badge>
             </div>
           </div>
-          <div className="shrink-0 w-full sm:w-36">
-            <p className="text-[10px] font-semibold uppercase text-slate-500 mb-1">Pack ready</p>
+          <div className="shrink-0 w-full sm:w-32">
+            <p className="text-[10px] font-semibold uppercase text-slate-500 mb-1">Pack Ready</p>
             <div className="h-2.5 rounded-full bg-slate-200 overflow-hidden">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500"
@@ -308,17 +307,17 @@ function TeacherWorksheetCard({
           <section key={phase.id} aria-label={phase.label}>
             <div
               className={cn(
-                'mb-3 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2',
+                'mb-2 flex flex-wrap items-center gap-2 rounded-md border px-2.5 py-1.5',
                 phase.badgeClass,
               )}
             >
-              <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', phase.dotClass.split(' ')[0])} />
+              <span className={cn('h-2 w-2 rounded-full shrink-0', phase.dotClass.split(' ')[0])} />
               <div>
                 <p className="text-xs font-bold uppercase tracking-wide">{phase.label}</p>
                 <p className="text-[11px] opacity-80">{phase.hint}</p>
               </div>
             </div>
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2.5">
               {phaseBlocks.map((block, idx) => {
                 visibleStep += 1;
                 return (
@@ -373,42 +372,34 @@ function TeacherMarkdownBody({ markdown }: { markdown: string }) {
   );
 }
 
-function TeacherWorksheetShell({ children }: { children: ReactNode }) {
+function TeacherWorksheetShell({ title, children }: { title: string; children: ReactNode }) {
+  const displayTitle = formatAiToolText(title || 'Worksheet Pack');
   return (
     <div className="w-full">
-      <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-200/80 shadow-lg shadow-emerald-900/5">
-        <div
-          className="absolute inset-0 pointer-events-none opacity-[0.35]"
-          style={{
-            backgroundImage: 'linear-gradient(rgba(148,163,184,0.35) 1px, transparent 1px)',
-            backgroundSize: '100% 28px',
-            backgroundPosition: '0 72px',
-          }}
-          aria-hidden
-        />
-        <div className="relative border-b border-slate-700/20 bg-gradient-to-br from-slate-800 via-teal-900 to-emerald-900 px-4 py-4 sm:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-400/90 text-slate-900 shadow-md rotate-[-2deg]">
-                <ClipboardList className="h-6 w-6" aria-hidden />
+      <div className="relative overflow-hidden rounded-xl border border-emerald-200/90 shadow-md shadow-emerald-900/5">
+        <div className="relative border-b border-slate-700/20 bg-gradient-to-br from-slate-800 via-teal-900 to-emerald-900 px-3 py-3 sm:px-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-400/90 text-slate-900 shadow-sm">
+                <ClipboardList className="h-5 w-5" aria-hidden />
               </div>
-              <div className="text-white">
-                <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-emerald-200/90">
+              <div className="min-w-0 text-white">
+                <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-emerald-200">
                   Worksheet &amp; MCQ Generator
                 </p>
-                <h3 className="text-lg font-bold sm:text-xl font-serif">Your worksheet pack</h3>
-                <p className="text-xs text-emerald-100/85 mt-0.5">Sections A–E, answer key &amp; tags</p>
+                <h3 className="text-base sm:text-lg font-bold text-white leading-snug truncate">
+                  {displayTitle}
+                </h3>
+                <p className="text-[11px] text-emerald-100/90 mt-0.5">Sections A–E, Answer Key &amp; Tags</p>
               </div>
             </div>
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-400/20 px-3 py-1.5 text-xs font-semibold text-emerald-100 ring-1 ring-emerald-300/30">
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-400/20 px-2.5 py-1 text-[11px] font-semibold text-emerald-50 ring-1 ring-emerald-300/30 shrink-0">
               <ListChecks className="h-3.5 w-3.5" aria-hidden />
-              Teacher view
+              Teacher View
             </span>
           </div>
         </div>
-        <div className="relative bg-[#f8fffb]/95 p-3 sm:p-5 max-h-[min(80vh,900px)] overflow-y-auto">
-          {children}
-        </div>
+        <div className="relative bg-[#f8fffb]/95 p-2 sm:p-3">{children}</div>
       </div>
     </div>
   );
@@ -448,7 +439,7 @@ export function WorksheetMcqViewer({
 
   return (
     <div className={className}>
-      <TeacherWorksheetShell>
+      <TeacherWorksheetShell title={worksheet.title}>
         <AnimatePresence mode="wait">
           <motion.div
             key={worksheet.title}

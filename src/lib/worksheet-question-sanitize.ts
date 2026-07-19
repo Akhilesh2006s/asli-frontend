@@ -1,6 +1,20 @@
 import { stripVariantScaffoldFromQuestionText, stripAiGeneratorLeakage } from '@/lib/strip-ai-tool-metadata';
+import { toTitleCaseWords } from '@/lib/title-case';
 
 /** Mirrors backend pdf-worksheet-extract filters for worksheet list/view parsing. */
+
+export function isInvalidWorksheetTitle(title: string): boolean {
+  const t = String(title || '').replace(/\s+/g, ' ').trim();
+  if (!t) return true;
+  if (/^worksheet$/i.test(t)) return true;
+  if (/^answer\s*key$/i.test(t)) return true;
+  if (/^your\s+worksheet\s+pack$/i.test(t)) return true;
+  if (/^generated\s+content$/i.test(t)) return true;
+  if (/^(?:learning\s+objectives?|instructions?\s+to\s+students?|bloom(?:'?s)?\s*level)/i.test(t)) {
+    return true;
+  }
+  return false;
+}
 
 export function isWorksheetAnswerKeyLike(text: string): boolean {
   const q = String(text || '').replace(/\s+/g, ' ').trim();
@@ -21,7 +35,7 @@ export function isWorksheetAnswerKeyLike(text: string): boolean {
   return false;
 }
 
-export function sanitizeWorksheetDisplayTitle(title: string): string {
+export function sanitizeWorksheetDisplayTitle(title: string, fallback = 'Worksheet'): string {
   let t = String(title || '').trim();
   t = t.replace(/\s*\(Uniqueness\s+Seed:[^)]*\)/gi, '');
   t = t.replace(/\s*\(Distinct from all other variants[^)]*\)/gi, '');
@@ -33,7 +47,8 @@ export function sanitizeWorksheetDisplayTitle(title: string): string {
   }
   t = t.replace(/\s{2,}/g, ' ').trim();
   if (t.length > 200) t = `${t.slice(0, 197).trim()}…`;
-  return t || 'Worksheet';
+  if (isInvalidWorksheetTitle(t)) t = fallback;
+  return toTitleCaseWords(t || fallback);
 }
 
 export function isWorksheetHeadingLine(text: string): boolean {

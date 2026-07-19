@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Brain, CheckCircle2, Clock, GraduationCap, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatAiToolText } from '@/lib/title-case';
 import { AI_V2, BLOOM_LEVEL_STYLES } from '@/lib/ai-tool-design-tokens';
 import { extractAiToolV2Context } from '@/lib/extract-ai-tool-v2-context';
 import type { BloomDistributionRow } from '@/lib/parse-exam-question-paper';
@@ -93,8 +94,8 @@ export function AiToolV2OverviewSnapshot({
     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
       {rows.map((row) => (
         <div key={row.label} className="rounded-lg border border-indigo-100 bg-white/80 px-3 py-2">
-          <p className={AI_V2.typography.label}>{row.label}</p>
-          <p className="mt-0.5 text-sm font-medium text-slate-900">{row.value}</p>
+          <p className={AI_V2.typography.label}>{formatAiToolText(row.label)}</p>
+          <p className="mt-0.5 text-sm font-medium text-slate-900">{formatAiToolText(row.value)}</p>
         </div>
       ))}
     </div>

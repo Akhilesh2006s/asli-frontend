@@ -41,6 +41,7 @@ import {
 } from '@/hooks/use-curriculum-cascade';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { formatAiToolText } from '@/lib/title-case';
 import { motion } from 'framer-motion';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
@@ -1916,7 +1917,7 @@ export default function StudentToolPage() {
                       className={field.type === 'textarea' ? 'sm:col-span-2 lg:col-span-3' : ''}
                     >
                       <Label htmlFor={field.name} className="flex items-center gap-2">
-                        {field.label}
+                        {formatAiToolText(field.label)}
                         {loadingDropdown && <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-blue-600" aria-hidden />}
                       </Label>
                       {isClassFieldLocked ? (

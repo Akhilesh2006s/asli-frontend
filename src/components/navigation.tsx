@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { BookOpen, FileText, MessageCircle, User, Menu, LogOut, Sparkles, Video } from "lucide-react";
+import { BookOpen, FileText, MessageCircle, User, Menu, LogOut, Sparkles, Video, Brain, Layers, Trophy } from "lucide-react";
 import { API_BASE_URL } from '@/lib/api-config';
 import { clearAuthData, getAuthToken, getUser, setUser } from '@/lib/auth-utils';
 import { fetchAuthUser } from '@/lib/auth-session';
@@ -53,6 +53,7 @@ export default function Navigation() {
   const isMobile = useIsMobile();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [userInitials, setUserInitials] = useState<string>(() => readInitialsForNav());
+  const [currentUser, setCurrentUser] = useState<any>(() => getUser());
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -69,6 +70,7 @@ export default function Navigation() {
       try {
         const user = await fetchAuthUser();
         if (user && typeof user === 'object') {
+          setCurrentUser(user);
           try {
             setUser(user);
           } catch {
@@ -147,12 +149,30 @@ export default function Navigation() {
     }
   };
 
-  const navItems = [
+  const isIndividualStudent = Boolean(currentUser) &&
+    !currentUser?.schoolId &&
+    !currentUser?.assignedAdmin &&
+    !String(currentUser?.schoolName || '').trim();
+
+  const schoolNavItems = [
     { path: "/learning-paths", label: "Learning Paths", icon: BookOpen },
     { path: "/edu-ott", label: "EduOTT", icon: Video },
     { path: "/student-exams", label: "Exams", icon: FileText },
     { path: "/ai-tutor", label: "Vidya AI", icon: MessageCircle },
   ];
+
+  const individualNavItems = [
+    { path: "/learning-paths", label: "Learning", icon: BookOpen },
+    { path: "/student/tools/flashcard-generator", label: "Flashcards", icon: Layers },
+    { path: "/student/tools/smart-qa-practice-generator", label: "Practice", icon: Brain },
+    { path: "/student/tools/smart-study-guide-generator", label: "Study Guide", icon: Sparkles },
+    { path: "/student/tools/reading-practice-room", label: "Reading", icon: BookOpen },
+    { path: "/student/tools/mock-test-builder", label: "Mock Tests", icon: Trophy },
+    { path: "/dashboard", label: "Achievements", icon: Trophy },
+    { path: "/profile", label: "Profile & Plan", icon: User },
+  ];
+
+  const navItems = isIndividualStudent ? individualNavItems : schoolNavItems;
 
   const getCompactLabel = (label: string) => {
     if (label === "Learning Paths") return "Learning";
@@ -215,7 +235,7 @@ export default function Navigation() {
             
             {/* Navigation Links - Modern Design */}
             {!isMobile && (
-              <div className="hidden items-center gap-1 rounded-full border border-slate-200 bg-slate-100/90 p-1.5 shadow-sm backdrop-blur-md md:flex">
+              <div className="hidden max-w-[min(68vw,900px)] items-center gap-1 overflow-x-auto rounded-full border border-slate-200 bg-slate-100/90 p-1.5 shadow-sm backdrop-blur-md md:flex">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location === item.path;
@@ -226,7 +246,7 @@ export default function Navigation() {
                         onMouseEnter={() => prefetchStudentRoute(item.path)}
                         onFocus={() => prefetchStudentRoute(item.path)}
                         aria-current={isActive ? "page" : undefined}
-                        className={`relative flex items-center gap-2 rounded-full px-4 py-2.5 text-base font-semibold transition-all duration-200 lg:px-5 lg:py-3 ${
+                        className={`relative flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-base font-semibold transition-all duration-200 lg:px-5 lg:py-3 ${
                         isActive 
                           ? "bg-indigo-blue-600 text-white shadow-md shadow-indigo-blue-600/15"
                           : "text-slate-700 hover:bg-white hover:text-indigo-blue-700"

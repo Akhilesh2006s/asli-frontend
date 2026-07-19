@@ -10,6 +10,7 @@ import {
   Copy,
   GraduationCapIcon,
   LayoutList,
+  Layers,
   LogOut,
   Menu,
   SettingsIcon,
@@ -19,6 +20,7 @@ import {
   Users2,
   CreditCardIcon,
   Radio,
+  Timer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -43,6 +45,8 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3Icon },
     { id: 'board', label: 'Board Management', icon: Users2 },
     { id: 'admins', label: 'School Management', icon: Shield },
+    { id: 'products', label: 'Products', icon: Layers },
+    { id: 'trial-members', label: 'Trial Members', icon: Timer },
     { id: 'subjects-and-content', label: 'Subject & Content', icon: LayoutList },
     { id: 'edu-ott-live', label: 'Edu OTT Live', icon: Radio },
     { id: 'exams', label: 'Exam Management', icon: FileTextIcon },

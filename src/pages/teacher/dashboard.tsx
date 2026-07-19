@@ -287,6 +287,17 @@ const TeacherDashboard = () => {
   }, [dashboardSubTab]);
 
   const vidyaChatEnabled = isVidyaEnabledForUser(teacherUser);
+  const isIndividualTeacher = Boolean(teacherUser) &&
+    !teacherUser?.schoolId &&
+    !teacherUser?.assignedAdmin &&
+    !String(teacherUser?.schoolName || '').trim();
+
+  useEffect(() => {
+    if (!isIndividualTeacher) return;
+    setDashboardSubTab('vidya-ai');
+    setVidyaAiTab('teacher-tools');
+  }, [isIndividualTeacher]);
+
   const teacherSubjectNames = useMemo(
     () =>
       (teacherSubjects || [])
@@ -311,7 +322,7 @@ const TeacherDashboard = () => {
       role="tablist"
       aria-label="Dashboard sections"
     >
-      <Button
+      {!isIndividualTeacher ? <Button
         type="button"
         variant="ghost"
         className={tabBtn(dashboardSubTab === 'ai-classes')}
@@ -320,8 +331,8 @@ const TeacherDashboard = () => {
       >
         <Sparkles className="mr-2 h-5 w-5 shrink-0" />
         Dashboard
-      </Button>
-      <Button
+      </Button> : null}
+      {!isIndividualTeacher ? <Button
         type="button"
         variant="ghost"
         className={tabBtn(dashboardSubTab === 'students')}
@@ -330,8 +341,8 @@ const TeacherDashboard = () => {
       >
         <Users className="mr-2 h-5 w-5 shrink-0" />
         My Students
-      </Button>
-      <Button
+      </Button> : null}
+      {!isIndividualTeacher ? <Button
         type="button"
         variant="ghost"
         className={tabBtn(dashboardSubTab === 'eduott')}
@@ -340,8 +351,8 @@ const TeacherDashboard = () => {
       >
         <VideoIcon className="mr-2 h-5 w-5 shrink-0" />
         EduOTT
-      </Button>
-      <Button
+      </Button> : null}
+      {!isIndividualTeacher ? <Button
         type="button"
         variant="ghost"
         className={tabBtn(dashboardSubTab === 'learning-paths')}
@@ -350,7 +361,7 @@ const TeacherDashboard = () => {
       >
         <BookOpen className="mr-2 h-5 w-5 shrink-0" />
         Learning Paths
-      </Button>
+      </Button> : null}
       <Button
         type="button"
         variant="ghost"
@@ -359,7 +370,7 @@ const TeacherDashboard = () => {
         aria-current={dashboardSubTab === 'vidya-ai' ? 'page' : undefined}
       >
         <Sparkles className="mr-2 h-5 w-5 shrink-0" />
-        Vidya AI
+        {isIndividualTeacher ? 'AI Studio' : 'Vidya AI'}
       </Button>
     </div>
   );
@@ -2618,44 +2629,54 @@ const TeacherDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
+                className="asli-card-premium overflow-hidden p-5 sm:p-7 lg:p-10"
               >
-                <div className="flex items-center space-x-3 mb-6">
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                <div className="mb-8 flex flex-col gap-5 border-b border-slate-200 pb-7 sm:flex-row sm:items-center">
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl shadow-glow ring-4 ring-indigo-blue-50">
                     <img 
                       src="/Vidya-ai.jpg" 
                       alt="Vidya AI" 
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">Vidya AI</h3>
+                  <div>
+                    <p className="mb-1 text-base font-bold uppercase tracking-[0.14em] text-indigo-blue-600">
+                      {isIndividualTeacher ? 'Your Individual Workspace' : 'Teacher Intelligence Workspace'}
+                    </p>
+                    <h3 className="font-display text-3xl font-bold text-slate-900 sm:text-4xl">
+                      {isIndividualTeacher ? 'AI Studio For Teachers' : 'Vidya AI'}
+                    </h3>
+                    <p className="mt-2 max-w-3xl text-lg leading-relaxed text-slate-600">
+                      Create polished, curriculum-ready teaching material and get practical AI support in one place.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Tabs for Teacher Tools and Chat */}
-                <div className="mb-6 border-b border-gray-200">
-                  <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
+                <div className="mb-8">
+                  <div className="inline-flex min-h-14 w-full gap-1 overflow-x-auto rounded-2xl border border-slate-200 bg-slate-100/90 p-1.5 sm:w-auto">
                     <button
                       onClick={() => setVidyaAiTab('teacher-tools')}
-                      className={`flex-1 px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
+                      className={`min-h-11 flex-1 whitespace-nowrap rounded-xl px-5 py-2 text-lg font-semibold transition-all ${
                         vidyaAiTab === 'teacher-tools'
-                          ? 'bg-white text-gray-900 shadow-sm border border-gray-300'
-                          : 'text-gray-600 hover:text-gray-900'
+                          ? 'bg-white text-indigo-blue-700 shadow-md'
+                          : 'text-slate-600 hover:bg-white/70 hover:text-indigo-blue-700'
                       }`}
                     >
-                      <Wrench className="w-3 h-3 sm:w-4 sm:h-4 inline mr-2" />
-                      Teacher Tools
+                      <Wrench className="mr-2 inline h-5 w-5" />
+                      AI Tools
                     </button>
                     {vidyaChatEnabled ? (
                     <button
                       onClick={() => setVidyaAiTab('chat')}
-                      className={`flex-1 px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-all ${
+                      className={`min-h-11 flex-1 whitespace-nowrap rounded-xl px-5 py-2 text-lg font-semibold transition-all ${
                         vidyaAiTab === 'chat'
-                          ? 'bg-white text-gray-900 shadow-sm border border-gray-300'
-                          : 'text-gray-600 hover:text-gray-900'
+                          ? 'bg-white text-indigo-blue-700 shadow-md'
+                          : 'text-slate-600 hover:bg-white/70 hover:text-indigo-blue-700'
                       }`}
                     >
-                      <MessageCircle className="w-3 h-3 sm:w-4 sm:h-4 inline mr-2" />
-                      Chat
+                      <MessageCircle className="mr-2 inline h-5 w-5" />
+                      Ask Vidya
                     </button>
                     ) : null}
                   </div>
@@ -2663,11 +2684,33 @@ const TeacherDashboard = () => {
 
                 {/* Teacher Tools Content */}
                 {vidyaAiTab === 'teacher-tools' && (
-                  <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+                  <div className="space-y-8">
+                    {isIndividualTeacher ? (
+                      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                        {[
+                          { label: 'Lesson Planner', icon: BookMarked, route: '/teacher/tools/lesson-planner' },
+                          { label: 'Worksheets', icon: ClipboardCheck, route: '/teacher/tools/worksheet-mcq-generator' },
+                          { label: 'Question Papers', icon: FileQuestion, route: '/teacher/tools/exam-question-paper-generator' },
+                          { label: 'Profile & Subscription', icon: CreditCard, route: '/profile' },
+                        ].map(({ label, icon: Icon, route }) => (
+                          <button
+                            key={label}
+                            type="button"
+                            onClick={() => setLocation(route)}
+                            className="group flex min-h-28 items-center gap-4 rounded-2xl border border-indigo-blue-100 bg-gradient-to-br from-white to-indigo-blue-50/60 p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-blue-200 hover:shadow-elevated"
+                          >
+                            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-blue-100 text-indigo-blue-700 transition group-hover:bg-indigo-blue-600 group-hover:text-white">
+                              <Icon className="h-6 w-6" />
+                            </span>
+                            <span className="text-lg font-bold text-slate-800">{label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                     {/* Available Tools Section */}
                       <div>
-                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Available Tools</h3>
-                      <p className="text-gray-600 mb-6">{TEACHER_AI_TOOLS_SUBTITLE}</p>
+                      <h3 className="mb-2 font-display text-3xl font-bold text-slate-900">Create With AI</h3>
+                      <p className="mb-7 text-lg leading-relaxed text-slate-600">{TEACHER_AI_TOOLS_SUBTITLE}</p>
 
                       <TeacherVidyaToolsGrid
                         subjectNames={teacherSubjectNames}

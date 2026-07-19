@@ -7,6 +7,7 @@ import { lazy, Suspense } from "react";
 import NotFound from "@/pages/not-found";
 import Homepage from "./pages/homepage";
 import { EduOTTFilterProvider } from "@/contexts/edu-ott-filter-context";
+import { IndividualTrialGate } from "@/components/IndividualTrialGate";
 
 const Dashboard = lazy(() => import("./pages/dashboard"));
 const LearningPaths = lazy(() => import("./pages/learning-paths"));
@@ -15,6 +16,7 @@ const AITutor = lazy(() => import("./pages/ai-tutor"));
 const Profile = lazy(() => import("./pages/profile"));
 const Login = lazy(() => import("./pages/auth/login"));
 const Register = lazy(() => import("./pages/auth/register"));
+const Subscribe = lazy(() => import("./pages/auth/subscribe"));
 const AdminDashboard = lazy(() => import("./pages/admin/dashboard"));
 const AdminSubjectContent = lazy(() => import("./pages/admin/subject-content"));
 const SubjectManagement = lazy(() => import("./pages/admin/subject-management"));
@@ -44,10 +46,17 @@ const SixPreview = lazy(() => import("./pages/six-preview"));
 function RouteLoadingState() {
   return (
     <div className="asli-app-bg flex min-h-screen items-center justify-center p-6" role="status">
-      <div className="asli-card-premium flex max-w-md flex-col items-center p-8 text-center">
-        <span className="mb-5 h-12 w-12 animate-spin rounded-full border-4 border-indigo-blue-100 border-t-indigo-blue-600" />
-        <p className="font-display text-2xl font-bold text-slate-900">Opening your workspace</p>
-        <p className="mt-2 text-base text-slate-600">Loading the tools you need…</p>
+      <div className="asli-card-premium flex w-full max-w-xl flex-col items-center p-8 text-center sm:p-10">
+        <div className="mb-6 flex h-20 w-20 animate-ai-pulse items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-blue-600 to-blue-500 shadow-glow">
+          <img src="/logo.jpg" alt="" className="h-14 w-14 rounded-2xl object-cover" />
+        </div>
+        <p className="font-display text-3xl font-bold text-slate-900">Opening Your Workspace</p>
+        <p className="mt-3 text-lg text-slate-600">Preparing a clear, personalised view for you.</p>
+        <div className="mt-8 w-full space-y-3" aria-hidden="true">
+          <div className="mx-auto h-4 w-2/3 animate-pulse rounded-full bg-indigo-blue-100" />
+          <div className="h-4 w-full animate-pulse rounded-full bg-slate-200" />
+          <div className="mx-auto h-4 w-5/6 animate-pulse rounded-full bg-slate-200" />
+        </div>
       </div>
     </div>
   );
@@ -83,6 +92,7 @@ function Router() {
         <Route path="/auth/login" component={Login} />
         <Route path="/signin" component={Login} />
         <Route path="/auth/register" component={Register} />
+        <Route path="/auth/subscribe" component={Subscribe} />
         <Route path="/admin/dashboard" component={AdminDashboard} />
         <Route path="/admin/subject/:id" component={AdminSubjectContent} />
         <Route path="/admin/subjects" component={SubjectManagement} />
@@ -112,7 +122,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <Router />
+        <IndividualTrialGate>
+          <Router />
+        </IndividualTrialGate>
       </TooltipProvider>
     </QueryClientProvider>
   );

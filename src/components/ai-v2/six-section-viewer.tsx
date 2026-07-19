@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatAiToolText } from '@/lib/title-case';
 
 /**
  * SixSectionViewer — one reusable, premium card shell for all 21 AsliLearn tools.
@@ -610,9 +611,9 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
             <ToolIcon className="h-8 w-8" />
           </div>
           <div className="min-w-0">
-            <h2 className="truncate text-xl font-black tracking-tight sm:text-2xl">{tool.name}</h2>
+            <h2 className="truncate text-xl font-black tracking-tight sm:text-2xl">{formatAiToolText(tool.name)}</h2>
             {tool.subtitle && (
-              <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">{tool.subtitle}</p>
+              <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">{formatAiToolText(tool.subtitle)}</p>
             )}
           </div>
           <span className="ml-auto hidden shrink-0 items-center gap-1.5 self-start rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 px-3 py-1.5 text-xs font-bold text-white shadow-sm shadow-blue-500/30 sm:inline-flex">
@@ -630,10 +631,10 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
               className="min-w-0 rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 shadow-sm transition-shadow hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
             >
               <div className="text-[0.6rem] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                {c.k}
+                {formatAiToolText(c.k)}
               </div>
               <div className="mt-0.5 break-words text-sm font-bold leading-snug text-slate-800 dark:text-slate-200">
-                {c.v}
+                {formatAiToolText(String(c.v || ''))}
               </div>
             </div>
           ))}
@@ -689,9 +690,11 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
                   className="rounded-2xl border border-slate-200/80 bg-white px-3.5 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-900"
                 >
                   <div className="text-[0.6rem] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">
-                    {s.label}
+                    {formatAiToolText(s.label)}
                   </div>
-                  <div className="mt-0.5 text-[0.92rem] font-bold text-slate-800 dark:text-slate-200">{s.value}</div>
+                  <div className="mt-0.5 text-[0.92rem] font-bold text-slate-800 dark:text-slate-200">
+                    {formatAiToolText(s.value)}
+                  </div>
                 </div>
               ))}
             </div>
@@ -790,7 +793,7 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
                     )}
                   >
                     <span className="mr-1.5 tabular-nums opacity-50">{idx + 1}.</span>
-                    {s.label}
+                    {formatAiToolText(s.label)}
                   </h4>
                 </div>
                 {isPrimary && (

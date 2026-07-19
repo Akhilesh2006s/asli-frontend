@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { AI_V2, BLOOM_LEVEL_STYLES } from '@/lib/ai-tool-design-tokens';
+import { formatAiToolText } from '@/lib/title-case';
 import type { BloomDistributionRow } from '@/lib/parse-exam-question-paper';
 
 const DIFFICULTY_COLORS: Record<string, string> = {
@@ -51,11 +52,11 @@ export function AiToolV2DistributionDonut({
       >
         <div className="absolute inset-3 flex flex-col items-center justify-center rounded-full bg-white text-center">
           <span className="text-lg font-bold text-slate-900">{total}</span>
-          <span className="text-[10px] font-medium uppercase text-slate-500">{totalLabel}</span>
+          <span className="text-[10px] font-medium uppercase text-slate-500">{formatAiToolText(totalLabel)}</span>
         </div>
       </div>
       <div className="min-w-0 flex-1 space-y-2">
-        <p className={cn(AI_V2.typography.label, 'text-slate-600')}>{title}</p>
+        <p className={cn(AI_V2.typography.label, 'text-slate-600')}>{formatAiToolText(title)}</p>
         {active.map((row) => {
           const style = BLOOM_LEVEL_STYLES[row.label];
           return (

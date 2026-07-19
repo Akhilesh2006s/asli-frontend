@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,9 +7,31 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Sparkles, CheckCircle } from 'lucide-react';
-import { Link } from 'wouter';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User,
+  ArrowLeft,
+  Sparkles,
+  CheckCircle,
+  Phone,
+  School,
+} from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
+import { IIT_CATEGORIES, formatIitCategoryLabel } from '@/lib/products';
+import {
+  CURRICULUM_BOARD_OPTIONS,
+  INDIVIDUAL_CLASS_OPTIONS,
+  INDIVIDUAL_COURSE_OPTIONS,
+  INDIVIDUAL_SUBJECT_OPTIONS,
+  INDIVIDUAL_TRIAL_DAYS,
+} from '@/lib/individual-signup';
+import { cn } from '@/lib/utils';
+
+type RoleType = 'student' | 'teacher';
 
 const Register = () => {
   const [, setLocation] = useLocation();
@@ -18,13 +40,29 @@ const Register = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'student'
+    role: 'student' as RoleType,
+    schoolName: '',
+    phone: '',
+    classNumber: '',
+    curriculumBoard: 'CBSE',
+    interestedCourses: [] as string[],
+    interestedSubjects: [] as string[],
+    iitCategories: [] as string[],
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  const toggleInList = (key: 'interestedCourses' | 'interestedSubjects' | 'iitCategories', value: string) => {
+    setFormData((prev) => {
+      const list = prev[key];
+      const next = list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+      return { ...prev, [key]: next };
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,9 +74,34 @@ const Register = () => {
       setIsLoading(false);
       return;
     }
-
     if (formData.password.length < 6) {
       setError('Password must be at least 6 characters long');
+      setIsLoading(false);
+      return;
+    }
+    if (!formData.schoolName.trim()) {
+      setError('School name is required');
+      setIsLoading(false);
+      return;
+    }
+    const phoneDigits = formData.phone.replace(/\D/g, '');
+    if (phoneDigits.length !== 10) {
+      setError('Phone number must be exactly 10 digits');
+      setIsLoading(false);
+      return;
+    }
+    if (formData.role === 'student' && !formData.classNumber) {
+      setError('Please select your class');
+      setIsLoading(false);
+      return;
+    }
+    if (formData.interestedCourses.length === 0) {
+      setError('Select at least one course you are interested in');
+      setIsLoading(false);
+      return;
+    }
+    if (formData.interestedSubjects.length === 0) {
+      setError('Select at least one subject');
       setIsLoading(false);
       return;
     }
@@ -46,68 +109,59 @@ const Register = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullName: formData.fullName,
-          email: formData.email,
+          fullName: formData.fullName.trim(),
+          email: formData.email.trim(),
           password: formData.password,
-          role: formData.role
+          role: formData.role,
+          schoolName: formData.schoolName.trim(),
+          phone: phoneDigits,
+          classNumber: formData.classNumber,
+          curriculumBoard: formData.curriculumBoard,
+          interestedCourses: formData.interestedCourses,
+          interestedSubjects: formData.interestedSubjects,
+          iitCategories: formData.iitCategories,
         }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
+        setSuccessMessage(
+          data.message ||
+            `Account created. Your ${INDIVIDUAL_TRIAL_DAYS}-day free trial has started.`,
+        );
         setSuccess(true);
-        setTimeout(() => {
-          setLocation('/auth/login');
-        }, 2000);
+        setTimeout(() => setLocation('/auth/login'), 2500);
       } else {
         setError(data.message || 'Registration failed');
       }
-    } catch (err) {
+    } catch {
       setError('Network error. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleRoleChange = (value: string) => {
-    setFormData({
-      ...formData,
-      role: value
-    });
-  };
-
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-sky-50 via-white to-orange-50 p-4">
         <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
+          initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6 }}
-          className="text-center"
+          className="max-w-md text-center"
         >
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="w-10 h-10 text-green-600" />
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100">
+            <CheckCircle className="h-10 w-10 text-emerald-600" />
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">
-            Account Created Successfully!
-          </h2>
-          <p className="text-gray-600 mb-6">
-            You can now sign in with your credentials.
+          <h2 className="mb-3 text-2xl font-bold text-slate-900">Account created</h2>
+          <p className="mb-6 text-slate-600">{successMessage}</p>
+          <p className="mb-6 text-sm text-slate-500">
+            After {INDIVIDUAL_TRIAL_DAYS} days you will be asked to subscribe to continue.
           </p>
           <Link href="/auth/login">
-            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+            <Button className="bg-gradient-to-r from-orange-500 to-sky-500 text-white">
               Go to Sign In
             </Button>
           </Link>
@@ -117,195 +171,329 @@ const Register = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl"></div>
+    <div className="relative min-h-screen bg-gradient-to-br from-sky-50 via-white to-orange-50 px-4 py-8 sm:py-12">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-10 top-20 h-72 w-72 rounded-full bg-sky-300/20 blur-3xl" />
+        <div className="absolute bottom-20 right-10 h-96 w-96 rounded-full bg-orange-300/20 blur-3xl" />
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="relative z-10 w-full max-w-md sm:max-w-lg"
+        className="relative z-10 mx-auto w-full max-w-3xl"
       >
-        <Card className="backdrop-blur-sm bg-white/80 border-white/20 shadow-2xl">
-          <CardHeader className="text-center space-y-4 px-4 sm:px-6">
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto"
-            >
-              <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
-            </motion.div>
-            <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900">
-              Create Your Account
+        <Card className="border-white/40 bg-white/90 shadow-xl backdrop-blur-sm">
+          <CardHeader className="space-y-3 px-5 text-center sm:px-8">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-orange-500 to-sky-500">
+              <Sparkles className="h-7 w-7 text-white" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-slate-900">
+              Individual signup
             </CardTitle>
-            <p className="text-gray-600">
-              Join thousands of students learning with AI
+            <p className="text-sm text-slate-600 sm:text-base">
+              Teachers and students — start a free {INDIVIDUAL_TRIAL_DAYS}-day trial. We store your
+              profile so we can match products, class, and subjects.
             </p>
           </CardHeader>
-          
-          <CardContent className="space-y-5 sm:space-y-6 px-4 sm:px-6 pb-6 sm:pb-8">
+
+          <CardContent className="space-y-5 px-5 pb-8 sm:px-8">
             {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              </motion.div>
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-xs sm:text-sm font-medium text-gray-700">
-                  Full Name
-                </Label>
-                <div className="relative">
-                  <User className="absolute left-3 sm:left-4 top-1/2 z-10 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none" />
-                  <Input
-                    id="fullName"
-                    name="fullName"
-                    type="text"
-                    value={formData.fullName}
-                    onChange={handleChange}
-                    placeholder="Enter your full name"
-                    className="h-11 sm:h-12 px-0 pl-10 sm:pl-12 pr-4 text-sm sm:text-base"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-xs sm:text-sm font-medium text-gray-700">
-                  Email Address
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 sm:left-4 top-1/2 z-10 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none" />
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="Enter your email"
-                    className="h-11 sm:h-12 px-0 pl-10 sm:pl-12 pr-4 text-sm sm:text-base"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="role" className="text-xs sm:text-sm font-medium text-gray-700">
-                  Account Type
-                </Label>
-                <Select value={formData.role} onValueChange={handleRoleChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select account type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="student">Student</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-xs sm:text-sm font-medium text-gray-700">
-                  Password
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 sm:left-4 top-1/2 z-10 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none" />
-                  <Input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="Create a password"
-                    className="h-11 sm:h-12 px-0 pl-10 sm:pl-12 pr-10 sm:pr-12 text-sm sm:text-base"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 sm:right-4 top-1/2 z-10 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>I am a *</Label>
+                  <Select
+                    value={formData.role}
+                    onValueChange={(v) =>
+                      setFormData((p) => ({ ...p, role: v as RoleType }))
+                    }
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
-                  </button>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="student">Student</SelectItem>
+                      <SelectItem value="teacher">Teacher</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-xs sm:text-sm font-medium text-gray-700">
-                  Confirm Password
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 sm:left-4 top-1/2 z-10 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400 pointer-events-none" />
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    placeholder="Confirm your password"
-                    className="h-11 sm:h-12 px-0 pl-10 sm:pl-12 pr-10 sm:pr-12 text-sm sm:text-base"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 sm:right-4 top-1/2 z-10 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full name *</Label>
+                  <div className="relative">
+                    <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      id="fullName"
+                      value={formData.fullName}
+                      onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                      className="pl-10"
+                      placeholder="Your full name"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="schoolName">School name *</Label>
+                  <div className="relative">
+                    <School className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      id="schoolName"
+                      value={formData.schoolName}
+                      onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })}
+                      className="pl-10"
+                      placeholder="School / coaching name"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone *</Label>
+                  <div className="relative">
+                    <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      id="phone"
+                      inputMode="numeric"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          phone: e.target.value.replace(/\D/g, '').slice(0, 10),
+                        })
+                      }
+                      className="pl-10"
+                      placeholder="10-digit mobile"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <div className="relative">
+                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="pl-10"
+                      placeholder="you@example.com"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Class {formData.role === 'student' ? '*' : '(optional)'}</Label>
+                  <Select
+                    value={formData.classNumber || undefined}
+                    onValueChange={(v) => setFormData({ ...formData, classNumber: v })}
                   >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
-                  </button>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INDIVIDUAL_CLASS_OPTIONS.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Curriculum board *</Label>
+                  <Select
+                    value={formData.curriculumBoard}
+                    onValueChange={(v) => setFormData({ ...formData, curriculumBoard: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CURRICULUM_BOARD_OPTIONS.map((b) => (
+                        <SelectItem key={b} value={b}>
+                          {b}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
-              <div className="flex items-start space-x-2">
-                <input
-                  id="terms"
-                  type="checkbox"
-                  className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-1"
-                  required
-                />
-                <Label htmlFor="terms" className="text-xs sm:text-sm text-gray-600 leading-6">
-                  I agree to the{' '}
-                  <Link href="/terms" className="text-blue-600 hover:text-blue-700">
-                    Terms of Service
-                  </Link>{' '}
-                  and{' '}
-                  <Link href="/privacy" className="text-blue-600 hover:text-blue-700">
-                    Privacy Policy
-                  </Link>
+              <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+                <Label className="text-sm font-semibold text-slate-900">
+                  Course interested in *
                 </Label>
+                <p className="text-xs text-slate-500">Select one or more pathways.</p>
+                <div className="mt-2 flex flex-wrap gap-3">
+                  {INDIVIDUAL_COURSE_OPTIONS.map((course) => {
+                    const checked = formData.interestedCourses.includes(course);
+                    return (
+                      <label
+                        key={course}
+                        className={cn(
+                          'flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm',
+                          checked
+                            ? 'border-orange-300 bg-orange-50 text-orange-950'
+                            : 'border-slate-200 bg-white text-slate-700',
+                        )}
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={() => toggleInList('interestedCourses', course)}
+                        />
+                        {course}
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
+
+              <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+                <Label className="text-sm font-semibold text-slate-900">
+                  IIT product tracks (optional)
+                </Label>
+                <p className="text-xs text-slate-500">
+                  Alpha / Beta / Gamma — pick the tracks you want access to. Leave empty for general
+                  curriculum only.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-3">
+                  {IIT_CATEGORIES.map((cat) => {
+                    const checked = formData.iitCategories.includes(cat);
+                    return (
+                      <label
+                        key={cat}
+                        className={cn(
+                          'flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm',
+                          checked
+                            ? 'border-sky-300 bg-sky-50 text-sky-950'
+                            : 'border-slate-200 bg-white text-slate-700',
+                        )}
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={() => toggleInList('iitCategories', cat)}
+                        />
+                        IIT {formatIitCategoryLabel(cat)}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+                <Label className="text-sm font-semibold text-slate-900">Subjects *</Label>
+                <p className="text-xs text-slate-500">Which subjects do you want to study or teach?</p>
+                <div className="mt-2 flex flex-wrap gap-3">
+                  {INDIVIDUAL_SUBJECT_OPTIONS.map((subj) => {
+                    const checked = formData.interestedSubjects.includes(subj);
+                    return (
+                      <label
+                        key={subj}
+                        className={cn(
+                          'flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm',
+                          checked
+                            ? 'border-emerald-300 bg-emerald-50 text-emerald-950'
+                            : 'border-slate-200 bg-white text-slate-700',
+                        )}
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={() => toggleInList('interestedSubjects', subj)}
+                        />
+                        {subj}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password *</Label>
+                  <div className="relative">
+                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      className="pl-10 pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm password *</Label>
+                  <div className="relative">
+                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={formData.confirmPassword}
+                      onChange={(e) =>
+                        setFormData({ ...formData, confirmPassword: e.target.value })
+                      }
+                      className="pl-10 pr-10"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-500">
+                By creating an account you get {INDIVIDUAL_TRIAL_DAYS} days free. After that,
+                payment is required to continue using ASLILEARN individually.
+              </p>
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
                 disabled={isLoading}
+                className="h-11 w-full bg-gradient-to-r from-orange-500 to-sky-500 text-white"
               >
-                {isLoading ? 'Creating Account...' : 'Create Account'}
+                {isLoading ? 'Creating account…' : `Start ${INDIVIDUAL_TRIAL_DAYS}-day free trial`}
               </Button>
             </form>
 
-            <div className="text-center">
-              <p className="text-xs sm:text-sm text-gray-600">
-                Already have an account?{' '}
-                <Link href="/auth/login" className="text-blue-600 hover:text-blue-700 font-medium">
-                  Sign in here
-                </Link>
-              </p>
+            <div className="text-center text-sm text-slate-600">
+              Already have an account?{' '}
+              <Link href="/auth/login" className="font-medium text-sky-700 hover:underline">
+                Sign in
+              </Link>
             </div>
-
             <div className="text-center">
-              <Link href="/" className="inline-flex items-center text-xs sm:text-sm text-gray-600 hover:text-gray-800">
-                <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+              <Link
+                href="/"
+                className="inline-flex items-center text-sm text-slate-500 hover:text-slate-800"
+              >
+                <ArrowLeft className="mr-1 h-4 w-4" />
                 Back to Home
               </Link>
             </div>
@@ -317,4 +505,3 @@ const Register = () => {
 };
 
 export default Register;
-

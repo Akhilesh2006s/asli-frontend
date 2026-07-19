@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { filterVisibleTeacherTools } from '@/lib/teacher-ai-tools';
+import { formatAiToolText } from '@/lib/title-case';
 
 type TeacherVidyaToolsGridProps = {
   subjectNames: string[];
@@ -110,8 +111,8 @@ export function TeacherVidyaToolsGrid({ subjectNames, onOpenTool }: TeacherVidya
                 <Icon className={`w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 ${ui.iconColor}`} />
               </div>
               <div>
-                <h4 className="font-bold text-gray-900 mb-1">{tool.title}</h4>
-                <p className="text-xs sm:text-sm text-gray-600">{tool.description}</p>
+                <h4 className="font-bold text-gray-900 mb-1">{formatAiToolText(tool.title)}</h4>
+                <p className="text-xs sm:text-sm text-gray-600">{formatAiToolText(tool.description)}</p>
               </div>
             </div>
           </motion.div>

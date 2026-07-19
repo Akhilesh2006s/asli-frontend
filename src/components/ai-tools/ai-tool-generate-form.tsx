@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { AI_V2 } from '@/lib/ai-tool-design-tokens';
+import { formatAiToolText } from '@/lib/title-case';
 
 type AiToolGeneratePageChromeProps = {
   title: string;
@@ -28,6 +29,10 @@ export function AiToolGeneratePageChrome({
   children,
   className,
 }: AiToolGeneratePageChromeProps) {
+  const displayTitle = formatAiToolText(title);
+  const displayDescription = description ? formatAiToolText(description) : undefined;
+  const displayBadge = badge ? formatAiToolText(badge) : undefined;
+
   return (
     <div className={cn('asli-app-bg min-h-screen p-5 sm:p-7 lg:p-10', className)}>
       <div className="mx-auto max-w-6xl space-y-7 sm:space-y-8">
@@ -55,18 +60,18 @@ export function AiToolGeneratePageChrome({
               <div className="min-w-0 space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2.5">
                   <h1 className="font-display text-3xl font-bold tracking-tight text-ink lg:text-4xl">
-                    {title}
+                    {displayTitle}
                   </h1>
-                  {badge ? (
+                  {displayBadge ? (
                     <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[0.9375rem] font-semibold text-primary">
                       <Sparkles className="h-4 w-4" />
-                      {badge}
+                      {displayBadge}
                     </span>
                   ) : null}
                 </div>
-                {description ? (
+                {displayDescription ? (
                   <p className="max-w-2xl text-lg leading-relaxed text-muted-foreground">
-                    {description}
+                    {displayDescription}
                   </p>
                 ) : null}
               </div>
@@ -93,8 +98,8 @@ type AiToolGenerateFormCardProps = {
 
 /** Curriculum selectors + primary Generate CTA — shared look for teacher & student. */
 export function AiToolGenerateFormCard({
-  title = 'Choose what to generate',
-  subtitle = 'Pick board, class, subject, topic, and subtopic — then generate interactive study content.',
+  title = 'Choose What To Generate',
+  subtitle = 'Pick Board, Class, Subject, Topic, And Subtopic — Then Generate Interactive Study Content.',
   notices,
   children,
   onGenerate,
@@ -103,6 +108,10 @@ export function AiToolGenerateFormCard({
   generateDisabled = false,
   className,
 }: AiToolGenerateFormCardProps) {
+  const displayTitle = formatAiToolText(title);
+  const displaySubtitle = subtitle ? formatAiToolText(subtitle) : undefined;
+  const displayGenerateLabel = formatAiToolText(generateLabel);
+
   return (
     <motion.section
       initial={{ opacity: 0, y: 14 }}
@@ -116,8 +125,10 @@ export function AiToolGenerateFormCard({
       )}
     >
       <div className="border-b border-slate-100 bg-gradient-to-r from-indigo-blue-50/80 via-white to-orange-50/50 px-5 py-5 sm:px-7">
-        <h2 className="font-display text-2xl font-bold tracking-tight text-slate-900">{title}</h2>
-        {subtitle ? <p className="mt-2 text-base leading-relaxed text-slate-600 sm:text-lg">{subtitle}</p> : null}
+        <h2 className="font-display text-2xl font-bold tracking-tight text-slate-900">{displayTitle}</h2>
+        {displaySubtitle ? (
+          <p className="mt-2 text-base leading-relaxed text-slate-600 sm:text-lg">{displaySubtitle}</p>
+        ) : null}
       </div>
       <div className="space-y-6 p-5 sm:p-7">
         {notices}
@@ -132,12 +143,12 @@ export function AiToolGenerateFormCard({
             {isGenerating ? (
               <>
                 <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Generating…
+                {formatAiToolText('Generating…')}
               </>
             ) : (
               <>
                 <Sparkles className="mr-2 h-4 w-4" />
-                {generateLabel}
+                {displayGenerateLabel}
               </>
             )}
           </Button>
